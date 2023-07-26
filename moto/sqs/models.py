@@ -537,7 +537,9 @@ class Queue(CloudFormationModel):
         return result
 
     def url(self, request_url: ParseResult) -> str:
-        return f"{request_url.scheme}://{request_url.netloc}/{self.account_id}/{self.name}"  # type: ignore
+        return (
+            f"{request_url.scheme}://{request_url.netloc}/{self.account_id}/{self.name}"
+        )
 
     @property
     def messages(self) -> List[Message]:
@@ -882,15 +884,8 @@ class SQSBackend(BaseBackend):
         ):
             raise InvalidBatchEntryId()
 
-        body_length = next(
-            (
-                len(entry["MessageBody"])
-                for entry in entries.values()
-                if len(entry["MessageBody"]) > MAXIMUM_MESSAGE_LENGTH
-            ),
-            False,
-        )
-        if body_length:
+        body_length = sum(len(entry["MessageBody"]) for entry in entries.values())
+        if body_length > MAXIMUM_MESSAGE_LENGTH:
             raise BatchRequestTooLong(body_length)
 
         duplicate_id = self._get_first_duplicate_id(

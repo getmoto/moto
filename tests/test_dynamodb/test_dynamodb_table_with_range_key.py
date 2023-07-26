@@ -3,7 +3,6 @@ from decimal import Decimal
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_dynamodb
@@ -33,8 +32,8 @@ def test_get_item_without_range_key_boto3():
     with pytest.raises(ClientError) as ex:
         table.get_item(Key={"id": hash_key})
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal("Validation Exception")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == "Validation Exception"
 
 
 @mock_dynamodb
@@ -59,23 +58,23 @@ def test_query_filter_boto3():
         table.put_item(Item={"pk": "pk", "sk": f"sk-{i}"})
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk"))
-    res["Items"].should.have.length_of(3)
+    assert len(res["Items"]) == 3
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").lt("sk-1"))
-    res["Items"].should.have.length_of(1)
-    res["Items"].should.equal([{"pk": "pk", "sk": "sk-0"}])
+    assert len(res["Items"]) == 1
+    assert res["Items"] == [{"pk": "pk", "sk": "sk-0"}]
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").lte("sk-1"))
-    res["Items"].should.have.length_of(2)
-    res["Items"].should.equal([{"pk": "pk", "sk": "sk-0"}, {"pk": "pk", "sk": "sk-1"}])
+    assert len(res["Items"]) == 2
+    assert res["Items"] == [{"pk": "pk", "sk": "sk-0"}, {"pk": "pk", "sk": "sk-1"}]
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").gt("sk-1"))
-    res["Items"].should.have.length_of(1)
-    res["Items"].should.equal([{"pk": "pk", "sk": "sk-2"}])
+    assert len(res["Items"]) == 1
+    assert res["Items"] == [{"pk": "pk", "sk": "sk-2"}]
 
     res = table.query(KeyConditionExpression=Key("pk").eq("pk") & Key("sk").gte("sk-1"))
-    res["Items"].should.have.length_of(2)
-    res["Items"].should.equal([{"pk": "pk", "sk": "sk-1"}, {"pk": "pk", "sk": "sk-2"}])
+    assert len(res["Items"]) == 2
+    assert res["Items"] == [{"pk": "pk", "sk": "sk-1"}, {"pk": "pk", "sk": "sk-2"}]
 
 
 @mock_dynamodb
@@ -108,7 +107,7 @@ def test_boto3_conditions():
     )
     expected = ["123", "456", "789"]
     for index, item in enumerate(results["Items"]):
-        item["subject"].should.equal(expected[index])
+        assert item["subject"] == expected[index]
 
     # Return all items again, but in reverse
     results = table.query(
@@ -116,7 +115,7 @@ def test_boto3_conditions():
         ScanIndexForward=False,
     )
     for index, item in enumerate(reversed(results["Items"])):
-        item["subject"].should.equal(expected[index])
+        assert item["subject"] == expected[index]
 
     # Filter the subjects to only return some of the results
     results = table.query(
@@ -124,32 +123,32 @@ def test_boto3_conditions():
         & Key("subject").gt("234"),
         ConsistentRead=True,
     )
-    results["Count"].should.equal(2)
+    assert results["Count"] == 2
 
     # Filter to return no results
     results = table.query(
         KeyConditionExpression=Key("forum_name").eq("the-key")
         & Key("subject").gt("9999")
     )
-    results["Count"].should.equal(0)
+    assert results["Count"] == 0
 
     results = table.query(
         KeyConditionExpression=Key("forum_name").eq("the-key")
         & Key("subject").begins_with("12")
     )
-    results["Count"].should.equal(1)
+    assert results["Count"] == 1
 
     results = table.query(
         KeyConditionExpression=Key("subject").begins_with("7")
         & Key("forum_name").eq("the-key")
     )
-    results["Count"].should.equal(1)
+    assert results["Count"] == 1
 
     results = table.query(
         KeyConditionExpression=Key("forum_name").eq("the-key")
         & Key("subject").between("567", "890")
     )
-    results["Count"].should.equal(1)
+    assert results["Count"] == 1
 
 
 @mock_dynamodb
@@ -199,7 +198,7 @@ def test_boto3_conditions_ignorecase():
                 ":end": {"S": "200"},
             },
         )
-        results["Count"].should.equal(2)
+        assert results["Count"] == 2
 
     with pytest.raises(ClientError) as ex:
         dynamodb.query(
@@ -210,20 +209,19 @@ def test_boto3_conditions_ignorecase():
                 ":subject": {"S": "1"},
             },
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid KeyConditionExpression: Invalid function name; function: BegIns_WiTh"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid KeyConditionExpression: Invalid function name; function: BegIns_WiTh"
     )
 
 
 @mock_dynamodb
 def test_boto3_put_item_with_conditions():
-    import botocore
-
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -244,15 +242,21 @@ def test_boto3_put_item_with_conditions():
         ConditionExpression="attribute_not_exists(forum_name) AND attribute_not_exists(subject)",
     )
 
-    table.put_item.when.called_with(
-        Item={"forum_name": "the-key", "subject": "123"},
-        ConditionExpression="attribute_not_exists(forum_name) AND attribute_not_exists(subject)",
-    ).should.throw(botocore.exceptions.ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"forum_name": "the-key", "subject": "123"},
+            ConditionExpression="attribute_not_exists(forum_name) AND attribute_not_exists(subject)",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConditionalCheckFailedException"
 
-    table.put_item.when.called_with(
-        Item={"forum_name": "bogus-key", "subject": "bogus", "test": "123"},
-        ConditionExpression="attribute_exists(forum_name) AND attribute_exists(subject)",
-    ).should.throw(botocore.exceptions.ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"forum_name": "bogus-key", "subject": "bogus", "test": "123"},
+            ConditionExpression="attribute_exists(forum_name) AND attribute_exists(subject)",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConditionalCheckFailedException"
 
 
 def _create_table_with_range_key():
@@ -316,15 +320,13 @@ def test_update_item_range_key_set():
         (k, str(v) if isinstance(v, Decimal) else v)
         for k, v in table.get_item(Key=item_key)["Item"].items()
     )
-    dict(returned_item).should.equal(
-        {
-            "username": "johndoe2",
-            "forum_name": "the-key",
-            "subject": "123",
-            "created": "4",
-            "mapfield": {"key": "value"},
-        }
-    )
+    assert returned_item == {
+        "username": "johndoe2",
+        "forum_name": "the-key",
+        "subject": "123",
+        "created": "4",
+        "mapfield": {"key": "value"},
+    }
 
 
 @mock_dynamodb
@@ -348,15 +350,13 @@ def test_update_item_does_not_exist_is_created():
         (k, str(v) if isinstance(v, Decimal) else v)
         for k, v in table.get_item(Key=item_key)["Item"].items()
     )
-    dict(returned_item).should.equal(
-        {
-            "username": "johndoe2",
-            "forum_name": "the-key",
-            "subject": "123",
-            "created": "4",
-            "mapfield": {"key": "value"},
-        }
-    )
+    assert returned_item == {
+        "username": "johndoe2",
+        "forum_name": "the-key",
+        "subject": "123",
+        "created": "4",
+        "mapfield": {"key": "value"},
+    }
 
 
 @mock_dynamodb
@@ -377,9 +377,11 @@ def test_update_item_add_value():
         (k, str(v) if isinstance(v, Decimal) else v)
         for k, v in table.get_item(Key=item_key)["Item"].items()
     )
-    dict(returned_item).should.equal(
-        {"numeric_field": "1", "forum_name": "the-key", "subject": "123"}
-    )
+    assert returned_item == {
+        "numeric_field": "1",
+        "forum_name": "the-key",
+        "subject": "123",
+    }
 
 
 @mock_dynamodb
@@ -404,13 +406,11 @@ def test_update_item_add_value_string_set():
         (k, str(v) if isinstance(v, Decimal) else v)
         for k, v in table.get_item(Key=item_key)["Item"].items()
     )
-    dict(returned_item).should.equal(
-        {
-            "string_set": set(["str1", "str2", "str3"]),
-            "forum_name": "the-key",
-            "subject": "123",
-        }
-    )
+    assert returned_item == {
+        "string_set": set(["str1", "str2", "str3"]),
+        "forum_name": "the-key",
+        "subject": "123",
+    }
 
 
 @mock_dynamodb
@@ -435,9 +435,11 @@ def test_update_item_delete_value_string_set():
         (k, str(v) if isinstance(v, Decimal) else v)
         for k, v in table.get_item(Key=item_key)["Item"].items()
     )
-    dict(returned_item).should.equal(
-        {"string_set": set(["str1"]), "forum_name": "the-key", "subject": "123"}
-    )
+    assert returned_item == {
+        "string_set": set(["str1"]),
+        "forum_name": "the-key",
+        "subject": "123",
+    }
 
 
 @mock_dynamodb
@@ -454,9 +456,11 @@ def test_update_item_add_value_does_not_exist_is_created():
         (k, str(v) if isinstance(v, Decimal) else v)
         for k, v in table.get_item(Key=item_key)["Item"].items()
     )
-    dict(returned_item).should.equal(
-        {"numeric_field": "2", "forum_name": "the-key", "subject": "123"}
-    )
+    assert returned_item == {
+        "numeric_field": "2",
+        "forum_name": "the-key",
+        "subject": "123",
+    }
 
 
 @mock_dynamodb
@@ -472,27 +476,30 @@ def test_update_item_with_expression():
         UpdateExpression="SET field = :field_value",
         ExpressionAttributeValues={":field_value": 2},
     )
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(
-        {"field": Decimal("2"), "forum_name": "the-key", "subject": "123"}
-    )
+    assert table.get_item(Key=item_key)["Item"] == {
+        "field": Decimal("2"),
+        "forum_name": "the-key",
+        "subject": "123",
+    }
 
     table.update_item(
         Key=item_key,
         UpdateExpression="SET field = :field_value",
         ExpressionAttributeValues={":field_value": 3},
     )
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(
-        {"field": Decimal("3"), "forum_name": "the-key", "subject": "123"}
-    )
+    assert table.get_item(Key=item_key)["Item"] == {
+        "field": Decimal("3"),
+        "forum_name": "the-key",
+        "subject": "123",
+    }
 
 
 def assert_failure_due_to_key_not_in_schema(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The provided key element does not match the schema"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
 
 
 @mock_dynamodb
@@ -518,7 +525,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {"item4"}},
     )
     current_item["str_set"] = current_item["str_set"].union({"item4"})
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Update item to add a string value to a non-existing set
     table.update_item(
@@ -527,7 +534,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {"item4"}},
     )
     current_item["non_existing_str_set"] = {"item4"}
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Update item to add a num value to a num set
     table.update_item(
@@ -536,7 +543,7 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": {6}},
     )
     current_item["num_set"] = current_item["num_set"].union({6})
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Update item to add a value to a number value
     table.update_item(
@@ -545,35 +552,59 @@ def test_update_item_add_with_expression():
         ExpressionAttributeValues={":v": 20},
     )
     current_item["num_val"] = current_item["num_val"] + 20
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
-    # Attempt to add a number value to a string set, should raise Client Error
-    table.update_item.when.called_with(
-        Key=item_key,
-        UpdateExpression="ADD str_set :v",
-        ExpressionAttributeValues={":v": 20},
-    ).should.have.raised(ClientError)
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    # Attempt to add a number value to a string set
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key=item_key,
+            UpdateExpression="ADD str_set :v",
+            ExpressionAttributeValues={":v": 20},
+        )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "An operand in the update expression has an incorrect data type"
+    )
 
-    # Attempt to add a number set to the string set, should raise a ClientError
-    table.update_item.when.called_with(
-        Key=item_key,
-        UpdateExpression="ADD str_set :v",
-        ExpressionAttributeValues={":v": {20}},
-    ).should.have.raised(ClientError)
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
+
+    # Attempt to add a number set to the string set
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key=item_key,
+            UpdateExpression="ADD str_set :v",
+            ExpressionAttributeValues={":v": {20}},
+        )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "An operand in the update expression has an incorrect data type"
+    )
+
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Attempt to update with a bad expression
-    table.update_item.when.called_with(
-        Key=item_key, UpdateExpression="ADD str_set bad_value"
-    ).should.have.raised(ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(Key=item_key, UpdateExpression="ADD str_set bad_value")
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == 'Invalid UpdateExpression: Syntax error; token: "bad_value", near: "str_set bad_value"'
+    )
 
     # Attempt to add a string value instead of a string set
-    table.update_item.when.called_with(
-        Key=item_key,
-        UpdateExpression="ADD str_set :v",
-        ExpressionAttributeValues={":v": "new_string"},
-    ).should.have.raised(ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key=item_key,
+            UpdateExpression="ADD str_set :v",
+            ExpressionAttributeValues={":v": "new_string"},
+        )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "An operand in the update expression has an incorrect data type"
+    )
 
 
 @mock_dynamodb
@@ -599,10 +630,9 @@ def test_update_item_add_with_nested_sets():
     current_item["nested"]["str_set"] = current_item["nested"]["str_set"].union(
         {"item4"}
     )
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Update item to add a string value to a non-existing set
-    # Should raise
     table.update_item(
         Key=item_key,
         UpdateExpression="ADD #ns.#ne :v",
@@ -610,7 +640,7 @@ def test_update_item_add_with_nested_sets():
         ExpressionAttributeValues={":v": {"new_item"}},
     )
     current_item["nested"]["non_existing_str_set"] = {"new_item"}
-    assert dict(table.get_item(Key=item_key)["Item"]) == current_item
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
 
 @mock_dynamodb
@@ -636,7 +666,7 @@ def test_update_item_delete_with_nested_sets():
     current_item["nested"]["str_set"] = current_item["nested"]["str_set"].difference(
         {"item3"}
     )
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
 
 @mock_dynamodb
@@ -662,7 +692,7 @@ def test_update_item_delete_with_expression():
         ExpressionAttributeValues={":v": {"item2"}},
     )
     current_item["str_set"] = current_item["str_set"].difference({"item2"})
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Update item to delete  a num value from a num set
     table.update_item(
@@ -671,28 +701,46 @@ def test_update_item_delete_with_expression():
         ExpressionAttributeValues={":v": {2}},
     )
     current_item["num_set"] = current_item["num_set"].difference({2})
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Try to delete on a number, this should fail
-    table.update_item.when.called_with(
-        Key=item_key,
-        UpdateExpression="DELETE num_val :v",
-        ExpressionAttributeValues={":v": 20},
-    ).should.have.raised(ClientError)
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key=item_key,
+            UpdateExpression="DELETE num_val :v",
+            ExpressionAttributeValues={":v": 20},
+        )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Invalid UpdateExpression: Incorrect operand type for operator or function; operator or function: operator: DELETE, operand type: NUMBER"
+    )
+
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Try to delete a string set from a number set
-    table.update_item.when.called_with(
-        Key=item_key,
-        UpdateExpression="DELETE num_set :v",
-        ExpressionAttributeValues={":v": {"del_str"}},
-    ).should.have.raised(ClientError)
-    dict(table.get_item(Key=item_key)["Item"]).should.equal(current_item)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key=item_key,
+            UpdateExpression="DELETE num_set :v",
+            ExpressionAttributeValues={":v": {"del_str"}},
+        )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "An operand in the update expression has an incorrect data type"
+    )
+
+    assert table.get_item(Key=item_key)["Item"] == current_item
 
     # Attempt to update with a bad expression
-    table.update_item.when.called_with(
-        Key=item_key, UpdateExpression="DELETE num_val badvalue"
-    ).should.have.raised(ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(Key=item_key, UpdateExpression="DELETE num_val badvalue")
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == 'Invalid UpdateExpression: Syntax error; token: "badvalue", near: "num_val badvalue"'
+    )
 
 
 @mock_dynamodb
@@ -748,7 +796,7 @@ def test_boto3_query_gsi_range_comparison():
     )
     expected = ["456", "789", "123"]
     for index, item in enumerate(results["Items"]):
-        item["subject"].should.equal(expected[index])
+        assert item["subject"] == expected[index]
 
     # Return all johndoe items again, but in reverse
     results = table.query(
@@ -757,7 +805,7 @@ def test_boto3_query_gsi_range_comparison():
         IndexName="TestGSI",
     )
     for index, item in enumerate(reversed(results["Items"])):
-        item["subject"].should.equal(expected[index])
+        assert item["subject"] == expected[index]
 
     # Filter the creation to only return some of the results
     # And reverse order of hash + range key
@@ -766,20 +814,20 @@ def test_boto3_query_gsi_range_comparison():
         ConsistentRead=True,
         IndexName="TestGSI",
     )
-    results["Count"].should.equal(2)
+    assert results["Count"] == 2
 
     # Filter to return no results
     results = table.query(
         KeyConditionExpression=Key("username").eq("janedoe") & Key("created").gt(9),
         IndexName="TestGSI",
     )
-    results["Count"].should.equal(0)
+    assert results["Count"] == 0
 
     results = table.query(
         KeyConditionExpression=Key("username").eq("janedoe") & Key("created").eq(5),
         IndexName="TestGSI",
     )
-    results["Count"].should.equal(1)
+    assert results["Count"] == 1
 
     # Test range key sorting
     results = table.query(
@@ -788,7 +836,7 @@ def test_boto3_query_gsi_range_comparison():
     )
     expected = [Decimal("1"), Decimal("2"), Decimal("3")]
     for index, item in enumerate(results["Items"]):
-        item["created"].should.equal(expected[index])
+        assert item["created"] == expected[index]
 
 
 @mock_dynamodb
@@ -810,8 +858,8 @@ def test_boto3_update_table_throughput():
     )
     table = dynamodb.Table("users")
 
-    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
-    table.provisioned_throughput["WriteCapacityUnits"].should.equal(6)
+    assert table.provisioned_throughput["ReadCapacityUnits"] == 5
+    assert table.provisioned_throughput["WriteCapacityUnits"] == 6
 
     table.update(
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 11}
@@ -819,8 +867,8 @@ def test_boto3_update_table_throughput():
 
     table = dynamodb.Table("users")
 
-    table.provisioned_throughput["ReadCapacityUnits"].should.equal(10)
-    table.provisioned_throughput["WriteCapacityUnits"].should.equal(11)
+    assert table.provisioned_throughput["ReadCapacityUnits"] == 10
+    assert table.provisioned_throughput["WriteCapacityUnits"] == 11
 
 
 @mock_dynamodb
@@ -859,11 +907,11 @@ def test_boto3_update_table_gsi_throughput():
     table = dynamodb.Table("users")
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
-    gsi_throughput["ReadCapacityUnits"].should.equal(3)
-    gsi_throughput["WriteCapacityUnits"].should.equal(4)
+    assert gsi_throughput["ReadCapacityUnits"] == 3
+    assert gsi_throughput["WriteCapacityUnits"] == 4
 
-    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
-    table.provisioned_throughput["WriteCapacityUnits"].should.equal(6)
+    assert table.provisioned_throughput["ReadCapacityUnits"] == 5
+    assert table.provisioned_throughput["WriteCapacityUnits"] == 6
 
     table.update(
         GlobalSecondaryIndexUpdates=[
@@ -882,12 +930,12 @@ def test_boto3_update_table_gsi_throughput():
     table = dynamodb.Table("users")
 
     # Primary throughput has not changed
-    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
-    table.provisioned_throughput["WriteCapacityUnits"].should.equal(6)
+    assert table.provisioned_throughput["ReadCapacityUnits"] == 5
+    assert table.provisioned_throughput["WriteCapacityUnits"] == 6
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
-    gsi_throughput["ReadCapacityUnits"].should.equal(10)
-    gsi_throughput["WriteCapacityUnits"].should.equal(11)
+    assert gsi_throughput["ReadCapacityUnits"] == 10
+    assert gsi_throughput["WriteCapacityUnits"] == 11
 
 
 @mock_dynamodb
@@ -909,8 +957,8 @@ def test_update_table_gsi_create():
     )
     table = dynamodb.Table("users")
 
-    table.global_secondary_indexes.should.have.length_of(0)
-    table.attribute_definitions.should.have.length_of(2)
+    assert len(table.global_secondary_indexes) == 0
+    assert len(table.attribute_definitions) == 2
 
     table.update(
         AttributeDefinitions=[
@@ -939,12 +987,12 @@ def test_update_table_gsi_create():
 
     table = dynamodb.Table("users")
     table.reload()
-    table.global_secondary_indexes.should.have.length_of(1)
-    table.attribute_definitions.should.have.length_of(4)
+    assert len(table.global_secondary_indexes) == 1
+    assert len(table.attribute_definitions) == 4
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
-    assert gsi_throughput["ReadCapacityUnits"].should.equal(3)
-    assert gsi_throughput["WriteCapacityUnits"].should.equal(4)
+    assert gsi_throughput["ReadCapacityUnits"] == 3
+    assert gsi_throughput["WriteCapacityUnits"] == 4
 
     # Check update works
     table.update(
@@ -963,13 +1011,13 @@ def test_update_table_gsi_create():
     table = dynamodb.Table("users")
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
-    assert gsi_throughput["ReadCapacityUnits"].should.equal(10)
-    assert gsi_throughput["WriteCapacityUnits"].should.equal(11)
+    assert gsi_throughput["ReadCapacityUnits"] == 10
+    assert gsi_throughput["WriteCapacityUnits"] == 11
 
     table.update(GlobalSecondaryIndexUpdates=[{"Delete": {"IndexName": "TestGSI"}}])
 
     table = dynamodb.Table("users")
-    table.global_secondary_indexes.should.have.length_of(0)
+    assert len(table.global_secondary_indexes) == 0
 
 
 @mock_dynamodb
@@ -1006,12 +1054,12 @@ def test_update_table_gsi_throughput():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
     table = dynamodb.Table("users")
-    table.global_secondary_indexes.should.have.length_of(1)
+    assert len(table.global_secondary_indexes) == 1
 
     table.update(GlobalSecondaryIndexUpdates=[{"Delete": {"IndexName": "TestGSI"}}])
 
     table = dynamodb.Table("users")
-    table.global_secondary_indexes.should.have.length_of(0)
+    assert len(table.global_secondary_indexes) == 0
 
 
 @mock_dynamodb
@@ -1028,22 +1076,21 @@ def test_query_pagination():
         )
 
     page1 = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"), Limit=6)
-    page1["Count"].should.equal(6)
-    page1["Items"].should.have.length_of(6)
-    page1.should.have.key("LastEvaluatedKey")
+    assert page1["Count"] == 6
+    assert len(page1["Items"]) == 6
 
     page2 = table.query(
         KeyConditionExpression=Key("forum_name").eq("the-key"),
         Limit=6,
         ExclusiveStartKey=page1["LastEvaluatedKey"],
     )
-    page2["Count"].should.equal(4)
-    page2["Items"].should.have.length_of(4)
-    page2.should_not.have.key("LastEvaluatedKey")
+    assert page2["Count"] == 4
+    assert len(page2["Items"]) == 4
+    assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
     subjects = set([int(r["subject"]) for r in results])
-    subjects.should.equal(set(range(10)))
+    assert subjects == set(range(10))
 
 
 @mock_dynamodb
@@ -1188,7 +1235,6 @@ def test_update_item_throws_exception_when_updating_hash_or_range_key(
             ExpressionAttributeValues={":New": {"S": "2"}},
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.match(
-        r"One or more parameter values were invalid: Cannot update attribute (r|h). This attribute is part of the key"
-    )
+    assert err["Code"] == "ValidationException"
+    assert "Cannot update attribute" in err["Message"]
+    assert "This attribute is part of the key" in err["Message"]

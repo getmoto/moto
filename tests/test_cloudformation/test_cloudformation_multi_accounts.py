@@ -94,11 +94,11 @@ class TestStackSetMultipleAccounts(TestCase):
             StackInstanceAccount=accnt,
             StackInstanceRegion=region or "us-east-1",
         )["StackInstance"]
-        resp.should.have.key("Account").equals(accnt)
+        assert resp["Account"] == accnt
 
     def _verify_queues(self, accnt, expected, region=None):
-        list(sqs_backends[accnt][region or "us-east-1"].queues.keys()).should.equal(
-            expected
+        assert (
+            list(sqs_backends[accnt][region or "us-east-1"].queues.keys()) == expected
         )
 
 
@@ -122,9 +122,10 @@ class TestServiceManagedStacks(TestStackSetMultipleAccounts):
                 StackSetName=self.name, Accounts=["888781156701"], Regions=["us-east-1"]
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("ValidationError")
-        err["Message"].should.equal(
-            "StackSets with SERVICE_MANAGED permission model can only have OrganizationalUnit as target"
+        assert err["Code"] == "ValidationError"
+        assert (
+            err["Message"]
+            == "StackSets with SERVICE_MANAGED permission model can only have OrganizationalUnit as target"
         )
 
     def test_create_instances__specifying_only_accounts_in_deployment_targets(self):
@@ -137,8 +138,8 @@ class TestServiceManagedStacks(TestStackSetMultipleAccounts):
                 Regions=["us-east-1"],
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("ValidationError")
-        err["Message"].should.equal("OrganizationalUnitIds are required")
+        assert err["Code"] == "ValidationError"
+        assert err["Message"] == "OrganizationalUnitIds are required"
 
     def test_create_instances___with_invalid_ou(self):
         with pytest.raises(ClientError) as exc:
@@ -148,9 +149,10 @@ class TestServiceManagedStacks(TestStackSetMultipleAccounts):
                 Regions=["us-east-1"],
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("ValidationError")
-        err["Message"].should.equal(
-            "1 validation error detected: Value '[unknown]' at 'deploymentTargets.organizationalUnitIds' failed to satisfy constraint: Member must satisfy constraint: [Member must have length less than or equal to 68, Member must have length greater than or equal to 6, Member must satisfy regular expression pattern: ^(ou-[a-z0-9]{4,32}-[a-z0-9]{8,32}|r-[a-z0-9]{4,32})$]"
+        assert err["Code"] == "ValidationError"
+        assert (
+            err["Message"]
+            == "1 validation error detected: Value '[unknown]' at 'deploymentTargets.organizationalUnitIds' failed to satisfy constraint: Member must satisfy constraint: [Member must have length less than or equal to 68, Member must have length greater than or equal to 6, Member must satisfy regular expression pattern: ^(ou-[a-z0-9]{4,32}-[a-z0-9]{8,32}|r-[a-z0-9]{4,32})$]"
         )
 
     def test_create_instances__single_ou(self):
@@ -210,12 +212,12 @@ class TestSelfManagedStacks(TestStackSetMultipleAccounts):
         self._verify_stack_instance(self.acct01, region="us-east-2")
 
         # acct01 has a Stack
-        cf_backends[self.acct01]["us-east-2"].stacks.should.have.length_of(1)
+        assert len(cf_backends[self.acct01]["us-east-2"].stacks) == 1
         # Other acounts do not
-        cf_backends[self.acct02]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[self.acct21]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[self.acct22]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[DEFAULT_ACCOUNT_ID]["us-east-2"].stacks.should.have.length_of(0)
+        assert len(cf_backends[self.acct02]["us-east-2"].stacks) == 0
+        assert len(cf_backends[self.acct21]["us-east-2"].stacks) == 0
+        assert len(cf_backends[self.acct22]["us-east-2"].stacks) == 0
+        assert len(cf_backends[DEFAULT_ACCOUNT_ID]["us-east-2"].stacks) == 0
 
         # acct01 has a queue
         self._verify_queues(self.acct01, ["testqueue"], region="us-east-2")
@@ -233,12 +235,12 @@ class TestSelfManagedStacks(TestStackSetMultipleAccounts):
         )
 
         # acct01 and 02 have a Stack
-        cf_backends[self.acct01]["us-east-2"].stacks.should.have.length_of(1)
-        cf_backends[self.acct02]["us-east-2"].stacks.should.have.length_of(1)
+        assert len(cf_backends[self.acct01]["us-east-2"].stacks) == 1
+        assert len(cf_backends[self.acct02]["us-east-2"].stacks) == 1
         # Other acounts do not
-        cf_backends[self.acct21]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[self.acct22]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[DEFAULT_ACCOUNT_ID]["us-east-2"].stacks.should.have.length_of(0)
+        assert len(cf_backends[self.acct21]["us-east-2"].stacks) == 0
+        assert len(cf_backends[self.acct22]["us-east-2"].stacks) == 0
+        assert len(cf_backends[DEFAULT_ACCOUNT_ID]["us-east-2"].stacks) == 0
 
         # acct01 and 02 have the queue
         self._verify_queues(self.acct01, ["testqueue"], region="us-east-2")
@@ -265,12 +267,12 @@ class TestSelfManagedStacks(TestStackSetMultipleAccounts):
         )
 
         # Act02 still has it's stack
-        cf_backends[self.acct02]["us-east-2"].stacks.should.have.length_of(1)
+        assert len(cf_backends[self.acct02]["us-east-2"].stacks) == 1
         # Other Stacks are removed
-        cf_backends[self.acct01]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[self.acct21]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[self.acct22]["us-east-2"].stacks.should.have.length_of(0)
-        cf_backends[DEFAULT_ACCOUNT_ID]["us-east-2"].stacks.should.have.length_of(0)
+        assert len(cf_backends[self.acct01]["us-east-2"].stacks) == 0
+        assert len(cf_backends[self.acct21]["us-east-2"].stacks) == 0
+        assert len(cf_backends[self.acct22]["us-east-2"].stacks) == 0
+        assert len(cf_backends[DEFAULT_ACCOUNT_ID]["us-east-2"].stacks) == 0
 
         # Acct02 still has it's queue as well
         self._verify_queues(self.acct02, ["testqueue"], region="us-east-2")
@@ -288,7 +290,8 @@ class TestSelfManagedStacks(TestStackSetMultipleAccounts):
                 Regions=["us-east-1"],
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("ValidationError")
-        err["Message"].should.equal(
-            "StackSets with SELF_MANAGED permission model can only have accounts as target"
+        assert err["Code"] == "ValidationError"
+        assert (
+            err["Message"]
+            == "StackSets with SELF_MANAGED permission model can only have accounts as target"
         )

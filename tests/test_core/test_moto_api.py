@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import requests
 
 import boto3
@@ -21,12 +20,12 @@ data_url = f"{base_url}/moto-api/data.json"
 def test_reset_api():
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
-    conn.list_queues()["QueueUrls"].should.have.length_of(1)
+    assert len(conn.list_queues()["QueueUrls"]) == 1
 
     res = requests.post(f"{base_url}/moto-api/reset")
-    res.content.should.equal(b'{"status": "ok"}')
+    assert res.content == b'{"status": "ok"}'
 
-    conn.list_queues().shouldnt.contain("QueueUrls")  # No more queues
+    assert "QueueUrls" not in conn.list_queues()  # No more queues
 
 
 @mock_sqs
@@ -35,9 +34,9 @@ def test_data_api():
     conn.create_queue(QueueName="queue1")
 
     queues = requests.post(data_url).json()["sqs"]["Queue"]
-    len(queues).should.equal(1)
+    assert len(queues) == 1
     queue = queues[0]
-    queue["name"].should.equal("queue1")
+    assert queue["name"] == "queue1"
 
 
 @mock_s3
@@ -81,11 +80,10 @@ def test_creation_error__data_api_still_returns_thing():
     _, _, x = response_instance.model_data(None, None, None)
 
     as_objects = json.loads(x)["autoscaling"]
-    as_objects.should.have.key("FakeAutoScalingGroup")
     assert len(as_objects["FakeAutoScalingGroup"]) >= 1
 
     names = [obj["name"] for obj in as_objects["FakeAutoScalingGroup"]]
-    names.should.contain("test_asg")
+    assert "test_asg" in names
 
 
 def test_model_data_is_emptied_as_necessary():
@@ -98,24 +96,24 @@ def test_model_data_is_emptied_as_necessary():
     # No instances exist, because we have just reset it
     for classes_per_service in model_data.values():
         for _class in classes_per_service.values():
-            _class.instances.should.equal([])
+            assert _class.instances == []
 
     with mock_sqs():
         # When just starting a mock, it is empty
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
-                _class.instances.should.equal([])
+                assert _class.instances == []
 
         # After creating a queue, some data will be present
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
 
-        model_data["sqs"]["Queue"].instances.should.have.length_of(1)
+        assert len(model_data["sqs"]["Queue"].instances) == 1
 
     # But after the mock ends, it is empty again
     for classes_per_service in model_data.values():
         for _class in classes_per_service.values():
-            _class.instances.should.equal([])
+            assert _class.instances == []
 
     # When we have multiple/nested mocks, the data should still be present after the first mock ends
     with mock_sqs():
@@ -123,9 +121,9 @@ def test_model_data_is_emptied_as_necessary():
         conn.create_queue(QueueName="queue1")
         with mock_s3():
             # The data should still be here - instances should not reset if another mock is still active
-            model_data["sqs"]["Queue"].instances.should.have.length_of(1)
+            assert len(model_data["sqs"]["Queue"].instances) == 1
         # The data should still be here - the inner mock has exited, but the outer mock is still active
-        model_data["sqs"]["Queue"].instances.should.have.length_of(1)
+        assert len(model_data["sqs"]["Queue"].instances) == 1
 
 
 @mock_sqs
@@ -137,10 +135,10 @@ class TestModelDataResetForClassDecorator(TestCase):
         # No data is present at the beginning
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
-                _class.instances.should.equal([])
+                assert _class.instances == []
 
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
 
     def test_should_find_bucket(self):
-        model_data["sqs"]["Queue"].instances.should.have.length_of(1)
+        assert len(model_data["sqs"]["Queue"].instances) == 1

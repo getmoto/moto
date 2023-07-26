@@ -204,7 +204,7 @@
 
 ## apigatewayv2
 <details>
-<summary>69% implemented</summary>
+<summary>75% implemented</summary>
 
 - [X] create_api
 - [X] create_api_mapping
@@ -216,7 +216,7 @@
 - [X] create_model
 - [X] create_route
 - [X] create_route_response
-- [ ] create_stage
+- [X] create_stage
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
 - [X] delete_api
@@ -232,7 +232,7 @@
 - [X] delete_route_request_parameter
 - [X] delete_route_response
 - [ ] delete_route_settings
-- [ ] delete_stage
+- [X] delete_stage
 - [X] delete_vpc_link
 - [ ] export_api
 - [X] get_api
@@ -256,8 +256,8 @@
 - [X] get_route_response
 - [ ] get_route_responses
 - [X] get_routes
-- [ ] get_stage
-- [ ] get_stages
+- [X] get_stage
+- [X] get_stages
 - [X] get_tags
 - [X] get_vpc_link
 - [X] get_vpc_links
@@ -4238,7 +4238,7 @@
 
 ## lambda
 <details>
-<summary>53% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4276,7 +4276,7 @@
 - [X] invoke
 - [ ] invoke_async
 - [ ] invoke_with_response_stream
-- [ ] list_aliases
+- [X] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
 - [ ] list_function_event_invoke_configs
@@ -5738,7 +5738,7 @@
 
 ## route53
 <details>
-<summary>40% implemented</summary>
+<summary>41% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [X] associate_vpc_with_hosted_zone
@@ -5776,7 +5776,7 @@
 - [X] get_health_check
 - [ ] get_health_check_count
 - [ ] get_health_check_last_failure_reason
-- [ ] get_health_check_status
+- [X] get_health_check_status
 - [X] get_hosted_zone
 - [X] get_hosted_zone_count
 - [ ] get_hosted_zone_limit
@@ -6755,7 +6755,7 @@
 
 ## ssm
 <details>
-<summary>24% implemented</summary>
+<summary>26% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -6784,7 +6784,7 @@
 - [ ] deregister_managed_instance
 - [ ] deregister_patch_baseline_for_patch_group
 - [X] deregister_target_from_maintenance_window
-- [ ] deregister_task_from_maintenance_window
+- [X] deregister_task_from_maintenance_window
 - [ ] describe_activations
 - [ ] describe_association
 - [ ] describe_association_execution_targets
@@ -6807,7 +6807,7 @@
 - [ ] describe_maintenance_window_executions
 - [ ] describe_maintenance_window_schedule
 - [X] describe_maintenance_window_targets
-- [ ] describe_maintenance_window_tasks
+- [X] describe_maintenance_window_tasks
 - [X] describe_maintenance_windows
 - [ ] describe_maintenance_windows_for_target
 - [ ] describe_ops_items
@@ -6868,7 +6868,7 @@
 - [ ] register_default_patch_baseline
 - [ ] register_patch_baseline_for_patch_group
 - [X] register_target_with_maintenance_window
-- [ ] register_task_with_maintenance_window
+- [X] register_task_with_maintenance_window
 - [X] remove_tags_from_resource
 - [ ] reset_service_setting
 - [ ] resume_session

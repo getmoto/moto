@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_elasticbeanstalk
@@ -10,17 +10,16 @@ def test_create_application():
     # Create Elastic Beanstalk Application
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     app = conn.create_application(ApplicationName="myapp")
-    app["Application"]["ApplicationName"].should.equal("myapp")
-    app["Application"]["ApplicationArn"].should.contain("myapp")
+    assert app["Application"]["ApplicationName"] == "myapp"
+    assert "myapp" in app["Application"]["ApplicationArn"]
 
 
 @mock_elasticbeanstalk
 def test_create_application_dup():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp")
-    conn.create_application.when.called_with(ApplicationName="myapp").should.throw(
-        ClientError
-    )
+    with pytest.raises(ClientError):
+        conn.create_application(ApplicationName="myapp")
 
 
 @mock_elasticbeanstalk
@@ -30,9 +29,9 @@ def test_describe_applications():
     conn.create_application(ApplicationName="myapp")
 
     apps = conn.describe_applications()
-    len(apps["Applications"]).should.equal(1)
-    apps["Applications"][0]["ApplicationName"].should.equal("myapp")
-    apps["Applications"][0]["ApplicationArn"].should.contain("myapp")
+    assert len(apps["Applications"]) == 1
+    assert apps["Applications"][0]["ApplicationName"] == "myapp"
+    assert "myapp" in apps["Applications"][0]["ApplicationArn"]
 
 
 @mock_elasticbeanstalk
@@ -41,8 +40,8 @@ def test_create_environment():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp")
     env = conn.create_environment(ApplicationName="myapp", EnvironmentName="myenv")
-    env["EnvironmentName"].should.equal("myenv")
-    env["EnvironmentArn"].should.contain("myapp/myenv")
+    assert env["EnvironmentName"] == "myenv"
+    assert "myapp/myenv" in env["EnvironmentArn"]
 
 
 @mock_elasticbeanstalk
@@ -54,10 +53,10 @@ def test_describe_environments():
 
     envs = conn.describe_environments()
     envs = envs["Environments"]
-    len(envs).should.equal(1)
-    envs[0]["ApplicationName"].should.equal("myapp")
-    envs[0]["EnvironmentName"].should.equal("myenv")
-    envs[0]["EnvironmentArn"].should.contain("myapp/myenv")
+    assert len(envs) == 1
+    assert envs[0]["ApplicationName"] == "myapp"
+    assert envs[0]["EnvironmentName"] == "myenv"
+    assert "myapp/myenv" in envs[0]["EnvironmentArn"]
 
 
 def tags_dict_to_list(tag_dict):
@@ -86,8 +85,8 @@ def test_create_environment_tags():
     )
 
     tags = conn.list_tags_for_resource(ResourceArn=env["EnvironmentArn"])
-    tags["ResourceArn"].should.equal(env["EnvironmentArn"])
-    tags_list_to_dict(tags["ResourceTags"]).should.equal(env_tags)
+    assert tags["ResourceArn"] == env["EnvironmentArn"]
+    assert tags_list_to_dict(tags["ResourceTags"]) == env_tags
 
 
 @mock_elasticbeanstalk
@@ -120,13 +119,13 @@ def test_update_tags():
     del total_env_tags["to remove"]
 
     tags = conn.list_tags_for_resource(ResourceArn=env["EnvironmentArn"])
-    tags["ResourceArn"].should.equal(env["EnvironmentArn"])
-    tags_list_to_dict(tags["ResourceTags"]).should.equal(total_env_tags)
+    assert tags["ResourceArn"] == env["EnvironmentArn"]
+    assert tags_list_to_dict(tags["ResourceTags"]) == total_env_tags
 
 
 @mock_elasticbeanstalk
 def test_list_available_solution_stacks():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     stacks = conn.list_available_solution_stacks()
-    len(stacks["SolutionStacks"]).should.be.greater_than(0)
-    len(stacks["SolutionStacks"]).should.be.equal(len(stacks["SolutionStackDetails"]))
+    assert len(stacks["SolutionStacks"]) > 0
+    assert len(stacks["SolutionStacks"]) == len(stacks["SolutionStackDetails"])

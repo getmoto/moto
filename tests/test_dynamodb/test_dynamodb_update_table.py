@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_dynamodb
 
@@ -27,10 +26,11 @@ def test_update_table__billing_mode():
     )
 
     actual = client.describe_table(TableName="test")["Table"]
-    actual.should.have.key("BillingModeSummary").equals({"BillingMode": "PROVISIONED"})
-    actual.should.have.key("ProvisionedThroughput").equals(
-        {"ReadCapacityUnits": 1, "WriteCapacityUnits": 1}
-    )
+    assert actual["BillingModeSummary"] == {"BillingMode": "PROVISIONED"}
+    assert actual["ProvisionedThroughput"] == {
+        "ReadCapacityUnits": 1,
+        "WriteCapacityUnits": 1,
+    }
 
 
 @mock_dynamodb
@@ -42,15 +42,15 @@ def test_update_table_throughput():
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
-    table.provisioned_throughput["WriteCapacityUnits"].should.equal(5)
+    assert table.provisioned_throughput["ReadCapacityUnits"] == 5
+    assert table.provisioned_throughput["WriteCapacityUnits"] == 5
 
     table.update(
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6}
     )
 
-    table.provisioned_throughput["ReadCapacityUnits"].should.equal(5)
-    table.provisioned_throughput["WriteCapacityUnits"].should.equal(6)
+    assert table.provisioned_throughput["ReadCapacityUnits"] == 5
+    assert table.provisioned_throughput["WriteCapacityUnits"] == 6
 
 
 @mock_dynamodb

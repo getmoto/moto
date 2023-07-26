@@ -888,6 +888,7 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
     execution_history["events"].should.equal(expected_events)
 
 
+@mock.patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
 @pytest.mark.parametrize(
     "test_region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"]
 )

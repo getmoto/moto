@@ -253,7 +253,9 @@ class S3Response(BaseResponse):
             return self.bucket_response(request, full_url, headers)
 
     @amzn_request_id
-    def bucket_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def bucket_response(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers, use_raw_body=True)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.backend.log_incoming_request(request, bucket_name)
@@ -437,8 +439,8 @@ class S3Response(BaseResponse):
 
             for cors_rule in bucket.cors:
                 if cors_rule.allowed_origins is not None:
-                    if cors_matches_origin(origin, cors_rule.allowed_origins):  # type: ignore
-                        response_headers["Access-Control-Allow-Origin"] = origin  # type: ignore
+                    if cors_matches_origin(origin, cors_rule.allowed_origins):
+                        response_headers["Access-Control-Allow-Origin"] = origin
                         if cors_rule.allowed_methods is not None:
                             response_headers[
                                 "Access-Control-Allow-Methods"
@@ -831,7 +833,7 @@ class S3Response(BaseResponse):
             body = self.body.decode("utf-8")
             ver = re.search(r"<Status>([A-Za-z]+)</Status>", body)
             if ver:
-                self.backend.put_bucket_versioning(bucket_name, ver.group(1))  # type: ignore
+                self.backend.put_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:
@@ -1196,7 +1198,9 @@ class S3Response(BaseResponse):
         # amz-checksum-sha256:<..>\r\n
 
     @amzn_request_id
-    def key_response(self, request: Any, full_url: str, headers: Dict[str, Any]) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def key_response(
+        self, request: Any, full_url: str, headers: Dict[str, Any]
+    ) -> TYPE_RESPONSE:
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.setup_class(request, full_url, headers, use_raw_body=True)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
@@ -1923,7 +1927,7 @@ class S3Response(BaseResponse):
 
         tags = {}
         for tag in parsed_xml["Tagging"]["TagSet"]["Tag"]:
-            tags[tag["Key"]] = tag["Value"]
+            tags[tag["Key"]] = tag["Value"] or ""
 
         return tags
 
@@ -2205,7 +2209,7 @@ class S3Response(BaseResponse):
             return 200, response_headers, response
 
         if query.get("uploadId"):
-            multipart_id = query["uploadId"][0]  # type: ignore
+            multipart_id = query["uploadId"][0]
 
             multipart, value, etag = self.backend.complete_multipart_upload(
                 bucket_name, multipart_id, self._complete_multipart_body(body)

@@ -604,7 +604,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 if len(parts) != 2 or parts[1] != "member":
                     value_dict[parts[0]] = value_dict.pop(k)
         else:
-            value_dict = list(value_dict.values())[0]  # type: ignore[assignment]
+            value_dict = list(value_dict.values())[0]
 
         return value_dict
 

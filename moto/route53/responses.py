@@ -1,4 +1,6 @@
 """Handles Route53 API requests, invokes method and returns response."""
+import datetime
+import re
 from urllib.parse import parse_qs, urlparse
 
 from jinja2 import Template
@@ -7,6 +9,7 @@ import xmltodict
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.route53.exceptions import InvalidChangeBatch
 from moto.route53.models import route53_backends, Route53Backend
 
@@ -78,6 +81,9 @@ class Route53(BaseResponse):
                 delegation_set_id=delegation_set_id,
             )
             template = Template(CREATE_HOSTED_ZONE_RESPONSE)
+            headers = {
+                "Location": f"https://route53.amazonaws.com/2013-04-01/hostedzone/{new_zone.id}"
+            }
             return 201, headers, template.render(zone=new_zone)
 
         elif request.method == "GET":
@@ -341,6 +347,31 @@ class Route53(BaseResponse):
             )
             template = Template(UPDATE_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(health_check=health_check)
+
+    def health_check_status_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        parsed_url = urlparse(full_url)
+        method = request.method
+
+        health_check_id = re.search(
+            r"healthcheck/(?P<health_check_id>[^/]+)/status$", parsed_url.path
+        ).group(  # type: ignore[union-attr]
+            "health_check_id"
+        )
+
+        if method == "GET":
+            self.backend.get_health_check(health_check_id)
+            template = Template(GET_HEALTH_CHECK_STATUS_RESPONSE)
+            return (
+                200,
+                headers,
+                template.render(
+                    timestamp=iso_8601_datetime_with_milliseconds(
+                        datetime.datetime.utcnow()
+                    ),
+                ),
+            )
 
     def not_implemented_response(
         self, request: Any, full_url: str, headers: Any
@@ -844,6 +875,21 @@ GET_HEALTH_CHECK_RESPONSE = """<?xml version="1.0"?>
 <GetHealthCheckResponse>
     {{ health_check.to_xml() }}
 </GetHealthCheckResponse>
+"""
+
+GET_HEALTH_CHECK_STATUS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetHealthCheckStatusResponse>
+   <HealthCheckObservations>
+      <HealthCheckObservation>
+         <IPAddress>127.0.13.37</IPAddress>
+         <Region>us-east-1</Region>
+         <StatusReport>
+            <CheckedTime>{{ timestamp }}</CheckedTime>
+            <Status>Success: HTTP Status Code: 200. Resolved IP: 127.0.13.37. OK</Status>
+         </StatusReport>
+      </HealthCheckObservation>
+   </HealthCheckObservations>
+</GetHealthCheckStatusResponse>
 """
 
 UPDATE_HOSTED_ZONE_COMMENT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>

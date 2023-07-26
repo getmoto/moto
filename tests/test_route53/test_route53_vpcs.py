@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from botocore.exceptions import ClientError
@@ -25,20 +24,18 @@ def test_hosted_zone_private_zone_preserved():
 
     zone_id = new_zone["HostedZone"]["Id"].split("/")[-1]
     hosted_zone = conn.get_hosted_zone(Id=zone_id)
-    hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zone.should.have.key("VPCs")
-    hosted_zone["VPCs"].should.have.length_of(1)
-    hosted_zone["VPCs"][0].should.have.key("VPCId")
-    hosted_zone["VPCs"][0].should.have.key("VPCRegion")
-    hosted_zone["VPCs"][0]["VPCId"].should.be.equal(vpc_id)
-    hosted_zone["VPCs"][0]["VPCRegion"].should.be.equal(region)
+    assert hosted_zone["HostedZone"]["Config"]["PrivateZone"]
+
+    assert len(hosted_zone["VPCs"]) == 1
+    assert hosted_zone["VPCs"][0]["VPCId"] == vpc_id
+    assert hosted_zone["VPCs"][0]["VPCRegion"] == region
 
     hosted_zones = conn.list_hosted_zones()
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
+    assert hosted_zones["HostedZones"][0]["Config"]["PrivateZone"]
 
     hosted_zones = conn.list_hosted_zones_by_name(DNSName="testdns.aws.com.")
-    hosted_zones["HostedZones"].should.have.length_of(1)
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
+    assert len(hosted_zones["HostedZones"]) == 1
+    assert hosted_zones["HostedZones"][0]["Config"]["PrivateZone"]
 
     # create_hosted_zone statements with  PrivateZone=True,
     # but without a _valid_ vpc-id should NOT fail.
@@ -51,19 +48,19 @@ def test_hosted_zone_private_zone_preserved():
 
     zone_id = no_vpc_zone["HostedZone"]["Id"].split("/")[-1]
     hosted_zone = conn.get_hosted_zone(Id=zone_id)
-    hosted_zone["HostedZone"]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zone.should.have.key("VPCs")
-    hosted_zone["VPCs"].should.have.length_of(0)
+    assert hosted_zone["HostedZone"]["Config"]["PrivateZone"]
+
+    assert len(hosted_zone["VPCs"]) == 0
 
     hosted_zones = conn.list_hosted_zones()
-    hosted_zones["HostedZones"].should.have.length_of(2)
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zones["HostedZones"][1]["Config"]["PrivateZone"].should.equal(True)
+    assert len(hosted_zones["HostedZones"]) == 2
+    assert hosted_zones["HostedZones"][0]["Config"]["PrivateZone"]
+    assert hosted_zones["HostedZones"][1]["Config"]["PrivateZone"]
 
     hosted_zones = conn.list_hosted_zones_by_name(DNSName=zone2_name)
-    hosted_zones["HostedZones"].should.have.length_of(1)
-    hosted_zones["HostedZones"][0]["Config"]["PrivateZone"].should.equal(True)
-    hosted_zones["HostedZones"][0]["Name"].should.equal(zone2_name)
+    assert len(hosted_zones["HostedZones"]) == 1
+    assert hosted_zones["HostedZones"][0]["Config"]["PrivateZone"]
+    assert hosted_zones["HostedZones"][0]["Name"] == zone2_name
 
 
 @mock_ec2
@@ -88,19 +85,15 @@ def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
 
     # List the zones associated with this vpc
     response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
-    response.should.have.key("ResponseMetadata")
-    response.should.have.key("HostedZoneSummaries")
-    response["HostedZoneSummaries"].should.have.length_of(3)
+    assert len(response["HostedZoneSummaries"]) == 3
 
     # Loop through all zone summaries and verify they match what was created
     for summary in response["HostedZoneSummaries"]:
         # use the zone name as the index
         index = summary["Name"].split(".")[1]
         zone_id = zones[index]["HostedZone"]["Id"].split("/")[2]
-        summary.should.have.key("HostedZoneId")
-        summary["HostedZoneId"].should.equal(zone_id)
-        summary.should.have.key("Name")
-        summary["Name"].should.equal(zones[index]["HostedZone"]["Name"])
+        assert summary["HostedZoneId"] == zone_id
+        assert summary["Name"] == zones[index]["HostedZone"]["Name"]
 
 
 @mock_ec2
@@ -121,13 +114,10 @@ def test_list_hosted_zones_by_vpc():
     zone_id = zone_b["HostedZone"]["Id"].split("/")[2]
 
     response = conn.list_hosted_zones_by_vpc(VPCId=vpc_id, VPCRegion=region)
-    response.should.have.key("ResponseMetadata")
-    response.should.have.key("HostedZoneSummaries")
-    response["HostedZoneSummaries"].should.have.length_of(1)
-    response["HostedZoneSummaries"][0].should.have.key("HostedZoneId")
-    retured_zone = response["HostedZoneSummaries"][0]
-    retured_zone["HostedZoneId"].should.equal(zone_id)
-    retured_zone["Name"].should.equal(zone_b["HostedZone"]["Name"])
+    assert len(response["HostedZoneSummaries"]) == 1
+    returned_zone = response["HostedZoneSummaries"][0]
+    assert returned_zone["HostedZoneId"] == zone_id
+    assert returned_zone["Name"] == zone_b["HostedZone"]["Name"]
 
 
 @mock_ec2
@@ -148,8 +138,7 @@ def test_route53_associate_vpc():
         VPC={"VPCId": vpc_id, "VPCRegion": "us-east-1"},
         Comment="yolo",
     )
-    resp.should.have.key("ChangeInfo")
-    resp["ChangeInfo"].should.have.key("Comment").equals("yolo")
+    assert resp["ChangeInfo"]["Comment"] == "yolo"
 
 
 @mock_ec2
@@ -171,9 +160,10 @@ def test_route53_associate_vpc_with_public_Zone():
             Comment="yolo",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("PublicZoneVPCAssociation")
-    err["Message"].should.equal(
-        "You're trying to associate a VPC with a public hosted zone. Amazon Route 53 doesn't support associating a VPC with a public hosted zone."
+    assert err["Code"] == "PublicZoneVPCAssociation"
+    assert (
+        err["Message"]
+        == "You're trying to associate a VPC with a public hosted zone. Amazon Route 53 doesn't support associating a VPC with a public hosted zone."
     )
 
 
@@ -200,15 +190,15 @@ def test_route53_associate_and_disassociate_vpc():
     )
 
     zone_vpcs = conn.get_hosted_zone(Id=zone_id)["VPCs"]
-    zone_vpcs.should.have.length_of(2)
-    zone_vpcs.should.contain({"VPCRegion": region, "VPCId": vpc_id1})
-    zone_vpcs.should.contain({"VPCRegion": region, "VPCId": vpc_id2})
+    assert len(zone_vpcs) == 2
+    assert {"VPCRegion": region, "VPCId": vpc_id1} in zone_vpcs
+    assert {"VPCRegion": region, "VPCId": vpc_id2} in zone_vpcs
 
     conn.disassociate_vpc_from_hosted_zone(HostedZoneId=zone_id, VPC={"VPCId": vpc_id1})
 
     zone_vpcs = conn.get_hosted_zone(Id=zone_id)["VPCs"]
-    zone_vpcs.should.have.length_of(1)
-    zone_vpcs.should.contain({"VPCRegion": region, "VPCId": vpc_id2})
+    assert len(zone_vpcs) == 1
+    assert {"VPCRegion": region, "VPCId": vpc_id2} in zone_vpcs
 
 
 @mock_ec2
@@ -230,7 +220,8 @@ def test_route53_disassociate_last_vpc():
             HostedZoneId=zone_id, VPC={"VPCId": vpc_id}
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("LastVPCAssociation")
-    err["Message"].should.equal(
-        "The VPC that you're trying to disassociate from the private hosted zone is the last VPC that is associated with the hosted zone. Amazon Route 53 doesn't support disassociating the last VPC from a hosted zone."
+    assert err["Code"] == "LastVPCAssociation"
+    assert (
+        err["Message"]
+        == "The VPC that you're trying to disassociate from the private hosted zone is the last VPC that is associated with the hosted zone. Amazon Route 53 doesn't support disassociating the last VPC from a hosted zone."
     )

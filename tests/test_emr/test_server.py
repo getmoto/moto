@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 
 """
@@ -13,5 +11,5 @@ def test_describe_jobflows():
 
     res = test_client.get("/?Action=DescribeJobFlows")
 
-    res.data.should.contain(b"<DescribeJobFlowsResult>")
-    res.data.should.contain(b"<JobFlows>")
+    assert b"<DescribeJobFlowsResult>" in res.data
+    assert b"<JobFlows>" in res.data

@@ -355,34 +355,38 @@ def test_delete_secret_fails_with_both_force_delete_flag_and_recovery_window_fla
 
 
 @mock_secretsmanager
-def test_delete_secret_recovery_window_too_short():
+def test_delete_secret_recovery_window_invalid_values():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
     conn.create_secret(Name="test-secret", SecretString="foosecret")
 
-    with pytest.raises(ClientError):
-        conn.delete_secret(SecretId="test-secret", RecoveryWindowInDays=6)
-
-
-@mock_secretsmanager
-def test_delete_secret_recovery_window_too_long():
-    conn = boto3.client("secretsmanager", region_name="us-west-2")
-
-    conn.create_secret(Name="test-secret", SecretString="foosecret")
-
-    with pytest.raises(ClientError):
-        conn.delete_secret(SecretId="test-secret", RecoveryWindowInDays=31)
+    for nr in [0, 2, 6, 31, 100]:
+        with pytest.raises(ClientError) as exc:
+            conn.delete_secret(SecretId="test-secret", RecoveryWindowInDays=nr)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameterException"
+        assert (
+            "RecoveryWindowInDays value must be between 7 and 30 days (inclusive)"
+            in err["Message"]
+        )
 
 
 @mock_secretsmanager
 def test_delete_secret_force_no_such_secret_with_invalid_recovery_window():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with pytest.raises(ClientError):
-        conn.delete_secret(
-            SecretId=DEFAULT_SECRET_NAME,
-            ForceDeleteWithoutRecovery=True,
-            RecoveryWindowInDays=4,
+    for nr in [0, 2, 6, 31, 100]:
+        with pytest.raises(ClientError) as exc:
+            conn.delete_secret(
+                SecretId="test-secret",
+                RecoveryWindowInDays=nr,
+                ForceDeleteWithoutRecovery=True,
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameterException"
+        assert (
+            "RecoveryWindowInDays value must be between 7 and 30 days (inclusive)"
+            in err["Message"]
         )
 
 

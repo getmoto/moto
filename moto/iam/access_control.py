@@ -117,7 +117,7 @@ class IAMUserAccessKey:
 
 class AssumedRoleAccessKey:
     @property
-    def backend(self) -> IAMBackend:  # type: ignore[misc]
+    def backend(self) -> IAMBackend:
         return iam_backends[self.account_id]["global"]
 
     def __init__(self, account_id: str, access_key_id: str, headers: Dict[str, str]):
@@ -351,7 +351,7 @@ class IAMPolicy:
         else:
             policy_document = policy["policy_document"]
 
-        self._policy_json = json.loads(policy_document)  # type: ignore[arg-type]
+        self._policy_json = json.loads(policy_document)
 
     def is_action_permitted(
         self, action: str, resource: str = "*"

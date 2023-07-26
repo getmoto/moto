@@ -15,10 +15,11 @@ def test_add_tags():
     client.add_tags(ResourceId=trail_arn, TagsList=[{"Key": "k1", "Value": "v1"}])
 
     resp = client.list_tags(ResourceIdList=[trail_arn])
-    resp.should.have.key("ResourceTagList").length_of(1)
-    resp["ResourceTagList"][0].should.equal(
-        {"ResourceId": trail_arn, "TagsList": [{"Key": "k1", "Value": "v1"}]}
-    )
+    assert len(resp["ResourceTagList"]) == 1
+    assert resp["ResourceTagList"][0] == {
+        "ResourceId": trail_arn,
+        "TagsList": [{"Key": "k1", "Value": "v1"}],
+    }
 
 
 @mock_cloudtrail
@@ -38,13 +39,11 @@ def test_remove_tags():
 
     # Verify the first and third tag are still there
     resp = client.list_tags(ResourceIdList=[trail_arn])
-    resp.should.have.key("ResourceTagList").length_of(1)
-    resp["ResourceTagList"][0].should.equal(
-        {
-            "ResourceId": trail_arn,
-            "TagsList": [{"Key": "tk", "Value": "tv"}, {"Key": "tk3", "Value": "tv3"}],
-        }
-    )
+    assert len(resp["ResourceTagList"]) == 1
+    assert resp["ResourceTagList"][0] == {
+        "ResourceId": trail_arn,
+        "TagsList": [{"Key": "tk", "Value": "tv"}, {"Key": "tk3", "Value": "tv3"}],
+    }
 
 
 @mock_cloudtrail
@@ -55,8 +54,8 @@ def test_create_trail_without_tags_and_list_tags():
     trail_arn = resp["TrailARN"]
 
     resp = client.list_tags(ResourceIdList=[trail_arn])
-    resp.should.have.key("ResourceTagList").length_of(1)
-    resp["ResourceTagList"][0].should.equal({"ResourceId": trail_arn, "TagsList": []})
+    assert len(resp["ResourceTagList"]) == 1
+    assert resp["ResourceTagList"][0] == {"ResourceId": trail_arn, "TagsList": []}
 
 
 @mock_cloudtrail
@@ -68,10 +67,8 @@ def test_create_trail_with_tags_and_list_tags():
     trail_arn = resp["TrailARN"]
 
     resp = client.list_tags(ResourceIdList=[trail_arn])
-    resp.should.have.key("ResourceTagList").length_of(1)
-    resp["ResourceTagList"][0].should.equal(
-        {
-            "ResourceId": trail_arn,
-            "TagsList": [{"Key": "tk", "Value": "tv"}, {"Key": "tk2", "Value": "tv2"}],
-        }
-    )
+    assert len(resp["ResourceTagList"]) == 1
+    assert resp["ResourceTagList"][0] == {
+        "ResourceId": trail_arn,
+        "TagsList": [{"Key": "tk", "Value": "tv"}, {"Key": "tk2", "Value": "tv2"}],
+    }

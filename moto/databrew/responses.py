@@ -36,7 +36,7 @@ class DataBrewResponse(BaseResponse):
         )
 
     @amzn_request_id
-    def delete_recipe_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return,misc]
+    def delete_recipe_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DeleteRecipeVersion.html
         if request.method == "DELETE":
@@ -76,7 +76,7 @@ class DataBrewResponse(BaseResponse):
         )
 
     @amzn_request_id
-    def list_recipe_versions(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return,misc]
+    def list_recipe_versions(self, request: Any, full_url: str, headers: Any) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         self.setup_class(request, full_url, headers)
         recipe_name = self._get_param("Name", self._get_param("name"))
@@ -97,7 +97,7 @@ class DataBrewResponse(BaseResponse):
         )
 
     @amzn_request_id
-    def publish_recipe(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return,misc]
+    def publish_recipe(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             parsed_url = urlparse(full_url)
@@ -126,7 +126,7 @@ class DataBrewResponse(BaseResponse):
         return 200, {}, json.dumps(recipe.as_dict())
 
     @amzn_request_id
-    def recipe_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc,return]
+    def recipe_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 
@@ -178,7 +178,7 @@ class DataBrewResponse(BaseResponse):
         return 200, {}, json.dumps({"Name": ruleset_name})
 
     @amzn_request_id
-    def ruleset_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc,return]
+    def ruleset_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 
@@ -283,7 +283,7 @@ class DataBrewResponse(BaseResponse):
         return 200, {}, json.dumps(dataset.as_dict())
 
     @amzn_request_id
-    def dataset_response(self, request: Any, full_url: str, headers: Any) -> Union[str, TYPE_RESPONSE]:  # type: ignore[misc,return]
+    def dataset_response(self, request: Any, full_url: str, headers: Any) -> Union[str, TYPE_RESPONSE]:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 
@@ -304,7 +304,7 @@ class DataBrewResponse(BaseResponse):
 
     # region Jobs
     @amzn_request_id
-    def list_jobs(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[misc,return]
+    def list_jobs(self, request: Any, full_url: str, headers: Any) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         self.setup_class(request, full_url, headers)
         dataset_name = self._get_param("datasetName")
@@ -337,7 +337,7 @@ class DataBrewResponse(BaseResponse):
         return 200, {}, json.dumps({"Name": job_name})
 
     @amzn_request_id
-    def job_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc,return]
+    def job_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 
@@ -428,7 +428,7 @@ class DataBrewResponse(BaseResponse):
         return json.dumps(self.databrew_backend.update_recipe_job(**kwargs).as_dict())
 
     @amzn_request_id
-    def profile_job_response(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[misc,return]
+    def profile_job_response(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 
@@ -438,7 +438,7 @@ class DataBrewResponse(BaseResponse):
             return self.update_profile_job_response(job_name)
 
     @amzn_request_id
-    def recipe_job_response(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[misc,return]
+    def recipe_job_response(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         parsed_url = urlparse(full_url)
 

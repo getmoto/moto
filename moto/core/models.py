@@ -271,9 +271,9 @@ def patch_client(client: botocore.client.BaseClient) -> None:
     if isinstance(client, botocore.client.BaseClient):
         # Check if our event handler was already registered
         try:
-            event_emitter = client._ruleset_resolver._event_emitter._emitter  # type: ignore
-            all_handlers = event_emitter._handlers._root["children"]  # type: ignore
-            handler_trie = list(all_handlers["before-send"].values())[1]  # type: ignore
+            event_emitter = client._ruleset_resolver._event_emitter._emitter
+            all_handlers = event_emitter._handlers._root["children"]
+            handler_trie = list(all_handlers["before-send"].values())[1]
             handlers_list = handler_trie.first + handler_trie.middle + handler_trie.last
             if botocore_stubber in handlers_list:
                 # No need to patch - this client already has the botocore_stubber registered

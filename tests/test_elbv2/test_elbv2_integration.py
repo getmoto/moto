@@ -65,4 +65,4 @@ def test_modify_listener_using_iam_certificate():
         Certificates=[{"CertificateArn": iam_arn}],
         DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
     )["Listeners"][0]
-    listener["Certificates"].should.equal([{"CertificateArn": iam_arn}])
+    assert listener["Certificates"] == [{"CertificateArn": iam_arn}]

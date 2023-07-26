@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_datapipeline
@@ -21,4 +20,4 @@ def test_list_streams():
     )
 
     json_data = json.loads(res.data.decode("utf-8"))
-    json_data.should.equal({"pipelineDescriptionList": []})
+    assert json_data == {"pipelineDescriptionList": []}

@@ -1,8 +1,7 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_elb
 from uuid import uuid4
 
@@ -22,7 +21,7 @@ def test_create_lb_cookie_stickiness_policy():
         "LoadBalancerDescriptions"
     ][0]
     lbc_policies = balancer["Policies"]["LBCookieStickinessPolicies"]
-    lbc_policies.should.have.length_of(0)
+    assert len(lbc_policies) == 0
 
     client.create_lb_cookie_stickiness_policy(
         LoadBalancerName=lb_name, PolicyName="pname", CookieExpirationPeriod=42
@@ -33,8 +32,8 @@ def test_create_lb_cookie_stickiness_policy():
     ][0]
     policies = balancer["Policies"]
     lbc_policies = policies["LBCookieStickinessPolicies"]
-    lbc_policies.should.have.length_of(1)
-    lbc_policies[0].should.equal({"PolicyName": "pname", "CookieExpirationPeriod": 42})
+    assert len(lbc_policies) == 1
+    assert lbc_policies[0] == {"PolicyName": "pname", "CookieExpirationPeriod": 42}
 
 
 @mock_elb
@@ -52,7 +51,7 @@ def test_create_lb_cookie_stickiness_policy_no_expiry():
         "LoadBalancerDescriptions"
     ][0]
     lbc_policies = balancer["Policies"]["LBCookieStickinessPolicies"]
-    lbc_policies.should.have.length_of(0)
+    assert len(lbc_policies) == 0
 
     client.create_lb_cookie_stickiness_policy(
         LoadBalancerName=lb_name, PolicyName="pname"
@@ -63,8 +62,8 @@ def test_create_lb_cookie_stickiness_policy_no_expiry():
     ][0]
     policies = balancer["Policies"]
     lbc_policies = policies["LBCookieStickinessPolicies"]
-    lbc_policies.should.have.length_of(1)
-    lbc_policies[0].should.equal({"PolicyName": "pname"})
+    assert len(lbc_policies) == 1
+    assert lbc_policies[0] == {"PolicyName": "pname"}
 
 
 @mock_elb
@@ -82,7 +81,7 @@ def test_create_app_cookie_stickiness_policy():
         "LoadBalancerDescriptions"
     ][0]
     lbc_policies = balancer["Policies"]["AppCookieStickinessPolicies"]
-    lbc_policies.should.have.length_of(0)
+    assert len(lbc_policies) == 0
 
     client.create_app_cookie_stickiness_policy(
         LoadBalancerName=lb_name, PolicyName="pname", CookieName="cname"
@@ -93,8 +92,8 @@ def test_create_app_cookie_stickiness_policy():
     ][0]
     policies = balancer["Policies"]
     lbc_policies = policies["AppCookieStickinessPolicies"]
-    lbc_policies.should.have.length_of(1)
-    lbc_policies[0].should.equal({"CookieName": "cname", "PolicyName": "pname"})
+    assert len(lbc_policies) == 1
+    assert lbc_policies[0] == {"CookieName": "cname", "PolicyName": "pname"}
 
 
 @mock_elb
@@ -119,7 +118,7 @@ def test_create_lb_policy():
         "LoadBalancerDescriptions"
     ][0]
     policies = balancer["Policies"]
-    policies.should.have.key("OtherPolicies").equal(["ProxyPolicy"])
+    assert policies["OtherPolicies"] == ["ProxyPolicy"]
 
 
 @mock_elb
@@ -153,14 +152,14 @@ def test_set_policies_of_listener():
         for listener in balancer["ListenerDescriptions"]
         if listener["Listener"]["Protocol"] == "HTTP"
     ][0]
-    http_l.should.have.key("PolicyNames").should.equal([])
+    assert http_l["PolicyNames"] == []
 
     https_l = [
         listener
         for listener in balancer["ListenerDescriptions"]
         if listener["Listener"]["Protocol"] == "HTTPS"
     ][0]
-    https_l.should.have.key("PolicyNames").should.equal(["pname"])
+    assert https_l["PolicyNames"] == ["pname"]
 
 
 @mock_elb
@@ -188,10 +187,9 @@ def test_set_policies_of_backend_server():
     balancer = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
         "LoadBalancerDescriptions"
     ][0]
-    balancer.should.have.key("BackendServerDescriptions")
     desc = balancer["BackendServerDescriptions"]
-    desc.should.have.length_of(1)
-    desc[0].should.equal({"InstancePort": 8081, "PolicyNames": ["pname"]})
+    assert len(desc) == 1
+    assert desc[0] == {"InstancePort": 8081, "PolicyNames": ["pname"]}
 
 
 @mock_elb
@@ -206,7 +204,7 @@ def test_describe_load_balancer_policies__initial():
     )
 
     resp = client.describe_load_balancer_policies(LoadBalancerName=lb_name)
-    resp.should.have.key("PolicyDescriptions").equals([])
+    assert resp["PolicyDescriptions"] == []
 
 
 @mock_elb
@@ -235,21 +233,19 @@ def test_describe_load_balancer_policies():
     )
 
     resp = client.describe_load_balancer_policies(LoadBalancerName=lb_name)
-    resp.should.have.key("PolicyDescriptions").length_of(2)
+    assert len(resp["PolicyDescriptions"]) == 2
 
     resp = client.describe_load_balancer_policies(
         LoadBalancerName=lb_name, PolicyNames=["DifferentPolicy"]
     )
-    resp.should.have.key("PolicyDescriptions").length_of(1)
-    resp["PolicyDescriptions"][0].should.equal(
-        {
-            "PolicyName": "DifferentPolicy",
-            "PolicyTypeName": "DifferentProtocolPolicyType",
-            "PolicyAttributeDescriptions": [
-                {"AttributeName": "DiffProtocol", "AttributeValue": "true"}
-            ],
-        }
-    )
+    assert len(resp["PolicyDescriptions"]) == 1
+    assert resp["PolicyDescriptions"][0] == {
+        "PolicyName": "DifferentPolicy",
+        "PolicyTypeName": "DifferentProtocolPolicyType",
+        "PolicyAttributeDescriptions": [
+            {"AttributeName": "DiffProtocol", "AttributeValue": "true"}
+        ],
+    }
 
 
 @mock_elb
@@ -268,7 +264,7 @@ def test_describe_unknown_load_balancer_policy():
             LoadBalancerName=lb_name, PolicyNames=["unknown"]
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("PolicyNotFound")
+    assert err["Code"] == "PolicyNotFound"
 
 
 @mock_elb
@@ -301,4 +297,4 @@ def test_delete_load_balancer_policies():
     )
 
     resp = client.describe_load_balancer_policies(LoadBalancerName=lb_name)
-    resp.should.have.key("PolicyDescriptions").length_of(1)
+    assert len(resp["PolicyDescriptions"]) == 1

@@ -197,7 +197,7 @@ class DomainDispatcherApplication:
             )
             request_body_size = int(environ["CONTENT_LENGTH"])
             if simple_form and request_body_size:
-                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")  # type: ignore
+                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
         except (KeyError, ValueError):
             pass
         finally:

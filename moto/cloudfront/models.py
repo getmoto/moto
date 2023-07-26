@@ -101,13 +101,11 @@ class CustomOriginConfig:
     def __init__(self, config: Dict[str, Any]):
         self.http_port = config.get("HTTPPort")
         self.https_port = config.get("HTTPSPort")
-        self.keep_alive = config.get("OriginKeepaliveTimeout")
+        self.keep_alive = config.get("OriginKeepaliveTimeout") or 5
         self.protocol_policy = config.get("OriginProtocolPolicy")
-        self.read_timeout = config.get("OriginReadTimeout")
-        self.ssl_protocols = (
-            config.get("OriginSslProtocols", {}).get("Items", {}).get("SslProtocol")
-            or []
-        )
+        self.read_timeout = config.get("OriginReadTimeout") or 30
+        protocols = config.get("OriginSslProtocols", {}).get("Items") or {}
+        self.ssl_protocols = protocols.get("SslProtocol") or []
 
 
 class Origin:
@@ -148,6 +146,8 @@ class DistributionConfig:
         self.aliases = ((config.get("Aliases") or {}).get("Items") or {}).get(
             "CNAME"
         ) or []
+        if isinstance(self.aliases, str):
+            self.aliases = [self.aliases]
         self.comment = config.get("Comment") or ""
         self.default_cache_behavior = DefaultCacheBehaviour(
             config["DefaultCacheBehavior"]
@@ -354,15 +354,20 @@ class CloudFrontBackend(BaseBackend):
             raise NoSuchDistribution
         dist = self.distributions[_id]
 
-        aliases = dist_config["Aliases"]["Items"]["CNAME"]
+        if dist_config.get("Aliases", {}).get("Items") is not None:
+            aliases = dist_config["Aliases"]["Items"]["CNAME"]
+            dist.distribution_config.aliases = aliases
         origin = dist_config["Origins"]["Items"]["Origin"]
         dist.distribution_config.config = dist_config
-        dist.distribution_config.aliases = aliases
         dist.distribution_config.origins = (
             [Origin(o) for o in origin]
             if isinstance(origin, list)
             else [Origin(origin)]
         )
+        if dist_config.get("DefaultRootObject") is not None:
+            dist.distribution_config.default_root_object = dist_config[
+                "DefaultRootObject"
+            ]
         self.distributions[_id] = dist
         dist.advance()
         return dist, dist.location, dist.etag

@@ -1,5 +1,4 @@
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from freezegun import freeze_time
 
 from moto.core.utils import (
@@ -21,7 +20,7 @@ from moto.core.utils import (
     ],
 )
 def test_camelcase_to_underscores(_input, expected):
-    camelcase_to_underscores(_input).should.equal(expected)
+    assert camelcase_to_underscores(_input) == expected
 
 
 @pytest.mark.parametrize(
@@ -29,7 +28,7 @@ def test_camelcase_to_underscores(_input, expected):
     [("the_new_attribute", "theNewAttribute"), ("attribute", "attribute")],
 )
 def test_underscores_to_camelcase(_input, expected):
-    underscores_to_camelcase(_input).should.equal(expected)
+    assert underscores_to_camelcase(_input) == expected
 
 
 @pytest.mark.parametrize(
@@ -37,7 +36,7 @@ def test_underscores_to_camelcase(_input, expected):
     [("TheNewAttribute", "theNewAttribute"), ("Attribute", "attribute")],
 )
 def test_pascal_to_camelcase(_input, expected):
-    pascal_to_camelcase(_input).should.equal(expected)
+    assert pascal_to_camelcase(_input) == expected
 
 
 @pytest.mark.parametrize(
@@ -45,9 +44,9 @@ def test_pascal_to_camelcase(_input, expected):
     [("theNewAttribute", "TheNewAttribute"), ("attribute", "Attribute")],
 )
 def test_camelcase_to_pascal(_input, expected):
-    camelcase_to_pascal(_input).should.equal(expected)
+    assert camelcase_to_pascal(_input) == expected
 
 
 @freeze_time("2015-01-01 12:00:00")
 def test_unix_time():
-    unix_time().should.equal(1420113600.0)
+    assert unix_time() == 1420113600.0

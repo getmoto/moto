@@ -46,7 +46,7 @@ apigatewayv2
         The following parameters are not yet implemented: ResponseModels, ResponseParameters
         
 
-- [ ] create_stage
+- [X] create_stage
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
 - [X] delete_api
@@ -62,7 +62,7 @@ apigatewayv2
 - [X] delete_route_request_parameter
 - [X] delete_route_response
 - [ ] delete_route_settings
-- [ ] delete_stage
+- [X] delete_stage
 - [X] delete_vpc_link
 - [ ] export_api
 - [X] get_api
@@ -102,8 +102,8 @@ apigatewayv2
         Pagination is not yet implemented
         
 
-- [ ] get_stage
-- [ ] get_stages
+- [X] get_stage
+- [X] get_stages
 - [X] get_tags
 - [X] get_vpc_link
 - [X] get_vpc_links

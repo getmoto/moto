@@ -2,7 +2,7 @@ from moto.dynamodb.models.utilities import find_nested_key
 
 
 class TestFindDictionaryKeys:
-    def setup(self):
+    def setup_method(self):
         self.item = {
             "simplestring": "val",
             "nesteddict": {

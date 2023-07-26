@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_elbv2
@@ -18,9 +17,10 @@ def test_create_vpc_endpoint_service_configuration_without_params():
         client.create_vpc_endpoint_service_configuration()
     err = exc.value.response["Error"]
 
-    err["Code"].should.equal("InvalidParameter")
-    err["Message"].should.equal(
-        "exactly one of network_load_balancer_arn or gateway_load_balancer_arn is a required member"
+    assert err["Code"] == "InvalidParameter"
+    assert (
+        err["Message"]
+        == "exactly one of network_load_balancer_arn or gateway_load_balancer_arn is a required member"
     )
 
 
@@ -37,25 +37,25 @@ def test_create_vpc_endpoint_service_configuration_with_network_load_balancer():
     resp = client.create_vpc_endpoint_service_configuration(
         NetworkLoadBalancerArns=[lb_arn]
     )
-    resp.should.have.key("ServiceConfiguration")
+    assert "ServiceConfiguration" in resp
     config = resp["ServiceConfiguration"]
 
-    config.should.have.key("ServiceType").equals([{"ServiceType": "Interface"}])
-    config.should.have.key("ServiceId").match("^vpce-svc-")
-    config.should.have.key("ServiceName").equals(
-        f"com.amazonaws.vpce.eu-west-3.{config['ServiceId']}"
+    assert config["ServiceType"] == [{"ServiceType": "Interface"}]
+    assert config["ServiceId"].startswith("vpce-svc-")
+    assert (
+        config["ServiceName"] == f"com.amazonaws.vpce.eu-west-3.{config['ServiceId']}"
     )
-    config.should.have.key("ServiceState").equals("Available")
-    config.should.have.key("AvailabilityZones").equals(["eu-west-3b"])
-    config.should.have.key("AcceptanceRequired").equals(True)
-    config.should.have.key("ManagesVpcEndpoints").equals(False)
-    config.should.have.key("NetworkLoadBalancerArns").equals([lb_arn])
-    config.should.have.key("BaseEndpointDnsNames").equals(
-        [f"{config['ServiceId']}.eu-west-3.vpce.amazonaws.com"]
-    )
-    config.should.have.key("PrivateDnsNameConfiguration").equals({})
+    assert config["ServiceState"] == "Available"
+    assert config["AvailabilityZones"] == ["eu-west-3b"]
+    assert config["AcceptanceRequired"] is True
+    assert config["ManagesVpcEndpoints"] is False
+    assert config["NetworkLoadBalancerArns"] == [lb_arn]
+    assert config["BaseEndpointDnsNames"] == [
+        f"{config['ServiceId']}.eu-west-3.vpce.amazonaws.com"
+    ]
+    assert config["PrivateDnsNameConfiguration"] == {}
 
-    config.shouldnt.have.key("GatewayLoadBalancerArns")
+    assert "GatewayLoadBalancerArns" not in config
 
 
 @mock_ec2
@@ -71,25 +71,25 @@ def test_create_vpc_endpoint_service_configuration_with_gateway_load_balancer():
     resp = client.create_vpc_endpoint_service_configuration(
         GatewayLoadBalancerArns=[lb_arn]
     )
-    resp.should.have.key("ServiceConfiguration")
+    assert "ServiceConfiguration" in resp
     config = resp["ServiceConfiguration"]
 
-    config.should.have.key("ServiceType").equals([{"ServiceType": "Gateway"}])
-    config.should.have.key("ServiceId").match("^vpce-svc-")
-    config.should.have.key("ServiceName").equals(
-        f"com.amazonaws.vpce.us-east-2.{config['ServiceId']}"
+    assert config["ServiceType"] == [{"ServiceType": "Gateway"}]
+    assert config["ServiceId"].startswith("vpce-svc-")
+    assert (
+        config["ServiceName"] == f"com.amazonaws.vpce.us-east-2.{config['ServiceId']}"
     )
-    config.should.have.key("ServiceState").equals("Available")
-    config.should.have.key("AvailabilityZones").equals(["us-east-1c"])
-    config.should.have.key("AcceptanceRequired").equals(True)
-    config.should.have.key("ManagesVpcEndpoints").equals(False)
-    config.should.have.key("GatewayLoadBalancerArns").equals([lb_arn])
-    config.should.have.key("BaseEndpointDnsNames").equals(
-        [f"{config['ServiceId']}.us-east-2.vpce.amazonaws.com"]
-    )
-    config.should.have.key("PrivateDnsNameConfiguration").equals({})
+    assert config["ServiceState"] == "Available"
+    assert config["AvailabilityZones"] == ["us-east-1c"]
+    assert config["AcceptanceRequired"] is True
+    assert config["ManagesVpcEndpoints"] is False
+    assert config["GatewayLoadBalancerArns"] == [lb_arn]
+    assert config["BaseEndpointDnsNames"] == [
+        f"{config['ServiceId']}.us-east-2.vpce.amazonaws.com"
+    ]
+    assert config["PrivateDnsNameConfiguration"] == {}
 
-    config.shouldnt.have.key("NetworkLoadBalancerArns")
+    assert "NetworkLoadBalancerArns" not in config
 
 
 @mock_ec2
@@ -106,14 +106,17 @@ def test_create_vpc_endpoint_service_configuration_with_options():
         AcceptanceRequired=False,
         PrivateDnsName="example.com",
     )
-    resp.should.have.key("ServiceConfiguration")
+    assert "ServiceConfiguration" in resp
     config = resp["ServiceConfiguration"]
 
-    config.should.have.key("AcceptanceRequired").equals(False)
-    config.should.have.key("PrivateDnsName").equals("example.com")
-    config.should.have.key("PrivateDnsNameConfiguration").equals(
-        {"Name": "n", "State": "verified", "Type": "TXT", "Value": "val"}
-    )
+    assert config["AcceptanceRequired"] is False
+    assert config["PrivateDnsName"] == "example.com"
+    assert config["PrivateDnsNameConfiguration"] == {
+        "Name": "n",
+        "State": "verified",
+        "Type": "TXT",
+        "Value": "val",
+    }
 
 
 @mock_ec2
@@ -134,20 +137,20 @@ def test_describe_vpc_endpoint_service_configurations():
     )["ServiceConfiguration"]["ServiceId"]
 
     resp = client.describe_vpc_endpoint_service_configurations()
-    resp.should.have.key("ServiceConfigurations")
+    assert "ServiceConfigurations" in resp
     service_ids = [s["ServiceId"] for s in resp["ServiceConfigurations"]]
-    service_ids.should.contain(config1)
-    service_ids.should.contain(config2)
+    assert config1 in service_ids
+    assert config2 in service_ids
 
     resp = client.describe_vpc_endpoint_service_configurations(ServiceIds=[config2])
 
-    resp.should.have.key("ServiceConfigurations").length_of(1)
+    assert len(resp["ServiceConfigurations"]) == 1
     result = resp["ServiceConfigurations"][0]
 
-    result.should.have.key("ServiceId").equals(config2)
-    result.should.have.key("ServiceName")
-    result.should.have.key("ServiceState")
-    result.should.have.key("GatewayLoadBalancerArns").equals([lb_arn])
+    assert result["ServiceId"] == config2
+    assert "ServiceName" in result
+    assert "ServiceState" in result
+    assert result["GatewayLoadBalancerArns"] == [lb_arn]
 
 
 @mock_ec2
@@ -174,11 +177,11 @@ def test_describe_vpc_endpoint_service_configurations_with_tags(tags):
 
     resp = client.describe_vpc_endpoint_service_configurations(ServiceIds=[service_id])
 
-    resp.should.have.key("ServiceConfigurations").length_of(1)
+    assert len(resp["ServiceConfigurations"]) == 1
     result = resp["ServiceConfigurations"][0]
-    result.should.have.key("Tags").length_of(len(tags))
+    assert len(result["Tags"]) == len(tags)
     for tag in tags:
-        result["Tags"].should.contain(tag)
+        assert tag in result["Tags"]
 
 
 @mock_ec2
@@ -200,11 +203,11 @@ def test_describe_vpc_endpoint_service_configurations_and_add_tags():
 
     resp = client.describe_vpc_endpoint_service_configurations(ServiceIds=[service_id])
 
-    resp.should.have.key("ServiceConfigurations").length_of(1)
+    assert len(resp["ServiceConfigurations"]) == 1
     result = resp["ServiceConfigurations"][0]
-    result.should.have.key("Tags").length_of(len(tags))
+    assert len(result["Tags"]) == len(tags)
     for tag in tags:
-        result["Tags"].should.contain(tag)
+        assert tag in result["Tags"]
 
 
 @mock_ec2
@@ -218,9 +221,9 @@ def test_describe_vpc_endpoint_service_configurations_unknown():
         )
     err = exc.value.response["Error"]
 
-    err["Code"].should.equal("InvalidVpcEndpointServiceId.NotFound")
-    err["Message"].should.equal(
-        "The VpcEndpointService Id 'vpce-svc-unknown' does not exist"
+    assert err["Code"] == "InvalidVpcEndpointServiceId.NotFound"
+    assert (
+        err["Message"] == "The VpcEndpointService Id 'vpce-svc-unknown' does not exist"
     )
 
 
@@ -239,7 +242,7 @@ def test_delete_vpc_endpoint_service_configurations():
     )["ServiceConfiguration"]["ServiceId"]
 
     resp = client.delete_vpc_endpoint_service_configurations(ServiceIds=[service_id])
-    resp.should.have.key("Unsuccessful").equals([])
+    assert resp["Unsuccessful"] == []
 
 
 @mock_ec2
@@ -249,15 +252,15 @@ def test_delete_vpc_endpoint_service_configurations_already_deleted():
     resp = client.delete_vpc_endpoint_service_configurations(
         ServiceIds=["vpce-svc-03cf101d15c3bff53"]
     )
-    resp.should.have.key("Unsuccessful").length_of(1)
+    assert len(resp["Unsuccessful"]) == 1
 
     u = resp["Unsuccessful"][0]
-    u.should.have.key("ResourceId").equals("vpce-svc-03cf101d15c3bff53")
-    u.should.have.key("Error")
+    assert u["ResourceId"] == "vpce-svc-03cf101d15c3bff53"
 
-    u["Error"].should.have.key("Code").equals("InvalidVpcEndpointService.NotFound")
-    u["Error"].should.have.key("Message").equals(
-        "The VpcEndpointService Id 'vpce-svc-03cf101d15c3bff53' does not exist"
+    assert u["Error"]["Code"] == "InvalidVpcEndpointService.NotFound"
+    assert (
+        u["Error"]["Message"]
+        == "The VpcEndpointService Id 'vpce-svc-03cf101d15c3bff53' does not exist"
     )
 
 
@@ -276,7 +279,7 @@ def test_describe_vpc_endpoint_service_permissions():
     )["ServiceConfiguration"]["ServiceId"]
 
     resp = client.describe_vpc_endpoint_service_permissions(ServiceId=service_id)
-    resp.should.have.key("AllowedPrincipals").equals([])
+    assert resp["AllowedPrincipals"] == []
 
 
 @mock_ec2
@@ -298,17 +301,17 @@ def test_modify_vpc_endpoint_service_permissions():
     )
 
     resp = client.describe_vpc_endpoint_service_permissions(ServiceId=service_id)
-    resp.should.have.key("AllowedPrincipals").length_of(2)
-    resp["AllowedPrincipals"].should.contain({"Principal": "prin1"})
-    resp["AllowedPrincipals"].should.contain({"Principal": "cipal2"})
+    assert len(resp["AllowedPrincipals"]) == 2
+    assert {"Principal": "prin1"} in resp["AllowedPrincipals"]
+    assert {"Principal": "cipal2"} in resp["AllowedPrincipals"]
 
     client.modify_vpc_endpoint_service_permissions(
         ServiceId=service_id, RemoveAllowedPrincipals=["prin1"]
     )
 
     resp = client.describe_vpc_endpoint_service_permissions(ServiceId=service_id)
-    resp.should.have.key("AllowedPrincipals").length_of(1)
-    resp["AllowedPrincipals"].should.contain({"Principal": "cipal2"})
+    assert len(resp["AllowedPrincipals"]) == 1
+    assert {"Principal": "cipal2"} in resp["AllowedPrincipals"]
 
 
 @mock_ec2
@@ -333,8 +336,8 @@ def test_modify_vpc_endpoint_service_configuration():
         ServiceIds=[service_id]
     )["ServiceConfigurations"][0]
 
-    config.should.have.key("AcceptanceRequired").equals(False)
-    config.should.have.key("PrivateDnsName").equals("dnsname")
+    assert config["AcceptanceRequired"] is False
+    assert config["PrivateDnsName"] == "dnsname"
 
 
 @mock_ec2
@@ -366,8 +369,8 @@ def test_modify_vpc_endpoint_service_configuration_with_new_loadbalancers():
     config = client.describe_vpc_endpoint_service_configurations(
         ServiceIds=[service_id]
     )["ServiceConfigurations"][0]
-    config["GatewayLoadBalancerArns"].should.equal([lb_arn, lb_arn2])
-    config["NetworkLoadBalancerArns"].should.equal([lb_arn3])
+    assert config["GatewayLoadBalancerArns"] == [lb_arn, lb_arn2]
+    assert config["NetworkLoadBalancerArns"] == [lb_arn3]
 
     client.modify_vpc_endpoint_service_configuration(
         ServiceId=service_id,
@@ -378,8 +381,8 @@ def test_modify_vpc_endpoint_service_configuration_with_new_loadbalancers():
     config = client.describe_vpc_endpoint_service_configurations(
         ServiceIds=[service_id]
     )["ServiceConfigurations"][0]
-    config["GatewayLoadBalancerArns"].should.equal([lb_arn2])
-    config.shouldnt.have.key("NetworkLoadBalancerArns")
+    assert config["GatewayLoadBalancerArns"] == [lb_arn2]
+    assert "NetworkLoadBalancerArns" not in config
 
 
 def create_load_balancer(region_name, zone, lb_type):

@@ -494,7 +494,7 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_names,
             expression_attribute_values,
         )
-        if not condition_op.expr(item):  # type: ignore[arg-type]
+        if not condition_op.expr(item):
             raise ConditionalCheckFailed
 
         return table.delete_item(hash_value, range_value)
@@ -565,7 +565,7 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_names,
                         expression_attribute_values,
                     )
-                    if not condition_op.expr(current):  # type: ignore[arg-type]
+                    if not condition_op.expr(current):
                         raise ConditionalCheckFailed()
                 elif "Put" in item:
                     item = item["Put"]

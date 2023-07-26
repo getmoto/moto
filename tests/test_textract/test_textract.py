@@ -42,15 +42,15 @@ def test_get_document_text_detection():
 
     resp = client.get_document_text_detection(JobId=job["JobId"])
 
-    resp["Blocks"][0]["Text"].should.equal("This is a test")
-    resp["Blocks"][0]["Id"].should.equal("0")
-    resp["Blocks"][0]["Confidence"].should.equal("100")
-    resp["Blocks"][0]["Geometry"]["BoundingBox"]["Width"].should.equal("0.5")
-    resp["Blocks"][0]["Geometry"]["BoundingBox"]["Height"].should.equal("0.5")
-    resp["Blocks"][0]["Geometry"]["BoundingBox"]["Left"].should.equal("0.5")
-    resp["Blocks"][0]["Geometry"]["BoundingBox"]["Top"].should.equal("0.5")
-    resp["JobStatus"].should.equal("SUCCEEDED")
-    resp["DocumentMetadata"]["Pages"].should.equal(TextractBackend.PAGES)
+    assert resp["Blocks"][0]["Text"] == "This is a test"
+    assert resp["Blocks"][0]["Id"] == "0"
+    assert resp["Blocks"][0]["Confidence"] == "100"
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Width"] == "0.5"
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Height"] == "0.5"
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Left"] == "0.5"
+    assert resp["Blocks"][0]["Geometry"]["BoundingBox"]["Top"] == "0.5"
+    assert resp["JobStatus"] == "SUCCEEDED"
+    assert resp["DocumentMetadata"]["Pages"] == TextractBackend.PAGES
 
 
 @mock_textract
@@ -60,7 +60,7 @@ def test_start_document_text_detection():
         DocumentLocation={"S3Object": {"Bucket": "bucket", "Name": "name"}}
     )
 
-    resp.should.have.key("JobId")
+    assert "JobId" in resp
 
 
 @mock_textract
@@ -69,7 +69,7 @@ def test_get_document_text_detection_without_job_id():
     with pytest.raises(ClientError) as e:
         client.get_document_text_detection(JobId="Invalid Job Id")
 
-    e.value.response["Error"]["Code"].should.equal("InvalidJobIdException")
+    assert e.value.response["Error"]["Code"] == "InvalidJobIdException"
 
 
 @mock_textract

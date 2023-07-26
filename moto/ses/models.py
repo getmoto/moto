@@ -230,7 +230,7 @@ class SESBackend(BaseBackend):
             raise MessageRejectedError("Too many destinations.")
 
         total_recipient_count = sum(
-            map(lambda d: sum(map(len, d["Destination"].values())), destinations)  # type: ignore
+            map(lambda d: sum(map(len, d["Destination"].values())), destinations)
         )
         if total_recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many destinations.")

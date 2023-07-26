@@ -212,6 +212,22 @@ class ApiGatewayV2Response(BaseResponse):
         if request.method == "DELETE":
             return self.delete_api_mapping()
 
+    def stages(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "POST":
+            return self.create_stage()
+        if self.method == "GET":
+            return self.get_stages()
+
+    def stage(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+
+        if self.method == "GET":
+            return self.get_stage()
+        if self.method == "DELETE":
+            return self.delete_stage()
+
     def create_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
 
@@ -854,3 +870,26 @@ class ApiGatewayV2Response(BaseResponse):
             domain_name=domain_name,
         )
         return 204, {}, ""
+
+    def create_stage(self) -> TYPE_RESPONSE:
+        api_id = self.path.split("/")[-2]
+        config = json.loads(self.body)
+        stage = self.apigatewayv2_backend.create_stage(api_id, config)
+        return 200, {}, json.dumps(stage.to_json())
+
+    def get_stage(self) -> TYPE_RESPONSE:
+        api_id = self.path.split("/")[-3]
+        stage_name = self.path.split("/")[-1]
+        stage = self.apigatewayv2_backend.get_stage(api_id, stage_name)
+        return 200, {}, json.dumps(stage.to_json())
+
+    def delete_stage(self) -> TYPE_RESPONSE:
+        api_id = self.path.split("/")[-3]
+        stage_name = self.path.split("/")[-1]
+        self.apigatewayv2_backend.delete_stage(api_id, stage_name)
+        return 200, {}, "{}"
+
+    def get_stages(self) -> TYPE_RESPONSE:
+        api_id = self.path.split("/")[-2]
+        stages = self.apigatewayv2_backend.get_stages(api_id)
+        return 200, {}, json.dumps({"items": [st.to_json() for st in stages]})

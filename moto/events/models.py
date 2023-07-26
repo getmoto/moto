@@ -1134,7 +1134,9 @@ class EventsBackend(BaseBackend):
         return False
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_rule_names_by_target(self, target_arn: str, event_bus_arn: Optional[str]) -> List[Rule]:  # type: ignore[misc]
+    def list_rule_names_by_target(
+        self, target_arn: str, event_bus_arn: Optional[str]
+    ) -> List[Rule]:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         matching_rules = []
@@ -1147,7 +1149,9 @@ class EventsBackend(BaseBackend):
         return matching_rules
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_rules(self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None) -> List[Rule]:  # type: ignore[misc]
+    def list_rules(
+        self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None
+    ) -> List[Rule]:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         match_string = ".*"
@@ -1497,8 +1501,8 @@ class EventsBackend(BaseBackend):
         name = arn.split("/")[-1]
         rules = [bus.rules for bus in self.event_buses.values()]
         for registry in rules + [self.event_buses]:
-            if name in registry:  # type: ignore
-                return self.tagger.list_tags_for_resource(registry[name].arn)  # type: ignore
+            if name in registry:
+                return self.tagger.list_tags_for_resource(registry[name].arn)
         raise ResourceNotFoundException(
             f"Rule {name} does not exist on EventBus default."
         )
@@ -1507,8 +1511,8 @@ class EventsBackend(BaseBackend):
         name = arn.split("/")[-1]
         rules = [bus.rules for bus in self.event_buses.values()]
         for registry in rules + [self.event_buses]:
-            if name in registry:  # type: ignore
-                self.tagger.tag_resource(registry[name].arn, tags)  # type: ignore
+            if name in registry:
+                self.tagger.tag_resource(registry[name].arn, tags)
                 return
         raise ResourceNotFoundException(
             f"Rule {name} does not exist on EventBus default."
@@ -1518,8 +1522,8 @@ class EventsBackend(BaseBackend):
         name = arn.split("/")[-1]
         rules = [bus.rules for bus in self.event_buses.values()]
         for registry in rules + [self.event_buses]:
-            if name in registry:  # type: ignore
-                self.tagger.untag_resource_using_names(registry[name].arn, tag_names)  # type: ignore
+            if name in registry:
+                self.tagger.untag_resource_using_names(registry[name].arn, tag_names)
                 return
         raise ResourceNotFoundException(
             f"Rule {name} does not exist on EventBus default."

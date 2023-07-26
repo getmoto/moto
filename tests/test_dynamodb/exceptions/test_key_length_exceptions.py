@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_dynamodb
@@ -40,11 +39,12 @@ def test_item_add_long_string_hash_key_exception():
                 "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
             },
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
 
 
@@ -87,11 +87,12 @@ def test_item_add_long_string_nonascii_hash_key_exception():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
 
 
@@ -135,10 +136,11 @@ def test_item_add_long_string_range_key_exception():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
 
 
@@ -204,10 +206,11 @@ def test_put_long_string_gsi_range_key_exception():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
 
 
@@ -243,11 +246,12 @@ def test_update_item_with_long_string_hash_key_exception():
             ExpressionAttributeValues={":New": {"S": "hello"}},
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Size of hashkey has exceeded the maximum size limit of2048 bytes"
     )
 
 
@@ -288,11 +292,12 @@ def test_update_item_with_long_string_range_key_exception():
             ExpressionAttributeValues={":New": {"S": "hello"}},
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # deliberately no space between "of" and "2048"
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Aggregated size of all range keys has exceeded the size limit of 1024 bytes"
     )
 
 
@@ -312,9 +317,9 @@ def test_item_add_empty_key_exception():
             TableName=name,
             Key={"forum_name": {"S": ""}},
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values are not valid. The AttributeValue for a key attribute "
-        "cannot contain an empty string value. Key: forum_name"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: forum_name"
     )

@@ -1523,11 +1523,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     Note that this only works if the environment variable is set **before** the mock is initialized.
 
+    ------------------------------------
+
     When using the MultiPart-API manually, the minimum part size is 5MB, just as with AWS. Use the following environment variable to lower this:
 
     .. sourcecode:: bash
 
         S3_UPLOAD_PART_MIN_SIZE=256
+
+    ------------------------------------
+
+    Install `moto[s3crc32c]` if you use the CRC32C algorithm, and absolutely need the correct value. Alternatively, you can install the `crc32c` dependency manually.
+
+    If this dependency is not installed, Moto will fall-back to the CRC32-computation when computing checksums.
 
     """
 
@@ -1926,7 +1934,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             etag=etag,
             is_versioned=bucket.is_versioned,
             # AWS uses VersionId=null in both requests and responses
-            version_id=str(random.uuid4()) if bucket.is_versioned else "null",  # type: ignore
+            version_id=str(random.uuid4()) if bucket.is_versioned else "null",
             multipart=multipart,
             encryption=encryption,
             kms_key_id=kms_key_id,

@@ -12,7 +12,7 @@ from moto.utilities.distutils_version import LooseVersion
 try:
     from importlib.metadata import version
 except ImportError:
-    from importlib_metadata import version  # type: ignore[no-redef]
+    from importlib_metadata import version
 
 
 RESPONSES_VERSION = version("responses")
@@ -22,6 +22,11 @@ class CallbackResponse(responses.CallbackResponse):
     """
     Need to subclass so we can change a couple things
     """
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, CallbackResponse):
+            return self.method == other.method and self.url.pattern == other.url.pattern  # type: ignore
+        return super().__eq__(other)
 
     def get_response(self, request: Any) -> responses.HTTPResponse:
         """
@@ -158,7 +163,7 @@ def get_response_mock() -> responses.RequestsMock:
         )
     else:
         responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)  # type: ignore[assignment]
+        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)  # type: ignore[method-assign]
 
     responses_mock.add_passthru("http")
     return responses_mock

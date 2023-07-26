@@ -1,7 +1,7 @@
 import json
 import boto3
 import botocore
-import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_cloudformation, mock_s3
 from tests import EXAMPLE_AMI_ID
@@ -63,15 +63,13 @@ def test_boto3_json_with_tabs_validate_successful():
 @mock_cloudformation
 def test_boto3_json_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    try:
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
         cf_conn.validate_template(TemplateBody=dummy_bad_template_json)
-        assert False
-    except botocore.exceptions.ClientError as e:
-        str(e).should.contain(
-            "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
-            " with id Missing top level"
-        )
-        assert True
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Stack with id Missing top level template section Resources does not exist"
+    )
 
 
 yaml_template = """
@@ -122,12 +120,10 @@ def test_boto3_yaml_validate_template_url_successful():
 @mock_cloudformation
 def test_boto3_yaml_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
-    try:
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
         cf_conn.validate_template(TemplateBody=yaml_bad_template)
-        assert False
-    except botocore.exceptions.ClientError as e:
-        str(e).should.contain(
-            "An error occurred (ValidationError) when calling the ValidateTemplate operation: Stack"
-            " with id Missing top level"
-        )
-        assert True
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Stack with id Missing top level template section Resources does not exist"
+    )

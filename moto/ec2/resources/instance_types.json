@@ -46,6 +46,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -125,6 +127,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -204,6 +208,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -283,6 +289,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -361,6 +369,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -440,6 +450,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -523,6 +535,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -615,6 +629,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -706,6 +722,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -809,6 +827,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -908,6 +928,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1007,6 +1029,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1108,6 +1132,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1197,6 +1223,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1286,6 +1314,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1379,6 +1409,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1473,6 +1505,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1559,6 +1593,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1646,6 +1682,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1744,6 +1787,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1847,6 +1897,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -1957,6 +2014,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2045,6 +2109,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2135,6 +2206,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2230,6 +2308,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2316,6 +2401,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2395,6 +2482,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2482,6 +2576,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2577,6 +2678,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2674,6 +2782,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2775,6 +2890,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2865,6 +2987,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -2956,6 +3085,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3049,6 +3185,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3136,6 +3279,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3236,6 +3386,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3343,6 +3500,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3452,6 +3616,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3565,6 +3736,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3667,6 +3845,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3770,6 +3955,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3875,6 +4067,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -3974,6 +4173,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4074,6 +4280,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4184,6 +4397,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4299,6 +4519,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4421,6 +4648,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4521,6 +4755,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4623,6 +4864,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4730,6 +4978,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4828,6 +5083,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -4919,6 +5176,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5009,6 +5273,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5112,6 +5383,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5200,6 +5478,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5293,6 +5578,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5388,6 +5680,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5477,6 +5776,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5556,6 +5857,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5643,6 +5951,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5742,6 +6057,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5839,6 +6161,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -5934,6 +6263,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6027,6 +6363,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6124,6 +6467,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6219,6 +6569,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6316,6 +6673,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6412,6 +6776,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6504,6 +6875,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6583,6 +6956,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6674,6 +7054,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6806,6 +7188,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -6954,6 +7338,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7046,6 +7432,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7146,6 +7534,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7262,6 +7652,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7348,6 +7740,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7426,6 +7820,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7505,6 +7901,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7605,6 +8003,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7749,6 +8149,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -7909,6 +8311,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8013,6 +8417,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8125,6 +8531,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8253,6 +8661,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8351,6 +8761,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8441,6 +8853,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8532,6 +8946,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8620,6 +9036,8 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8755,6 +9173,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8903,6 +9323,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -8995,6 +9417,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9095,6 +9519,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9211,6 +9637,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9297,6 +9725,8 @@
    ],
    "NetworkPerformance": "Up to 16 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9382,6 +9812,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9470,6 +9902,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9568,6 +10007,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9670,6 +10116,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9780,6 +10233,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9871,6 +10331,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -9989,6 +10456,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10079,6 +10553,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10173,6 +10654,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10262,6 +10750,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10341,6 +10831,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10441,6 +10938,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10551,6 +11055,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10665,6 +11176,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10787,6 +11305,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -10890,6 +11415,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11020,6 +11552,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11122,6 +11661,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11228,6 +11774,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11329,6 +11882,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11420,6 +11975,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11508,6 +12070,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11618,6 +12187,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11736,6 +12312,13 @@
    ],
    "NetworkPerformance": "150 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11845,6 +12428,13 @@
    ],
    "NetworkPerformance": "Up to 40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -11943,6 +12533,13 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12060,6 +12657,13 @@
    ],
    "NetworkPerformance": "Up to 50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12154,6 +12758,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12256,6 +12867,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12350,6 +12968,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12429,6 +13049,13 @@
    ],
    "NetworkPerformance": "Up to 30 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12517,6 +13144,8 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12652,6 +13281,8 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12800,6 +13431,8 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12892,6 +13525,8 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -12992,6 +13627,8 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13108,6 +13745,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13194,6 +13833,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13275,6 +13916,8 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13354,6 +13997,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13442,6 +14087,8 @@
    ],
    "NetworkPerformance": "150 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13577,6 +14224,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13725,6 +14374,8 @@
    ],
    "NetworkPerformance": "Up to 50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13817,6 +14468,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13917,6 +14570,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14033,6 +14688,8 @@
    ],
    "NetworkPerformance": "Up to 30 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14119,6 +14776,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14198,6 +14857,8 @@
    ],
    "NetworkPerformance": "Up to 40 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14298,6 +14959,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14400,6 +15063,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14506,6 +15171,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14613,6 +15280,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14713,6 +15382,13 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14813,6 +15489,13 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14915,6 +15598,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15021,6 +15711,13 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15121,6 +15818,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15231,6 +15935,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15331,6 +16042,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15433,6 +16151,13 @@
    ],
    "NetworkPerformance": "40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15537,6 +16262,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15643,6 +16375,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15774,6 +16513,8 @@
    ],
    "NetworkPerformance": "4x 100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -15908,6 +16649,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16034,6 +16777,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16148,6 +16893,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16266,6 +17013,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16373,6 +17122,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16480,6 +17231,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16594,6 +17347,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16700,6 +17455,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16814,6 +17571,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16926,6 +17685,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17041,6 +17802,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17153,6 +17916,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17266,6 +18031,8 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17380,6 +18147,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17494,6 +18263,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17620,6 +18396,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17747,6 +18530,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17860,6 +18650,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17978,6 +18775,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18099,6 +18903,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18203,6 +19009,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18318,6 +19131,13 @@
    ],
    "NetworkPerformance": "40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18426,6 +19246,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18534,6 +19361,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18639,6 +19473,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18747,6 +19588,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18852,6 +19700,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18960,6 +19815,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19065,6 +19927,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19158,6 +20027,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19319,6 +20190,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19417,13 +20290,15 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "MaximumNetworkInterfaces": 4,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 10 Gigabit"
     }
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19537,6 +20412,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19665,6 +20542,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19750,13 +20629,15 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
-     "MaximumNetworkInterfaces": 3,
+     "MaximumNetworkInterfaces": 4,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 10 Gigabit"
     }
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19857,6 +20738,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19970,6 +20853,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20071,6 +20956,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20176,6 +21063,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20280,6 +21169,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20379,6 +21275,13 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20497,6 +21400,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20578,6 +21483,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20659,6 +21566,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20749,6 +21658,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20851,6 +21762,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20949,6 +21862,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21055,6 +21970,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21155,6 +22072,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21268,6 +22187,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21369,6 +22290,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21474,6 +22397,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21587,6 +22512,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21684,6 +22611,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21775,6 +22704,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21877,6 +22808,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21990,6 +22928,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22112,6 +23057,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22212,6 +23164,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22313,6 +23272,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22417,6 +23383,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22518,6 +23491,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22609,6 +23584,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22712,6 +23694,8 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22872,6 +23856,8 @@
    ],
    "NetworkPerformance": "Up to 12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -22976,6 +23962,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23088,6 +24076,8 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23216,6 +24206,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23314,6 +24306,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23356,7 +24350,7 @@
   }
  },
  "i4i.16xlarge": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -23407,13 +24401,20 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "MaximumNetworkInterfaces": 8,
+     "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "37.5 Gigabit"
     }
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23470,7 +24471,7 @@
   }
  },
  "i4i.2xlarge": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -23528,6 +24529,13 @@
    ],
    "NetworkPerformance": "Up to 12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23572,7 +24580,7 @@
   }
  },
  "i4i.32xlarge": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -23633,6 +24641,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23705,7 +24720,7 @@
   }
  },
  "i4i.4xlarge": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -23763,6 +24778,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23811,7 +24833,7 @@
   }
  },
  "i4i.8xlarge": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -23869,6 +24891,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -23925,7 +24954,7 @@
   }
  },
  "i4i.large": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -23983,6 +25012,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24024,7 +25060,7 @@
   }
  },
  "i4i.metal": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": true,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -24084,6 +25120,8 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24117,7 +25155,7 @@
   }
  },
  "i4i.xlarge": {
-  "AutoRecoverySupported": true,
+  "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
@@ -24175,6 +25213,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24278,6 +25323,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24438,6 +25485,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24542,6 +25591,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24654,6 +25705,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24782,6 +25835,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24880,6 +25935,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -24980,6 +26037,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25099,6 +26163,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25196,6 +26267,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25297,6 +26375,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25393,6 +26478,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25425,7 +26517,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 96,
    "ValidCores": [
-    2,
     4,
     6,
     8,
@@ -25498,6 +26589,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25603,6 +26701,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25635,14 +26740,12 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 32,
    "ValidCores": [
-    1,
-    2,
-    3,
     4,
-    5,
     6,
-    7,
     8,
+    10,
+    12,
+    14,
     16
    ],
    "ValidThreadsPerCore": [
@@ -25707,6 +26810,13 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25807,6 +26917,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25911,6 +27023,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -26023,6 +27137,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -26151,6 +27267,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -26249,6 +27367,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -26346,6 +27466,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -26446,6 +27568,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -26529,6 +27653,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -26613,6 +27739,8 @@
    ],
    "NetworkPerformance": "Low"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -26705,6 +27833,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -26796,6 +27926,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -26896,6 +28028,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -26992,6 +28126,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -27090,6 +28226,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -27184,6 +28322,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -27275,6 +28415,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -27367,6 +28509,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -27455,6 +28599,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -27550,6 +28696,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -27651,6 +28799,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -27740,6 +28890,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -27833,6 +28985,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -27919,6 +29073,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28006,6 +29162,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28104,6 +29267,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28206,6 +29376,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28315,6 +29492,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28403,6 +29587,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28493,6 +29684,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28587,6 +29785,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28673,6 +29878,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28752,6 +29959,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28839,6 +30053,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -28929,6 +30150,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29028,6 +30256,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29119,6 +30354,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29207,6 +30449,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29297,6 +30546,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29390,6 +30646,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29477,6 +30740,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29576,6 +30846,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29678,6 +30955,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29789,6 +31073,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29892,6 +31183,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -29992,6 +31290,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30094,6 +31399,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30199,6 +31511,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30298,6 +31617,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30397,6 +31723,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30507,6 +31840,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30621,6 +31961,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30742,6 +32089,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30842,6 +32196,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -30944,6 +32305,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31050,6 +32418,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31148,6 +32523,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31239,6 +32616,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31338,6 +32722,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31448,6 +32839,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31565,6 +32963,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31687,6 +33092,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31787,6 +33199,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31889,6 +33308,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -31995,6 +33421,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32096,6 +33529,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32187,6 +33622,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32275,6 +33717,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32373,6 +33822,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32478,6 +33934,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32588,6 +34051,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32676,6 +34146,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32766,6 +34243,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32860,6 +34344,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -32949,6 +34440,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33028,6 +34521,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33119,6 +34619,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33217,6 +34724,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33305,6 +34819,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33394,6 +34915,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33486,6 +35014,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33575,6 +35110,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33654,6 +35191,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33742,6 +35286,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33838,6 +35389,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -33932,6 +35490,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34027,6 +35592,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34120,6 +35692,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34217,6 +35796,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34312,6 +35898,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34409,6 +36002,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34505,6 +36105,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34597,6 +36204,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34676,6 +36285,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34767,6 +36383,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -34899,6 +36517,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35047,6 +36667,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35139,6 +36761,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35239,6 +36863,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35355,6 +36981,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35441,6 +37069,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35519,6 +37149,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35598,6 +37230,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35698,6 +37332,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35842,6 +37478,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36002,6 +37640,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36106,6 +37746,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36218,6 +37860,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36346,6 +37990,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36444,6 +38090,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36534,6 +38182,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36625,6 +38275,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36713,6 +38365,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36811,6 +38470,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36913,6 +38579,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37023,6 +38696,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37114,6 +38794,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37232,6 +38919,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37322,6 +39016,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37416,6 +39117,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37505,6 +39213,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37584,6 +39294,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37684,6 +39401,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37794,6 +39518,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37908,6 +39639,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38030,6 +39768,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38133,6 +39878,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38263,6 +40015,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38365,6 +40124,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38471,6 +40237,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38572,6 +40345,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38663,6 +40438,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38763,6 +40545,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -38885,6 +40674,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39015,6 +40811,13 @@
    ],
    "NetworkPerformance": "150 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39136,6 +40939,13 @@
    ],
    "NetworkPerformance": "Up to 40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39246,6 +41056,13 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39375,6 +41192,13 @@
    ],
    "NetworkPerformance": "Up to 50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39481,6 +41305,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39595,6 +41426,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39701,6 +41539,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39792,6 +41632,13 @@
    ],
    "NetworkPerformance": "Up to 30 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39880,6 +41727,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -39990,6 +41844,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40108,6 +41969,13 @@
    ],
    "NetworkPerformance": "150 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40217,6 +42085,13 @@
    ],
    "NetworkPerformance": "Up to 40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40315,6 +42190,13 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40432,6 +42314,13 @@
    ],
    "NetworkPerformance": "Up to 50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40526,6 +42415,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40628,6 +42524,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40722,6 +42625,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40801,6 +42706,13 @@
    ],
    "NetworkPerformance": "Up to 30 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -40889,6 +42801,8 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41024,6 +42938,8 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41172,6 +43088,8 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41264,6 +43182,8 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41364,6 +43284,8 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41480,6 +43402,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41566,6 +43490,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41647,6 +43573,8 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41726,6 +43654,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -41813,6 +43743,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -41889,6 +43821,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -41979,6 +43913,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42093,6 +44029,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42207,6 +44145,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42307,6 +44247,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42421,6 +44363,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42523,6 +44467,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42652,6 +44598,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42804,6 +44752,8 @@
    ],
    "NetworkPerformance": "4x 100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -42925,6 +44875,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43027,6 +44979,8 @@
    ],
    "NetworkPerformance": "High"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43125,6 +45079,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43223,6 +45179,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43322,6 +45280,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43410,6 +45370,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43511,6 +45473,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43600,6 +45564,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43693,6 +45659,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43794,6 +45762,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43880,6 +45850,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -43967,6 +45939,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44065,6 +46044,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44167,6 +46153,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44276,6 +46269,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44364,6 +46364,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44454,6 +46461,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44548,6 +46562,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44634,6 +46655,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44713,6 +46736,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44800,6 +46830,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44890,6 +46927,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -44989,6 +47033,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45080,6 +47131,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45168,6 +47226,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45258,6 +47323,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45351,6 +47423,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45438,6 +47517,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45537,6 +47623,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45639,6 +47732,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45750,6 +47850,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45853,6 +47960,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -45953,6 +48067,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46055,6 +48176,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46160,6 +48288,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46259,6 +48394,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46346,6 +48488,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46444,6 +48593,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46546,6 +48702,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46656,6 +48819,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46744,6 +48914,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46834,6 +49011,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -46928,6 +49112,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47014,6 +49205,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47093,6 +49286,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47193,6 +49393,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47303,6 +49510,13 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47417,6 +49631,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47538,6 +49759,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47638,6 +49866,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47740,6 +49975,13 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47846,6 +50088,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -47944,6 +50193,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48035,6 +50286,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48134,6 +50392,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48244,6 +50509,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48361,6 +50633,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48483,6 +50762,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48583,6 +50869,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48685,6 +50978,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48791,6 +51091,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48892,6 +51199,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -48983,6 +51292,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49071,6 +51387,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49169,6 +51492,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49274,6 +51604,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49384,6 +51721,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49472,6 +51816,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49562,6 +51913,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49656,6 +52014,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49745,6 +52110,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49824,6 +52191,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49873,12 +52247,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 40000,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 10000,
-    "MaximumIops": 40000,
-    "MaximumThroughputInMBps": 1250.0
+    "BaselineBandwidthInMbps": 15000,
+    "BaselineIops": 60000,
+    "BaselineThroughputInMBps": 1875.0,
+    "MaximumBandwidthInMbps": 15000,
+    "MaximumIops": 60000,
+    "MaximumThroughputInMBps": 1875.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -49912,6 +52286,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -49969,12 +52350,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 13300,
-    "BaselineIops": 53333,
-    "BaselineThroughputInMBps": 1662.5,
-    "MaximumBandwidthInMbps": 13300,
-    "MaximumIops": 53333,
-    "MaximumThroughputInMBps": 1662.5
+    "BaselineBandwidthInMbps": 20000,
+    "BaselineIops": 80000,
+    "BaselineThroughputInMBps": 2500.0,
+    "MaximumBandwidthInMbps": 20000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50008,6 +52389,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50063,12 +52451,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 80000,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 80000,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 30000,
+    "BaselineIops": 120000,
+    "BaselineThroughputInMBps": 3750.0,
+    "MaximumBandwidthInMbps": 30000,
+    "MaximumIops": 120000,
+    "MaximumThroughputInMBps": 3750.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50102,6 +52490,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50158,12 +52553,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2122,
-    "BaselineIops": 8333,
-    "BaselineThroughputInMBps": 265.25,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 2500,
+    "BaselineIops": 12000,
+    "BaselineThroughputInMBps": 312.5,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50197,6 +52592,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50251,12 +52653,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 26666,
-    "BaselineIops": 100000,
-    "BaselineThroughputInMBps": 3333.333333,
-    "MaximumBandwidthInMbps": 26666,
-    "MaximumIops": 100000,
-    "MaximumThroughputInMBps": 3333.333333
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 160000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 160000,
+    "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50290,6 +52692,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50346,10 +52755,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 160000,
+    "BaselineIops": 240000,
     "BaselineThroughputInMBps": 5000.0,
     "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 160000,
+    "MaximumIops": 240000,
     "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
@@ -50387,6 +52796,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50443,12 +52859,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 4245,
-    "BaselineIops": 16000,
-    "BaselineThroughputInMBps": 530.625,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 5000,
+    "BaselineIops": 20000,
+    "BaselineThroughputInMBps": 625.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50482,6 +52898,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50540,12 +52963,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 6666,
-    "BaselineIops": 26667,
-    "BaselineThroughputInMBps": 833.333333,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 40000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50579,6 +53002,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50633,12 +53063,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 531,
+    "BaselineBandwidthInMbps": 650,
     "BaselineIops": 3600,
-    "BaselineThroughputInMBps": 66.375,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineThroughputInMBps": 81.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50672,6 +53102,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50724,10 +53161,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 160000,
+    "BaselineIops": 240000,
     "BaselineThroughputInMBps": 5000.0,
     "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 160000,
+    "MaximumIops": 240000,
     "MaximumThroughputInMBps": 5000.0
    },
    "EbsOptimizedSupport": "default",
@@ -50764,6 +53201,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50804,12 +53243,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1061,
+    "BaselineBandwidthInMbps": 1250,
     "BaselineIops": 6000,
-    "BaselineThroughputInMBps": 132.625,
-    "MaximumBandwidthInMbps": 6666,
-    "MaximumIops": 26667,
-    "MaximumThroughputInMBps": 833.333333
+    "BaselineThroughputInMBps": 156.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -50843,6 +53282,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -50934,6 +53380,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51066,6 +53514,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51214,6 +53664,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51306,6 +53758,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51406,6 +53860,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51522,6 +53978,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51608,6 +54066,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51686,6 +54146,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51765,6 +54227,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -51865,6 +54329,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52009,6 +54475,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52169,6 +54637,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52273,6 +54743,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52385,6 +54857,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52513,6 +54987,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52611,6 +55087,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52701,6 +55179,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52792,6 +55272,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52880,6 +55362,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -52978,6 +55467,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53080,6 +55576,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53190,6 +55693,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53281,6 +55791,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53399,6 +55916,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53489,6 +56013,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53583,6 +56114,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53672,6 +56210,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53751,6 +56291,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53851,6 +56398,13 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53961,6 +56515,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54075,6 +56636,13 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54197,6 +56765,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54300,6 +56875,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54430,6 +57012,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54532,6 +57121,13 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54638,6 +57234,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54739,6 +57342,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54830,6 +57435,13 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54930,6 +57542,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55052,6 +57671,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55182,6 +57808,13 @@
    ],
    "NetworkPerformance": "150 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55303,6 +57936,13 @@
    ],
    "NetworkPerformance": "Up to 40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55413,6 +58053,13 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55542,6 +58189,13 @@
    ],
    "NetworkPerformance": "Up to 50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55648,6 +58302,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55762,6 +58423,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55868,6 +58536,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55959,6 +58629,13 @@
    ],
    "NetworkPerformance": "Up to 30 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56047,6 +58724,13 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56157,6 +58841,13 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56275,6 +58966,13 @@
    ],
    "NetworkPerformance": "150 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56384,6 +59082,13 @@
    ],
    "NetworkPerformance": "Up to 40 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56482,6 +59187,13 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56599,6 +59311,13 @@
    ],
    "NetworkPerformance": "Up to 50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56693,6 +59412,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56795,6 +59521,13 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56889,6 +59622,8 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56968,6 +59703,13 @@
    ],
    "NetworkPerformance": "Up to 30 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57056,6 +59798,8 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57191,6 +59935,8 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57339,6 +60085,8 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57431,6 +60179,8 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57531,6 +60281,8 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57647,6 +60399,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57733,6 +60487,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57814,6 +60570,8 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57893,6 +60651,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57945,7 +60705,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "unsupported"
   },
-  "FreeTierEligible": true,
+  "FreeTierEligible": false,
   "HibernationSupported": false,
   "Hypervisor": "xen",
   "InstanceStorageSupported": false,
@@ -57973,6 +60733,8 @@
    ],
    "NetworkPerformance": "Very Low"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58044,6 +60806,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58114,6 +60878,8 @@
    ],
    "NetworkPerformance": "Low to Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58184,6 +60950,8 @@
    ],
    "NetworkPerformance": "Low to Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58255,6 +61023,8 @@
    ],
    "NetworkPerformance": "Low to Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58326,6 +61096,8 @@
    ],
    "NetworkPerformance": "Low to Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58396,6 +61168,8 @@
    ],
    "NetworkPerformance": "Low to Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58467,6 +61241,8 @@
    ],
    "NetworkPerformance": "Moderate"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58545,6 +61321,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58632,6 +61415,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58718,6 +61508,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58804,6 +61601,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58890,6 +61694,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -58976,6 +61787,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59062,6 +61880,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59148,6 +61973,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59235,6 +62067,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59321,6 +62160,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59407,6 +62253,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59493,6 +62346,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59579,6 +62439,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59665,6 +62532,13 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59751,6 +62625,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59842,6 +62718,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -59927,6 +62805,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -60012,6 +62892,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -60097,6 +62979,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -60182,6 +63066,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -60267,6 +63153,8 @@
    ],
    "NetworkPerformance": "Up to 5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -60366,6 +63254,8 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -60503,6 +63393,8 @@
    ],
    "NetworkPerformance": "8x 100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -60710,6 +63602,13 @@
    ],
    "NetworkPerformance": "16x 100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -60827,6 +63726,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -60939,6 +63840,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61051,6 +63954,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61163,6 +64068,13 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61275,6 +64187,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61387,6 +64301,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61498,6 +64414,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61613,6 +64531,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -61700,6 +64620,8 @@
    ],
    "NetworkPerformance": "3.12 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -61785,6 +64707,8 @@
    ],
    "NetworkPerformance": "6.25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "partition",
@@ -61883,6 +64807,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61997,6 +64923,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62111,6 +65039,8 @@
    ],
    "NetworkPerformance": "10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62224,6 +65154,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62325,6 +65257,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62438,6 +65372,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62543,6 +65479,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62656,6 +65594,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62755,6 +65695,8 @@
    ],
    "NetworkPerformance": "20 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62899,6 +65841,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63059,6 +66003,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63163,6 +66109,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63275,6 +66223,8 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63403,6 +66353,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63501,6 +66453,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63591,6 +66545,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63682,6 +66638,8 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63782,6 +66740,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63896,6 +66856,8 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64021,6 +66983,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64153,6 +67117,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64244,6 +67210,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64358,6 +67326,8 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64480,6 +67450,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64583,6 +67555,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64713,6 +67687,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64815,6 +67791,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -64923,6 +67901,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65014,6 +67994,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65105,6 +68087,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65203,6 +68187,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65291,6 +68277,8 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65381,6 +68369,8 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65473,6 +68463,8 @@
    ],
    "NetworkPerformance": "75 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65569,6 +68561,8 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65660,6 +68654,13 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65769,6 +68770,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65869,6 +68877,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65970,6 +68985,13 @@
    ],
    "NetworkPerformance": "12 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -66074,6 +69096,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -66172,6 +69201,8 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -66263,6 +69294,13 @@
    ],
    "NetworkPerformance": "Up to 10 Gigabit"
   },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",

@@ -243,27 +243,44 @@ class FakeServiceAccess(BaseModel):
     # List of trusted services, which support trusted access with Organizations
     # https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html
     TRUSTED_SERVICES = [
-        "aws-artifact-account-sync.amazonaws.com",
-        "backup.amazonaws.com",
-        "member.org.stacksets.cloudformation.amazonaws.com",
-        "cloudtrail.amazonaws.com",
-        "compute-optimizer.amazonaws.com",
-        "config.amazonaws.com",
-        "config-multiaccountsetup.amazonaws.com",
-        "controltower.amazonaws.com",
-        "ds.amazonaws.com",
-        "fms.amazonaws.com",
-        "guardduty.amazonaws.com",
         "access-analyzer.amazonaws.com",
-        "license-manager.amazonaws.com",
-        "license-manager.member-account.amazonaws.com.",
-        "macie.amazonaws.com",
-        "ram.amazonaws.com",
-        "servicecatalog.amazonaws.com",
-        "servicequotas.amazonaws.com",
-        "sso.amazonaws.com",
-        "ssm.amazonaws.com",
-        "tagpolicies.tag.amazonaws.com",
+        "account.amazonaws.com",  # AWS Account Management
+        "auditmanager.amazonaws.com",  # AWS Audit Manager
+        "aws-artifact-account-sync.amazonaws.com",
+        "backup.amazonaws.com",  # AWS Backup
+        "cloudtrail.amazonaws.com",  # AWS Cloudtrail
+        "compute-optimizer.amazonaws.com",  # AWS Compute Optimizer
+        "config.amazonaws.com",  # AWS Config
+        "config-multiaccountsetup.amazonaws.com",
+        "controltower.amazonaws.com",  # AWS Control Tower
+        "detective.amazonaws.com",  # AWS Detective
+        "devops-guru.amazonaws.com",  # Amazon DevOps Guru
+        "ds.amazonaws.com",  # AWS Directory Service
+        "fms.amazonaws.com",  # AWS Firewall Manager
+        "guardduty.amazonaws.com",  # Amazon GuardDuty
+        "health.amazonaws.com",  # Amazon Health
+        "inspector2.amazonaws.com",  # Amazon Inspector
+        "ipam.amazonaws.com",  # AWS VPC IP Address Manager
+        "license-manager.amazonaws.com",  # AWS License Manager
+        "license-manager.member-account.amazonaws.com.",  # AWS License Manager
+        "license-manager-linux-subscriptions.amazonaws.com",  # AWS License Manager
+        "license-management.marketplace.amazonaws.com",  # AWS Marketplace
+        "macie.amazonaws.com",  # Amazon Macie
+        "member.org.stacksets.cloudformation.amazonaws.com",
+        "mgn.amazonaws.com",  # AWS Application Migration Service
+        "ram.amazonaws.com",  # AWS Resource Access Manager
+        "reporting.trustedadvisor.amazonaws.com",  # AWS Trusted Advisor
+        "reachabilityanalyzer.networkinsights.amazonaws.com",  # Reachability Analyzer
+        "securityhub.amazonaws.com",  # AWS Security Hub
+        "storage-lens.s3.amazonaws.com",  # Amazon S3 Storage Lens
+        "securitylake.amazonaws.com",  # Amazon Security Lake
+        "servicecatalog.amazonaws.com",  # AWS Service Catalog
+        "servicequotas.amazonaws.com",  # Service Quotas
+        "stacksets.cloudformation.amazonaws.com",
+        "sso.amazonaws.com",  # AWS SSO
+        "ssm.amazonaws.com",  # AWS Systems Manager
+        "tagpolicies.tag.amazonaws.com",  # Tag policies
+        "wellarchitected.amazonaws.com",  # AWS Well Architected Tool
     ]
 
     def __init__(self, **kwargs: Any):
@@ -443,7 +460,9 @@ class OrganizationsBackend(BaseBackend):
         return ou.describe()
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_organizational_units_for_parent(self, **kwargs: Any) -> List[Dict[str, Any]]:  # type: ignore
+    def list_organizational_units_for_parent(
+        self, **kwargs: Any
+    ) -> List[Dict[str, Any]]:
         parent_id = self.validate_parent_id(kwargs["parent_id"])
         return [
             {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
@@ -517,12 +536,12 @@ class OrganizationsBackend(BaseBackend):
         return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_accounts(self) -> List[FakeAccount]:  # type: ignore
+    def list_accounts(self) -> List[FakeAccount]:
         accounts = [account.describe() for account in self.accounts]
         return sorted(accounts, key=lambda x: x["JoinedTimestamp"])  # type: ignore
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_accounts_for_parent(self, **kwargs: Any) -> Any:  # type: ignore
+    def list_accounts_for_parent(self, **kwargs: Any) -> Any:
         parent_id = self.validate_parent_id(kwargs["parent_id"])
         accounts = [
             account.describe()

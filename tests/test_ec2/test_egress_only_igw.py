@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2
@@ -14,11 +13,11 @@ def test_create():
 
     res = client.create_egress_only_internet_gateway(VpcId=vpc.id)
     gateway = res["EgressOnlyInternetGateway"]
-    gateway.should.have.key("EgressOnlyInternetGatewayId").match("eigw-[a-z0-9]+")
-    gateway.should.have.key("Tags").equal([])
-    gateway.should.have.key("Attachments")
-    gateway["Attachments"].should.have.length_of(1)
-    gateway["Attachments"][0].should.equal({"State": "attached", "VpcId": vpc.id})
+    assert gateway["EgressOnlyInternetGatewayId"].startswith("eigw-")
+    assert gateway["Tags"] == []
+    assert "Attachments" in gateway
+    assert len(gateway["Attachments"]) == 1
+    assert gateway["Attachments"][0] == {"State": "attached", "VpcId": vpc.id}
 
 
 @mock_ec2
@@ -28,8 +27,8 @@ def test_create_with_unknown_vpc():
     with pytest.raises(ClientError) as ex:
         client.create_egress_only_internet_gateway(VpcId="vpc-says-what")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidVpcID.NotFound")
-    err["Message"].should.equal("VpcID vpc-says-what does not exist.")
+    assert err["Code"] == "InvalidVpcID.NotFound"
+    assert err["Message"] == "VpcID vpc-says-what does not exist."
 
 
 @mock_ec2
@@ -49,8 +48,8 @@ def test_describe_all():
         "EgressOnlyInternetGateways"
     ]
     assert len(gateways) >= 2, "Should have two recently created gateways"
-    gateways.should.contain(gw1)
-    gateways.should.contain(gw2)
+    assert gw1 in gateways
+    assert gw2 in gateways
 
 
 @mock_ec2
@@ -74,9 +73,9 @@ def test_describe_one():
     gateways = client.describe_egress_only_internet_gateways(
         EgressOnlyInternetGatewayIds=[gw1_id, gw3_id]
     )["EgressOnlyInternetGateways"]
-    gateways.should.have.length_of(2)
-    gateways.should.contain(gw1)
-    gateways.should.contain(gw3)
+    assert len(gateways) == 2
+    assert gw1 in gateways
+    assert gw3 in gateways
 
 
 @mock_ec2
@@ -90,12 +89,22 @@ def test_create_and_delete():
     ]
     gw1_id = gw1["EgressOnlyInternetGatewayId"]
 
-    client.describe_egress_only_internet_gateways(
-        EgressOnlyInternetGatewayIds=[gw1_id]
-    )["EgressOnlyInternetGateways"].should.have.length_of(1)
+    assert (
+        len(
+            client.describe_egress_only_internet_gateways(
+                EgressOnlyInternetGatewayIds=[gw1_id]
+            )["EgressOnlyInternetGateways"]
+        )
+        == 1
+    )
 
     client.delete_egress_only_internet_gateway(EgressOnlyInternetGatewayId=gw1_id)
 
-    client.describe_egress_only_internet_gateways(
-        EgressOnlyInternetGatewayIds=[gw1_id]
-    )["EgressOnlyInternetGateways"].should.have.length_of(0)
+    assert (
+        len(
+            client.describe_egress_only_internet_gateways(
+                EgressOnlyInternetGatewayIds=[gw1_id]
+            )["EgressOnlyInternetGateways"]
+        )
+        == 0
+    )

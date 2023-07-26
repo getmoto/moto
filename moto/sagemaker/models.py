@@ -1576,7 +1576,7 @@ class SageMakerModelBackend(BaseBackend):
         return resource.tags
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_tags(self, arn: str) -> List[Dict[str, str]]:  # type: ignore[misc]
+    def list_tags(self, arn: str) -> List[Dict[str, str]]:
         resource = self._get_resource_from_arn(arn)
         return resource.tags
 
@@ -1585,7 +1585,7 @@ class SageMakerModelBackend(BaseBackend):
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_experiments(self) -> List["FakeExperiment"]:  # type: ignore[misc]
+    def list_experiments(self) -> List["FakeExperiment"]:
         return list(self.experiments.values())
 
     def search(self, resource: Any = None, search_expression: Any = None) -> Any:
@@ -1755,7 +1755,11 @@ class SageMakerModelBackend(BaseBackend):
             )
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_trials(self, experiment_name: Optional[str] = None, trial_component_name: Optional[str] = None) -> List["FakeTrial"]:  # type: ignore[misc]
+    def list_trials(
+        self,
+        experiment_name: Optional[str] = None,
+        trial_component_name: Optional[str] = None,
+    ) -> List["FakeTrial"]:
         trials_fetched = list(self.trials.values())
 
         def evaluate_filter_expression(trial_data: FakeTrial) -> bool:
@@ -1814,7 +1818,9 @@ class SageMakerModelBackend(BaseBackend):
         self.trial_components[trial_component_name].update(details_json)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_trial_components(self, trial_name: Optional[str] = None) -> List["FakeTrialComponent"]:  # type: ignore[misc]
+    def list_trial_components(
+        self, trial_name: Optional[str] = None
+    ) -> List["FakeTrialComponent"]:
         trial_components_fetched = list(self.trial_components.values())
 
         return [
@@ -1852,7 +1858,7 @@ class SageMakerModelBackend(BaseBackend):
         if trial_name in self.trials.keys():
             self.trials[trial_name].trial_components = list(
                 filter(
-                    lambda x: x != trial_component_name,  # type: ignore
+                    lambda x: x != trial_component_name,
                     self.trials[trial_name].trial_components,
                 )
             )

@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_ec2
@@ -101,10 +100,11 @@ def test_create_spot_fleet_with_invalid_tag_specifications():
     with pytest.raises(ClientError) as ex:
         _ = conn.request_spot_fleet(SpotFleetRequestConfig=config)
 
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        f"The value for `ResourceType` must be `spot-fleet-request`, but got `{invalid_resource_type}` instead."
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"The value for `ResourceType` must be `spot-fleet-request`, but got `{invalid_resource_type}` instead."
     )
 
 
@@ -121,39 +121,37 @@ def test_create_spot_fleet_with_lowest_price():
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    len(spot_fleet_requests).should.equal(1)
+    assert len(spot_fleet_requests) == 1
     spot_fleet_request = spot_fleet_requests[0]
-    spot_fleet_request["SpotFleetRequestState"].should.equal("active")
-    spot_fleet_request["Tags"].should.equal([{"Key": "test2", "Value": "value2"}])
+    assert spot_fleet_request["SpotFleetRequestState"] == "active"
+    assert spot_fleet_request["Tags"] == [{"Key": "test2", "Value": "value2"}]
     spot_fleet_config = spot_fleet_request["SpotFleetRequestConfig"]
 
-    spot_fleet_config["SpotPrice"].should.equal("0.12")
-    spot_fleet_config["TargetCapacity"].should.equal(6)
-    spot_fleet_config["IamFleetRole"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
-    )
-    spot_fleet_config["AllocationStrategy"].should.equal("lowestPrice")
-    spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
+    assert spot_fleet_config["SpotPrice"] == "0.12"
+    assert spot_fleet_config["TargetCapacity"] == 6
+    assert spot_fleet_config["IamFleetRole"] == f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
+    assert spot_fleet_config["AllocationStrategy"] == "lowestPrice"
+    assert spot_fleet_config["FulfilledCapacity"] == 6.0
 
-    len(spot_fleet_config["LaunchSpecifications"]).should.equal(2)
+    assert len(spot_fleet_config["LaunchSpecifications"]) == 2
     launch_spec = spot_fleet_config["LaunchSpecifications"][0]
 
-    launch_spec["EbsOptimized"].should.equal(False)
-    launch_spec["SecurityGroups"].should.equal([{"GroupId": "sg-123"}])
-    launch_spec["IamInstanceProfile"].should.equal(
-        {"Arn": f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"}
-    )
-    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
-    launch_spec["InstanceType"].should.equal("t2.small")
-    launch_spec["KeyName"].should.equal("my-key")
-    launch_spec["Monitoring"].should.equal({"Enabled": True})
-    launch_spec["SpotPrice"].should.equal("0.13")
-    launch_spec["SubnetId"].should.equal(subnet_id)
-    launch_spec["UserData"].should.equal("some user data")
-    launch_spec["WeightedCapacity"].should.equal(2.0)
+    assert launch_spec["EbsOptimized"] is False
+    assert launch_spec["SecurityGroups"] == [{"GroupId": "sg-123"}]
+    assert launch_spec["IamInstanceProfile"] == {
+        "Arn": f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
+    }
+    assert launch_spec["ImageId"] == EXAMPLE_AMI_ID
+    assert launch_spec["InstanceType"] == "t2.small"
+    assert launch_spec["KeyName"] == "my-key"
+    assert launch_spec["Monitoring"] == {"Enabled": True}
+    assert launch_spec["SpotPrice"] == "0.13"
+    assert launch_spec["SubnetId"] == subnet_id
+    assert launch_spec["UserData"] == "some user data"
+    assert launch_spec["WeightedCapacity"] == 2.0
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(3)
+    assert len(instances) == 3
 
 
 @mock_ec2
@@ -166,16 +164,15 @@ def test_create_diversified_spot_fleet():
     spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(2)
+    assert len(instances) == 2
     instance_types = set([instance["InstanceType"] for instance in instances])
-    instance_types.should.equal(set(["t2.small", "t2.large"]))
-    instances[0]["InstanceId"].should.contain("i-")
+    assert instance_types == set(["t2.small", "t2.large"])
+    assert "i-" in instances[0]["InstanceId"]
 
 
 @mock_ec2
 @pytest.mark.parametrize("allocation_strategy", ["diversified", "lowestCost"])
 def test_request_spot_fleet_using_launch_template_config__name(allocation_strategy):
-
     conn = boto3.client("ec2", region_name="us-east-2")
 
     template_data = {
@@ -213,15 +210,14 @@ def test_request_spot_fleet_using_launch_template_config__name(allocation_strate
     spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(1)
+    assert len(instances) == 1
     instance_types = set([instance["InstanceType"] for instance in instances])
-    instance_types.should.equal(set(["t2.medium"]))
-    instances[0]["InstanceId"].should.contain("i-")
+    assert instance_types == set(["t2.medium"])
+    assert "i-" in instances[0]["InstanceId"]
 
 
 @mock_ec2
 def test_request_spot_fleet_using_launch_template_config__id():
-
     conn = boto3.client("ec2", region_name="us-east-2")
 
     template_data = {
@@ -255,15 +251,14 @@ def test_request_spot_fleet_using_launch_template_config__id():
     spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(1)
+    assert len(instances) == 1
     instance_types = set([instance["InstanceType"] for instance in instances])
-    instance_types.should.equal(set(["t2.medium"]))
-    instances[0]["InstanceId"].should.contain("i-")
+    assert instance_types == set(["t2.medium"])
+    assert "i-" in instances[0]["InstanceId"]
 
 
 @mock_ec2
 def test_request_spot_fleet_using_launch_template_config__overrides():
-
     conn = boto3.client("ec2", region_name="us-east-2")
     subnet_id = get_subnet_id(conn)
 
@@ -308,13 +303,13 @@ def test_request_spot_fleet_using_launch_template_config__overrides():
     spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
 
     instances = get_active_instances(conn, spot_fleet_id)
-    instances.should.have.length_of(1)
-    instances[0].should.have.key("InstanceType").equals("t2.nano")
+    assert len(instances) == 1
+    assert instances[0]["InstanceType"] == "t2.nano"
 
     instance = conn.describe_instances(
         InstanceIds=[i["InstanceId"] for i in instances]
     )["Reservations"][0]["Instances"][0]
-    instance.should.have.key("SubnetId").equals(subnet_id)
+    assert instance["SubnetId"] == subnet_id
 
 
 @mock_ec2
@@ -339,13 +334,12 @@ def test_create_spot_fleet_request_with_tag_spec():
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
     spot_fleet_config = spot_fleet_requests[0]["SpotFleetRequestConfig"]
-    spot_fleet_config["LaunchSpecifications"][0]["TagSpecifications"][0][
-        "ResourceType"
-    ].should.equal("instance")
+    fleet_tag_spec = spot_fleet_config["LaunchSpecifications"][0]["TagSpecifications"][
+        0
+    ]
+    assert fleet_tag_spec["ResourceType"] == "instance"
     for tag in tag_spec[0]["Tags"]:
-        spot_fleet_config["LaunchSpecifications"][0]["TagSpecifications"][0][
-            "Tags"
-        ].should.contain(tag)
+        assert tag in fleet_tag_spec["Tags"]
 
     instance_res = conn.describe_spot_fleet_instances(SpotFleetRequestId=spot_fleet_id)
     instances = conn.describe_instances(
@@ -353,7 +347,7 @@ def test_create_spot_fleet_request_with_tag_spec():
     )
     for instance in instances["Reservations"][0]["Instances"]:
         for tag in tag_spec[0]["Tags"]:
-            instance["Tags"].should.contain(tag)
+            assert tag in instance["Tags"]
 
 
 @mock_ec2
@@ -373,7 +367,7 @@ def test_cancel_spot_fleet_request():
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    len(spot_fleet_requests).should.equal(0)
+    assert len(spot_fleet_requests) == 0
 
 
 @mock_ec2
@@ -386,7 +380,7 @@ def test_cancel_spot_fleet_request__but_dont_terminate_instances():
     )
     spot_fleet_id = spot_fleet_res["SpotFleetRequestId"]
 
-    get_active_instances(conn, spot_fleet_id).should.have.length_of(3)
+    assert len(get_active_instances(conn, spot_fleet_id)) == 3
 
     conn.cancel_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id], TerminateInstances=False
@@ -395,21 +389,21 @@ def test_cancel_spot_fleet_request__but_dont_terminate_instances():
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    spot_fleet_requests.should.have.length_of(1)
-    spot_fleet_requests[0]["SpotFleetRequestState"].should.equal("cancelled_running")
+    assert len(spot_fleet_requests) == 1
+    assert spot_fleet_requests[0]["SpotFleetRequestState"] == "cancelled_running"
 
-    get_active_instances(conn, spot_fleet_id).should.have.length_of(3)
+    assert len(get_active_instances(conn, spot_fleet_id)) == 3
 
     # Cancel again and terminate instances
     conn.cancel_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id], TerminateInstances=True
     )
 
-    get_active_instances(conn, spot_fleet_id).should.have.length_of(0)
+    assert len(get_active_instances(conn, spot_fleet_id)) == 0
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    spot_fleet_requests.should.have.length_of(0)
+    assert len(spot_fleet_requests) == 0
 
 
 @mock_ec2
@@ -425,13 +419,13 @@ def test_modify_spot_fleet_request_up():
     conn.modify_spot_fleet_request(SpotFleetRequestId=spot_fleet_id, TargetCapacity=20)
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(10)
+    assert len(instances) == 10
 
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"][0]["SpotFleetRequestConfig"]
-    spot_fleet_config["TargetCapacity"].should.equal(20)
-    spot_fleet_config["FulfilledCapacity"].should.equal(20.0)
+    assert spot_fleet_config["TargetCapacity"] == 20
+    assert spot_fleet_config["FulfilledCapacity"] == 20.0
 
 
 @mock_ec2
@@ -447,13 +441,13 @@ def test_modify_spot_fleet_request_up_diversified():
     conn.modify_spot_fleet_request(SpotFleetRequestId=spot_fleet_id, TargetCapacity=19)
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(7)
+    assert len(instances) == 7
 
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"][0]["SpotFleetRequestConfig"]
-    spot_fleet_config["TargetCapacity"].should.equal(19)
-    spot_fleet_config["FulfilledCapacity"].should.equal(20.0)
+    assert spot_fleet_config["TargetCapacity"] == 19
+    assert spot_fleet_config["FulfilledCapacity"] == 20.0
 
 
 @mock_ec2
@@ -473,13 +467,13 @@ def test_modify_spot_fleet_request_down_no_terminate():
     )
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(3)
+    assert len(instances) == 3
 
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"][0]["SpotFleetRequestConfig"]
-    spot_fleet_config["TargetCapacity"].should.equal(1)
-    spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
+    assert spot_fleet_config["TargetCapacity"] == 1
+    assert spot_fleet_config["FulfilledCapacity"] == 6.0
 
 
 @mock_ec2
@@ -496,13 +490,13 @@ def test_modify_spot_fleet_request_down_odd():
     conn.modify_spot_fleet_request(SpotFleetRequestId=spot_fleet_id, TargetCapacity=5)
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(3)
+    assert len(instances) == 3
 
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"][0]["SpotFleetRequestConfig"]
-    spot_fleet_config["TargetCapacity"].should.equal(5)
-    spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
+    assert spot_fleet_config["TargetCapacity"] == 5
+    assert spot_fleet_config["FulfilledCapacity"] == 6.0
 
 
 @mock_ec2
@@ -518,13 +512,13 @@ def test_modify_spot_fleet_request_down():
     conn.modify_spot_fleet_request(SpotFleetRequestId=spot_fleet_id, TargetCapacity=1)
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(1)
+    assert len(instances) == 1
 
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"][0]["SpotFleetRequestConfig"]
-    spot_fleet_config["TargetCapacity"].should.equal(1)
-    spot_fleet_config["FulfilledCapacity"].should.equal(2.0)
+    assert spot_fleet_config["TargetCapacity"] == 1
+    assert spot_fleet_config["FulfilledCapacity"] == 2.0
 
 
 @mock_ec2
@@ -547,13 +541,13 @@ def test_modify_spot_fleet_request_down_no_terminate_after_custom_terminate():
     )
 
     instances = get_active_instances(conn, spot_fleet_id)
-    len(instances).should.equal(1)
+    assert len(instances) == 1
 
     spot_fleet_config = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"][0]["SpotFleetRequestConfig"]
-    spot_fleet_config["TargetCapacity"].should.equal(1)
-    spot_fleet_config["FulfilledCapacity"].should.equal(2.0)
+    assert spot_fleet_config["TargetCapacity"] == 1
+    assert spot_fleet_config["FulfilledCapacity"] == 2.0
 
 
 @mock_ec2
@@ -573,11 +567,11 @@ def test_create_spot_fleet_without_spot_price():
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    len(spot_fleet_requests).should.equal(1)
+    assert len(spot_fleet_requests) == 1
     spot_fleet_request = spot_fleet_requests[0]
     spot_fleet_config = spot_fleet_request["SpotFleetRequestConfig"]
 
-    len(spot_fleet_config["LaunchSpecifications"]).should.equal(2)
+    assert len(spot_fleet_config["LaunchSpecifications"]) == 2
     launch_spec1 = spot_fleet_config["LaunchSpecifications"][0]
     launch_spec2 = spot_fleet_config["LaunchSpecifications"][1]
 

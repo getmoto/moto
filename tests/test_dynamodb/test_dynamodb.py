@@ -5,7 +5,6 @@ from decimal import Decimal
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 import re
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
@@ -32,7 +31,7 @@ def test_list_tables_boto3(names):
             AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         )
-    conn.list_tables()["TableNames"].should.equal(names)
+    assert conn.list_tables()["TableNames"] == names
 
 
 @mock_dynamodb
@@ -47,16 +46,16 @@ def test_list_tables_paginated():
         )
 
     res = conn.list_tables(Limit=2)
-    res.should.have.key("TableNames").equal(["name1", "name2"])
-    res.should.have.key("LastEvaluatedTableName").equal("name2")
+    assert res["TableNames"] == ["name1", "name2"]
+    assert res["LastEvaluatedTableName"] == "name2"
 
     res = conn.list_tables(Limit=1, ExclusiveStartTableName="name1")
-    res.should.have.key("TableNames").equal(["name2"])
-    res.should.have.key("LastEvaluatedTableName").equal("name2")
+    assert res["TableNames"] == ["name2"]
+    assert res["LastEvaluatedTableName"] == "name2"
 
     res = conn.list_tables(ExclusiveStartTableName="name1")
-    res.should.have.key("TableNames").equal(["name2", "name3"])
-    res.shouldnt.have.key("LastEvaluatedTableName")
+    assert res["TableNames"] == ["name2", "name3"]
+    assert "LastEvaluatedTableName" not in res
 
 
 @mock_dynamodb
@@ -64,10 +63,11 @@ def test_describe_missing_table_boto3():
     conn = boto3.client("dynamodb", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
         conn.describe_table(TableName="messages")
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Requested resource not found: Table: messages not found"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Requested resource not found: Table: messages not found"
     )
 
 
@@ -200,10 +200,11 @@ def test_item_add_empty_string_hash_key_exception():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.match(
-        "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: forum_name"
     )
 
 
@@ -241,10 +242,11 @@ def test_item_add_empty_string_range_key_exception():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.match(
-        "One or more parameter values were invalid: An AttributeValue may not contain an empty string"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: An AttributeValue may not contain an empty string. Key: ReceivedTime"
     )
 
 
@@ -393,22 +395,20 @@ def test_put_item_with_streams():
 
     result = conn.get_item(TableName=name, Key={"forum_name": {"S": "LOLCat Forum"}})
 
-    result["Item"].should.be.equal(
-        {
-            "forum_name": {"S": "LOLCat Forum"},
-            "subject": {"S": "Check this out!"},
-            "Body": {"S": "http://url_to_lolcat.gif"},
-            "SentBy": {"S": "test"},
-            "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
-        }
-    )
+    assert result["Item"] == {
+        "forum_name": {"S": "LOLCat Forum"},
+        "subject": {"S": "Check this out!"},
+        "Body": {"S": "http://url_to_lolcat.gif"},
+        "SentBy": {"S": "test"},
+        "Data": {"M": {"Key1": {"S": "Value1"}, "Key2": {"S": "Value2"}}},
+    }
 
     if not settings.TEST_SERVER_MODE:
         table = dynamodb_backends[ACCOUNT_ID]["us-west-2"].get_table(name)
-        len(table.stream_shard.items).should.be.equal(1)
+        assert len(table.stream_shard.items) == 1
         stream_record = table.stream_shard.items[0].record
-        stream_record["eventName"].should.be.equal("INSERT")
-        stream_record["dynamodb"]["SizeBytes"].should.be.equal(447)
+        assert stream_record["eventName"] == "INSERT"
+        assert stream_record["dynamodb"]["SizeBytes"] == 447
 
 
 @mock_dynamodb
@@ -447,14 +447,16 @@ def test_basic_projection_expression_using_get_item():
         ProjectionExpression="body, subject",
     )
 
-    result["Item"].should.be.equal({"subject": "123", "body": "some test message"})
+    assert result["Item"] == {"subject": "123", "body": "some test message"}
 
     # The projection expression should not remove data from storage
     result = table.get_item(Key={"forum_name": "the-key", "subject": "123"})
 
-    result["Item"].should.be.equal(
-        {"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
+    assert result["Item"] == {
+        "forum_name": "the-key",
+        "subject": "123",
+        "body": "some test message",
+    }
 
     # Running this against AWS DDB gives an exception so make sure it also fails.:
     with pytest.raises(client.exceptions.ClientError):
@@ -521,8 +523,8 @@ def test_basic_projection_expressions_using_scan():
     )
 
     bodies = [item["body"] for item in results["Items"]]
-    bodies.should.contain("some test message")
-    bodies.should.contain("yet another test message")
+    assert "some test message" in bodies
+    assert "yet another test message" in bodies
     assert "subject" not in results["Items"][0]
     assert "forum_name" not in results["Items"][0]
     assert "subject" not in results["Items"][1]
@@ -571,22 +573,20 @@ def test_nested_projection_expression_using_get_item():
         Key={"forum_name": "key1"},
         ProjectionExpression="nested.level1.id, nested.level2",
     )["Item"]
-    result.should.equal(
-        {"nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}}
-    )
+    assert result == {
+        "nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
+    }
     # Assert actual data has not been deleted
     result = table.get_item(Key={"forum_name": "key1"})["Item"]
-    result.should.equal(
-        {
-            "foo": "bar",
-            "forum_name": "key1",
-            "nested": {
-                "level1": {"id": "id1", "att": "irrelevant"},
-                "level2": {"id": "id2", "include": "all"},
-                "level3": {"id": "irrelevant"},
-            },
-        }
-    )
+    assert result == {
+        "foo": "bar",
+        "forum_name": "key1",
+        "nested": {
+            "level1": {"id": "id1", "att": "irrelevant"},
+            "level2": {"id": "id2", "include": "all"},
+            "level3": {"id": "irrelevant"},
+        },
+    }
 
 
 @mock_dynamodb
@@ -663,14 +663,14 @@ def test_nested_projection_expression_using_query():
     # Create the DynamoDB table.
     dynamodb.create_table(
         TableName="users",
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        KeySchema=[{"AttributeName": "name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "name", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
     table = dynamodb.Table("users")
     table.put_item(
         Item={
-            "forum_name": "key1",
+            "name": "key1",
             "nested": {
                 "level1": {"id": "id1", "att": "irrelevant"},
                 "level2": {"id": "id2", "include": "all"},
@@ -681,7 +681,7 @@ def test_nested_projection_expression_using_query():
     )
     table.put_item(
         Item={
-            "forum_name": "key2",
+            "name": "key2",
             "nested": {"id": "id2", "incode": "code2"},
             "foo": "bar",
         }
@@ -689,30 +689,27 @@ def test_nested_projection_expression_using_query():
 
     # Test a query returning all items
     result = table.query(
-        KeyConditionExpression=Key("forum_name").eq("key1"),
+        KeyConditionExpression=Key("name").eq("key1"),
         ProjectionExpression="nested.level1.id, nested.level2",
     )["Items"][0]
 
     assert "nested" in result
-    result["nested"].should.equal(
-        {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
-    )
+    assert result["nested"] == {
+        "level1": {"id": "id1"},
+        "level2": {"id": "id2", "include": "all"},
+    }
     assert "foo" not in result
     # Assert actual data has not been deleted
-    result = table.query(KeyConditionExpression=Key("forum_name").eq("key1"))["Items"][
-        0
-    ]
-    result.should.equal(
-        {
-            "foo": "bar",
-            "forum_name": "key1",
-            "nested": {
-                "level1": {"id": "id1", "att": "irrelevant"},
-                "level2": {"id": "id2", "include": "all"},
-                "level3": {"id": "irrelevant"},
-            },
-        }
-    )
+    result = table.query(KeyConditionExpression=Key("name").eq("key1"))["Items"][0]
+    assert result == {
+        "foo": "bar",
+        "name": "key1",
+        "nested": {
+            "level1": {"id": "id1", "att": "irrelevant"},
+            "level2": {"id": "id2", "include": "all"},
+            "level3": {"id": "irrelevant"},
+        },
+    }
 
 
 @mock_dynamodb
@@ -751,31 +748,27 @@ def test_nested_projection_expression_using_scan():
         FilterExpression=Key("forum_name").eq("key1"),
         ProjectionExpression="nested.level1.id, nested.level2",
     )["Items"]
-    results.should.equal(
-        [
-            {
-                "nested": {
-                    "level1": {"id": "id1"},
-                    "level2": {"include": "all", "id": "id2"},
-                }
+    assert results == [
+        {
+            "nested": {
+                "level1": {"id": "id1"},
+                "level2": {"include": "all", "id": "id2"},
             }
-        ]
-    )
+        }
+    ]
     # Assert original data is still there
     results = table.scan(FilterExpression=Key("forum_name").eq("key1"))["Items"]
-    results.should.equal(
-        [
-            {
-                "forum_name": "key1",
-                "foo": "bar",
-                "nested": {
-                    "level1": {"att": "irrelevant", "id": "id1"},
-                    "level2": {"include": "all", "id": "id2"},
-                    "level3": {"id": "irrelevant"},
-                },
-            }
-        ]
-    )
+    assert results == [
+        {
+            "forum_name": "key1",
+            "foo": "bar",
+            "nested": {
+                "level1": {"att": "irrelevant", "id": "id1"},
+                "level2": {"include": "all", "id": "id2"},
+                "level3": {"id": "irrelevant"},
+            },
+        }
+    ]
 
 
 @mock_dynamodb
@@ -820,9 +813,11 @@ def test_basic_projection_expression_using_get_item_with_attr_expression_names()
         ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
     )
 
-    result["Item"].should.be.equal(
-        {"subject": "123", "body": "some test message", "attachment": "something"}
-    )
+    assert result["Item"] == {
+        "subject": "123",
+        "body": "some test message",
+        "attachment": "something",
+    }
 
 
 @mock_dynamodb
@@ -869,11 +864,8 @@ def test_basic_projection_expressions_using_query_with_attr_expression_names():
         ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
     )
 
-    assert "body" in results["Items"][0]
     assert results["Items"][0]["body"] == "some test message"
-    assert "subject" in results["Items"][0]
     assert results["Items"][0]["subject"] == "123"
-    assert "attachment" in results["Items"][0]
     assert results["Items"][0]["attachment"] == "something"
 
 
@@ -917,32 +909,30 @@ def test_nested_projection_expression_using_get_item_with_attr_expression():
         ProjectionExpression="#nst.level1.id, #nst.#lvl2",
         ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
     )["Item"]
-    result.should.equal(
-        {"nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}}
-    )
+    assert result == {
+        "nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
+    }
     # Assert actual data has not been deleted
     result = table.get_item(Key={"forum_name": "key1"})["Item"]
-    result.should.equal(
-        {
-            "foo": "bar",
-            "forum_name": "key1",
-            "nested": {
-                "level1": {"id": "id1", "att": "irrelevant"},
-                "level2": {"id": "id2", "include": "all"},
-                "level3": {
-                    "id": "irrelevant",
-                    "children": [{"Name": "child_a"}, {"Name": "child_b"}],
-                },
+    assert result == {
+        "foo": "bar",
+        "forum_name": "key1",
+        "nested": {
+            "level1": {"id": "id1", "att": "irrelevant"},
+            "level2": {"id": "id2", "include": "all"},
+            "level3": {
+                "id": "irrelevant",
+                "children": [{"Name": "child_a"}, {"Name": "child_b"}],
             },
-        }
-    )
+        },
+    }
 
     # Test a get_item retrieving children
     result = table.get_item(
         Key={"forum_name": "key1"},
         ProjectionExpression="nested.level3.children[0].Name",
     )["Item"]
-    result.should.equal({"nested": {"level3": {"children": [{"Name": "child_a"}]}}})
+    assert result == {"nested": {"level3": {"children": [{"Name": "child_a"}]}}}
 
 
 @mock_dynamodb
@@ -952,14 +942,14 @@ def test_nested_projection_expression_using_query_with_attr_expression_names():
     # Create the DynamoDB table.
     dynamodb.create_table(
         TableName="users",
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
+        KeySchema=[{"AttributeName": "name", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "name", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
     table = dynamodb.Table("users")
     table.put_item(
         Item={
-            "forum_name": "key1",
+            "name": "key1",
             "nested": {
                 "level1": {"id": "id1", "att": "irrelevant"},
                 "level2": {"id": "id2", "include": "all"},
@@ -970,7 +960,7 @@ def test_nested_projection_expression_using_query_with_attr_expression_names():
     )
     table.put_item(
         Item={
-            "forum_name": "key2",
+            "name": "key2",
             "nested": {"id": "id2", "incode": "code2"},
             "foo": "bar",
         }
@@ -978,31 +968,27 @@ def test_nested_projection_expression_using_query_with_attr_expression_names():
 
     # Test a query returning all items
     result = table.query(
-        KeyConditionExpression=Key("forum_name").eq("key1"),
+        KeyConditionExpression=Key("name").eq("key1"),
         ProjectionExpression="#nst.level1.id, #nst.#lvl2",
         ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
     )["Items"][0]
 
-    assert "nested" in result
-    result["nested"].should.equal(
-        {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
-    )
+    assert result["nested"] == {
+        "level1": {"id": "id1"},
+        "level2": {"id": "id2", "include": "all"},
+    }
     assert "foo" not in result
     # Assert actual data has not been deleted
-    result = table.query(KeyConditionExpression=Key("forum_name").eq("key1"))["Items"][
-        0
-    ]
-    result.should.equal(
-        {
-            "foo": "bar",
-            "forum_name": "key1",
-            "nested": {
-                "level1": {"id": "id1", "att": "irrelevant"},
-                "level2": {"id": "id2", "include": "all"},
-                "level3": {"id": "irrelevant"},
-            },
-        }
-    )
+    result = table.query(KeyConditionExpression=Key("name").eq("key1"))["Items"][0]
+    assert result == {
+        "foo": "bar",
+        "name": "key1",
+        "nested": {
+            "level1": {"id": "id1", "att": "irrelevant"},
+            "level2": {"id": "id2", "include": "all"},
+            "level3": {"id": "irrelevant"},
+        },
+    }
 
 
 @mock_dynamodb
@@ -1103,31 +1089,27 @@ def test_nested_projection_expression_using_scan_with_attr_expression_names():
         ProjectionExpression="nested.level1.id, nested.level2",
         ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
     )["Items"]
-    results.should.equal(
-        [
-            {
-                "nested": {
-                    "level1": {"id": "id1"},
-                    "level2": {"include": "all", "id": "id2"},
-                }
+    assert results == [
+        {
+            "nested": {
+                "level1": {"id": "id1"},
+                "level2": {"include": "all", "id": "id2"},
             }
-        ]
-    )
+        }
+    ]
     # Assert original data is still there
     results = table.scan(FilterExpression=Key("forum_name").eq("key1"))["Items"]
-    results.should.equal(
-        [
-            {
-                "forum_name": "key1",
-                "foo": "bar",
-                "nested": {
-                    "level1": {"att": "irrelevant", "id": "id1"},
-                    "level2": {"include": "all", "id": "id2"},
-                    "level3": {"id": "irrelevant"},
-                },
-            }
-        ]
-    )
+    assert results == [
+        {
+            "forum_name": "key1",
+            "foo": "bar",
+            "nested": {
+                "level1": {"att": "irrelevant", "id": "id1"},
+                "level2": {"include": "all", "id": "id2"},
+                "level3": {"id": "irrelevant"},
+            },
+        }
+    ]
 
 
 @mock_dynamodb
@@ -1143,10 +1125,11 @@ def test_put_empty_item():
 
     with pytest.raises(ClientError) as ex:
         table.put_item(Item={})
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Missing the key structure_id in the item"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_dynamodb
@@ -1162,10 +1145,11 @@ def test_put_item_nonexisting_hash_key():
 
     with pytest.raises(ClientError) as ex:
         table.put_item(Item={"a_terribly_misguided_id_attribute": "abcdef"})
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Missing the key structure_id in the item"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Missing the key structure_id in the item"
     )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_dynamodb
@@ -1187,10 +1171,11 @@ def test_put_item_nonexisting_range_key():
 
     with pytest.raises(ClientError) as ex:
         table.put_item(Item={"structure_id": "abcdef"})
-    ex.value.response["Error"]["Message"].should.equal(
-        "One or more parameter values were invalid: Missing the key added_at in the item"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values were invalid: Missing the key added_at in the item"
     )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
 def test_filter_expression():
@@ -1219,45 +1204,45 @@ def test_filter_expression():
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "NOT attribute_not_exists(Id)", {}, {}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # NOT test 2
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "NOT (Id = :v0)", {}, {":v0": {"N": "8"}}
     )
-    filter_expr.expr(row1).should.be(False)  # Id = 8 so should be false
+    assert filter_expr.expr(row1) is False  # Id = 8 so should be false
 
     # AND test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "Id > :v0 AND Subs < :v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "7"}}
     )
-    filter_expr.expr(row1).should.be(True)
-    filter_expr.expr(row2).should.be(False)
+    assert filter_expr.expr(row1) is True
+    assert filter_expr.expr(row2) is False
 
     # lowercase AND test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "Id > :v0 and Subs < :v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "7"}}
     )
-    filter_expr.expr(row1).should.be(True)
-    filter_expr.expr(row2).should.be(False)
+    assert filter_expr.expr(row1) is True
+    assert filter_expr.expr(row2) is False
 
     # OR test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "Id = :v0 OR Id=:v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "8"}}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # BETWEEN test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "5"}, ":v1": {"N": "10"}}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # BETWEEN integer test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "Id BETWEEN :v0 AND :v1", {}, {":v0": {"N": "0"}, ":v1": {"N": "10"}}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # PAREN test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
@@ -1265,7 +1250,7 @@ def test_filter_expression():
         {},
         {":v0": {"N": "8"}, ":v1": {"N": "5"}},
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # IN test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
@@ -1273,38 +1258,38 @@ def test_filter_expression():
         {},
         {":v0": {"N": "7"}, ":v1": {"N": "8"}, ":v2": {"N": "9"}},
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # attribute function tests (with extra spaces)
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "attribute_exists(Id) AND attribute_not_exists (UnknownAttribute)", {}, {}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "attribute_type(Id, :v0)", {}, {":v0": {"S": "N"}}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # beginswith function test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "begins_with(Des, :v0)", {}, {":v0": {"S": "Some"}}
     )
-    filter_expr.expr(row1).should.be(True)
-    filter_expr.expr(row2).should.be(False)
+    assert filter_expr.expr(row1) is True
+    assert filter_expr.expr(row2) is False
 
     # contains function test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "contains(KV, :v0)", {}, {":v0": {"S": "test1"}}
     )
-    filter_expr.expr(row1).should.be(True)
-    filter_expr.expr(row2).should.be(False)
+    assert filter_expr.expr(row1) is True
+    assert filter_expr.expr(row2) is False
 
     # size function test
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "size(Des) > size(KV)", {}, {}
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
 
     # Expression from @batkuip
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
@@ -1312,13 +1297,13 @@ def test_filter_expression():
         {"#n0": "Subs", "#n1": "fanout_ts"},
         {":v0": {"N": "7"}},
     )
-    filter_expr.expr(row1).should.be(True)
+    assert filter_expr.expr(row1) is True
     # Expression from to check contains on string value
     filter_expr = moto.dynamodb.comparisons.get_filter_expression(
         "contains(#n0, :v0)", {"#n0": "Des"}, {":v0": {"S": "Some"}}
     )
-    filter_expr.expr(row1).should.be(True)
-    filter_expr.expr(row2).should.be(False)
+    assert filter_expr.expr(row1) is True
+    assert filter_expr.expr(row2) is False
 
 
 @mock_dynamodb
@@ -1595,12 +1580,12 @@ def test_scan_filter_should_not_return_non_existing_attributes():
     table.put_item(Item=item)
     # Verify a few operations
     # Assert we only find the item that has this attribute
-    table.scan(FilterExpression=Attr("my-attr").lt(43))["Items"].should.equal([item])
-    table.scan(FilterExpression=Attr("my-attr").lte(42))["Items"].should.equal([item])
-    table.scan(FilterExpression=Attr("my-attr").gte(42))["Items"].should.equal([item])
-    table.scan(FilterExpression=Attr("my-attr").gt(41))["Items"].should.equal([item])
+    assert table.scan(FilterExpression=Attr("my-attr").lt(43))["Items"] == [item]
+    assert table.scan(FilterExpression=Attr("my-attr").lte(42))["Items"] == [item]
+    assert table.scan(FilterExpression=Attr("my-attr").gte(42))["Items"] == [item]
+    assert table.scan(FilterExpression=Attr("my-attr").gt(41))["Items"] == [item]
     # Sanity check that we can't find the item if the FE is wrong
-    table.scan(FilterExpression=Attr("my-attr").gt(43))["Items"].should.equal([])
+    assert table.scan(FilterExpression=Attr("my-attr").gt(43))["Items"] == []
 
 
 @mock_dynamodb
@@ -1626,7 +1611,7 @@ def test_bad_scan_filter():
     # Bad expression
     with pytest.raises(ClientError) as exc:
         table.scan(FilterExpression="client test")
-    exc.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_dynamodb
@@ -1647,7 +1632,7 @@ def test_duplicate_create():
         ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
     )
 
-    try:
+    with pytest.raises(ClientError) as exc:
         client.create_table(
             TableName="test1",
             AttributeDefinitions=[
@@ -1660,10 +1645,8 @@ def test_duplicate_create():
             ],
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceInUseException")
-    else:
-        raise RuntimeError("Should have raised ResourceInUseException")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceInUseException"
 
 
 @mock_dynamodb
@@ -1687,14 +1670,11 @@ def test_delete_table():
     client.delete_table(TableName="test1")
 
     resp = client.list_tables()
-    len(resp["TableNames"]).should.equal(0)
+    assert len(resp["TableNames"]) == 0
 
-    try:
+    with pytest.raises(ClientError) as err:
         client.delete_table(TableName="test1")
-    except ClientError as err:
-        err.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    else:
-        raise RuntimeError("Should have raised ResourceNotFoundException")
+    assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_dynamodb
@@ -1732,22 +1712,22 @@ def test_delete_item():
             Key={"client": "client1", "app": "app1"}, ReturnValues="ALL_NEW"
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("Return values set to invalid value")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Return values set to invalid value"
 
     # Test deletion and returning old value
     response = table.delete_item(
         Key={"client": "client1", "app": "app1"}, ReturnValues="ALL_OLD"
     )
-    response["Attributes"].should.contain("client")
-    response["Attributes"].should.contain("app")
+    assert "client" in response["Attributes"]
+    assert "app" in response["Attributes"]
 
     response = table.scan()
     assert response["Count"] == 1
 
     # Test deletion returning nothing
     response = table.delete_item(Key={"client": "client1", "app": "app2"})
-    len(response["Attributes"]).should.equal(0)
+    assert len(response["Attributes"]) == 0
 
     response = table.scan()
     assert response["Count"] == 0
@@ -1790,10 +1770,10 @@ def test_describe_limits():
     client = boto3.client("dynamodb", region_name="eu-central-1")
     resp = client.describe_limits()
 
-    resp["AccountMaxReadCapacityUnits"].should.equal(20000)
-    resp["AccountMaxWriteCapacityUnits"].should.equal(20000)
-    resp["TableMaxWriteCapacityUnits"].should.equal(10000)
-    resp["TableMaxReadCapacityUnits"].should.equal(10000)
+    assert resp["AccountMaxReadCapacityUnits"] == 20000
+    assert resp["AccountMaxWriteCapacityUnits"] == 20000
+    assert resp["TableMaxWriteCapacityUnits"] == 10000
+    assert resp["TableMaxReadCapacityUnits"] == 10000
 
 
 @mock_dynamodb
@@ -1820,8 +1800,8 @@ def test_set_ttl():
     )
 
     resp = client.describe_time_to_live(TableName="test1")
-    resp["TimeToLiveDescription"]["TimeToLiveStatus"].should.equal("ENABLED")
-    resp["TimeToLiveDescription"]["AttributeName"].should.equal("expire")
+    assert resp["TimeToLiveDescription"]["TimeToLiveStatus"] == "ENABLED"
+    assert resp["TimeToLiveDescription"]["AttributeName"] == "expire"
 
     client.update_time_to_live(
         TableName="test1",
@@ -1829,7 +1809,7 @@ def test_set_ttl():
     )
 
     resp = client.describe_time_to_live(TableName="test1")
-    resp["TimeToLiveDescription"]["TimeToLiveStatus"].should.equal("DISABLED")
+    assert resp["TimeToLiveDescription"]["TimeToLiveStatus"] == "DISABLED"
 
 
 @mock_dynamodb
@@ -1853,12 +1833,10 @@ def test_describe_continuous_backups():
     response = client.describe_continuous_backups(TableName=table_name)
 
     # then
-    response["ContinuousBackupsDescription"].should.equal(
-        {
-            "ContinuousBackupsStatus": "ENABLED",
-            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
-        }
-    )
+    assert response["ContinuousBackupsDescription"] == {
+        "ContinuousBackupsStatus": "ENABLED",
+        "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+    }
 
 
 @mock_dynamodb
@@ -1872,10 +1850,10 @@ def test_describe_continuous_backups_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DescribeContinuousBackups")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
-    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
+    assert ex.operation_name == "DescribeContinuousBackups"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "TableNotFoundException"
+    assert ex.response["Error"]["Message"] == "Table not found: not-existing-table"
 
 
 @mock_dynamodb
@@ -1902,17 +1880,17 @@ def test_update_continuous_backups():
     )
 
     # then
-    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
-        "ENABLED"
+    assert (
+        response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"] == "ENABLED"
     )
     point_in_time = response["ContinuousBackupsDescription"][
         "PointInTimeRecoveryDescription"
     ]
     earliest_datetime = point_in_time["EarliestRestorableDateTime"]
-    earliest_datetime.should.be.a(datetime)
+    assert isinstance(earliest_datetime, datetime)
     latest_datetime = point_in_time["LatestRestorableDateTime"]
-    latest_datetime.should.be.a(datetime)
-    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+    assert isinstance(latest_datetime, datetime)
+    assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
 
     # when
     # a second update should not change anything
@@ -1922,15 +1900,15 @@ def test_update_continuous_backups():
     )
 
     # then
-    response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"].should.equal(
-        "ENABLED"
+    assert (
+        response["ContinuousBackupsDescription"]["ContinuousBackupsStatus"] == "ENABLED"
     )
     point_in_time = response["ContinuousBackupsDescription"][
         "PointInTimeRecoveryDescription"
     ]
-    point_in_time["EarliestRestorableDateTime"].should.equal(earliest_datetime)
-    point_in_time["LatestRestorableDateTime"].should.equal(latest_datetime)
-    point_in_time["PointInTimeRecoveryStatus"].should.equal("ENABLED")
+    assert point_in_time["EarliestRestorableDateTime"] == earliest_datetime
+    assert point_in_time["LatestRestorableDateTime"] == latest_datetime
+    assert point_in_time["PointInTimeRecoveryStatus"] == "ENABLED"
 
     # when
     response = client.update_continuous_backups(
@@ -1939,12 +1917,10 @@ def test_update_continuous_backups():
     )
 
     # then
-    response["ContinuousBackupsDescription"].should.equal(
-        {
-            "ContinuousBackupsStatus": "ENABLED",
-            "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
-        }
-    )
+    assert response["ContinuousBackupsDescription"] == {
+        "ContinuousBackupsStatus": "ENABLED",
+        "PointInTimeRecoveryDescription": {"PointInTimeRecoveryStatus": "DISABLED"},
+    }
 
 
 @mock_dynamodb
@@ -1961,10 +1937,10 @@ def test_update_continuous_backups_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("UpdateContinuousBackups")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("TableNotFoundException")
-    ex.response["Error"]["Message"].should.equal("Table not found: not-existing-table")
+    assert ex.operation_name == "UpdateContinuousBackups"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "TableNotFoundException"
+    assert ex.response["Error"]["Message"] == "Table not found: not-existing-table"
 
 
 # https://github.com/getmoto/moto/issues/1043
@@ -1998,8 +1974,8 @@ def test_query_missing_expr_names():
         ExpressionAttributeValues={":client": {"S": "test1"}},
     )
 
-    resp["Count"].should.equal(1)
-    resp["Items"][0]["client"]["S"].should.equal("test1")
+    assert resp["Count"] == 1
+    assert resp["Items"][0]["client"]["S"] == "test1"
 
     resp = client.query(
         TableName="test1",
@@ -2007,8 +1983,8 @@ def test_query_missing_expr_names():
         ExpressionAttributeNames={":name": "client"},
     )
 
-    resp["Count"].should.equal(1)
-    resp["Items"][0]["client"]["S"].should.equal("test2")
+    assert resp["Count"] == 1
+    assert resp["Items"][0]["client"]["S"] == "test2"
 
 
 # https://github.com/getmoto/moto/issues/2328
@@ -2030,7 +2006,7 @@ def test_update_item_with_list():
     )
 
     resp = table.get_item(Key={"key": "the-key"})
-    resp["Item"].should.equal({"key": "the-key", "list": [1, 2]})
+    assert resp["Item"] == {"key": "the-key", "list": [1, 2]}
 
 
 # https://github.com/getmoto/moto/issues/2328
@@ -2054,7 +2030,7 @@ def test_update_item_with_no_action_passed_with_list():
     )
 
     resp = table.get_item(Key={"key": "the-key"})
-    resp["Item"].should.equal({"key": "the-key", "list": [1, 2]})
+    assert resp["Item"] == {"key": "the-key", "list": [1, 2]}
 
 
 # https://github.com/getmoto/moto/issues/1342
@@ -2087,7 +2063,7 @@ def test_update_item_on_map():
     )
 
     resp = table.scan()
-    resp["Items"][0]["body"].should.equal({"nested": {"data": "test"}})
+    assert resp["Items"][0]["body"] == {"nested": {"data": "test"}}
 
     # Nonexistent nested attributes are supported for existing top-level attributes.
     table.update_item(
@@ -2122,9 +2098,9 @@ def test_update_item_on_map():
     )
 
     resp = table.scan()
-    resp["Items"][0]["body"].should.equal(
-        {"nested": {"data": "new_value", "nonexistentnested": {"data": "other_value"}}}
-    )
+    assert resp["Items"][0]["body"] == {
+        "nested": {"data": "new_value", "nonexistentnested": {"data": "other_value"}}
+    }
 
     # Test nested value for a nonexistent attribute throws a ClientError.
     with pytest.raises(client.exceptions.ClientError):
@@ -2218,8 +2194,8 @@ def test_update_return_attributes():
     with pytest.raises(ClientError) as ex:
         update("col1", "val6", "WRONG")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("Return values set to invalid value")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Return values set to invalid value"
 
 
 # https://github.com/getmoto/moto/issues/3448
@@ -2259,8 +2235,8 @@ def test_update_return_updated_new_attributes_when_same():
     with pytest.raises(ClientError) as ex:
         update("a", ["a", "c"], "WRONG")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("Return values set to invalid value")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Return values set to invalid value"
 
 
 @mock_dynamodb
@@ -2294,11 +2270,9 @@ def test_put_return_attributes():
             Item={"id": {"S": "foo"}, "col1": {"S": "val3"}},
             ReturnValues="ALL_NEW",
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Return values set to invalid value"
-    )
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Return values set to invalid value"
 
 
 @mock_dynamodb
@@ -2422,15 +2396,12 @@ def test_query_gsi_with_range_key():
             ":gsi_range_key": {"S": "range1"},
         },
     )
-    res.should.have.key("Count").equal(1)
-    res.should.have.key("Items")
-    res["Items"][0].should.equal(
-        {
-            "id": {"S": "test1"},
-            "gsi_hash_key": {"S": "key1"},
-            "gsi_range_key": {"S": "range1"},
-        }
-    )
+    assert res["Count"] == 1
+    assert res["Items"][0] == {
+        "id": {"S": "test1"},
+        "gsi_hash_key": {"S": "key1"},
+        "gsi_range_key": {"S": "range1"},
+    }
 
 
 @mock_dynamodb
@@ -2461,10 +2432,11 @@ def test_scan_by_non_exists_index():
     with pytest.raises(ClientError) as ex:
         dynamodb.scan(TableName="test", IndexName="non_exists_index")
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "The table does not have the specified index: non_exists_index"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The table does not have the specified index: non_exists_index"
     )
 
 
@@ -2500,9 +2472,10 @@ def test_query_by_non_exists_index():
             KeyConditionExpression="CarModel=M",
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid index: non_exists_index for table: test. Available indexes are: test_gsi"
     )
 
 
@@ -2538,8 +2511,8 @@ def test_index_with_unknown_attributes_should_fail():
             BillingMode="PAY_PER_REQUEST",
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.contain(expected_exception)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert expected_exception in ex.value.response["Error"]["Message"]
 
 
 @mock_dynamodb
@@ -2561,10 +2534,10 @@ def test_update_list_index__set_existing_index():
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
-    result["id"].should.equal({"S": "foo"})
-    result["itemlist"].should.equal(
-        {"L": [{"S": "bar1"}, {"S": "bar2_update"}, {"S": "bar3"}]}
-    )
+    assert result["id"] == {"S": "foo"}
+    assert result["itemlist"] == {
+        "L": [{"S": "bar1"}, {"S": "bar2_update"}, {"S": "bar3"}]
+    }
 
 
 @mock_dynamodb
@@ -2588,10 +2561,12 @@ def test_update_list_index__set_existing_nested_index():
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
-    result["id"].should.equal({"S": "foo2"})
-    result["itemmap"]["M"]["itemlist"]["L"].should.equal(
-        [{"S": "bar1"}, {"S": "bar2_update"}, {"S": "bar3"}]
-    )
+    assert result["id"] == {"S": "foo2"}
+    assert result["itemmap"]["M"]["itemlist"]["L"] == [
+        {"S": "bar1"},
+        {"S": "bar2_update"},
+        {"S": "bar3"},
+    ]
 
 
 @mock_dynamodb
@@ -2678,13 +2653,13 @@ def test_update_list_index__set_double_nested_index():
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
     assert result["id"] == {"S": "foo2"}
-    len(result["itemmap"]["M"]["itemlist"]["L"]).should.equal(2)
-    result["itemmap"]["M"]["itemlist"]["L"][0].should.equal(
-        {"M": {"foo": {"S": "bar11"}, "foos": {"S": "bar12"}}}
-    )  # unchanged
-    result["itemmap"]["M"]["itemlist"]["L"][1].should.equal(
-        {"M": {"foo": {"S": "bar21"}, "foos": {"S": "bar22"}}}
-    )  # updated
+    assert len(result["itemmap"]["M"]["itemlist"]["L"]) == 2
+    assert result["itemmap"]["M"]["itemlist"]["L"][0] == {
+        "M": {"foo": {"S": "bar11"}, "foos": {"S": "bar12"}}
+    }  # unchanged
+    assert result["itemmap"]["M"]["itemlist"]["L"][1] == {
+        "M": {"foo": {"S": "bar21"}, "foos": {"S": "bar22"}}
+    }  # updated
 
 
 @mock_dynamodb
@@ -2703,9 +2678,10 @@ def test_update_list_index__set_index_of_a_string():
         )
         client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "The document path provided in the update expression is invalid for update"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The document path provided in the update expression is invalid for update"
     )
 
 
@@ -2724,7 +2700,7 @@ def test_remove_top_level_attribute():
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
-    result.should.equal({"id": {"S": "foo"}})
+    assert result == {"id": {"S": "foo"}}
 
 
 @mock_dynamodb
@@ -2743,7 +2719,7 @@ def test_remove_top_level_attribute_non_existent():
         ExpressionAttributeNames={"#i": "item"},
     )
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
-    result.should.equal(ddb_item)
+    assert result == ddb_item
 
 
 @mock_dynamodb
@@ -2764,8 +2740,8 @@ def test_remove_list_index__remove_existing_index():
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
-    result["id"].should.equal({"S": "foo"})
-    result["itemlist"].should.equal({"L": [{"S": "bar1"}, {"S": "bar3"}]})
+    assert result["id"] == {"S": "foo"}
+    assert result["itemlist"] == {"L": [{"S": "bar1"}, {"S": "bar3"}]}
 
 
 @mock_dynamodb
@@ -2809,8 +2785,8 @@ def test_remove_list_index__remove_existing_nested_index():
     )
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
-    result["id"].should.equal({"S": "foo2"})
-    result["itemmap"]["M"]["itemlist"]["L"].should.equal([{"S": "bar1"}])
+    assert result["id"] == {"S": "foo2"}
+    assert result["itemmap"]["M"]["itemlist"]["L"] == [{"S": "bar1"}]
 
 
 @mock_dynamodb
@@ -2841,12 +2817,13 @@ def test_remove_list_index__remove_existing_double_nested_index():
     #
     result = client.get_item(TableName=table_name, Key={"id": {"S": "foo2"}})["Item"]
     assert result["id"] == {"S": "foo2"}
-    assert result["itemmap"]["M"]["itemlist"]["L"][0]["M"].should.equal(
-        {"foo00": {"S": "bar1"}, "foo01": {"S": "bar2"}}
-    )  # untouched
-    assert result["itemmap"]["M"]["itemlist"]["L"][1]["M"].should.equal(
-        {"foo11": {"S": "bar2"}}
-    )  # changed
+    # untouched
+    assert result["itemmap"]["M"]["itemlist"]["L"][0]["M"] == {
+        "foo00": {"S": "bar1"},
+        "foo01": {"S": "bar2"},
+    }
+    # changed
+    assert result["itemmap"]["M"]["itemlist"]["L"][1]["M"] == {"foo11": {"S": "bar2"}}
 
 
 @mock_dynamodb
@@ -2966,19 +2943,17 @@ def test_item_size_is_under_400KB():
 def assert_failure_due_to_item_size(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Item size has exceeded the maximum allowed size"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Item size has exceeded the maximum allowed size"
 
 
 def assert_failure_due_to_item_size_to_update(func, **kwargs):
     with pytest.raises(ClientError) as ex:
         func(**kwargs)
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Item size to update has exceeded the maximum allowed size"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Item size to update has exceeded the maximum allowed size"
 
 
 @mock_dynamodb
@@ -3007,14 +2982,12 @@ def test_update_supports_complex_expression_attribute_values():
     result = client.get_item(
         TableName="TestTable", Key={"SHA256": {"S": "sha-of-file"}}
     )["Item"]
-    result.should.equal(
-        {
-            "MyStringSet": {"SS": ["string1", "string2"]},
-            "MyMap": {"M": {"EntryKey": {"SS": ["thing1", "thing2"]}}},
-            "SHA256": {"S": "sha-of-file"},
-            "MD5": {"S": "md5-of-file"},
-        }
-    )
+    assert result == {
+        "MyStringSet": {"SS": ["string1", "string2"]},
+        "MyMap": {"M": {"EntryKey": {"SS": ["thing1", "thing2"]}}},
+        "SHA256": {"S": "sha-of-file"},
+        "MD5": {"S": "md5-of-file"},
+    }
 
 
 @mock_dynamodb
@@ -3043,19 +3016,17 @@ def test_update_supports_list_append():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"crontab": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}
-    )
+    assert updated_item["Attributes"] == {
+        "crontab": {"L": [{"S": "bar1"}, {"S": "bar2"}]}
+    }
     # Verify item is appended to the existing list
     result = client.get_item(
         TableName="TestTable", Key={"SHA256": {"S": "sha-of-file"}}
     )["Item"]
-    result.should.equal(
-        {
-            "SHA256": {"S": "sha-of-file"},
-            "crontab": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
-        }
-    )
+    assert result == {
+        "SHA256": {"S": "sha-of-file"},
+        "crontab": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
+    }
 
 
 @mock_dynamodb
@@ -3088,18 +3059,16 @@ def test_update_supports_nested_list_append():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}
-    )
+    assert updated_item["Attributes"] == {
+        "a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}
+    }
     result = client.get_item(
         TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
     )["Item"]
-    result.should.equal(
-        {
-            "id": {"S": "nested_list_append"},
-            "a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}},
-        }
-    )
+    assert result == {
+        "id": {"S": "nested_list_append"},
+        "a": {"M": {"b": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}},
+    }
 
 
 @mock_dynamodb
@@ -3132,19 +3101,17 @@ def test_update_supports_multiple_levels_nested_list_append():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}}}
-    )
+    assert updated_item["Attributes"] == {
+        "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}}
+    }
     # Verify item is appended to the existing list
     result = client.get_item(
         TableName="TestTable", Key={"id": {"S": "nested_list_append"}}
     )["Item"]
-    result.should.equal(
-        {
-            "id": {"S": "nested_list_append"},
-            "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}},
-        }
-    )
+    assert result == {
+        "id": {"S": "nested_list_append"},
+        "a": {"M": {"b": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}},
+    }
 
 
 @mock_dynamodb
@@ -3178,24 +3145,22 @@ def test_update_supports_nested_list_append_onto_another_list():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"a": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}}
-    )
+    assert updated_item["Attributes"] == {
+        "a": {"M": {"c": {"L": [{"S": "bar1"}, {"S": "bar2"}]}}}
+    }
     # Verify item is appended to the existing list
     result = client.get_item(
         TableName="TestTable", Key={"id": {"S": "list_append_another"}}
     )["Item"]
-    result.should.equal(
-        {
-            "id": {"S": "list_append_another"},
-            "a": {
-                "M": {
-                    "b": {"L": [{"S": "bar1"}]},
-                    "c": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
-                }
-            },
-        }
-    )
+    assert result == {
+        "id": {"S": "list_append_another"},
+        "a": {
+            "M": {
+                "b": {"L": [{"S": "bar1"}]},
+                "c": {"L": [{"S": "bar1"}, {"S": "bar2"}]},
+            }
+        },
+    }
 
 
 @mock_dynamodb
@@ -3232,9 +3197,9 @@ def test_update_supports_list_append_maps():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]}}
-    )
+    assert updated_item["Attributes"] == {
+        "a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]}
+    }
     # Verify item is appended to the existing list
     result = client.query(
         TableName="TestTable",
@@ -3244,15 +3209,13 @@ def test_update_supports_list_append_maps():
             ":r": {"S": "range_key"},
         },
     )["Items"]
-    result.should.equal(
-        [
-            {
-                "a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]},
-                "rid": {"S": "range_key"},
-                "id": {"S": "nested_list_append"},
-            }
-        ]
-    )
+    assert result == [
+        {
+            "a": {"L": [{"M": {"b": {"S": "bar1"}}}, {"M": {"b": {"S": "bar2"}}}]},
+            "rid": {"S": "range_key"},
+            "id": {"S": "nested_list_append"},
+        }
+    ]
 
 
 @mock_dynamodb
@@ -3308,13 +3271,14 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"nest1": {"nest2": {"event_history": ["some_value"]}}}
-    )
+    assert updated_item["Attributes"] == {
+        "nest1": {"nest2": {"event_history": ["some_value"]}}
+    }
 
-    table.get_item(Key={"Id": "item-id"})["Item"].should.equal(
-        {"Id": "item-id", "nest1": {"nest2": {"event_history": ["some_value"]}}}
-    )
+    assert table.get_item(Key={"Id": "item-id"})["Item"] == {
+        "Id": "item-id",
+        "nest1": {"nest2": {"event_history": ["some_value"]}},
+    }
 
 
 @mock_dynamodb
@@ -3340,13 +3304,14 @@ def test_update_supports_list_append_with_nested_if_not_exists_operation_and_pro
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal(
-        {"event_history": ["other_value", "some_value"]}
-    )
+    assert updated_item["Attributes"] == {
+        "event_history": ["other_value", "some_value"]
+    }
 
-    table.get_item(Key={"Id": "item-id"})["Item"].should.equal(
-        {"Id": "item-id", "event_history": ["other_value", "some_value"]}
-    )
+    assert table.get_item(Key={"Id": "item-id"})["Item"] == {
+        "Id": "item-id",
+        "event_history": ["other_value", "some_value"],
+    }
 
 
 @mock_dynamodb
@@ -3365,7 +3330,7 @@ def test_update_item_if_original_value_is_none():
         UpdateExpression="SET job_name = :output",
         ExpressionAttributeValues={":output": "updated"},
     )
-    table.scan()["Items"][0]["job_name"].should.equal("updated")
+    assert table.scan()["Items"][0]["job_name"] == "updated"
 
 
 @mock_dynamodb
@@ -3387,9 +3352,9 @@ def test_update_nested_item_if_original_value_is_none():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal({"job_details": {"job_name": "updated"}})
+    assert updated_item["Attributes"] == {"job_details": {"job_name": "updated"}}
 
-    table.scan()["Items"][0]["job_details"]["job_name"].should.equal("updated")
+    assert table.scan()["Items"][0]["job_details"]["job_name"] == "updated"
 
 
 @mock_dynamodb
@@ -3412,14 +3377,15 @@ def test_allow_update_to_item_with_different_type():
     )
 
     # Verify updated item is correct
-    updated_item["Attributes"].should.equal({"job_details": {"job_name": "updated"}})
+    assert updated_item["Attributes"] == {"job_details": {"job_name": "updated"}}
 
-    table.get_item(Key={"job_id": "a"})["Item"]["job_details"][
-        "job_name"
-    ].should.be.equal("updated")
-    table.get_item(Key={"job_id": "b"})["Item"]["job_details"][
-        "job_name"
-    ].should.be.equal({"nested": "yes"})
+    assert (
+        table.get_item(Key={"job_id": "a"})["Item"]["job_details"]["job_name"]
+        == "updated"
+    )
+    assert table.get_item(Key={"job_id": "b"})["Item"]["job_details"]["job_name"] == {
+        "nested": "yes"
+    }
 
 
 @mock_dynamodb
@@ -3436,10 +3402,11 @@ def test_query_catches_when_no_filters():
     with pytest.raises(ClientError) as ex:
         table.query(TableName="original-rbu-dev")
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Either KeyConditions or QueryFilter should be present"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Either KeyConditions or QueryFilter should be present"
     )
 
 
@@ -3466,10 +3433,10 @@ def test_invalid_transact_get_items():
             ]
         )
 
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.match(
-        r"failed to satisfy constraint: Member must have length less than or equal to 25",
-        re.I,
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        "Member must have length less than or equal to 25"
+        in ex.value.response["Error"]["Message"]
     )
 
     with pytest.raises(ClientError) as ex:
@@ -3480,9 +3447,9 @@ def test_invalid_transact_get_items():
             ]
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -3536,9 +3503,9 @@ def test_valid_transact_get_items():
             },
         ]
     )
-    res["Responses"][0]["Item"].should.equal({"id": {"S": "1"}, "sort_key": {"S": "1"}})
-    len(res["Responses"]).should.equal(2)
-    res["Responses"][1].should.equal({})
+    assert res["Responses"][0]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "1"}}
+    assert len(res["Responses"]) == 2
+    assert res["Responses"][1] == {}
 
     res = client.transact_get_items(
         TransactItems=[
@@ -3563,11 +3530,11 @@ def test_valid_transact_get_items():
         ]
     )
 
-    res["Responses"][0]["Item"].should.equal({"id": {"S": "1"}, "sort_key": {"S": "1"}})
+    assert res["Responses"][0]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "1"}}
 
-    res["Responses"][1]["Item"].should.equal({"id": {"S": "1"}, "sort_key": {"S": "2"}})
+    assert res["Responses"][1]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "2"}}
 
-    res["Responses"][2]["Item"].should.equal({"id": {"S": "1"}, "sort_key": {"S": "1"}})
+    assert res["Responses"][2]["Item"] == {"id": {"S": "1"}, "sort_key": {"S": "1"}}
 
     res = client.transact_get_items(
         TransactItems=[
@@ -3593,13 +3560,17 @@ def test_valid_transact_get_items():
         ReturnConsumedCapacity="TOTAL",
     )
 
-    res["ConsumedCapacity"][0].should.equal(
-        {"TableName": "test1", "CapacityUnits": 4.0, "ReadCapacityUnits": 4.0}
-    )
+    assert res["ConsumedCapacity"][0] == {
+        "TableName": "test1",
+        "CapacityUnits": 4.0,
+        "ReadCapacityUnits": 4.0,
+    }
 
-    res["ConsumedCapacity"][1].should.equal(
-        {"TableName": "test2", "CapacityUnits": 2.0, "ReadCapacityUnits": 2.0}
-    )
+    assert res["ConsumedCapacity"][1] == {
+        "TableName": "test2",
+        "CapacityUnits": 2.0,
+        "ReadCapacityUnits": 2.0,
+    }
 
     res = client.transact_get_items(
         TransactItems=[
@@ -3625,23 +3596,19 @@ def test_valid_transact_get_items():
         ReturnConsumedCapacity="INDEXES",
     )
 
-    res["ConsumedCapacity"][0].should.equal(
-        {
-            "TableName": "test1",
-            "CapacityUnits": 4.0,
-            "ReadCapacityUnits": 4.0,
-            "Table": {"CapacityUnits": 4.0, "ReadCapacityUnits": 4.0},
-        }
-    )
+    assert res["ConsumedCapacity"][0] == {
+        "TableName": "test1",
+        "CapacityUnits": 4.0,
+        "ReadCapacityUnits": 4.0,
+        "Table": {"CapacityUnits": 4.0, "ReadCapacityUnits": 4.0},
+    }
 
-    res["ConsumedCapacity"][1].should.equal(
-        {
-            "TableName": "test2",
-            "CapacityUnits": 2.0,
-            "ReadCapacityUnits": 2.0,
-            "Table": {"CapacityUnits": 2.0, "ReadCapacityUnits": 2.0},
-        }
-    )
+    assert res["ConsumedCapacity"][1] == {
+        "TableName": "test2",
+        "CapacityUnits": 2.0,
+        "ReadCapacityUnits": 2.0,
+        "Table": {"CapacityUnits": 2.0, "ReadCapacityUnits": 2.0},
+    }
 
 
 @mock_dynamodb
@@ -3696,9 +3663,7 @@ def test_gsi_verify_negative_number_order():
         KeyConditionExpression=Key("gsiK1PartitionKey").eq("gsi-k1"), IndexName="GSI-K1"
     )
     # Items should be ordered with the lowest number first
-    [float(item["gsiK1SortKey"]) for item in resp["Items"]].should.equal(
-        [-0.7, -0.6, 0.7]
-    )
+    assert [float(item["gsiK1SortKey"]) for item in resp["Items"]] == [-0.7, -0.6, 0.7]
 
 
 @mock_dynamodb
@@ -3725,7 +3690,7 @@ def test_transact_write_items_put():
     )
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(5)
+    assert len(items) == 5
 
 
 @mock_dynamodb
@@ -3763,22 +3728,20 @@ def test_transact_write_items_put_conditional_expressions():
             ]
         )
     # Assert the exception is correct
-    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     reasons = ex.value.response["CancellationReasons"]
-    reasons.should.have.length_of(5)
-    reasons.should.contain(
-        {
-            "Code": "ConditionalCheckFailed",
-            "Message": "The conditional request failed",
-            "Item": {"id": {"S": "foo2"}, "foo": {"S": "bar"}},
-        }
-    )
-    reasons.should.contain({"Code": "None"})
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert len(reasons) == 5
+    assert {
+        "Code": "ConditionalCheckFailed",
+        "Message": "The conditional request failed",
+        "Item": {"id": {"S": "foo2"}, "foo": {"S": "bar"}},
+    } in reasons
+    assert {"Code": "None"} in reasons
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"id": {"S": "foo2"}})
+    assert len(items) == 1
+    assert items[0] == {"id": {"S": "foo2"}}
 
 
 @mock_dynamodb
@@ -3817,22 +3780,20 @@ def test_transact_write_items_put_conditional_expressions_return_values_on_condi
             ]
         )
     # Assert the exception is correct
-    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
+    assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     reasons = ex.value.response["CancellationReasons"]
-    reasons.should.have.length_of(5)
-    reasons.should.contain(
-        {
-            "Code": "ConditionalCheckFailed",
-            "Message": "The conditional request failed",
-            "Item": {"id": {"S": "foo2"}},
-        }
-    )
-    reasons.should.contain({"Code": "None"})
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert len(reasons) == 5
+    assert {
+        "Code": "ConditionalCheckFailed",
+        "Message": "The conditional request failed",
+        "Item": {"id": {"S": "foo2"}},
+    } in reasons
+    assert {"Code": "None"} in reasons
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"id": {"S": "foo2"}})
+    assert len(items) == 1
+    assert items[0] == {"id": {"S": "foo2"}}
 
 
 @mock_dynamodb
@@ -3871,8 +3832,8 @@ def test_transact_write_items_conditioncheck_passes():
     )
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+    assert len(items) == 1
+    assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
 
 
 @mock_dynamodb
@@ -3915,13 +3876,13 @@ def test_transact_write_items_conditioncheck_fails():
             ]
         )
     # Assert the exception is correct
-    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
     # Assert the original email address is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+    assert len(items) == 1
+    assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
 
 
 @mock_dynamodb
@@ -3944,7 +3905,7 @@ def test_transact_write_items_delete():
     )
     # Assert the item is deleted
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(0)
+    assert len(items) == 0
 
 
 @mock_dynamodb
@@ -3974,7 +3935,7 @@ def test_transact_write_items_delete_with_successful_condition_expression():
     )
     # Assert the item is deleted
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(0)
+    assert len(items) == 0
 
 
 @mock_dynamodb
@@ -4008,12 +3969,12 @@ def test_transact_write_items_delete_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+    assert len(items) == 1
+    assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
 
 
 @mock_dynamodb
@@ -4044,8 +4005,8 @@ def test_transact_write_items_update():
     )
     # Assert the item is updated
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}})
+    assert len(items) == 1
+    assert items[0] == {"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}}
 
 
 @mock_dynamodb
@@ -4081,12 +4042,12 @@ def test_transact_write_items_update_with_failed_condition_expression():
             ]
         )
     # Assert the exception is correct
-    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal({"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}})
+    assert len(items) == 1
+    assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
 
 
 @mock_dynamodb
@@ -4123,8 +4084,8 @@ def test_dynamodb_max_1mb_limit():
         KeyConditionExpression=Key("partition_key").eq("partition_key_val")
     )
     # We shouldn't get everything back - the total result set is well over 1MB
-    len(items).should.be.greater_than(response["Count"])
-    response["LastEvaluatedKey"].shouldnt.be(None)
+    assert len(items) > response["Count"]
+    assert response["LastEvaluatedKey"] is not None
 
 
 def assert_raise_syntax_error(client_error, token, near):
@@ -4141,8 +4102,8 @@ def assert_raise_syntax_error(client_error, token, near):
         'Invalid UpdateExpression: Syntax error; token: "{token}", near: "{near}"'
     )
     expected_syntax_error = syntax_error_template.format(token=token, near=near)
-    assert client_error.response["Error"]["Code"] == "ValidationException"
-    assert expected_syntax_error == client_error.response["Error"]["Message"]
+    assert client_error["Code"] == "ValidationException"
+    assert expected_syntax_error == client_error["Message"]
 
 
 @mock_dynamodb
@@ -4160,15 +4121,14 @@ def test_update_expression_with_numeric_literal_instead_of_value():
         BillingMode="PAY_PER_REQUEST",
     )
 
-    try:
+    with pytest.raises(ClientError) as exc:
         dynamodb.update_item(
             TableName="moto-test",
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = myNum + 1",
         )
-        assert False, "Validation exception not thrown"
-    except dynamodb.exceptions.ClientError as e:
-        assert_raise_syntax_error(e, "1", "+ 1")
+    err = exc.value.response["Error"]
+    assert_raise_syntax_error(err, "1", "+ 1")
 
 
 @mock_dynamodb
@@ -4185,15 +4145,14 @@ def test_update_expression_with_multiple_set_clauses_must_be_comma_separated():
         BillingMode="PAY_PER_REQUEST",
     )
 
-    try:
+    with pytest.raises(ClientError) as exc:
         dynamodb.update_item(
             TableName="moto-test",
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = myNum Mystr2 myNum2",
         )
-        assert False, "Validation exception not thrown"
-    except dynamodb.exceptions.ClientError as e:
-        assert_raise_syntax_error(e, "Mystr2", "myNum Mystr2 myNum2")
+    err = exc.value.response["Error"]
+    assert_raise_syntax_error(err, "Mystr2", "myNum Mystr2 myNum2")
 
 
 @mock_dynamodb
@@ -4202,7 +4161,7 @@ def test_list_tables_exclusive_start_table_name_empty():
 
     resp = client.list_tables(Limit=1, ExclusiveStartTableName="whatever")
 
-    len(resp["TableNames"]).should.equal(0)
+    assert len(resp["TableNames"]) == 0
 
 
 def assert_correct_client_error(
@@ -4368,15 +4327,14 @@ def test_update_expression_with_space_in_attribute_name():
         Item={"id": {"S": "1"}, "my Num": {"S": "1"}, "MyStr": {"S": "aaa"}},
     )
 
-    try:
+    with pytest.raises(ClientError) as exc:
         dynamodb.update_item(
             TableName="moto-test",
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = my Num",
         )
-        assert False, "Validation exception not thrown"
-    except dynamodb.exceptions.ClientError as e:
-        assert_raise_syntax_error(e, "Num", "my Num")
+    err = exc.value.response["Error"]
+    assert_raise_syntax_error(err, "Num", "my Num")
 
 
 @mock_dynamodb
@@ -4476,8 +4434,8 @@ def test_update_item_atomic_counter():
         ExpressionAttributeValues={":inc1": {"N": "1.2"}, ":inc2": {"N": "0.05"}},
     )
     updated_item = ddb_mock.get_item(TableName=table, Key=key)["Item"]
-    updated_item["n_i"]["N"].should.equal("6.2")
-    updated_item["n_f"]["N"].should.equal("5.35")
+    assert updated_item["n_i"]["N"] == "6.2"
+    assert updated_item["n_f"]["N"] == "5.35"
 
 
 @mock_dynamodb
@@ -4502,10 +4460,8 @@ def test_update_item_atomic_counter_return_values():
         ExpressionAttributeValues={":inc": {"N": "1"}},
         ReturnValues="UPDATED_OLD",
     )
-    assert (
-        "v" in response["Attributes"]
-    ), "v has been updated, and should be returned here"
-    response["Attributes"]["v"]["N"].should.equal("5")
+    # v has been updated, and should be returned here
+    assert response["Attributes"]["v"]["N"] == "5"
 
     # second update
     response = ddb_mock.update_item(
@@ -4515,10 +4471,8 @@ def test_update_item_atomic_counter_return_values():
         ExpressionAttributeValues={":inc": {"N": "1"}},
         ReturnValues="UPDATED_OLD",
     )
-    assert (
-        "v" in response["Attributes"]
-    ), "v has been updated, and should be returned here"
-    response["Attributes"]["v"]["N"].should.equal("6")
+    # v has been updated, and should be returned here
+    assert response["Attributes"]["v"]["N"] == "6"
 
     # third update
     response = ddb_mock.update_item(
@@ -4528,10 +4482,8 @@ def test_update_item_atomic_counter_return_values():
         ExpressionAttributeValues={":inc": {"N": "1"}},
         ReturnValues="UPDATED_NEW",
     )
-    assert (
-        "v" in response["Attributes"]
-    ), "v has been updated, and should be returned here"
-    response["Attributes"]["v"]["N"].should.equal("8")
+    # v has been updated, and should be returned here
+    assert response["Attributes"]["v"]["N"] == "8"
 
 
 @mock_dynamodb
@@ -4644,10 +4596,11 @@ def test_transact_write_items_fails_with_transaction_canceled_exception():
                 },
             ]
         )
-    ex.value.response["Error"]["Code"].should.equal("TransactionCanceledException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]"
+    assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Transaction cancelled, please refer cancellation reasons for specific reasons [None, ConditionalCheckFailed]"
     )
 
 
@@ -4689,15 +4642,13 @@ def test_gsi_projection_type_keys_only():
     items = table.query(
         KeyConditionExpression=Key("gsiK1PartitionKey").eq("gsi-pk"), IndexName="GSI-K1"
     )["Items"]
-    items.should.have.length_of(1)
+    assert len(items) == 1
     # Item should only include GSI Keys and Table Keys, as per the ProjectionType
-    items[0].should.equal(
-        {
-            "gsiK1PartitionKey": "gsi-pk",
-            "gsiK1SortKey": "gsi-sk",
-            "partitionKey": "pk-1",
-        }
-    )
+    assert items[0] == {
+        "gsiK1PartitionKey": "gsi-pk",
+        "gsiK1SortKey": "gsi-sk",
+        "partitionKey": "pk-1",
+    }
 
 
 @mock_dynamodb
@@ -4743,27 +4694,23 @@ def test_gsi_projection_type_include():
         KeyConditionExpression=Key("gsiK1PartitionKey").eq("gsi-pk"),
         IndexName="GSI-INC",
     )["Items"]
-    items.should.have.length_of(1)
+    assert len(items) == 1
     # Item should only include keys and additionally projected attributes only
-    items[0].should.equal(
-        {
-            "gsiK1PartitionKey": "gsi-pk",
-            "gsiK1SortKey": "gsi-sk",
-            "partitionKey": "pk-1",
-            "projectedAttribute": "lore ipsum",
-        }
-    )
+    assert items[0] == {
+        "gsiK1PartitionKey": "gsi-pk",
+        "gsiK1SortKey": "gsi-sk",
+        "partitionKey": "pk-1",
+        "projectedAttribute": "lore ipsum",
+    }
 
     # Same when scanning the table
     items = table.scan(IndexName="GSI-INC")["Items"]
-    items[0].should.equal(
-        {
-            "gsiK1PartitionKey": "gsi-pk",
-            "gsiK1SortKey": "gsi-sk",
-            "partitionKey": "pk-1",
-            "projectedAttribute": "lore ipsum",
-        }
-    )
+    assert items[0] == {
+        "gsiK1PartitionKey": "gsi-pk",
+        "gsiK1SortKey": "gsi-sk",
+        "partitionKey": "pk-1",
+        "projectedAttribute": "lore ipsum",
+    }
 
 
 @mock_dynamodb
@@ -4807,17 +4754,18 @@ def test_lsi_projection_type_keys_only():
     items = table.query(
         KeyConditionExpression=Key("partitionKey").eq("pk-1"), IndexName="LSI"
     )["Items"]
-    items.should.have.length_of(1)
     # Item should only include GSI Keys and Table Keys, as per the ProjectionType
-    items[0].should.equal(
+    assert items == [
         {"partitionKey": "pk-1", "sortKey": "sk-1", "lsiK1SortKey": "lsi-sk"}
-    )
+    ]
 
     # Same when scanning the table
     items = table.scan(IndexName="LSI")["Items"]
-    items[0].should.equal(
-        {"lsiK1SortKey": "lsi-sk", "partitionKey": "pk-1", "sortKey": "sk-1"}
-    )
+    assert items[0] == {
+        "lsiK1SortKey": "lsi-sk",
+        "partitionKey": "pk-1",
+        "sortKey": "sk-1",
+    }
 
 
 @mock_dynamodb
@@ -4846,8 +4794,8 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
     )
     resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
     item = resp["Items"][0]
-    item.should.have.key("customer")
-    item.should.have.key("orders")
+    assert "customer" in item
+    assert "orders" in item
 
     client.update_item(
         TableName=table_name,
@@ -4858,8 +4806,8 @@ def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
     )
     resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
     item = resp["Items"][0]
-    item.should.have.key("customer")
-    item.should_not.have.key("orders")
+    assert "customer" in item
+    assert "orders" not in item
 
 
 @mock_dynamodb
@@ -4882,9 +4830,9 @@ def test_transact_get_items_should_return_empty_map_for_non_existent_item():
             {"Get": {"Key": {"id": {"S": "2"}}, "TableName": table_name}},
         ]
     ).get("Responses", [])
-    items.should.have.length_of(2)
-    items[0].should.equal({"Item": item})
-    items[1].should.equal({})
+    assert len(items) == 2
+    assert items[0] == {"Item": item}
+    assert items[1] == {}
 
 
 @mock_dynamodb
@@ -4928,7 +4876,7 @@ def test_update_item_add_to_list_using_legacy_attribute_updates():
     )
 
     resp = table.get_item(Key={"id": "list_add"})
-    resp["Item"]["attr"].should.equal(["a", "b", "c", "d", "e"])
+    assert resp["Item"]["attr"] == ["a", "b", "c", "d", "e"]
 
 
 @mock_dynamodb
@@ -4957,7 +4905,7 @@ def test_update_item_add_to_num_set_using_legacy_attribute_updates():
     )
 
     resp = table.get_item(Key={"id": "set_add"})
-    resp["Item"]["attr"].should.equal({1, 2, 3, 4, 5})
+    assert resp["Item"]["attr"] == {1, 2, 3, 4, 5}
 
     table.update_item(
         TableName="TestTable",
@@ -4966,7 +4914,7 @@ def test_update_item_add_to_num_set_using_legacy_attribute_updates():
     )
 
     resp = table.get_item(Key={"id": "set_add"})
-    resp["Item"]["attr"].should.equal({1, 4, 5})
+    assert resp["Item"]["attr"] == {1, 4, 5}
 
 
 @mock_dynamodb
@@ -4974,8 +4922,8 @@ def test_get_item_for_non_existent_table_raises_error():
     client = boto3.client("dynamodb", "us-east-1")
     with pytest.raises(ClientError) as ex:
         client.get_item(TableName="non-existent", Key={"site-id": {"S": "foo"}})
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -5000,9 +4948,10 @@ def test_error_when_providing_expression_and_nonexpression_params():
             ExpressionAttributeValues={":order": {"SS": ["item"]}},
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
     )
 
 
@@ -5028,7 +4977,7 @@ def test_attribute_item_delete():
         AttributeUpdates={"extra": {"Action": "DELETE"}},
     )
     items = conn.scan(TableName=name)["Items"]
-    items.should.equal([{"name": {"S": "foo"}}])
+    assert items == [{"name": {"S": "foo"}}]
 
 
 @mock_dynamodb
@@ -5073,8 +5022,8 @@ def test_gsi_key_can_be_updated():
     )
 
     item = conn.scan(TableName=name)["Items"][0]
-    item["index_key"].should.equal({"S": "new_value"})
-    item["main_key"].should.equal({"S": "testkey1"})
+    assert item["index_key"] == {"S": "new_value"}
+    assert item["main_key"] == {"S": "testkey1"}
 
 
 @mock_dynamodb
@@ -5119,9 +5068,10 @@ def test_gsi_key_cannot_be_empty():
             ExpressionAttributeValues={":new_index_key": {"S": ""}},
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values are not valid. The update expression attempted to update a secondary index key to a value that is not supported. The AttributeValue for a key attribute cannot contain an empty string value."
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values are not valid. The update expression attempted to update a secondary index key to a value that is not supported. The AttributeValue for a key attribute cannot contain an empty string value."
     )
 
 
@@ -5131,8 +5081,8 @@ def test_create_backup_for_non_existent_table_raises_error():
     with pytest.raises(ClientError) as ex:
         client.create_backup(TableName="non-existent", BackupName="backup")
     error = ex.value.response["Error"]
-    error["Code"].should.equal("TableNotFoundException")
-    error["Message"].should.equal("Table not found: non-existent")
+    assert error["Code"] == "TableNotFoundException"
+    assert error["Message"] == "Table not found: non-existent"
 
 
 @mock_dynamodb
@@ -5148,12 +5098,12 @@ def test_create_backup():
     backup_name = "backup-test-table"
     resp = client.create_backup(TableName=table_name, BackupName=backup_name)
     details = resp.get("BackupDetails")
-    details.should.have.key("BackupArn").should.contain(table_name)
-    details.should.have.key("BackupName").should.equal(backup_name)
-    details.should.have.key("BackupSizeBytes").should.be.a(int)
-    details.should.have.key("BackupStatus")
-    details.should.have.key("BackupType").should.equal("USER")
-    details.should.have.key("BackupCreationDateTime").should.be.a(datetime)
+    assert table_name in details["BackupArn"]
+    assert details["BackupName"] == backup_name
+    assert isinstance(details["BackupSizeBytes"], int)
+    assert "BackupStatus" in details
+    assert details["BackupType"] == "USER"
+    assert isinstance(details["BackupCreationDateTime"], datetime)
 
 
 @mock_dynamodb
@@ -5172,8 +5122,8 @@ def test_create_multiple_backups_with_same_name():
         backup = client.create_backup(TableName=table_name, BackupName=backup_name).get(
             "BackupDetails"
         )
-        backup["BackupName"].should.equal(backup_name)
-        backup_arns.should_not.contain(backup["BackupArn"])
+        assert backup["BackupName"] == backup_name
+        assert backup["BackupArn"] not in backup_arns
         backup_arns.append(backup["BackupArn"])
 
 
@@ -5184,8 +5134,8 @@ def test_describe_backup_for_non_existent_backup_raises_error():
     with pytest.raises(ClientError) as ex:
         client.describe_backup(BackupArn=non_existent_arn)
     error = ex.value.response["Error"]
-    error["Code"].should.equal("BackupNotFoundException")
-    error["Message"].should.equal(f"Backup not found: {non_existent_arn}")
+    assert error["Code"] == "BackupNotFoundException"
+    assert error["Message"] == f"Backup not found: {non_existent_arn}"
 
 
 @mock_dynamodb
@@ -5207,29 +5157,27 @@ def test_describe_backup():
     resp = client.describe_backup(BackupArn=backup_arn)
     description = resp.get("BackupDescription")
     details = description.get("BackupDetails")
-    details.should.have.key("BackupArn").should.contain(table_name)
-    details.should.have.key("BackupName").should.equal(backup_name)
-    details.should.have.key("BackupSizeBytes").should.be.a(int)
-    details.should.have.key("BackupStatus")
-    details.should.have.key("BackupType").should.equal("USER")
-    details.should.have.key("BackupCreationDateTime").should.be.a(datetime)
+    assert table_name in details["BackupArn"]
+    assert details["BackupName"] == backup_name
+    assert isinstance(details["BackupSizeBytes"], int)
+    assert "BackupStatus" in details
+    assert details["BackupType"] == "USER"
+    assert isinstance(details["BackupCreationDateTime"], datetime)
     source = description.get("SourceTableDetails")
-    source.should.have.key("TableName").should.equal(table_name)
-    source.should.have.key("TableArn").should.equal(table["TableArn"])
-    source.should.have.key("TableSizeBytes").should.be.a(int)
-    source.should.have.key("KeySchema").should.equal(table["KeySchema"])
-    source.should.have.key("TableCreationDateTime").should.equal(
-        table["CreationDateTime"]
-    )
-    source.should.have.key("ProvisionedThroughput").should.be.a(dict)
-    source.should.have.key("ItemCount").should.equal(table["ItemCount"])
+    assert source["TableName"] == table_name
+    assert source["TableArn"] == table["TableArn"]
+    assert isinstance(source["TableSizeBytes"], int)
+    assert source["KeySchema"] == table["KeySchema"]
+    assert source["TableCreationDateTime"] == table["CreationDateTime"]
+    assert isinstance(source["ProvisionedThroughput"], dict)
+    assert source["ItemCount"] == table["ItemCount"]
 
 
 @mock_dynamodb
 def test_list_backups_for_non_existent_table():
     client = boto3.client("dynamodb", "us-east-1")
     resp = client.list_backups(TableName="non-existent")
-    resp["BackupSummaries"].should.have.length_of(0)
+    assert len(resp["BackupSummaries"]) == 0
 
 
 @mock_dynamodb
@@ -5247,19 +5195,19 @@ def test_list_backups():
         for backup_name in backup_names:
             client.create_backup(TableName=table_name, BackupName=backup_name)
     resp = client.list_backups(BackupType="USER")
-    resp["BackupSummaries"].should.have.length_of(4)
+    assert len(resp["BackupSummaries"]) == 4
     for table_name in table_names:
         resp = client.list_backups(TableName=table_name)
-        resp["BackupSummaries"].should.have.length_of(2)
+        assert len(resp["BackupSummaries"]) == 2
         for summary in resp["BackupSummaries"]:
-            summary.should.have.key("TableName").should.equal(table_name)
-            summary.should.have.key("TableArn").should.contain(table_name)
-            summary.should.have.key("BackupName").should.be.within(backup_names)
-            summary.should.have.key("BackupArn")
-            summary.should.have.key("BackupCreationDateTime").should.be.a(datetime)
-            summary.should.have.key("BackupStatus")
-            summary.should.have.key("BackupType").should.be.within(["USER", "SYSTEM"])
-            summary.should.have.key("BackupSizeBytes").should.be.a(int)
+            assert summary["TableName"] == table_name
+            assert table_name in summary["TableArn"]
+            assert summary["BackupName"] in backup_names
+            assert "BackupArn" in summary
+            assert isinstance(summary["BackupCreationDateTime"], datetime)
+            assert "BackupStatus" in summary
+            assert summary["BackupType"] in ["USER", "SYSTEM"]
+            assert isinstance(summary["BackupSizeBytes"], int)
 
 
 @mock_dynamodb
@@ -5271,8 +5219,8 @@ def test_restore_table_from_non_existent_backup_raises_error():
             TargetTableName="from-backup", BackupArn=non_existent_arn
         )
     error = ex.value.response["Error"]
-    error["Code"].should.equal("BackupNotFoundException")
-    error["Message"].should.equal(f"Backup not found: {non_existent_arn}")
+    assert error["Code"] == "BackupNotFoundException"
+    assert error["Message"] == f"Backup not found: {non_existent_arn}"
 
 
 @mock_dynamodb
@@ -5292,8 +5240,8 @@ def test_restore_table_from_backup_raises_error_when_table_already_exists():
             TargetTableName=table_name, BackupArn=backup["BackupArn"]
         )
     error = ex.value.response["Error"]
-    error["Code"].should.equal("TableAlreadyExistsException")
-    error["Message"].should.equal(f"Table already exists: {table_name}")
+    assert error["Code"] == "TableAlreadyExistsException"
+    assert error["Message"] == f"Table already exists: {table_name}"
 
 
 @mock_dynamodb
@@ -5320,20 +5268,18 @@ def test_restore_table_from_backup():
     restored = client.restore_table_from_backup(
         TargetTableName=restored_table_name, BackupArn=backup_arn
     ).get("TableDescription")
-    restored.should.have.key("AttributeDefinitions").should.equal(
-        table["AttributeDefinitions"]
-    )
-    restored.should.have.key("TableName").should.equal(restored_table_name)
-    restored.should.have.key("KeySchema").should.equal(table["KeySchema"])
-    restored.should.have.key("TableStatus")
-    restored.should.have.key("ItemCount").should.equal(5)
-    restored.should.have.key("TableArn").should.contain(restored_table_name)
-    restored.should.have.key("RestoreSummary").should.be.a(dict)
+    assert restored["AttributeDefinitions"] == table["AttributeDefinitions"]
+    assert restored["TableName"] == restored_table_name
+    assert restored["KeySchema"] == table["KeySchema"]
+    assert "TableStatus" in restored
+    assert restored["ItemCount"] == 5
+    assert restored_table_name in restored["TableArn"]
+    assert isinstance(restored["RestoreSummary"], dict)
     summary = restored.get("RestoreSummary")
-    summary.should.have.key("SourceBackupArn").should.equal(backup_arn)
-    summary.should.have.key("SourceTableArn").should.equal(table["TableArn"])
-    summary.should.have.key("RestoreDateTime").should.be.a(datetime)
-    summary.should.have.key("RestoreInProgress").should.equal(False)
+    assert summary["SourceBackupArn"] == backup_arn
+    assert summary["SourceTableArn"] == table["TableArn"]
+    assert isinstance(summary["RestoreDateTime"], datetime)
+    assert summary["RestoreInProgress"] is False
 
 
 @mock_dynamodb
@@ -5354,16 +5300,16 @@ def test_restore_table_to_point_in_time():
     restored = client.restore_table_to_point_in_time(
         TargetTableName=restored_table_name, SourceTableName=table_name
     ).get("TableDescription")
-    restored.should.have.key("TableName").should.equal(restored_table_name)
-    restored.should.have.key("KeySchema").should.equal(table["KeySchema"])
-    restored.should.have.key("TableStatus")
-    restored.should.have.key("ItemCount").should.equal(5)
-    restored.should.have.key("TableArn").should.contain(restored_table_name)
-    restored.should.have.key("RestoreSummary").should.be.a(dict)
+    assert restored["TableName"] == restored_table_name
+    assert restored["KeySchema"] == table["KeySchema"]
+    assert "TableStatus" in restored
+    assert restored["ItemCount"] == 5
+    assert restored_table_name in restored["TableArn"]
+    assert isinstance(restored["RestoreSummary"], dict)
     summary = restored.get("RestoreSummary")
-    summary.should.have.key("SourceTableArn").should.equal(table["TableArn"])
-    summary.should.have.key("RestoreDateTime").should.be.a(datetime)
-    summary.should.have.key("RestoreInProgress").should.equal(False)
+    assert summary["SourceTableArn"] == table["TableArn"]
+    assert isinstance(summary["RestoreDateTime"], datetime)
+    assert summary["RestoreInProgress"] is False
 
 
 @mock_dynamodb
@@ -5376,8 +5322,8 @@ def test_restore_table_to_point_in_time_raises_error_when_source_not_exist():
             TargetTableName=restored_table_name, SourceTableName=table_name
         )
     error = ex.value.response["Error"]
-    error["Code"].should.equal("SourceTableNotFoundException")
-    error["Message"].should.equal(f"Source table not found: {table_name}")
+    assert error["Code"] == "SourceTableNotFoundException"
+    assert error["Message"] == f"Source table not found: {table_name}"
 
 
 @mock_dynamodb
@@ -5402,8 +5348,8 @@ def test_restore_table_to_point_in_time_raises_error_when_dest_exist():
             TargetTableName=restored_table_name, SourceTableName=table_name
         )
     error = ex.value.response["Error"]
-    error["Code"].should.equal("TableAlreadyExistsException")
-    error["Message"].should.equal(f"Table already exists: {restored_table_name}")
+    assert error["Code"] == "TableAlreadyExistsException"
+    assert error["Message"] == f"Table already exists: {restored_table_name}"
 
 
 @mock_dynamodb
@@ -5413,8 +5359,8 @@ def test_delete_non_existent_backup_raises_error():
     with pytest.raises(ClientError) as ex:
         client.delete_backup(BackupArn=non_existent_arn)
     error = ex.value.response["Error"]
-    error["Code"].should.equal("BackupNotFoundException")
-    error["Message"].should.equal(f"Backup not found: {non_existent_arn}")
+    assert error["Code"] == "BackupNotFoundException"
+    assert error["Message"] == f"Backup not found: {non_existent_arn}"
 
 
 @mock_dynamodb
@@ -5431,19 +5377,19 @@ def test_delete_backup():
     for backup_name in backup_names:
         client.create_backup(TableName=table_name, BackupName=backup_name)
     resp = client.list_backups(TableName=table_name, BackupType="USER")
-    resp["BackupSummaries"].should.have.length_of(2)
+    assert len(resp["BackupSummaries"]) == 2
     backup_to_delete = resp["BackupSummaries"][0]["BackupArn"]
     backup_deleted = client.delete_backup(BackupArn=backup_to_delete).get(
         "BackupDescription"
     )
-    backup_deleted.should.have.key("SourceTableDetails")
-    backup_deleted.should.have.key("BackupDetails")
+    assert "SourceTableDetails" in backup_deleted
+    assert "BackupDetails" in backup_deleted
     details = backup_deleted["BackupDetails"]
-    details.should.have.key("BackupArn").should.equal(backup_to_delete)
-    details.should.have.key("BackupName").should.be.within(backup_names)
-    details.should.have.key("BackupStatus").should.equal("DELETED")
+    assert details["BackupArn"] == backup_to_delete
+    assert details["BackupName"] in backup_names
+    assert details["BackupStatus"] == "DELETED"
     resp = client.list_backups(TableName=table_name, BackupType="USER")
-    resp["BackupSummaries"].should.have.length_of(1)
+    assert len(resp["BackupSummaries"]) == 1
 
 
 @mock_dynamodb
@@ -5481,17 +5427,17 @@ def test_source_and_restored_table_items_are_not_linked():
     guids_added_after_restore = add_guids_to_table(restored_table_name, 5)
 
     source_table_items = client.scan(TableName=source_table_name)
-    source_table_items.should.have.key("Count").should.equal(10)
+    assert source_table_items["Count"] == 10
     source_table_guids = [x["id"]["S"] for x in source_table_items["Items"]]
-    set(source_table_guids).should.equal(
-        set(guids_original) | set(guids_added_after_backup)
+    assert set(source_table_guids) == set(guids_original) | set(
+        guids_added_after_backup
     )
 
     restored_table_items = client.scan(TableName=restored_table_name)
-    restored_table_items.should.have.key("Count").should.equal(10)
+    assert restored_table_items["Count"] == 10
     restored_table_guids = [x["id"]["S"] for x in restored_table_items["Items"]]
-    set(restored_table_guids).should.equal(
-        set(guids_original) | set(guids_added_after_restore)
+    assert set(restored_table_guids) == set(guids_original) | set(
+        guids_added_after_restore
     )
 
 
@@ -5500,14 +5446,12 @@ def test_source_and_restored_table_items_are_not_linked():
 def test_describe_endpoints(region):
     client = boto3.client("dynamodb", region)
     res = client.describe_endpoints()["Endpoints"]
-    res.should.equal(
-        [
-            {
-                "Address": f"dynamodb.{region}.amazonaws.com",
-                "CachePeriodInMinutes": 1440,
-            },
-        ]
-    )
+    assert res == [
+        {
+            "Address": f"dynamodb.{region}.amazonaws.com",
+            "CachePeriodInMinutes": 1440,
+        },
+    ]
 
 
 @mock_dynamodb
@@ -5537,9 +5481,9 @@ def test_update_non_existing_item_raises_error_and_does_not_contain_item_afterwa
     table = boto3.resource("dynamodb", region_name="us-west-2").Table(name)
     with pytest.raises(ClientError) as err:
         table.update_item(**update_expression)
-    err.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert err.value.response["Error"]["Code"] == "ValidationException"
 
-    conn.scan(TableName=name)["Items"].should.have.length_of(0)
+    assert len(conn.scan(TableName=name)["Items"]) == 0
 
 
 @mock_dynamodb
@@ -5565,9 +5509,8 @@ def test_batch_write_item():
     for idx, name in enumerate(tables):
         table = conn.Table(f"table-{idx}")
         res = table.get_item(Key={"id": str(idx)})
-        assert res["Item"].should.equal({"id": str(idx)})
-        scan = table.scan()
-        assert scan["Count"].should.equal(1)
+        assert res["Item"] == {"id": str(idx)}
+        assert table.scan()["Count"] == 1
 
     conn.batch_write_item(
         RequestItems={
@@ -5579,8 +5522,7 @@ def test_batch_write_item():
 
     for idx, name in enumerate(tables):
         table = conn.Table(f"table-{idx}")
-        scan = table.scan()
-        assert scan["Count"].should.equal(0)
+        assert table.scan()["Count"] == 0
 
 
 @mock_dynamodb
@@ -5633,14 +5575,16 @@ def test_gsi_lastevaluatedkey():
     )
 
     items = response["Items"]
-    items.should.have.length_of(1)
-    items[0].should.equal(
-        {"main_key": "testkey1", "extra_data": "testdata", "index_key": "indexkey"}
-    )
+    assert len(items) == 1
+    assert items[0] == {
+        "main_key": "testkey1",
+        "extra_data": "testdata",
+        "index_key": "indexkey",
+    }
 
     last_evaluated_key = response["LastEvaluatedKey"]
-    last_evaluated_key.should.have.length_of(2)
-    last_evaluated_key.should.equal({"main_key": "testkey1", "index_key": "indexkey"})
+    assert len(last_evaluated_key) == 2
+    assert last_evaluated_key == {"main_key": "testkey1", "index_key": "indexkey"}
 
 
 @mock_dynamodb
@@ -5687,11 +5631,11 @@ def test_filter_expression_execution_order():
     )
 
     query_items_1 = query_response_1["Items"]
-    query_items_1.should.have.length_of(0)
+    assert len(query_items_1) == 0
 
     query_last_evaluated_key = query_response_1["LastEvaluatedKey"]
-    query_last_evaluated_key.should.have.length_of(2)
-    query_last_evaluated_key.should.equal({"hash_key": "keyvalue", "range_key": "A"})
+    assert len(query_last_evaluated_key) == 2
+    assert query_last_evaluated_key == {"hash_key": "keyvalue", "range_key": "A"}
 
     query_response_2 = table.query(
         Limit=1,
@@ -5701,10 +5645,12 @@ def test_filter_expression_execution_order():
     )
 
     query_items_2 = query_response_2["Items"]
-    query_items_2.should.have.length_of(1)
-    query_items_2[0].should.equal(
-        {"hash_key": "keyvalue", "filtered_attribute": "Z", "range_key": "B"}
-    )
+    assert len(query_items_2) == 1
+    assert query_items_2[0] == {
+        "hash_key": "keyvalue",
+        "filtered_attribute": "Z",
+        "range_key": "B",
+    }
 
     # test scan
 
@@ -5713,11 +5659,11 @@ def test_filter_expression_execution_order():
     )
 
     scan_items_1 = scan_response_1["Items"]
-    scan_items_1.should.have.length_of(0)
+    assert len(scan_items_1) == 0
 
     scan_last_evaluated_key = scan_response_1["LastEvaluatedKey"]
-    scan_last_evaluated_key.should.have.length_of(2)
-    scan_last_evaluated_key.should.equal({"hash_key": "keyvalue", "range_key": "A"})
+    assert len(scan_last_evaluated_key) == 2
+    assert scan_last_evaluated_key == {"hash_key": "keyvalue", "range_key": "A"}
 
     scan_response_2 = table.scan(
         Limit=1,
@@ -5726,10 +5672,9 @@ def test_filter_expression_execution_order():
     )
 
     scan_items_2 = scan_response_2["Items"]
-    scan_items_2.should.have.length_of(1)
-    scan_items_2[0].should.equal(
+    assert scan_items_2 == [
         {"hash_key": "keyvalue", "filtered_attribute": "Z", "range_key": "B"}
-    )
+    ]
 
 
 @mock_dynamodb

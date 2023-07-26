@@ -4,8 +4,6 @@ import boto3
 from botocore.exceptions import ClientError
 from uuid import uuid4
 
-import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_ec2
 from tests import EXAMPLE_AMI_ID
 
@@ -18,15 +16,16 @@ def test_eip_allocate_classic():
 
     with pytest.raises(ClientError) as ex:
         client.allocate_address(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     standard = client.allocate_address(Domain="standard")
-    standard.should.have.key("PublicIp")
-    standard.should.have.key("Domain").equal("standard")
+    assert "PublicIp" in standard
+    assert standard["Domain"] == "standard"
 
     public_ip = standard["PublicIp"]
 
@@ -35,16 +34,17 @@ def test_eip_allocate_classic():
 
     with pytest.raises(ClientError) as ex:
         standard.release(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     standard.release()
 
     all_addresses = client.describe_addresses()["Addresses"]
-    [a["PublicIp"] for a in all_addresses].shouldnt.contain(public_ip)
+    assert public_ip not in [a["PublicIp"] for a in all_addresses]
 
 
 @mock_ec2
@@ -53,10 +53,11 @@ def test_describe_addresses_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_addresses(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DescribeAddresses operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DescribeAddresses operation: Request would have succeeded, but DryRun flag is set"
     )
 
 
@@ -68,22 +69,23 @@ def test_eip_allocate_vpc():
 
     with pytest.raises(ClientError) as ex:
         client.allocate_address(Domain="vpc", DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the AllocateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     vpc = client.allocate_address(Domain="vpc")
-    vpc.should.have.key("AllocationId")
-    vpc.should.have.key("Domain").equal("vpc")
+    assert "AllocationId" in vpc
+    assert vpc["Domain"] == "vpc"
 
     # Ensure that correct fallback is used for the optional attribute `Domain` contains an empty or invalid value
     vpc2 = client.allocate_address(Domain="")
     vpc3 = client.allocate_address(Domain="xyz")
 
-    vpc2.should.have.key("Domain").equal("vpc")
-    vpc3.should.have.key("Domain").equal("vpc")
+    assert vpc2["Domain"] == "vpc"
+    assert vpc3["Domain"] == "vpc"
 
     allocation_id = vpc["AllocationId"]
     allocation_id2 = vpc["AllocationId"]
@@ -91,17 +93,17 @@ def test_eip_allocate_vpc():
 
     all_addresses = client.describe_addresses()["Addresses"]
     allocation_ids = [a["AllocationId"] for a in all_addresses if "AllocationId" in a]
-    allocation_ids.should.contain(allocation_id)
-    allocation_ids.should.contain(allocation_id2)
-    allocation_ids.should.contain(allocation_id3)
+    assert allocation_id in allocation_ids
+    assert allocation_id2 in allocation_ids
+    assert allocation_id3 in allocation_ids
 
     vpc = ec2.VpcAddress(allocation_id)
     vpc.release()
 
     all_addresses = client.describe_addresses()["Addresses"]
-    [a["AllocationId"] for a in all_addresses if "AllocationId" in a].shouldnt.contain(
-        allocation_id
-    )
+    assert allocation_id not in [
+        a["AllocationId"] for a in all_addresses if "AllocationId" in a
+    ]
 
 
 @mock_ec2
@@ -110,8 +112,8 @@ def test_specific_eip_allocate_vpc():
     client = boto3.client("ec2", region_name="us-west-1")
 
     vpc = client.allocate_address(Domain="vpc", Address="127.38.43.222")
-    vpc["Domain"].should.be.equal("vpc")
-    vpc["PublicIp"].should.be.equal("127.38.43.222")
+    assert vpc["Domain"] == "vpc"
+    assert vpc["PublicIp"] == "127.38.43.222"
 
 
 @mock_ec2
@@ -125,49 +127,52 @@ def test_eip_associate_classic():
 
     eip = client.allocate_address()
     eip = ec2.ClassicAddress(eip["PublicIp"])
-    eip.instance_id.should.equal("")
+    assert eip.instance_id == ""
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(PublicIp=eip.public_ip)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid request, expect InstanceId/NetworkId parameter."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid request, expect InstanceId/NetworkId parameter."
     )
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(
             InstanceId=instance.id, PublicIp=eip.public_ip, DryRun=True
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the AssociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.associate_address(InstanceId=instance.id, PublicIp=eip.public_ip)
     eip.reload()
-    eip.instance_id.should.be.equal(instance.id)
+    assert eip.instance_id == instance.id
 
     with pytest.raises(ClientError) as ex:
         client.disassociate_address(PublicIp=eip.public_ip, DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DisassociateAddress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DisassociateAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.disassociate_address(PublicIp=eip.public_ip)
     eip.reload()
-    eip.instance_id.should.be.equal("")
+    assert eip.instance_id == ""
     eip.release()
 
     with pytest.raises(ClientError) as ex:
         client.describe_addresses(PublicIps=[eip.public_ip])
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidAddress.NotFound")
-    err["Message"].should.equal("Address '{'" + eip.public_ip + "'}' not found.")
+    assert err["Code"] == "InvalidAddress.NotFound"
+    assert err["Message"] == "Address '{'" + eip.public_ip + "'}' not found."
 
     instance.terminate()
 
@@ -182,34 +187,36 @@ def test_eip_associate_vpc():
     instance = ec2.Instance(reservation["Instances"][0]["InstanceId"])
 
     eip = client.allocate_address(Domain="vpc")
-    eip.shouldnt.have.key("InstanceId")
+    assert "InstanceId" not in eip
     eip = ec2.VpcAddress(eip["AllocationId"])
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(AllocationId=eip.allocation_id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid request, expect InstanceId/NetworkId parameter."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid request, expect InstanceId/NetworkId parameter."
     )
 
     client.associate_address(InstanceId=instance.id, AllocationId=eip.allocation_id)
 
     eip.reload()
-    eip.instance_id.should.be.equal(instance.id)
+    assert eip.instance_id == instance.id
     client.disassociate_address(AssociationId=eip.association_id)
 
     eip.reload()
-    eip.instance_id.should.be.equal("")
-    eip.association_id.should.equal(None)
+    assert eip.instance_id == ""
+    assert eip.association_id is None
 
     with pytest.raises(ClientError) as ex:
         eip.release(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the ReleaseAddress operation: Request would have succeeded, but DryRun flag is set"
     )
 
     eip.release()
@@ -237,30 +244,30 @@ def test_eip_vpc_association():
     allocation_id = client.allocate_address(Domain="vpc")["AllocationId"]
     address = service.VpcAddress(allocation_id)
     address.load()
-    address.association_id.should.equal(None)
-    address.instance_id.should.equal("")
-    address.network_interface_id.should.equal("")
+    assert address.association_id is None
+    assert address.instance_id == ""
+    assert address.network_interface_id == ""
     client.associate_address(
         InstanceId=instance.id, AllocationId=allocation_id, AllowReassociation=False
     )
     instance.load()
     address.reload()
-    address.association_id.should_not.equal(None)
-    instance.public_ip_address.should_not.equal(None)
-    instance.public_dns_name.should_not.equal(None)
-    address.network_interface_id.should.equal(
-        instance.network_interfaces_attribute[0].get("NetworkInterfaceId")
+    assert address.association_id is not None
+    assert instance.public_ip_address is not None
+    assert instance.public_dns_name is not None
+    assert address.network_interface_id == instance.network_interfaces_attribute[0].get(
+        "NetworkInterfaceId"
     )
-    address.public_ip.should.equal(instance.public_ip_address)
-    address.instance_id.should.equal(instance.id)
+    assert address.public_ip == instance.public_ip_address
+    assert address.instance_id == instance.id
 
     client.disassociate_address(AssociationId=address.association_id)
     instance.reload()
     address.reload()
-    instance.public_ip_address.should.equal(None)
-    address.network_interface_id.should.equal("")
-    address.association_id.should.equal(None)
-    address.instance_id.should.equal("")
+    assert instance.public_ip_address is None
+    assert address.network_interface_id == ""
+    assert address.association_id is None
+    assert address.instance_id == ""
 
 
 @mock_ec2
@@ -274,27 +281,28 @@ def test_eip_associate_network_interface():
 
     eip = client.allocate_address(Domain="vpc")
     eip = ec2.ClassicAddress(eip["PublicIp"])
-    eip.network_interface_id.should.equal("")
+    assert eip.network_interface_id == ""
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(NetworkInterfaceId=eni.id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Invalid request, expect PublicIp/AllocationId parameter."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid request, expect PublicIp/AllocationId parameter."
     )
 
     client.associate_address(NetworkInterfaceId=eni.id, AllocationId=eip.allocation_id)
 
     eip.reload()
-    eip.network_interface_id.should.be.equal(eni.id)
+    assert eip.network_interface_id == eni.id
 
     client.disassociate_address(AssociationId=eip.association_id)
 
     eip.reload()
-    eip.network_interface_id.should.equal("")
-    eip.association_id.should.equal(None)
+    assert eip.network_interface_id == ""
+    assert eip.association_id is None
     eip.release()
 
 
@@ -316,23 +324,23 @@ def test_eip_reassociate():
     client.associate_address(InstanceId=instance1.id, PublicIp=eip.public_ip)
 
     eip.reload()
-    eip.instance_id.should.equal(instance1.id)
+    assert eip.instance_id == instance1.id
 
     # Different ID detects resource association
     with pytest.raises(ClientError) as ex:
         client.associate_address(
             InstanceId=instance2.id, PublicIp=eip.public_ip, AllowReassociation=False
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("Resource.AlreadyAssociated")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "Resource.AlreadyAssociated"
 
     client.associate_address(
         InstanceId=instance2.id, PublicIp=eip.public_ip, AllowReassociation=True
     )
 
     eip.reload()
-    eip.instance_id.should.equal(instance2.id)
+    assert eip.instance_id == instance2.id
 
     eip.release()
     instance1.terminate()
@@ -357,21 +365,21 @@ def test_eip_reassociate_nic():
     client.associate_address(NetworkInterfaceId=eni1.id, PublicIp=eip.public_ip)
 
     eip.reload()
-    eip.network_interface_id.should.equal(eni1.id)
+    assert eip.network_interface_id == eni1.id
 
     # Different ID detects resource association
     with pytest.raises(ClientError) as ex:
         client.associate_address(NetworkInterfaceId=eni2.id, PublicIp=eip.public_ip)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("Resource.AlreadyAssociated")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "Resource.AlreadyAssociated"
 
     client.associate_address(
         NetworkInterfaceId=eni2.id, PublicIp=eip.public_ip, AllowReassociation=True
     )
 
     eip.reload()
-    eip.network_interface_id.should.equal(eni2.id)
+    assert eip.network_interface_id == eni2.id
 
     eip.release()
 
@@ -389,9 +397,9 @@ def test_eip_associate_invalid_args():
 
     with pytest.raises(ClientError) as ex:
         client.associate_address(InstanceId=instance.id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
 
     instance.terminate()
 
@@ -403,9 +411,9 @@ def test_eip_disassociate_bogus_association():
 
     with pytest.raises(ClientError) as ex:
         client.disassociate_address(AssociationId="bogus")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("InvalidAssociationID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "InvalidAssociationID.NotFound"
 
 
 @mock_ec2
@@ -415,9 +423,9 @@ def test_eip_release_bogus_eip():
 
     with pytest.raises(ClientError) as ex:
         client.release_address(AllocationId="bogus")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("InvalidAllocationID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "InvalidAllocationID.NotFound"
 
 
 @mock_ec2
@@ -427,9 +435,9 @@ def test_eip_disassociate_arg_error():
 
     with pytest.raises(ClientError) as ex:
         client.disassociate_address()
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
 
 
 @mock_ec2
@@ -439,9 +447,9 @@ def test_eip_release_arg_error():
 
     with pytest.raises(ClientError) as ex:
         client.release_address()
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("MissingParameter")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
 
 
 @mock_ec2
@@ -459,7 +467,7 @@ def test_eip_describe():
     for _ in range(number_of_vpc_ips):
         eip_id = client.allocate_address(Domain="vpc")["AllocationId"]
         eips.append(ec2.VpcAddress(eip_id))
-    eips.should.have.length_of(number_of_classic_ips + number_of_vpc_ips)
+    assert len(eips) == number_of_classic_ips + number_of_vpc_ips
 
     # Can we find each one individually?
     for eip in eips:
@@ -471,23 +479,23 @@ def test_eip_describe():
             lookup_addresses = client.describe_addresses(PublicIps=[eip.public_ip])[
                 "Addresses"
             ]
-        len(lookup_addresses).should.be.equal(1)
-        lookup_addresses[0]["PublicIp"].should.be.equal(eip.public_ip)
+        assert len(lookup_addresses) == 1
+        assert lookup_addresses[0]["PublicIp"] == eip.public_ip
 
     # Can we find first two when we search for them?
     lookup_addresses = client.describe_addresses(
         PublicIps=[eips[0].public_ip, eips[1].public_ip]
     )["Addresses"]
-    lookup_addresses.should.have.length_of(2)
-    lookup_addresses[0]["PublicIp"].should.be.equal(eips[0].public_ip)
-    lookup_addresses[1]["PublicIp"].should.be.equal(eips[1].public_ip)
+    assert len(lookup_addresses) == 2
+    assert lookup_addresses[0]["PublicIp"] == eips[0].public_ip
+    assert lookup_addresses[1]["PublicIp"] == eips[1].public_ip
 
     # Release all IPs
     for eip in eips:
         eip.release()
     all_addresses = client.describe_addresses()["Addresses"]
-    [a["PublicIp"] for a in all_addresses].shouldnt.contain(eips[0].public_ip)
-    [a["PublicIp"] for a in all_addresses].shouldnt.contain(eips[1].public_ip)
+    assert eips[0].public_ip not in [a["PublicIp"] for a in all_addresses]
+    assert eips[1].public_ip not in [a["PublicIp"] for a in all_addresses]
 
 
 @mock_ec2
@@ -497,9 +505,9 @@ def test_eip_describe_none():
 
     with pytest.raises(ClientError) as ex:
         client.describe_addresses(PublicIps=["256.256.256.256"])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("InvalidAddress.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "InvalidAddress.NotFound"
 
 
 @mock_ec2
@@ -536,15 +544,15 @@ def test_eip_filters():
 
     # Param search by AllocationId
     addresses = list(service.vpc_addresses.filter(AllocationIds=[eip2.allocation_id]))
-    len(addresses).should.be.equal(1)
-    addresses[0].public_ip.should.equal(eip2.public_ip)
-    inst2.public_ip_address.should.equal(addresses[0].public_ip)
+    assert len(addresses) == 1
+    assert addresses[0].public_ip == eip2.public_ip
+    assert inst2.public_ip_address == addresses[0].public_ip
 
     # Param search by PublicIp
     addresses = list(service.vpc_addresses.filter(PublicIps=[eip3.public_ip]))
-    len(addresses).should.be.equal(1)
-    addresses[0].public_ip.should.equal(eip3.public_ip)
-    inst3.public_ip_address.should.equal(addresses[0].public_ip)
+    assert len(addresses) == 1
+    assert addresses[0].public_ip == eip3.public_ip
+    assert inst3.public_ip_address == addresses[0].public_ip
 
     # Param search by Filter
     def check_vpc_filter_valid(filter_name, filter_values, all_values=True):
@@ -554,14 +562,14 @@ def test_eip_filters():
             )
         )
         if all_values:
-            len(addresses).should.equal(2)
+            assert len(addresses) == 2
             ips = [addr.public_ip for addr in addresses]
-            set(ips).should.equal(set([eip1.public_ip, eip2.public_ip]))
-            ips.should.contain(inst1.public_ip_address)
+            assert set(ips) == set([eip1.public_ip, eip2.public_ip])
+            assert inst1.public_ip_address in ips
         else:
             ips = [addr.public_ip for addr in addresses]
-            ips.should.contain(eip1.public_ip)
-            ips.should.contain(eip2.public_ip)
+            assert eip1.public_ip in ips
+            assert eip2.public_ip in ips
 
     def check_vpc_filter_invalid(filter_name):
         addresses = list(
@@ -569,7 +577,7 @@ def test_eip_filters():
                 Filters=[{"Name": filter_name, "Values": ["dummy1", "dummy2"]}]
             )
         )
-        len(addresses).should.equal(0)
+        assert len(addresses) == 0
 
     def check_vpc_filter(filter_name, filter_values, all_values=True):
         check_vpc_filter_valid(filter_name, filter_values, all_values)
@@ -600,9 +608,9 @@ def test_eip_filters():
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
     public_ips = [a.public_ip for a in addresses]
-    public_ips.should.contain(eip1.public_ip)
-    public_ips.should.contain(eip1.public_ip)
-    public_ips.should.contain(inst1.public_ip_address)
+    assert eip1.public_ip in public_ips
+    assert eip1.public_ip in public_ips
+    assert inst1.public_ip_address in public_ips
 
 
 @mock_ec2
@@ -626,7 +634,7 @@ def test_eip_tags():
             {"Name": "tag:ManagedBy", "Values": [managed_by]},
         ]
     )
-    len(addresses_with_tags["Addresses"]).should.equal(1)
+    assert len(addresses_with_tags["Addresses"]) == 1
     addresses_with_tags = list(
         service.vpc_addresses.filter(
             Filters=[
@@ -635,7 +643,7 @@ def test_eip_tags():
             ]
         )
     )
-    len(addresses_with_tags).should.equal(1)
+    assert len(addresses_with_tags) == 1
     addresses_with_tags = list(
         service.vpc_addresses.filter(
             Filters=[
@@ -644,14 +652,14 @@ def test_eip_tags():
             ]
         )
     )
-    len(addresses_with_tags).should.equal(0)
+    assert len(addresses_with_tags) == 0
     addresses = list(
         service.vpc_addresses.filter(Filters=[{"Name": "domain", "Values": ["vpc"]}])
     )
     # Expected at least 2, one with and one without tags
     assert len(addresses) >= 2, "Should find our two created addresses"
-    [a.allocation_id for a in addresses].should.contain(no_tags["AllocationId"])
-    [a.allocation_id for a in addresses].should.contain(alloc_tags["AllocationId"])
+    assert no_tags["AllocationId"] in [a.allocation_id for a in addresses]
+    assert alloc_tags["AllocationId"] in [a.allocation_id for a in addresses]
 
 
 @mock_ec2
@@ -691,12 +699,12 @@ def test_describe_addresses_with_vpc_associated_eni():
         Filters=[{"Name": "association-id", "Values": [association_id]}]
     )
 
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    result["Addresses"].should.have.length_of(1)
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(result["Addresses"]) == 1
 
     address = result["Addresses"][0]
 
-    address["NetworkInterfaceId"].should.be.equal(eni.id)
-    address["PrivateIpAddress"].should.be.equal(eni.private_ip_address)
-    address["AssociationId"].should.be.equal(association_id)
-    address["NetworkInterfaceOwnerId"].should.be.equal(eni.owner_id)
+    assert address["NetworkInterfaceId"] == eni.id
+    assert address["PrivateIpAddress"] == eni.private_ip_address
+    assert address["AssociationId"] == association_id
+    assert address["NetworkInterfaceOwnerId"] == eni.owner_id

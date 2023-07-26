@@ -258,10 +258,8 @@ def test_describe_mount_targets__by_access_point_id(
     ap_resp = efs.describe_mount_targets(AccessPointId=access_point_id)
 
     # Check the list results.
-    ap_resp.should.have.key("MountTargets").length_of(1)
-    ap_resp["MountTargets"][0]["MountTargetId"].should.equal(
-        create_resp["MountTargetId"]
-    )
+    assert len(ap_resp["MountTargets"]) == 1
+    assert ap_resp["MountTargets"][0]["MountTargetId"] == create_resp["MountTargetId"]
 
 
 def test_describe_mount_targets_paging(efs, ec2, file_system):

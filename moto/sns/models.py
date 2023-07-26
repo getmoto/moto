@@ -113,7 +113,7 @@ class Topic(CloudFormationModel):
         return json.dumps(self._policy_json, separators=(",", ":"))
 
     @policy.setter
-    def policy(self, policy: Any) -> None:  # type: ignore[misc]
+    def policy(self, policy: Any) -> None:
         self._policy_json = json.loads(policy)
 
     @staticmethod
@@ -1043,6 +1043,7 @@ class SNSBackend(BaseBackend):
                     subject=entry.get("Subject"),
                     message_attributes=entry.get("MessageAttributes", {}),
                     group_id=entry.get("MessageGroupId"),
+                    deduplication_id=entry.get("MessageDeduplicationId"),
                 )
                 successful.append({"MessageId": message_id, "Id": entry["Id"]})
             except Exception as e:

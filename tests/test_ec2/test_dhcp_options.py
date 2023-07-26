@@ -3,7 +3,6 @@ import pytest
 import boto3
 from botocore.exceptions import ClientError
 
-import sure  # noqa # pylint: disable=unused-import
 import random
 import uuid
 
@@ -31,7 +30,7 @@ def test_dhcp_options_associate():
     client.associate_dhcp_options(DhcpOptionsId=dhcp_options.id, VpcId=vpc.id)
     #
     vpc.reload()
-    vpc.dhcp_options_id.should.equal(dhcp_options.id)
+    assert vpc.dhcp_options_id == dhcp_options.id
 
 
 @mock_ec2
@@ -43,9 +42,9 @@ def test_dhcp_options_associate_invalid_dhcp_id():
 
     with pytest.raises(ClientError) as ex:
         client.associate_dhcp_options(DhcpOptionsId="foo", VpcId=vpc.id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidDhcpOptionID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidDhcpOptionID.NotFound"
 
 
 @mock_ec2
@@ -62,9 +61,9 @@ def test_dhcp_options_associate_invalid_vpc_id():
 
     with pytest.raises(ClientError) as ex:
         client.associate_dhcp_options(DhcpOptionsId=dhcp_options.id, VpcId="foo")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
 @mock_ec2
@@ -84,17 +83,17 @@ def test_dhcp_options_delete_with_vpc():
 
     with pytest.raises(ClientError) as ex:
         client.delete_dhcp_options(DhcpOptionsId=dhcp_options.id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("DependencyViolation")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "DependencyViolation"
 
     vpc.delete()
 
     with pytest.raises(ClientError) as ex:
         client.describe_dhcp_options(DhcpOptionsIds=[dhcp_options.id])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidDhcpOptionID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidDhcpOptionID.NotFound"
 
 
 @mock_ec2
@@ -109,16 +108,13 @@ def test_create_dhcp_options():
         ]
     )
     config = dhcp_options.dhcp_configurations
-    config.should.have.length_of(2)
-    config.should.contain(
-        {
-            "Key": "domain-name-servers",
-            "Values": [{"Value": ip} for ip in SAMPLE_NAME_SERVERS],
-        }
-    )
-    config.should.contain(
-        {"Key": "domain-name", "Values": [{"Value": SAMPLE_DOMAIN_NAME}]}
-    )
+    assert len(config) == 2
+    assert {
+        "Key": "domain-name-servers",
+        "Values": [{"Value": ip} for ip in SAMPLE_NAME_SERVERS],
+    } in config
+
+    assert {"Key": "domain-name", "Values": [{"Value": SAMPLE_DOMAIN_NAME}]} in config
 
 
 @mock_ec2
@@ -131,17 +127,17 @@ def test_create_dhcp_options_invalid_options():
         ec2.create_dhcp_options(
             DhcpConfigurations=[{"Key": "ntp-servers", "Values": servers}]
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
 
     with pytest.raises(ClientError) as ex:
         ec2.create_dhcp_options(
             DhcpConfigurations=[{"Key": "netbios-node-type", "Values": ["0"]}]
         )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
 
 
 @mock_ec2
@@ -159,25 +155,21 @@ def test_describe_dhcp_options():
     all_options = client.describe_dhcp_options(DhcpOptionsIds=[dhcp_options.id])[
         "DhcpOptions"
     ]
-    all_options.should.have.length_of(1)
+    assert len(all_options) == 1
 
     all_options = client.describe_dhcp_options()["DhcpOptions"]
     assert len(all_options) >= 1, "Should have recently created DHCP option"
     recently_created = [
         o for o in all_options if o["DhcpOptionsId"] == dhcp_options.id
     ][0]
-    recently_created["DhcpOptionsId"].should.equal(dhcp_options.id)
+    assert recently_created["DhcpOptionsId"] == dhcp_options.id
     config = recently_created["DhcpConfigurations"]
-    config.should.have.length_of(2)
-    config.should.contain(
-        {
-            "Key": "domain-name-servers",
-            "Values": [{"Value": ip} for ip in SAMPLE_NAME_SERVERS],
-        }
-    )
-    config.should.contain(
-        {"Key": "domain-name", "Values": [{"Value": SAMPLE_DOMAIN_NAME}]}
-    )
+    assert len(config) == 2
+    assert {
+        "Key": "domain-name-servers",
+        "Values": [{"Value": ip} for ip in SAMPLE_NAME_SERVERS],
+    } in config
+    assert {"Key": "domain-name", "Values": [{"Value": SAMPLE_DOMAIN_NAME}]} in config
 
 
 @mock_ec2
@@ -187,9 +179,9 @@ def test_describe_dhcp_options_invalid_id():
 
     with pytest.raises(ClientError) as ex:
         client.describe_dhcp_options(DhcpOptionsIds=["1"])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidDhcpOptionID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidDhcpOptionID.NotFound"
 
 
 @mock_ec2
@@ -209,9 +201,9 @@ def test_delete_dhcp_options():
 
     with pytest.raises(ClientError) as ex:
         client.describe_dhcp_options(DhcpOptionsIds=[dhcp_option.id])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidDhcpOptionID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidDhcpOptionID.NotFound"
 
 
 @mock_ec2
@@ -220,9 +212,9 @@ def test_delete_dhcp_options_invalid_id():
 
     with pytest.raises(ClientError) as ex:
         client.delete_dhcp_options(DhcpOptionsId="dopt-abcd1234")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidDhcpOptionID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidDhcpOptionID.NotFound"
 
 
 @mock_ec2
@@ -231,9 +223,9 @@ def test_delete_dhcp_options_malformed_id():
 
     with pytest.raises(ClientError) as ex:
         client.delete_dhcp_options(DhcpOptionsId="foo-abcd1234")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidDhcpOptionsId.Malformed")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidDhcpOptionsId.Malformed"
 
 
 @mock_ec2
@@ -254,16 +246,16 @@ def test_dhcp_tagging():
     tag = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [dhcp_option.id]}]
     )["Tags"][0]
-    tag.should.have.key("ResourceId").equal(dhcp_option.id)
-    tag.should.have.key("ResourceType").equal("dhcp-options")
-    tag.should.have.key("Key").equal("a tag")
-    tag.should.have.key("Value").equal(tag_value)
+    assert tag["ResourceId"] == dhcp_option.id
+    assert tag["ResourceType"] == "dhcp-options"
+    assert tag["Key"] == "a tag"
+    assert tag["Value"] == tag_value
 
     # Refresh the DHCP options
     dhcp_option = client.describe_dhcp_options(DhcpOptionsIds=[dhcp_option.id])[
         "DhcpOptions"
     ][0]
-    dhcp_option["Tags"].should.equal([{"Key": "a tag", "Value": tag_value}])
+    assert dhcp_option["Tags"] == [{"Key": "a tag", "Value": tag_value}]
 
 
 @mock_ec2
@@ -308,17 +300,15 @@ def test_dhcp_options_get_by_tag():
         ]
     )["DhcpOptions"]
 
-    dhcp_options_sets.should.have.length_of(1)
+    assert len(dhcp_options_sets) == 1
     config = dhcp_options_sets[0]["DhcpConfigurations"]
-    config.should.have.length_of(2)
-    config.should.contain({"Key": "domain-name", "Values": [{"Value": "example.com"}]})
-    config.should.contain(
-        {"Key": "domain-name-servers", "Values": [{"Value": "10.0.10.2"}]}
-    )
+    assert len(config) == 2
+    assert {"Key": "domain-name", "Values": [{"Value": "example.com"}]} in config
+    assert {"Key": "domain-name-servers", "Values": [{"Value": "10.0.10.2"}]} in config
     tags = dhcp_options_sets[0]["Tags"]
-    tags.should.have.length_of(2)
-    tags.should.contain({"Key": "Name", "Value": dhcp1_tag_name})
-    tags.should.contain({"Key": "test-tag", "Value": dhcp_tag_value})
+    assert len(tags) == 2
+    assert {"Key": "Name", "Value": dhcp1_tag_name} in tags
+    assert {"Key": "test-tag", "Value": dhcp_tag_value} in tags
 
     dhcp_options_sets = client.describe_dhcp_options(
         Filters=[
@@ -327,23 +317,21 @@ def test_dhcp_options_get_by_tag():
         ]
     )["DhcpOptions"]
 
-    dhcp_options_sets.should.have.length_of(1)
+    assert len(dhcp_options_sets) == 1
     config = dhcp_options_sets[0]["DhcpConfigurations"]
-    config.should.have.length_of(2)
-    config.should.contain({"Key": "domain-name", "Values": [{"Value": "example.com"}]})
-    config.should.contain(
-        {"Key": "domain-name-servers", "Values": [{"Value": "10.0.20.2"}]}
-    )
+    assert len(config) == 2
+    assert {"Key": "domain-name", "Values": [{"Value": "example.com"}]} in config
+    assert {"Key": "domain-name-servers", "Values": [{"Value": "10.0.20.2"}]} in config
     tags = dhcp_options_sets[0]["Tags"]
-    tags.should.have.length_of(2)
-    tags.should.contain({"Key": "Name", "Value": dhcp2_tag_name})
-    tags.should.contain({"Key": "test-tag", "Value": dhcp_tag_value})
+    assert len(tags) == 2
+    assert {"Key": "Name", "Value": dhcp2_tag_name} in tags
+    assert {"Key": "test-tag", "Value": dhcp_tag_value} in tags
 
     dhcp_options_sets = client.describe_dhcp_options(
         Filters=[{"Name": "tag:test-tag", "Values": [dhcp_tag_value]}]
     )["DhcpOptions"]
 
-    dhcp_options_sets.should.have.length_of(2)
+    assert len(dhcp_options_sets) == 2
 
 
 @mock_ec2
@@ -371,22 +359,22 @@ def test_dhcp_options_get_by_id():
 
     options = client.describe_dhcp_options()["DhcpOptions"]
     d_ids = [d["DhcpOptionsId"] for d in options]
-    d_ids.should.contain(dhcp1.id)
-    d_ids.should.contain(dhcp2.id)
+    assert dhcp1.id in d_ids
+    assert dhcp2.id in d_ids
 
     d = client.describe_dhcp_options(
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp1.id]}]
     )["DhcpOptions"]
 
-    d.should.have.length_of(1)
-    d[0].should.have.key("DhcpOptionsId").equal(dhcp1.id)
+    assert len(d) == 1
+    assert d[0]["DhcpOptionsId"] == dhcp1.id
 
     d = client.describe_dhcp_options(
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp2.id]}]
     )["DhcpOptions"]
 
-    d.should.have.length_of(1)
-    d[0].should.have.key("DhcpOptionsId").equal(dhcp2.id)
+    assert len(d) == 1
+    assert d[0]["DhcpOptionsId"] == dhcp2.id
 
 
 @mock_ec2
@@ -420,7 +408,7 @@ def test_dhcp_options_get_by_value_filter():
 
     filters = [{"Name": "value", "Values": [random_server_2]}]
     dhcp_options_sets = list(ec2.dhcp_options_sets.filter(Filters=filters))
-    dhcp_options_sets.should.have.length_of(1)
+    assert len(dhcp_options_sets) == 1
 
 
 @mock_ec2
@@ -455,8 +443,8 @@ def test_dhcp_options_get_by_key_filter():
     for config in configs:
         if config["Key"] == "domain-name":
             servers.extend(config["Values"])
-    servers.should.contain({"Value": random_domain_name})
-    servers.should.contain({"Value": "example.com"})
+    assert {"Value": random_domain_name} in servers
+    assert {"Value": "example.com"} in servers
 
 
 @mock_ec2
@@ -475,6 +463,5 @@ def test_dhcp_options_get_by_invalid_filter():
     )
 
     filters = [{"Name": "invalid-filter", "Values": ["n/a"]}]
-    client.describe_dhcp_options.when.called_with(Filters=filters).should.throw(
-        NotImplementedError
-    )
+    with pytest.raises(NotImplementedError):
+        client.describe_dhcp_options(Filters=filters)

@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_dynamodb
@@ -24,9 +23,10 @@ def test_error_on_wrong_value_for_consumed_capacity():
     with pytest.raises(ClientError) as ex:
         table.put_item(Item=item, ReturnConsumedCapacity="Garbage")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'Garbage' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'Garbage' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
     )
 
 
@@ -46,10 +46,10 @@ def test_consumed_capacity_get_unknown_item():
     )
 
     # Should still return ConsumedCapacity, even if it does not return an item
-    response.should.have.key("ConsumedCapacity")
-    response["ConsumedCapacity"].should.equal(
-        {"TableName": "test_table", "CapacityUnits": 0.5}
-    )
+    assert response["ConsumedCapacity"] == {
+        "TableName": "test_table",
+        "CapacityUnits": 0.5,
+    }
 
 
 @mock_dynamodb
@@ -135,15 +135,14 @@ def validate_response(
     response, should_have_capacity, should_have_table, is_index=False, value=1.0
 ):
     if should_have_capacity:
-        response.should.have.key("ConsumedCapacity")
-        response["ConsumedCapacity"]["TableName"].should.equal("jobs")
-        response["ConsumedCapacity"]["CapacityUnits"].should.equal(value)
+        capacity = response["ConsumedCapacity"]
+        assert capacity["TableName"] == "jobs"
+        assert capacity["CapacityUnits"] == value
         if should_have_table:
-            response["ConsumedCapacity"]["Table"].should.equal({"CapacityUnits": value})
+            assert capacity["Table"] == {"CapacityUnits": value}
             if is_index:
-                response["ConsumedCapacity"].should.have.key("LocalSecondaryIndexes")
-                response["ConsumedCapacity"]["LocalSecondaryIndexes"].should.equal(
-                    {"job_name-index": {"CapacityUnits": value}}
-                )
+                assert capacity["LocalSecondaryIndexes"] == {
+                    "job_name-index": {"CapacityUnits": value}
+                }
     else:
-        response.shouldnt.have.key("ConsumedCapacity")
+        assert "ConsumedCapacity" not in response

@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import boto3
 from moto import mock_sqs, settings
 from tests import DEFAULT_ACCOUNT_ID
@@ -11,4 +10,4 @@ def test_context_manager_returns_mock():
 
         if not settings.TEST_SERVER_MODE:
             backend = sqs_mock.backends[DEFAULT_ACCOUNT_ID]["us-west-1"]
-            list(backend.queues.keys()).should.equal(["queue1"])
+            assert list(backend.queues.keys()) == ["queue1"]

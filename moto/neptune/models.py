@@ -253,7 +253,7 @@ class NeptuneBackend(BaseBackend):
         if self._db_cluster_options is None:
             from moto.rds.utils import decode_orderable_db_instance
 
-            decoded_options: List[Dict[str, Any]] = load_resource(  # type: ignore[assignment]
+            decoded_options: List[Dict[str, Any]] = load_resource(
                 __name__, "../rds/resources/cluster_options/neptune.json"
             )
             self._db_cluster_options = [

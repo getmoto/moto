@@ -222,7 +222,7 @@ class WorkflowExecution(BaseModel):
         # now find the first timeout to process
         first_timeout = None
         if timeout_candidates:
-            first_timeout = min(timeout_candidates, key=lambda t: t.timestamp)  # type: ignore
+            first_timeout = min(timeout_candidates, key=lambda t: t.timestamp)
 
         if first_timeout:
             should_schedule_decision_next = False

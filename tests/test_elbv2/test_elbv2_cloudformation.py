@@ -1,6 +1,5 @@
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2, mock_cloudformation
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -68,31 +67,23 @@ def test_redirect_action_listener_rule_cloudformation():
     template_json = json.dumps(template)
     cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
 
-    describe_load_balancers_response = elbv2_client.describe_load_balancers(
-        Names=["my-lb"]
-    )
-    describe_load_balancers_response["LoadBalancers"].should.have.length_of(1)
-    load_balancer_arn = describe_load_balancers_response["LoadBalancers"][0][
-        "LoadBalancerArn"
+    resp = elbv2_client.describe_load_balancers(Names=["my-lb"])
+    assert len(resp["LoadBalancers"]) == 1
+    load_balancer_arn = resp["LoadBalancers"][0]["LoadBalancerArn"]
+
+    listeners = elbv2_client.describe_listeners(LoadBalancerArn=load_balancer_arn)
+
+    assert len(listeners["Listeners"]) == 1
+    assert listeners["Listeners"][0]["DefaultActions"] == [
+        {
+            "Type": "redirect",
+            "RedirectConfig": {
+                "Port": "443",
+                "Protocol": "HTTPS",
+                "StatusCode": "HTTP_301",
+            },
+        }
     ]
-
-    describe_listeners_response = elbv2_client.describe_listeners(
-        LoadBalancerArn=load_balancer_arn
-    )
-
-    describe_listeners_response["Listeners"].should.have.length_of(1)
-    describe_listeners_response["Listeners"][0]["DefaultActions"].should.equal(
-        [
-            {
-                "Type": "redirect",
-                "RedirectConfig": {
-                    "Port": "443",
-                    "Protocol": "HTTPS",
-                    "StatusCode": "HTTP_301",
-                },
-            }
-        ]
-    )
 
 
 @mock_elbv2
@@ -167,19 +158,17 @@ def test_cognito_action_listener_rule_cloudformation():
         LoadBalancerArn=load_balancer_arn
     )
 
-    describe_listeners_response["Listeners"].should.have.length_of(1)
-    describe_listeners_response["Listeners"][0]["DefaultActions"].should.equal(
-        [
-            {
-                "Type": "authenticate-cognito",
-                "AuthenticateCognitoConfig": {
-                    "UserPoolArn": f"arn:aws:cognito-idp:us-east-1:{ACCOUNT_ID}:userpool/us-east-1_ABCD1234",
-                    "UserPoolClientId": "abcd1234abcd",
-                    "UserPoolDomain": "testpool",
-                },
-            }
-        ]
-    )
+    assert len(describe_listeners_response["Listeners"]) == 1
+    assert describe_listeners_response["Listeners"][0]["DefaultActions"] == [
+        {
+            "Type": "authenticate-cognito",
+            "AuthenticateCognitoConfig": {
+                "UserPoolArn": f"arn:aws:cognito-idp:us-east-1:{ACCOUNT_ID}:userpool/us-east-1_ABCD1234",
+                "UserPoolClientId": "abcd1234abcd",
+                "UserPoolDomain": "testpool",
+            },
+        }
+    ]
 
 
 @mock_ec2
@@ -330,16 +319,14 @@ def test_fixed_response_action_listener_rule_cloudformation():
         LoadBalancerArn=load_balancer_arn
     )
 
-    describe_listeners_response["Listeners"].should.have.length_of(1)
-    describe_listeners_response["Listeners"][0]["DefaultActions"].should.equal(
-        [
-            {
-                "Type": "fixed-response",
-                "FixedResponseConfig": {
-                    "ContentType": "text/plain",
-                    "MessageBody": "This page does not exist",
-                    "StatusCode": "404",
-                },
-            }
-        ]
-    )
+    assert len(describe_listeners_response["Listeners"]) == 1
+    assert describe_listeners_response["Listeners"][0]["DefaultActions"] == [
+        {
+            "Type": "fixed-response",
+            "FixedResponseConfig": {
+                "ContentType": "text/plain",
+                "MessageBody": "This page does not exist",
+                "StatusCode": "404",
+            },
+        }
+    ]

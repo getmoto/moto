@@ -39,6 +39,7 @@ class Schedule(BaseModel):
         self.kms_key_arn = kms_key_arn
         self.start_date = start_date
         self.end_date = end_date
+        self.creation_date = self.last_modified_date = unix_time()
 
     @staticmethod
     def validate_target(target: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
@@ -63,10 +64,35 @@ class Schedule(BaseModel):
             "KmsKeyArn": self.kms_key_arn,
             "StartDate": self.start_date,
             "EndDate": self.end_date,
+            "CreationDate": self.creation_date,
+            "LastModificationDate": self.last_modified_date,
         }
         if short:
             dct["Target"] = {"Arn": dct["Target"]["Arn"]}
         return dct
+
+    def update(
+        self,
+        description: str,
+        end_date: str,
+        flexible_time_window: Dict[str, Any],
+        kms_key_arn: str,
+        schedule_expression: str,
+        schedule_expression_timezone: str,
+        start_date: str,
+        state: str,
+        target: Dict[str, Any],
+    ) -> None:
+        self.schedule_expression = schedule_expression
+        self.schedule_expression_timezone = schedule_expression_timezone
+        self.flexible_time_window = flexible_time_window
+        self.target = Schedule.validate_target(target)
+        self.description = description
+        self.state = state
+        self.kms_key_arn = kms_key_arn
+        self.start_date = start_date
+        self.end_date = end_date
+        self.last_modified_date = unix_time()
 
 
 class ScheduleGroup(BaseModel):
@@ -173,15 +199,17 @@ class EventBridgeSchedulerBackend(BaseBackend):
         The ClientToken is not yet implemented
         """
         schedule = self.get_schedule(group_name=group_name, name=name)
-        schedule.schedule_expression = schedule_expression
-        schedule.schedule_expression_timezone = schedule_expression_timezone
-        schedule.flexible_time_window = flexible_time_window
-        schedule.target = Schedule.validate_target(target)
-        schedule.description = description
-        schedule.state = state
-        schedule.kms_key_arn = kms_key_arn
-        schedule.start_date = start_date
-        schedule.end_date = end_date
+        schedule.update(
+            description=description,
+            end_date=end_date,
+            flexible_time_window=flexible_time_window,
+            kms_key_arn=kms_key_arn,
+            schedule_expression=schedule_expression,
+            schedule_expression_timezone=schedule_expression_timezone,
+            start_date=start_date,
+            state=state,
+            target=target,
+        )
         return schedule
 
     def list_schedules(

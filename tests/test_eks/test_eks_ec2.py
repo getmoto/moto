@@ -16,7 +16,7 @@ def test_passing_an_unknown_launchtemplate_is_supported():
         subnets=SUBNET_IDS,
     )["nodegroup"]
 
-    group["launchTemplate"].should.equal({"name": "random"})
+    assert group["launchTemplate"] == {"name": "random"}
 
 
 @mock_ec2
@@ -43,7 +43,7 @@ def test_passing_a_known_launchtemplate_by_name():
         subnets=SUBNET_IDS,
     )["nodegroup"]
 
-    group["launchTemplate"].should.equal({"name": "ltn", "id": lt_id})
+    assert group["launchTemplate"] == {"name": "ltn", "id": lt_id}
 
 
 @mock_ec2
@@ -70,4 +70,4 @@ def test_passing_a_known_launchtemplate_by_id():
         subnets=SUBNET_IDS,
     )["nodegroup"]
 
-    group["launchTemplate"].should.equal({"name": "ltn", "id": lt_id})
+    assert group["launchTemplate"] == {"name": "ltn", "id": lt_id}

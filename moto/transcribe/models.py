@@ -195,18 +195,18 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 # If none is set, default to "en-US"
                 self.language_codes: List[Dict[str, Any]] = []  # type: ignore[no-redef]
                 if self.language_options is None or len(self.language_options) == 0:
-                    self.language_codes.append(  # type: ignore
+                    self.language_codes.append(
                         {"LanguageCode": "en-US", "DurationInSeconds": 123.0}
                     )
                 else:
-                    self.language_codes.append(  # type: ignore
+                    self.language_codes.append(
                         {
                             "LanguageCode": self.language_options[0],
                             "DurationInSeconds": 123.0,
                         }
                     )
                     if len(self.language_options) > 1:
-                        self.language_codes.append(  # type: ignore
+                        self.language_codes.append(
                             {
                                 "LanguageCode": self.language_options[1],
                                 "DurationInSeconds": 321.0,

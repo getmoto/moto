@@ -550,4 +550,4 @@ class AWSCertificateManagerBackend(BaseBackend):
         return certificate, certificate_chain, private_key
 
 
-acm_backends = BackendDict(AWSCertificateManagerBackend, "ec2")
+acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

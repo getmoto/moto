@@ -192,3 +192,12 @@ class InvalidGlobalClusterStateFault(RDSClientError):
         super().__init__(
             "InvalidGlobalClusterStateFault", f"Global Cluster {arn} is not empty"
         )
+
+
+class InvalidDBInstanceIdentifier(InvalidParameterValue):
+    def __init__(self) -> None:
+        super().__init__(
+            "The parameter DBInstanceIdentifier is not a valid identifier. "
+            "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
+            "and must not end with a hyphen or contain two consecutive hyphens."
+        )

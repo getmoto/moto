@@ -161,7 +161,7 @@ class FakeStackSet(BaseModel):
         self.instances.create_instances(
             accounts,
             regions,
-            parameters,  # type: ignore[arg-type]
+            parameters,
             deployment_targets or {},
             permission_model=self.permission_model,
         )
@@ -272,6 +272,7 @@ class FakeStackInstance(BaseModel):
             "Account": self.account_id,
             "Status": "CURRENT",
             "ParameterOverrides": self.parameters,
+            "StackInstanceStatus": {"DetailedStatus": "SUCCEEDED"},
         }
 
 

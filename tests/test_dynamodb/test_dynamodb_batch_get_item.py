@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_dynamodb
@@ -64,11 +63,11 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
                 }
             }
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
     msg = ex.value.response["Error"]["Message"]
-    msg.should.contain("1 validation error detected: Value")
-    msg.should.contain(
-        "at 'requestItems.users.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
+    assert (
+        msg
+        == "1 validation error detected: Value at 'requestItems.users.member.keys' failed to satisfy constraint: Member must have length less than or equal to 100"
     )
 
 
@@ -92,10 +91,9 @@ def test_batch_items_throws_exception_when_requesting_100_items_across_all_table
                 },
             }
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Too many items requested for the BatchGetItem call"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Too many items requested for the BatchGetItem call"
 
 
 @mock_dynamodb
@@ -116,11 +114,13 @@ def test_batch_items_with_basic_projection_expression():
         }
     )["Responses"]["users"]
 
-    returned_items.should.have.length_of(3)
-    [item["username"]["S"] for item in returned_items].should.be.equal(
-        ["user1", "user2", "user3"]
-    )
-    [item.get("foo") for item in returned_items].should.be.equal([None, None, None])
+    assert len(returned_items) == 3
+    assert [item["username"]["S"] for item in returned_items] == [
+        "user1",
+        "user2",
+        "user3",
+    ]
+    assert [item.get("foo") for item in returned_items] == [None, None, None]
 
     # The projection expression should not remove data from storage
     returned_items = dynamodb.batch_get_item(
@@ -137,10 +137,12 @@ def test_batch_items_with_basic_projection_expression():
         }
     )["Responses"]["users"]
 
-    [item["username"]["S"] for item in returned_items].should.be.equal(
-        ["user1", "user2", "user3"]
-    )
-    [item["foo"]["S"] for item in returned_items].should.be.equal(["bar", "bar", "bar"])
+    assert [item["username"]["S"] for item in returned_items] == [
+        "user1",
+        "user2",
+        "user3",
+    ]
+    assert [item["foo"]["S"] for item in returned_items] == ["bar", "bar", "bar"]
 
 
 @mock_dynamodb
@@ -162,11 +164,13 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
         }
     )["Responses"]["users"]
 
-    returned_items.should.have.length_of(3)
-    [item["username"]["S"] for item in returned_items].should.be.equal(
-        ["user1", "user2", "user3"]
-    )
-    [item.get("foo") for item in returned_items].should.be.equal([None, None, None])
+    assert len(returned_items) == 3
+    assert [item["username"]["S"] for item in returned_items] == [
+        "user1",
+        "user2",
+        "user3",
+    ]
+    assert [item.get("foo") for item in returned_items] == [None, None, None]
 
 
 @mock_dynamodb
@@ -184,10 +188,9 @@ def test_batch_items_should_throw_exception_for_duplicate_request():
                 }
             }
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Provided list of item keys contains duplicates"
-    )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Provided list of item keys contains duplicates"
 
 
 @mock_dynamodb
@@ -218,14 +221,14 @@ def test_batch_items_should_return_16mb_max():
         }
     )
 
-    resp["Responses"]["users"].should.have.length_of(55)
+    assert len(resp["Responses"]["users"]) == 55
     unprocessed_keys = resp["UnprocessedKeys"]["users"]["Keys"]
     # 75 requested, 55 returned --> 20 unprocessed
-    unprocessed_keys.should.have.length_of(20)
+    assert len(unprocessed_keys) == 20
 
     # Keys 55-75 are unprocessed
-    unprocessed_keys.should.contain({"username": {"S": "largedata55"}})
-    unprocessed_keys.should.contain({"username": {"S": "largedata65"}})
+    assert {"username": {"S": "largedata55"}} in unprocessed_keys
+    assert {"username": {"S": "largedata65"}} in unprocessed_keys
 
     # Keys 0-55 are processed in the regular response, so they shouldn't show up here
-    unprocessed_keys.shouldnt.contain({"username": {"S": "largedata45"}})
+    assert {"username": {"S": "largedata45"}} not in unprocessed_keys

@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_autoscaling, mock_ec2, mock_elb
@@ -25,9 +24,9 @@ def test_add_servers_to_a_single_region_boto3():
     instances = retrieve_all_instances(client)
 
     instance1 = [i for i in instances if i["InstanceId"] == id_1][0]
-    instance1["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    assert instance1["ImageId"] == EXAMPLE_AMI_ID
     instance2 = [i for i in instances if i["InstanceId"] == id_2][0]
-    instance2["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+    assert instance2["ImageId"] == EXAMPLE_AMI_ID2
 
 
 @mock_ec2
@@ -42,19 +41,19 @@ def test_add_servers_to_multiple_regions_boto3():
     us_instances = retrieve_all_instances(us_client)
     ap_instances = retrieve_all_instances(ap_client)
 
-    [r["InstanceId"] for r in us_instances].should.contain(us_id)
-    [r["InstanceId"] for r in us_instances].shouldnt.contain(ap_id)
-    [r["InstanceId"] for r in ap_instances].should.contain(ap_id)
-    [r["InstanceId"] for r in ap_instances].shouldnt.contain(us_id)
+    assert us_id in [r["InstanceId"] for r in us_instances]
+    assert ap_id not in [r["InstanceId"] for r in us_instances]
+    assert ap_id in [r["InstanceId"] for r in ap_instances]
+    assert us_id not in [r["InstanceId"] for r in ap_instances]
 
     us_instance = us_client.describe_instances(InstanceIds=[us_id])["Reservations"][0][
         "Instances"
     ][0]
-    us_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    assert us_instance["ImageId"] == EXAMPLE_AMI_ID
     ap_instance = ap_client.describe_instances(InstanceIds=[ap_id])["Reservations"][0][
         "Instances"
     ][0]
-    ap_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+    assert ap_instance["ImageId"] == EXAMPLE_AMI_ID2
 
 
 @mock_autoscaling
@@ -108,21 +107,21 @@ def test_create_autoscaling_group_boto3():
         groups = as_client.describe_auto_scaling_groups(
             AutoScalingGroupNames=[asg_name]
         )["AutoScalingGroups"]
-        groups.should.have.length_of(1)
+        assert len(groups) == 1
         group = groups[0]
 
-        group["AutoScalingGroupName"].should.equal(asg_name)
-        group["DesiredCapacity"].should.equal(2)
-        group["MaxSize"].should.equal(2)
-        group["MinSize"].should.equal(2)
-        group["VPCZoneIdentifier"].should.equal(subnet_id)
-        group["LaunchConfigurationName"].should.equal(config_name)
-        group["DefaultCooldown"].should.equal(60)
-        group["HealthCheckGracePeriod"].should.equal(100)
-        group["HealthCheckType"].should.equal("EC2")
-        group["LoadBalancerNames"].should.equal([lb_name])
-        group["PlacementGroup"].should.equal("us_test_placement")
-        group["TerminationPolicies"].should.equal(["OldestInstance", "NewestInstance"])
+        assert group["AutoScalingGroupName"] == asg_name
+        assert group["DesiredCapacity"] == 2
+        assert group["MaxSize"] == 2
+        assert group["MinSize"] == 2
+        assert group["VPCZoneIdentifier"] == subnet_id
+        assert group["LaunchConfigurationName"] == config_name
+        assert group["DefaultCooldown"] == 60
+        assert group["HealthCheckGracePeriod"] == 100
+        assert group["HealthCheckType"] == "EC2"
+        assert group["LoadBalancerNames"] == [lb_name]
+        assert group["PlacementGroup"] == "us_test_placement"
+        assert group["TerminationPolicies"] == ["OldestInstance", "NewestInstance"]
 
 
 @mock_ec2
@@ -131,10 +130,11 @@ def test_describe_regions_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_regions(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DescribeRegions operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DescribeRegions operation: Request would have succeeded, but DryRun flag is set"
     )
 
 

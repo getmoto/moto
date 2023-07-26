@@ -1,7 +1,6 @@
 """Unit tests for es-supported APIs."""
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_es
 
@@ -18,10 +17,11 @@ def test_create_domain_invalid_name(name):
     with pytest.raises(ClientError) as exc:
         client.create_elasticsearch_domain(DomainName=name)
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        f"1 validation error detected: Value '{name}' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
+    assert (
+        err["Message"]
+        == f"1 validation error detected: Value '{name}' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
     )
-    err["Code"].should.equal("ValidationException")
+    assert err["Code"] == "ValidationException"
 
 
 @mock_es
@@ -29,18 +29,14 @@ def test_create_elasticsearch_domain_minimal():
     client = boto3.client("es", region_name="us-east-2")
     resp = client.create_elasticsearch_domain(DomainName="motosearch")
 
-    resp.should.have.key("DomainStatus")
     domain = resp["DomainStatus"]
-    domain.should.have.key("DomainName").equals("motosearch")
-    domain.should.have.key("DomainId")
-    domain.should.have.key("ARN").equals(
-        f"arn:aws:es:us-east-2:domain/{domain['DomainId']}"
-    )
-    domain.should.have.key("Created").equals(True)
-    domain.should.have.key("Deleted").equals(False)
-    domain.should.have.key("Processing").equals(False)
-    domain.should.have.key("UpgradeProcessing").equals(False)
-    domain.shouldnt.have.key("ElasticsearchVersion")
+    assert domain["DomainName"] == "motosearch"
+    assert domain["ARN"] == f"arn:aws:es:us-east-2:domain/{domain['DomainId']}"
+    assert domain["Created"] is True
+    assert domain["Deleted"] is False
+    assert domain["Processing"] is False
+    assert domain["UpgradeProcessing"] is False
+    assert "ElasticsearchVersion" not in domain
 
 
 @mock_es
@@ -79,69 +75,55 @@ def test_create_elasticsearch_domain():
     )
 
     domain = resp["DomainStatus"]
-    domain.should.have.key("DomainId")
-    domain.should.have.key("Created").equals(True)
-    domain.should.have.key("ElasticsearchVersion").equals("7.10")
+    assert "DomainId" in domain
+    assert domain["Created"] is True
+    assert domain["ElasticsearchVersion"] == "7.10"
 
-    domain.should.have.key("ElasticsearchClusterConfig")
     cluster_config = domain["ElasticsearchClusterConfig"]
-    cluster_config.should.have.key("ColdStorageOptions").equals({"Enabled": False})
-    cluster_config.should.have.key("DedicatedMasterCount").equals(1)
-    cluster_config.should.have.key("DedicatedMasterType").equals(
-        "m3.large.elasticsearch"
-    )
-    cluster_config.should.have.key("WarmEnabled").equals(False)
+    assert cluster_config["ColdStorageOptions"] == {"Enabled": False}
+    assert cluster_config["DedicatedMasterCount"] == 1
+    assert cluster_config["DedicatedMasterType"] == "m3.large.elasticsearch"
+    assert cluster_config["WarmEnabled"] is False
 
-    domain.should.have.key("EBSOptions")
     ebs = domain["EBSOptions"]
-    ebs.should.have.key("EBSEnabled").equals(True)
-    ebs.should.have.key("Iops").equals(1)
-    ebs.should.have.key("VolumeSize").equals(10)
-    ebs.should.have.key("VolumeType").equals("io2")
+    assert ebs["EBSEnabled"] is True
+    assert ebs["Iops"] == 1
+    assert ebs["VolumeSize"] == 10
+    assert ebs["VolumeType"] == "io2"
 
-    domain.should.have.key("AccessPolicies").equals("some unvalidated accesspolicy")
+    assert domain["AccessPolicies"] == "some unvalidated accesspolicy"
 
-    domain.should.have.key("SnapshotOptions")
     snapshots = domain["SnapshotOptions"]
-    snapshots.should.have.key("AutomatedSnapshotStartHour").equals(1)
+    assert snapshots["AutomatedSnapshotStartHour"] == 1
 
-    domain.should.have.key("VPCOptions")
     vpcs = domain["VPCOptions"]
-    vpcs.should.have.key("SubnetIds").equals(["s1"])
-    vpcs.should.have.key("SecurityGroupIds").equals(["sg1"])
+    assert vpcs["SubnetIds"] == ["s1"]
+    assert vpcs["SecurityGroupIds"] == ["sg1"]
 
-    domain.should.have.key("CognitoOptions")
     cognito = domain["CognitoOptions"]
-    cognito.should.have.key("Enabled").equals(False)
+    assert cognito["Enabled"] is False
 
-    domain.should.have.key("EncryptionAtRestOptions")
     encryption_at_rest = domain["EncryptionAtRestOptions"]
-    encryption_at_rest.should.have.key("Enabled").equals(False)
+    assert encryption_at_rest["Enabled"] is False
 
-    domain.should.have.key("NodeToNodeEncryptionOptions")
     encryption = domain["NodeToNodeEncryptionOptions"]
-    encryption.should.have.key("Enabled").equals(False)
+    assert encryption["Enabled"] is False
 
-    domain.should.have.key("AdvancedOptions")
     advanced = domain["AdvancedOptions"]
-    advanced.should.have.key("option").equals("value")
+    assert advanced["option"] == "value"
 
-    domain.should.have.key("LogPublishingOptions")
     advanced = domain["LogPublishingOptions"]
-    advanced.should.have.key("log1").equals({"Enabled": False})
+    assert advanced["log1"] == {"Enabled": False}
 
-    domain.should.have.key("DomainEndpointOptions")
     endpoint = domain["DomainEndpointOptions"]
-    endpoint.should.have.key("EnforceHTTPS").equals(True)
-    endpoint.should.have.key("CustomEndpointEnabled").equals(False)
+    assert endpoint["EnforceHTTPS"] is True
+    assert endpoint["CustomEndpointEnabled"] is False
 
-    domain.should.have.key("AdvancedSecurityOptions")
     advanced_security = domain["AdvancedSecurityOptions"]
-    advanced_security.should.have.key("Enabled").equals(False)
+    assert advanced_security["Enabled"] is False
 
-    domain.should.have.key("AutoTuneOptions")
     auto_tune = domain["AutoTuneOptions"]
-    auto_tune.should.have.key("State").equals("ENABLED")
+    assert auto_tune["State"] == "ENABLED"
 
 
 @mock_es
@@ -150,7 +132,7 @@ def test_delete_elasticsearch_domain():
     client.create_elasticsearch_domain(DomainName="motosearch")
     client.delete_elasticsearch_domain(DomainName="motosearch")
 
-    client.list_domain_names()["DomainNames"].should.equal([])
+    assert client.list_domain_names()["DomainNames"] == []
 
 
 @mock_es
@@ -160,11 +142,11 @@ def test_missing_delete_elasticsearch_domain():
         client.delete_elasticsearch_domain(DomainName="unknown")
 
     meta = exc.value.response["ResponseMetadata"]
-    meta["HTTPStatusCode"].should.equal(409)
+    assert meta["HTTPStatusCode"] == 409
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Domain not found: unknown")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Domain not found: unknown"
 
 
 @mock_es
@@ -173,12 +155,13 @@ def test_describe_invalid_domain():
     with pytest.raises(ClientError) as exc:
         client.describe_elasticsearch_domain(DomainName="moto.org")
     meta = exc.value.response["ResponseMetadata"]
-    meta["HTTPStatusCode"].should.equal(400)
+    assert meta["HTTPStatusCode"] == 400
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'moto.org' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'moto.org' at 'domainName' failed to satisfy constraint: Member must satisfy regular expression pattern: [a-z][a-z0-9\\-]+"
     )
-    err["Code"].should.equal("ValidationException")
+    assert err["Code"] == "ValidationException"
 
 
 @mock_es
@@ -188,11 +171,11 @@ def test_describe_unknown_domain():
         client.describe_elasticsearch_domain(DomainName="unknown")
 
     meta = exc.value.response["ResponseMetadata"]
-    meta["HTTPStatusCode"].should.equal(409)
+    assert meta["HTTPStatusCode"] == 409
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Domain not found: unknown")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Domain not found: unknown"
 
 
 @mock_es
@@ -201,18 +184,14 @@ def test_describe_elasticsearch_domain():
     client.create_elasticsearch_domain(DomainName="motosearch")
     resp = client.describe_elasticsearch_domain(DomainName="motosearch")
 
-    resp.should.have.key("DomainStatus")
     domain = resp["DomainStatus"]
-    domain.should.have.key("DomainName").equals("motosearch")
-    domain.should.have.key("DomainId")
-    domain.should.have.key("ARN").equals(
-        f"arn:aws:es:ap-southeast-1:domain/{domain['DomainId']}"
-    )
-    domain.should.have.key("Created").equals(True)
-    domain.should.have.key("Deleted").equals(False)
-    domain.should.have.key("Processing").equals(False)
-    domain.should.have.key("UpgradeProcessing").equals(False)
-    domain.shouldnt.have.key("ElasticsearchVersion")
+    assert domain["DomainName"] == "motosearch"
+    assert domain["ARN"] == f"arn:aws:es:ap-southeast-1:domain/{domain['DomainId']}"
+    assert domain["Created"] is True
+    assert domain["Deleted"] is False
+    assert domain["Processing"] is False
+    assert domain["UpgradeProcessing"] is False
+    assert "ElasticsearchVersion" not in domain
 
 
 @mock_es
@@ -220,7 +199,7 @@ def test_list_domain_names_initial():
     client = boto3.client("es", region_name="eu-west-1")
     resp = client.list_domain_names()
 
-    resp.should.have.key("DomainNames").equals([])
+    assert resp["DomainNames"] == []
 
 
 @mock_es
@@ -231,6 +210,6 @@ def test_list_domain_names_with_multiple_domains():
         client.create_elasticsearch_domain(DomainName=name)
     resp = client.list_domain_names()
 
-    resp.should.have.key("DomainNames").length_of(4)
+    assert len(resp["DomainNames"]) == 4
     for name in domain_names:
-        resp["DomainNames"].should.contain({"DomainName": name})
+        assert {"DomainName": name} in resp["DomainNames"]
