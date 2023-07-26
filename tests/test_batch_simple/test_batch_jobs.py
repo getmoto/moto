@@ -43,6 +43,47 @@ def test_submit_job_by_name():
     assert "logStreamName" in job["container"]
 
 
+@mock_logs
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch_simple
+def test_submit_job_array_size():
+    # Setup
+    job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
+    batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
+
+    # Execute
+    resp = batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        arrayProperties={"size": 2},
+    )
+
+    # Verify
+    job_id = resp["jobId"]
+    child_job_1_id = f"{job_id}:0"
+    child_job_2_id = f"{job_id}:1"
+    non_existent_child_job_3_id = f"{job_id}:2"
+
+    resp_main_job = batch_client.describe_jobs(jobs=[job_id])
+    resp_child_job_1_id = batch_client.describe_jobs(jobs=[child_job_1_id])
+    resp_child_job_2_id = batch_client.describe_jobs(jobs=[child_job_2_id])
+    resp_non_existent_child_job_3_id = batch_client.describe_jobs(
+        jobs=[non_existent_child_job_3_id]
+    )
+
+    job = resp_main_job["jobs"][0]
+
+    assert "arrayProperties" in job
+    assert job["arrayProperties"]["size"] == 2
+    assert resp_child_job_1_id["jobs"]
+    assert resp_child_job_2_id["jobs"]
+    assert not resp_non_existent_child_job_3_id["jobs"]
+
+
+
 @mock_batch_simple
 def test_update_job_definition():
     _, _, _, _, batch_client = _get_clients()
@@ -170,46 +211,6 @@ def test_submit_job_fail_bad_int():
 
         assert job["jobId"] == job_id
         assert job["status"] == "FAILED"
-
-
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_submit_job_array_size():
-    # Setup
-    job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
-    batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
-
-    # Execute
-    resp = batch_client.submit_job(
-        jobName="test1",
-        jobQueue=queue_arn,
-        jobDefinition=job_definition_name,
-        arrayProperties={"size": 2},
-    )
-
-    # Verify
-    job_id = resp["jobId"]
-    child_job_1_id = f"{job_id}:0"
-    child_job_2_id = f"{job_id}:1"
-    non_existent_child_job_3_id = f"{job_id}:2"
-
-    resp_main_job = batch_client.describe_jobs(jobs=[job_id])
-    resp_child_job_1_id = batch_client.describe_jobs(jobs=[child_job_1_id])
-    resp_child_job_2_id = batch_client.describe_jobs(jobs=[child_job_2_id])
-    resp_non_existent_child_job_3_id = batch_client.describe_jobs(
-        jobs=[non_existent_child_job_3_id]
-    )
-
-    job = resp_main_job["jobs"][0]
-
-    assert "arrayProperties" in job
-    assert job["arrayProperties"]["size"] == 2
-    assert resp_child_job_1_id["jobs"]
-    assert resp_child_job_2_id["jobs"]
-    assert not resp_non_existent_child_job_3_id["jobs"]
 
 
 @mock_logs

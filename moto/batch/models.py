@@ -6,7 +6,6 @@ import threading
 import time
 
 from sys import platform
-from copy import copy
 from itertools import cycle
 from time import sleep
 from typing import Any, Dict, List, Tuple, Optional, Set
@@ -509,7 +508,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.timeout = timeout
         self.all_jobs = all_jobs
         self.array_properties: Dict[str, Any] = array_properties
-        self.child_jobs: List[Job] = []
 
         self.arn = make_arn_for_job(
             job_def.backend.account_id, self.job_id, job_def._region
@@ -519,6 +517,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.exit_code: Optional[int] = None
 
         self.daemon = True
+
         self.name = "MOTO-BATCH-" + self.job_id
 
         self._log_backend = log_backend
@@ -528,14 +527,6 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
         self.attempts: List[Dict[str, Any]] = []
         self.latest_attempt: Optional[Dict[str, Any]] = None
-
-        # # add child jobs if requested
-        # if array_properties:
-        #     for index in range(0, array_properties["size"]):
-        #         child_job = self
-        #         child_job.arn = f"{self.arn}{index}"
-        #         child_job.job_id = f"{self.job_id}{index}"
-        #         self.child_jobs.append(child_job)
 
     def describe_short(self) -> Dict[str, Any]:
         result = {
@@ -1764,14 +1755,6 @@ class BatchBackend(BaseBackend):
         )
         self._jobs[job.job_id] = job
 
-        # add child jobs if requested
-        if array_properties:
-            for index in range(0, array_properties["size"]):
-                child_job = copy(job)
-                child_job.arn = f"{job.arn}:{index}"
-                child_job.job_id = f"{job.job_id}:{index}"
-                self._jobs[child_job.job_id] = child_job
-
         # Here comes the fun
         job.start()
         return job_name, job.job_id
@@ -1783,12 +1766,24 @@ class BatchBackend(BaseBackend):
 
         result = []
         for key, job in self._jobs.items():
-            if (
-                len(job_filter) > 0
-                and key not in job_filter
-                and job.arn not in job_filter
-            ):
-                continue
+            if len(job_filter) > 0:
+                for f in job_filter:
+                    # account for array job
+                    if ":" in f:
+                        real_f, job_index = f.split(":")
+                        if (
+                            real_f == key
+                            and int(job_index) >= 0
+                            and int(job_index) < job.array_properties["size"]
+                        ):
+                            child_job = job.describe()
+                            child_job["jobArn"] = f"{child_job['jobArn']}:{job_index}"
+                            child_job["jobId"] = f"{child_job['jobId']}:{job_index}"
+                            result.append(child_job)
+
+                if key not in job_filter and job.arn not in job_filter:
+                    # didn't find our job, skip
+                    continue
 
             result.append(job.describe())
 

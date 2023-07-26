@@ -1,14 +1,13 @@
 from ..batch.models import (
     batch_backends,
     BaseBackend,
-    Job,
-    ClientException,
     BatchBackend,
+    ClientException,
+    Job,
 )
 from ..core import BackendDict
 
 import datetime
-from copy import copy
 from os import getenv
 from time import sleep
 from typing import Any, Dict, List, Tuple, Optional
@@ -88,14 +87,6 @@ class BatchSimpleBackend(BaseBackend):
         job.job_started_at = datetime.datetime.now()
         job.log_stream_name = job._stream_name
         job._start_attempt()
-
-        # add child jobs if requested
-        if array_properties:
-            for index in range(0, array_properties["size"]):
-                child_job = copy(job)
-                child_job.arn = f"{job.arn}:{index}"
-                child_job.job_id = f"{job.job_id}:{index}"
-                self._jobs[child_job.job_id] = child_job
 
         # We don't want to actually run the job - just mark it as succeeded or failed
         # depending on whether env var MOTO_SIMPLE_BATCH_FAIL_AFTER is set
