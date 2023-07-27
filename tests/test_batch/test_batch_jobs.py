@@ -86,7 +86,6 @@ def test_submit_job_by_name():
     assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
 
 
-
 @mock_logs
 @mock_ec2
 @mock_ecs
@@ -98,7 +97,7 @@ def test_submit_job_array_size():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     commands = ["echo", "hello"]
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
-    job_def_arn, queue_arn = prepare_job(batch_client, commands, iam_arn, job_definition_name)
+    _, queue_arn = prepare_job(batch_client, commands, iam_arn, job_definition_name)
 
     # Execute
     resp = batch_client.submit_job(
