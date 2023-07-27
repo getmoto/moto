@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_glacier
@@ -16,4 +15,4 @@ def test_list_vaults():
 
     res = test_client.get("/1234bcd/vaults")
 
-    json.loads(res.data.decode("utf-8")).should.equal({"Marker": None, "VaultList": []})
+    assert json.loads(res.data.decode("utf-8")) == {"Marker": None, "VaultList": []}

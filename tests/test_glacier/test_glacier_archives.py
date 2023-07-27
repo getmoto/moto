@@ -1,6 +1,5 @@
 import boto3
 import os
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_glacier
@@ -14,14 +13,14 @@ def test_upload_archive():
     res = client.upload_archive(
         vaultName="asdf", archiveDescription="my archive", body=b"body of archive"
     )
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
     headers = res["ResponseMetadata"]["HTTPHeaders"]
 
-    headers.should.have.key("x-amz-archive-id")
-    headers.should.have.key("x-amz-sha256-tree-hash")
+    assert "x-amz-archive-id" in headers
+    assert "x-amz-sha256-tree-hash" in headers
 
-    res.should.have.key("checksum")
-    res.should.have.key("archiveId")
+    assert "checksum" in res
+    assert "archiveId" in res
 
 
 @mock_glacier
@@ -35,8 +34,8 @@ def test_upload_zip_archive():
 
         res = client.upload_archive(vaultName="asdf", body=content)
 
-        res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
-        res.should.have.key("checksum")
+        assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
+        assert "checksum" in res
 
 
 @mock_glacier
@@ -47,7 +46,7 @@ def test_delete_archive():
     archive = client.upload_archive(vaultName="asdf", body=b"body of archive")
 
     delete = client.delete_archive(vaultName="asdf", archiveId=archive["archiveId"])
-    delete["ResponseMetadata"]["HTTPStatusCode"].should.equal(204)
+    assert delete["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     with pytest.raises(Exception):
         # Not ideal - but this will throw an error if the archvie does not exist
