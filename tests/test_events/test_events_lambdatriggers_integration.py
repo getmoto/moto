@@ -81,12 +81,12 @@ def test_creating_bucket__invokes_lambda():
 
     event = json.loads(list([line for line in all_logs if expected_msg in line])[-1])
 
-    event.should.have.key("detail-type").equals("Object Created")
-    event.should.have.key("source").equals("aws.s3")
-    event.should.have.key("account").equals(ACCOUNT_ID)
-    event.should.have.key("time")
-    event.should.have.key("region").equals("us-east-1")
-    event.should.have.key("resources").equals([f"arn:aws:s3:::{bucket_name}"])
+    assert event["detail-type"] == "Object Created"
+    assert event["source"] == "aws.s3"
+    assert event["account"] == ACCOUNT_ID
+    assert "time" in event
+    assert event["region"] == "us-east-1"
+    assert event["resources"] == [f"arn:aws:s3:::{bucket_name}"]
 
 
 @mock_events
@@ -155,7 +155,7 @@ def test_create_disabled_rule():
     expected_msg = '"detail-type":"Object Created"'
     log_group = f"/aws/lambda/{bucket_name}"
     msg_showed_up, _ = wait_for_log_msg(expected_msg, log_group, wait_time=5)
-    msg_showed_up.should.equal(False)
+    assert msg_showed_up is False
 
 
 @mock_events
@@ -214,7 +214,7 @@ def test_create_rule_for_unsupported_target_arn():
     expected_msg = '"detail-type":"Object Created"'
     log_group = f"/aws/lambda/{bucket_name}"
     msg_showed_up, _ = wait_for_log_msg(expected_msg, log_group, wait_time=5)
-    msg_showed_up.should.equal(False)
+    assert msg_showed_up is False
 
 
 @mock_events
@@ -280,7 +280,7 @@ def test_creating_bucket__but_invoke_lambda_on_create_object():
     expected_msg = '"detail-type":"Object Created"'
     log_group = f"/aws/lambda/{bucket_name}"
     msg_showed_up, _ = wait_for_log_msg(expected_msg, log_group, wait_time=5)
-    msg_showed_up.should.equal(False)
+    assert msg_showed_up is False
 
 
 @mock_events
@@ -334,4 +334,4 @@ def test_creating_bucket__succeeds_despite_unknown_lambda():
         ACL="public-read-write",
         Bucket=bucket_name,
     )
-    bucket.shouldnt.equal(None)
+    assert bucket is not None

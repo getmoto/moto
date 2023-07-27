@@ -1,5 +1,4 @@
 import json
-
 import pytest
 
 from moto.events.models import EventPattern
