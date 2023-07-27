@@ -796,3 +796,104 @@ class SageMakerResponse(BaseResponse):
             desired_weights_and_capacities=desired_weights_and_capacities,
         )
         return 200, {}, json.dumps({"EndpointArn": endpoint_arn})
+
+    def list_model_packages(self) -> str:
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        model_approval_status = self._get_param("ModelApprovalStatus")
+        model_package_group_name = self._get_param("ModelPackageGroupName")
+        model_package_type = self._get_param("ModelPackageType", "Unversioned")
+        next_token = self._get_param("NextToken")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        (
+            model_package_summary_list,
+            next_token,
+        ) = self.sagemaker_backend.list_model_packages(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            max_results=max_results,
+            name_contains=name_contains,
+            model_approval_status=model_approval_status,
+            model_package_group_name=model_package_group_name,
+            model_package_type=model_package_type,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        model_package_summary_list_response_object = [
+            x.gen_response_object() for x in model_package_summary_list
+        ]
+        return json.dumps(
+            dict(
+                ModelPackageSummaryList=model_package_summary_list_response_object,
+                NextToken=next_token,
+            )
+        )
+
+    def describe_model_package(self) -> str:
+        model_package_name = self._get_param("ModelPackageName")
+        model_package = self.sagemaker_backend.describe_model_package(
+            model_package_name=model_package_name,
+        )
+        return json.dumps(
+            model_package.gen_response_object(),
+        )
+
+    def create_model_package(self) -> str:
+        model_package_name = self._get_param("ModelPackageName")
+        model_package_group_name = self._get_param("ModelPackageGroupName")
+        model_package_description = self._get_param("ModelPackageDescription")
+        inference_specification = self._get_param("InferenceSpecification")
+        validation_specification = self._get_param("ValidationSpecification")
+        source_algorithm_specification = self._get_param("SourceAlgorithmSpecification")
+        certify_for_marketplace = self._get_param("CertifyForMarketplace")
+        tags = self._get_param("Tags")
+        model_approval_status = self._get_param("ModelApprovalStatus")
+        metadata_properties = self._get_param("MetadataProperties")
+        model_metrics = self._get_param("ModelMetrics")
+        client_token = self._get_param("ClientToken")
+        customer_metadata_properties = self._get_param("CustomerMetadataProperties")
+        drift_check_baselines = self._get_param("DriftCheckBaselines")
+        domain = self._get_param("Domain")
+        task = self._get_param("Task")
+        sample_payload_url = self._get_param("SamplePayloadUrl")
+        additional_inference_specifications = self._get_param(
+            "AdditionalInferenceSpecifications"
+        )
+        model_package_arn = self.sagemaker_backend.create_model_package(
+            model_package_name=model_package_name,
+            model_package_group_name=model_package_group_name,
+            model_package_description=model_package_description,
+            inference_specification=inference_specification,
+            validation_specification=validation_specification,
+            source_algorithm_specification=source_algorithm_specification,
+            certify_for_marketplace=certify_for_marketplace,
+            tags=tags,
+            model_approval_status=model_approval_status,
+            metadata_properties=metadata_properties,
+            model_metrics=model_metrics,
+            customer_metadata_properties=customer_metadata_properties,
+            drift_check_baselines=drift_check_baselines,
+            domain=domain,
+            task=task,
+            sample_payload_url=sample_payload_url,
+            additional_inference_specifications=additional_inference_specifications,
+            client_token=client_token,
+        )
+        return json.dumps(dict(ModelPackageArn=model_package_arn))
+
+    def create_model_package_group(self) -> str:
+        model_package_group_name = self._get_param("ModelPackageGroupName")
+        model_package_group_description = self._get_param(
+            "ModelPackageGroupDescription"
+        )
+        tags = self._get_param("Tags")
+        model_package_group_arn = self.sagemaker_backend.create_model_package_group(
+            model_package_group_name=model_package_group_name,
+            model_package_group_description=model_package_group_description,
+            tags=tags,
+        )
+        return json.dumps(dict(ModelPackageGroupArn=model_package_group_arn))
