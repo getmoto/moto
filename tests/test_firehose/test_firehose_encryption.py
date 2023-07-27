@@ -19,7 +19,7 @@ def test_firehose_without_encryption():
     resp = client.describe_delivery_stream(DeliveryStreamName=name)[
         "DeliveryStreamDescription"
     ]
-    resp.shouldnt.have.key("DeliveryStreamEncryptionConfiguration")
+    assert "DeliveryStreamEncryptionConfiguration" not in resp
 
     client.start_delivery_stream_encryption(
         DeliveryStreamName=name,
@@ -29,12 +29,10 @@ def test_firehose_without_encryption():
     stream = client.describe_delivery_stream(DeliveryStreamName=name)[
         "DeliveryStreamDescription"
     ]
-    stream.should.have.key("DeliveryStreamEncryptionConfiguration").equals(
-        {
-            "KeyType": "AWS_OWNED_CMK",
-            "Status": "ENABLED",
-        }
-    )
+    assert stream["DeliveryStreamEncryptionConfiguration"] == {
+        "KeyType": "AWS_OWNED_CMK",
+        "Status": "ENABLED",
+    }
 
 
 @mock_firehose
@@ -50,18 +48,16 @@ def test_firehose_with_encryption():
     stream = client.describe_delivery_stream(DeliveryStreamName=name)[
         "DeliveryStreamDescription"
     ]
-    stream.should.have.key("DeliveryStreamEncryptionConfiguration").equals(
-        {"KeyType": "AWS_OWNED_CMK"}
-    )
+    assert stream["DeliveryStreamEncryptionConfiguration"] == {
+        "KeyType": "AWS_OWNED_CMK"
+    }
 
     client.stop_delivery_stream_encryption(DeliveryStreamName=name)
 
     stream = client.describe_delivery_stream(DeliveryStreamName=name)[
         "DeliveryStreamDescription"
     ]
-    stream.should.have.key("DeliveryStreamEncryptionConfiguration").should.have.key(
-        "Status"
-    ).equals("DISABLED")
+    assert stream["DeliveryStreamEncryptionConfiguration"]["Status"] == "DISABLED"
 
 
 @mock_firehose
@@ -74,8 +70,8 @@ def test_start_encryption_on_unknown_stream():
             DeliveryStreamEncryptionConfigurationInput={"KeyType": "AWS_OWNED_CMK"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Firehose ? under account 123456789012 not found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Firehose ? under account 123456789012 not found."
 
 
 @mock_firehose
@@ -85,5 +81,5 @@ def test_stop_encryption_on_unknown_stream():
     with pytest.raises(ClientError) as exc:
         client.stop_delivery_stream_encryption(DeliveryStreamName="?")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Firehose ? under account 123456789012 not found.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Firehose ? under account 123456789012 not found."

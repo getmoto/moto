@@ -1,6 +1,5 @@
 """Unit tests verifying various delivery stream destination content."""
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto import settings
@@ -118,43 +117,41 @@ def test_create_redshift_delivery_stream():
     stream_description = response["DeliveryStreamDescription"]
 
     # Sure and Freezegun don't play nicely together
-    _ = stream_description.pop("CreateTimestamp")
-    _ = stream_description.pop("LastUpdateTimestamp")
+    stream_description.pop("CreateTimestamp")
+    stream_description.pop("LastUpdateTimestamp")
 
-    stream_description.should.equal(
-        {
-            "DeliveryStreamName": stream_name,
-            "DeliveryStreamARN": stream_arn,
-            "DeliveryStreamStatus": "ACTIVE",
-            "DeliveryStreamType": "DirectPut",
-            "VersionId": "1",
-            "Destinations": [
-                {
-                    "DestinationId": "destinationId-000000000001",
-                    "RedshiftDestinationDescription": {
-                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                        "ClusterJDBCURL": "jdbc:redshift://host.amazonaws.com:5439/database",
-                        "CopyCommand": {
-                            "DataTableName": "outputTable",
-                            "CopyOptions": "CSV DELIMITER ',' NULL '\\0'",
-                        },
-                        "Username": "username",
-                        "S3DestinationDescription": {
-                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                            "BucketARN": "arn:aws:s3:::firehose-test",
-                            "Prefix": "myFolder/",
-                            "BufferingHints": {
-                                "SizeInMBs": 123,
-                                "IntervalInSeconds": 124,
-                            },
-                            "CompressionFormat": "UNCOMPRESSED",
-                        },
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "VersionId": "1",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "RedshiftDestinationDescription": {
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "ClusterJDBCURL": "jdbc:redshift://host.amazonaws.com:5439/database",
+                    "CopyCommand": {
+                        "DataTableName": "outputTable",
+                        "CopyOptions": "CSV DELIMITER ',' NULL '\\0'",
                     },
-                }
-            ],
-            "HasMoreDestinations": False,
-        }
-    )
+                    "Username": "username",
+                    "S3DestinationDescription": {
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                        "BucketARN": "arn:aws:s3:::firehose-test",
+                        "Prefix": "myFolder/",
+                        "BufferingHints": {
+                            "SizeInMBs": 123,
+                            "IntervalInSeconds": 124,
+                        },
+                        "CompressionFormat": "UNCOMPRESSED",
+                    },
+                },
+            }
+        ],
+        "HasMoreDestinations": False,
+    }
 
 
 @mock_firehose
@@ -170,52 +167,48 @@ def test_create_extended_s3_delivery_stream():
     stream_description = response["DeliveryStreamDescription"]
 
     # Sure and Freezegun don't play nicely together
-    _ = stream_description.pop("CreateTimestamp")
-    _ = stream_description.pop("LastUpdateTimestamp")
+    stream_description.pop("CreateTimestamp")
+    stream_description.pop("LastUpdateTimestamp")
 
-    stream_description.should.equal(
-        {
-            "DeliveryStreamName": stream_name,
-            "DeliveryStreamARN": stream_arn,
-            "DeliveryStreamStatus": "ACTIVE",
-            "DeliveryStreamType": "DirectPut",
-            "VersionId": "1",
-            "Destinations": [
-                {
-                    "DestinationId": "destinationId-000000000001",
-                    "ExtendedS3DestinationDescription": {
-                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                        "BucketARN": "arn:aws:s3:::firehose-test",
-                        "Prefix": "myFolder/",
-                        "CompressionFormat": "UNCOMPRESSED",
-                        "DataFormatConversionConfiguration": {
-                            "Enabled": True,
-                            "InputFormatConfiguration": {
-                                "Deserializer": {"HiveJsonSerDe": {}}
-                            },
-                            "OutputFormatConfiguration": {
-                                "Serializer": {
-                                    "ParquetSerDe": {"Compression": "SNAPPY"}
-                                }
-                            },
-                            "SchemaConfiguration": {
-                                "DatabaseName": stream_name,
-                                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                                "TableName": "outputTable",
-                            },
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "VersionId": "1",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "ExtendedS3DestinationDescription": {
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "BucketARN": "arn:aws:s3:::firehose-test",
+                    "Prefix": "myFolder/",
+                    "CompressionFormat": "UNCOMPRESSED",
+                    "DataFormatConversionConfiguration": {
+                        "Enabled": True,
+                        "InputFormatConfiguration": {
+                            "Deserializer": {"HiveJsonSerDe": {}}
+                        },
+                        "OutputFormatConfiguration": {
+                            "Serializer": {"ParquetSerDe": {"Compression": "SNAPPY"}}
+                        },
+                        "SchemaConfiguration": {
+                            "DatabaseName": stream_name,
+                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                            "TableName": "outputTable",
                         },
                     },
-                    "S3DestinationDescription": {
-                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                        "BucketARN": "arn:aws:s3:::firehose-test",
-                        "Prefix": "myFolder/",
-                        "CompressionFormat": "UNCOMPRESSED",
-                    },
-                }
-            ],
-            "HasMoreDestinations": False,
-        }
-    )
+                },
+                "S3DestinationDescription": {
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "BucketARN": "arn:aws:s3:::firehose-test",
+                    "Prefix": "myFolder/",
+                    "CompressionFormat": "UNCOMPRESSED",
+                },
+            }
+        ],
+        "HasMoreDestinations": False,
+    }
 
 
 @mock_firehose
@@ -234,40 +227,38 @@ def test_create_elasticsearch_delivery_stream():
     _ = stream_description.pop("CreateTimestamp")
     _ = stream_description.pop("LastUpdateTimestamp")
 
-    stream_description.should.equal(
-        {
-            "DeliveryStreamName": stream_name,
-            "DeliveryStreamARN": stream_arn,
-            "DeliveryStreamStatus": "ACTIVE",
-            "DeliveryStreamType": "DirectPut",
-            "VersionId": "1",
-            "Destinations": [
-                {
-                    "DestinationId": "destinationId-000000000001",
-                    "ElasticsearchDestinationDescription": {
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "VersionId": "1",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "ElasticsearchDestinationDescription": {
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "DomainARN": "arn:aws:es:::domain/firehose-test",
+                    "IndexName": "myIndex",
+                    "TypeName": "UNCOMPRESSED",
+                    "IndexRotationPeriod": "NoRotation",
+                    "BufferingHints": {"IntervalInSeconds": 123, "SizeInMBs": 123},
+                    "RetryOptions": {"DurationInSeconds": 123},
+                    "S3DestinationDescription": {
                         "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                        "DomainARN": "arn:aws:es:::domain/firehose-test",
-                        "IndexName": "myIndex",
-                        "TypeName": "UNCOMPRESSED",
-                        "IndexRotationPeriod": "NoRotation",
-                        "BufferingHints": {"IntervalInSeconds": 123, "SizeInMBs": 123},
-                        "RetryOptions": {"DurationInSeconds": 123},
-                        "S3DestinationDescription": {
-                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                            "BucketARN": "arn:aws:s3:::firehose-test",
-                            "Prefix": "myFolder/",
-                            "BufferingHints": {
-                                "SizeInMBs": 123,
-                                "IntervalInSeconds": 124,
-                            },
-                            "CompressionFormat": "UNCOMPRESSED",
+                        "BucketARN": "arn:aws:s3:::firehose-test",
+                        "Prefix": "myFolder/",
+                        "BufferingHints": {
+                            "SizeInMBs": 123,
+                            "IntervalInSeconds": 124,
                         },
+                        "CompressionFormat": "UNCOMPRESSED",
                     },
-                }
-            ],
-            "HasMoreDestinations": False,
-        }
-    )
+                },
+            }
+        ],
+        "HasMoreDestinations": False,
+    }
 
 
 @mock_firehose
@@ -292,28 +283,26 @@ def test_create_s3_delivery_stream():
     stream_description = response["DeliveryStreamDescription"]
 
     # Sure and Freezegun don't play nicely together
-    _ = stream_description.pop("CreateTimestamp")
-    _ = stream_description.pop("LastUpdateTimestamp")
+    stream_description.pop("CreateTimestamp")
+    stream_description.pop("LastUpdateTimestamp")
 
-    stream_description.should.equal(
-        {
-            "DeliveryStreamName": stream_name,
-            "DeliveryStreamARN": stream_arn,
-            "DeliveryStreamStatus": "ACTIVE",
-            "DeliveryStreamType": "DirectPut",
-            "VersionId": "1",
-            "Destinations": [
-                {
-                    "DestinationId": "destinationId-000000000001",
-                    "S3DestinationDescription": {
-                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                        "BucketARN": "arn:aws:s3:::firehose-test",
-                        "Prefix": "myFolder/",
-                        "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
-                        "CompressionFormat": "UNCOMPRESSED",
-                    },
-                }
-            ],
-            "HasMoreDestinations": False,
-        }
-    )
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "VersionId": "1",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "S3DestinationDescription": {
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "BucketARN": "arn:aws:s3:::firehose-test",
+                    "Prefix": "myFolder/",
+                    "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
+                    "CompressionFormat": "UNCOMPRESSED",
+                },
+            }
+        ],
+        "HasMoreDestinations": False,
+    }
