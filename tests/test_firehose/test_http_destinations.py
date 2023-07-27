@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -22,40 +21,38 @@ def test_create_http_stream():
     stream_description = response["DeliveryStreamDescription"]
 
     # Sure and Freezegun don't play nicely together
-    _ = stream_description.pop("CreateTimestamp")
-    _ = stream_description.pop("LastUpdateTimestamp")
+    stream_description.pop("CreateTimestamp")
+    stream_description.pop("LastUpdateTimestamp")
 
-    stream_description.should.equal(
-        {
-            "DeliveryStreamName": stream_name,
-            "DeliveryStreamARN": stream_arn,
-            "DeliveryStreamStatus": "ACTIVE",
-            "DeliveryStreamType": "DirectPut",
-            "VersionId": "1",
-            "Destinations": [
-                {
-                    "DestinationId": "destinationId-000000000001",
-                    "HttpEndpointDestinationDescription": {
-                        "EndpointConfiguration": {"Url": "google.com"},
-                        "RetryOptions": {"DurationInSeconds": 100},
-                        "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
-                        "CloudWatchLoggingOptions": {"Enabled": False},
-                        "S3DestinationDescription": {
-                            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
-                            "BucketARN": "arn:aws:s3:::firehose-test",
-                            "Prefix": "myFolder/",
-                            "BufferingHints": {
-                                "SizeInMBs": 123,
-                                "IntervalInSeconds": 124,
-                            },
-                            "CompressionFormat": "UNCOMPRESSED",
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "VersionId": "1",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "HttpEndpointDestinationDescription": {
+                    "EndpointConfiguration": {"Url": "google.com"},
+                    "RetryOptions": {"DurationInSeconds": 100},
+                    "BufferingHints": {"SizeInMBs": 123, "IntervalInSeconds": 124},
+                    "CloudWatchLoggingOptions": {"Enabled": False},
+                    "S3DestinationDescription": {
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                        "BucketARN": "arn:aws:s3:::firehose-test",
+                        "Prefix": "myFolder/",
+                        "BufferingHints": {
+                            "SizeInMBs": 123,
+                            "IntervalInSeconds": 124,
                         },
+                        "CompressionFormat": "UNCOMPRESSED",
                     },
-                }
-            ],
-            "HasMoreDestinations": False,
-        }
-    )
+                },
+            }
+        ],
+        "HasMoreDestinations": False,
+    }
 
 
 @mock_firehose
@@ -82,4 +79,4 @@ def test_update_s3_for_http_stream():
     s3_desc = desc["Destinations"][0]["HttpEndpointDestinationDescription"][
         "S3DestinationDescription"
     ]
-    s3_desc.should.have.key("ErrorOutputPrefix").equals("prefix2")
+    assert s3_desc["ErrorOutputPrefix"] == "prefix2"
