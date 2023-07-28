@@ -182,7 +182,7 @@ class Cluster:
         self.preferred_backup_window = "01:37-02:07"
         self.preferred_maintenance_window = "wed:02:40-wed:03:10"
         # This should default to the default security group
-        self.vpc_security_groups: List[str] = []
+        self.vpc_security_group_ids: List[str] = kwargs["vpc_security_group_ids"]
         self.hosted_zone_id = "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(14)
         )
@@ -329,7 +329,7 @@ class Cluster:
               {% endfor %}
               </DBClusterMembers>
               <VpcSecurityGroups>
-              {% for id in cluster.vpc_security_groups %}
+              {% for id in cluster.vpc_security_group_ids %}
                   <VpcSecurityGroup>
                       <VpcSecurityGroupId>{{ id }}</VpcSecurityGroupId>
                       <Status>active</Status>
