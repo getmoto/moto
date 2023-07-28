@@ -194,28 +194,12 @@ def test_create_db_cluster__verify_default_properties():
 
 
 @mock_rds
-def test_create_db_cluster_with_database_name():
-    client = boto3.client("rds", region_name="eu-north-1")
-
-    resp = client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        DatabaseName="users",
-        Engine="aurora",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-    cluster = resp["DBCluster"]
-    cluster.should.have.key("DatabaseName").equal("users")
-    cluster.should.have.key("DBClusterIdentifier").equal("cluster-id")
-    cluster.should.have.key("DBClusterParameterGroup").equal("default.aurora8.0")
-
-
-@mock_rds
 def test_create_db_cluster_additional_parameters():
     client = boto3.client("rds", region_name="eu-north-1")
 
     resp = client.create_db_cluster(
         AvailabilityZones=["eu-north-1b"],
+        DatabaseName="users",
         DBClusterIdentifier="cluster-id",
         Engine="aurora",
         EngineVersion="8.0.mysql_aurora.3.01.0",
@@ -232,11 +216,13 @@ def test_create_db_cluster_additional_parameters():
             "MinCapacity": 5,
             "AutoPause": True,
         },
+        VpcSecurityGroupIds=["sg1", "sg2"],
     )
 
     cluster = resp["DBCluster"]
 
     cluster.should.have.key("AvailabilityZones").equal(["eu-north-1b"])
+    cluster.should.have.key("DatabaseName").equal("users")
     cluster.should.have.key("Engine").equal("aurora")
     cluster.should.have.key("EngineVersion").equal("8.0.mysql_aurora.3.01.0")
     cluster.should.have.key("EngineMode").equal("serverless")
@@ -247,6 +233,11 @@ def test_create_db_cluster_additional_parameters():
     assert cluster["NetworkType"] == "IPV4"
     assert cluster["DBSubnetGroup"] == "subnetgroupname"
     assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
+
+    security_groups = cluster["VpcSecurityGroups"]
+    assert len(security_groups) == 2
+    assert {"VpcSecurityGroupId": "sg1", "Status": "active"} in security_groups
+    assert {"VpcSecurityGroupId": "sg2", "Status": "active"} in security_groups
 
 
 @mock_rds
