@@ -17,6 +17,7 @@ from .exceptions import (
     ResourceNotFoundException,
     InvalidParameterCombination,
 )
+from .metric_data_expression_parser import parse_expression
 from .utils import make_arn_for_dashboard, make_arn_for_alarm
 from dateutil import parser
 from typing import Tuple, Optional, List, Iterable, Dict, Any, SupportsFloat
@@ -668,16 +669,23 @@ class CloudWatchBackend(BaseBackend):
         ]
 
         results = []
-        for query in queries:
+        results_to_return = []
+        metric_stat_queries = [q for q in queries if "MetricStat" in q]
+        expression_queries = [q for q in queries if "Expression" in q]
+        for query in metric_stat_queries:
             period_start_time = start_time
-            query_ns = query["metric_stat._metric._namespace"]
-            query_name = query["metric_stat._metric._metric_name"]
-            delta = timedelta(seconds=int(query["metric_stat._period"]))
-            dimensions = self._extract_dimensions_from_get_metric_data_query(query)
-            unit = query.get("metric_stat._unit")
+            metric_stat = query["MetricStat"]
+            query_ns = metric_stat["Metric"]["Namespace"]
+            query_name = metric_stat["Metric"]["MetricName"]
+            delta = timedelta(seconds=int(metric_stat["Period"]))
+            dimensions = [
+                Dimension(name=d["Name"], value=d["Value"])
+                for d in metric_stat["Metric"].get("Dimensions", [])
+            ]
+            unit = metric_stat.get("Unit")
             result_vals: List[SupportsFloat] = []
             timestamps: List[str] = []
-            stat = query["metric_stat._stat"]
+            stat = metric_stat["Stat"]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
                 period_md = [
@@ -715,21 +723,37 @@ class CloudWatchBackend(BaseBackend):
                 timestamps.reverse()
                 result_vals.reverse()
 
-            label = (
-                query["label"]
-                if "label" in query
-                else query["metric_stat._metric._metric_name"] + " " + stat
-            )
+            label = query.get("Label") or f"{query_name} {stat}"
 
             results.append(
                 {
-                    "id": query["id"],
+                    "id": query["Id"],
                     "label": label,
                     "vals": result_vals,
                     "timestamps": timestamps,
                 }
             )
-        return results
+            if query.get("ReturnData", "true") == "true":
+                results_to_return.append(
+                    {
+                        "id": query["Id"],
+                        "label": label,
+                        "vals": result_vals,
+                        "timestamps": timestamps,
+                    }
+                )
+        for query in expression_queries:
+            label = query.get("Label") or f"{query_name} {stat}"
+            result_vals, timestamps = parse_expression(query["Expression"], results)
+            results_to_return.append(
+                {
+                    "id": query["Id"],
+                    "label": label,
+                    "vals": result_vals,
+                    "timestamps": timestamps,
+                }
+            )
+        return results_to_return
 
     def get_metric_statistics(
         self,
@@ -903,23 +927,6 @@ class CloudWatchBackend(BaseBackend):
             return next_token, metrics[0:500]
         else:
             return None, metrics
-
-    def _extract_dimensions_from_get_metric_data_query(
-        self, query: Dict[str, str]
-    ) -> List[Dimension]:
-        dimensions = []
-        prefix = "metric_stat._metric._dimensions.member."
-        suffix_name = "._name"
-        suffix_value = "._value"
-        counter = 1
-
-        while query.get(f"{prefix}{counter}{suffix_name}") and counter <= 10:
-            name = query.get(f"{prefix}{counter}{suffix_name}")
-            value = query.get(f"{prefix}{counter}{suffix_value}")
-            dimensions.append(Dimension(name=name, value=value))
-            counter = counter + 1
-
-        return dimensions
 
     def _validate_parameters_put_metric_data(
         self, metric: Dict[str, Any], query_num: int
