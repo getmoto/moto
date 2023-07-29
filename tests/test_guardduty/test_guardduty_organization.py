@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_guardduty
 
@@ -8,8 +7,7 @@ from moto import mock_guardduty
 def test_enable_organization_admin_account():
     client = boto3.client("guardduty", region_name="us-east-1")
     resp = client.enable_organization_admin_account(AdminAccountId="")
-    resp.should.have.key("ResponseMetadata")
-    resp["ResponseMetadata"].should.have.key("HTTPStatusCode").equals(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_guardduty
@@ -18,7 +16,7 @@ def test_list_organization_admin_accounts():
     client.enable_organization_admin_account(AdminAccountId="someaccount")
 
     resp = client.list_organization_admin_accounts()
-    resp.should.have.key("AdminAccounts").length_of(1)
-    resp["AdminAccounts"].should.contain(
-        {"AdminAccountId": "someaccount", "AdminStatus": "ENABLED"}
-    )
+    assert len(resp["AdminAccounts"]) == 1
+    assert {"AdminAccountId": "someaccount", "AdminStatus": "ENABLED"} in resp[
+        "AdminAccounts"
+    ]
