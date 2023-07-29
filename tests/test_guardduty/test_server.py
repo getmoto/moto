@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 
@@ -10,5 +9,5 @@ def test_create_without_enable_option():
 
     body = {"enable": "True"}
     response = test_client.post("/detector", data=json.dumps(body))
-    response.status_code.should.equal(200)
-    json.loads(response.data).should.have.key("detectorId")
+    assert response.status_code == 200
+    assert "detectorId" in json.loads(response.data)
