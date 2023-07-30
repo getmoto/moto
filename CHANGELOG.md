@@ -4,7 +4,7 @@ Moto Changelog
 
 4.1.14
 ------
-Docker Digest for 4.1.14: <autopopulateddigest>
+Docker Digest for 4.1.14: _sha256:4cc82c0803c6b578d5c4146a8e38ff0387dec565483cfaa63eb238cb867e97e6_
 
     New Methods:
         * SageMaker:
