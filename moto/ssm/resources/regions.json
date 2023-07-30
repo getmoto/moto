@@ -598,6 +598,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-containers": {
+                "Value": "emr-containers",
+                "endpoint": {
+                  "Value": "emr-containers.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -11839,6 +11848,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -12040,6 +12058,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "guardduty": {
                 "Value": "guardduty",
                 "endpoint": {
@@ -12120,6 +12147,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
@@ -12273,6 +12303,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "rosa": {
+                "Value": "rosa"
               },
               "route53": {
                 "Value": "route53",
@@ -16672,6 +16705,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "medical-imaging": {
+                "Value": "medical-imaging",
+                "endpoint": {
+                  "Value": "medical-imaging.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "memorydb": {
                 "Value": "memorydb",
                 "endpoint": {
@@ -19137,6 +19179,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -19324,6 +19375,15 @@
                 "Value": "fsx-windows",
                 "endpoint": {
                   "Value": "fsx.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19799,6 +19859,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "vmwarecloudonaws": {
+                "Value": "vmwarecloudonaws"
               },
               "vpc": {
                 "Value": "vpc"
@@ -27590,6 +27653,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -28270,6 +28342,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "vmwarecloudonaws": {
+                "Value": "vmwarecloudonaws"
               },
               "vpc": {
                 "Value": "vpc"
@@ -31997,6 +32072,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -34387,6 +34471,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "medical-imaging": {
+                "Value": "medical-imaging",
+                "endpoint": {
+                  "Value": "medical-imaging.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -39986,6 +40079,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ds": {
                 "Value": "ds",
                 "endpoint": {
@@ -40330,6 +40432,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
@@ -46217,6 +46322,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "medical-imaging": {
+                "Value": "medical-imaging",
+                "endpoint": {
+                  "Value": "medical-imaging.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -54652,6 +54766,12 @@
               },
               "usw2-pdx1-az1": {
                 "Value": "usw2-pdx1-az1"
+              },
+              "usw2-phx1-az1": {
+                "Value": "usw2-phx1-az1"
+              },
+              "usw2-phx2-az1": {
+                "Value": "usw2-phx2-az1"
               }
             },
             "longName": {
@@ -56417,6 +56537,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "medical-imaging": {
+                "Value": "medical-imaging",
+                "endpoint": {
+                  "Value": "medical-imaging.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
