@@ -1,7 +1,6 @@
 import boto3
 import json
 import yaml
-import sure  # noqa # pylint: disable=unused-import
 
 import pytest
 from botocore.exceptions import ClientError
@@ -87,8 +86,8 @@ Resources:
     provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ][0]
-    provisioned_resource["LogicalResourceId"].should.equal("TheUser")
-    provisioned_resource["PhysicalResourceId"].should.equal(user_name)
+    assert provisioned_resource["LogicalResourceId"] == "TheUser"
+    assert provisioned_resource["PhysicalResourceId"] == user_name
 
 
 @mock_iam
@@ -112,7 +111,7 @@ Resources:
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
-    user["Path"].should.equal("/")
+    assert user["Path"] == "/"
 
     path = "/MyPath/"
     template = """
@@ -128,7 +127,7 @@ Resources:
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
     user = iam_client.get_user(UserName=user_name)["User"]
-    user["Path"].should.equal(path)
+    assert user["Path"] == path
 
 
 @mock_iam
@@ -152,7 +151,7 @@ Resources:
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=original_user_name)["User"]
-    user["Path"].should.equal("/")
+    assert user["Path"] == "/"
 
     new_user_name = "MyUser"
     template = """
@@ -169,7 +168,7 @@ Resources:
 
     with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=original_user_name)
-    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
     iam_client.get_user(UserName=new_user_name)
 
@@ -222,18 +221,18 @@ Resources:
     provisioned_resources = cf_client.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ]
-    len(provisioned_resources).should.equal(1)
+    assert len(provisioned_resources) == 1
     second_provisioned_user = [
         resource
         for resource in provisioned_resources
         if resource["LogicalResourceId"] == "TheSecondUser"
     ][0]
-    second_user_name.should.equal(second_provisioned_user["PhysicalResourceId"])
+    assert second_user_name == second_provisioned_user["PhysicalResourceId"]
 
     iam_client.get_user(UserName=second_user_name)
     with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=first_user_name)
-    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 @mock_iam
@@ -263,7 +262,7 @@ Resources:
 
     with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=user_name)
-    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 @mock_iam
@@ -283,7 +282,7 @@ Resources:
     provisioned_resource = cf_client.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ][0]
-    provisioned_resource["LogicalResourceId"].should.equal("TheUser")
+    assert provisioned_resource["LogicalResourceId"] == "TheUser"
     user_name = provisioned_resource["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
@@ -293,7 +292,7 @@ Resources:
 
     with pytest.raises(ClientError) as e:
         iam_client.get_user(UserName=user_name)
-    e.value.response["Error"]["Code"].should.equal("NoSuchEntity")
+    assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 @mock_iam
@@ -334,7 +333,7 @@ Outputs:
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_description = iam_client.get_user(UserName=output_user_name)["User"]
-    output_user_arn.should.equal(user_description["Arn"])
+    assert output_user_arn == user_description["Arn"]
 
 
 # AWS::IAM::ManagedPolicy Tests
@@ -364,24 +363,22 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
-    policy_arn.should.match(
-        f"arn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
-    )
+    assert policy_arn.startswith(f"arn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-")
     expected_name = policy_arn.split("/")[1]
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
-    response.should.have.key("PolicyGroups").equal([])
-    response.should.have.key("PolicyUsers").equal([])
-    response.should.have.key("PolicyRoles").equal([])
+    assert response["PolicyGroups"] == []
+    assert response["PolicyUsers"] == []
+    assert response["PolicyRoles"] == []
 
     policy = iam_client.get_policy(PolicyArn=policy_arn)["Policy"]
-    policy.should.have.key("Arn").equal(policy_arn)
-    policy.should.have.key("PolicyName").equal(expected_name)
-    policy.should.have.key("Description").equal("")
-    policy.should.have.key("Path").equal("/")
+    assert policy["Arn"] == policy_arn
+    assert policy["PolicyName"] == expected_name
+    assert policy["Description"] == ""
+    assert policy["Path"] == "/"
 
 
 @mock_iam
@@ -417,16 +414,16 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
-    policy_arn.should.equal(f"arn:aws:iam::{ACCOUNT_ID}:policy/{name}")
+    assert policy_arn == f"arn:aws:iam::{ACCOUNT_ID}:policy/{name}"
 
     policy = iam_client.get_policy(PolicyArn=policy_arn)["Policy"]
-    policy.should.have.key("Arn").equal(policy_arn)
-    policy.should.have.key("Path").equal("/")
-    policy.should.have.key("Description").equal(desc)
-    policy.should.have.key("PolicyName").equal(name)
+    assert policy["Arn"] == policy_arn
+    assert policy["Path"] == "/"
+    assert policy["Description"] == desc
+    assert policy["PolicyName"] == name
 
 
 @mock_iam
@@ -465,19 +462,17 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
-    policy_arn.should.match(
-        f"rn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
-    )
+    assert policy_arn.startswith(f"arn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-")
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
-    response.should.have.key("PolicyUsers").equal([])
-    response.should.have.key("PolicyRoles").equal([])
+    assert response["PolicyUsers"] == []
+    assert response["PolicyRoles"] == []
 
-    response["PolicyGroups"][0]["GroupName"].should.be.equal(group_name)
-    response["PolicyGroups"][0].should.have.key("GroupId")
+    assert response["PolicyGroups"][0]["GroupName"] == group_name
+    assert "GroupId" in response["PolicyGroups"][0]
 
 
 @mock_iam
@@ -516,19 +511,17 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
-    policy_arn.should.match(
-        f"rn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
-    )
+    assert policy_arn.startswith(f"arn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-")
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
-    response.should.have.key("PolicyGroups").equal([])
-    response.should.have.key("PolicyRoles").equal([])
+    assert response["PolicyGroups"] == []
+    assert response["PolicyRoles"] == []
 
-    response["PolicyUsers"][0]["UserName"].should.be.equal(user_name)
-    response["PolicyUsers"][0].should.have.key("UserId")
+    assert response["PolicyUsers"][0]["UserName"] == user_name
+    assert "UserId" in response["PolicyUsers"][0]
 
 
 @mock_iam
@@ -567,19 +560,17 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     policy_arn = provisioned_resource["PhysicalResourceId"]
-    policy_arn.should.match(
-        f"rn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-[A-Z0-9]+"
-    )
+    assert policy_arn.startswith(f"arn:aws:iam::{ACCOUNT_ID}:policy/MyStack-ThePolicy-")
 
     response = iam_client.list_entities_for_policy(PolicyArn=policy_arn)
-    response.should.have.key("PolicyGroups").equal([])
-    response.should.have.key("PolicyUsers").equal([])
+    assert response["PolicyGroups"] == []
+    assert response["PolicyUsers"] == []
 
-    response["PolicyRoles"][0]["RoleName"].should.be.equal(role_name)
-    response["PolicyRoles"][0].should.have.key("RoleId")
+    assert response["PolicyRoles"][0]["RoleName"] == role_name
+    assert "RoleId" in response["PolicyRoles"][0]
 
 
 # AWS::IAM::Policy Tests
@@ -624,13 +615,13 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
 
 @mock_s3
@@ -676,13 +667,13 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_user_policy(UserName=user_name_1, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
     # Change template and user
     template = """
@@ -709,17 +700,16 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_user_policy(UserName=user_name_2, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
-    iam_client.get_user_policy.when.called_with(
-        UserName=user_name_1, PolicyName=policy_name
-    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+    with pytest.raises(ClientError):
+        iam_client.get_user_policy(UserName=user_name_1, PolicyName=policy_name)
 
 
 @mock_s3
@@ -763,18 +753,17 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
     cf_client.delete_stack(StackName=stack_name)
-    iam_client.get_user_policy.when.called_with(
-        UserName=user_name, PolicyName=policy_name
-    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+    with pytest.raises(ClientError):
+        iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
 
 
 @mock_s3
@@ -818,13 +807,13 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_role_policy(RoleName=role_name, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
 
 @mock_s3
@@ -870,13 +859,13 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_role_policy(RoleName=role_name_1, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
     # Change template and user
     template = """
@@ -903,17 +892,16 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_role_policy(RoleName=role_name_2, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
-    iam_client.get_role_policy.when.called_with(
-        RoleName=role_name_1, PolicyName=policy_name
-    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+    with pytest.raises(ClientError):
+        iam_client.get_role_policy(RoleName=role_name_1, PolicyName=policy_name)
 
 
 @mock_s3
@@ -957,18 +945,18 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_role_policy(RoleName=role_name, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
     cf_client.delete_stack(StackName=stack_name)
-    iam_client.get_role_policy.when.called_with(
-        RoleName=role_name, PolicyName=policy_name
-    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+    with pytest.raises(ClientError) as exc:
+        iam_client.get_role_policy(RoleName=role_name, PolicyName=policy_name)
+    assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 @mock_s3
@@ -1012,13 +1000,13 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_group_policy(GroupName=group_name, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
 
 @mock_s3
@@ -1064,13 +1052,13 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_group_policy(GroupName=group_name_1, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
     # Change template and user
     template = """
@@ -1097,17 +1085,17 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_group_policy(GroupName=group_name_2, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
-    iam_client.get_group_policy.when.called_with(
-        GroupName=group_name_1, PolicyName=policy_name
-    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+    with pytest.raises(ClientError) as exc:
+        iam_client.get_group_policy(GroupName=group_name_1, PolicyName=policy_name)
+    assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 @mock_s3
@@ -1151,18 +1139,18 @@ Resources:
         "StackResourceSummaries"
     ][0]
     logical_resource_id = provisioned_resource["LogicalResourceId"]
-    logical_resource_id.should.equal("ThePolicy")
+    assert logical_resource_id == "ThePolicy"
 
     original_policy_document = yaml.load(template, Loader=yaml.FullLoader)["Resources"][
         logical_resource_id
     ]["Properties"]["PolicyDocument"]
     policy = iam_client.get_group_policy(GroupName=group_name, PolicyName=policy_name)
-    policy["PolicyDocument"].should.equal(original_policy_document)
+    assert policy["PolicyDocument"] == original_policy_document
 
     cf_client.delete_stack(StackName=stack_name)
-    iam_client.get_group_policy.when.called_with(
-        GroupName=group_name, PolicyName=policy_name
-    ).should.throw(iam_client.exceptions.NoSuchEntityException)
+    with pytest.raises(ClientError) as exc:
+        iam_client.get_group_policy(GroupName=group_name, PolicyName=policy_name)
+    assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 # AWS::IAM::User AccessKeys
@@ -1201,13 +1189,13 @@ Resources:
         for resource in provisioned_resources
         if resource["LogicalResourceId"] == "TheAccessKey"
     ]
-    len(provisioned_access_keys).should.equal(1)
+    assert len(provisioned_access_keys) == 1
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
-    user["UserName"].should.equal(user_name)
+    assert user["UserName"] == user_name
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    access_keys["AccessKeyMetadata"][0]["UserName"].should.equal(user_name)
+    assert access_keys["AccessKeyMetadata"][0]["UserName"] == user_name
 
 
 @mock_sts
@@ -1264,7 +1252,7 @@ Outputs:
         region_name="us-east-1",
     )
     caller_identity = sts_client.get_caller_identity()
-    caller_identity["Arn"].split("/")[1].should.equal(user_name)
+    assert caller_identity["Arn"].split("/")[1] == user_name
     pass
 
 
@@ -1303,25 +1291,26 @@ def test_iam_cloudformation_delete_users_access_key():
         for resource in provisioned_resources
         if resource["LogicalResourceId"] == "TheAccessKey"
     ]
-    provisioned_access_keys.should.have.length_of(1)
+    assert len(provisioned_access_keys) == 1
     access_key_id = provisioned_access_keys[0]["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
     user = iam_client.get_user(UserName=user_name)["User"]
-    user["UserName"].should.equal(user_name)
+    assert user["UserName"] == user_name
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    access_keys["AccessKeyMetadata"][0]["AccessKeyId"].should.equal(access_key_id)
-    access_keys["AccessKeyMetadata"][0]["UserName"].should.equal(user_name)
-    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+    assert access_keys["AccessKeyMetadata"][0]["AccessKeyId"] == access_key_id
+    assert access_keys["AccessKeyMetadata"][0]["UserName"] == user_name
+    assert access_key_id == access_keys["AccessKeyMetadata"][0]["AccessKeyId"]
 
     cf_client.delete_stack(StackName=stack_name)
 
-    iam_client.get_user.when.called_with(UserName=user_name).should.throw(
-        iam_client.exceptions.NoSuchEntityException
-    )
-    iam_client.list_access_keys.when.called_with(UserName=user_name).should.throw(
-        iam_client.exceptions.NoSuchEntityException
-    )
+    with pytest.raises(ClientError) as exc:
+        iam_client.get_user(UserName=user_name)
+    assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
+
+    with pytest.raises(ClientError) as exc:
+        iam_client.list_access_keys(UserName=user_name)
+    assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
 @mock_iam
@@ -1364,7 +1353,7 @@ Resources:
     iam_client = boto3.client("iam", region_name="us-east-1")
     iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+    assert access_key_id == access_keys["AccessKeyMetadata"][0]["AccessKeyId"]
 
     template = """
 Resources:
@@ -1378,7 +1367,7 @@ Resources:
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    access_keys["AccessKeyMetadata"][0]["Status"].should.equal("Inactive")
+    assert access_keys["AccessKeyMetadata"][0]["Status"] == "Inactive"
 
 
 @mock_iam
@@ -1421,7 +1410,7 @@ Resources:
     iam_client = boto3.client("iam", region_name="us-east-1")
     iam_client.get_user(UserName=user_name)
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    access_key_id.should.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+    assert access_key_id == access_keys["AccessKeyMetadata"][0]["AccessKeyId"]
 
     other_user_name = "MyUser"
     iam_client.create_user(UserName=other_user_name)
@@ -1441,10 +1430,10 @@ Resources:
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
     access_keys = iam_client.list_access_keys(UserName=user_name)
-    len(access_keys["AccessKeyMetadata"]).should.equal(0)
+    assert len(access_keys["AccessKeyMetadata"]) == 0
 
     access_keys = iam_client.list_access_keys(UserName=other_user_name)
-    access_key_id.should_not.equal(access_keys["AccessKeyMetadata"][0]["AccessKeyId"])
+    assert access_key_id != access_keys["AccessKeyMetadata"][0]["AccessKeyId"]
 
 
 @mock_iam
@@ -1461,14 +1450,14 @@ def test_iam_cloudformation_create_role():
         "StackResourceSummaries"
     ]
     role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
-    role["LogicalResourceId"].should.equal("RootRole")
+    assert role["LogicalResourceId"] == "RootRole"
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    iam_client.list_roles()["Roles"].should.have.length_of(1)
+    assert len(iam_client.list_roles()["Roles"]) == 1
 
     cf_client.delete_stack(StackName=stack_name)
 
-    iam_client.list_roles()["Roles"].should.have.length_of(0)
+    assert len(iam_client.list_roles()["Roles"]) == 0
 
 
 @mock_iam
@@ -1486,23 +1475,23 @@ def test_iam_cloudformation_create_role_and_instance_profile():
         "StackResourceSummaries"
     ]
     role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
-    role["LogicalResourceId"].should.equal("RootRole")
-    role["PhysicalResourceId"].should.equal(role_name)
+    assert role["LogicalResourceId"] == "RootRole"
+    assert role["PhysicalResourceId"] == role_name
     profile = [
         res for res in resources if res["ResourceType"] == "AWS::IAM::InstanceProfile"
     ][0]
-    profile["LogicalResourceId"].should.equal("RootInstanceProfile")
-    profile["PhysicalResourceId"].should.contain(
-        stack_name
+    assert profile["LogicalResourceId"] == "RootInstanceProfile"
+    assert (
+        stack_name in profile["PhysicalResourceId"]
     )  # e.g. MyStack-RootInstanceProfile-73Y4H4ALFW3N
-    profile["PhysicalResourceId"].should.contain("RootInstanceProfile")
+    assert "RootInstanceProfile" in profile["PhysicalResourceId"]
 
     iam_client = boto3.client("iam", region_name="us-east-1")
-    iam_client.list_roles()["Roles"].should.have.length_of(1)
+    assert len(iam_client.list_roles()["Roles"]) == 1
 
     cf_client.delete_stack(StackName=stack_name)
 
-    iam_client.list_roles()["Roles"].should.have.length_of(0)
+    assert len(iam_client.list_roles()["Roles"]) == 0
 
 
 @mock_autoscaling
@@ -1611,14 +1600,14 @@ def test_iam_roles():
         # Role name is not specified, so randomly generated - can't check exact name
         if "with-path" in role["RoleName"]:
             role_name_to_id["with-path"] = role["RoleId"]
-            role["Path"].should.equal("/my-path/")
+            assert role["Path"] == "/my-path/"
         else:
             role_name_to_id["no-path"] = role["RoleId"]
-            role["RoleName"].should.equal("my-role-no-path-name")
-            role["Path"].should.equal("/")
+            assert role["RoleName"] == "my-role-no-path-name"
+            assert role["Path"] == "/"
 
     instance_profile_responses = iam.list_instance_profiles()["InstanceProfiles"]
-    instance_profile_responses.should.have.length_of(2)
+    assert len(instance_profile_responses) == 2
     instance_profile_names = []
 
     for instance_profile_response in instance_profile_responses:
@@ -1626,26 +1615,22 @@ def test_iam_roles():
             InstanceProfileName=instance_profile_response["InstanceProfileName"]
         )["InstanceProfile"]
         instance_profile_names.append(instance_profile["InstanceProfileName"])
-        instance_profile["InstanceProfileName"].should.contain("my-instance-profile")
+        assert "my-instance-profile" in instance_profile["InstanceProfileName"]
         if "with-path" in instance_profile["InstanceProfileName"]:
-            instance_profile["Path"].should.equal("my-path")
-            instance_profile["Roles"][0]["RoleId"].should.equal(
-                role_name_to_id["with-path"]
+            assert instance_profile["Path"] == "my-path"
+            assert (
+                instance_profile["Roles"][0]["RoleId"] == role_name_to_id["with-path"]
             )
         else:
-            instance_profile["InstanceProfileName"].should.contain("no-path")
-            instance_profile["Roles"][0]["RoleId"].should.equal(
-                role_name_to_id["no-path"]
-            )
-            instance_profile["Path"].should.equal("/")
+            assert "no-path" in instance_profile["InstanceProfileName"]
+            assert instance_profile["Roles"][0]["RoleId"] == role_name_to_id["no-path"]
+            assert instance_profile["Path"] == "/"
 
     autoscale = boto3.client("autoscaling", region_name="us-west-1")
     launch_config = autoscale.describe_launch_configurations()["LaunchConfigurations"][
         0
     ]
-    launch_config.should.have.key("IamInstanceProfile").should.contain(
-        "my-instance-profile-with-path"
-    )
+    assert "my-instance-profile-with-path" in launch_config["IamInstanceProfile"]
 
     resources = cf.list_stack_resources(StackName="test_stack")[
         "StackResourceSummaries"
@@ -1655,8 +1640,8 @@ def test_iam_roles():
         for resource in resources
         if resource["ResourceType"] == "AWS::IAM::InstanceProfile"
     ]
-    {ip["PhysicalResourceId"] for ip in instance_profile_resources}.should.equal(
-        set(instance_profile_names)
+    assert {ip["PhysicalResourceId"] for ip in instance_profile_resources} == set(
+        instance_profile_names
     )
 
     role_resources = [
@@ -1664,4 +1649,4 @@ def test_iam_roles():
         for resource in resources
         if resource["ResourceType"] == "AWS::IAM::Role"
     ]
-    {r["PhysicalResourceId"] for r in role_resources}.should.equal(set(role_names))
+    assert {r["PhysicalResourceId"] for r in role_resources} == set(role_names)

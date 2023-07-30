@@ -1,10 +1,8 @@
-import json
-
 import boto3
-from botocore.exceptions import ClientError
+import json
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
+from botocore.exceptions import ClientError
 from moto import mock_iam
 
 invalid_policy_document_test_cases = [
@@ -1621,11 +1619,10 @@ def test_create_policy_with_invalid_policy_document(invalid_policy_document):
             PolicyName="TestCreatePolicy",
             PolicyDocument=json.dumps(invalid_policy_document["document"]),
         )
-    ex.value.response["Error"]["Code"].should.equal("MalformedPolicyDocument")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        invalid_policy_document["error_message"]
-    )
+    resp = ex.value.response
+    assert resp["Error"]["Code"] == "MalformedPolicyDocument"
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Message"] == invalid_policy_document["error_message"]
 
 
 @pytest.mark.parametrize("valid_policy_document", valid_policy_documents)
