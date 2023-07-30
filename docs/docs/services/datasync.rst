@@ -28,6 +28,7 @@ datasync
 - [ ] add_storage_system
 - [X] cancel_task_execution
 - [ ] create_agent
+- [ ] create_location_azure_blob
 - [ ] create_location_efs
 - [ ] create_location_fsx_lustre
 - [ ] create_location_fsx_ontap
@@ -44,6 +45,7 @@ datasync
 - [X] delete_task
 - [ ] describe_agent
 - [ ] describe_discovery_job
+- [ ] describe_location_azure_blob
 - [ ] describe_location_efs
 - [ ] describe_location_fsx_lustre
 - [ ] describe_location_fsx_ontap
@@ -75,6 +77,7 @@ datasync
 - [ ] untag_resource
 - [ ] update_agent
 - [ ] update_discovery_job
+- [ ] update_location_azure_blob
 - [ ] update_location_hdfs
 - [ ] update_location_nfs
 - [ ] update_location_object_storage

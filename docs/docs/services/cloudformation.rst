@@ -87,6 +87,7 @@ cloudformation
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_imports
+- [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
   
         Pagination is not yet implemented.

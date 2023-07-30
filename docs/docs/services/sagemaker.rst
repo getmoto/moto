@@ -63,8 +63,8 @@ sagemaker
 - [ ] create_model_card
 - [ ] create_model_card_export_job
 - [ ] create_model_explainability_job_definition
-- [ ] create_model_package
-- [ ] create_model_package_group
+- [X] create_model_package
+- [X] create_model_package_group
 - [ ] create_model_quality_job_definition
 - [ ] create_monitoring_schedule
 - [X] create_notebook_instance
@@ -166,7 +166,7 @@ sagemaker
 - [ ] describe_model_card
 - [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
-- [ ] describe_model_package
+- [X] describe_model_package
 - [ ] describe_model_package_group
 - [ ] describe_model_quality_job_definition
 - [ ] describe_monitoring_schedule
@@ -239,7 +239,7 @@ sagemaker
 - [ ] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [ ] list_model_package_groups
-- [ ] list_model_packages
+- [X] list_model_packages
 - [ ] list_model_quality_job_definitions
 - [X] list_models
 - [ ] list_monitoring_alert_history
@@ -254,6 +254,7 @@ sagemaker
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
+- [ ] list_resource_catalogs
 - [ ] list_spaces
 - [ ] list_stage_devices
 - [ ] list_studio_lifecycle_configs

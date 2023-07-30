@@ -32,7 +32,7 @@ logs
 - [X] create_log_stream
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
-- [ ] delete_destination
+- [X] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
 - [X] delete_metric_filter
@@ -43,7 +43,7 @@ logs
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
 - [ ] describe_account_policies
-- [ ] describe_destinations
+- [X] describe_destinations
 - [ ] describe_export_tasks
 - [X] describe_log_groups
 - [X] describe_log_streams
@@ -75,8 +75,8 @@ logs
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
-- [ ] put_destination
-- [ ] put_destination_policy
+- [X] put_destination
+- [X] put_destination_policy
 - [X] put_log_events
   
         The SequenceToken-parameter is not yet implemented
