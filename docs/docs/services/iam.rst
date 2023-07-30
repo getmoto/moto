@@ -96,6 +96,7 @@ iam
 - [X] get_group_policy
 - [X] get_instance_profile
 - [X] get_login_profile
+- [ ] get_mfa_device
 - [X] get_open_id_connect_provider
 - [ ] get_organizations_access_report
 - [X] get_policy

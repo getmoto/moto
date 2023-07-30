@@ -2,6 +2,30 @@ Moto Changelog
 ==============
 
 
+4.1.14
+------
+Docker Digest for 4.1.14: <autopopulateddigest>
+
+    New Methods:
+        * SageMaker:
+            * create_model_package()
+            * create_model_package_group()
+            * describe_model_package()
+            * list_model_packages()
+
+    Miscellaneous:
+        * CloudFormation: describe_stack_instances() now returns the StackInstanceStatus-attribute
+        * CloudFront: update_distribution() now supports the DefaultRootObject-parameter
+        * CloudWatch: get_metric_data() now support (simple) Expressions
+        * CognitoIDP: initiate_auth() and admin_initiate_auth() now throw a NotAuthorizedError for disabled users
+        * EC2 VPC's: Add CloudFront, Ground Station and Lattice prefix lists
+        * IOT: search_index() now returns the connectivity-attribute
+        * Organizations: Introduce more trusted service principals
+        * RDS: create_db_cluster() now supports the VpcSecurityGroupIds-parameter
+        * S3: Optional support for CRC32C checksums
+        * SNS: publish_batch() now sends the required `MessageDeduplicationId` for FIFO queues
+        * SQS: send_message_batch() now only throws a `BatchRequestTooLong` if the sum of all messages exceed the limit 
+
 4.1.13
 ------
 Docker Digest for 4.1.13: _sha256:ec471bcfbf66def946466398f002e8edfbb667bde7b1d8033aedbdd4453fbb8e_

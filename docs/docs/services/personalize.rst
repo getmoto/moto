@@ -95,6 +95,7 @@ personalize
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_campaign
+- [ ] update_dataset
 - [ ] update_metric_attribution
 - [ ] update_recommender
 

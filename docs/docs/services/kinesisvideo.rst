@@ -27,6 +27,7 @@ kinesisvideo
 
 - [ ] create_signaling_channel
 - [X] create_stream
+- [ ] delete_edge_configuration
 - [ ] delete_signaling_channel
 - [X] delete_stream
   
@@ -42,6 +43,7 @@ kinesisvideo
 - [X] describe_stream
 - [X] get_data_endpoint
 - [ ] get_signaling_channel_endpoint
+- [ ] list_edge_agent_configurations
 - [ ] list_signaling_channels
 - [X] list_streams
   
