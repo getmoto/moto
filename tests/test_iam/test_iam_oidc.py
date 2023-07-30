@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa  # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_iam
@@ -17,32 +16,36 @@ def test_create_open_id_connect_provider():
         ThumbprintList=[],  # even it is required to provide at least one thumbprint, AWS accepts an empty list
     )
 
-    response["OpenIDConnectProviderArn"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.com"
+    assert (
+        response["OpenIDConnectProviderArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.com"
     )
 
     response = client.create_open_id_connect_provider(
         Url="http://example.org", ThumbprintList=["b" * 40], ClientIDList=["b"]
     )
 
-    response["OpenIDConnectProviderArn"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org"
+    assert (
+        response["OpenIDConnectProviderArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org"
     )
 
     response = client.create_open_id_connect_provider(
         Url="http://example.org/oidc", ThumbprintList=[]
     )
 
-    response["OpenIDConnectProviderArn"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org/oidc"
+    assert (
+        response["OpenIDConnectProviderArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org/oidc"
     )
 
     response = client.create_open_id_connect_provider(
         Url="http://example.org/oidc-query?test=true", ThumbprintList=[]
     )
 
-    response["OpenIDConnectProviderArn"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org/oidc-query"
+    assert (
+        response["OpenIDConnectProviderArn"]
+        == f"arn:aws:iam::{ACCOUNT_ID}:oidc-provider/example.org/oidc-query"
     )
 
 
@@ -57,9 +60,9 @@ def test_create_open_id_connect_provider_with_tags():
     open_id_arn = response["OpenIDConnectProviderArn"]
 
     response = client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
-    response.should.have.key("Tags").length_of(2)
-    response["Tags"].should.contain({"Key": "k1", "Value": "v1"})
-    response["Tags"].should.contain({"Key": "k2", "Value": "v2"})
+    assert len(response["Tags"]) == 2
+    assert {"Key": "k1", "Value": "v1"} in response["Tags"]
+    assert {"Key": "k2", "Value": "v2"} in response["Tags"]
 
 
 @pytest.mark.parametrize("url", ["example.org", "example"])
@@ -69,7 +72,7 @@ def test_create_open_id_connect_provider_invalid_url(url):
     with pytest.raises(ClientError) as e:
         client.create_open_id_connect_provider(Url=url, ThumbprintList=[])
     msg = e.value.response["Error"]["Message"]
-    msg.should.contain("Invalid Open ID Connect Provider URL")
+    assert "Invalid Open ID Connect Provider URL" in msg
 
 
 @mock_iam
@@ -77,9 +80,12 @@ def test_create_open_id_connect_provider_errors():
     client = boto3.client("iam", region_name="us-east-1")
     client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
 
-    client.create_open_id_connect_provider.when.called_with(
-        Url="https://example.com", ThumbprintList=[]
-    ).should.throw(ClientError, "Unknown")
+    with pytest.raises(ClientError) as exc:
+        client.create_open_id_connect_provider(
+            Url="https://example.com", ThumbprintList=[]
+        )
+    err = exc.value.response["Error"]
+    assert err["Message"] == "Unknown"
 
 
 @mock_iam
@@ -99,7 +105,7 @@ def test_create_open_id_connect_provider_too_many_entries():
             ],
         )
     msg = e.value.response["Error"]["Message"]
-    msg.should.contain("Thumbprint list must contain fewer than 5 entries.")
+    assert "Thumbprint list must contain fewer than 5 entries." in msg
 
 
 @mock_iam
@@ -114,7 +120,7 @@ def test_create_open_id_connect_provider_quota_error():
             ClientIDList=too_many_client_ids,
         )
     msg = e.value.response["Error"]["Message"]
-    msg.should.contain("Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100")
+    assert "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100" in msg
 
 
 @mock_iam
@@ -131,15 +137,15 @@ def test_create_open_id_connect_provider_multiple_errors():
             ClientIDList=[too_long_client_id],
         )
     msg = e.value.response["Error"]["Message"]
-    msg.should.contain("3 validation errors detected:")
-    msg.should.contain('"clientIDList" failed to satisfy constraint:')
-    msg.should.contain("Member must have length less than or equal to 255")
-    msg.should.contain("Member must have length greater than or equal to 1")
-    msg.should.contain('"thumbprintList" failed to satisfy constraint:')
-    msg.should.contain("Member must have length less than or equal to 40")
-    msg.should.contain("Member must have length greater than or equal to 40")
-    msg.should.contain('"url" failed to satisfy constraint:')
-    msg.should.contain("Member must have length less than or equal to 255")
+    assert "3 validation errors detected:" in msg
+    assert '"clientIDList" failed to satisfy constraint:' in msg
+    assert "Member must have length less than or equal to 255" in msg
+    assert "Member must have length greater than or equal to 1" in msg
+    assert '"thumbprintList" failed to satisfy constraint:' in msg
+    assert "Member must have length less than or equal to 40" in msg
+    assert "Member must have length greater than or equal to 40" in msg
+    assert '"url" failed to satisfy constraint:' in msg
+    assert "Member must have length less than or equal to 255" in msg
 
 
 @mock_iam
@@ -152,11 +158,10 @@ def test_delete_open_id_connect_provider():
 
     client.delete_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
 
-    client.get_open_id_connect_provider.when.called_with(
-        OpenIDConnectProviderArn=open_id_arn
-    ).should.throw(
-        ClientError, f"OpenIDConnect Provider not found for arn {open_id_arn}"
-    )
+    with pytest.raises(ClientError) as exc:
+        client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
+    err = exc.value.response["Error"]
+    assert err["Message"] == f"OpenIDConnect Provider not found for arn {open_id_arn}"
 
     # deleting a non existing provider should be successful
     client.delete_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
@@ -172,10 +177,10 @@ def test_get_open_id_connect_provider():
 
     response = client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
 
-    response["Url"].should.equal("example.com")
-    response["ThumbprintList"].should.equal(["b" * 40])
-    response["ClientIDList"].should.equal(["b"])
-    response.should.have.key("CreateDate").should.be.a(datetime)
+    assert response["Url"] == "example.com"
+    assert response["ThumbprintList"] == ["b" * 40]
+    assert response["ClientIDList"] == ["b"]
+    assert isinstance(response["CreateDate"], datetime)
 
 
 @mock_iam
@@ -192,10 +197,10 @@ def test_update_open_id_connect_provider():
 
     response = client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
 
-    response["Url"].should.equal("example.com")
-    response["ThumbprintList"].should.have.length_of(2)
-    response["ThumbprintList"].should.contain("c" * 40)
-    response["ThumbprintList"].should.contain("d" * 40)
+    assert response["Url"] == "example.com"
+    assert len(response["ThumbprintList"]) == 2
+    assert "c" * 40 in response["ThumbprintList"]
+    assert "d" * 40 in response["ThumbprintList"]
 
 
 @mock_iam
@@ -207,11 +212,10 @@ def test_get_open_id_connect_provider_errors():
     open_id_arn = response["OpenIDConnectProviderArn"]
 
     unknown_arn = open_id_arn + "-not-existing"
-    client.get_open_id_connect_provider.when.called_with(
-        OpenIDConnectProviderArn=unknown_arn
-    ).should.throw(
-        ClientError, f"OpenIDConnect Provider not found for arn {unknown_arn}"
-    )
+    with pytest.raises(ClientError) as exc:
+        client.get_open_id_connect_provider(OpenIDConnectProviderArn=unknown_arn)
+    err = exc.value.response["Error"]
+    assert err["Message"] == f"OpenIDConnect Provider not found for arn {unknown_arn}"
 
 
 @mock_iam
@@ -234,9 +238,11 @@ def test_list_open_id_connect_providers():
 
     response = client.list_open_id_connect_providers()
 
-    sorted(response["OpenIDConnectProviderList"], key=lambda i: i["Arn"]).should.equal(
-        [{"Arn": open_id_arn_1}, {"Arn": open_id_arn_2}, {"Arn": open_id_arn_3}]
-    )
+    assert sorted(response["OpenIDConnectProviderList"], key=lambda i: i["Arn"]) == [
+        {"Arn": open_id_arn_1},
+        {"Arn": open_id_arn_2},
+        {"Arn": open_id_arn_3},
+    ]
 
 
 @mock_iam
@@ -252,9 +258,9 @@ def test_tag_open_id_connect_provider():
     )
 
     response = client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
-    response.should.have.key("Tags").length_of(2)
-    response["Tags"].should.contain({"Key": "k1", "Value": "v1"})
-    response["Tags"].should.contain({"Key": "k2", "Value": "v2"})
+    assert len(response["Tags"]) == 2
+    assert {"Key": "k1", "Value": "v1"} in response["Tags"]
+    assert {"Key": "k2", "Value": "v2"} in response["Tags"]
 
 
 @mock_iam
@@ -273,8 +279,8 @@ def test_untag_open_id_connect_provider():
     )
 
     response = client.get_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
-    response.should.have.key("Tags").length_of(1)
-    response["Tags"].should.contain({"Key": "k1", "Value": "v1"})
+    assert len(response["Tags"]) == 1
+    assert {"Key": "k1", "Value": "v1"} in response["Tags"]
 
 
 @mock_iam
@@ -290,9 +296,9 @@ def test_list_open_id_connect_provider_tags():
     response = client.list_open_id_connect_provider_tags(
         OpenIDConnectProviderArn=open_id_arn
     )
-    response.should.have.key("Tags").length_of(2)
-    response["Tags"].should.contain({"Key": "k1", "Value": "v1"})
-    response["Tags"].should.contain({"Key": "k2", "Value": "v2"})
+    assert len(response["Tags"]) == 2
+    assert {"Key": "k1", "Value": "v1"} in response["Tags"]
+    assert {"Key": "k2", "Value": "v2"} in response["Tags"]
 
 
 @mock_iam
@@ -316,14 +322,13 @@ def test_list_open_id_connect_provider_tags__paginated():
     response = client.list_open_id_connect_provider_tags(
         OpenIDConnectProviderArn=open_id_arn
     )
-    response.should.have.key("Tags").length_of(100)
-    response.should.have.key("Marker")
+    assert len(response["Tags"]) == 100
 
     response = client.list_open_id_connect_provider_tags(
         OpenIDConnectProviderArn=open_id_arn, Marker=response["Marker"]
     )
-    response.should.have.key("Tags").length_of(50)
-    response.shouldnt.have.key("Marker")
+    assert len(response["Tags"]) == 50
+    assert "Marker" not in response
 
 
 @mock_iam
@@ -339,17 +344,15 @@ def test_list_open_id_connect_provider_tags__maxitems():
     response = client.list_open_id_connect_provider_tags(
         OpenIDConnectProviderArn=open_id_arn, MaxItems=4
     )
-    response.should.have.key("Tags").length_of(4)
-    response.should.have.key("Marker")
+    assert len(response["Tags"]) == 4
 
     response = client.list_open_id_connect_provider_tags(
         OpenIDConnectProviderArn=open_id_arn, Marker=response["Marker"], MaxItems=4
     )
-    response.should.have.key("Tags").length_of(4)
-    response.should.have.key("Marker")
+    assert len(response["Tags"]) == 4
 
     response = client.list_open_id_connect_provider_tags(
         OpenIDConnectProviderArn=open_id_arn, Marker=response["Marker"]
     )
-    response.should.have.key("Tags").length_of(2)
-    response.shouldnt.have.key("Marker")
+    assert len(response["Tags"]) == 2
+    assert "Marker" not in response
