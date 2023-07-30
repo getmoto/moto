@@ -108,6 +108,30 @@
   "Location": "eu-south-2a"
  },
  {
+  "InstanceType": "g5g.16xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "g5g.2xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "g5g.4xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "g5g.8xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "g5g.metal",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "g5g.xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eu-south-2a"
  },
