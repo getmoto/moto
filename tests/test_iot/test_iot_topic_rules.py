@@ -29,7 +29,7 @@ def test_topic_rule_create():
     with pytest.raises(ClientError) as ex:
         client.create_topic_rule(ruleName=name, topicRulePayload=payload)
     error_code = ex.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceAlreadyExistsException")
+    assert error_code == "ResourceAlreadyExistsException"
 
 
 @mock_iot
@@ -38,19 +38,19 @@ def test_topic_rule_list():
 
     # empty response
     res = client.list_topic_rules()
-    res.should.have.key("rules").which.should.have.length_of(0)
+    assert len(res["rules"]) == 0
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
     client.create_topic_rule(ruleName="my-rule-2", topicRulePayload=payload)
 
     res = client.list_topic_rules()
-    res.should.have.key("rules").which.should.have.length_of(2)
+    assert len(res["rules"]) == 2
     for rule, rule_name in zip(res["rules"], [name, "my-rule-2"]):
-        rule.should.have.key("ruleName").which.should.equal(rule_name)
-        rule.should.have.key("createdAt").which.should_not.be.none
-        rule.should.have.key("ruleArn").which.should_not.be.none
-        rule.should.have.key("ruleDisabled").which.should.equal(payload["ruleDisabled"])
-        rule.should.have.key("topicPattern").which.should.equal("topic/*")
+        assert rule["ruleName"] == rule_name
+        assert rule["createdAt"] is not None
+        assert rule["ruleArn"] is not None
+        assert rule["ruleDisabled"] == payload["ruleDisabled"]
+        assert rule["topicPattern"] == "topic/*"
 
 
 @mock_iot
@@ -61,25 +61,22 @@ def test_topic_rule_get():
     with pytest.raises(ClientError) as ex:
         client.get_topic_rule(ruleName=name)
     error_code = ex.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
 
     rule = client.get_topic_rule(ruleName=name)
 
-    rule.should.have.key("ruleArn").which.should_not.be.none
-    rule.should.have.key("rule")
+    assert rule["ruleArn"] is not None
     rrule = rule["rule"]
-    rrule.should.have.key("actions").which.should.equal(payload["actions"])
-    rrule.should.have.key("awsIotSqlVersion").which.should.equal(
-        payload["awsIotSqlVersion"]
-    )
-    rrule.should.have.key("createdAt").which.should_not.be.none
-    rrule.should.have.key("description").which.should.equal(payload["description"])
-    rrule.should.have.key("errorAction").which.should.equal(payload["errorAction"])
-    rrule.should.have.key("ruleDisabled").which.should.equal(payload["ruleDisabled"])
-    rrule.should.have.key("ruleName").which.should.equal(name)
-    rrule.should.have.key("sql").which.should.equal(payload["sql"])
+    assert rrule["actions"] == payload["actions"]
+    assert rrule["awsIotSqlVersion"] == payload["awsIotSqlVersion"]
+    assert rrule["createdAt"] is not None
+    assert rrule["description"] == payload["description"]
+    assert rrule["errorAction"] == payload["errorAction"]
+    assert rrule["ruleDisabled"] == payload["ruleDisabled"]
+    assert rrule["ruleName"] == name
+    assert rrule["sql"] == payload["sql"]
 
 
 @mock_iot
@@ -90,7 +87,7 @@ def test_topic_rule_replace():
     with pytest.raises(ClientError) as ex:
         client.replace_topic_rule(ruleName=name, topicRulePayload=payload)
     error_code = ex.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
 
@@ -99,8 +96,8 @@ def test_topic_rule_replace():
     client.replace_topic_rule(ruleName=name, topicRulePayload=my_payload)
 
     rule = client.get_topic_rule(ruleName=name)
-    rule["rule"]["ruleName"].should.equal(name)
-    rule["rule"]["description"].should.equal(my_payload["description"])
+    assert rule["rule"]["ruleName"] == name
+    assert rule["rule"]["description"] == my_payload["description"]
 
 
 @mock_iot
@@ -111,15 +108,15 @@ def test_topic_rule_disable():
     with pytest.raises(ClientError) as ex:
         client.disable_topic_rule(ruleName=name)
     error_code = ex.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
 
     client.disable_topic_rule(ruleName=name)
 
     rule = client.get_topic_rule(ruleName=name)
-    rule["rule"]["ruleName"].should.equal(name)
-    rule["rule"]["ruleDisabled"].should.equal(True)
+    assert rule["rule"]["ruleName"] == name
+    assert rule["rule"]["ruleDisabled"] is True
 
 
 @mock_iot
@@ -130,7 +127,7 @@ def test_topic_rule_enable():
     with pytest.raises(ClientError) as ex:
         client.enable_topic_rule(ruleName=name)
     error_code = ex.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
     my_payload = payload.copy()
     my_payload["ruleDisabled"] = True
@@ -139,8 +136,8 @@ def test_topic_rule_enable():
     client.enable_topic_rule(ruleName=name)
 
     rule = client.get_topic_rule(ruleName=name)
-    rule["rule"]["ruleName"].should.equal(name)
-    rule["rule"]["ruleDisabled"].should.equal(False)
+    assert rule["rule"]["ruleName"] == name
+    assert rule["rule"]["ruleDisabled"] is False
 
 
 @mock_iot
@@ -151,7 +148,7 @@ def test_topic_rule_delete():
     with pytest.raises(ClientError) as ex:
         client.delete_topic_rule(ruleName=name)
     error_code = ex.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
 
@@ -160,4 +157,4 @@ def test_topic_rule_delete():
     client.delete_topic_rule(ruleName=name)
 
     res = client.list_topic_rules()
-    res.should.have.key("rules").which.should.have.length_of(0)
+    assert len(res["rules"]) == 0
