@@ -7,6 +7,7 @@ from moto.s3.models import s3_backends, S3Backend
 from moto.ec2 import ec2_backends
 from moto.elb.models import elb_backends, ELBBackend
 from moto.elbv2.models import elbv2_backends, ELBv2Backend
+from moto.glue.models import glue_backends, GlueBackend
 from moto.kinesis.models import kinesis_backends, KinesisBackend
 from moto.kms.models import kms_backends, KmsBackend
 from moto.rds.models import rds_backends, RDSBackend
@@ -46,6 +47,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def elbv2_backend(self) -> ELBv2Backend:
         return elbv2_backends[self.account_id][self.region_name]
+
+    @property
+    def glue_backend(self) -> GlueBackend:
+        return glue_backends[self.account_id][self.region_name]
 
     @property
     def kinesis_backend(self) -> KinesisBackend:
@@ -328,6 +333,29 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Glacier Vault
 
+        # Glue
+        if not resource_type_filters or any(
+            ("glue" in _type) for _type in resource_type_filters
+        ):
+            if not resource_type_filters or "glue" in resource_type_filters:
+                arns_starting_with = [
+                    f"arn:aws:glue:{self.region_name}:{self.account_id}:"
+                ]
+            else:
+                arns_starting_with = []
+                for resource_type in resource_type_filters:
+                    if resource_type.startswith("glue:"):
+                        glue_type = resource_type.split(":")[-1]
+                        arns_starting_with.append(
+                            f"arn:aws:glue:{self.region_name}:{self.account_id}:{glue_type}"
+                        )
+            for glue_arn in self.glue_backend.tagger.tags.keys():
+                if any(glue_arn.startswith(arn) for arn in arns_starting_with):
+                    tags = self.glue_backend.tagger.list_tags_for_resource(glue_arn)[
+                        "Tags"
+                    ]
+                    yield {"ResourceARN": glue_arn, "Tags": tags}
+
         # Kinesis
 
         # KMS
@@ -506,6 +534,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for key in get_ec2_keys(volume.id):  # type: ignore[assignment]
                 yield key
 
+        # Glue
+        for tag_dict in self.glue_backend.tagger.tags.values():
+            for tag_key in tag_dict.keys():
+                yield tag_key
+
     def _get_tag_values_generator(self, tag_key: str) -> Iterator[str]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -560,6 +593,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         for volume in self.ec2_backend.volumes.values():
             for value in get_ec2_values(volume.id):  # type: ignore[assignment]
                 yield value
+
+        # Glue
+        for tag_dict in self.glue_backend.tagger.tags.values():
+            for key, tag_value in tag_dict.items():
+                if key == tag_key and tag_value is not None:
+                    yield tag_value
 
     def get_resources(
         self,
