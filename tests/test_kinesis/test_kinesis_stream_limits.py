@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_kinesis
@@ -19,9 +18,10 @@ def test_record_data_exceeds_1mb():
             StreamName="my_stream",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value at 'records.1.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value at 'records.1.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576"
     )
 
 
@@ -39,9 +39,10 @@ def test_record_data_and_partition_key_exceeds_1mb():
             StreamName="my_stream",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value at 'records.1.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value at 'records.1.member.data' failed to satisfy constraint: Member must have length less than or equal to 1048576"
     )
 
 
@@ -84,8 +85,8 @@ def test_total_record_data_exceeds_5mb():
             StreamName="my_stream",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Records size exceeds 5 MB limit")
+    assert err["Code"] == "InvalidArgumentException"
+    assert err["Message"] == "Records size exceeds 5 MB limit"
 
 
 @mock_kinesis
@@ -112,7 +113,8 @@ def test_too_many_records():
             StreamName="my_stream",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value at 'records' failed to satisfy constraint: Member must have length less than or equal to 500"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value at 'records' failed to satisfy constraint: Member must have length less than or equal to 500"
     )
