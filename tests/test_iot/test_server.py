@@ -1,8 +1,7 @@
 import json
-from urllib.parse import quote
-
 import pytest
-import sure  # noqa # pylint: disable=unused-import
+
+from urllib.parse import quote
 
 import moto.server as server
 from moto import mock_iot
@@ -19,7 +18,7 @@ def test_iot_list():
 
     # just making sure that server is up
     res = test_client.get("/things")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
 
 @pytest.mark.parametrize(
@@ -45,6 +44,6 @@ def test_list_attached_policies(url_encode_arn):
         certificate_arn = quote(certificate_arn, safe="")
 
     result = test_client.post(f"/attached-policies/{certificate_arn}")
-    result.status_code.should.equal(200)
+    assert result.status_code == 200
     result_dict = json.loads(result.data.decode("utf-8"))
-    result_dict["policies"][0]["policyName"].should.equal("my-policy")
+    assert result_dict["policies"][0]["policyName"] == "my-policy"

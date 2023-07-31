@@ -47,8 +47,8 @@ def test_search_attribute_specific_value(query_string, results):
         )
 
     resp = client.search_index(queryString=query_string)
-    resp.should.have.key("thingGroups").equals([])
-    resp.should.have.key("things").length_of(len(results))
+    assert resp["thingGroups"] == []
+    assert len(resp["things"]) == len(results)
 
     thing_names = [t["thingName"] for t in resp["things"]]
-    set(thing_names).should.equal(results)
+    assert set(thing_names) == results

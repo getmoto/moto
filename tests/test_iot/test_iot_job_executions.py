@@ -13,8 +13,8 @@ def test_describe_job_execution():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -32,64 +32,43 @@ def test_describe_job_execution():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
-    job.should.have.key("description")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
+    assert "description" in job
 
     job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
-    job_execution.should.have.key("execution")
-    job_execution["execution"].should.have.key("jobId").which.should.equal(job_id)
-    job_execution["execution"].should.have.key("status").which.should.equal("QUEUED")
-    job_execution["execution"].should.have.key("forceCanceled").which.should.equal(
-        False
-    )
-    job_execution["execution"].should.have.key("statusDetails").which.should.equal(
-        {"detailsMap": {}}
-    )
-    job_execution["execution"].should.have.key("thingArn").which.should.equal(
-        thing["thingArn"]
-    )
-    job_execution["execution"].should.have.key("queuedAt")
-    job_execution["execution"].should.have.key("startedAt")
-    job_execution["execution"].should.have.key("lastUpdatedAt")
-    job_execution["execution"].should.have.key("executionNumber").which.should.equal(
-        123
-    )
-    job_execution["execution"].should.have.key("versionNumber").which.should.equal(123)
-    job_execution["execution"].should.have.key(
-        "approximateSecondsBeforeTimedOut"
-    ).which.should.equal(123)
+    assert job_execution["execution"]["jobId"] == job_id
+    assert job_execution["execution"]["status"] == "QUEUED"
+    assert job_execution["execution"]["forceCanceled"] is False
+    assert job_execution["execution"]["statusDetails"] == {"detailsMap": {}}
+    assert job_execution["execution"]["thingArn"] == thing["thingArn"]
+    assert "queuedAt" in job_execution["execution"]
+    assert "startedAt" in job_execution["execution"]
+    assert "lastUpdatedAt" in job_execution["execution"]
+    assert job_execution["execution"]["executionNumber"] == 123
+    assert job_execution["execution"]["versionNumber"] == 123
+    assert job_execution["execution"]["approximateSecondsBeforeTimedOut"] == 123
 
     job_execution = client.describe_job_execution(
         jobId=job_id, thingName=name, executionNumber=123
     )
-    job_execution.should.have.key("execution")
-    job_execution["execution"].should.have.key("jobId").which.should.equal(job_id)
-    job_execution["execution"].should.have.key("status").which.should.equal("QUEUED")
-    job_execution["execution"].should.have.key("forceCanceled").which.should.equal(
-        False
-    )
-    job_execution["execution"].should.have.key("statusDetails").which.should.equal(
-        {"detailsMap": {}}
-    )
-    job_execution["execution"].should.have.key("thingArn").which.should.equal(
-        thing["thingArn"]
-    )
-    job_execution["execution"].should.have.key("queuedAt")
-    job_execution["execution"].should.have.key("startedAt")
-    job_execution["execution"].should.have.key("lastUpdatedAt")
-    job_execution["execution"].should.have.key("executionNumber").which.should.equal(
-        123
-    )
-    job_execution["execution"].should.have.key("versionNumber").which.should.equal(123)
-    job_execution["execution"].should.have.key(
-        "approximateSecondsBeforeTimedOut"
-    ).which.should.equal(123)
+    assert "execution" in job_execution
+    assert job_execution["execution"]["jobId"] == job_id
+    assert job_execution["execution"]["status"] == "QUEUED"
+    assert job_execution["execution"]["forceCanceled"] is False
+    assert job_execution["execution"]["statusDetails"] == {"detailsMap": {}}
+    assert job_execution["execution"]["thingArn"] == thing["thingArn"]
+    assert "queuedAt" in job_execution["execution"]
+    assert "startedAt" in job_execution["execution"]
+    assert "lastUpdatedAt" in job_execution["execution"]
+    assert job_execution["execution"]["executionNumber"] == 123
+    assert job_execution["execution"]["versionNumber"] == 123
+    assert job_execution["execution"]["approximateSecondsBeforeTimedOut"] == 123
 
     with pytest.raises(ClientError) as exc:
         client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=456)
     error_code = exc.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
 
 @mock_iot
@@ -99,8 +78,8 @@ def test_cancel_job_execution():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -118,14 +97,14 @@ def test_cancel_job_execution():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
-    job.should.have.key("description")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
+    assert "description" in job
 
     client.cancel_job_execution(jobId=job_id, thingName=name)
     job_execution = client.describe_job_execution(jobId=job_id, thingName=name)
-    job_execution.should.have.key("execution")
-    job_execution["execution"].should.have.key("status").which.should.equal("CANCELED")
+    assert "execution" in job_execution
+    assert job_execution["execution"]["status"] == "CANCELED"
 
 
 @mock_iot
@@ -135,8 +114,8 @@ def test_delete_job_execution():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -154,16 +133,16 @@ def test_delete_job_execution():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
-    job.should.have.key("description")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
+    assert "description" in job
 
     client.delete_job_execution(jobId=job_id, thingName=name, executionNumber=123)
 
     with pytest.raises(ClientError) as exc:
         client.describe_job_execution(jobId=job_id, thingName=name, executionNumber=123)
     error_code = exc.value.response["Error"]["Code"]
-    error_code.should.equal("ResourceNotFoundException")
+    assert error_code == "ResourceNotFoundException"
 
 
 @mock_iot
@@ -173,8 +152,8 @@ def test_list_job_executions_for_job():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -192,21 +171,15 @@ def test_list_job_executions_for_job():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
-    job.should.have.key("description")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
+    assert "description" in job
 
     job_execution = client.list_job_executions_for_job(jobId=job_id)
-    job_execution.should.have.key("executionSummaries")
-    job_execution["executionSummaries"][0].should.have.key(
-        "thingArn"
-    ).which.should.equal(thing["thingArn"])
+    assert job_execution["executionSummaries"][0]["thingArn"] == thing["thingArn"]
 
     job_execution = client.list_job_executions_for_job(jobId=job_id, status="QUEUED")
-    job_execution.should.have.key("executionSummaries")
-    job_execution["executionSummaries"][0].should.have.key(
-        "thingArn"
-    ).which.should.equal(thing["thingArn"])
+    assert job_execution["executionSummaries"][0]["thingArn"] == thing["thingArn"]
 
 
 @mock_iot
@@ -216,8 +189,8 @@ def test_list_job_executions_for_thing():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -235,23 +208,17 @@ def test_list_job_executions_for_thing():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
-    job.should.have.key("description")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
+    assert "description" in job
 
     job_execution = client.list_job_executions_for_thing(thingName=name)
-    job_execution.should.have.key("executionSummaries")
-    job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
-        job_id
-    )
+    assert job_execution["executionSummaries"][0]["jobId"] == job_id
 
     job_execution = client.list_job_executions_for_thing(
         thingName=name, status="QUEUED"
     )
-    job_execution.should.have.key("executionSummaries")
-    job_execution["executionSummaries"][0].should.have.key("jobId").which.should.equal(
-        job_id
-    )
+    assert job_execution["executionSummaries"][0]["jobId"] == job_id
 
 
 @mock_iot
@@ -269,19 +236,17 @@ def test_list_job_executions_for_thing_paginated():
 
     res = client.list_job_executions_for_thing(thingName=name, maxResults=2)
     executions = res["executionSummaries"]
-    executions.should.have.length_of(2)
-    res.should.have.key("nextToken")
+    assert len(executions) == 2
 
     res = client.list_job_executions_for_thing(
         thingName=name, maxResults=1, nextToken=res["nextToken"]
     )
     executions = res["executionSummaries"]
-    executions.should.have.length_of(1)
-    res.should.have.key("nextToken")
+    assert len(executions) == 1
 
     res = client.list_job_executions_for_thing(
         thingName=name, nextToken=res["nextToken"]
     )
     executions = res["executionSummaries"]
-    executions.should.have.length_of(7)
-    res.shouldnt.have.key("nextToken")
+    assert len(executions) == 7
+    assert "nextToken" not in res
