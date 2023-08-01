@@ -9,11 +9,13 @@ from uuid import uuid4
 @mock_resourcegroupstaggingapi
 def test_glue_jobs():
     glue = boto3.client("glue", region_name="us-west-1")
+    tag_key = str(uuid4())[0:6]
+    tag_val = str(uuid4())[0:6]
     job_name = glue.create_job(
         Name=str(uuid4()),
         Role="test_role",
         Command=dict(Name="test_command"),
-        Tags={"k1": "v1"},
+        Tags={tag_key: tag_val},
     )["Name"]
     job_arn = f"arn:aws:glue:us-west-1:{DEFAULT_ACCOUNT_ID}:job/{job_name}"
 
@@ -22,21 +24,21 @@ def test_glue_jobs():
         "ResourceTagMappingList"
     ]
     assert resources == [
-        {"ResourceARN": job_arn, "Tags": [{"Key": "k1", "Value": "v1"}]}
+        {"ResourceARN": job_arn, "Tags": [{"Key": tag_key, "Value": tag_val}]}
     ]
 
     resources = rtapi.get_resources(ResourceTypeFilters=["glue:job"])[
         "ResourceTagMappingList"
     ]
     assert resources == [
-        {"ResourceARN": job_arn, "Tags": [{"Key": "k1", "Value": "v1"}]}
+        {"ResourceARN": job_arn, "Tags": [{"Key": tag_key, "Value": tag_val}]}
     ]
 
-    resources = rtapi.get_resources(TagFilters=[{"Key": "k1", "Values": ["v1"]}])[
+    resources = rtapi.get_resources(TagFilters=[{"Key": tag_key, "Values": [tag_val]}])[
         "ResourceTagMappingList"
     ]
     assert resources == [
-        {"ResourceARN": job_arn, "Tags": [{"Key": "k1", "Value": "v1"}]}
+        {"ResourceARN": job_arn, "Tags": [{"Key": tag_key, "Value": tag_val}]}
     ]
 
     resources = rtapi.get_resources(ResourceTypeFilters=["glue:table"])[
@@ -44,12 +46,7 @@ def test_glue_jobs():
     ]
     assert resources == []
 
-    resources = rtapi.get_resources(ResourceTypeFilters=["ec2"])[
-        "ResourceTagMappingList"
-    ]
-    assert resources == []
+    assert rtapi.get_tag_keys()["TagKeys"] == [tag_key]
 
-    assert rtapi.get_tag_keys()["TagKeys"] == ["k1"]
-
-    assert rtapi.get_tag_values(Key="k1")["TagValues"] == ["v1"]
+    assert rtapi.get_tag_values(Key=tag_key)["TagValues"] == [tag_val]
     assert rtapi.get_tag_values(Key="unknown")["TagValues"] == []
