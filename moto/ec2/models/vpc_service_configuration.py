@@ -41,6 +41,21 @@ class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
         self.principals: List[str] = []
         self.ec2_backend = ec2_backend
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "AcceptanceRequired": self.acceptance_required,
+            "AvailabilityZones": self.availability_zones,
+            "BaseEndpointDnsNames": [self.endpoint_dns_name],
+            "ManagesVpcEndpoints": self.manages_vpc_endpoints,
+            "Owner": self.ec2_backend.account_id,
+            "PrivateDnsName": self.private_dns_name,
+            "PrivateDnsNames": [{"PrivateDnsName": self.private_dns_name}],
+            "ServiceId": self.id,
+            "ServiceName": self.service_name,
+            "ServiceType": [{"ServiceType": self.service_type}],
+            "VpcEndpointPolicySupported": True,
+        }
+
 
 class VPCServiceConfigurationBackend:
     def __init__(self) -> None:

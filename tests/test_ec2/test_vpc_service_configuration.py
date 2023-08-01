@@ -3,6 +3,7 @@ import pytest
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_elbv2
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -101,13 +102,11 @@ def test_create_vpc_endpoint_service_configuration_with_options():
         region_name="us-east-2", lb_type="gateway", zone="us-east-1c"
     )
 
-    resp = client.create_vpc_endpoint_service_configuration(
+    config = client.create_vpc_endpoint_service_configuration(
         GatewayLoadBalancerArns=[lb_arn],
         AcceptanceRequired=False,
         PrivateDnsName="example.com",
-    )
-    assert "ServiceConfiguration" in resp
-    config = resp["ServiceConfiguration"]
+    )["ServiceConfiguration"]
 
     assert config["AcceptanceRequired"] is False
     assert config["PrivateDnsName"] == "example.com"
@@ -117,6 +116,13 @@ def test_create_vpc_endpoint_service_configuration_with_options():
         "Type": "TXT",
         "Value": "val",
     }
+
+    service_name = config["ServiceName"]
+    detail = client.describe_vpc_endpoint_services(ServiceNames=[service_name])[
+        "ServiceDetails"
+    ][0]
+    assert detail["ServiceName"] == service_name
+    assert detail["Owner"] == DEFAULT_ACCOUNT_ID
 
 
 @mock_ec2

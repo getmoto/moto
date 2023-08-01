@@ -845,13 +845,16 @@ class VPCBackend:
         default_services = self._collect_default_endpoint_services(
             self.account_id, region  # type: ignore[attr-defined]
         )
+        custom_services = [x.to_dict() for x in self.configurations.values()]  # type: ignore
+        all_services = default_services + custom_services
+
         for service_name in service_names:
-            if service_name not in [x["ServiceName"] for x in default_services]:
+            if service_name not in [x["ServiceName"] for x in all_services]:
                 raise InvalidServiceName(service_name)
 
         # Apply filters specified in the service_names and filters arguments.
         filtered_services = sorted(
-            self._filter_endpoint_services(service_names, filters, default_services),
+            self._filter_endpoint_services(service_names, filters, all_services),
             key=itemgetter("ServiceName"),
         )
 
