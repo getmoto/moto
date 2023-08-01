@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto.kms.exceptions import (
@@ -60,40 +59,40 @@ CIPHERTEXT_BLOB_VECTORS = [
 def test_generate_data_key():
     test = generate_data_key(123)
 
-    test.should.be.a(bytes)
-    len(test).should.equal(123)
+    assert isinstance(test, bytes)
+    assert len(test) == 123
 
 
 def test_generate_master_key():
     test = generate_master_key()
 
-    test.should.be.a(bytes)
-    len(test).should.equal(MASTER_KEY_LEN)
+    assert isinstance(test, bytes)
+    assert len(test) == MASTER_KEY_LEN
 
 
 @pytest.mark.parametrize("raw,serialized", ENCRYPTION_CONTEXT_VECTORS)
 def test_serialize_encryption_context(raw, serialized):
     test = _serialize_encryption_context(raw)
-    test.should.equal(serialized)
+    assert test == serialized
 
 
 @pytest.mark.parametrize("raw,_serialized", CIPHERTEXT_BLOB_VECTORS)
 def test_cycle_ciphertext_blob(raw, _serialized):
     test_serialized = _serialize_ciphertext_blob(raw)
     test_deserialized = _deserialize_ciphertext_blob(test_serialized)
-    test_deserialized.should.equal(raw)
+    assert test_deserialized == raw
 
 
 @pytest.mark.parametrize("raw,serialized", CIPHERTEXT_BLOB_VECTORS)
 def test_serialize_ciphertext_blob(raw, serialized):
     test = _serialize_ciphertext_blob(raw)
-    test.should.equal(serialized)
+    assert test == serialized
 
 
 @pytest.mark.parametrize("raw,serialized", CIPHERTEXT_BLOB_VECTORS)
 def test_deserialize_ciphertext_blob(raw, serialized):
     test = _deserialize_ciphertext_blob(serialized)
-    test.should.equal(raw)
+    assert test == raw
 
 
 @pytest.mark.parametrize(
@@ -110,15 +109,15 @@ def test_encrypt_decrypt_cycle(encryption_context):
         plaintext=plaintext,
         encryption_context=encryption_context,
     )
-    ciphertext_blob.should_not.equal(plaintext)
+    assert ciphertext_blob != plaintext
 
     decrypted, decrypting_key_id = decrypt(
         master_keys=master_key_map,
         ciphertext_blob=ciphertext_blob,
         encryption_context=encryption_context,
     )
-    decrypted.should.equal(plaintext)
-    decrypting_key_id.should.equal(master_key.id)
+    assert decrypted == plaintext
+    assert decrypting_key_id == master_key.id
 
 
 def test_encrypt_unknown_key_id():
