@@ -4,7 +4,7 @@ import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ssm
 
 
-test_ami = "/aws/service/ami-amazon-linux-latest/al2022-ami-kernel-default-x86_64"
+test_ami = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 
 
 @mock_ssm
