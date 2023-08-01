@@ -202,6 +202,15 @@
 - [ ] update_vpc_link
 </details>
 
+## apigatewaymanagementapi
+<details>
+<summary>100% implemented</summary>
+
+- [X] delete_connection
+- [X] get_connection
+- [X] post_to_connection
+</details>
+
 ## apigatewayv2
 <details>
 <summary>75% implemented</summary>
@@ -7246,7 +7255,6 @@
 - amplify
 - amplifybackend
 - amplifyuibuilder
-- apigatewaymanagementapi
 - appconfigdata
 - appfabric
 - appflow
