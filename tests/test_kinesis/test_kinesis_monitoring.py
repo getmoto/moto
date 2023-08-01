@@ -15,11 +15,12 @@ def test_enable_enhanced_monitoring_all():
         StreamName=stream_name, ShardLevelMetrics=["ALL"]
     )
 
-    resp.should.have.key("StreamName").equals(stream_name)
-    resp.should.have.key("CurrentShardLevelMetrics").equals([])
-    resp.should.have.key("DesiredShardLevelMetrics").equals(["ALL"])
-    resp.should.have.key("StreamARN").equals(
-        f"arn:aws:kinesis:us-east-1:{DEFAULT_ACCOUNT_ID}:stream/{stream_name}"
+    assert resp["StreamName"] == stream_name
+    assert resp["CurrentShardLevelMetrics"] == []
+    assert resp["DesiredShardLevelMetrics"] == ["ALL"]
+    assert (
+        resp["StreamARN"]
+        == f"arn:aws:kinesis:us-east-1:{DEFAULT_ACCOUNT_ID}:stream/{stream_name}"
     )
 
 
@@ -35,7 +36,7 @@ def test_enable_enhanced_monitoring_is_persisted():
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     metrics = stream["EnhancedMonitoring"][0]["ShardLevelMetrics"]
-    set(metrics).should.equal({"IncomingBytes", "OutgoingBytes"})
+    assert set(metrics) == {"IncomingBytes", "OutgoingBytes"}
 
 
 @mock_kinesis
@@ -52,22 +53,20 @@ def test_enable_enhanced_monitoring_in_steps():
         StreamName=stream_name, ShardLevelMetrics=["WriteProvisionedThroughputExceeded"]
     )
 
-    resp.should.have.key("CurrentShardLevelMetrics").should.have.length_of(2)
-    resp["CurrentShardLevelMetrics"].should.contain("IncomingBytes")
-    resp["CurrentShardLevelMetrics"].should.contain("OutgoingBytes")
-    resp.should.have.key("DesiredShardLevelMetrics").should.have.length_of(3)
-    resp["DesiredShardLevelMetrics"].should.contain("IncomingBytes")
-    resp["DesiredShardLevelMetrics"].should.contain("OutgoingBytes")
-    resp["DesiredShardLevelMetrics"].should.contain(
-        "WriteProvisionedThroughputExceeded"
-    )
+    assert len(resp["CurrentShardLevelMetrics"]) == 2
+    assert "IncomingBytes" in resp["CurrentShardLevelMetrics"]
+    assert "OutgoingBytes" in resp["CurrentShardLevelMetrics"]
+    assert len(resp["DesiredShardLevelMetrics"]) == 3
+    assert "IncomingBytes" in resp["DesiredShardLevelMetrics"]
+    assert "OutgoingBytes" in resp["DesiredShardLevelMetrics"]
+    assert "WriteProvisionedThroughputExceeded" in resp["DesiredShardLevelMetrics"]
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     metrics = stream["EnhancedMonitoring"][0]["ShardLevelMetrics"]
-    metrics.should.have.length_of(3)
-    metrics.should.contain("IncomingBytes")
-    metrics.should.contain("OutgoingBytes")
-    metrics.should.contain("WriteProvisionedThroughputExceeded")
+    assert len(metrics) == 3
+    assert "IncomingBytes" in metrics
+    assert "OutgoingBytes" in metrics
+    assert "WriteProvisionedThroughputExceeded" in metrics
 
 
 @mock_kinesis
@@ -90,35 +89,32 @@ def test_disable_enhanced_monitoring():
         StreamName=stream_name, ShardLevelMetrics=["OutgoingBytes"]
     )
 
-    resp.should.have.key("StreamName").equals(stream_name)
-    resp.should.have.key("StreamARN").equals(
-        f"arn:aws:kinesis:us-east-1:{DEFAULT_ACCOUNT_ID}:stream/{stream_name}"
+    assert resp["StreamName"] == stream_name
+    assert (
+        resp["StreamARN"]
+        == f"arn:aws:kinesis:us-east-1:{DEFAULT_ACCOUNT_ID}:stream/{stream_name}"
     )
 
-    resp.should.have.key("CurrentShardLevelMetrics").should.have.length_of(3)
-    resp["CurrentShardLevelMetrics"].should.contain("IncomingBytes")
-    resp["CurrentShardLevelMetrics"].should.contain("OutgoingBytes")
-    resp["CurrentShardLevelMetrics"].should.contain(
-        "WriteProvisionedThroughputExceeded"
-    )
-    resp.should.have.key("DesiredShardLevelMetrics").should.have.length_of(2)
-    resp["DesiredShardLevelMetrics"].should.contain("IncomingBytes")
-    resp["DesiredShardLevelMetrics"].should.contain(
-        "WriteProvisionedThroughputExceeded"
-    )
+    assert len(resp["CurrentShardLevelMetrics"]) == 3
+    assert "IncomingBytes" in resp["CurrentShardLevelMetrics"]
+    assert "OutgoingBytes" in resp["CurrentShardLevelMetrics"]
+    assert "WriteProvisionedThroughputExceeded" in resp["CurrentShardLevelMetrics"]
+    assert len(resp["DesiredShardLevelMetrics"]) == 2
+    assert "IncomingBytes" in resp["DesiredShardLevelMetrics"]
+    assert "WriteProvisionedThroughputExceeded" in resp["DesiredShardLevelMetrics"]
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     metrics = stream["EnhancedMonitoring"][0]["ShardLevelMetrics"]
-    metrics.should.have.length_of(2)
-    metrics.should.contain("IncomingBytes")
-    metrics.should.contain("WriteProvisionedThroughputExceeded")
+    assert len(metrics) == 2
+    assert "IncomingBytes" in metrics
+    assert "WriteProvisionedThroughputExceeded" in metrics
 
     resp = client.disable_enhanced_monitoring(
         StreamARN=stream_arn, ShardLevelMetrics=["IncomingBytes"]
     )
 
-    resp.should.have.key("CurrentShardLevelMetrics").should.have.length_of(2)
-    resp.should.have.key("DesiredShardLevelMetrics").should.have.length_of(1)
+    assert len(resp["CurrentShardLevelMetrics"]) == 2
+    assert len(resp["DesiredShardLevelMetrics"]) == 1
 
 
 @mock_kinesis
@@ -142,4 +138,4 @@ def test_disable_enhanced_monitoring_all():
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     metrics = stream["EnhancedMonitoring"][0]["ShardLevelMetrics"]
-    metrics.should.equal([])
+    assert metrics == []

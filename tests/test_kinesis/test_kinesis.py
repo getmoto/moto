@@ -10,8 +10,6 @@ from dateutil.tz import tzlocal
 from moto import mock_kinesis
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-import sure  # noqa # pylint: disable=unused-import
-
 
 @mock_kinesis
 def test_stream_creation_on_demand():
@@ -24,7 +22,7 @@ def test_stream_creation_on_demand():
 
     # AWS starts with 4 shards by default
     shard_list = client.list_shards(StreamARN=stream_arn)["Shards"]
-    shard_list.should.have.length_of(4)
+    assert len(shard_list) == 4
 
     # Cannot update-shard-count when we're in on-demand mode
     with pytest.raises(ClientError) as exc:
@@ -32,9 +30,10 @@ def test_stream_creation_on_demand():
             StreamARN=stream_arn, TargetShardCount=3, ScalingType="UNIFORM_SCALING"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        f"Request is invalid. Stream my_stream under account {ACCOUNT_ID} is in On-Demand mode."
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == f"Request is invalid. Stream my_stream under account {ACCOUNT_ID} is in On-Demand mode."
     )
 
 
@@ -54,7 +53,7 @@ def test_update_stream_mode():
 
     resp = client.describe_stream_summary(StreamName="my_stream")
     stream = resp["StreamDescriptionSummary"]
-    stream.should.have.key("StreamModeDetails").equals({"StreamMode": "PROVISIONED"})
+    assert stream["StreamModeDetails"] == {"StreamMode": "PROVISIONED"}
 
 
 @mock_kinesis
@@ -63,27 +62,25 @@ def test_describe_non_existent_stream():
     with pytest.raises(ClientError) as exc:
         client.describe_stream_summary(StreamName="not-a-stream")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        "Stream not-a-stream under account 123456789012 not found."
-    )
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Stream not-a-stream under account 123456789012 not found."
 
 
 @mock_kinesis
 def test_list_and_delete_stream():
     client = boto3.client("kinesis", region_name="us-west-2")
-    client.list_streams()["StreamNames"].should.have.length_of(0)
+    assert len(client.list_streams()["StreamNames"]) == 0
 
     client.create_stream(StreamName="stream1", ShardCount=1)
     client.create_stream(StreamName="stream2", ShardCount=1)
-    client.list_streams()["StreamNames"].should.have.length_of(2)
+    assert len(client.list_streams()["StreamNames"]) == 2
 
     client.delete_stream(StreamName="stream1")
-    client.list_streams()["StreamNames"].should.have.length_of(1)
+    assert len(client.list_streams()["StreamNames"]) == 1
 
     stream_arn = get_stream_arn(client, "stream2")
     client.delete_stream(StreamARN=stream_arn)
-    client.list_streams()["StreamNames"].should.have.length_of(0)
+    assert len(client.list_streams()["StreamNames"]) == 0
 
 
 @mock_kinesis
@@ -92,10 +89,8 @@ def test_delete_unknown_stream():
     with pytest.raises(ClientError) as exc:
         client.delete_stream(StreamName="not-a-stream")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        "Stream not-a-stream under account 123456789012 not found."
-    )
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Stream not-a-stream under account 123456789012 not found."
 
 
 @mock_kinesis
@@ -108,13 +103,13 @@ def test_list_many_streams():
     resp = conn.list_streams()
     stream_names = resp["StreamNames"]
     has_more_streams = resp["HasMoreStreams"]
-    stream_names.should.have.length_of(10)
-    has_more_streams.should.be(True)
+    assert len(stream_names) == 10
+    assert has_more_streams is True
     resp2 = conn.list_streams(ExclusiveStartStreamName=stream_names[-1])
     stream_names = resp2["StreamNames"]
     has_more_streams = resp2["HasMoreStreams"]
-    stream_names.should.have.length_of(1)
-    has_more_streams.should.equal(False)
+    assert len(stream_names) == 1
+    assert has_more_streams is False
 
 
 @mock_kinesis
@@ -127,18 +122,19 @@ def test_describe_stream_summary():
     resp = conn.describe_stream_summary(StreamName=stream_name)
     stream = resp["StreamDescriptionSummary"]
 
-    stream["StreamName"].should.equal(stream_name)
-    stream["OpenShardCount"].should.equal(shard_count)
-    stream["StreamARN"].should.equal(
-        f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/{stream_name}"
+    assert stream["StreamName"] == stream_name
+    assert stream["OpenShardCount"] == shard_count
+    assert (
+        stream["StreamARN"]
+        == f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/{stream_name}"
     )
-    stream["StreamStatus"].should.equal("ACTIVE")
+    assert stream["StreamStatus"] == "ACTIVE"
 
     stream_arn = get_stream_arn(conn, stream_name)
     resp = conn.describe_stream_summary(StreamARN=stream_arn)
     stream = resp["StreamDescriptionSummary"]
 
-    stream["StreamName"].should.equal(stream_name)
+    assert stream["StreamName"] == stream_name
 
 
 @mock_kinesis
@@ -156,8 +152,8 @@ def test_basic_shard_iterator():
     shard_iterator = resp["ShardIterator"]
 
     resp = client.get_records(ShardIterator=shard_iterator)
-    resp.should.have.key("Records").length_of(0)
-    resp.should.have.key("MillisBehindLatest").equal(0)
+    assert len(resp["Records"]) == 0
+    assert resp["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -179,8 +175,8 @@ def test_basic_shard_iterator_by_stream_arn():
     resp = client.get_records(
         StreamARN=stream["StreamARN"], ShardIterator=shard_iterator
     )
-    resp.should.have.key("Records").length_of(0)
-    resp.should.have.key("MillisBehindLatest").equal(0)
+    assert len(resp["Records"]) == 0
+    assert resp["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -195,11 +191,12 @@ def test_get_invalid_shard_iterator():
             StreamName=stream_name, ShardId="123", ShardIteratorType="TRIM_HORIZON"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
     # There is some magic in AWS, that '123' is automatically converted into 'shardId-000000000123'
     # AWS itself returns this normalized ID in the error message, not the given id
-    err["Message"].should.equal(
-        f"Shard 123 in stream {stream_name} under account {ACCOUNT_ID} does not exist"
+    assert (
+        err["Message"]
+        == f"Shard 123 in stream {stream_name} under account {ACCOUNT_ID} does not exist"
     )
 
 
@@ -227,12 +224,12 @@ def test_put_records():
     shard_iterator = resp["ShardIterator"]
 
     resp = client.get_records(ShardIterator=shard_iterator)
-    resp["Records"].should.have.length_of(5)
+    assert len(resp["Records"]) == 5
     record = resp["Records"][0]
 
-    record["Data"].should.equal(data)
-    record["PartitionKey"].should.equal(partition_key)
-    record["SequenceNumber"].should.equal("1")
+    assert record["Data"] == data
+    assert record["PartitionKey"] == partition_key
+    assert record["SequenceNumber"] == "1"
 
 
 @mock_kinesis
@@ -257,12 +254,12 @@ def test_get_records_limit():
 
     # Retrieve only 3 records
     resp = client.get_records(ShardIterator=shard_iterator, Limit=3)
-    resp["Records"].should.have.length_of(3)
+    assert len(resp["Records"]) == 3
 
     # Then get the rest of the results
     next_shard_iterator = resp["NextShardIterator"]
     response = client.get_records(ShardIterator=next_shard_iterator)
-    response["Records"].should.have.length_of(2)
+    assert len(response["Records"]) == 2
 
 
 @mock_kinesis
@@ -300,8 +297,8 @@ def test_get_records_at_sequence_number():
 
     resp = client.get_records(ShardIterator=shard_iterator)
     # And the first result returned should be the second item
-    resp["Records"][0]["SequenceNumber"].should.equal(sequence_nr)
-    resp["Records"][0]["Data"].should.equal(b"data_2")
+    assert resp["Records"][0]["SequenceNumber"] == sequence_nr
+    assert resp["Records"][0]["Data"] == b"data_2"
 
 
 @mock_kinesis
@@ -339,9 +336,9 @@ def test_get_records_after_sequence_number():
 
     resp = client.get_records(ShardIterator=shard_iterator)
     # And the first result returned should be the second item
-    resp["Records"][0]["SequenceNumber"].should.equal("3")
-    resp["Records"][0]["Data"].should.equal(b"data_3")
-    resp["MillisBehindLatest"].should.equal(0)
+    assert resp["Records"][0]["SequenceNumber"] == "3"
+    assert resp["Records"][0]["Data"] == b"data_3"
+    assert resp["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -383,11 +380,11 @@ def test_get_records_latest():
 
     resp = client.get_records(ShardIterator=shard_iterator)
     # And the first result returned should be the second item
-    resp["Records"].should.have.length_of(1)
-    resp["Records"][0]["SequenceNumber"].should.equal("5")
-    resp["Records"][0]["PartitionKey"].should.equal("last_record")
-    resp["Records"][0]["Data"].should.equal(b"last_record")
-    resp["MillisBehindLatest"].should.equal(0)
+    assert len(resp["Records"]) == 1
+    assert resp["Records"][0]["SequenceNumber"] == "5"
+    assert resp["Records"][0]["PartitionKey"] == "last_record"
+    assert resp["Records"][0]["Data"] == b"last_record"
+    assert resp["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -428,10 +425,10 @@ def test_get_records_at_timestamp():
 
     response = conn.get_records(ShardIterator=shard_iterator)
 
-    response["Records"].should.have.length_of(len(keys))
+    assert len(response["Records"]) == len(keys)
     partition_keys = [r["PartitionKey"] for r in response["Records"]]
-    partition_keys.should.equal(keys)
-    response["MillisBehindLatest"].should.equal(0)
+    assert partition_keys == keys
+    assert response["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -457,10 +454,10 @@ def test_get_records_at_very_old_timestamp():
     shard_iterator = response["ShardIterator"]
 
     response = conn.get_records(ShardIterator=shard_iterator)
-    response["Records"].should.have.length_of(len(keys))
+    assert len(response["Records"]) == len(keys)
     partition_keys = [r["PartitionKey"] for r in response["Records"]]
-    partition_keys.should.equal(keys)
-    response["MillisBehindLatest"].should.equal(0)
+    assert partition_keys == keys
+    assert response["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -487,12 +484,10 @@ def test_get_records_timestamp_filtering():
     shard_iterator = response["ShardIterator"]
 
     response = conn.get_records(ShardIterator=shard_iterator)
-    response["Records"].should.have.length_of(1)
-    response["Records"][0]["PartitionKey"].should.equal("1")
-    response["Records"][0]["ApproximateArrivalTimestamp"].should.be.greater_than(
-        timestamp
-    )
-    response["MillisBehindLatest"].should.equal(0)
+    assert len(response["Records"]) == 1
+    assert response["Records"][0]["PartitionKey"] == "1"
+    assert response["Records"][0]["ApproximateArrivalTimestamp"] > timestamp
+    assert response["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -513,8 +508,8 @@ def test_get_records_millis_behind_latest():
     shard_iterator = response["ShardIterator"]
 
     response = conn.get_records(ShardIterator=shard_iterator, Limit=1)
-    response["Records"].should.have.length_of(1)
-    response["MillisBehindLatest"].should.be.greater_than(0)
+    assert len(response["Records"]) == 1
+    assert response["MillisBehindLatest"] > 0
 
 
 @mock_kinesis
@@ -543,8 +538,8 @@ def test_get_records_at_very_new_timestamp():
 
     response = conn.get_records(ShardIterator=shard_iterator)
 
-    response["Records"].should.have.length_of(0)
-    response["MillisBehindLatest"].should.equal(0)
+    assert len(response["Records"]) == 0
+    assert response["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -568,8 +563,8 @@ def test_get_records_from_empty_stream_at_timestamp():
 
     response = conn.get_records(ShardIterator=shard_iterator)
 
-    response["Records"].should.have.length_of(0)
-    response["MillisBehindLatest"].should.equal(0)
+    assert len(response["Records"]) == 0
+    assert response["MillisBehindLatest"] == 0
 
 
 @mock_kinesis
@@ -583,7 +578,7 @@ def test_valid_increase_stream_retention_period():
     )
 
     response = conn.describe_stream(StreamName=stream_name)
-    response["StreamDescription"]["RetentionPeriodHours"].should.equal(40)
+    assert response["StreamDescription"]["RetentionPeriodHours"] == 40
 
 
 @mock_kinesis
@@ -599,9 +594,10 @@ def test_invalid_increase_stream_retention_period():
         conn.increase_stream_retention_period(
             StreamName=stream_name, RetentionPeriodHours=25
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidArgumentException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Requested retention period (25 hours) for stream my_stream can not be shorter than existing retention period (30 hours). Use DecreaseRetentionPeriod API."
+    assert ex.value.response["Error"]["Code"] == "InvalidArgumentException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Requested retention period (25 hours) for stream my_stream can not be shorter than existing retention period (30 hours). Use DecreaseRetentionPeriod API."
     )
 
 
@@ -616,9 +612,10 @@ def test_invalid_increase_stream_retention_too_low():
             StreamName=stream_name, RetentionPeriodHours=20
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal(
-        "Minimum allowed retention period is 24 hours. Requested retention period (20 hours) is too short."
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        err["Message"]
+        == "Minimum allowed retention period is 24 hours. Requested retention period (20 hours) is too short."
     )
 
 
@@ -633,9 +630,10 @@ def test_invalid_increase_stream_retention_too_high():
             StreamName=stream_name, RetentionPeriodHours=9999
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal(
-        "Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long."
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        err["Message"]
+        == "Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long."
     )
 
 
@@ -654,13 +652,13 @@ def test_valid_decrease_stream_retention_period():
     )
 
     response = conn.describe_stream(StreamName=stream_name)
-    response["StreamDescription"]["RetentionPeriodHours"].should.equal(25)
+    assert response["StreamDescription"]["RetentionPeriodHours"] == 25
 
     conn.increase_stream_retention_period(StreamARN=stream_arn, RetentionPeriodHours=29)
     conn.decrease_stream_retention_period(StreamARN=stream_arn, RetentionPeriodHours=26)
 
     response = conn.describe_stream(StreamARN=stream_arn)
-    response["StreamDescription"]["RetentionPeriodHours"].should.equal(26)
+    assert response["StreamDescription"]["RetentionPeriodHours"] == 26
 
 
 @mock_kinesis
@@ -674,9 +672,10 @@ def test_decrease_stream_retention_period_upwards():
             StreamName=stream_name, RetentionPeriodHours=40
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal(
-        "Requested retention period (40 hours) for stream decrease_stream can not be longer than existing retention period (24 hours). Use IncreaseRetentionPeriod API."
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        err["Message"]
+        == "Requested retention period (40 hours) for stream decrease_stream can not be longer than existing retention period (24 hours). Use IncreaseRetentionPeriod API."
     )
 
 
@@ -691,9 +690,10 @@ def test_decrease_stream_retention_period_too_low():
             StreamName=stream_name, RetentionPeriodHours=4
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal(
-        "Minimum allowed retention period is 24 hours. Requested retention period (4 hours) is too short."
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        err["Message"]
+        == "Minimum allowed retention period is 24 hours. Requested retention period (4 hours) is too short."
     )
 
 
@@ -708,9 +708,10 @@ def test_decrease_stream_retention_period_too_high():
             StreamName=stream_name, RetentionPeriodHours=9999
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal(
-        "Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long."
+    assert err["Code"] == "InvalidArgumentException"
+    assert (
+        err["Message"]
+        == "Maximum allowed retention period is 8760 hours. Requested retention period (9999 hours) is too long."
     )
 
 
@@ -727,8 +728,8 @@ def test_invalid_shard_iterator_type():
             StreamName=stream_name, ShardId=shard_id, ShardIteratorType="invalid-type"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("Invalid ShardIteratorType: invalid-type")
+    assert err["Code"] == "InvalidArgumentException"
+    assert err["Message"] == "Invalid ShardIteratorType: invalid-type"
 
 
 @mock_kinesis
@@ -743,32 +744,32 @@ def test_add_list_remove_tags():
     )
 
     tags = client.list_tags_for_stream(StreamName=stream_name)["Tags"]
-    tags.should.have.length_of(4)
-    tags.should.contain({"Key": "tag1", "Value": "val1"})
-    tags.should.contain({"Key": "tag2", "Value": "val2"})
-    tags.should.contain({"Key": "tag3", "Value": "val3"})
-    tags.should.contain({"Key": "tag4", "Value": "val4"})
+    assert len(tags) == 4
+    assert {"Key": "tag1", "Value": "val1"} in tags
+    assert {"Key": "tag2", "Value": "val2"} in tags
+    assert {"Key": "tag3", "Value": "val3"} in tags
+    assert {"Key": "tag4", "Value": "val4"} in tags
 
     client.add_tags_to_stream(StreamARN=stream_arn, Tags={"tag5": "val5"})
 
     tags = client.list_tags_for_stream(StreamARN=stream_arn)["Tags"]
-    tags.should.have.length_of(5)
-    tags.should.contain({"Key": "tag5", "Value": "val5"})
+    assert len(tags) == 5
+    assert {"Key": "tag5", "Value": "val5"} in tags
 
     client.remove_tags_from_stream(StreamName=stream_name, TagKeys=["tag2", "tag3"])
 
     tags = client.list_tags_for_stream(StreamName=stream_name)["Tags"]
-    tags.should.have.length_of(3)
-    tags.should.contain({"Key": "tag1", "Value": "val1"})
-    tags.should.contain({"Key": "tag4", "Value": "val4"})
-    tags.should.contain({"Key": "tag5", "Value": "val5"})
+    assert len(tags) == 3
+    assert {"Key": "tag1", "Value": "val1"} in tags
+    assert {"Key": "tag4", "Value": "val4"} in tags
+    assert {"Key": "tag5", "Value": "val5"} in tags
 
     client.remove_tags_from_stream(StreamARN=stream_arn, TagKeys=["tag4"])
 
     tags = client.list_tags_for_stream(StreamName=stream_name)["Tags"]
-    tags.should.have.length_of(2)
-    tags.should.contain({"Key": "tag1", "Value": "val1"})
-    tags.should.contain({"Key": "tag5", "Value": "val5"})
+    assert len(tags) == 2
+    assert {"Key": "tag1", "Value": "val1"} in tags
+    assert {"Key": "tag5", "Value": "val5"} in tags
 
 
 @mock_kinesis
@@ -793,7 +794,7 @@ def test_merge_shards():
 
     stream = client.describe_stream(StreamName=stream_name)["StreamDescription"]
     shards = stream["Shards"]
-    shards.should.have.length_of(4)
+    assert len(shards) == 4
 
     client.merge_shards(
         StreamName=stream_name,
@@ -805,7 +806,7 @@ def test_merge_shards():
     shards = stream["Shards"]
 
     # Old shards still exist, but are closed. A new shard is created out of the old one
-    shards.should.have.length_of(5)
+    assert len(shards) == 5
 
     # Only three shards are active - the two merged shards are closed
     active_shards = [
@@ -813,7 +814,7 @@ def test_merge_shards():
         for shard in shards
         if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
     ]
-    active_shards.should.have.length_of(3)
+    assert len(active_shards) == 3
 
     client.merge_shards(
         StreamARN=stream_arn,
@@ -829,23 +830,21 @@ def test_merge_shards():
         for shard in shards
         if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
     ]
-    active_shards.should.have.length_of(2)
+    assert len(active_shards) == 2
 
     for shard in active_shards:
         del shard["HashKeyRange"]
         del shard["SequenceNumberRange"]
 
     # Original shard #3 is still active (0,1,2 have been merged and closed
-    active_shards.should.contain({"ShardId": "shardId-000000000003"})
+    assert {"ShardId": "shardId-000000000003"} in active_shards
     # Shard #4 was the child of #0 and #1
     # Shard #5 is the child of #4 (parent) and #2 (adjacent-parent)
-    active_shards.should.contain(
-        {
-            "ShardId": "shardId-000000000005",
-            "ParentShardId": "shardId-000000000004",
-            "AdjacentParentShardId": "shardId-000000000002",
-        }
-    )
+    assert {
+        "ShardId": "shardId-000000000005",
+        "ParentShardId": "shardId-000000000004",
+        "AdjacentParentShardId": "shardId-000000000002",
+    } in active_shards
 
 
 @mock_kinesis
@@ -861,8 +860,8 @@ def test_merge_shards_invalid_arg():
             AdjacentShardToMerge="shardId-000000000002",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidArgumentException")
-    err["Message"].should.equal("shardId-000000000002")
+    assert err["Code"] == "InvalidArgumentException"
+    assert err["Message"] == "shardId-000000000002"
 
 
 def get_stream_arn(client, stream_name):

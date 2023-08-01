@@ -20,7 +20,7 @@ def test_list_stream_consumers():
 
     resp = client.list_stream_consumers(StreamARN=stream_arn)
 
-    resp.should.have.key("Consumers").equals([])
+    assert resp["Consumers"] == []
 
 
 @mock_kinesis
@@ -31,27 +31,29 @@ def test_register_stream_consumer():
     resp = client.register_stream_consumer(
         StreamARN=stream_arn, ConsumerName="newconsumer"
     )
-    resp.should.have.key("Consumer")
+    assert "Consumer" in resp
 
     consumer = resp["Consumer"]
 
-    consumer.should.have.key("ConsumerName").equals("newconsumer")
-    consumer.should.have.key("ConsumerARN").equals(
-        f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer"
+    assert consumer["ConsumerName"] == "newconsumer"
+    assert (
+        consumer["ConsumerARN"]
+        == f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer"
     )
-    consumer.should.have.key("ConsumerStatus").equals("ACTIVE")
-    consumer.should.have.key("ConsumerCreationTimestamp")
+    assert consumer["ConsumerStatus"] == "ACTIVE"
+    assert "ConsumerCreationTimestamp" in consumer
 
     resp = client.list_stream_consumers(StreamARN=stream_arn)
 
-    resp.should.have.key("Consumers").length_of(1)
+    assert len(resp["Consumers"]) == 1
     consumer = resp["Consumers"][0]
-    consumer.should.have.key("ConsumerName").equals("newconsumer")
-    consumer.should.have.key("ConsumerARN").equals(
-        f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer"
+    assert consumer["ConsumerName"] == "newconsumer"
+    assert (
+        consumer["ConsumerARN"]
+        == f"arn:aws:kinesis:eu-west-1:{ACCOUNT_ID}:stream/my-stream/consumer/newconsumer"
     )
-    consumer.should.have.key("ConsumerStatus").equals("ACTIVE")
-    consumer.should.have.key("ConsumerCreationTimestamp")
+    assert consumer["ConsumerStatus"] == "ACTIVE"
+    assert "ConsumerCreationTimestamp" in consumer
 
 
 @mock_kinesis
@@ -63,14 +65,14 @@ def test_describe_stream_consumer_by_name():
     resp = client.describe_stream_consumer(
         StreamARN=stream_arn, ConsumerName="newconsumer"
     )
-    resp.should.have.key("ConsumerDescription")
+    assert "ConsumerDescription" in resp
 
     consumer = resp["ConsumerDescription"]
-    consumer.should.have.key("ConsumerName").equals("newconsumer")
-    consumer.should.have.key("ConsumerARN")
-    consumer.should.have.key("ConsumerStatus").equals("ACTIVE")
-    consumer.should.have.key("ConsumerCreationTimestamp")
-    consumer.should.have.key("StreamARN").equals(stream_arn)
+    assert consumer["ConsumerName"] == "newconsumer"
+    assert "ConsumerARN" in consumer
+    assert consumer["ConsumerStatus"] == "ACTIVE"
+    assert "ConsumerCreationTimestamp" in consumer
+    assert consumer["StreamARN"] == stream_arn
 
 
 @mock_kinesis
@@ -83,14 +85,14 @@ def test_describe_stream_consumer_by_arn():
     consumer_arn = resp["Consumer"]["ConsumerARN"]
 
     resp = client.describe_stream_consumer(ConsumerARN=consumer_arn)
-    resp.should.have.key("ConsumerDescription")
+    assert "ConsumerDescription" in resp
 
     consumer = resp["ConsumerDescription"]
-    consumer.should.have.key("ConsumerName").equals("newconsumer")
-    consumer.should.have.key("ConsumerARN")
-    consumer.should.have.key("ConsumerStatus").equals("ACTIVE")
-    consumer.should.have.key("ConsumerCreationTimestamp")
-    consumer.should.have.key("StreamARN").equals(stream_arn)
+    assert consumer["ConsumerName"] == "newconsumer"
+    assert "ConsumerARN" in consumer
+    assert consumer["ConsumerStatus"] == "ACTIVE"
+    assert "ConsumerCreationTimestamp" in consumer
+    assert consumer["StreamARN"] == stream_arn
 
 
 @mock_kinesis
@@ -102,10 +104,8 @@ def test_describe_stream_consumer_unknown():
     with pytest.raises(ClientError) as exc:
         client.describe_stream_consumer(ConsumerARN=unknown_arn)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        f"Consumer {unknown_arn}, account {ACCOUNT_ID} not found."
-    )
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Consumer {unknown_arn}, account {ACCOUNT_ID} not found."
 
 
 @mock_kinesis
@@ -116,15 +116,11 @@ def test_deregister_stream_consumer_by_name():
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer1")
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer2")
 
-    client.list_stream_consumers(StreamARN=stream_arn)[
-        "Consumers"
-    ].should.have.length_of(2)
+    assert len(client.list_stream_consumers(StreamARN=stream_arn)["Consumers"]) == 2
 
     client.deregister_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer1")
 
-    client.list_stream_consumers(StreamARN=stream_arn)[
-        "Consumers"
-    ].should.have.length_of(1)
+    assert len(client.list_stream_consumers(StreamARN=stream_arn)["Consumers"]) == 1
 
 
 @mock_kinesis
@@ -138,12 +134,8 @@ def test_deregister_stream_consumer_by_arn():
     consumer1_arn = resp["Consumer"]["ConsumerARN"]
     client.register_stream_consumer(StreamARN=stream_arn, ConsumerName="consumer2")
 
-    client.list_stream_consumers(StreamARN=stream_arn)[
-        "Consumers"
-    ].should.have.length_of(2)
+    assert len(client.list_stream_consumers(StreamARN=stream_arn)["Consumers"]) == 2
 
     client.deregister_stream_consumer(ConsumerARN=consumer1_arn)
 
-    client.list_stream_consumers(StreamARN=stream_arn)[
-        "Consumers"
-    ].should.have.length_of(1)
+    assert len(client.list_stream_consumers(StreamARN=stream_arn)["Consumers"]) == 1
