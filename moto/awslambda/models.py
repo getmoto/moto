@@ -756,6 +756,37 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 ) = _s3_content(key)
                 self.code["S3Bucket"] = updated_spec["S3Bucket"]
                 self.code["S3Key"] = updated_spec["S3Key"]
+        elif "ImageUri" in updated_spec:
+            if settings.lambda_stub_ecr():
+                self.code_sha_256 = hashlib.sha256(
+                    updated_spec["ImageUri"].encode("utf-8")
+                ).hexdigest()
+                self.code_size = 0
+            else:
+                if "@" in updated_spec["ImageUri"]:
+                    # deploying via digest
+                    uri, digest = updated_spec["ImageUri"].split("@")
+                    image_id = {"imageDigest": digest}
+                else:
+                    # deploying via tag
+                    uri, tag = updated_spec["ImageUri"].split(":")
+                    image_id = {"imageTag": tag}
+
+                repo_name = uri.split("/")[-1]
+                ecr_backend = ecr_backends[self.account_id][self.region]
+                registry_id = ecr_backend.describe_registry()["registryId"]
+                images = ecr_backend.batch_get_image(
+                    repository_name=repo_name, image_ids=[image_id]
+                )["images"]
+
+                if len(images) == 0:
+                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                else:
+                    manifest = json.loads(images[0]["imageManifest"])
+                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
+                        "sha256:", ""
+                    )
+                    self.code_size = manifest["config"]["size"]
 
         return self.get_configuration()
 
