@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_kinesisvideoarchivedmedia
 from moto import mock_kinesisvideo
 from datetime import datetime, timedelta
@@ -23,8 +22,9 @@ def test_get_hls_streaming_session_url():
         endpoint_url=data_endpoint,
     )
     res = client.get_hls_streaming_session_url(StreamName=stream_name)
-    reg_exp = rf"^{data_endpoint}/hls/v1/getHLSMasterPlaylist.m3u8\?SessionToken\=.+$"
-    res.should.have.key("HLSStreamingSessionURL").which.should.match(reg_exp)
+    assert res["HLSStreamingSessionURL"].startswith(
+        f"{data_endpoint}/hls/v1/getHLSMasterPlaylist.m3u8?SessionToken="
+    )
 
 
 @mock_kinesisvideo
@@ -45,8 +45,9 @@ def test_get_dash_streaming_session_url():
         endpoint_url=data_endpoint,
     )
     res = client.get_dash_streaming_session_url(StreamName=stream_name)
-    reg_exp = rf"^{data_endpoint}/dash/v1/getDASHManifest.mpd\?SessionToken\=.+$"
-    res.should.have.key("DASHStreamingSessionURL").which.should.match(reg_exp)
+    assert res["DASHStreamingSessionURL"].startswith(
+        f"{data_endpoint}/dash/v1/getDASHManifest.mpd?SessionToken="
+    )
 
 
 @mock_kinesisvideo
@@ -78,5 +79,5 @@ def test_get_clip():
             },
         },
     )
-    res.should.have.key("ContentType").which.should.match("video/mp4")
-    res.should.have.key("Payload")
+    assert res["ContentType"] == "video/mp4"
+    assert "Payload" in res
