@@ -1,11 +1,11 @@
 import json
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 import boto3
 from botocore.exceptions import ClientError
 from botocore.exceptions import ParamValidationError
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ses
 
 
@@ -16,7 +16,7 @@ def test_verify_email_identity():
 
     identities = conn.list_identities()
     address = identities["Identities"][0]
-    address.should.equal("test@example.com")
+    assert address == "test@example.com"
 
 
 @mock_ses
@@ -25,7 +25,7 @@ def test_identities_are_region_specific():
     us_east.verify_email_identity(EmailAddress="test@example.com")
 
     us_west = boto3.client("ses", region_name="us-west-1")
-    us_west.list_identities()["Identities"].should.have.length_of(0)
+    assert not us_west.list_identities()["Identities"]
 
 
 @mock_ses
@@ -37,7 +37,7 @@ def test_verify_email_identity_idempotency():
 
     identities = conn.list_identities()
     address_list = identities["Identities"]
-    address_list.should.equal([address])
+    assert address_list == [address]
 
 
 @mock_ses
@@ -46,7 +46,7 @@ def test_verify_email_address():
     conn.verify_email_address(EmailAddress="test@example.com")
     email_addresses = conn.list_verified_email_addresses()
     email = email_addresses["VerifiedEmailAddresses"][0]
-    email.should.equal("test@example.com")
+    assert email == "test@example.com"
 
 
 @mock_ses
@@ -58,7 +58,7 @@ def test_domain_verify():
 
     identities = conn.list_identities()
     domains = list(identities["Identities"])
-    domains.should.equal(["domain1.com", "domain2.com"])
+    assert domains == ["domain1.com", "domain2.com"]
 
 
 @mock_ses
@@ -66,69 +66,70 @@ def test_delete_identity():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_email_identity(EmailAddress="test@example.com")
 
-    conn.list_identities()["Identities"].should.have.length_of(1)
+    assert len(conn.list_identities()["Identities"]) == 1
     conn.delete_identity(Identity="test@example.com")
-    conn.list_identities()["Identities"].should.have.length_of(0)
+    assert not conn.list_identities()["Identities"]
 
 
 @mock_ses
 def test_send_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        Source="test@example.com",
-        Destination={
+    kwargs = {
+        "Source": "test@example.com",
+        "Destination": {
             "ToAddresses": ["test_to@example.com"],
             "CcAddresses": ["test_cc@example.com"],
             "BccAddresses": ["test_bcc@example.com"],
         },
-        Message={
+        "Message": {
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
         },
-    )
-    conn.send_email.when.called_with(**kwargs).should.throw(ClientError)
+    }
+
+    with pytest.raises(ClientError):
+        conn.send_email(**kwargs)
 
     conn.verify_domain_identity(Domain="example.com")
     conn.send_email(**kwargs)
 
     too_many_addresses = list(f"to{i}@example.com" for i in range(51))
-    conn.send_email.when.called_with(
-        **dict(kwargs, Destination={"ToAddresses": too_many_addresses})
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_email(**dict(kwargs, Destination={"ToAddresses": too_many_addresses}))
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(3)
+    assert sent_count == 3
 
 
 @mock_ses
 def test_send_email_when_verify_source():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        Destination={"ToAddresses": ["test_to@example.com"]},
-        Message={
+    kwargs = {
+        "Destination": {"ToAddresses": ["test_to@example.com"]},
+        "Message": {
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
         },
-    )
+    }
 
-    conn.send_email.when.called_with(
-        Source="verify_email_address@example.com", **kwargs
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_email(Source="verify_email_address@example.com", **kwargs)
+
     conn.verify_email_address(EmailAddress="verify_email_address@example.com")
     conn.send_email(Source="verify_email_address@example.com", **kwargs)
 
-    conn.send_email.when.called_with(
-        Source="verify_email_identity@example.com", **kwargs
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_email(Source="verify_email_identity@example.com", **kwargs)
+
     conn.verify_email_identity(EmailAddress="verify_email_identity@example.com")
     conn.send_email(Source="verify_email_identity@example.com", **kwargs)
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(2)
+    assert sent_count == 2
 
 
 @mock_ses
@@ -150,10 +151,10 @@ def test_send_unverified_email_with_chevrons():
             },
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("MessageRejected")
+    assert err["Code"] == "MessageRejected"
     # The source should be returned exactly as provided - without XML encoding issues
-    err["Message"].should.equal(
-        "Email address not verified John Smith <foobar@example.com>"
+    assert (
+        err["Message"] == "Email address not verified John Smith <foobar@example.com>"
     )
 
 
@@ -176,17 +177,17 @@ def test_send_email_invalid_address():
             },
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal("Missing domain")
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "Missing domain"
 
 
 @mock_ses
 def test_send_bulk_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        Source="test@example.com",
-        Destinations=[
+    kwargs = {
+        "Source": "test@example.com",
+        "Destinations": [
             {
                 "Destination": {
                     "ToAddresses": ["test_to@example.com"],
@@ -202,16 +203,17 @@ def test_send_bulk_templated_email():
                 }
             },
         ],
-        Template="test_template",
-        DefaultTemplateData='{"name": "test"}',
-    )
+        "Template": "test_template",
+        "DefaultTemplateData": '{"name": "test"}',
+    }
 
     with pytest.raises(ClientError) as ex:
         conn.send_bulk_templated_email(**kwargs)
 
-    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Email address not verified test@example.com"
+    assert ex.value.response["Error"]["Code"] == "MessageRejected"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Email address not verified test@example.com"
     )
 
     conn.verify_domain_identity(Domain="example.com")
@@ -219,7 +221,7 @@ def test_send_bulk_templated_email():
     with pytest.raises(ClientError) as ex:
         conn.send_bulk_templated_email(**kwargs)
 
-    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "TemplateDoesNotExist"
 
     conn.create_template(
         Template={
@@ -247,8 +249,8 @@ def test_send_bulk_templated_email():
         args = dict(kwargs, Destinations=too_many_destinations)
         conn.send_bulk_templated_email(**args)
 
-    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
-    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
+    assert ex.value.response["Error"]["Code"] == "MessageRejected"
+    assert ex.value.response["Error"]["Message"] == "Too many destinations."
 
     too_many_destinations = list(f"to{i}@example.com" for i in range(51))
 
@@ -267,37 +269,38 @@ def test_send_bulk_templated_email():
         )
         conn.send_bulk_templated_email(**args)
 
-    ex.value.response["Error"]["Code"].should.equal("MessageRejected")
-    ex.value.response["Error"]["Message"].should.equal("Too many destinations.")
+    assert ex.value.response["Error"]["Code"] == "MessageRejected"
+    assert ex.value.response["Error"]["Message"] == "Too many destinations."
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(6)
+    assert sent_count == 6
 
 
 @mock_ses
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        Source="test@example.com",
-        Destination={
+    kwargs = {
+        "Source": "test@example.com",
+        "Destination": {
             "ToAddresses": ["test_to@example.com"],
             "CcAddresses": ["test_cc@example.com"],
             "BccAddresses": ["test_bcc@example.com"],
         },
-        Template="test_template",
-        TemplateData='{"name": "test"}',
-    )
+        "Template": "test_template",
+        "TemplateData": '{"name": "test"}',
+    }
 
-    conn.send_templated_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_templated_email(**kwargs)
 
     conn.verify_domain_identity(Domain="example.com")
 
     with pytest.raises(ClientError) as ex:
         conn.send_templated_email(**kwargs)
 
-    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "TemplateDoesNotExist"
 
     conn.create_template(
         Template={
@@ -311,13 +314,14 @@ def test_send_templated_email():
     conn.send_templated_email(**kwargs)
 
     too_many_addresses = list(f"to{i}@example.com" for i in range(51))
-    conn.send_templated_email.when.called_with(
-        **dict(kwargs, Destination={"ToAddresses": too_many_addresses})
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as ex:
+        conn.send_templated_email(
+            **dict(kwargs, Destination={"ToAddresses": too_many_addresses})
+        )
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(3)
+    assert sent_count == 3
 
 
 @mock_ses
@@ -345,31 +349,32 @@ def test_send_templated_email_invalid_address():
             TemplateData='{"name": "test"}',
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal("Missing domain")
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "Missing domain"
 
 
 @mock_ses
 def test_send_html_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        Source="test@example.com",
-        Destination={"ToAddresses": ["test_to@example.com"]},
-        Message={
+    kwargs = {
+        "Source": "test@example.com",
+        "Destination": {"ToAddresses": ["test_to@example.com"]},
+        "Message": {
             "Subject": {"Data": "test subject"},
             "Body": {"Html": {"Data": "test body"}},
         },
-    )
+    }
 
-    conn.send_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_email(**kwargs)
 
     conn.verify_email_identity(EmailAddress="test@example.com")
     conn.send_email(**kwargs)
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(1)
+    assert sent_count == 1
 
 
 @mock_ses
@@ -378,16 +383,17 @@ def test_send_raw_email():
 
     message = get_raw_email()
 
-    kwargs = dict(Source=message["From"], RawMessage={"Data": message.as_string()})
+    kwargs = {"Source": message["From"], "RawMessage": {"Data": message.as_string()}}
 
-    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_raw_email(**kwargs)
 
     conn.verify_email_identity(EmailAddress="test@example.com")
     conn.send_raw_email(**kwargs)
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(2)
+    assert sent_count == 2
 
 
 @mock_ses
@@ -396,16 +402,17 @@ def test_send_raw_email_validate_domain():
 
     message = get_raw_email()
 
-    kwargs = dict(Source=message["From"], RawMessage={"Data": message.as_string()})
+    kwargs = {"Source": message["From"], "RawMessage": {"Data": message.as_string()}}
 
-    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_raw_email(**kwargs)
 
     conn.verify_domain_identity(Domain="example.com")
     conn.send_raw_email(**kwargs)
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(2)
+    assert sent_count == 2
 
 
 @mock_ses
@@ -423,8 +430,8 @@ def test_send_raw_email_invalid_address():
             RawMessage={"Data": message.as_string()},
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal("Missing domain")
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "Missing domain"
 
 
 def get_raw_email():
@@ -460,16 +467,17 @@ def test_send_raw_email_without_source():
     part.add_header("Content-Disposition", "attachment; filename=test.txt")
     message.attach(part)
 
-    kwargs = dict(RawMessage={"Data": message.as_string()})
+    kwargs = {"RawMessage": {"Data": message.as_string()}}
 
-    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_raw_email(**kwargs)
 
     conn.verify_email_identity(EmailAddress="test@example.com")
     conn.send_raw_email(**kwargs)
 
     send_quota = conn.get_send_quota()
     sent_count = int(send_quota["SentLast24Hours"])
-    sent_count.should.equal(2)
+    assert sent_count == 2
 
 
 @mock_ses
@@ -488,9 +496,10 @@ def test_send_raw_email_without_source_or_from():
     part.add_header("Content-Disposition", "attachment; filename=test.txt")
     message.attach(part)
 
-    kwargs = dict(RawMessage={"Data": message.as_string()})
+    kwargs = {"RawMessage": {"Data": message.as_string()}}
 
-    conn.send_raw_email.when.called_with(**kwargs).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.send_raw_email(**kwargs)
 
 
 @mock_ses
@@ -503,7 +512,7 @@ def test_send_email_notification_with_encoded_sender():
         Destination={"ToAddresses": ["your.friend@hotmail.com"]},
         Message={"Subject": {"Data": "hi"}, "Body": {"Text": {"Data": "there"}}},
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_ses
@@ -513,7 +522,7 @@ def test_create_configuration_set():
 
     with pytest.raises(ClientError) as ex:
         conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
-    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetAlreadyExists")
+    assert ex.value.response["Error"]["Code"] == "ConfigurationSetAlreadyExists"
 
     conn.create_configuration_set_event_destination(
         ConfigurationSetName="test",
@@ -540,7 +549,7 @@ def test_create_configuration_set():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "ConfigurationSetDoesNotExist"
 
     with pytest.raises(ClientError) as ex:
         conn.create_configuration_set_event_destination(
@@ -555,7 +564,7 @@ def test_create_configuration_set():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("EventDestinationAlreadyExists")
+    assert ex.value.response["Error"]["Code"] == "EventDestinationAlreadyExists"
 
 
 @mock_ses
@@ -569,12 +578,12 @@ def test_describe_configuration_set():
         conn.describe_configuration_set(
             ConfigurationSetName="failtest",
         )
-    ex.value.response["Error"]["Code"].should.equal("ConfigurationSetDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "ConfigurationSetDoesNotExist"
 
     config_set = conn.describe_configuration_set(
         ConfigurationSetName=name,
     )
-    config_set["ConfigurationSet"]["Name"].should.equal(name)
+    assert config_set["ConfigurationSet"]["Name"] == name
 
 
 @mock_ses
@@ -582,12 +591,12 @@ def test_create_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     result = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
 
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule_set(RuleSetName="testRuleSet")
 
-    ex.value.response["Error"]["Code"].should.equal("RuleSetNameAlreadyExists")
+    assert ex.value.response["Error"]["Code"] == "RuleSetNameAlreadyExists"
 
 
 @mock_ses
@@ -624,7 +633,7 @@ def test_create_receipt_rule():
         },
     )
 
-    result["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
@@ -655,7 +664,7 @@ def test_create_receipt_rule():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("RuleAlreadyExists")
+    assert ex.value.response["Error"]["Code"] == "RuleAlreadyExists"
 
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
@@ -686,7 +695,7 @@ def test_create_receipt_rule():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
 
 
 @mock_ses
@@ -696,16 +705,14 @@ def test_describe_receipt_rule_set():
         RuleSetName="testRuleSet"
     )
 
-    create_receipt_rule_set_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(
-        200
-    )
+    assert create_receipt_rule_set_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
 
-    result["Metadata"]["Name"].should.equal("testRuleSet")
-    # result['Metadata']['CreatedTimestamp'].should.equal()
+    assert result["Metadata"]["Name"] == "testRuleSet"
+    # assert result['Metadata']['CreatedTimestamp'] == ""
 
-    len(result["Rules"]).should.equal(0)
+    assert not result["Rules"]
 
 
 @mock_ses
@@ -715,9 +722,7 @@ def test_describe_receipt_rule_set_with_rules():
         RuleSetName="testRuleSet"
     )
 
-    create_receipt_rule_set_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(
-        200
-    )
+    assert create_receipt_rule_set_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     receipt_rule = {
         "Name": "testRule",
@@ -748,15 +753,15 @@ def test_describe_receipt_rule_set_with_rules():
         RuleSetName="testRuleSet", Rule=receipt_rule
     )
 
-    create_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert create_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
 
-    result["Metadata"]["Name"].should.equal("testRuleSet")
-    # result['Metadata']['CreatedTimestamp'].should.equal()
+    assert result["Metadata"]["Name"] == "testRuleSet"
+    # assert result['Metadata']['CreatedTimestamp'] == ""
 
-    len(result["Rules"]).should.equal(1)
-    result["Rules"][0].should.equal(receipt_rule)
+    assert len(result["Rules"]) == 1
+    assert result["Rules"][0] == receipt_rule
 
 
 @mock_ses
@@ -798,62 +803,67 @@ def test_describe_receipt_rule():
         RuleSetName=rule_set_name, RuleName=rule_name
     )
 
-    receipt_rule_response["Rule"]["Name"].should.equal(rule_name)
+    assert receipt_rule_response["Rule"]["Name"] == rule_name
 
-    receipt_rule_response["Rule"]["Enabled"].should.equal(False)
+    assert receipt_rule_response["Rule"]["Enabled"] is False
 
-    receipt_rule_response["Rule"]["TlsPolicy"].should.equal("Optional")
+    assert receipt_rule_response["Rule"]["TlsPolicy"] == "Optional"
 
-    len(receipt_rule_response["Rule"]["Recipients"]).should.equal(2)
-    receipt_rule_response["Rule"]["Recipients"][0].should.equal("test@email.com")
+    assert len(receipt_rule_response["Rule"]["Recipients"]) == 2
+    assert receipt_rule_response["Rule"]["Recipients"][0] == "test@email.com"
 
-    len(receipt_rule_response["Rule"]["Actions"]).should.equal(1)
-    receipt_rule_response["Rule"]["Actions"][0].should.have.key("S3Action")
+    assert len(receipt_rule_response["Rule"]["Actions"]) == 1
+    assert "S3Action" in receipt_rule_response["Rule"]["Actions"][0]
 
-    receipt_rule_response["Rule"]["Actions"][0]["S3Action"].should.have.key(
-        "TopicArn"
-    ).being.equal("string")
-    receipt_rule_response["Rule"]["Actions"][0]["S3Action"].should.have.key(
-        "BucketName"
-    ).being.equal("testBucketName")
-    receipt_rule_response["Rule"]["Actions"][0]["S3Action"].should.have.key(
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["S3Action"]["TopicArn"] == "string"
+    )
+    assert receipt_rule_response["Rule"]["Actions"][0]["S3Action"]["BucketName"] == (
+        "testBucketName"
+    )
+    assert receipt_rule_response["Rule"]["Actions"][0]["S3Action"][
         "ObjectKeyPrefix"
-    ).being.equal("testObjectKeyPrefix")
-    receipt_rule_response["Rule"]["Actions"][0]["S3Action"].should.have.key(
-        "KmsKeyArn"
-    ).being.equal("string")
+    ] == ("testObjectKeyPrefix")
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["S3Action"]["KmsKeyArn"] == "string"
+    )
 
-    receipt_rule_response["Rule"]["Actions"][0].should.have.key("BounceAction")
+    assert "BounceAction" in receipt_rule_response["Rule"]["Actions"][0]
 
-    receipt_rule_response["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "TopicArn"
-    ).being.equal("string")
-    receipt_rule_response["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "SmtpReplyCode"
-    ).being.equal("string")
-    receipt_rule_response["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "StatusCode"
-    ).being.equal("string")
-    receipt_rule_response["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "Message"
-    ).being.equal("string")
-    receipt_rule_response["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "Sender"
-    ).being.equal("string")
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["TopicArn"]
+        == "string"
+    )
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["SmtpReplyCode"]
+        == "string"
+    )
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["StatusCode"]
+        == "string"
+    )
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["Message"]
+        == "string"
+    )
+    assert (
+        receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["Sender"]
+        == "string"
+    )
 
-    receipt_rule_response["Rule"]["ScanEnabled"].should.equal(False)
+    assert receipt_rule_response["Rule"]["ScanEnabled"] is False
 
     with pytest.raises(ClientError) as error:
         conn.describe_receipt_rule(RuleSetName="invalidRuleSetName", RuleName=rule_name)
 
-    error.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
+    assert error.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
 
     with pytest.raises(ClientError) as error:
         conn.describe_receipt_rule(
             RuleSetName=rule_set_name, RuleName="invalidRuleName"
         )
 
-    error.value.response["Error"]["Code"].should.equal("RuleDoesNotExist")
+    assert error.value.response["Error"]["Code"] == "RuleDoesNotExist"
 
 
 @mock_ses
@@ -919,20 +929,20 @@ def test_update_receipt_rule():
         },
     )
 
-    update_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     updated_rule_description = conn.describe_receipt_rule(
         RuleSetName=rule_set_name, RuleName=rule_name
     )
 
-    updated_rule_description["Rule"]["Name"].should.equal(rule_name)
-    updated_rule_description["Rule"]["Enabled"].should.equal(True)
-    len(updated_rule_description["Rule"]["Recipients"]).should.equal(1)
-    updated_rule_description["Rule"]["Recipients"][0].should.equal("test@email.com")
+    assert updated_rule_description["Rule"]["Name"] == rule_name
+    assert updated_rule_description["Rule"]["Enabled"] is True
+    assert len(updated_rule_description["Rule"]["Recipients"]) == 1
+    assert updated_rule_description["Rule"]["Recipients"][0] == "test@email.com"
 
-    len(updated_rule_description["Rule"]["Actions"]).should.equal(1)
-    updated_rule_description["Rule"]["Actions"][0].should.have.key("S3Action")
-    updated_rule_description["Rule"]["Actions"][0].should.have.key("BounceAction")
+    assert len(updated_rule_description["Rule"]["Actions"]) == 1
+    assert "S3Action" in updated_rule_description["Rule"]["Actions"][0]
+    assert "BounceAction" in updated_rule_description["Rule"]["Actions"][0]
 
     with pytest.raises(ClientError) as error:
         conn.update_receipt_rule(
@@ -963,8 +973,8 @@ def test_update_receipt_rule():
             },
         )
 
-    error.value.response["Error"]["Code"].should.equal("RuleSetDoesNotExist")
-    error.value.response["Error"]["Message"].should.equal(
+    assert error.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert error.value.response["Error"]["Message"] == (
         "Rule set does not exist: invalidRuleSetName"
     )
 
@@ -997,8 +1007,8 @@ def test_update_receipt_rule():
             },
         )
 
-    error.value.response["Error"]["Code"].should.equal("RuleDoesNotExist")
-    error.value.response["Error"]["Message"].should.equal(
+    assert error.value.response["Error"]["Code"] == "RuleDoesNotExist"
+    assert error.value.response["Error"]["Message"] == (
         "Rule does not exist: invalidRuleName"
     )
 
@@ -1030,9 +1040,9 @@ def test_update_receipt_rule():
             },
         )
 
-    str(error.value).should.contain(
+    assert (
         'Parameter validation failed:\nMissing required parameter in Rule: "Name"'
-    )
+    ) in str(error.value)
 
 
 @mock_ses
@@ -1098,45 +1108,49 @@ def test_update_receipt_rule_actions():
         },
     )
 
-    update_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert update_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     updated_rule_description = conn.describe_receipt_rule(
         RuleSetName=rule_set_name, RuleName=rule_name
     )
 
-    len(updated_rule_description["Rule"]["Actions"]).should.equal(1)
-    updated_rule_description["Rule"]["Actions"][0].should.have.key("S3Action")
+    assert len(updated_rule_description["Rule"]["Actions"]) == 1
+    assert "S3Action" in updated_rule_description["Rule"]["Actions"][0]
 
-    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
-        "TopicArn"
-    ).being.equal("newString")
-    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
-        "BucketName"
-    ).being.equal("updatedTestBucketName")
-    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["TopicArn"]
+    ) == "newString"
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["BucketName"]
+    ) == "updatedTestBucketName"
+    assert updated_rule_description["Rule"]["Actions"][0]["S3Action"][
         "ObjectKeyPrefix"
-    ).being.equal("updatedTestObjectKeyPrefix")
-    updated_rule_description["Rule"]["Actions"][0]["S3Action"].should.have.key(
-        "KmsKeyArn"
-    ).being.equal("newString")
+    ] == ("updatedTestObjectKeyPrefix")
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["KmsKeyArn"]
+        == "newString"
+    )
 
-    updated_rule_description["Rule"]["Actions"][0].should.have.key("BounceAction")
+    assert "BounceAction" in updated_rule_description["Rule"]["Actions"][0]
 
-    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "TopicArn"
-    ).being.equal("newString")
-    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "SmtpReplyCode"
-    ).being.equal("newString")
-    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "StatusCode"
-    ).being.equal("newString")
-    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "Message"
-    ).being.equal("newString")
-    updated_rule_description["Rule"]["Actions"][0]["BounceAction"].should.have.key(
-        "Sender"
-    ).being.equal("newString")
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["TopicArn"]
+        == "newString"
+    )
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["SmtpReplyCode"]
+    ) == "newString"
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["StatusCode"]
+    ) == "newString"
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["Message"]
+        == "newString"
+    )
+    assert (
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["Sender"]
+        == "newString"
+    )
 
     with pytest.raises(ParamValidationError) as error:
         conn.update_receipt_rule(
@@ -1163,9 +1177,13 @@ def test_update_receipt_rule_actions():
             },
         )
 
-    assert (str(error.value)).should.contain(
-        'Parameter validation failed:\nMissing required parameter in Rule.Actions[0].S3Action: "BucketName"\nMissing required parameter in Rule.Actions[0].BounceAction: "SmtpReplyCode"\nMissing required parameter in Rule.Actions[0].BounceAction: "Message"\nMissing required parameter in Rule.Actions[0].BounceAction: "Sender"'
-    )
+    assert (
+        "Parameter validation failed:\n"
+        'Missing required parameter in Rule.Actions[0].S3Action: "BucketName"\n'
+        'Missing required parameter in Rule.Actions[0].BounceAction: "SmtpReplyCode"\n'
+        'Missing required parameter in Rule.Actions[0].BounceAction: "Message"\n'
+        'Missing required parameter in Rule.Actions[0].BounceAction: "Sender"'
+    ) in str(error.value)
 
 
 @mock_ses
@@ -1194,37 +1212,37 @@ def test_create_ses_template():
             }
         )
 
-    ex.value.response["Error"]["Code"].should.equal("TemplateNameAlreadyExists")
+    assert ex.value.response["Error"]["Code"] == "TemplateNameAlreadyExists"
 
     # get a template which is already added
     result = conn.get_template(TemplateName="MyTemplate")
-    result["Template"]["TemplateName"].should.equal("MyTemplate")
-    result["Template"]["SubjectPart"].should.equal("Greetings, {{name}}!")
-    result["Template"]["HtmlPart"].should.equal(
+    assert result["Template"]["TemplateName"] == "MyTemplate"
+    assert result["Template"]["SubjectPart"] == "Greetings, {{name}}!"
+    assert result["Template"]["HtmlPart"] == (
         "<h1>Hello {{name}}," "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
     )
     # get a template which is not present
     with pytest.raises(ClientError) as ex:
         conn.get_template(TemplateName="MyFakeTemplate")
 
-    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "TemplateDoesNotExist"
 
     result = conn.list_templates()
-    result["TemplatesMetadata"][0]["Name"].should.equal("MyTemplate")
+    assert result["TemplatesMetadata"][0]["Name"] == "MyTemplate"
 
 
 @mock_ses
 def test_render_template():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        TemplateName="MyTestTemplate",
-        TemplateData=json.dumps({"name": "John", "favoriteanimal": "Lion"}),
-    )
+    kwargs = {
+        "TemplateName": "MyTestTemplate",
+        "TemplateData": json.dumps({"name": "John", "favoriteanimal": "Lion"}),
+    }
 
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
-    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "TemplateDoesNotExist"
 
     conn.create_template(
         Template={
@@ -1237,15 +1255,15 @@ def test_render_template():
         }
     )
     result = conn.test_render_template(**kwargs)
-    result["RenderedTemplate"].should.contain("Subject: Greetings, John!")
-    result["RenderedTemplate"].should.contain("Dear John,")
-    result["RenderedTemplate"].should.contain("<h1>Hello John,</h1>")
-    result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
+    assert "Subject: Greetings, John!" in result["RenderedTemplate"]
+    assert "Dear John," in result["RenderedTemplate"]
+    assert "<h1>Hello John,</h1>" in result["RenderedTemplate"]
+    assert "Your favorite animal is Lion" in result["RenderedTemplate"]
 
-    kwargs = dict(
-        TemplateName="MyTestTemplate",
-        TemplateData=json.dumps({"name": "John", "favoriteanimal": "Lion"}),
-    )
+    kwargs = {
+        "TemplateName": "MyTestTemplate",
+        "TemplateData": json.dumps({"name": "John", "favoriteanimal": "Lion"}),
+    }
 
     conn.create_template(
         Template={
@@ -1259,14 +1277,15 @@ def test_render_template():
     )
 
     result = conn.test_render_template(**kwargs)
-    result["RenderedTemplate"].should.contain("Subject: Greetings, John!")
-    result["RenderedTemplate"].should.contain("Dear John,")
-    result["RenderedTemplate"].should.contain("<h1>Hello John,</h1>")
-    result["RenderedTemplate"].should.contain("Your favorite animal is Lion")
+    assert "Subject: Greetings, John!" in result["RenderedTemplate"]
+    assert "Dear John," in result["RenderedTemplate"]
+    assert "<h1>Hello John,</h1>" in result["RenderedTemplate"]
+    assert "Your favorite animal is Lion" in result["RenderedTemplate"]
 
-    kwargs = dict(
-        TemplateName="MyTestTemplate", TemplateData=json.dumps({"name": "John"})
-    )
+    kwargs = {
+        "TemplateName": "MyTestTemplate",
+        "TemplateData": json.dumps({"name": "John"}),
+    }
 
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
@@ -1281,9 +1300,9 @@ def test_render_template():
 def test_render_template__with_foreach():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        TemplateName="MTT",
-        TemplateData=json.dumps(
+    kwargs = {
+        "TemplateName": "MTT",
+        "TemplateData": json.dumps(
             {
                 "items": [
                     {"type": "dog", "name": "bobby"},
@@ -1291,7 +1310,7 @@ def test_render_template__with_foreach():
                 ]
             }
         ),
-    )
+    }
 
     conn.create_template(
         Template={
@@ -1302,8 +1321,8 @@ def test_render_template__with_foreach():
         }
     )
     result = conn.test_render_template(**kwargs)
-    result["RenderedTemplate"].should.contain("bobby is a dog")
-    result["RenderedTemplate"].should.contain("pedro is a cat")
+    assert "bobby is a dog" in result["RenderedTemplate"]
+    assert "pedro is a cat" in result["RenderedTemplate"]
 
 
 @mock_ses
@@ -1319,7 +1338,7 @@ def test_update_ses_template():
 
     with pytest.raises(ClientError) as ex:
         conn.update_template(Template=template)
-    ex.value.response["Error"]["Code"].should.equal("TemplateDoesNotExist")
+    assert ex.value.response["Error"]["Code"] == "TemplateDoesNotExist"
 
     conn.create_template(Template=template)
 
@@ -1331,11 +1350,11 @@ def test_update_ses_template():
     conn.update_template(Template=template)
 
     result = conn.get_template(TemplateName=template["TemplateName"])
-    result["Template"]["SubjectPart"].should.equal("Hi, {{name}}!")
-    result["Template"]["TextPart"].should.equal(
+    assert result["Template"]["SubjectPart"] == "Hi, {{name}}!"
+    assert result["Template"]["TextPart"] == (
         "Dear {{name}},\n Your favorite color is {{color}}"
     )
-    result["Template"]["HtmlPart"].should.equal(
+    assert result["Template"]["HtmlPart"] == (
         "<h1>Hello {{name}},</h1><p>Your favorite color is {{color}}</p>"
     )
 
@@ -1352,33 +1371,33 @@ def test_domains_are_case_insensitive():
         client.verify_domain_identity(Domain=domain)
         client.verify_domain_dkim(Domain=domain)
         identities = client.list_identities(IdentityType="Domain")["Identities"]
-        identities.should.have.length_of(1)
-        identities[0].should.equal("example.com")
+        assert len(identities) == 1
+        assert identities[0] == "example.com"
 
 
 @mock_ses
 def test_get_send_statistics():
     conn = boto3.client("ses", region_name="us-east-1")
 
-    kwargs = dict(
-        Source="test@example.com",
-        Destination={"ToAddresses": ["test_to@example.com"]},
-        Message={
+    kwargs = {
+        "Source": "test@example.com",
+        "Destination": {"ToAddresses": ["test_to@example.com"]},
+        "Message": {
             "Subject": {"Data": "test subject"},
             "Body": {"Html": {"Data": "<span>test body</span>"}},
         },
-    )
+    }
     with pytest.raises(ClientError) as ex:
         conn.send_email(**kwargs)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("MessageRejected")
-    err["Message"].should.equal("Email address not verified test@example.com")
+    assert err["Code"] == "MessageRejected"
+    assert err["Message"] == "Email address not verified test@example.com"
 
     # tests to verify rejects in get_send_statistics
     stats = conn.get_send_statistics()["SendDataPoints"]
 
-    stats[0]["Rejects"].should.equal(1)
-    stats[0]["DeliveryAttempts"].should.equal(0)
+    assert stats[0]["Rejects"] == 1
+    assert stats[0]["DeliveryAttempts"] == 0
 
     conn.verify_email_identity(EmailAddress="test@example.com")
     conn.send_email(
@@ -1393,8 +1412,8 @@ def test_get_send_statistics():
     # tests to delivery attempts in get_send_statistics
     stats = conn.get_send_statistics()["SendDataPoints"]
 
-    stats[0]["Rejects"].should.equal(1)
-    stats[0]["DeliveryAttempts"].should.equal(1)
+    assert stats[0]["Rejects"] == 1
+    assert stats[0]["DeliveryAttempts"] == 1
 
 
 @mock_ses
@@ -1405,8 +1424,8 @@ def test_set_identity_mail_from_domain():
     with pytest.raises(ClientError) as exc:
         conn.set_identity_mail_from_domain(Identity="foo.com")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal("Identity 'foo.com' does not exist.")
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "Identity 'foo.com' does not exist."
 
     conn.verify_domain_identity(Domain="foo.com")
 
@@ -1416,8 +1435,8 @@ def test_set_identity_mail_from_domain():
             Identity="foo.com", MailFromDomain="lorem.ipsum.com"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
         "Provided MAIL-FROM domain 'lorem.ipsum.com' is not subdomain of "
         "the domain of the identity 'foo.com'."
     )
@@ -1430,8 +1449,8 @@ def test_set_identity_mail_from_domain():
             BehaviorOnMXFailure="SelfDestruct",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal(
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == (
         "1 validation error detected: Value 'SelfDestruct' at "
         "'behaviorOnMXFailure'failed to satisfy constraint: Member must "
         "satisfy enum value set: [RejectMessage, UseDefaultValue]"
@@ -1449,22 +1468,18 @@ def test_set_identity_mail_from_domain():
 
     attributes = conn.get_identity_mail_from_domain_attributes(Identities=["foo.com"])
     actual_attributes = attributes["MailFromDomainAttributes"]["foo.com"]
-    actual_attributes.should.have.key("MailFromDomain").being.equal(mail_from_domain)
-    actual_attributes.should.have.key("BehaviorOnMXFailure").being.equal(
-        behaviour_on_mx_failure
-    )
-    actual_attributes.should.have.key("MailFromDomainStatus").being.equal("Success")
+    assert actual_attributes["MailFromDomain"] == mail_from_domain
+    assert actual_attributes["BehaviorOnMXFailure"] == behaviour_on_mx_failure
+    assert actual_attributes["MailFromDomainStatus"] == "Success"
 
     # Must unset config when MailFromDomain is null
     conn.set_identity_mail_from_domain(Identity="foo.com")
 
     attributes = conn.get_identity_mail_from_domain_attributes(Identities=["foo.com"])
     actual_attributes = attributes["MailFromDomainAttributes"]["foo.com"]
-    actual_attributes.should.have.key("BehaviorOnMXFailure").being.equal(
-        "UseDefaultValue"
-    )
-    actual_attributes.should_not.have.key("MailFromDomain")
-    actual_attributes.should_not.have.key("MailFromDomainStatus")
+    assert actual_attributes["BehaviorOnMXFailure"] == "UseDefaultValue"
+    assert "MailFromDomain" not in actual_attributes
+    assert "MailFromDomainStatus" not in actual_attributes
 
 
 @mock_ses
@@ -1475,27 +1490,27 @@ def test_get_identity_mail_from_domain_attributes():
     attributes = conn.get_identity_mail_from_domain_attributes(
         Identities=["bar@foo.com", "lorem.com"]
     )
-    attributes["MailFromDomainAttributes"].should.have.length_of(0)
+    assert not attributes["MailFromDomainAttributes"]
 
     # Must return default options for non-configured identities
     conn.verify_email_identity(EmailAddress="bar@foo.com")
     attributes = conn.get_identity_mail_from_domain_attributes(
         Identities=["bar@foo.com", "lorem.com"]
     )
-    attributes["MailFromDomainAttributes"].should.have.length_of(1)
-    attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.length_of(1)
-    attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.key(
-        "BehaviorOnMXFailure"
-    ).being.equal("UseDefaultValue")
+    assert len(attributes["MailFromDomainAttributes"]) == 1
+    assert len(attributes["MailFromDomainAttributes"]["bar@foo.com"]) == 1
+    assert (
+        attributes["MailFromDomainAttributes"]["bar@foo.com"]["BehaviorOnMXFailure"]
+    ) == "UseDefaultValue"
 
     # Must return multiple configured identities
     conn.verify_domain_identity(Domain="lorem.com")
     attributes = conn.get_identity_mail_from_domain_attributes(
         Identities=["bar@foo.com", "lorem.com"]
     )
-    attributes["MailFromDomainAttributes"].should.have.length_of(2)
-    attributes["MailFromDomainAttributes"]["bar@foo.com"].should.have.length_of(1)
-    attributes["MailFromDomainAttributes"]["lorem.com"].should.have.length_of(1)
+    assert len(attributes["MailFromDomainAttributes"]) == 2
+    assert len(attributes["MailFromDomainAttributes"]["bar@foo.com"]) == 1
+    assert len(attributes["MailFromDomainAttributes"]["lorem.com"]) == 1
 
 
 @mock_ses
@@ -1509,10 +1524,12 @@ def test_get_identity_verification_attributes():
         Identities=["foo.com", "foo@bar.com", "bar@bar.com"]
     )
 
-    attributes["VerificationAttributes"].should.have.length_of(2)
-    attributes["VerificationAttributes"]["foo.com"]["VerificationStatus"].should.equal(
-        "Success"
+    assert len(attributes["VerificationAttributes"]) == 2
+    assert (
+        attributes["VerificationAttributes"]["foo.com"]["VerificationStatus"]
+        == "Success"
     )
-    attributes["VerificationAttributes"]["foo@bar.com"][
-        "VerificationStatus"
-    ].should.equal("Success")
+    assert (
+        attributes["VerificationAttributes"]["foo@bar.com"]["VerificationStatus"]
+        == "Success"
+    )
