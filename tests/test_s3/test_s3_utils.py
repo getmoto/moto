@@ -1,12 +1,9 @@
 from unittest.mock import patch
-
 import pytest
 from moto.s3.utils import (
     bucket_name_from_url,
     _VersionedKeyStore,
     parse_region_from_url,
-    clean_key_name,
-    undo_clean_key_name,
     compute_checksum,
     cors_matches_origin,
 )
@@ -89,36 +86,6 @@ def test_parse_region_from_url():
         "https://bucket.s3.amazonaws.com",
     ]:
         assert parse_region_from_url(url) == expected
-
-
-@pytest.mark.parametrize(
-    "key,expected",
-    [
-        ("foo/bar/baz", "foo/bar/baz"),
-        ("foo", "foo"),
-        (
-            "foo/run_dt%3D2019-01-01%252012%253A30%253A00",
-            "foo/run_dt=2019-01-01%2012%3A30%3A00",
-        ),
-    ],
-)
-def test_clean_key_name(key, expected):
-    assert clean_key_name(key) == expected
-
-
-@pytest.mark.parametrize(
-    "key,expected",
-    [
-        ("foo/bar/baz", "foo/bar/baz"),
-        ("foo", "foo"),
-        (
-            "foo/run_dt%3D2019-01-01%252012%253A30%253A00",
-            "foo/run_dt%253D2019-01-01%25252012%25253A30%25253A00",
-        ),
-    ],
-)
-def test_undo_clean_key_name(key, expected):
-    assert undo_clean_key_name(key) == expected
 
 
 def test_checksum_sha256():

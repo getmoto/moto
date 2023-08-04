@@ -6,11 +6,14 @@ from typing import Any, Dict, List, Iterator, Union, Tuple, Optional, Type
 import urllib.parse
 
 from moto import settings
+from moto.core.versions import is_werkzeug_2_3_x
 from moto.core.utils import (
     extract_region_from_aws_authorization,
     str_to_rfc_1123_datetime,
+    normalize_werkzeug_path,
 )
 from urllib.parse import parse_qs, urlparse, unquote, urlencode, urlunparse
+from urllib.parse import ParseResult
 
 import xmltodict
 
@@ -155,6 +158,15 @@ def parse_key_name(pth: str) -> str:
 class S3Response(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="s3")
+
+    def get_safe_path_from_url(self, url: ParseResult) -> str:
+        return self.get_safe_path(url.path)
+
+    def get_safe_path(self, part: str) -> str:
+        if self.is_werkzeug_request:
+            return normalize_werkzeug_path(part)
+        else:
+            return unquote(part)
 
     @property
     def backend(self) -> S3Backend:
@@ -315,8 +327,7 @@ class S3Response(BaseResponse):
                 f"Method {method} has not been implemented in the S3 backend yet"
             )
 
-    @staticmethod
-    def _get_querystring(request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
         # Flask's Request has the querystring already parsed
         # In ServerMode, we can use this, instead of manually parsing this
         if hasattr(request, "args"):
@@ -1129,6 +1140,10 @@ class S3Response(BaseResponse):
             objects = [objects]
         if len(objects) == 0:
             raise MalformedXML()
+        if self.is_werkzeug_request and is_werkzeug_2_3_x():
+            for obj in objects:
+                if "Key" in obj:
+                    obj["Key"] = self.get_safe_path(obj["Key"])
 
         if authenticated:
             deleted_objects = self.backend.delete_objects(bucket_name, objects)
@@ -1235,10 +1250,11 @@ class S3Response(BaseResponse):
         self, request: Any, full_url: str, headers: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         parsed_url = urlparse(full_url)
+        url_path = self.get_safe_path_from_url(parsed_url)
         query = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
 
-        key_name = self.parse_key_name(request, parsed_url.path)
+        key_name = self.parse_key_name(request, url_path)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
 
         # SDK requests tend to have Authorization set automatically
@@ -1473,7 +1489,8 @@ class S3Response(BaseResponse):
                 if isinstance(copy_source, bytes):
                     copy_source = copy_source.decode("utf-8")
                 copy_source_parsed = urlparse(copy_source)
-                src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+                url_path = self.get_safe_path_from_url(copy_source_parsed)
+                src_bucket, src_key = url_path.lstrip("/").split("/", 1)
                 src_version_id = parse_qs(copy_source_parsed.query).get(
                     "versionId", [None]  # type: ignore
                 )[0]
@@ -1630,7 +1647,7 @@ class S3Response(BaseResponse):
             )[0]
 
             key_to_copy = self.backend.get_object(
-                src_bucket, src_key, version_id=src_version_id, key_is_clean=True
+                src_bucket, src_key, version_id=src_version_id
             )
 
             if key_to_copy is not None:
@@ -2233,7 +2250,6 @@ class S3Response(BaseResponse):
                 bucket_name=bucket_name,
                 key_name=key.name,
                 acl=multipart.acl,
-                key_is_clean=True,
             )
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
