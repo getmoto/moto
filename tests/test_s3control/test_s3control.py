@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from boto3 import Session
 from botocore.client import ClientError
@@ -14,32 +13,34 @@ def test_get_public_access_block_for_account():
     client = boto3.client("s3control", region_name="us-west-2")
 
     # With an invalid account ID:
-    with pytest.raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce_err:
         client.get_public_access_block(AccountId="111111111111")
-    assert ce.value.response["Error"]["Code"] == "AccessDenied"
+    assert ce_err.value.response["Error"]["Code"] == "AccessDenied"
 
     # Without one defined:
-    with pytest.raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce_err:
         client.get_public_access_block(AccountId=ACCOUNT_ID)
-    assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
+    assert (
+        ce_err.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
+    )
 
     # Put a with an invalid account ID:
-    with pytest.raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce_err:
         client.put_public_access_block(
             AccountId="111111111111",
             PublicAccessBlockConfiguration={"BlockPublicAcls": True},
         )
-    assert ce.value.response["Error"]["Code"] == "AccessDenied"
+    assert ce_err.value.response["Error"]["Code"] == "AccessDenied"
 
     # Put with an invalid PAB:
-    with pytest.raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce_err:
         client.put_public_access_block(
             AccountId=ACCOUNT_ID, PublicAccessBlockConfiguration={}
         )
-    assert ce.value.response["Error"]["Code"] == "InvalidRequest"
+    assert ce_err.value.response["Error"]["Code"] == "InvalidRequest"
     assert (
         "Must specify at least one configuration."
-        in ce.value.response["Error"]["Message"]
+        in ce_err.value.response["Error"]["Message"]
     )
 
     # Correct PAB:
@@ -66,14 +67,16 @@ def test_get_public_access_block_for_account():
         }
 
     # Delete with an invalid account ID:
-    with pytest.raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce_err:
         client.delete_public_access_block(AccountId="111111111111")
-    assert ce.value.response["Error"]["Code"] == "AccessDenied"
+    assert ce_err.value.response["Error"]["Code"] == "AccessDenied"
 
     # Delete successfully:
     client.delete_public_access_block(AccountId=ACCOUNT_ID)
 
     # Confirm that it's deleted:
-    with pytest.raises(ClientError) as ce:
+    with pytest.raises(ClientError) as ce_err:
         client.get_public_access_block(AccountId=ACCOUNT_ID)
-    assert ce.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
+    assert (
+        ce_err.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
+    )
