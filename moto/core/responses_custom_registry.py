@@ -15,6 +15,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self._registered: Dict[str, List[responses.BaseResponse]] = defaultdict(list)
 
     def add(self, response: responses.BaseResponse) -> responses.BaseResponse:
