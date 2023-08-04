@@ -1,8 +1,7 @@
-import boto3
 import json
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
+import boto3
 from boto3 import Session
 from botocore.client import ClientError
 from moto import settings, mock_s3control, mock_config
@@ -90,17 +89,17 @@ if not settings.TEST_SERVER_MODE:
             ResourceType="AWS::S3::AccountPublicAccessBlock",
             ConfigurationAggregatorName="testing",
         )
-        regions = {region for region in Session().get_available_regions("config")}
-        for r in result["ResourceIdentifiers"]:
-            regions.remove(r.pop("SourceRegion"))
-            assert r == {
+        regions = set(Session().get_available_regions("config"))
+        for resource in result["ResourceIdentifiers"]:
+            regions.remove(resource.pop("SourceRegion"))
+            assert resource == {
                 "ResourceType": "AWS::S3::AccountPublicAccessBlock",
                 "SourceAccountId": ACCOUNT_ID,
                 "ResourceId": ACCOUNT_ID,
             }
 
         # Just check that the len is the same -- this should be reasonable
-        regions = {region for region in Session().get_available_regions("config")}
+        regions = set(Session().get_available_regions("config"))
         result = config_client.list_aggregate_discovered_resources(
             ResourceType="AWS::S3::AccountPublicAccessBlock",
             ConfigurationAggregatorName="testing",
@@ -133,9 +132,7 @@ if not settings.TEST_SERVER_MODE:
             ConfigurationAggregatorName="testing",
             Limit=1,
         )
-        regions = sorted(
-            [region for region in Session().get_available_regions("config")]
-        )
+        regions = sorted(set(Session().get_available_regions("config")))
         assert result["ResourceIdentifiers"][0] == {
             "ResourceType": "AWS::S3::AccountPublicAccessBlock",
             "SourceAccountId": ACCOUNT_ID,
@@ -207,11 +204,13 @@ if not settings.TEST_SERVER_MODE:
         )
 
         # Without a PAB in place:
-        with pytest.raises(ClientError) as ce:
+        with pytest.raises(ClientError) as ce_err:
             config_client.get_resource_config_history(
                 resourceType="AWS::S3::AccountPublicAccessBlock", resourceId=ACCOUNT_ID
             )
-        assert ce.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
+        assert (
+            ce_err.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
+        )
         # aggregate
         result = config_client.batch_get_resource_config(
             resourceKeys=[
