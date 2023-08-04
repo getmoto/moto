@@ -1,11 +1,6 @@
-import sure  # noqa # pylint: disable=unused-import
-
+"""Test the different server responses."""
 from flask.testing import FlaskClient
 import moto.server as server
-
-"""
-Test the different server responses
-"""
 
 
 class AuthenticatedClient(FlaskClient):
@@ -27,48 +22,48 @@ def test_s3_server_get():
 
     res = test_client.get("/")
 
-    res.data.should.contain(b"ListAllMyBucketsResult")
+    assert b"ListAllMyBucketsResult" in res.data
 
 
 def test_s3_server_bucket_create():
     test_client = authenticated_client()
 
     res = test_client.put("/foobar", "http://localhost:5000")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     res = test_client.get("/")
-    res.data.should.contain(b"<Name>foobar</Name>")
+    assert b"<Name>foobar</Name>" in res.data
 
     res = test_client.get("/foobar", "http://localhost:5000")
-    res.status_code.should.equal(200)
-    res.data.should.contain(b"ListBucketResult")
+    assert res.status_code == 200
+    assert b"ListBucketResult" in res.data
 
     res = test_client.put("/foobar2/", "http://localhost:5000")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     res = test_client.get("/")
-    res.data.should.contain(b"<Name>foobar2</Name>")
+    assert b"<Name>foobar2</Name>" in res.data
 
     res = test_client.get("/foobar2/", "http://localhost:5000")
-    res.status_code.should.equal(200)
-    res.data.should.contain(b"ListBucketResult")
+    assert res.status_code == 200
+    assert b"ListBucketResult" in res.data
 
     res = test_client.get("/missing-bucket", "http://localhost:5000")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
     res = test_client.put("/foobar/bar", "http://localhost:5000", data="test value")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     res = test_client.get("/foobar/bar", "http://localhost:5000")
-    res.status_code.should.equal(200)
-    res.data.should.equal(b"test value")
+    assert res.status_code == 200
+    assert res.data == b"test value"
 
 
 def test_s3_server_post_to_bucket():
     test_client = authenticated_client()
 
     res = test_client.put("/foobar2", "http://localhost:5000/")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     test_client.post(
         "/foobar2",
@@ -77,30 +72,30 @@ def test_s3_server_post_to_bucket():
     )
 
     res = test_client.get("/foobar2/the-key", "http://localhost:5000/")
-    res.status_code.should.equal(200)
-    res.data.should.equal(b"nothing")
+    assert res.status_code == 200
+    assert res.data == b"nothing"
 
 
 def test_s3_server_put_ipv6():
     test_client = authenticated_client()
 
     res = test_client.put("/foobar2", "http://[::]:5000/")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     test_client.post(
         "/foobar2", "https://[::]:5000/", data={"key": "the-key", "file": "nothing"}
     )
 
     res = test_client.get("/foobar2/the-key", "http://[::]:5000/")
-    res.status_code.should.equal(200)
-    res.data.should.equal(b"nothing")
+    assert res.status_code == 200
+    assert res.data == b"nothing"
 
 
 def test_s3_server_put_ipv4():
     test_client = authenticated_client()
 
     res = test_client.put("/foobar2", "http://127.0.0.1:5000/")
-    res.status_code.should.equal(200)
+    assert res.status_code == 200
 
     test_client.post(
         "/foobar2",
@@ -109,5 +104,5 @@ def test_s3_server_put_ipv4():
     )
 
     res = test_client.get("/foobar2/the-key", "http://127.0.0.1:5000/")
-    res.status_code.should.equal(200)
-    res.data.should.equal(b"nothing")
+    assert res.status_code == 200
+    assert res.data == b"nothing"
