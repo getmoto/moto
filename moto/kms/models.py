@@ -599,7 +599,7 @@ class KmsBackend(BaseBackend):
                 ).format(key_id=key.id)
             )
 
-    def __ensure_valid_signing_augorithm(
+    def __ensure_valid_signing_algorithm(
         self, key: Key, signing_algorithm: str
     ) -> None:
         if signing_algorithm not in key.signing_algorithms:
@@ -626,7 +626,7 @@ class KmsBackend(BaseBackend):
         key = self.describe_key(key_id)
 
         self.__ensure_valid_sign_and_verify_key(key)
-        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+        self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
         # TODO: support more than one hardcoded algorithm based on KeySpec
         signature = key.private_key.sign(
@@ -651,7 +651,7 @@ class KmsBackend(BaseBackend):
         key = self.describe_key(key_id)
 
         self.__ensure_valid_sign_and_verify_key(key)
-        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+        self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
         if signing_algorithm not in key.signing_algorithms:
             raise ValidationException(
