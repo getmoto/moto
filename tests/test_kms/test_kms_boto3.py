@@ -86,6 +86,7 @@ def test_create_key():
         "RSASSA_PSS_SHA_256",
         "RSASSA_PSS_SHA_384",
         "RSASSA_PSS_SHA_512",
+        "SM2DSA",
     ]
 
     key = conn.create_key(KeyUsage="SIGN_VERIFY", KeySpec="ECC_SECG_P256K1")

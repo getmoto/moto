@@ -180,6 +180,7 @@ class Key(CloudFormationModel):
                 "RSASSA_PSS_SHA_256",
                 "RSASSA_PSS_SHA_384",
                 "RSASSA_PSS_SHA_512",
+                "SM2DSA",
             ]
 
     def to_dict(self) -> Dict[str, Any]:
