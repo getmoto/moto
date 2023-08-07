@@ -745,6 +745,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         "sha256:", ""
                     )
                     self.code_size = manifest["config"]["size"]
+            if from_update:
+                self.code["ImageUri"] = updated_spec["ImageUri"]
 
     def update_function_code(self, updated_spec: Dict[str, Any]) -> Dict[str, Any]:
         self._set_function_code(updated_spec)
