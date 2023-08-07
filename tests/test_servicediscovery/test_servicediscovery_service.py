@@ -1,9 +1,8 @@
 """Unit tests for servicediscovery-supported APIs."""
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_servicediscovery
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -20,12 +19,12 @@ def test_create_service_minimal():
 
     resp = client.create_service(Name="my service", NamespaceId=namespace_id)
 
-    resp.should.have.key("Service")
-    resp["Service"].should.have.key("Id")
-    resp["Service"].should.have.key("Arn")
-    resp["Service"].should.have.key("Name").equals("my service")
-    resp["Service"].should.have.key("NamespaceId").equals(namespace_id)
-    resp["Service"].should.have.key("CreateDate")
+    assert "Service" in resp
+    assert "Id" in resp["Service"]
+    assert "Arn" in resp["Service"]
+    assert resp["Service"]["Name"] == "my service"
+    assert resp["Service"]["NamespaceId"] == namespace_id
+    assert "CreateDate" in resp["Service"]
 
 
 @mock_servicediscovery
@@ -50,27 +49,24 @@ def test_create_service():
         Type="HTTP",
     )
 
-    resp.should.have.key("Service")
-    resp["Service"].should.have.key("Id")
-    resp["Service"].should.have.key("Arn")
-    resp["Service"].should.have.key("Name").equals("my service")
-    resp["Service"].shouldnt.have.key("NamespaceId")
-    resp["Service"].should.have.key("Description").equals("my service")
-    resp["Service"].should.have.key("DnsConfig").equals(
-        {
-            "NamespaceId": namespace_id,
-            "RoutingPolicy": "WEIGHTED",
-            "DnsRecords": [{"Type": "SRV", "TTL": 0}],
-        }
-    )
-    resp["Service"].should.have.key("HealthCheckConfig").equals(
-        {"Type": "TCP", "ResourcePath": "/sth"}
-    )
-    resp["Service"].should.have.key("HealthCheckCustomConfig").equals(
-        {"FailureThreshold": 125}
-    )
-    resp["Service"].should.have.key("Type").equals("HTTP")
-    resp["Service"].should.have.key("CreatorRequestId").equals("crid")
+    assert "Service" in resp
+    assert "Id" in resp["Service"]
+    assert "Arn" in resp["Service"]
+    assert resp["Service"]["Name"] == "my service"
+    assert "NamespaceId" not in resp["Service"]
+    assert resp["Service"]["Description"] == "my service"
+    assert resp["Service"]["DnsConfig"] == {
+        "NamespaceId": namespace_id,
+        "RoutingPolicy": "WEIGHTED",
+        "DnsRecords": [{"Type": "SRV", "TTL": 0}],
+    }
+    assert resp["Service"]["HealthCheckConfig"] == {
+        "Type": "TCP",
+        "ResourcePath": "/sth",
+    }
+    assert resp["Service"]["HealthCheckCustomConfig"] == {"FailureThreshold": 125}
+    assert resp["Service"]["Type"] == "HTTP"
+    assert resp["Service"]["CreatorRequestId"] == "crid"
 
 
 @mock_servicediscovery
@@ -88,11 +84,11 @@ def test_get_service():
 
     resp = client.get_service(Id=service_id)
 
-    resp.should.have.key("Service")
-    resp["Service"].should.have.key("Id")
-    resp["Service"].should.have.key("Arn")
-    resp["Service"].should.have.key("Name").equals("my service")
-    resp["Service"].should.have.key("NamespaceId").equals(namespace_id)
+    assert "Service" in resp
+    assert "Id" in resp["Service"]
+    assert "Arn" in resp["Service"]
+    assert resp["Service"]["Name"] == "my service"
+    assert resp["Service"]["NamespaceId"] == namespace_id
 
 
 @mock_servicediscovery
@@ -102,8 +98,8 @@ def test_get_unknown_service():
     with pytest.raises(ClientError) as exc:
         client.get_service(Id="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ServiceNotFound")
-    err["Message"].should.equal("unknown")
+    assert err["Code"] == "ServiceNotFound"
+    assert err["Message"] == "unknown"
 
 
 @mock_servicediscovery
@@ -123,8 +119,8 @@ def test_delete_service():
     with pytest.raises(ClientError) as exc:
         client.get_service(Id=service_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ServiceNotFound")
-    err["Message"].should.equal(service_id)
+    assert err["Code"] == "ServiceNotFound"
+    assert err["Message"] == service_id
 
 
 @mock_servicediscovery
@@ -151,19 +147,21 @@ def test_update_service_description():
 
     resp = client.get_service(Id=service_id)
 
-    resp.should.have.key("Service")
-    resp["Service"].should.have.key("Id").equals(service_id)
-    resp["Service"].should.have.key("Arn")
-    resp["Service"].should.have.key("Name").equals("my service")
-    resp["Service"].should.have.key("NamespaceId").equals(namespace_id)
-    resp["Service"].should.have.key("Description").equals("updated desc")
+    assert "Service" in resp
+    assert resp["Service"]["Id"] == service_id
+    assert "Arn" in resp["Service"]
+    assert resp["Service"]["Name"] == "my service"
+    assert resp["Service"]["NamespaceId"] == namespace_id
+    assert resp["Service"]["Description"] == "updated desc"
     # From the docs:
-    #    If you omit any existing DnsRecords or HealthCheckConfig configurations from an UpdateService request,
+    #    If you omit any existing DnsRecords or HealthCheckConfig
+    #    configurations from an UpdateService request,
     #    the configurations are deleted from the service.
-    resp["Service"].shouldnt.have.key("DnsConfig")
-    resp["Service"].should.have.key("HealthCheckConfig").equals(
-        {"Type": "TCP", "ResourcePath": "/sth"}
-    )
+    assert "DnsConfig" not in resp["Service"]
+    assert resp["Service"]["HealthCheckConfig"] == {
+        "Type": "TCP",
+        "ResourcePath": "/sth",
+    }
 
 
 @mock_servicediscovery
@@ -194,15 +192,16 @@ def test_update_service_others():
 
     resp = client.get_service(Id=service_id)
 
-    resp.should.have.key("Service")
-    resp["Service"].should.have.key("Id").equals(service_id)
-    resp["Service"].should.have.key("Arn")
-    resp["Service"].should.have.key("Name").equals("my service")
-    resp["Service"].should.have.key("NamespaceId").equals(namespace_id)
-    resp["Service"].should.have.key("Description").equals("first desc")
-    resp["Service"].should.have.key("DnsConfig").equals(
+    assert "Service" in resp
+    assert resp["Service"]["Id"] == service_id
+    assert "Arn" in resp["Service"]
+    assert resp["Service"]["Name"] == "my service"
+    assert resp["Service"]["NamespaceId"] == namespace_id
+    assert resp["Service"]["Description"] == "first desc"
+    assert resp["Service"]["DnsConfig"] == (
         {"RoutingPolicy": "WEIGHTED", "DnsRecords": [{"Type": "SRV", "TTL": 12}]}
     )
-    resp["Service"].should.have.key("HealthCheckConfig").equals(
-        {"Type": "TCP", "ResourcePath": "/sth"}
-    )
+    assert resp["Service"]["HealthCheckConfig"] == {
+        "Type": "TCP",
+        "ResourcePath": "/sth",
+    }
