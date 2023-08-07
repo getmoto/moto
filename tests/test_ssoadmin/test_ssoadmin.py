@@ -1,11 +1,11 @@
-import boto3
 import datetime
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
-from botocore.exceptions import ClientError
-from moto import mock_ssoadmin
 from uuid import uuid4
+
+import boto3
+from botocore.exceptions import ClientError
+import pytest
+
+from moto import mock_ssoadmin
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -29,17 +29,17 @@ def test_create_account_assignment():
         PrincipalId=principal_id,
     )
 
-    resp.should.have.key("AccountAssignmentCreationStatus")
+    assert "AccountAssignmentCreationStatus" in resp
 
     status = resp["AccountAssignmentCreationStatus"]
-    status.should.have.key("Status").equals("SUCCEEDED")
-    status.should.have.key("RequestId")
-    status.shouldnt.have.key("FailureReason")
-    status.should.have.key("TargetId").equals(target_id)
-    status.should.have.key("TargetType").equals("AWS_ACCOUNT")
-    status.should.have.key("PermissionSetArn").equals(permission_set_arn)
-    status.should.have.key("PrincipalType").equals("USER")
-    status.should.have.key("PrincipalId").equals(principal_id)
+    assert status["Status"] == "SUCCEEDED"
+    assert "RequestId" in status
+    assert "FailureReason" not in status
+    assert status["TargetId"] == target_id
+    assert status["TargetType"] == "AWS_ACCOUNT"
+    assert status["PermissionSetArn"] == permission_set_arn
+    assert status["PrincipalType"] == "USER"
+    assert status["PrincipalId"] == principal_id
 
 
 @mock_ssoadmin
@@ -69,19 +69,19 @@ def test_delete_account_assignment():
         PrincipalType="USER",
         PrincipalId=principal_id,
     )
-    resp.should.have.key("AccountAssignmentDeletionStatus")
+    assert "AccountAssignmentDeletionStatus" in resp
 
     # Verify the correct response
     status = resp["AccountAssignmentDeletionStatus"]
-    status.should.have.key("Status").equals("SUCCEEDED")
-    status.should.have.key("RequestId")
-    status.shouldnt.have.key("FailureReason")
-    status.should.have.key("TargetId").equals(target_id)
-    status.should.have.key("TargetType").equals("AWS_ACCOUNT")
-    status.should.have.key("PermissionSetArn").equals(permission_set_arn)
-    status.should.have.key("PrincipalType").equals("USER")
-    status.should.have.key("PrincipalId").equals(principal_id)
-    status.should.have.key("CreatedDate").should.be.a(datetime.datetime)
+    assert status["Status"] == "SUCCEEDED"
+    assert "RequestId" in status
+    assert "FailureReason" not in status
+    assert status["TargetId"] == target_id
+    assert status["TargetType"] == "AWS_ACCOUNT"
+    assert status["PermissionSetArn"] == permission_set_arn
+    assert status["PrincipalType"] == "USER"
+    assert status["PrincipalId"] == principal_id
+    assert isinstance(status["CreatedDate"], datetime.datetime)
 
     # Verify this account assignment can no longer be found
     resp = client.list_account_assignments(
@@ -90,7 +90,7 @@ def test_delete_account_assignment():
         PermissionSetArn=permission_set_arn,
     )
 
-    resp.should.have.key("AccountAssignments").equals([])
+    assert resp["AccountAssignments"] == []
 
 
 @mock_ssoadmin
@@ -114,7 +114,7 @@ def test_delete_account_assignment_unknown():
             PrincipalId=principal_id,
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFound")
+    assert err["Code"] == "ResourceNotFound"
 
 
 @mock_ssoadmin
@@ -135,7 +135,7 @@ def test_list_account_assignments():
         PermissionSetArn=permission_set_arn,
     )
 
-    resp.should.have.key("AccountAssignments").equals([])
+    assert resp["AccountAssignments"] == []
 
     client.create_account_assignment(
         InstanceArn=instance_arn,
@@ -152,16 +152,14 @@ def test_list_account_assignments():
         PermissionSetArn=permission_set_arn,
     )
 
-    resp.should.have.key("AccountAssignments").equals(
-        [
-            {
-                "AccountId": target_id1,
-                "PermissionSetArn": permission_set_arn,
-                "PrincipalType": "USER",
-                "PrincipalId": principal_id,
-            }
-        ]
-    )
+    assert resp["AccountAssignments"] == [
+        {
+            "AccountId": target_id1,
+            "PermissionSetArn": permission_set_arn,
+            "PrincipalType": "USER",
+            "PrincipalId": principal_id,
+        }
+    ]
 
     client.create_account_assignment(
         InstanceArn=instance_arn,
@@ -178,16 +176,14 @@ def test_list_account_assignments():
         PermissionSetArn=permission_set_arn,
     )
 
-    resp.should.have.key("AccountAssignments").equals(
-        [
-            {
-                "AccountId": target_id2,
-                "PermissionSetArn": permission_set_arn,
-                "PrincipalType": "USER",
-                "PrincipalId": principal_id,
-            }
-        ]
-    )
+    assert resp["AccountAssignments"] == [
+        {
+            "AccountId": target_id2,
+            "PermissionSetArn": permission_set_arn,
+            "PrincipalType": "USER",
+            "PrincipalId": principal_id,
+        }
+    ]
 
 
 @mock_ssoadmin
@@ -200,14 +196,14 @@ def test_create_permission_set():
         SessionDuration="PT1H",
         RelayState="https://console.aws.amazon.com/ec2",
     )
-    resp.should.have.key("PermissionSet")
-    permissionSet = resp["PermissionSet"]
-    permissionSet.should.have.key("Name").equals("test")
-    permissionSet.should.have.key("PermissionSetArn")
-    permissionSet.should.have.key("Description")
-    permissionSet.should.have.key("CreatedDate")
-    permissionSet.should.have.key("SessionDuration")
-    permissionSet.should.have.key("RelayState")
+    assert "PermissionSet" in resp
+    permission_set = resp["PermissionSet"]
+    assert permission_set["Name"] == "test"
+    assert "PermissionSetArn" in permission_set
+    assert "Description" in permission_set
+    assert "CreatedDate" in permission_set
+    assert "SessionDuration" in permission_set
+    assert "RelayState" in permission_set
 
 
 @mock_ssoadmin
@@ -219,28 +215,26 @@ def test_update_permission_set():
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
         SessionDuration="PT1H",
     )
-    permissionSet = resp["PermissionSet"]
+    permission_set = resp["PermissionSet"]
 
     resp = client.update_permission_set(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
-        PermissionSetArn=permissionSet["PermissionSetArn"],
+        PermissionSetArn=permission_set["PermissionSetArn"],
         Description="New description",
         SessionDuration="PT2H",
         RelayState="https://console.aws.amazon.com/s3",
     )
     resp = client.describe_permission_set(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
-        PermissionSetArn=permissionSet["PermissionSetArn"],
+        PermissionSetArn=permission_set["PermissionSetArn"],
     )
-    resp.should.have.key("PermissionSet")
-    permissionSet = resp["PermissionSet"]
-    permissionSet.should.have.key("Name").equals("test")
-    permissionSet.should.have.key("Description").equals("New description")
-    permissionSet.should.have.key("CreatedDate")
-    permissionSet.should.have.key("SessionDuration").equals("PT2H")
-    permissionSet.should.have.key("RelayState").equals(
-        "https://console.aws.amazon.com/s3"
-    )
+    assert "PermissionSet" in resp
+    permission_set = resp["PermissionSet"]
+    assert permission_set["Name"] == "test"
+    assert permission_set["Description"] == "New description"
+    assert "CreatedDate" in permission_set
+    assert permission_set["SessionDuration"] == "PT2H"
+    assert permission_set["RelayState"] == "https://console.aws.amazon.com/s3"
 
 
 @mock_ssoadmin
@@ -250,13 +244,16 @@ def test_update_permission_set_unknown():
     with pytest.raises(ClientError) as exc:
         client.update_permission_set(
             InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
-            PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+            PermissionSetArn=(
+                "arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/"
+                "ps-hhhhkkkkppppoooo"
+            ),
             Description="New description",
             SessionDuration="PT2H",
             RelayState="https://console.aws.amazon.com/s3",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFound")
+    assert err["Code"] == "ResourceNotFound"
 
 
 @mock_ssoadmin
@@ -268,19 +265,19 @@ def test_describe_permission_set():
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
         SessionDuration="PT1H",
     )
-    permissionSet = resp["PermissionSet"]
+    permission_set = resp["PermissionSet"]
 
     resp = client.describe_permission_set(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
-        PermissionSetArn=permissionSet["PermissionSetArn"],
+        PermissionSetArn=permission_set["PermissionSetArn"],
     )
-    resp.should.have.key("PermissionSet")
-    permissionSet = resp["PermissionSet"]
-    permissionSet.should.have.key("Name").equals("test")
-    permissionSet.should.have.key("PermissionSetArn")
-    permissionSet.should.have.key("Description")
-    permissionSet.should.have.key("CreatedDate")
-    permissionSet.should.have.key("SessionDuration")
+    assert "PermissionSet" in resp
+    permission_set = resp["PermissionSet"]
+    assert permission_set["Name"] == "test"
+    assert "PermissionSetArn" in permission_set
+    assert "Description" in permission_set
+    assert "CreatedDate" in permission_set
+    assert "SessionDuration" in permission_set
 
 
 @mock_ssoadmin
@@ -293,7 +290,7 @@ def test_describe_permission_set_unknown():
             PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFound")
+    assert err["Code"] == "ResourceNotFound"
 
 
 @mock_ssoadmin
@@ -305,18 +302,18 @@ def test_delete_permission_set():
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
         SessionDuration="PT1H",
     )
-    permissionSet = resp["PermissionSet"]
+    permission_set = resp["PermissionSet"]
     resp = client.delete_permission_set(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
-        PermissionSetArn=permissionSet["PermissionSetArn"],
+        PermissionSetArn=permission_set["PermissionSetArn"],
     )
     with pytest.raises(ClientError) as exc:
         client.describe_permission_set(
             InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
-            PermissionSetArn=permissionSet["PermissionSetArn"],
+            PermissionSetArn=permission_set["PermissionSetArn"],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFound")
+    assert err["Code"] == "ResourceNotFound"
 
 
 @mock_ssoadmin
@@ -329,7 +326,7 @@ def test_delete_permission_set_unknown():
             PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFound")
+    assert err["Code"] == "ResourceNotFound"
 
 
 @mock_ssoadmin
@@ -339,9 +336,9 @@ def test_list_permission_sets():
     response = client.list_permission_sets(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
     )
-    response.should.have.key("PermissionSets")
-    permissionSets = response["PermissionSets"]
-    len(permissionSets).should.equal(0)
+    assert "PermissionSets" in response
+    permission_sets = response["PermissionSets"]
+    assert not permission_sets
 
     for i in range(5):
         client.create_permission_set(
@@ -353,9 +350,9 @@ def test_list_permission_sets():
     response = client.list_permission_sets(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
     )
-    response.should.have.key("PermissionSets")
-    permissionSets = response["PermissionSets"]
-    len(permissionSets).should.equal(5)
+    assert "PermissionSets" in response
+    permission_sets = response["PermissionSets"]
+    assert len(permission_sets) == 5
 
 
 @mock_ssoadmin
@@ -365,9 +362,9 @@ def test_list_permission_sets_pagination():
     response = client.list_permission_sets(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
     )
-    response.should.have.key("PermissionSets")
-    permissionSets = response["PermissionSets"]
-    len(permissionSets).should.equal(0)
+    assert "PermissionSets" in response
+    permission_sets = response["PermissionSets"]
+    assert not permission_sets
 
     for i in range(25):
         client.create_permission_set(
@@ -379,12 +376,12 @@ def test_list_permission_sets_pagination():
     response = client.list_permission_sets(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
     )
-    response.should.have.key("PermissionSets")
-    response.should_not.have.key("NextToken")
+    assert "PermissionSets" in response
+    assert "NextToken" not in response
 
     paginator = client.get_paginator("list_permission_sets")
     page_iterator = paginator.paginate(
         InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd", MaxResults=5
     )
     for page in page_iterator:
-        len(page["PermissionSets"]).should.be.lower_than_or_equal_to(5)
+        assert len(page["PermissionSets"]) <= 5
