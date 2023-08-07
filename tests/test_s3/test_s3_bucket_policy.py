@@ -1,15 +1,15 @@
-import boto3
 import json
+
+import boto3
 import requests
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
 
 class TestBucketPolicy:
-    @staticmethod
+    @classmethod
     def setup_class(cls):
         cls.server = ThreadedMotoServer(port="6000", verbose=False)
         cls.server.start()
@@ -30,7 +30,7 @@ class TestBucketPolicy:
         self.client.delete_object(Bucket="mybucket", Key="test_txt")
         self.client.delete_bucket(Bucket="mybucket")
 
-    @staticmethod
+    @classmethod
     def teardown_class(cls):
         cls.server.stop()
 
@@ -67,7 +67,7 @@ class TestBucketPolicy:
             with pytest.raises(ClientError):
                 self.client.get_object(Bucket="mybucket", Key="test_txt")
 
-        requests.get(self.key_name).status_code.should.equal(status)
+        assert requests.get(self.key_name).status_code == status
 
     def test_block_put_object(self):
         # Block Put-access
@@ -80,9 +80,9 @@ class TestBucketPolicy:
         with pytest.raises(ClientError) as exc:
             self.client.put_object(Bucket="mybucket", Key="test_txt", Body="new data")
         err = exc.value.response["Error"]
-        err["Message"].should.equal("Forbidden")
+        assert err["Message"] == "Forbidden"
 
-        requests.put(self.key_name).status_code.should.equal(403)
+        assert requests.put(self.key_name).status_code == 403
 
     def test_block_all_actions(self):
         # Block all access
@@ -92,16 +92,16 @@ class TestBucketPolicy:
         with pytest.raises(ClientError) as exc:
             self.client.get_object(Bucket="mybucket", Key="test_txt")
         err = exc.value.response["Error"]
-        err["Message"].should.equal("Forbidden")
+        assert err["Message"] == "Forbidden"
 
         # But Put (via boto3 or requests) is not allowed
         with pytest.raises(ClientError) as exc:
             self.client.put_object(Bucket="mybucket", Key="test_txt", Body="new data")
         err = exc.value.response["Error"]
-        err["Message"].should.equal("Forbidden")
+        assert err["Message"] == "Forbidden"
 
-        requests.get(self.key_name).status_code.should.equal(403)
-        requests.put(self.key_name).status_code.should.equal(403)
+        assert requests.get(self.key_name).status_code == 403
+        assert requests.put(self.key_name).status_code == 403
 
         # Allow access again, because we want to delete the object during teardown
         self._put_policy(**{"effect": "Allow", "actions": ["s3:*"]})

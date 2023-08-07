@@ -1,34 +1,32 @@
 import boto3
 from botocore.client import ClientError
-
-from moto.s3.responses import DEFAULT_REGION_NAME
 import pytest
 
-import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_s3
+from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 @mock_s3
 def test_put_bucket_logging():
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     log_bucket = "logbucket"
     wrong_region_bucket = "wrongregionlogbucket"
-    s3.create_bucket(Bucket=bucket_name)
-    s3.create_bucket(Bucket=log_bucket)  # Adding the ACL for log-delivery later...
-    s3.create_bucket(
+    s3_client.create_bucket(Bucket=bucket_name)
+    # Adding the ACL for log-delivery later...
+    s3_client.create_bucket(Bucket=log_bucket)
+    s3_client.create_bucket(
         Bucket=wrong_region_bucket,
         CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
     )
 
     # No logging config:
-    result = s3.get_bucket_logging(Bucket=bucket_name)
+    result = s3_client.get_bucket_logging(Bucket=bucket_name)
     assert not result.get("LoggingEnabled")
 
     # A log-bucket that doesn't exist:
     with pytest.raises(ClientError) as err:
-        s3.put_bucket_logging(
+        s3_client.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
                 "LoggingEnabled": {"TargetBucket": "IAMNOTREAL", "TargetPrefix": ""}
@@ -38,7 +36,7 @@ def test_put_bucket_logging():
 
     # A log-bucket that's missing the proper ACLs for LogDelivery:
     with pytest.raises(ClientError) as err:
-        s3.put_bucket_logging(
+        s3_client.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
                 "LoggingEnabled": {"TargetBucket": log_bucket, "TargetPrefix": ""}
@@ -48,9 +46,9 @@ def test_put_bucket_logging():
     assert "log-delivery" in err.value.response["Error"]["Message"]
 
     # Add the proper "log-delivery" ACL to the log buckets:
-    bucket_owner = s3.get_bucket_acl(Bucket=log_bucket)["Owner"]
+    bucket_owner = s3_client.get_bucket_acl(Bucket=log_bucket)["Owner"]
     for bucket in [log_bucket, wrong_region_bucket]:
-        s3.put_bucket_acl(
+        s3_client.put_bucket_acl(
             Bucket=bucket,
             AccessControlPolicy={
                 "Grants": [
@@ -79,7 +77,7 @@ def test_put_bucket_logging():
 
     # A log-bucket that's in the wrong region:
     with pytest.raises(ClientError) as err:
-        s3.put_bucket_logging(
+        s3_client.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
                 "LoggingEnabled": {
@@ -91,7 +89,7 @@ def test_put_bucket_logging():
     assert err.value.response["Error"]["Code"] == "CrossLocationLoggingProhibitted"
 
     # Correct logging:
-    s3.put_bucket_logging(
+    s3_client.put_bucket_logging(
         Bucket=bucket_name,
         BucketLoggingStatus={
             "LoggingEnabled": {
@@ -100,17 +98,17 @@ def test_put_bucket_logging():
             }
         },
     )
-    result = s3.get_bucket_logging(Bucket=bucket_name)
+    result = s3_client.get_bucket_logging(Bucket=bucket_name)
     assert result["LoggingEnabled"]["TargetBucket"] == log_bucket
     assert result["LoggingEnabled"]["TargetPrefix"] == f"{bucket_name}/"
     assert not result["LoggingEnabled"].get("TargetGrants")
 
     # And disabling:
-    s3.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={})
-    assert not s3.get_bucket_logging(Bucket=bucket_name).get("LoggingEnabled")
+    s3_client.put_bucket_logging(Bucket=bucket_name, BucketLoggingStatus={})
+    assert not s3_client.get_bucket_logging(Bucket=bucket_name).get("LoggingEnabled")
 
     # And enabling with multiple target grants:
-    s3.put_bucket_logging(
+    s3_client.put_bucket_logging(
         Bucket=bucket_name,
         BucketLoggingStatus={
             "LoggingEnabled": {
@@ -136,7 +134,7 @@ def test_put_bucket_logging():
         },
     )
 
-    result = s3.get_bucket_logging(Bucket=bucket_name)
+    result = s3_client.get_bucket_logging(Bucket=bucket_name)
     assert len(result["LoggingEnabled"]["TargetGrants"]) == 2
     assert (
         result["LoggingEnabled"]["TargetGrants"][0]["Grantee"]["ID"]
@@ -144,7 +142,7 @@ def test_put_bucket_logging():
     )
 
     # Test with just 1 grant:
-    s3.put_bucket_logging(
+    s3_client.put_bucket_logging(
         Bucket=bucket_name,
         BucketLoggingStatus={
             "LoggingEnabled": {
@@ -162,12 +160,12 @@ def test_put_bucket_logging():
             }
         },
     )
-    result = s3.get_bucket_logging(Bucket=bucket_name)
+    result = s3_client.get_bucket_logging(Bucket=bucket_name)
     assert len(result["LoggingEnabled"]["TargetGrants"]) == 1
 
     # With an invalid grant:
     with pytest.raises(ClientError) as err:
-        s3.put_bucket_logging(
+        s3_client.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
                 "LoggingEnabled": {
@@ -176,7 +174,10 @@ def test_put_bucket_logging():
                     "TargetGrants": [
                         {
                             "Grantee": {
-                                "ID": "SOMEIDSTRINGHERE9238748923734823917498237489237409123840983274",
+                                "ID": (
+                                    "SOMEIDSTRINGHERE9238748923734823917498"
+                                    "237489237409123840983274"
+                                ),
                                 "Type": "CanonicalUser",
                             },
                             "Permission": "NOTAREALPERM",
@@ -191,15 +192,15 @@ def test_put_bucket_logging():
 @mock_s3
 def test_log_file_is_created():
     # Create necessary buckets
-    s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     log_bucket = "logbucket"
-    s3.create_bucket(Bucket=bucket_name)
-    s3.create_bucket(Bucket=log_bucket)
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=log_bucket)
 
     # Enable logging
-    bucket_owner = s3.get_bucket_acl(Bucket=log_bucket)["Owner"]
-    s3.put_bucket_acl(
+    bucket_owner = s3_client.get_bucket_acl(Bucket=log_bucket)["Owner"]
+    s3_client.put_bucket_acl(
         Bucket=log_bucket,
         AccessControlPolicy={
             "Grants": [
@@ -225,7 +226,7 @@ def test_log_file_is_created():
             "Owner": bucket_owner,
         },
     )
-    s3.put_bucket_logging(
+    s3_client.put_bucket_logging(
         Bucket=bucket_name,
         BucketLoggingStatus={
             "LoggingEnabled": {
@@ -236,27 +237,27 @@ def test_log_file_is_created():
     )
 
     # Make some requests against the source bucket
-    s3.put_object(Bucket=bucket_name, Key="key1", Body=b"")
-    s3.put_object(Bucket=bucket_name, Key="key2", Body=b"data")
+    s3_client.put_object(Bucket=bucket_name, Key="key1", Body=b"")
+    s3_client.put_object(Bucket=bucket_name, Key="key2", Body=b"data")
 
-    s3.put_bucket_logging(
+    s3_client.put_bucket_logging(
         Bucket=bucket_name,
         BucketLoggingStatus={
             "LoggingEnabled": {"TargetBucket": log_bucket, "TargetPrefix": ""}
         },
     )
-    s3.list_objects_v2(Bucket=bucket_name)
+    s3_client.list_objects_v2(Bucket=bucket_name)
 
     # Verify files are created in the target (logging) bucket
-    keys = [k["Key"] for k in s3.list_objects_v2(Bucket=log_bucket)["Contents"]]
-    [k for k in keys if k.startswith("mybucket/")].should.have.length_of(3)
-    [k for k in keys if not k.startswith("mybucket/")].should.have.length_of(1)
+    keys = [k["Key"] for k in s3_client.list_objects_v2(Bucket=log_bucket)["Contents"]]
+    assert len([k for k in keys if k.startswith("mybucket/")]) == 3
+    assert len([k for k in keys if not k.startswith("mybucket/")]) == 1
 
     # Verify (roughly) files have the correct content
     contents = [
-        s3.get_object(Bucket=log_bucket, Key=key)["Body"].read().decode("utf-8")
+        s3_client.get_object(Bucket=log_bucket, Key=key)["Body"].read().decode("utf-8")
         for key in keys
     ]
-    assert any([c for c in contents if bucket_name in c])
-    assert any([c for c in contents if "REST.GET.BUCKET" in c])
-    assert any([c for c in contents if "REST.PUT.BUCKET" in c])
+    assert any(c for c in contents if bucket_name in c)
+    assert any(c for c in contents if "REST.GET.BUCKET" in c)
+    assert any(c for c in contents if "REST.PUT.BUCKET" in c)
