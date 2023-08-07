@@ -1,13 +1,14 @@
 from contextlib import contextmanager
-from moto import mock_sagemaker, settings
-from time import sleep
 from datetime import datetime
-import boto3
-import botocore
 import json
-import pytest
+from time import sleep
 from unittest import SkipTest
 
+import boto3
+import botocore
+import pytest
+
+from moto import mock_sagemaker, settings
 from moto.s3 import mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sagemaker.exceptions import ValidationError
@@ -85,7 +86,10 @@ def test_utils_get_pipeline_from_name_not_exists():
 
 def test_utils_get_pipeline_name_from_execution_arn():
     expected_pipeline_name = "some-pipeline-name"
-    pipeline_execution_arn = f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:pipeline/{expected_pipeline_name}/execution/abc123def456"
+    pipeline_execution_arn = (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":pipeline/{expected_pipeline_name}/execution/abc123def456"
+    )
     observed_pipeline_name = get_pipeline_name_from_execution_arn(
         pipeline_execution_arn=pipeline_execution_arn
     )
@@ -266,7 +270,7 @@ def test_describe_pipeline_execution(sagemaker_client):
         PipelineExecutionArn=response["PipelineExecutionArn"]
     )
     observed_pipeline_execution_arn = pipeline_execution_summary["PipelineExecutionArn"]
-    observed_pipeline_execution_arn.should.be.equal(expected_pipeline_execution_arn)
+    assert observed_pipeline_execution_arn == expected_pipeline_execution_arn
 
 
 def test_load_pipeline_definition_from_s3():
@@ -292,7 +296,7 @@ def test_load_pipeline_definition_from_s3():
                 },
                 account_id=ACCOUNT_ID,
             )
-    observed_pipeline_definition.should.equal(pipeline_definition)
+    assert observed_pipeline_definition == pipeline_definition
 
 
 def test_create_pipeline(sagemaker_client):
@@ -303,7 +307,7 @@ def test_create_pipeline(sagemaker_client):
         PipelineDefinition=" ",
     )
     assert isinstance(response, dict)
-    response["PipelineArn"].should.equal(
+    assert response["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_name, ACCOUNT_ID, TEST_REGION_NAME)
     )
 
@@ -353,7 +357,7 @@ def test_create_pipeline_duplicate_pipeline_name(sagemaker_client):
 def test_list_pipelines_none(sagemaker_client):
     response = sagemaker_client.list_pipelines()
     assert isinstance(response, dict)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
 
 def test_list_pipelines_single(sagemaker_client):
@@ -368,8 +372,8 @@ def test_list_pipelines_single(sagemaker_client):
     _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     response = sagemaker_client.list_pipelines()
-    response["PipelineSummaries"].should.have.length_of(1)
-    response["PipelineSummaries"][0]["PipelineArn"].should.equal(
+    assert len(response["PipelineSummaries"]) == 1
+    assert response["PipelineSummaries"][0]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[0], ACCOUNT_ID, TEST_REGION_NAME)
     )
 
@@ -390,7 +394,7 @@ def test_list_pipelines_multiple(sagemaker_client):
         SortBy="Name",
         SortOrder="Ascending",
     )
-    response["PipelineSummaries"].should.have.length_of(len(fake_pipeline_names))
+    assert len(response["PipelineSummaries"]) == len(fake_pipeline_names)
 
 
 def test_list_pipelines_sort_name_ascending(sagemaker_client):
@@ -409,13 +413,13 @@ def test_list_pipelines_sort_name_ascending(sagemaker_client):
         SortBy="Name",
         SortOrder="Ascending",
     )
-    response["PipelineSummaries"][0]["PipelineArn"].should.equal(
+    assert response["PipelineSummaries"][0]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[0], ACCOUNT_ID, TEST_REGION_NAME)
     )
-    response["PipelineSummaries"][-1]["PipelineArn"].should.equal(
+    assert response["PipelineSummaries"][-1]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[-1], ACCOUNT_ID, TEST_REGION_NAME)
     )
-    response["PipelineSummaries"][1]["PipelineArn"].should.equal(
+    assert response["PipelineSummaries"][1]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[1], ACCOUNT_ID, TEST_REGION_NAME)
     )
 
@@ -436,13 +440,13 @@ def test_list_pipelines_sort_creation_time_descending(sagemaker_client):
         SortBy="CreationTime",
         SortOrder="Descending",
     )
-    response["PipelineSummaries"][0]["PipelineArn"].should.equal(
+    assert response["PipelineSummaries"][0]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[-1], ACCOUNT_ID, TEST_REGION_NAME)
     )
-    response["PipelineSummaries"][1]["PipelineArn"].should.equal(
+    assert response["PipelineSummaries"][1]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[1], ACCOUNT_ID, TEST_REGION_NAME)
     )
-    response["PipelineSummaries"][2]["PipelineArn"].should.equal(
+    assert response["PipelineSummaries"][2]["PipelineArn"] == (
         arn_formatter("pipeline", fake_pipeline_names[0], ACCOUNT_ID, TEST_REGION_NAME)
     )
 
@@ -460,7 +464,7 @@ def test_list_pipelines_max_results(sagemaker_client):
     _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     response = sagemaker_client.list_pipelines(MaxResults=2)
-    response["PipelineSummaries"].should.have.length_of(2)
+    assert len(response["PipelineSummaries"]) == 2
 
 
 def test_list_pipelines_next_token(sagemaker_client):
@@ -475,7 +479,7 @@ def test_list_pipelines_next_token(sagemaker_client):
     _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     response = sagemaker_client.list_pipelines(NextToken="0")
-    response["PipelineSummaries"].should.have.length_of(1)
+    assert len(response["PipelineSummaries"]) == 1
 
 
 def test_list_pipelines_pipeline_name_prefix(sagemaker_client):
@@ -491,11 +495,11 @@ def test_list_pipelines_pipeline_name_prefix(sagemaker_client):
     _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     response = sagemaker_client.list_pipelines(PipelineNamePrefix="APipe")
-    response["PipelineSummaries"].should.have.length_of(1)
-    response["PipelineSummaries"][0]["PipelineName"].should.equal("APipelineName")
+    assert len(response["PipelineSummaries"]) == 1
+    assert response["PipelineSummaries"][0]["PipelineName"] == "APipelineName"
 
     response = sagemaker_client.list_pipelines(PipelineNamePrefix="Pipeline")
-    response["PipelineSummaries"].should.have.length_of(3)
+    assert len(response["PipelineSummaries"]) == 3
 
 
 def test_list_pipelines_created_after(sagemaker_client):
@@ -512,15 +516,15 @@ def test_list_pipelines_created_after(sagemaker_client):
 
     created_after_str = "2099-12-31 23:59:59"
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_str)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
     created_after_datetime = datetime.strptime(created_after_str, "%Y-%m-%d %H:%M:%S")
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_datetime)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
     created_after_timestamp = datetime.timestamp(created_after_datetime)
     response = sagemaker_client.list_pipelines(CreatedAfter=created_after_timestamp)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
 
 def test_list_pipelines_created_before(sagemaker_client):
@@ -537,15 +541,15 @@ def test_list_pipelines_created_before(sagemaker_client):
 
     created_before_str = "2000-12-31 23:59:59"
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_str)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
     created_before_datetime = datetime.strptime(created_before_str, "%Y-%m-%d %H:%M:%S")
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_datetime)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
     created_before_timestamp = datetime.timestamp(created_before_datetime)
     response = sagemaker_client.list_pipelines(CreatedBefore=created_before_timestamp)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
 
 @pytest.mark.parametrize(
@@ -582,7 +586,7 @@ def test_delete_pipeline_exists(sagemaker_client):
     assert response["PipelineArn"].endswith(pipeline_name_delete)
 
     response = sagemaker_client.list_pipelines(PipelineNamePrefix=pipeline_name_delete)
-    assert response["PipelineSummaries"].should.be.empty
+    assert not response["PipelineSummaries"]
 
     response = sagemaker_client.list_pipelines()
     pipeline_names_exist = [
@@ -627,11 +631,11 @@ def test_update_pipeline_no_update(sagemaker_client):
     _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
 
     response = sagemaker_client.update_pipeline(PipelineName=pipeline_name)
-    response["PipelineArn"].should.equal(
+    assert response["PipelineArn"] == (
         arn_formatter("pipeline", pipeline_name, ACCOUNT_ID, TEST_REGION_NAME)
     )
     response = sagemaker_client.list_pipelines()
-    response["PipelineSummaries"][0]["PipelineName"].should.equal(pipeline_name)
+    assert response["PipelineSummaries"][0]["PipelineName"] == pipeline_name
 
 
 def test_update_pipeline_add_attribute(sagemaker_client):
@@ -645,17 +649,17 @@ def test_update_pipeline_add_attribute(sagemaker_client):
     }
     _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
     response = sagemaker_client.list_pipelines()
-    response["PipelineSummaries"][0]["PipelineDisplayName"].should.equal(pipeline_name)
+    assert response["PipelineSummaries"][0]["PipelineDisplayName"] == pipeline_name
 
     _ = sagemaker_client.update_pipeline(
         PipelineName=pipeline_name,
         PipelineDisplayName=pipeline_display_name_update,
     )
     response = sagemaker_client.list_pipelines()
-    response["PipelineSummaries"][0]["PipelineDisplayName"].should.equal(
+    assert response["PipelineSummaries"][0]["PipelineDisplayName"] == (
         pipeline_display_name_update
     )
-    response["PipelineSummaries"][0].should.have.length_of(6)
+    assert len(response["PipelineSummaries"][0]) == 6
 
 
 def test_update_pipeline_update_change_attribute(sagemaker_client):
@@ -673,8 +677,8 @@ def test_update_pipeline_update_change_attribute(sagemaker_client):
         RoleArn=role_arn_update,
     )
     response = sagemaker_client.list_pipelines()
-    response["PipelineSummaries"][0]["RoleArn"].should.equal(role_arn_update)
-    response["PipelineSummaries"][0].should.have.length_of(6)
+    assert response["PipelineSummaries"][0]["RoleArn"] == role_arn_update
+    assert len(response["PipelineSummaries"][0]) == 6
 
 
 def test_describe_pipeline_not_exists(sagemaker_client):
@@ -707,4 +711,4 @@ def test_describe_pipeline_not_exists(sagemaker_client):
 def test_describe_pipeline_exists(sagemaker_client, pipeline, expected_response_length):
     _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
     response = sagemaker_client.describe_pipeline(PipelineName=pipeline["PipelineName"])
-    response.should.have.length_of(expected_response_length)
+    assert len(response) == expected_response_length
