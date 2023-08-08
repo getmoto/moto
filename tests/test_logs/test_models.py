@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 from moto.logs.models import LogGroup
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -22,5 +20,4 @@ def test_log_group_to_describe_dict():
     expected_dict = dict(logGroupName=name, kmsKeyId=kms_key_id)
 
     for attr, value in expected_dict.items():
-        describe_dict.should.have.key(attr)
-        describe_dict[attr].should.equal(value)
+        assert describe_dict[attr] == value
