@@ -1,7 +1,6 @@
 import boto3
-import pytest
-
 from botocore.exceptions import ClientError
+import pytest
 
 from moto import mock_sagemaker
 
@@ -94,11 +93,11 @@ def test_search_trial_component_with_experiment_name(sagemaker_client):
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Unknown property name: ExperimentName"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        ex.value.response["Error"]["Message"] == "Unknown property name: ExperimentName"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 def _set_up_trial_component(
