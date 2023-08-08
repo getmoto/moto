@@ -1,12 +1,14 @@
 """Unit tests specific to VPC endpoint services."""
+import boto3
 import pytest
 
-import boto3
 from botocore.exceptions import ClientError
-
-from moto import mock_ec2, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest
+
+from moto import mock_ec2, mock_elbv2, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
+from .test_vpc_service_configuration import create_load_balancer
 
 
 @mock_ec2
@@ -263,3 +265,35 @@ def test_describe_vpc_default_endpoint_services():
     assert details["ServiceName"] == "com.amazonaws.us-west-1.config"
     assert details["ServiceType"] == [{"ServiceType": "Interface"}]
     assert details["VpcEndpointPolicySupported"] is True
+
+
+@mock_ec2
+@mock_elbv2
+def test_create_vpc_endpoint_service_configuration_with_options():
+    client = boto3.client("ec2", region_name="us-east-2")
+
+    lb_arn = create_load_balancer(
+        region_name="us-east-2", lb_type="gateway", zone="us-east-1c"
+    )
+
+    config = client.create_vpc_endpoint_service_configuration(
+        GatewayLoadBalancerArns=[lb_arn],
+        AcceptanceRequired=False,
+        PrivateDnsName="example.com",
+    )["ServiceConfiguration"]
+
+    assert config["AcceptanceRequired"] is False
+    assert config["PrivateDnsName"] == "example.com"
+    assert config["PrivateDnsNameConfiguration"] == {
+        "Name": "n",
+        "State": "verified",
+        "Type": "TXT",
+        "Value": "val",
+    }
+
+    service_name = config["ServiceName"]
+    detail = client.describe_vpc_endpoint_services(ServiceNames=[service_name])[
+        "ServiceDetails"
+    ][0]
+    assert detail["ServiceName"] == service_name
+    assert detail["Owner"] == ACCOUNT_ID

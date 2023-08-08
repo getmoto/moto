@@ -3,7 +3,6 @@ import pytest
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2, mock_elbv2
-from moto.core import DEFAULT_ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -91,38 +90,6 @@ def test_create_vpc_endpoint_service_configuration_with_gateway_load_balancer():
     assert config["PrivateDnsNameConfiguration"] == {}
 
     assert "NetworkLoadBalancerArns" not in config
-
-
-@mock_ec2
-@mock_elbv2
-def test_create_vpc_endpoint_service_configuration_with_options():
-    client = boto3.client("ec2", region_name="us-east-2")
-
-    lb_arn = create_load_balancer(
-        region_name="us-east-2", lb_type="gateway", zone="us-east-1c"
-    )
-
-    config = client.create_vpc_endpoint_service_configuration(
-        GatewayLoadBalancerArns=[lb_arn],
-        AcceptanceRequired=False,
-        PrivateDnsName="example.com",
-    )["ServiceConfiguration"]
-
-    assert config["AcceptanceRequired"] is False
-    assert config["PrivateDnsName"] == "example.com"
-    assert config["PrivateDnsNameConfiguration"] == {
-        "Name": "n",
-        "State": "verified",
-        "Type": "TXT",
-        "Value": "val",
-    }
-
-    service_name = config["ServiceName"]
-    detail = client.describe_vpc_endpoint_services(ServiceNames=[service_name])[
-        "ServiceDetails"
-    ][0]
-    assert detail["ServiceName"] == service_name
-    assert detail["Owner"] == DEFAULT_ACCOUNT_ID
 
 
 @mock_ec2
