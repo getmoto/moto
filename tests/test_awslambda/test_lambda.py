@@ -1460,6 +1460,62 @@ def test_update_function_s3():
 
 
 @mock_lambda
+def test_update_function_ecr():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+    image_config = {
+        "EntryPoint": [
+            "python",
+        ],
+        "Command": [
+            "/opt/app.py",
+        ],
+        "WorkingDirectory": "/opt",
+    }
+
+    conn.create_function(
+        FunctionName=function_name,
+        Role=get_role_name(),
+        Code={"ImageUri": image_uri},
+        Description="test lambda function",
+        ImageConfig=image_config,
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    new_uri = image_uri.replace("prod", "newer")
+
+    conn.update_function_code(
+        FunctionName=function_name,
+        ImageUri=new_uri,
+        Publish=True,
+    )
+
+    response = conn.get_function(FunctionName=function_name, Qualifier="2")
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(response["Code"]) == 3
+    assert response["Code"]["RepositoryType"] == "ECR"
+    assert response["Code"]["ImageUri"] == new_uri
+    assert response["Code"]["ResolvedImageUri"].endswith(
+        hashlib.sha256(new_uri.encode("utf-8")).hexdigest()
+    )
+
+    config = response["Configuration"]
+    assert config["CodeSize"] == 0
+    assert config["Description"] == "test lambda function"
+    assert (
+        config["FunctionArn"]
+        == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:2"
+    )
+    assert config["FunctionName"] == function_name
+    assert config["Version"] == "2"
+    assert config["LastUpdateStatus"] == "Successful"
+
+
+@mock_lambda
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
     assert (
