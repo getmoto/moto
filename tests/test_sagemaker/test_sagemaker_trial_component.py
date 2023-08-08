@@ -1,9 +1,8 @@
 import uuid
 
 import boto3
-import pytest
-
 from botocore.exceptions import ClientError
+import pytest
 
 from moto import mock_sagemaker
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -27,9 +26,9 @@ def test_create__trial_component():
     assert (
         resp["TrialComponentSummaries"][0]["TrialComponentName"] == trial_component_name
     )
-    assert (
-        resp["TrialComponentSummaries"][0]["TrialComponentArn"]
-        == f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}"
+    assert resp["TrialComponentSummaries"][0]["TrialComponentArn"] == (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":experiment-trial-component/{trial_component_name}"
     )
 
 
@@ -173,9 +172,9 @@ def test_associate_trial_component():
     )
 
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert (
-        resp["TrialComponentArn"]
-        == f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}"
+    assert resp["TrialComponentArn"] == (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":experiment-trial-component/{trial_component_name}"
     )
     assert (
         resp["TrialArn"]
@@ -199,11 +198,12 @@ def test_associate_trial_component():
             TrialComponentName="does-not-exist", TrialName="does-not-exist"
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Trial 'arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:experiment-trial/does-not-exist' does not exist."
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFound"
+    assert ex.value.response["Error"]["Message"] == (
+        f"Trial 'arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        ":experiment-trial/does-not-exist' does not exist."
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_sagemaker
@@ -231,9 +231,9 @@ def test_disassociate_trial_component():
     )
 
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert (
-        resp["TrialComponentArn"]
-        == f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:experiment-trial-component/{trial_component_name}"
+    assert resp["TrialComponentArn"] == (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":experiment-trial-component/{trial_component_name}"
     )
     assert (
         resp["TrialArn"]
@@ -255,9 +255,9 @@ def test_disassociate_trial_component():
     )
 
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert (
-        resp["TrialComponentArn"]
-        == f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:experiment-trial-component/does-not-exist"
+    assert resp["TrialComponentArn"] == (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:"
+        "experiment-trial-component/does-not-exist"
     )
     assert (
         resp["TrialArn"]
