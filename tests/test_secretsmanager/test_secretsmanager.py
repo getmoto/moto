@@ -1,19 +1,18 @@
+from datetime import datetime, timedelta, timezone
 import os
+import re
+import string
+from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
+from botocore.exceptions import ClientError, ParamValidationError
 from dateutil.tz import tzlocal
-import re
+from freezegun import freeze_time
+import pytest
 
 from moto import mock_secretsmanager, mock_lambda, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from botocore.exceptions import ClientError, ParamValidationError
-import string
-from freezegun import freeze_time
-from datetime import datetime, timedelta, timezone
-import sure  # noqa # pylint: disable=unused-import
-from uuid import uuid4
-import pytest
-from unittest import SkipTest
 
 DEFAULT_SECRET_NAME = "test-secret"
 
@@ -65,7 +64,9 @@ def test_get_secret_value_by_arn():
     secret_value = "test_get_secret_value_by_arn"
     result = conn.create_secret(Name=name, SecretString=secret_value)
     arn = result["ARN"]
-    arn.should.match(f"^arn:aws:secretsmanager:us-west-2:{ACCOUNT_ID}:secret:{name}")
+    assert re.match(
+        f"^arn:aws:secretsmanager:us-west-2:{ACCOUNT_ID}:secret:{name}", arn
+    )
 
     result = conn.get_secret_value(SecretId=arn)
     assert result["SecretString"] == secret_value
@@ -146,8 +147,9 @@ def test_get_secret_version_that_does_not_exist():
         conn.get_secret_value(SecretId=secret_arn, VersionId=missing_version_id)
 
     assert (
-        "An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets "
-        "Manager can't find the specified secret value for VersionId: 00000000-0000-0000-0000-000000000000"
+        "An error occurred (ResourceNotFoundException) when calling the "
+        "GetSecretValue operation: Secrets Manager can't find the specified "
+        "secret value for VersionId: 00000000-0000-0000-0000-000000000000"
     ) == cm.value.response["Error"]["Message"]
 
 
@@ -559,9 +561,9 @@ def test_describe_secret_with_arn(name):
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     assert secret_description  # Returned dict is not empty
-    secret_description["Name"].should.equal(name)
-    secret_description["ARN"].should.equal(results["ARN"])
-    conn.list_secrets()["SecretList"][0]["ARN"].should.equal(results["ARN"])
+    assert secret_description["Name"] == name
+    assert secret_description["ARN"] == results["ARN"]
+    assert conn.list_secrets()["SecretList"][0]["ARN"] == results["ARN"]
 
     # We can also supply a partial ARN
     partial_arn = f"arn:aws:secretsmanager:us-west-2:{ACCOUNT_ID}:secret:{name}"
@@ -581,8 +583,8 @@ def test_describe_secret_with_KmsKeyId():
 
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
-    secret_description["KmsKeyId"].should.equal("dummy_arn")
-    conn.list_secrets()["SecretList"][0]["KmsKeyId"].should.equal(
+    assert secret_description["KmsKeyId"] == "dummy_arn"
+    assert conn.list_secrets()["SecretList"][0]["KmsKeyId"] == (
         secret_description["KmsKeyId"]
     )
 
@@ -703,7 +705,7 @@ def test_cancel_rotate_secret():
     secrets_conn.rotate_secret(
         SecretId=DEFAULT_SECRET_NAME,
         RotationLambdaARN=func["FunctionArn"],
-        RotationRules=dict(AutomaticallyAfterDays=30),
+        RotationRules={"AutomaticallyAfterDays": 30},
     )
     secrets_conn.cancel_rotate_secret(SecretId=DEFAULT_SECRET_NAME)
     cancelled_rotation = secrets_conn.describe_secret(SecretId=DEFAULT_SECRET_NAME)
@@ -831,7 +833,7 @@ def test_rotate_secret_client_request_token_too_long():
     conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
 
     client_request_token = (
-        "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-" "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C"
+        "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C"
     )
     with pytest.raises(ClientError):
         conn.rotate_secret(
@@ -976,7 +978,7 @@ if settings.TEST_SERVER_MODE:
         rotated_secret = secrets_conn.rotate_secret(
             SecretId=DEFAULT_SECRET_NAME,
             RotationLambdaARN=func["FunctionArn"],
-            RotationRules=dict(AutomaticallyAfterDays=30),
+            RotationRules={"AutomaticallyAfterDays": 30},
         )
 
         # Ensure we received an updated VersionId from `rotate_secret`
@@ -1004,7 +1006,7 @@ def test_put_secret_value_on_non_existing_secret():
             VersionStages=["AWSCURRENT"],
         )
 
-    cm.value.response["Error"]["Message"].should.equal(
+    assert cm.value.response["Error"]["Message"] == (
         "Secrets Manager can't find the specified secret."
     )
 
@@ -1067,8 +1069,8 @@ def test_put_secret_binary_requires_either_string_or_binary():
     with pytest.raises(ClientError) as ire:
         conn.put_secret_value(SecretId=DEFAULT_SECRET_NAME)
 
-    ire.value.response["Error"]["Code"].should.equal("InvalidRequestException")
-    ire.value.response["Error"]["Message"].should.equal(
+    assert ire.value.response["Error"]["Code"] == "InvalidRequestException"
+    assert ire.value.response["Error"]["Message"] == (
         "You must provide either SecretString or SecretBinary."
     )
 
@@ -1449,7 +1451,7 @@ def test_update_secret_with_KmsKeyId():
     assert secret["SecretString"] == "foosecret"
 
     secret_details = conn.describe_secret(SecretId="test-secret")
-    secret_details["KmsKeyId"].should.equal("foo_arn")
+    assert secret_details["KmsKeyId"] == "foo_arn"
 
     updated_secret = conn.update_secret(
         SecretId="test-secret", SecretString="barsecret", KmsKeyId="bar_arn"
@@ -1464,7 +1466,7 @@ def test_update_secret_with_KmsKeyId():
     assert created_secret["VersionId"] != updated_secret["VersionId"]
 
     secret_details = conn.describe_secret(SecretId="test-secret")
-    secret_details["KmsKeyId"].should.equal("bar_arn")
+    assert secret_details["KmsKeyId"] == "bar_arn"
 
 
 @mock_secretsmanager
@@ -1628,7 +1630,7 @@ def test_update_secret_with_client_request_token():
             SecretString="fourth-secret",
             ClientRequestToken=invalid_request_token,
         )
-        pve.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-        pve.value.response["Error"]["Message"].should.equal(
+        assert pve.value.response["Error"]["Code"] == "InvalidParameterException"
+        assert pve.value.response["Error"]["Message"] == (
             "ClientRequestToken must be 32-64 characters long."
         )

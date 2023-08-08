@@ -3,7 +3,6 @@ import json
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs, settings
@@ -409,7 +408,7 @@ def test_rotate_secret_client_request_token_too_long():
     )
 
     client_request_token = (
-        "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-" "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C"
+        "ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C-ED9F8B6C-85B7-446A-B7E4-38F2A3BEB13C"
     )
     rotate_secret = test_client.post(
         "/",
@@ -468,7 +467,7 @@ if not settings.TEST_SERVER_MODE:
         conn = boto3.client("lambda", region_name="us-east-1")
         func = conn.create_function(
             FunctionName="testFunction",
-            Code=dict(ZipFile=get_test_zip_file1()),
+            Code={"ZipFile": get_test_zip_file1()},
             Handler="lambda_function.lambda_handler",
             Runtime="python2.7",
             Role=role["Role"]["Arn"],
