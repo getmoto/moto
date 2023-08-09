@@ -115,6 +115,7 @@ def test_get_lambda_layers():
     assert result["LayerVersions"] == []
 
     # Test create function with non existant layer version
+    function_name = str(uuid4())[0:6]  # Must be different than above
     with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,

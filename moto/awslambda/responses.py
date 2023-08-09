@@ -316,9 +316,27 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps(result)
 
     def _create_function(self) -> TYPE_RESPONSE:
-        fn = self.backend.create_function(self.json_body)
-        config = fn.get_configuration(on_create=True)
-        return 201, {}, json.dumps(config)
+        function_name = self.json_body["FunctionName"].rsplit(":", 1)[-1]
+        try:
+            self.backend.get_function(function_name, None)
+        except:
+            fn = self.backend.create_function(self.json_body)
+            config = fn.get_configuration(on_create=True)
+            return 201, {}, json.dumps(config)
+        payload = json.dumps(
+            {
+                "Type": "User",
+                "message": f"Function already exist: {function_name}",
+            }
+        ).encode("utf-8")
+        return (
+            409,
+            {
+                "x-amzn-ErrorType": "ResourceConflictException",
+                "Content-Length": str(len(payload)),
+            },
+            payload,
+        )
 
     def _create_function_url_config(self) -> TYPE_RESPONSE:
         function_name = unquote(self.path.split("/")[-2])

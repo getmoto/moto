@@ -1205,19 +1205,20 @@ def test_create_function_with_already_exists():
         Publish=True,
     )
 
-    response = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python2.7",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
+    with pytest.raises(ClientError) as exc:
+        conn.create_function(
+            FunctionName=function_name,
+            Runtime="python2.7",
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
 
-    assert response["FunctionName"] == function_name
+        assert exc.value.response["Error"]["Code"] == "ResourceConflictException"
 
 
 @mock_lambda
