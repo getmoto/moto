@@ -2042,7 +2042,7 @@ class LambdaBackend(BaseBackend):
             reserved_concurrency
         )
         for fnx in self.list_functions():
-            if fnx.reserved_concurrency and fnx.name != function_name:
+            if fnx.reserved_concurrency and fnx.function_name != function_name:
                 available -= int(fnx.reserved_concurrency)
         if available < 100:
             raise InvalidParameterValueException(
