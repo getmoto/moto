@@ -1,6 +1,6 @@
 """ServiceCatalogBackend class with methods for supported APIs."""
 import string
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, OrderedDict, List, Optional, Union
 from datetime import datetime
 
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -24,8 +24,8 @@ class Portfolio(BaseModel):
         idempotency_token: str,
         backend: "ServiceCatalogBackend",
     ):
-        self.portfolio_id = "".join(
-            random.choice(string.ascii_lowercase) for _ in range(8)
+        self.portfolio_id = "p" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
         )
         self.created_date: datetime = unix_time()
         self.region = region
@@ -64,8 +64,8 @@ class ProvisioningArtifact(BaseModel):
         guidance: str = "DEFAULT",
         template: str = "",
     ):
-        self.provisioning_artifact_id = "".join(
-            random.choice(string.ascii_lowercase) for _ in range(8)
+        self.provisioning_artifact_id = "pa-" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
         )  # Id
         self.region: str = region  # RegionName
 
@@ -77,6 +77,16 @@ class ProvisioningArtifact(BaseModel):
         self.source_revision = source_revision  # 512
         self.artifact_type = artifact_type  # CLOUD_FORMATION_TEMPLATE | MARKETPLACE_AMI | MARKETPLACE_CAR | TERRAFORM_OPEN_SOURCE
         self.template = template
+
+    def to_provisioning_artifact_detail_json(self) -> Dict[str, Any]:
+        return {
+            "CreatedTime": self.created_date,
+            "Active": self.active,
+            "Id": self.provisioning_artifact_id,
+            "Description": self.description,
+            "Name": self.name,
+            "Type": self.artifact_type,
+        }
 
 
 class Product(BaseModel):
@@ -91,22 +101,29 @@ class Product(BaseModel):
         tags: Dict[str, str],
         backend: "ServiceCatalogBackend",
     ):
-        self.product_id = "".join(
-            random.choice(string.ascii_lowercase) for _ in range(8)
+        self.product_view_summary_id = "prodview" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
         )
-        self.created_date: datetime = unix_time()
+        self.product_id = "prod" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
+        )
+        self.created_time: datetime = unix_time()
         self.region = region
         self.accept_language = accept_language
         self.name = name
         self.description = description
         self.owner = owner
         self.product_type = product_type
-        self.provisioning_artifact: "ProvisioningArtifact" = None
+
+        self.provisioning_artifacts: OrderedDict[str, "ProvisioningArtifact"] = dict()
 
         self.backend = backend
         self.arn = f"arn:aws:servicecatalog:{region}::product/{self.product_id}"
         self.tags = tags
         self.backend.tag_resource(self.arn, tags)
+
+    def get_provisioning_artifact(self, artifact_id: str):
+        return self.provisioning_artifacts[artifact_id]
 
     def _create_provisioning_artifact(
         self,
@@ -128,7 +145,7 @@ class Product(BaseModel):
             raise NotImplementedError("Nope")
         # elif "ImportFromPhysicalId" in info:
 
-        provision_artifact = ProvisioningArtifact(
+        provisioning_artifact = ProvisioningArtifact(
             name=name,
             description=description,
             artifact_type=artifact_type,
@@ -136,34 +153,108 @@ class Product(BaseModel):
             active=True,
             template=template,
         )
-        self.provisioning_artifact = provision_artifact
+        self.provisioning_artifacts[
+            provisioning_artifact.provisioning_artifact_id
+        ] = provisioning_artifact
+
+        return provisioning_artifact
 
     def to_product_view_detail_json(self) -> Dict[str, Any]:
-        met = {
+        return {
             "ProductARN": self.arn,
-            "CreatedTime": self.created_date,
+            "CreatedTime": self.created_time,
             "ProductViewSummary": {
-                "Description": self.description,
+                "Id": self.product_view_summary_id,
+                "ProductId": self.product_id,
                 "Name": self.name,
-                "Id": self.product_id,
                 "Owner": self.owner,
+                "ShortDescription": self.description,
+                "Type": self.product_type,
+                # "Distributor": "Some person",
+                # "HasDefaultPath": false,
+                # "SupportEmail": "frank@stallone.example"
             },
             "Status": "AVAILABLE",
-        }
-        return met
-
-    def to_provisioning_artifact_detail_json(self) -> Dict[str, Any]:
-        return {
-            "CreatedTime": self.provisioning_artifact.created_date,
-            "Active": self.provisioning_artifact.active,
-            "Id": self.provisioning_artifact.provisioning_artifact_id,
-            "Description": self.provisioning_artifact.description,
-            "Name": self.provisioning_artifact.name,
-            "Type": self.provisioning_artifact.artifact_type,
         }
 
     def to_json(self) -> Dict[str, Any]:
         return self.to_product_view_detail_json()
+
+
+class Record(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        backend: "ServiceCatalogBackend",
+    ):
+        self.record_id = "rec-" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
+        )
+        self.region = region
+
+        self.created_time: datetime = unix_time()
+        self.updated_time: datetime = self.created_time
+
+        self.backend = backend
+        self.arn = f"arn:aws:servicecatalog:{self.region}::record/{self.record_id}"
+
+
+class ProvisionedProduct(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        accept_language: str,
+        name: str,
+        stack_id: str,
+        tags: Dict[str, str],
+        backend: "ServiceCatalogBackend",
+    ):
+        self.provisioned_product_id = "pp-" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
+        )
+        self.created_time: datetime = unix_time()
+        self.updated_time: datetime = self.created_time
+        self.region = region
+        self.accept_language = accept_language
+
+        self.name = name
+        # CFN_STACK, CFN_STACKSET, TERRAFORM_OPEN_SOURCE, TERRAFORM_CLOUD
+        # self.product_type = product_type
+        # PROVISION_PRODUCT, UPDATE_PROVISIONED_PRODUCT, TERMINATE_PROVISIONED_PRODUCT
+        self.record_type = "PROVISION_PRODUCT"
+        self.product_id = ""
+        self.provisioning_artifcat_id = ""
+        self.path_id = ""
+        self.launch_role_arn = ""
+
+        # self.records = link to records on actions
+        self.status: str = (
+            "SUCCEEDED"  # CREATE,IN_PROGRESS,IN_PROGRESS_IN_ERROR,IN_PROGRESS_IN_ERROR
+        )
+        self.backend = backend
+        self.arn = (
+            f"arn:aws:servicecatalog:{region}::provisioned_product/{self.product_id}"
+        )
+        self.tags = tags
+        self.backend.tag_resource(self.arn, tags)
+
+    def to_provisioned_product_detail_json(self) -> Dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "CreatedTime": self.created_date,
+            "Id": self.product_id,
+            "IdempotencyToken": "string",
+            "LastProvisioningRecordId": "string",  # ProvisionedProduct, UpdateProvisionedProduct, ExecuteProvisionedProductPlan, TerminateProvisionedProduct
+            "LastRecordId": "string",
+            "LastSuccessfulProvisioningRecordId": "string",
+            "LaunchRoleArn": "string",
+            "Name": self.name,
+            "ProductId": "string",
+            "ProvisioningArtifactId": "string",
+            "Status": "AVAILABLE",
+            "StatusMessage": "string",
+            "Type": "string",
+        }
 
 
 class ServiceCatalogBackend(BaseBackend):
@@ -174,6 +265,7 @@ class ServiceCatalogBackend(BaseBackend):
 
         self.portfolios: Dict[str, Portfolio] = dict()
         self.products: Dict[str, Product] = dict()
+        self.provisioned_products: Dict[str, ProvisionedProduct] = dict()
 
         self.tagger = TaggingService()
 
@@ -234,7 +326,7 @@ class ServiceCatalogBackend(BaseBackend):
             backend=self,
         )
 
-        product._create_provisioning_artifact(
+        provisioning_artifact = product._create_provisioning_artifact(
             account_id=self.account_id,
             name=provisioning_artifact_parameters["Name"],
             description=provisioning_artifact_parameters["Description"],
@@ -244,13 +336,28 @@ class ServiceCatalogBackend(BaseBackend):
         self.products[product.product_id] = product
 
         product_view_detail = product.to_product_view_detail_json()
-        provisioning_artifact_detail = product.to_provisioning_artifact_detail_json()
+        provisioning_artifact_detail = (
+            provisioning_artifact.to_provisioning_artifact_detail_json()
+        )
 
         return product_view_detail, provisioning_artifact_detail, tags
 
     def describe_provisioned_product(self, accept_language, id, name):
         # implement here
-        provisioned_product_detail = {}
+
+        if id:
+            product = self.products[id]
+        else:
+            # get by name
+            product = self.products[id]
+
+        # TODO
+        #    "CloudWatchDashboards": [
+        #       {
+        #          "Name": "string"
+        #       }
+        #    ],
+        provisioned_product_detail = product.to_provisioned_product_detail_json()
         cloud_watch_dashboards = None
         return provisioned_product_detail, cloud_watch_dashboards
 
@@ -286,14 +393,50 @@ class ServiceCatalogBackend(BaseBackend):
             if item.name == product_name:
                 product = item
 
+        # search product for specific provision_artifact_id or name
+        # TODO: ID vs name
+        provisioning_artifact = product.get_provisioning_artifact(
+            provisioning_artifact_id
+        )
+
+        # path
+
+        # Instantiate stack
         stack = create_cloudformation_stack_from_template(
             stack_name=provisioned_product_name,
             account_id=self.account_id,
             region_name=self.region_name,
-            template=product.provisioning_artifact.template,
+            template=provisioning_artifact.template,
         )
 
-        record_detail = {}
+        provisioned_product = ProvisionedProduct(
+            accept_language=accept_language,
+            region=self.region_name,
+            name=provisioned_product_name,
+            stack_id=stack.stack_id,
+            tags=[],
+            backend=self,
+        )
+        record = Record(region=self.region_name, backend=self)
+
+        # record object
+
+        record_detail = {
+            "RecordId": record.record_id,
+            "CreatedTime": record.created_time,
+            "UpdatedTime": record.updated_time,
+            "ProvisionedProductId": provisioned_product.provisioned_product_id,
+            #     "PathId": "lpv2-abcdg3jp6t5k6",
+            #     "RecordErrors": [],
+            "ProductId": provisioned_product.product_id,
+            #     "RecordType": "PROVISION_PRODUCT",
+            #     "ProvisionedProductName": "mytestppname3",
+            #     "ProvisioningArtifactId": "pa-pcz347abcdcfm",
+            #     "RecordTags": [],
+            #     "Status": "CREATED",
+            #     "ProvisionedProductType": "CFN_STACK"
+        }
+        print(record_detail)
         return record_detail
 
     def search_provisioned_products(

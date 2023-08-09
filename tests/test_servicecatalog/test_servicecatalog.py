@@ -7,6 +7,29 @@ from moto import mock_servicecatalog, mock_s3
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
+BASIC_CLOUD_STACK = """---
+Resources:
+  LocalBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: cfn-quickstart-bucket
+"""
+
+
+def _create_cf_template_in_s3(region_name: str):
+    cloud_bucket = "cf-servicecatalog"
+    cloud_s3_key = "sc-templates/test-product/stack.yaml"
+    cloud_url = f"https://s3.amazonaws.com/{cloud_bucket}/{cloud_s3_key}"
+    s3_client = boto3.client("s3", region_name=region_name)
+    s3_client.create_bucket(
+        Bucket=cloud_bucket,
+        CreateBucketConfiguration={
+            "LocationConstraint": region_name,
+        },
+    )
+    s3_client.put_object(Body=BASIC_CLOUD_STACK, Bucket=cloud_bucket, Key=cloud_s3_key)
+    return cloud_url
+
 
 @mock_servicecatalog
 def test_create_portfolio():
@@ -21,6 +44,7 @@ def test_create_portfolio():
 
 @mock_servicecatalog
 def test_list_portfolios():
+
     client = boto3.client("servicecatalog", region_name="ap-southeast-1")
     assert len(client.list_portfolios()["PortfolioDetails"]) == 0
 
@@ -39,11 +63,31 @@ def test_list_portfolios():
 
 
 @mock_servicecatalog
+@mock_s3
 def test_describe_provisioned_product():
-    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
-    resp = client.describe_provisioned_product()
+    region_name = "us-east-2"
+    cloud_url = _create_cf_template_in_s3(region_name)
 
-    raise Exception("NotYetImplemented")
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.create_product(
+        Name="test product",
+        Owner="owner arn",
+        Description="description",
+        SupportEmail="test@example.com",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        ProvisioningArtifactParameters={
+            "Name": "InitialCreation",
+            "Description": "InitialCreation",
+            "Info": {"LoadTemplateFromURL": cloud_url},
+            "Type": "CLOUD_FORMATION_TEMPLATE",
+        },
+        IdempotencyToken=str(uuid.uuid4()),
+    )
+
+    resp = client.describe_provisioned_product(
+        Id=resp["ProductViewDetail"]["ProductViewSummary"]["Id"]
+    )
+    print(resp)
 
 
 @mock_servicecatalog
@@ -97,13 +141,6 @@ def test_list_provisioning_artifacts():
 @mock_servicecatalog
 @mock_s3
 def test_create_product():
-    cloud_stack = """---
-            Resources:
-              LocalBucket:
-                Type: AWS::S3::Bucket
-                Properties:
-                  BucketName: cfn-quickstart-bucket
-    """
     region_name = "us-east-2"
     cloud_bucket = "cf-servicecatalog"
     cloud_s3_key = "sc-templates/test-product/stack.yaml"
@@ -115,7 +152,7 @@ def test_create_product():
             "LocationConstraint": region_name,
         },
     )
-    s3_client.put_object(Body=cloud_stack, Bucket=cloud_bucket, Key=cloud_s3_key)
+    s3_client.put_object(Body=BASIC_CLOUD_STACK, Bucket=cloud_bucket, Key=cloud_s3_key)
 
     client = boto3.client("servicecatalog", region_name=region_name)
     resp = client.create_product(
@@ -140,13 +177,6 @@ def test_create_product():
 @mock_servicecatalog
 @mock_s3
 def test_provision_product():
-    cloud_stack = """---
-                Resources:
-                  LocalBucket:
-                    Type: AWS::S3::Bucket
-                    Properties:
-                      BucketName: cfn-quickstart-bucket
-        """
     region_name = "us-east-2"
     cloud_bucket = "cf-servicecatalog"
     cloud_s3_key = "sc-templates/test-product/stack.yaml"
@@ -158,7 +188,7 @@ def test_provision_product():
             "LocationConstraint": region_name,
         },
     )
-    s3_client.put_object(Body=cloud_stack, Bucket=cloud_bucket, Key=cloud_s3_key)
+    s3_client.put_object(Body=BASIC_CLOUD_STACK, Bucket=cloud_bucket, Key=cloud_s3_key)
 
     client = boto3.client("servicecatalog", region_name=region_name)
 
@@ -192,6 +222,7 @@ def test_provision_product():
     provisioned_product_response = client.provision_product(
         ProvisionedProductName=provisioning_product_name,
         ProvisioningArtifactId=provisioning_artifact_id,
+        PathId="asdf",
         ProductName=product_name,
     )
 
