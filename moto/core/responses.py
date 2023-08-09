@@ -236,6 +236,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
+        self.is_werkzeug_request = "werkzeug" in str(type(request))
         querystring: Dict[str, Any] = OrderedDict()
         if hasattr(request, "body"):
             # Boto
@@ -296,6 +297,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             pass  # ignore decoding errors, as the body may not contain a legitimate querystring
 
         self.uri = full_url
+
         self.path = urlparse(full_url).path
         self.querystring = querystring
         self.data = querystring
