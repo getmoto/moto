@@ -1636,3 +1636,55 @@ def test_get_role_name_utility_race_condition():
     assert len(errors) + len(roles) == num_threads
     assert roles.count(roles[0]) == len(roles)
     assert len(errors) == 0
+
+
+@mock_lambda
+def test_put_function_concurrency_success():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=900
+    )
+    assert response["ReservedConcurrentExecutions"] == 900
+
+
+@mock_lambda
+def test_put_function_concurrency_failure():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.put_function_concurrency(
+            FunctionName=function_name, ReservedConcurrentExecutions=901
+        )
+
+        assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+
+    # No reservation should have been set
+    response = conn.get_function_concurrency(FunctionName=function_name)
+    assert "ReservedConcurrentExecutions" not in response
