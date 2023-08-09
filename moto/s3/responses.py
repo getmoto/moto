@@ -2288,9 +2288,9 @@ class S3Response(BaseResponse):
             input_details = request["InputSerialization"]
             output_details = request["OutputSerialization"]
             results = self.backend.select_object_content(
-                bucket_name, key_name, select_query, input_details, output_details
+                bucket_name, key_name, select_query, input_details
             )
-            return 200, {}, serialize_select(results)
+            return 200, {}, serialize_select(results, output_details)
 
         else:
             raise NotImplementedError(

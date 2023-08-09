@@ -2522,7 +2522,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         select_query: str,
         input_details: Dict[str, Any],
-        output_details: Dict[str, Any],  # pylint: disable=unused-argument
     ) -> List[bytes]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
@@ -2531,7 +2530,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - Function aliases (count(*) as cnt)
          - Most functions (only count() is supported)
          - Result is always in JSON
-         - FieldDelimiters and RecordDelimiters are ignored
+         - FieldDelimiters are ignored
         """
         self.get_bucket(bucket_name)
         key = self.get_object(bucket_name, key_name)

@@ -133,6 +133,21 @@ class TestS3Select(TestCase):
         result = list(content["Payload"])
         assert {"Records": {"Payload": b'{"_1":3},'}} in result
 
+    def test_default_record_delimiter(self):
+        content = self.client.select_object_content(
+            Bucket=self.bucket_name,
+            Key="simple_csv",
+            Expression="SELECT count(*) FROM S3Object",
+            ExpressionType="SQL",
+            InputSerialization={
+                "CSV": {"FileHeaderInfo": "USE", "FieldDelimiter": ","}
+            },
+            # RecordDelimiter is not specified - should default to new line (\n)
+            OutputSerialization={"JSON": {}},
+        )
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"_1":3}\n'}} in result
+
     def test_extensive_json__select_list(self):
         content = self.client.select_object_content(
             Bucket=self.bucket_name,
