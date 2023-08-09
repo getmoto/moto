@@ -1,6 +1,5 @@
 import json
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 from botocore.exceptions import ClientError
 
@@ -25,22 +24,18 @@ def test_basic():
 
     payload = json.loads(res["payload"].read())
     expected_state = '{"desired": {"led": "on"}}'
-    payload.should.have.key("state").which.should.equal(json.loads(expected_state))
-    payload.should.have.key("metadata").which.should.have.key(
-        "desired"
-    ).which.should.have.key("led")
-    payload.should.have.key("version").which.should.equal(1)
-    payload.should.have.key("timestamp")
+    assert payload["state"] == json.loads(expected_state)
+    assert "led" in payload["metadata"]["desired"]
+    assert payload["version"] == 1
+    assert "timestamp" in payload
 
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
     expected_state = b'{"desired": {"led": "on"}, "delta": {"led": "on"}}'
-    payload.should.have.key("state").which.should.equal(json.loads(expected_state))
-    payload.should.have.key("metadata").which.should.have.key(
-        "desired"
-    ).which.should.have.key("led")
-    payload.should.have.key("version").which.should.equal(1)
-    payload.should.have.key("timestamp")
+    assert payload["state"] == json.loads(expected_state)
+    assert "led" in payload["metadata"]["desired"]
+    assert payload["version"] == 1
+    assert "timestamp" in payload
 
     client.delete_thing_shadow(thingName=name)
     with pytest.raises(ClientError):
@@ -60,50 +55,42 @@ def test_update():
     res = client.update_thing_shadow(thingName=name, payload=raw_payload)
     payload = json.loads(res["payload"].read())
     expected_state = '{"desired": {"led": "on"}}'
-    payload.should.have.key("state").which.should.equal(json.loads(expected_state))
-    payload.should.have.key("metadata").which.should.have.key(
-        "desired"
-    ).which.should.have.key("led")
-    payload.should.have.key("version").which.should.equal(1)
-    payload.should.have.key("timestamp")
+    assert payload["state"] == json.loads(expected_state)
+    assert "led" in payload["metadata"]["desired"]
+    assert payload["version"] == 1
+    assert "timestamp" in payload
 
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
     expected_state = b'{"desired": {"led": "on"}, "delta": {"led": "on"}}'
-    payload.should.have.key("state").which.should.equal(json.loads(expected_state))
-    payload.should.have.key("metadata").which.should.have.key(
-        "desired"
-    ).which.should.have.key("led")
-    payload.should.have.key("version").which.should.equal(1)
-    payload.should.have.key("timestamp")
+    assert payload["state"] == json.loads(expected_state)
+    assert "led" in payload["metadata"]["desired"]
+    assert payload["version"] == 1
+    assert "timestamp" in payload
 
     # reporting new state
     new_payload = b'{"state": {"reported": {"led": "on"}}}'
     res = client.update_thing_shadow(thingName=name, payload=new_payload)
     payload = json.loads(res["payload"].read())
     expected_state = '{"reported": {"led": "on"}}'
-    payload.should.have.key("state").which.should.equal(json.loads(expected_state))
-    payload.should.have.key("metadata").which.should.have.key(
-        "reported"
-    ).which.should.have.key("led")
-    payload.should.have.key("version").which.should.equal(2)
-    payload.should.have.key("timestamp")
+    assert payload["state"] == json.loads(expected_state)
+    assert "led" in payload["metadata"]["reported"]
+    assert payload["version"] == 2
+    assert "timestamp" in payload
 
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
     expected_state = b'{"desired": {"led": "on"}, "reported": {"led": "on"}}'
-    payload.should.have.key("state").which.should.equal(json.loads(expected_state))
-    payload.should.have.key("metadata").which.should.have.key(
-        "desired"
-    ).which.should.have.key("led")
-    payload.should.have.key("version").which.should.equal(2)
-    payload.should.have.key("timestamp")
+    assert payload["state"] == json.loads(expected_state)
+    assert "led" in payload["metadata"]["desired"]
+    assert payload["version"] == 2
+    assert "timestamp" in payload
 
     raw_payload = b'{"state": {"desired": {"led": "on"}}, "version": 1}'
     with pytest.raises(ClientError) as ex:
         client.update_thing_shadow(thingName=name, payload=raw_payload)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(409)
-    ex.value.response["Error"]["Message"].should.equal("Version conflict")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
+    assert ex.value.response["Error"]["Message"] == "Version conflict"
 
 
 @mock_iotdata
@@ -116,10 +103,10 @@ def test_publish():
 
     if not settings.TEST_SERVER_MODE:
         mock_backend = moto.iotdata.models.iotdata_backends[ACCOUNT_ID][region_name]
-        mock_backend.published_payloads.should.have.length_of(3)
-        mock_backend.published_payloads.should.contain(("test/topic1", b"pl1"))
-        mock_backend.published_payloads.should.contain(("test/topic2", b"pl2"))
-        mock_backend.published_payloads.should.contain(("test/topic3", b"\xbf"))
+        assert len(mock_backend.published_payloads) == 3
+        assert ("test/topic1", b"pl1") in mock_backend.published_payloads
+        assert ("test/topic2", b"pl2") in mock_backend.published_payloads
+        assert ("test/topic3", b"\xbf") in mock_backend.published_payloads
 
 
 @mock_iot
