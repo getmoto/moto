@@ -1688,3 +1688,58 @@ def test_put_function_concurrency_failure():
     # No reservation should have been set
     response = conn.get_function_concurrency(FunctionName=function_name)
     assert "ReservedConcurrentExecutions" not in response
+
+
+@mock_lambda
+def test_put_function_concurrency_i_can_has_math():
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name_1 = str(uuid4())[0:6]
+    function_name_2 = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name_1,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    conn.create_function(
+        FunctionName=function_name_2,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.put_function_concurrency(
+        FunctionName=function_name_1, ReservedConcurrentExecutions=600
+    )
+    assert response["ReservedConcurrentExecutions"] == 600
+    response = conn.put_function_concurrency(
+        FunctionName=function_name_2, ReservedConcurrentExecutions=100
+    )
+    assert response["ReservedConcurrentExecutions"] == 100
+
+    # Increasing function 1's limit should succeed, e.g. 700 + 100 <= 900
+    response = conn.put_function_concurrency(
+        FunctionName=function_name_1, ReservedConcurrentExecutions=700
+    )
+    assert response["ReservedConcurrentExecutions"] == 700
+
+    # Increasing function 2's limit should fail, e.g. 700 + 201 > 900
+    with pytest.raises(ClientError) as exc:
+        conn.put_function_concurrency(
+            FunctionName=function_name_2, ReservedConcurrentExecutions=201
+        )
+
+        assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+    response = conn.get_function_concurrency(FunctionName=function_name_2)
+    assert response["ReservedConcurrentExecutions"] == 100
