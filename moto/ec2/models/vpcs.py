@@ -2,6 +2,7 @@ import ipaddress
 import json
 import weakref
 from collections import defaultdict
+from threading import Lock
 from typing import Any, Dict, List, Optional
 from operator import itemgetter
 
@@ -37,6 +38,7 @@ from ..utils import (
 
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
 DEFAULT_VPC_ENDPOINT_SERVICES: List[Dict[str, str]] = []
+vpc_endpoint_collection_lock = Lock()
 
 
 class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
@@ -708,33 +710,35 @@ class VPCBackend:
         account_id: str, region: str
     ) -> List[Dict[str, str]]:
         """Return list of default services using list of backends."""
-        if DEFAULT_VPC_ENDPOINT_SERVICES:
-            return DEFAULT_VPC_ENDPOINT_SERVICES
+        # This is a long-running operation
+        # Lock the collection to ensure it is only executed once
+        # Even if there are multiple requests in parallel
+        with vpc_endpoint_collection_lock:
+            if not DEFAULT_VPC_ENDPOINT_SERVICES:
+                zones = [
+                    zone.name
+                    for zones in RegionsAndZonesBackend.zones.values()
+                    for zone in zones
+                    if zone.name.startswith(region)
+                ]
 
-        zones = [
-            zone.name
-            for zones in RegionsAndZonesBackend.zones.values()
-            for zone in zones
-            if zone.name.startswith(region)
-        ]
+                from moto import backends  # pylint: disable=import-outside-toplevel
 
-        from moto import backends  # pylint: disable=import-outside-toplevel
+                for _backends in backends.service_backends():
+                    account_backend = _backends[account_id]
+                    if region in account_backend:
+                        service = account_backend[region].default_vpc_endpoint_service(
+                            region, zones
+                        )
+                        if service:
+                            DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
 
-        for _backends in backends.service_backends():
-            account_backend = _backends[account_id]
-            if region in account_backend:
-                service = account_backend[region].default_vpc_endpoint_service(
-                    region, zones
-                )
-                if service:
-                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
-
-            if "global" in account_backend:
-                service = account_backend["global"].default_vpc_endpoint_service(
-                    region, zones
-                )
-                if service:
-                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
+                    if "global" in account_backend:
+                        service = account_backend[
+                            "global"
+                        ].default_vpc_endpoint_service(region, zones)
+                        if service:
+                            DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
         return DEFAULT_VPC_ENDPOINT_SERVICES
 
     @staticmethod
@@ -832,6 +836,7 @@ class VPCBackend:
         next_token: Optional[str],
         region: str,
     ) -> Dict[str, Any]:  # pylint: disable=too-many-arguments
+        print(f"describe_vpc_endpoint_services({service_names})")  # noqa
         """Return info on services to which you can create a VPC endpoint.
 
         Currently only the default endpoint services are returned.  When
@@ -849,7 +854,9 @@ class VPCBackend:
         all_services = default_services + custom_services
 
         for service_name in service_names:
-            if service_name not in [x["ServiceName"] for x in all_services]:
+            all_service_names = [x["ServiceName"] for x in all_services]
+            print(f"Finding {service_name} in {all_service_names}")  # noqa
+            if service_name not in all_service_names:
                 raise InvalidServiceName(service_name)
 
         # Apply filters specified in the service_names and filters arguments.
