@@ -99,7 +99,7 @@ class ServiceCatalogResponse(BaseResponse):
             page_token=page_token,
         )
         # TODO: adjust response
-        return json.dumps(dict(outputs=outputs, nextPageToken=next_page_token))
+        return json.dumps(dict(Outputs=outputs, NextPageToken=next_page_token))
 
     def search_provisioned_products(self):
         accept_language = self._get_param("AcceptLanguage")
@@ -124,9 +124,9 @@ class ServiceCatalogResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(
             dict(
-                provisionedProducts=provisioned_products,
-                totalResultsCount=total_results_count,
-                nextPageToken=next_page_token,
+                ProvisionedProducts=provisioned_products,
+                TotalResultsCount=total_results_count,
+                NextPageToken=next_page_token,
             )
         )
 
@@ -169,9 +169,9 @@ class ServiceCatalogResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(
             dict(
-                productViewSummaries=product_view_summaries,
-                productViewAggregations=product_view_aggregations,
-                nextPageToken=next_page_token,
+                ProductViewSummaries=product_view_summaries,
+                ProductViewAggregations=product_view_aggregations,
+                NextPageToken=next_page_token,
             )
         )
 
@@ -191,7 +191,7 @@ class ServiceCatalogResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(
             dict(
-                launchPathSummaries=launch_path_summaries, nextPageToken=next_page_token
+                LaunchPathSummaries=launch_path_summaries, NextPageToken=next_page_token
             )
         )
 
@@ -208,8 +208,8 @@ class ServiceCatalogResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(
             dict(
-                provisioningArtifactDetails=provisioning_artifact_details,
-                nextPageToken=next_page_token,
+                ProvisioningArtifactDetails=provisioning_artifact_details,
+                NextPageToken=next_page_token,
             )
         )
 

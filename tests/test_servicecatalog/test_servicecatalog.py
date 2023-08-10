@@ -60,6 +60,13 @@ def _create_default_product_with_portfolio(
         IdempotencyToken=str(uuid.uuid4()),
     )
 
+    # Associate product to portfolio
+    resp = client.associate_product_with_portfolio(
+        PortfolioId=create_portfolio_response["PortfolioDetail"]["Id"],
+        ProductId=create_product_response["ProductViewDetail"]["ProductViewSummary"][
+            "ProductId"
+        ],
+    )
     return create_portfolio_response, create_product_response
 
 
@@ -274,19 +281,63 @@ def test_describe_provisioned_product():
 
 
 @mock_servicecatalog
+@mock_s3
 def test_get_provisioned_product_outputs():
-    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
-    resp = client.get_provisioned_product_outputs()
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+    provisioned_product = _create_provisioned_product(
+        region_name=region_name,
+        product_name=product_name,
+        provisioning_artifact_id=provisioning_artifact_id,
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    resp = client.get_provisioned_product_outputs(
+        ProvisonedProductId=provisioned_product_id
+    )
 
     raise Exception("NotYetImplemented")
 
 
 @mock_servicecatalog
+@mock_s3
 def test_search_provisioned_products():
-    client = boto3.client("servicecatalog", region_name="eu-west-1")
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+    provisioned_product = _create_provisioned_product(
+        region_name=region_name,
+        product_name=product_name,
+        provisioning_artifact_id=provisioning_artifact_id,
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
     resp = client.search_provisioned_products()
 
-    raise Exception("NotYetImplemented")
+    pps = resp["ProvisionedProducts"]
+    assert len(pps) == 1
+    assert pps[0]["Id"] == provisioned_product_id
 
 
 @mock_servicecatalog
@@ -298,24 +349,69 @@ def test_terminate_provisioned_product():
 
 
 @mock_servicecatalog
+@mock_s3
 def test_search_products():
-    client = boto3.client("servicecatalog", region_name="us-east-2")
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
     resp = client.search_products()
 
-    raise Exception("NotYetImplemented")
+    products = resp["ProductViewSummaries"]
+
+    assert len(products) == 1
+    assert products[0]["Id"] == product["ProductViewDetail"]["ProductViewSummary"]["Id"]
+    assert (
+        products[0]["ProductId"]
+        == product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    )
 
 
 @mock_servicecatalog
+@mock_s3
 def test_list_launch_paths():
-    client = boto3.client("servicecatalog", region_name="us-east-2")
-    resp = client.list_launch_paths()
+    region_name = "us-east-2"
+    product_name = "test product"
 
-    raise Exception("NotYetImplemented")
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.list_launch_paths(ProductId=product_id)
+
+    lps = resp["LaunchPathSummaries"]
+    assert len(lps) == 1
+    assert len(lps[0]["ConstraintSummaries"]) == 1
+    assert lps[0]["ConstraintSummaries"][0]["Type"] == "LAUNCH"
 
 
 @mock_servicecatalog
+@mock_s3
 def test_list_provisioning_artifacts():
-    client = boto3.client("servicecatalog", region_name="eu-west-1")
-    resp = client.list_provisioning_artifacts()
+    region_name = "us-east-2"
+    product_name = "test product"
 
-    raise Exception("NotYetImplemented")
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    resp = client.list_provisioning_artifacts(ProductId=product_id)
+
+    pad = resp["ProvisioningArtifactDetails"]
+    assert len(pad) == 1
+    assert pad[0]["Id"] == product["ProvisioningArtifactDetail"]["Id"]
