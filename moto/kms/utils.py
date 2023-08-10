@@ -1,5 +1,6 @@
 from collections import namedtuple
 from typing import Any, Dict, Tuple
+from enum import Enum
 import io
 import os
 import struct
@@ -46,6 +47,28 @@ RESERVED_ALIASE_TARGET_KEY_IDS = {
 }
 
 RESERVED_ALIASES = list(RESERVED_ALIASE_TARGET_KEY_IDS.keys())
+
+
+class KeySpec(str, Enum):
+    # Asymmetric key specs
+    RSA_2048 = "RSA_2048"
+    RSA_3072 = "RSA_3072"
+    RSA_4096 = "RSA_4096"
+    ECC_NIST_P256 = "ECC_NIST_P256"
+    ECC_NIST_P384 = "ECC_NIST_P384"
+    ECC_NIST_P512 = "ECC_NIST_P521"
+    ECC_SECG_P256K1 = "ECC_SECG_P256K1"
+    SM2 = "SM2"  # China Regions only
+    # Symmetric key specs
+    SYMMETRIC_DEFAULT = "SYMMETRIC_DEFAULT"
+    HMAC224 = "HMAC_224"
+    HMAC_256 = "HMAC_256"
+    HMAC_284 = "HMAC_384"
+    HMAC_512 = "HMAC_512"
+
+    @classmethod
+    def key_specs(self) -> List[str]:
+        return [item.value for item in KeySpec]
 
 
 def generate_key_id(multi_region: bool = False) -> str:

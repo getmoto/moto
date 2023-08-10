@@ -22,6 +22,7 @@ from .utils import (
     generate_key_id,
     generate_master_key,
     generate_private_key,
+    KeySpec,
 )
 
 
@@ -84,6 +85,7 @@ class Key(CloudFormationModel):
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
+        self.__ensure_valid_key_spec(key_spec)
         self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
 
         self.grants: Dict[str, Grant] = dict()
@@ -614,6 +616,14 @@ class KmsBackend(BaseBackend):
                     valid_sign_algorithms=key.signing_algorithms,
                 )
             )
+
+    def __ensure_valid_key_spec(self, key: Key, key_spec: str) -> None:
+        if key_spec not in KeySpec.key_specs():
+            raise ValidationException(
+                "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                "{valid_key_specs}"
+            ).format(key_spec=key_spec, valid_key_spec=key.key_specs)
 
     def sign(
         self, key_id: str, message: bytes, signing_algorithm: str
