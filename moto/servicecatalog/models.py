@@ -351,6 +351,7 @@ class ProvisionedProduct(BaseModel):
         accept_language: str,
         name: str,
         stack_id: str,
+        stack_outputs,
         product_id: str,
         provisioning_artifact_id: str,
         path_id: str,
@@ -381,16 +382,19 @@ class ProvisionedProduct(BaseModel):
         self.last_provisioning_record_id = None
         self.last_successful_provisioning_record_id = None
 
+        # CF info
+        self.stack_id = stack_id
+        self.stack_outputs = stack_outputs
         self.status: str = (
             "SUCCEEDED"  # CREATE,IN_PROGRESS,IN_PROGRESS_IN_ERROR,IN_PROGRESS_IN_ERROR
         )
         self.backend = backend
         self.arn = f"arn:aws:servicecatalog:{region}:ACCOUNT_ID::stack/{self.name}/{self.provisioned_product_id}"
         self.tags = tags
-        self.backend.tag_resource(self.arn, tags)
+        # self.backend.tag_resource(self.arn, tags)
 
-    def to_provisioned_product_detail_json(self) -> Dict[str, Any]:
-        return {
+    def to_provisioned_product_detail_json(self, include_tags=False) -> Dict[str, Any]:
+        detail = {
             "Arn": self.arn,
             "CreatedTime": self.created_time,
             "Id": self.provisioned_product_id,
@@ -406,6 +410,9 @@ class ProvisionedProduct(BaseModel):
             "StatusMessage": "string",
             "Type": self.record_type,
         }
+        if include_tags:
+            detail["Tags"] = self.tags
+        return detail
 
 
 class ServiceCatalogBackend(BaseBackend):
@@ -567,17 +574,21 @@ class ServiceCatalogBackend(BaseBackend):
             template=provisioning_artifact.template,
         )
 
+        if tags is None:
+            tags = list()
+
         # Outputs will be a provisioned product and a record
         provisioned_product = ProvisionedProduct(
             accept_language=accept_language,
             region=self.region_name,
             name=provisioned_product_name,
             stack_id=stack.stack_id,
+            stack_outputs=stack.stack_outputs,
             product_id=product.product_id,
             provisioning_artifact_id=provisioning_artifact.provisioning_artifact_id,
             path_id="asdf",
             launch_role_arn="asdf2",
-            tags=[],
+            tags=tags,
             backend=self,
         )
         self.provisioned_products[
@@ -640,11 +651,11 @@ class ServiceCatalogBackend(BaseBackend):
         self, accept_language, filters, sort_by, sort_order, page_token
     ):
         product_view_summaries = list()
-        if filters is None:
-            for key, product in self.products.items():
-                product_view_summaries.append(
-                    product.to_product_view_detail_json()["ProductViewSummary"]
-                )
+        # TODO: Filter
+        for key, product in self.products.items():
+            product_view_summaries.append(
+                product.to_product_view_detail_json()["ProductViewSummary"]
+            )
 
         product_view_aggregations = {
             "Owner": list(),
@@ -665,11 +676,12 @@ class ServiceCatalogBackend(BaseBackend):
     ):
         # implement here
         provisioned_products = list()
-        if filters is None:
-            provisioned_products = [
-                value.to_provisioned_product_detail_json()
-                for key, value in self.provisioned_products.items()
-            ]
+
+        # TODO: Filter
+        provisioned_products = [
+            value.to_provisioned_product_detail_json(include_tags=True)
+            for key, value in self.provisioned_products.items()
+        ]
 
         total_results_count = len(provisioned_products)
         next_page_token = None
@@ -745,18 +757,18 @@ class ServiceCatalogBackend(BaseBackend):
     ):
         # implement here
         provisioned_product = self.provisioned_products[provisioned_product_id]
-        #
-        # {
-        #     "Outputs": [
-        #         {
-        #             "OutputKey": "CloudformationStackARN",
-        #             "OutputValue": "arn:aws:cloudformation:us-east-1:811011756959:stack/SC-811011756959-pp-vvva3s2aetxma/9426ece0-36ba-11ee-8ee2-0a01e48885af",
-        #             "Description": "The ARN of the launched Cloudformation Stack"
-        #         }
-        #     ]
-        # }
 
-        outputs = {}
+        outputs = []
+
+        for output in provisioned_product.stack_outputs:
+            outputs.append(
+                {
+                    "OutputKey": output.key,
+                    "OutputValue": output.value,
+                    "Description": output.description,
+                }
+            )
+
         next_page_token = None
         return outputs, next_page_token
 

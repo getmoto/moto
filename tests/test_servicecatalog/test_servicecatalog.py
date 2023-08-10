@@ -13,6 +13,10 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: cfn-quickstart-bucket
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt LocalBucket.WebsiteURL
+    Description: URL for website hosted on S3
 """
 
 
@@ -107,6 +111,10 @@ def _create_provisioned_product(
         ProvisioningArtifactId=provisioning_artifact_id,
         PathId="asdf",
         ProductName=product_name,
+        Tags=[
+            {"Key": "MyCustomTag", "Value": "A Value"},
+            {"Key": "MyOtherTag", "Value": "Another Value"},
+        ],
     )
     return provisioned_product_response
 
@@ -217,6 +225,10 @@ def test_provision_product():
         ProvisioningArtifactId=provisioning_artifact_id,
         PathId="asdf",
         ProductName=product_name,
+        Tags=[
+            {"Key": "MyCustomTag", "Value": "A Value"},
+            {"Key": "MyOtherTag", "Value": "Another Value"},
+        ],
     )
     print(provisioned_product_response)
 
@@ -304,10 +316,11 @@ def test_get_provisioned_product_outputs():
     client = boto3.client("servicecatalog", region_name=region_name)
 
     resp = client.get_provisioned_product_outputs(
-        ProvisonedProductId=provisioned_product_id
+        ProvisionedProductId=provisioned_product_id
     )
 
-    raise Exception("NotYetImplemented")
+    assert len(resp["Outputs"]) == 1
+    assert resp["Outputs"][0]["OutputKey"] == "WebsiteURL"
 
 
 @mock_servicecatalog
