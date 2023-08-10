@@ -24,7 +24,7 @@ class Portfolio(BaseModel):
         idempotency_token: str,
         backend: "ServiceCatalogBackend",
     ):
-        self.portfolio_id = "p" + "".join(
+        self.portfolio_id = "port-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
         self.created_date: datetime = unix_time()
@@ -36,9 +36,18 @@ class Portfolio(BaseModel):
         self.idempotency_token = idempotency_token
         self.backend = backend
 
+        self.product_ids = list()
+
         self.arn = f"arn:aws:servicecatalog:{region}::{self.portfolio_id}"
         self.tags = tags
         self.backend.tag_resource(self.arn, tags)
+
+    def link_product(self, product_id: str):
+        if product_id not in self.product_ids:
+            self.product_ids.append(product_id)
+
+    def has_product(self, product_id: str):
+        return product_id in self.product_ids
 
     def to_json(self) -> Dict[str, Any]:
         met = {
@@ -101,10 +110,10 @@ class Product(BaseModel):
         tags: Dict[str, str],
         backend: "ServiceCatalogBackend",
     ):
-        self.product_view_summary_id = "prodview" + "".join(
+        self.product_view_summary_id = "prodview-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
-        self.product_id = "prod" + "".join(
+        self.product_id = "prod-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
         self.created_time: datetime = unix_time()
@@ -181,11 +190,105 @@ class Product(BaseModel):
         return self.to_product_view_detail_json()
 
 
+class Constraint(BaseModel):
+    def __init__(
+        self,
+        constraint_type: str,
+        product_id: str,
+        portfolio_id: str,
+        backend: "ServiceCatalogBackend",
+        parameters: str = "",
+        description: str = "",
+        owner: str = "",
+    ):
+        self.constraint_id = "cons-" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
+        )
+
+        self.created_time: datetime = unix_time()
+        self.updated_time: datetime = self.created_time
+
+        # LAUNCH
+        # NOTIFICATION
+        # RESOURCE_UPDATE
+        # STACKSET
+        # TEMPLATE
+
+        self.constraint_type = constraint_type  # "LAUNCH"
+        # "Launch as arn:aws:iam::811011756959:role/LaunchRoleBad",
+        self.description = description
+        self.owner = owner  # account_id = 811011756959
+        self.product_id = product_id
+        self.portfolio_id = portfolio_id
+        self.parameters = parameters
+
+        self.backend = backend
+
+    def to_create_constraint_json(self):
+        return {
+            "ConstraintId": self.constraint_id,
+            "Type": self.constraint_type,
+            "Description": self.description,
+            "Owner": self.owner,
+            "ProductId": self.product_id,
+            "PortfolioId": self.portfolio_id,
+        }
+
+
+class LaunchPath(BaseModel):
+    def __init__(self, name: str, backend: "ServiceCatalogBackend"):
+        self.path_id = "lpv3-" + "".join(
+            random.choice(string.ascii_lowercase) for _ in range(12)
+        )
+
+        self.created_time: datetime = unix_time()
+        self.updated_time: datetime = self.created_time
+
+        self.name = name
+
+        self.backend = backend
+        #     "LaunchPathSummaries": [
+        #         {
+        #             "Id": "lpv3-w4u2yosjlxdkw",
+        #             "ConstraintSummaries": [
+        #                 {
+        #                     "Type": "LAUNCH",
+        #                     "Description": "Launch as arn:aws:iam::811011756959:role/LaunchRoleBad"
+        #                 }
+        #             ],
+        #             "Tags": [
+        #                 {
+        #                     "Key": "tag1",
+        #                     "Value": "value1"
+        #                 },
+        #                 {
+        #                     "Key": "tag1",
+        #                     "Value": "something"
+        #                 }
+        #             ],
+        #             "Name": "First Portfolio"
+        #         }
+        #     ]
+        # self.arn = f"arn:aws:servicecatalog:{self.region}::record/{self.record_id}"
+        #   {
+        #       "Id": "lpv3-w4u2yosjlxdkw",
+        #       "Name": "First Portfolio"
+        #   }
+
+
 class Record(BaseModel):
     def __init__(
         self,
         region: str,
+        product_id: str,
+        provisioned_product_id: str,
+        path_id: str,
+        provisioned_product_name: str,
+        provisioning_artifact_id: str,
         backend: "ServiceCatalogBackend",
+        record_type: str = "PROVISION_PRODUCT",
+        provisioned_product_type: str = "CFN_STACK",
+        status: str = "CREATED",
     ):
         self.record_id = "rec-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
@@ -195,8 +298,37 @@ class Record(BaseModel):
         self.created_time: datetime = unix_time()
         self.updated_time: datetime = self.created_time
 
+        self.product_id = product_id
+        self.provisioned_product_id = provisioned_product_id
+        self.path_id = path_id
+
+        self.provisioned_product_name = provisioned_product_name
+        self.provisioned_product_type = provisioned_product_type
+        self.provisioning_artifact_id = provisioning_artifact_id
+        self.record_type = record_type
+        self.record_errors = list()
+        self.record_tags = list()
+        self.status = status
+
         self.backend = backend
         self.arn = f"arn:aws:servicecatalog:{self.region}::record/{self.record_id}"
+
+    def to_record_detail_json(self):
+        return {
+            "RecordId": self.record_id,
+            "CreatedTime": self.created_time,
+            "UpdatedTime": self.updated_time,
+            "ProvisionedProductId": self.provisioned_product_id,
+            "PathId": self.path_id,
+            "RecordErrors": self.record_errors,
+            "ProductId": self.product_id,
+            "RecordType": self.record_type,
+            "ProvisionedProductName": self.provisioned_product_name,
+            "ProvisioningArtifactId": self.provisioning_artifact_id,
+            "RecordTags": self.record_tags,
+            "Status": self.status,
+            "ProvisionedProductType": self.provisioned_product_type,
+        }
 
 
 class ProvisionedProduct(BaseModel):
@@ -206,6 +338,10 @@ class ProvisionedProduct(BaseModel):
         accept_language: str,
         name: str,
         stack_id: str,
+        product_id: str,
+        provisioning_artifact_id: str,
+        path_id: str,
+        launch_role_arn: str,
         tags: Dict[str, str],
         backend: "ServiceCatalogBackend",
     ):
@@ -222,10 +358,10 @@ class ProvisionedProduct(BaseModel):
         # self.product_type = product_type
         # PROVISION_PRODUCT, UPDATE_PROVISIONED_PRODUCT, TERMINATE_PROVISIONED_PRODUCT
         self.record_type = "PROVISION_PRODUCT"
-        self.product_id = ""
-        self.provisioning_artifcat_id = ""
-        self.path_id = ""
-        self.launch_role_arn = ""
+        self.product_id = product_id
+        self.provisioning_artifact_id = provisioning_artifact_id
+        self.path_id = path_id
+        self.launch_role_arn = launch_role_arn
 
         # self.records = link to records on actions
         self.status: str = (
@@ -238,22 +374,24 @@ class ProvisionedProduct(BaseModel):
         self.tags = tags
         self.backend.tag_resource(self.arn, tags)
 
-    def to_provisioned_product_detail_json(self) -> Dict[str, Any]:
+    def to_provisioned_product_detail_json(
+        self, last_record: "Record"
+    ) -> Dict[str, Any]:
         return {
             "Arn": self.arn,
-            "CreatedTime": self.created_date,
-            "Id": self.product_id,
+            "CreatedTime": self.created_time,
+            "Id": self.provisioned_product_id,
             "IdempotencyToken": "string",
-            "LastProvisioningRecordId": "string",  # ProvisionedProduct, UpdateProvisionedProduct, ExecuteProvisionedProductPlan, TerminateProvisionedProduct
-            "LastRecordId": "string",
-            "LastSuccessfulProvisioningRecordId": "string",
-            "LaunchRoleArn": "string",
+            "LastProvisioningRecordId": last_record.record_id,  # ProvisionedProduct, UpdateProvisionedProduct, ExecuteProvisionedProductPlan, TerminateProvisionedProduct
+            "LastRecordId": last_record.record_id,
+            "LastSuccessfulProvisioningRecordId": last_record.record_id,
+            "LaunchRoleArn": self.launch_role_arn,
             "Name": self.name,
-            "ProductId": "string",
-            "ProvisioningArtifactId": "string",
+            "ProductId": self.product_id,
+            "ProvisioningArtifactId": self.provisioning_artifact_id,
             "Status": "AVAILABLE",
             "StatusMessage": "string",
-            "Type": "string",
+            "Type": self.record_type,
         }
 
 
@@ -266,6 +404,8 @@ class ServiceCatalogBackend(BaseBackend):
         self.portfolios: Dict[str, Portfolio] = dict()
         self.products: Dict[str, Product] = dict()
         self.provisioned_products: Dict[str, ProvisionedProduct] = dict()
+        self.records: OrderedDict[str, Record] = dict()
+        self.constraints: Dict[str, Constraint] = dict()
 
         self.tagger = TaggingService()
 
@@ -290,12 +430,6 @@ class ServiceCatalogBackend(BaseBackend):
         )
         self.portfolios[portfolio.portfolio_id] = portfolio
         return portfolio, tags
-
-    def list_portfolios(self, accept_language, page_token):
-        # implement here
-        portfolio_details = list(self.portfolios.values())
-        next_page_token = None
-        return portfolio_details, next_page_token
 
     def create_product(
         self,
@@ -342,33 +476,41 @@ class ServiceCatalogBackend(BaseBackend):
 
         return product_view_detail, provisioning_artifact_detail, tags
 
-    def describe_provisioned_product(self, accept_language, id, name):
-        # implement here
-
-        if id:
-            product = self.products[id]
-        else:
-            # get by name
-            product = self.products[id]
-
-        # TODO
-        #    "CloudWatchDashboards": [
-        #       {
-        #          "Name": "string"
-        #       }
-        #    ],
-        provisioned_product_detail = product.to_provisioned_product_detail_json()
-        cloud_watch_dashboards = None
-        return provisioned_product_detail, cloud_watch_dashboards
-
-    def search_products(
-        self, accept_language, filters, sort_by, sort_order, page_token
+    def create_constraint(
+        self,
+        accept_language,
+        portfolio_id,
+        product_id,
+        parameters,
+        constraint_type,
+        description,
+        idempotency_token,
     ):
         # implement here
-        product_view_summaries = {}
-        product_view_aggregations = {}
-        next_page_token = {}
-        return product_view_summaries, product_view_aggregations, next_page_token
+
+        constraint = Constraint(
+            backend=self,
+            product_id=product_id,
+            portfolio_id=portfolio_id,
+            constraint_type=constraint_type,
+            parameters=parameters,
+        )
+        self.constraints[constraint.constraint_id] = constraint
+
+        constraint_detail = constraint.to_create_constraint_json()
+        constraint_parameters = constraint.parameters
+
+        # AVAILABLE | CREATING | FAILED
+        status = "AVAILABLE"
+
+        return constraint_detail, constraint_parameters, status
+
+    def associate_product_with_portfolio(
+        self, accept_language, product_id, portfolio_id, source_portfolio_id
+    ):
+        portfolio = self.portfolios[portfolio_id]
+        portfolio.link_product(product_id)
+        return
 
     def provision_product(
         self,
@@ -388,20 +530,23 @@ class ServiceCatalogBackend(BaseBackend):
     ):
         # implement here
         # TODO: Big damn cleanup before this counts as anything useful.
+
+        # Get product by id or name
         product = None
         for product_id, item in self.products.items():
             if item.name == product_name:
                 product = item
 
+        # Get specified provisioning artifact from product by id or name
         # search product for specific provision_artifact_id or name
         # TODO: ID vs name
         provisioning_artifact = product.get_provisioning_artifact(
             provisioning_artifact_id
         )
 
-        # path
+        # Verify path exists for product by id or name
 
-        # Instantiate stack
+        # Create initial stack in CloudFormation
         stack = create_cloudformation_stack_from_template(
             stack_name=provisioned_product_name,
             account_id=self.account_id,
@@ -409,35 +554,82 @@ class ServiceCatalogBackend(BaseBackend):
             template=provisioning_artifact.template,
         )
 
+        # Outputs will be a provisioned product and a record
         provisioned_product = ProvisionedProduct(
             accept_language=accept_language,
             region=self.region_name,
             name=provisioned_product_name,
             stack_id=stack.stack_id,
+            product_id=product.product_id,
+            provisioning_artifact_id=provisioning_artifact.provisioning_artifact_id,
+            path_id="asdf",
+            launch_role_arn="asdf2",
             tags=[],
             backend=self,
         )
-        record = Record(region=self.region_name, backend=self)
+        self.provisioned_products[
+            provisioned_product.provisioned_product_id
+        ] = provisioned_product
 
-        # record object
+        record = Record(
+            region=self.region_name,
+            backend=self,
+            product_id=product.product_id,
+            provisioned_product_id=provisioned_product.provisioned_product_id,
+            provisioned_product_name=provisioned_product_name,
+            path_id="",
+            provisioning_artifact_id=provisioning_artifact.provisioning_artifact_id,
+        )
+        self.records[record.record_id] = record
+        return record.to_record_detail_json()
 
-        record_detail = {
-            "RecordId": record.record_id,
-            "CreatedTime": record.created_time,
-            "UpdatedTime": record.updated_time,
-            "ProvisionedProductId": provisioned_product.provisioned_product_id,
-            #     "PathId": "lpv2-abcdg3jp6t5k6",
-            #     "RecordErrors": [],
-            "ProductId": provisioned_product.product_id,
-            #     "RecordType": "PROVISION_PRODUCT",
-            #     "ProvisionedProductName": "mytestppname3",
-            #     "ProvisioningArtifactId": "pa-pcz347abcdcfm",
-            #     "RecordTags": [],
-            #     "Status": "CREATED",
-            #     "ProvisionedProductType": "CFN_STACK"
-        }
-        print(record_detail)
-        return record_detail
+    def list_portfolios(self, accept_language, page_token):
+        # implement here
+        portfolio_details = list(self.portfolios.values())
+        next_page_token = None
+        return portfolio_details, next_page_token
+
+    def get_last_record_for_provisioned_product(self, provisioned_product_id: str):
+        for record_key, record in reversed(self.records.items()):
+            if record.provisioned_product_id == provisioned_product_id:
+                return record
+        raise Exception("TODO")
+
+    def describe_provisioned_product(self, accept_language, id, name):
+        # implement here
+
+        if id:
+            provisioned_product = self.provisioned_products[id]
+        else:
+            # get by name
+            provisioned_product = self.provisioned_products[id]
+
+        # TODO
+        #    "CloudWatchDashboards": [
+        #       {
+        #          "Name": "string"
+        #       }
+        #    ],
+
+        last_record = self.get_last_record_for_provisioned_product(
+            provisioned_product.provisioned_product_id
+        )
+
+        provisioned_product_detail = (
+            provisioned_product.to_provisioned_product_detail_json(last_record)
+        )
+
+        cloud_watch_dashboards = None
+        return provisioned_product_detail, cloud_watch_dashboards
+
+    def search_products(
+        self, accept_language, filters, sort_by, sort_order, page_token
+    ):
+        # implement here
+        product_view_summaries = {}
+        product_view_aggregations = {}
+        next_page_token = {}
+        return product_view_summaries, product_view_aggregations, next_page_token
 
     def search_provisioned_products(
         self,
@@ -500,12 +692,6 @@ class ServiceCatalogBackend(BaseBackend):
     def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
         tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tags_input)
-
-    def associate_product_with_portfolio(
-        self, accept_language, product_id, portfolio_id, source_portfolio_id
-    ):
-        # implement here
-        return
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

@@ -74,8 +74,8 @@ class ServiceCatalogResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(
             dict(
-                provisionedProductDetail=provisioned_product_detail,
-                cloudWatchDashboards=cloud_watch_dashboards,
+                ProvisionedProductDetail=provisioned_product_detail,
+                CloudWatchDashboards=cloud_watch_dashboards,
             )
         )
 
@@ -243,7 +243,7 @@ class ServiceCatalogResponse(BaseResponse):
             provision_token=provision_token,
         )
         # TODO: adjust response
-        return json.dumps(dict(recordDetail=record_detail))
+        return json.dumps(dict(RecordDetail=record_detail))
 
     def create_product(self):
         accept_language = self._get_param("AcceptLanguage")
@@ -303,3 +303,33 @@ class ServiceCatalogResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict())
+
+    def create_constraint(self):
+        accept_language = self._get_param("AcceptLanguage")
+        portfolio_id = self._get_param("PortfolioId")
+        product_id = self._get_param("ProductId")
+        parameters = self._get_param("Parameters")
+        constraint_type = self._get_param("Type")
+        description = self._get_param("Description")
+        idempotency_token = self._get_param("IdempotencyToken")
+        (
+            constraint_detail,
+            constraint_parameters,
+            status,
+        ) = self.servicecatalog_backend.create_constraint(
+            accept_language=accept_language,
+            portfolio_id=portfolio_id,
+            product_id=product_id,
+            parameters=parameters,
+            constraint_type=constraint_type,
+            description=description,
+            idempotency_token=idempotency_token,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                ConstraintDetail=constraint_detail,
+                ConstraintParameters=constraint_parameters,
+                Status=status,
+            )
+        )
