@@ -237,6 +237,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
         self.is_werkzeug_request = "werkzeug" in str(type(request))
+        self.parsed_url = urlparse(full_url)
         querystring: Dict[str, Any] = OrderedDict()
         if hasattr(request, "body"):
             # Boto
@@ -258,9 +259,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.body = self.body.decode("utf-8")
 
         if not querystring:
-            querystring.update(
-                parse_qs(urlparse(full_url).query, keep_blank_values=True)
-            )
+            querystring.update(parse_qs(self.parsed_url.query, keep_blank_values=True))
         if not querystring:
             if (
                 "json" in request.headers.get("content-type", [])
@@ -298,7 +297,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         self.uri = full_url
 
-        self.path = urlparse(full_url).path
+        self.path = self.parsed_url.path
         self.querystring = querystring
         self.data = querystring
         self.method = request.method
@@ -307,7 +306,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         self.headers = request.headers
         if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+            self.headers["host"] = self.parsed_url.netloc
         self.response_headers = {
             "server": "amazon.com",
             "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
