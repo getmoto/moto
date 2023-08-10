@@ -68,7 +68,7 @@ class KeySpec(str, Enum):
 
     @classmethod
     def key_specs(self) -> List[str]:
-        return [item.value for item in KeySpec]
+        return sorted([item.value for item in KeySpec])
 
 
 def generate_key_id(multi_region: bool = False) -> str:

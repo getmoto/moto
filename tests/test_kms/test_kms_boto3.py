@@ -43,6 +43,21 @@ def test_create_key_without_description():
 
 
 @mock_kms
+def test_create_key_with_invalid_key_spec():
+    conn = boto3.client("kms", region_name="us-east-1")
+    unsupported_key_spec = "NotSupportedKeySpec"
+    with pytest.raises(ClientError) as ex:
+        conn.create_key(Policy="my policy", KeySpec=unsupported_key_spec)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+        "to satisfy constraint: Member must satisfy enum value set: "
+        "['ECC_NIST_P256', 'ECC_NIST_P384', 'ECC_NIST_P521', 'ECC_SECG_P256K1', 'HMAC_224', 'HMAC_256', 'HMAC_384', 'HMAC_512', 'RSA_2048', 'RSA_3072', 'RSA_4096', 'SM2', 'SYMMETRIC_DEFAULT']"
+    ).format(key_spec=unsupported_key_spec)
+
+
+@mock_kms
 def test_create_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
