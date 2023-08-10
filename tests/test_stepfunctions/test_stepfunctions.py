@@ -1,16 +1,16 @@
-import boto3
+from datetime import datetime
 import json
 import os
-import sure  # noqa # pylint: disable=unused-import
-from datetime import datetime
-from dateutil.tz import tzutc
+import re
+from unittest import SkipTest, mock
+
+import boto3
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 import pytest
 
 from moto import mock_sts, mock_stepfunctions
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
-from unittest import SkipTest, mock
 
 region = "us-east-1"
 simple_definition = (
@@ -32,9 +32,9 @@ def test_state_machine_creation_succeeds():
         name=name, definition=str(simple_definition), roleArn=_get_default_role()
     )
     #
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response["creationDate"].should.be.a(datetime)
-    response["stateMachineArn"].should.equal(
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert isinstance(response["creationDate"], datetime)
+    assert response["stateMachineArn"] == (
         "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:" + name
     )
 
@@ -175,12 +175,12 @@ def test_update_state_machine():
         definition=updated_definition,
         roleArn=updated_role,
     )
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    resp["updateDate"].should.be.a(datetime)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert isinstance(resp["updateDate"], datetime)
 
     desc = client.describe_state_machine(stateMachineArn=state_machine_arn)
-    desc["definition"].should.equal(updated_definition)
-    desc["roleArn"].should.equal(updated_role)
+    assert desc["definition"] == updated_definition
+    assert desc["roleArn"] == updated_role
 
 
 @mock_stepfunctions
@@ -188,7 +188,7 @@ def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.equal([])
+    assert sm_list["stateMachines"] == []
 
 
 @mock_stepfunctions
@@ -207,20 +207,16 @@ def test_state_machine_list_returns_created_state_machines():
     )
     sm_list = client.list_state_machines()
     #
-    sm_list["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    sm_list["stateMachines"].should.have.length_of(2)
-    sm_list["stateMachines"][0]["creationDate"].should.be.a(datetime)
-    sm_list["stateMachines"][0]["creationDate"].should.equal(machine1["creationDate"])
-    sm_list["stateMachines"][0]["name"].should.equal("name1")
-    sm_list["stateMachines"][0]["stateMachineArn"].should.equal(
-        machine1["stateMachineArn"]
-    )
-    sm_list["stateMachines"][1]["creationDate"].should.be.a(datetime)
-    sm_list["stateMachines"][1]["creationDate"].should.equal(machine2["creationDate"])
-    sm_list["stateMachines"][1]["name"].should.equal("name2")
-    sm_list["stateMachines"][1]["stateMachineArn"].should.equal(
-        machine2["stateMachineArn"]
-    )
+    assert sm_list["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(sm_list["stateMachines"]) == 2
+    assert isinstance(sm_list["stateMachines"][0]["creationDate"], datetime)
+    assert sm_list["stateMachines"][0]["creationDate"] == machine1["creationDate"]
+    assert sm_list["stateMachines"][0]["name"] == "name1"
+    assert sm_list["stateMachines"][0]["stateMachineArn"] == machine1["stateMachineArn"]
+    assert isinstance(sm_list["stateMachines"][1]["creationDate"], datetime)
+    assert sm_list["stateMachines"][1]["creationDate"] == machine2["creationDate"]
+    assert sm_list["stateMachines"][1]["name"] == "name2"
+    assert sm_list["stateMachines"][1]["stateMachineArn"] == machine2["stateMachineArn"]
 
 
 @mock_stepfunctions
@@ -236,14 +232,15 @@ def test_state_machine_list_pagination():
         )
 
     resp = client.list_state_machines()
-    resp.should_not.have.key("nextToken")
-    resp["stateMachines"].should.have.length_of(25)
+    assert "nextToken" not in resp
+    assert len(resp["stateMachines"]) == 25
 
     paginator = client.get_paginator("list_state_machines")
     page_iterator = paginator.paginate(maxResults=5)
-    for page in page_iterator:
-        page["stateMachines"].should.have.length_of(5)
-    page["stateMachines"][-1]["name"].should.contain("24")
+    page_list = list(page_iterator)
+    for page in page_list:
+        assert len(page["stateMachines"]) == 5
+    assert "24" in page_list[-1]["stateMachines"][-1]["name"]
 
 
 @mock_stepfunctions
@@ -255,19 +252,19 @@ def test_state_machine_creation_is_idempotent_by_name():
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.have.length_of(1)
+    assert len(sm_list["stateMachines"]) == 1
     #
     client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.have.length_of(1)
+    assert len(sm_list["stateMachines"]) == 1
     #
     client.create_state_machine(
         name="diff_name", definition=str(simple_definition), roleArn=_get_default_role()
     )
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.have.length_of(2)
+    assert len(sm_list["stateMachines"]) == 2
 
 
 @mock_stepfunctions
@@ -279,13 +276,13 @@ def test_state_machine_creation_can_be_described():
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
     desc = client.describe_state_machine(stateMachineArn=sm["stateMachineArn"])
-    desc["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    desc["creationDate"].should.equal(sm["creationDate"])
-    desc["definition"].should.equal(str(simple_definition))
-    desc["name"].should.equal("name")
-    desc["roleArn"].should.equal(_get_default_role())
-    desc["stateMachineArn"].should.equal(sm["stateMachineArn"])
-    desc["status"].should.equal("ACTIVE")
+    assert desc["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert desc["creationDate"] == sm["creationDate"]
+    assert desc["definition"] == str(simple_definition)
+    assert desc["name"] == "name"
+    assert desc["roleArn"] == _get_default_role()
+    assert desc["stateMachineArn"] == sm["stateMachineArn"]
+    assert desc["status"] == "ACTIVE"
 
 
 @mock_stepfunctions
@@ -330,10 +327,10 @@ def test_state_machine_can_be_deleted():
     )
     #
     response = client.delete_state_machine(stateMachineArn=sm["stateMachineArn"])
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     #
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.have.length_of(0)
+    assert len(sm_list["stateMachines"]) == 0
 
 
 @mock_stepfunctions
@@ -345,10 +342,10 @@ def test_state_machine_can_deleted_nonexisting_machine():
         "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:unknown"
     )
     response = client.delete_state_machine(stateMachineArn=unknown_state_machine)
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     #
     sm_list = client.list_state_machines()
-    sm_list["stateMachines"].should.have.length_of(0)
+    assert len(sm_list["stateMachines"]) == 0
 
 
 @mock_stepfunctions
@@ -357,8 +354,8 @@ def test_state_machine_tagging_non_existent_resource_fails():
     non_existent_arn = f"arn:aws:states:{region}:{ACCOUNT_ID}:stateMachine:non-existent"
     with pytest.raises(ClientError) as ex:
         client.tag_resource(resourceArn=non_existent_arn, tags=[])
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFound"
+    assert non_existent_arn in ex.value.response["Error"]["Message"]
 
 
 @mock_stepfunctions
@@ -367,8 +364,8 @@ def test_state_machine_untagging_non_existent_resource_fails():
     non_existent_arn = f"arn:aws:states:{region}:{ACCOUNT_ID}:stateMachine:non-existent"
     with pytest.raises(ClientError) as ex:
         client.untag_resource(resourceArn=non_existent_arn, tagKeys=[])
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFound")
-    ex.value.response["Error"]["Message"].should.contain(non_existent_arn)
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFound"
+    assert non_existent_arn in ex.value.response["Error"]["Message"]
 
 
 @mock_stepfunctions
@@ -384,7 +381,7 @@ def test_state_machine_tagging():
     )
     client.tag_resource(resourceArn=machine["stateMachineArn"], tags=tags)
     resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
-    resp["tags"].should.equal(tags)
+    assert resp["tags"] == tags
 
     tags_update = [
         {"key": "tag_key1", "value": "tag_value1_new"},
@@ -397,7 +394,7 @@ def test_state_machine_tagging():
         tags[1],
         tags_update[1],
     ]
-    resp["tags"].should.equal(tags_expected)
+    assert resp["tags"] == tags_expected
 
 
 @mock_stepfunctions
@@ -416,14 +413,14 @@ def test_state_machine_untagging():
         tags=tags,
     )
     resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
-    resp["tags"].should.equal(tags)
+    assert resp["tags"] == tags
     tags_to_delete = ["tag_key1", "tag_key2"]
     client.untag_resource(
         resourceArn=machine["stateMachineArn"], tagKeys=tags_to_delete
     )
     resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
     expected_tags = [tag for tag in tags if tag["key"] not in tags_to_delete]
-    resp["tags"].should.equal(expected_tags)
+    assert resp["tags"] == expected_tags
 
 
 @mock_stepfunctions
@@ -439,8 +436,8 @@ def test_state_machine_list_tags_for_created_machine():
     )
     response = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
     tags = response["tags"]
-    tags.should.have.length_of(1)
-    tags[0].should.equal({"key": "tag_key", "value": "tag_value"})
+    assert len(tags) == 1
+    assert tags[0] == {"key": "tag_key", "value": "tag_value"}
 
 
 @mock_stepfunctions
@@ -453,7 +450,7 @@ def test_state_machine_list_tags_for_machine_without_tags():
     )
     response = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
     tags = response["tags"]
-    tags.should.have.length_of(0)
+    assert len(tags) == 0
 
 
 @mock_stepfunctions
@@ -466,7 +463,7 @@ def test_state_machine_list_tags_for_nonexisting_machine():
     )
     response = client.list_tags_for_resource(resourceArn=non_existing_state_machine)
     tags = response["tags"]
-    tags.should.have.length_of(0)
+    assert len(tags) == 0
 
 
 @mock_stepfunctions
@@ -479,13 +476,13 @@ def test_state_machine_start_execution():
     )
     execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
     #
-    execution["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert execution["ResponseMetadata"]["HTTPStatusCode"] == 200
     uuid_regex = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
     expected_exec_name = (
         f"arn:aws:states:{region}:{ACCOUNT_ID}:execution:name:{uuid_regex}"
     )
-    execution["executionArn"].should.match(expected_exec_name)
-    execution["startDate"].should.be.a(datetime)
+    assert re.match(expected_exec_name, execution["executionArn"])
+    assert isinstance(execution["startDate"], datetime)
 
 
 @mock_stepfunctions
@@ -509,12 +506,12 @@ def test_state_machine_start_execution_with_custom_name():
         stateMachineArn=sm["stateMachineArn"], name="execution_name"
     )
     #
-    execution["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert execution["ResponseMetadata"]["HTTPStatusCode"] == 200
     expected_exec_name = (
         f"arn:aws:states:{region}:{ACCOUNT_ID}:execution:name:execution_name"
     )
-    execution["executionArn"].should.equal(expected_exec_name)
-    execution["startDate"].should.be.a(datetime)
+    assert execution["executionArn"] == expected_exec_name
+    assert isinstance(execution["startDate"], datetime)
 
 
 @mock_stepfunctions
@@ -533,7 +530,7 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
         _ = client.start_execution(
             stateMachineArn=sm["stateMachineArn"], name="execution_name"
         )
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Message"] == (
         "Execution Already Exists: '" + execution_one["executionArn"] + "'"
     )
 
@@ -551,13 +548,13 @@ def test_state_machine_start_execution_with_custom_input():
         stateMachineArn=sm["stateMachineArn"], input=execution_input
     )
     #
-    execution["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert execution["ResponseMetadata"]["HTTPStatusCode"] == 200
     uuid_regex = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
     expected_exec_name = (
         f"arn:aws:states:{region}:{ACCOUNT_ID}:execution:name:{uuid_regex}"
     )
-    execution["executionArn"].should.match(expected_exec_name)
-    execution["startDate"].should.be.a(datetime)
+    assert re.match(expected_exec_name, execution["executionArn"])
+    assert isinstance(execution["startDate"], datetime)
 
 
 @mock_stepfunctions
@@ -587,14 +584,14 @@ def test_state_machine_list_executions():
     execution_name = execution_arn[execution_arn.rindex(":") + 1 :]
     executions = client.list_executions(stateMachineArn=sm["stateMachineArn"])
     #
-    executions["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    executions["executions"].should.have.length_of(1)
-    executions["executions"][0]["executionArn"].should.equal(execution_arn)
-    executions["executions"][0]["name"].should.equal(execution_name)
-    executions["executions"][0]["startDate"].should.equal(execution["startDate"])
-    executions["executions"][0]["stateMachineArn"].should.equal(sm["stateMachineArn"])
-    executions["executions"][0]["status"].should.equal("RUNNING")
-    executions["executions"][0].shouldnt.have("stopDate")
+    assert executions["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(executions["executions"]) == 1
+    assert executions["executions"][0]["executionArn"] == execution_arn
+    assert executions["executions"][0]["name"] == execution_name
+    assert executions["executions"][0]["startDate"] == execution["startDate"]
+    assert executions["executions"][0]["stateMachineArn"] == sm["stateMachineArn"]
+    assert executions["executions"][0]["status"] == "RUNNING"
+    assert "stopDate" not in executions["executions"][0]
 
 
 @mock_stepfunctions
@@ -609,13 +606,13 @@ def test_state_machine_list_executions_with_filter():
             client.stop_execution(executionArn=execution["executionArn"])
 
     resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
-    resp["executions"].should.have.length_of(20)
+    assert len(resp["executions"]) == 20
 
     resp = client.list_executions(
         stateMachineArn=sm["stateMachineArn"], statusFilter="ABORTED"
     )
-    resp["executions"].should.have.length_of(5)
-    all([e["status"] == "ABORTED" for e in resp["executions"]]).should.be.true
+    assert len(resp["executions"]) == 5
+    assert all(e["status"] == "ABORTED" for e in resp["executions"]) is True
 
 
 @mock_stepfunctions
@@ -628,15 +625,15 @@ def test_state_machine_list_executions_with_pagination():
         client.start_execution(stateMachineArn=sm["stateMachineArn"])
 
     resp = client.list_executions(stateMachineArn=sm["stateMachineArn"])
-    resp.should_not.have.key("nextToken")
-    resp["executions"].should.have.length_of(100)
+    assert "nextToken" not in resp
+    assert len(resp["executions"]) == 100
 
     paginator = client.get_paginator("list_executions")
     page_iterator = paginator.paginate(
         stateMachineArn=sm["stateMachineArn"], maxResults=25
     )
     for page in page_iterator:
-        page["executions"].should.have.length_of(25)
+        assert len(page["executions"]) == 25
 
     with pytest.raises(ClientError) as ex:
         resp = client.list_executions(
@@ -648,16 +645,14 @@ def test_state_machine_list_executions_with_pagination():
             statusFilter="ABORTED",
             nextToken=resp["nextToken"],
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
-    ex.value.response["Error"]["Message"].should.contain(
-        "Input inconsistent with page token"
-    )
+    assert ex.value.response["Error"]["Code"] == "InvalidToken"
+    assert "Input inconsistent with page token" in ex.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as ex:
         client.list_executions(
             stateMachineArn=sm["stateMachineArn"], nextToken="invalid"
         )
-    ex.value.response["Error"]["Code"].should.equal("InvalidToken")
+    assert ex.value.response["Error"]["Code"] == "InvalidToken"
 
 
 @mock_stepfunctions
@@ -670,8 +665,8 @@ def test_state_machine_list_executions_when_none_exist():
     )
     executions = client.list_executions(stateMachineArn=sm["stateMachineArn"])
     #
-    executions["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    executions["executions"].should.have.length_of(0)
+    assert executions["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(executions["executions"]) == 0
 
 
 @mock_stepfunctions
@@ -685,14 +680,14 @@ def test_state_machine_describe_execution_with_no_input():
     execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
     description = client.describe_execution(executionArn=execution["executionArn"])
     #
-    description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    description["executionArn"].should.equal(execution["executionArn"])
-    description["input"].should.equal("{}")
-    description["name"].should.match("[-0-9a-z]+")
-    description["startDate"].should.equal(execution["startDate"])
-    description["stateMachineArn"].should.equal(sm["stateMachineArn"])
-    description["status"].should.equal("RUNNING")
-    description.shouldnt.have("stopDate")
+    assert description["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert description["executionArn"] == execution["executionArn"]
+    assert description["input"] == "{}"
+    assert re.match("[-0-9a-z]+", description["name"])
+    assert description["startDate"] == execution["startDate"]
+    assert description["stateMachineArn"] == sm["stateMachineArn"]
+    assert description["status"] == "RUNNING"
+    assert "stopDate" not in description
 
 
 @mock_stepfunctions
@@ -709,14 +704,14 @@ def test_state_machine_describe_execution_with_custom_input():
     )
     description = client.describe_execution(executionArn=execution["executionArn"])
     #
-    description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    description["executionArn"].should.equal(execution["executionArn"])
-    description["input"].should.equal(execution_input)
-    description["name"].should.match("[-a-z0-9]+")
-    description["startDate"].should.equal(execution["startDate"])
-    description["stateMachineArn"].should.equal(sm["stateMachineArn"])
-    description["status"].should.equal("RUNNING")
-    description.shouldnt.have("stopDate")
+    assert description["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert description["executionArn"] == execution["executionArn"]
+    assert description["input"] == execution_input
+    assert re.match("[-a-z0-9]+", description["name"])
+    assert description["startDate"] == execution["startDate"]
+    assert description["stateMachineArn"] == sm["stateMachineArn"]
+    assert description["status"] == "RUNNING"
+    assert "stopDate" not in description
 
 
 @mock_stepfunctions
@@ -741,11 +736,11 @@ def test_state_machine_can_be_described_by_execution():
     desc = client.describe_state_machine_for_execution(
         executionArn=execution["executionArn"]
     )
-    desc["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    desc["definition"].should.equal(str(simple_definition))
-    desc["name"].should.equal("name")
-    desc["roleArn"].should.equal(_get_default_role())
-    desc["stateMachineArn"].should.equal(sm["stateMachineArn"])
+    assert desc["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert desc["definition"] == str(simple_definition)
+    assert desc["name"] == "name"
+    assert desc["roleArn"] == _get_default_role()
+    assert desc["stateMachineArn"] == sm["stateMachineArn"]
 
 
 @mock_stepfunctions
@@ -769,8 +764,8 @@ def test_state_machine_stop_execution():
     start = client.start_execution(stateMachineArn=sm["stateMachineArn"])
     stop = client.stop_execution(executionArn=start["executionArn"])
     #
-    stop["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    stop["stopDate"].should.be.a(datetime)
+    assert stop["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert isinstance(stop["stopDate"], datetime)
 
 
 @mock_stepfunctions
@@ -787,8 +782,8 @@ def test_state_machine_stop_raises_error_when_unknown_execution():
             f"arn:aws:states:{region}:{ACCOUNT_ID}:execution:test-state-machine:unknown"
         )
         client.stop_execution(executionArn=unknown_execution)
-    ex.value.response["Error"]["Code"].should.equal("ExecutionDoesNotExist")
-    ex.value.response["Error"]["Message"].should.contain("Execution Does Not Exist:")
+    assert ex.value.response["Error"]["Code"] == "ExecutionDoesNotExist"
+    assert "Execution Does Not Exist:" in ex.value.response["Error"]["Message"]
 
 
 @mock_stepfunctions
@@ -802,9 +797,9 @@ def test_state_machine_describe_execution_after_stoppage():
     client.stop_execution(executionArn=execution["executionArn"])
     description = client.describe_execution(executionArn=execution["executionArn"])
     #
-    description["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    description["status"].should.equal("ABORTED")
-    description["stopDate"].should.be.a(datetime)
+    assert description["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert description["status"] == "ABORTED"
+    assert isinstance(description["stopDate"], datetime)
 
 
 @mock_stepfunctions
@@ -821,8 +816,8 @@ def test_state_machine_get_execution_history_throws_error_with_unknown_execution
             f"arn:aws:states:{region}:{ACCOUNT_ID}:execution:test-state-machine:unknown"
         )
         client.get_execution_history(executionArn=unknown_execution)
-    ex.value.response["Error"]["Code"].should.equal("ExecutionDoesNotExist")
-    ex.value.response["Error"]["Message"].should.contain("Execution Does Not Exist:")
+    assert ex.value.response["Error"]["Code"] == "ExecutionDoesNotExist"
+    assert "Execution Does Not Exist:" in ex.value.response["Error"]["Message"]
 
 
 @mock_stepfunctions
@@ -884,8 +879,8 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
     execution_history = client.get_execution_history(
         executionArn=execution["executionArn"]
     )
-    execution_history["events"].should.have.length_of(4)
-    execution_history["events"].should.equal(expected_events)
+    assert len(execution_history["events"]) == 4
+    assert execution_history["events"] == expected_events
 
 
 @mock.patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
@@ -896,7 +891,7 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
 def test_stepfunction_regions(test_region):
     client = boto3.client("stepfunctions", region_name=test_region)
     resp = client.list_state_machines()
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_stepfunctions
@@ -950,8 +945,8 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
     execution_history = client.get_execution_history(
         executionArn=execution["executionArn"]
     )
-    execution_history["events"].should.have.length_of(3)
-    execution_history["events"].should.equal(expected_events)
+    assert len(execution_history["events"]) == 3
+    assert execution_history["events"] == expected_events
 
     exc = client.describe_execution(executionArn=execution["executionArn"])
     assert exc["status"] == "FAILED"
@@ -976,9 +971,9 @@ def test_state_machine_name_limits():
 
     # Verify
     assert exc.value.response["Error"]["Code"] == "ValidationException"
-    assert (
-        exc.value.response["Error"]["Message"]
-        == f"1 validation error detected: Value '{long_name}' at 'name' failed to satisfy constraint: "
+    assert exc.value.response["Error"]["Message"] == (
+        f"1 validation error detected: Value '{long_name}' at 'name' "
+        "failed to satisfy constraint: "
         "Member must have length less than or equal to 80"
     )
 
@@ -1001,9 +996,9 @@ def test_state_machine_execution_name_limits():
 
     # Verify
     assert exc.value.response["Error"]["Code"] == "ValidationException"
-    assert (
-        exc.value.response["Error"]["Message"]
-        == f"1 validation error detected: Value '{long_name}' at 'name' failed to satisfy constraint: "
+    assert exc.value.response["Error"]["Message"] == (
+        f"1 validation error detected: Value '{long_name}' at 'name' "
+        "failed to satisfy constraint: "
         "Member must have length less than or equal to 80"
     )
 
