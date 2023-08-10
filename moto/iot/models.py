@@ -8,7 +8,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple, Optional, Pattern, Iterable
+from typing import Any, Dict, List, Tuple, Optional, Pattern, Iterable, TYPE_CHECKING
 
 from .utils import PAGINATION_MODEL
 
@@ -26,6 +26,9 @@ from .exceptions import (
     VersionsLimitExceededException,
     ThingStillAttached,
 )
+
+if TYPE_CHECKING:
+    from moto.iotdata.models import FakeShadow
 
 
 class FakeThing(BaseModel):
@@ -46,7 +49,7 @@ class FakeThing(BaseModel):
         # TODO: we need to handle "version"?
 
         # for iot-data
-        self.thing_shadow: Any = None
+        self.thing_shadows: Dict[Optional[str], FakeShadow] = {}
 
     def matches(self, query_string: str) -> bool:
         if query_string == "*":
