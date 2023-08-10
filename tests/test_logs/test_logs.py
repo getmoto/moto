@@ -1,6 +1,5 @@
 import json
 import time
-import sure  # noqa # pylint: disable=unused-import
 from datetime import timedelta, datetime
 from uuid import UUID
 
@@ -136,8 +135,8 @@ def test_put_metric_filters_validation():
         with pytest.raises(ClientError) as exc:
             conn.put_metric_filter(**test_case["input"])
         response = exc.value.response
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-        response["Error"]["Code"].should.equal("InvalidParameterException")
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert response["Error"]["Code"] == "InvalidParameterException"
 
 
 @mock_logs
@@ -164,8 +163,8 @@ def test_describe_metric_filters_validation():
         with pytest.raises(ClientError) as exc:
             conn.describe_metric_filters(**test_case["input"])
         response = exc.value.response
-        response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-        response["Error"]["Code"].should.equal("InvalidParameterException")
+        assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert response["Error"]["Code"] == "InvalidParameterException"
 
 
 @mock_logs
@@ -216,7 +215,7 @@ def test_delete_metric_filter():
     response = client.describe_metric_filters(
         filterNamePrefix="filter", logGroupName="logGroupName2"
     )
-    response.should.have.key("metricFilters").equals([])
+    assert response["metricFilters"] == []
 
 
 @mock_logs
@@ -235,12 +234,13 @@ def test_delete_metric_filter_invalid_filter_name(filter_name, failing_constrain
     with pytest.raises(ClientError) as exc:
         conn.delete_metric_filter(filterName=filter_name, logGroupName="valid")
     response = exc.value.response
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    response["Error"]["Code"].should.equal("InvalidParameterException")
-    response["Error"]["Message"].should.contain(
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert response["Error"]["Code"] == "InvalidParameterException"
+    assert (
         f"Value '{filter_name}' at 'filterName' failed to satisfy constraint"
+        in response["Error"]["Message"]
     )
-    response["Error"]["Message"].should.contain(failing_constraint)
+    assert failing_constraint in response["Error"]["Message"]
 
 
 @mock_logs
@@ -261,12 +261,13 @@ def test_delete_metric_filter_invalid_log_group_name(
     with pytest.raises(ClientError) as exc:
         conn.delete_metric_filter(filterName="valid", logGroupName=log_group_name)
     response = exc.value.response
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    response["Error"]["Code"].should.equal("InvalidParameterException")
-    response["Error"]["Message"].should.contain(
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert response["Error"]["Code"] == "InvalidParameterException"
+    assert (
         f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
+        in response["Error"]["Message"]
     )
-    response["Error"]["Message"].should.contain(failing_constraint)
+    assert failing_constraint in response["Error"]["Message"]
 
 
 @mock_logs
@@ -444,14 +445,14 @@ def test_create_log_group(kms_key_id):
     response = conn.describe_log_groups()
 
     # Then
-    response["logGroups"].should.have.length_of(1)
+    assert len(response["logGroups"]) == 1
 
     log_group = response["logGroups"][0]
-    log_group.should_not.have.key("retentionInDays")
+    assert "retentionInDays" not in log_group
 
     if kms_key_id:
-        log_group.should.have.key("kmsKeyId")
-        log_group["kmsKeyId"].should.equal(kms_key_id)
+        assert "kmsKeyId" in log_group
+        assert log_group["kmsKeyId"] == kms_key_id
 
 
 @mock_logs
@@ -482,8 +483,8 @@ def test_exceptions():
             logEvents=[{"timestamp": 0, "message": "line"}],
         )
     error = ex.value.response["Error"]
-    error["Code"].should.equal("ResourceNotFoundException")
-    error["Message"].should.equal("The specified log stream does not exist.")
+    assert error["Code"] == "ResourceNotFoundException"
+    assert error["Message"] == "The specified log stream does not exist."
 
 
 @mock_logs
@@ -507,7 +508,7 @@ def test_put_logs():
     next_sequence_token = put_results["nextSequenceToken"]
     assert isinstance(next_sequence_token, str)
     assert len(next_sequence_token) == 56
-    events.should.have.length_of(2)
+    assert len(events) == 2
 
 
 @mock_logs
@@ -534,9 +535,10 @@ def test_put_log_events_in_wrong_order():
             sequenceToken="49599396607703531511419593985621160512859251095480828066",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "Log events in a single PutLogEvents request must be in chronological order."
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == "Log events in a single PutLogEvents request must be in chronological order."
     )
 
 
@@ -556,9 +558,7 @@ def test_put_log_events_in_the_past(days_ago):
     resp = conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
     )
-    resp.should.have.key("rejectedLogEventsInfo").should.equal(
-        {"tooOldLogEventEndIndex": 0}
-    )
+    assert resp["rejectedLogEventsInfo"] == {"tooOldLogEventEndIndex": 0}
 
 
 @mock_logs
@@ -577,24 +577,22 @@ def test_put_log_events_in_the_future(minutes):
     resp = conn.put_log_events(
         logGroupName=log_group_name, logStreamName=log_stream_name, logEvents=messages
     )
-    resp.should.have.key("rejectedLogEventsInfo").should.equal(
-        {"tooNewLogEventStartIndex": 0}
-    )
+    assert resp["rejectedLogEventsInfo"] == {"tooNewLogEventStartIndex": 0}
 
 
 @mock_logs
 def test_put_retention_policy():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
-    response = conn.create_log_group(logGroupName=log_group_name)
+    conn.create_log_group(logGroupName=log_group_name)
 
-    response = conn.put_retention_policy(logGroupName=log_group_name, retentionInDays=7)
+    conn.put_retention_policy(logGroupName=log_group_name, retentionInDays=7)
 
     response = conn.describe_log_groups(logGroupNamePrefix=log_group_name)
     assert len(response["logGroups"]) == 1
     assert response["logGroups"][0].get("retentionInDays") == 7
 
-    response = conn.delete_log_group(logGroupName=log_group_name)
+    conn.delete_log_group(logGroupName=log_group_name)
 
 
 @mock_logs
@@ -693,10 +691,10 @@ def test_put_resource_policy_too_many():
             policyName="too_many", policyDocument=json.dumps(json_policy_doc)
         )
     exc_value = exc.value
-    exc_value.operation_name.should.equal("PutResourcePolicy")
-    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    exc_value.response["Error"]["Code"].should.equal("LimitExceededException")
-    exc_value.response["Error"]["Message"].should.contain("Resource limit exceeded.")
+    assert exc_value.operation_name == "PutResourcePolicy"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "LimitExceededException"
+    assert "Resource limit exceeded." in exc_value.response["Error"]["Message"]
 
     # put_resource_policy on already created policy, shouldnt throw any error
     client.put_resource_policy(
@@ -728,11 +726,12 @@ def test_delete_resource_policy():
     with pytest.raises(ClientError) as exc:
         client.delete_resource_policy(policyName="non-existent")
     exc_value = exc.value
-    exc_value.operation_name.should.equal("DeleteResourcePolicy")
-    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    exc_value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    exc_value.response["Error"]["Message"].should.contain(
+    assert exc_value.operation_name == "DeleteResourcePolicy"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
         "Policy with name [non-existent] does not exist"
+        in exc_value.response["Error"]["Message"]
     )
 
 
@@ -784,15 +783,17 @@ def test_get_log_events():
         logGroupName=log_group_name, logStreamName=log_stream_name, limit=10
     )
 
-    resp["events"].should.have.length_of(10)
+    assert len(resp["events"]) == 10
     for idx, (x, y) in enumerate(data[10:]):
-        resp["events"][idx]["timestamp"].should.equal(x)
-        resp["events"][idx]["message"].should.equal(y)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000019"
+        assert resp["events"][idx]["timestamp"] == x
+        assert resp["events"][idx]["message"] == y
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000019"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000010"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000010"
     )
 
     resp = client.get_log_events(
@@ -802,15 +803,17 @@ def test_get_log_events():
         limit=20,
     )
 
-    resp["events"].should.have.length_of(10)
+    assert len(resp["events"]) == 10
     for idx, (x, y) in enumerate(data[0:10]):
-        resp["events"][idx]["timestamp"].should.equal(x)
-        resp["events"][idx]["message"].should.equal(y)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000009"
+        assert resp["events"][idx]["timestamp"] == x
+        assert resp["events"][idx]["message"] == y
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000009"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000000"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000000"
     )
 
     resp = client.get_log_events(
@@ -820,12 +823,14 @@ def test_get_log_events():
         limit=10,
     )
 
-    resp["events"].should.have.length_of(0)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000000"
+    assert len(resp["events"]) == 0
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000000"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000000"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000000"
     )
 
     resp = client.get_log_events(
@@ -835,15 +840,17 @@ def test_get_log_events():
         limit=1,
     )
 
-    resp["events"].should.have.length_of(1)
+    assert len(resp["events"]) == 1
     x, y = data[1]
-    resp["events"][0]["timestamp"].should.equal(x)
-    resp["events"][0]["message"].should.equal(y)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000001"
+    assert resp["events"][0]["timestamp"] == x
+    assert resp["events"][0]["message"] == y
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000001"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000001"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000001"
     )
 
 
@@ -872,15 +879,17 @@ def test_get_log_events_with_start_from_head():
         startFromHead=True,  # this parameter is only relevant without the usage of nextToken
     )
 
-    resp["events"].should.have.length_of(10)
+    assert len(resp["events"]) == 10
     for idx, (x, y) in enumerate(data[0:10]):
-        resp["events"][idx]["timestamp"].should.equal(x)
-        resp["events"][idx]["message"].should.equal(y)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000009"
+        assert resp["events"][idx]["timestamp"] == x
+        assert resp["events"][idx]["message"] == y
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000009"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000000"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000000"
     )
 
     resp = client.get_log_events(
@@ -890,15 +899,17 @@ def test_get_log_events_with_start_from_head():
         limit=20,
     )
 
-    resp["events"].should.have.length_of(10)
+    assert len(resp["events"]) == 10
     for idx, (x, y) in enumerate(data[10:]):
-        resp["events"][idx]["timestamp"].should.equal(x)
-        resp["events"][idx]["message"].should.equal(y)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000019"
+        assert resp["events"][idx]["timestamp"] == x
+        assert resp["events"][idx]["message"] == y
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000019"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000010"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000010"
     )
 
     resp = client.get_log_events(
@@ -908,12 +919,14 @@ def test_get_log_events_with_start_from_head():
         limit=10,
     )
 
-    resp["events"].should.have.length_of(0)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000019"
+    assert len(resp["events"]) == 0
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000019"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000019"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000019"
     )
 
     resp = client.get_log_events(
@@ -923,15 +936,17 @@ def test_get_log_events_with_start_from_head():
         limit=1,
     )
 
-    resp["events"].should.have.length_of(1)
+    assert len(resp["events"]) == 1
     x, y = data[18]
-    resp["events"][0]["timestamp"].should.equal(x)
-    resp["events"][0]["message"].should.equal(y)
-    resp["nextForwardToken"].should.equal(
-        "f/00000000000000000000000000000000000000000000000000000018"
+    assert resp["events"][0]["timestamp"] == x
+    assert resp["events"][0]["message"] == y
+    assert (
+        resp["nextForwardToken"]
+        == "f/00000000000000000000000000000000000000000000000000000018"
     )
-    resp["nextBackwardToken"].should.equal(
-        "b/00000000000000000000000000000000000000000000000000000018"
+    assert (
+        resp["nextBackwardToken"]
+        == "b/00000000000000000000000000000000000000000000000000000018"
     )
 
 
@@ -950,11 +965,11 @@ def test_get_log_events_errors():
             nextToken="n/00000000000000000000000000000000000000000000000000000000",
         )
     exc_value = exc.value
-    exc_value.operation_name.should.equal("GetLogEvents")
-    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    exc_value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    exc_value.response["Error"]["Message"].should.contain(
-        "The specified nextToken is invalid."
+    assert exc_value.operation_name == "GetLogEvents"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        "The specified nextToken is invalid." in exc_value.response["Error"]["Message"]
     )
 
     with pytest.raises(ClientError) as exc:
@@ -964,11 +979,11 @@ def test_get_log_events_errors():
             nextToken="not-existing-token",
         )
     exc_value = exc.value
-    exc_value.operation_name.should.equal("GetLogEvents")
-    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    exc_value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    exc_value.response["Error"]["Message"].should.contain(
-        "The specified nextToken is invalid."
+    assert exc_value.operation_name == "GetLogEvents"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert exc_value.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        "The specified nextToken is invalid." in exc_value.response["Error"]["Message"]
     )
 
 
@@ -1049,7 +1064,7 @@ def test_describe_subscription_filters():
     response = client.describe_subscription_filters(logGroupName=log_group_name)
 
     # then
-    response["subscriptionFilters"].should.have.length_of(0)
+    assert len(response["subscriptionFilters"]) == 0
 
 
 @mock_logs
@@ -1063,11 +1078,12 @@ def test_describe_subscription_filters_errors():
 
     # then
     exc_value = exc.value
-    exc_value.operation_name.should.equal("DescribeSubscriptionFilters")
-    exc_value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    exc_value.response["Error"]["Message"].should.equal(
-        "The specified log group does not exist"
+    assert exc_value.operation_name == "DescribeSubscriptionFilters"
+    assert exc_value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "ResourceNotFoundException" in exc_value.response["Error"]["Code"]
+    assert (
+        exc_value.response["Error"]["Message"]
+        == "The specified log group does not exist"
     )
 
 
@@ -1086,25 +1102,25 @@ def test_describe_log_groups_paging():
         client.create_log_group(logGroupName=name)
 
     resp = client.describe_log_groups()
-    resp["logGroups"].should.have.length_of(4)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logGroups"]) == 4
+    assert "nextToken" not in resp
 
     resp = client.describe_log_groups(limit=2)
-    resp["logGroups"].should.have.length_of(2)
-    resp.should.have.key("nextToken")
+    assert len(resp["logGroups"]) == 2
+    assert "nextToken" in resp
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"], limit=1)
-    resp["logGroups"].should.have.length_of(1)
-    resp.should.have.key("nextToken")
+    assert len(resp["logGroups"]) == 1
+    assert "nextToken" in resp
 
     resp = client.describe_log_groups(nextToken=resp["nextToken"])
-    resp["logGroups"].should.have.length_of(1)
-    resp["logGroups"][0]["logGroupName"].should.equal("/aws/lambda/lowercase-dev")
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logGroups"]) == 1
+    assert resp["logGroups"][0]["logGroupName"] == "/aws/lambda/lowercase-dev"
+    assert "nextToken" not in resp
 
     resp = client.describe_log_groups(nextToken="invalid-token")
-    resp["logGroups"].should.have.length_of(0)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logGroups"]) == 0
+    assert "nextToken" not in resp
 
 
 @mock_logs
@@ -1120,36 +1136,43 @@ def test_describe_log_streams_simple_paging():
 
     # Get stream 1-10
     resp = client.describe_log_streams(logGroupName=group_name)
-    resp["logStreams"].should.have.length_of(10)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logStreams"]) == 10
+    assert "nextToken" not in resp
 
     # Get stream 1-4
     resp = client.describe_log_streams(logGroupName=group_name, limit=4)
-    resp["logStreams"].should.have.length_of(4)
-    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
-        ["stream0", "stream1", "stream2", "stream3"]
-    )
-    resp.should.have.key("nextToken")
+    assert len(resp["logStreams"]) == 4
+    assert [stream["logStreamName"] for stream in resp["logStreams"]] == [
+        "stream0",
+        "stream1",
+        "stream2",
+        "stream3",
+    ]
+    assert "nextToken" in resp
 
     # Get stream 4-8
     resp = client.describe_log_streams(
         logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
     )
-    resp["logStreams"].should.have.length_of(4)
-    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
-        ["stream4", "stream5", "stream6", "stream7"]
-    )
-    resp.should.have.key("nextToken")
+    assert len(resp["logStreams"]) == 4
+    assert [stream["logStreamName"] for stream in resp["logStreams"]] == [
+        "stream4",
+        "stream5",
+        "stream6",
+        "stream7",
+    ]
+    assert "nextToken" in resp
 
     # Get stream 8-10
     resp = client.describe_log_streams(
         logGroupName=group_name, limit=4, nextToken=str(resp["nextToken"])
     )
-    resp["logStreams"].should.have.length_of(2)
-    [stream["logStreamName"] for stream in resp["logStreams"]].should.equal(
-        ["stream8", "stream9"]
-    )
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logStreams"]) == 2
+    assert [stream["logStreamName"] for stream in resp["logStreams"]] == [
+        "stream8",
+        "stream9",
+    ]
+    assert "nextToken" not in resp
 
 
 @mock_logs
@@ -1169,44 +1192,46 @@ def test_describe_log_streams_paging():
         client.create_log_stream(logGroupName=log_group_name, logStreamName=name)
 
     resp = client.describe_log_streams(logGroupName=log_group_name)
-    resp["logStreams"].should.have.length_of(4)
-    resp["logStreams"][0]["arn"].should.contain(log_group_name)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logStreams"]) == 4
+    assert log_group_name in resp["logStreams"][0]["arn"]
+    assert "nextToken" not in resp
 
     resp = client.describe_log_streams(logGroupName=log_group_name, limit=2)
-    resp["logStreams"].should.have.length_of(2)
-    resp["logStreams"][0]["arn"].should.contain(log_group_name)
-    resp["nextToken"].should.equal(
-        f"{log_group_name}@{resp['logStreams'][1]['logStreamName']}"
+    assert len(resp["logStreams"]) == 2
+    assert log_group_name in resp["logStreams"][0]["arn"]
+    assert (
+        resp["nextToken"]
+        == f"{log_group_name}@{resp['logStreams'][1]['logStreamName']}"
     )
 
     resp = client.describe_log_streams(
         logGroupName=log_group_name, nextToken=resp["nextToken"], limit=1
     )
-    resp["logStreams"].should.have.length_of(1)
-    resp["logStreams"][0]["arn"].should.contain(log_group_name)
-    resp["nextToken"].should.equal(
-        f"{log_group_name}@{resp['logStreams'][0]['logStreamName']}"
+    assert len(resp["logStreams"]) == 1
+    assert log_group_name in resp["logStreams"][0]["arn"]
+    assert (
+        resp["nextToken"]
+        == f"{log_group_name}@{resp['logStreams'][0]['logStreamName']}"
     )
 
     resp = client.describe_log_streams(
         logGroupName=log_group_name, nextToken=resp["nextToken"]
     )
-    resp["logStreams"].should.have.length_of(1)
-    resp["logStreams"][0]["arn"].should.contain(log_group_name)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logStreams"]) == 1
+    assert log_group_name in resp["logStreams"][0]["arn"]
+    assert "nextToken" not in resp
 
     resp = client.describe_log_streams(
         logGroupName=log_group_name, nextToken="invalid-token"
     )
-    resp["logStreams"].should.have.length_of(0)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logStreams"]) == 0
+    assert "nextToken" not in resp
 
     resp = client.describe_log_streams(
         logGroupName=log_group_name, nextToken="invalid@token"
     )
-    resp["logStreams"].should.have.length_of(0)
-    resp.should_not.have.key("nextToken")
+    assert len(resp["logStreams"]) == 0
+    assert "nextToken" not in resp
 
 
 @mock_logs
@@ -1235,9 +1260,10 @@ def test_start_query():
 
     # then
     exc_value = exc.value
-    exc_value.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    exc_value.response["Error"]["Message"].should.equal(
-        "The specified log group does not exist"
+    assert "ResourceNotFoundException" in exc_value.response["Error"]["Code"]
+    assert (
+        exc_value.response["Error"]["Message"]
+        == "The specified log group does not exist"
     )
 
 
@@ -1257,12 +1283,13 @@ def test_get_too_many_log_events(nr_of_events):
             limit=nr_of_events,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.contain("1 validation error detected")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidParameterException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
         f"Value '{nr_of_events}' at 'limit' failed to satisfy constraint"
+        in err["Message"]
     )
-    err["Message"].should.contain("Member must have value less than or equal to 10000")
+    assert "Member must have value less than or equal to 10000" in err["Message"]
 
 
 @pytest.mark.parametrize("nr_of_events", [10001, 1000000])
@@ -1281,12 +1308,13 @@ def test_filter_too_many_log_events(nr_of_events):
             limit=nr_of_events,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.contain("1 validation error detected")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidParameterException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
         f"Value '{nr_of_events}' at 'limit' failed to satisfy constraint"
+        in err["Message"]
     )
-    err["Message"].should.contain("Member must have value less than or equal to 10000")
+    assert "Member must have value less than or equal to 10000" in err["Message"]
 
 
 @pytest.mark.parametrize("nr_of_groups", [51, 100])
@@ -1296,12 +1324,13 @@ def test_describe_too_many_log_groups(nr_of_groups):
     with pytest.raises(ClientError) as ex:
         client.describe_log_groups(limit=nr_of_groups)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.contain("1 validation error detected")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidParameterException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
         f"Value '{nr_of_groups}' at 'limit' failed to satisfy constraint"
+        in err["Message"]
     )
-    err["Message"].should.contain("Member must have value less than or equal to 50")
+    assert "Member must have value less than or equal to 50" in err["Message"]
 
 
 @pytest.mark.parametrize("nr_of_streams", [51, 100])
@@ -1313,12 +1342,13 @@ def test_describe_too_many_log_streams(nr_of_streams):
     with pytest.raises(ClientError) as ex:
         client.describe_log_streams(logGroupName=log_group_name, limit=nr_of_streams)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.contain("1 validation error detected")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidParameterException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
         f"Value '{nr_of_streams}' at 'limit' failed to satisfy constraint"
+        in err["Message"]
     )
-    err["Message"].should.contain("Member must have value less than or equal to 50")
+    assert "Member must have value less than or equal to 50" in err["Message"]
 
 
 @pytest.mark.parametrize("length", [513, 1000])
@@ -1329,12 +1359,13 @@ def test_create_log_group_invalid_name_length(length):
     with pytest.raises(ClientError) as ex:
         client.create_log_group(logGroupName=log_group_name)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.contain("1 validation error detected")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidParameterException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
         f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
+        in err["Message"]
     )
-    err["Message"].should.contain("Member must have length less than or equal to 512")
+    assert "Member must have length less than or equal to 512" in err["Message"]
 
 
 @pytest.mark.parametrize("invalid_orderby", ["", "sth", "LogStreamname"])
@@ -1348,13 +1379,15 @@ def test_describe_log_streams_invalid_order_by(invalid_orderby):
             logGroupName=log_group_name, orderBy=invalid_orderby
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.contain("1 validation error detected")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidParameterException"
+    assert "1 validation error detected" in err["Message"]
+    assert (
         f"Value '{invalid_orderby}' at 'orderBy' failed to satisfy constraint"
+        in err["Message"]
     )
-    err["Message"].should.contain(
+    assert (
         "Member must satisfy enum value set: [LogStreamName, LastEventTime]"
+        in err["Message"]
     )
 
 
@@ -1373,10 +1406,8 @@ def test_describe_log_streams_no_prefix():
             logStreamNamePrefix="sth",
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterException")
-    err["Message"].should.equal(
-        "Cannot order by LastEventTime with a logStreamNamePrefix."
-    )
+    assert err["Code"] == "InvalidParameterException"
+    assert err["Message"] == "Cannot order by LastEventTime with a logStreamNamePrefix."
 
 
 @mock_s3
