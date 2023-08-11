@@ -766,3 +766,68 @@ def test_s3_invalid_token_with_temporary_credentials():
     assert err["Code"] == "InvalidToken"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert err["Message"] == "The provided token is malformed or otherwise invalid."
+
+
+@set_initial_no_auth_action_count(3)
+@mock_s3
+@mock_iam
+def test_allow_bucket_access_using_resource_arn() -> None:
+    user_name = "test-user"
+    policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": ["s3:*"],
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3:::my_bucket",
+                "Sid": "BucketLevelGrants",
+            },
+        ],
+    }
+    access_key = create_user_with_access_key_and_inline_policy(user_name, policy_doc)
+
+    s3_client = boto3.client(
+        "s3",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+
+    s3_client.create_bucket(Bucket="my_bucket")
+    with pytest.raises(ClientError):
+        s3_client.create_bucket(Bucket="my_bucket2")
+
+    s3_client.head_bucket(Bucket="my_bucket")
+    with pytest.raises(ClientError):
+        s3_client.head_bucket(Bucket="my_bucket2")
+
+
+@set_initial_no_auth_action_count(3)
+@mock_s3
+@mock_iam
+def test_allow_key_access_using_resource_arn() -> None:
+    user_name = "test-user"
+    policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": ["s3:*"],
+                "Effect": "Allow",
+                "Resource": ["arn:aws:s3:::my_bucket", "arn:aws:s3:::*/keyname"],
+                "Sid": "KeyLevelGrants",
+            },
+        ],
+    }
+    access_key = create_user_with_access_key_and_inline_policy(user_name, policy_doc)
+
+    s3_client = boto3.client(
+        "s3",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+
+    s3_client.create_bucket(Bucket="my_bucket")
+    s3_client.put_object(Bucket="my_bucket", Key="keyname", Body=b"test")
+    with pytest.raises(ClientError):
+        s3_client.put_object(Bucket="my_bucket", Key="unknown", Body=b"test")
