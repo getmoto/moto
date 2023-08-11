@@ -93,6 +93,61 @@ def test_update():
     assert ex.value.response["Error"]["Message"] == "Version conflict"
 
 
+@mock_iot
+@mock_iotdata
+def test_create_named_shadows():
+    iot_client = boto3.client("iot", region_name="ap-northeast-1")
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+    thing_name = "my-thing"
+    iot_client.create_thing(thingName=thing_name)
+
+    # default shadow
+    default_payload = json.dumps({"state": {"desired": {"name": "default"}}})
+    res = client.update_thing_shadow(thingName=thing_name, payload=default_payload)
+    payload = json.loads(res["payload"].read())
+    assert payload["state"] == {"desired": {"name": "default"}}
+
+    # Create named shadows
+    for name in ["shadow1", "shadow2"]:
+        named_payload = json.dumps({"state": {"reported": {"name": name}}}).encode(
+            "utf-8"
+        )
+        client.update_thing_shadow(
+            thingName=thing_name, payload=named_payload, shadowName=name
+        )
+
+        res = client.get_thing_shadow(thingName=thing_name, shadowName=name)
+        payload = json.loads(res["payload"].read())
+        assert payload["state"]["reported"] == {"name": name}
+
+    # List named shadows
+    shadows = client.list_named_shadows_for_thing(thingName=thing_name)["results"]
+    assert len(shadows) == 2
+
+    for shadow in shadows:
+        shadow.pop("metadata")
+        shadow.pop("timestamp")
+        shadow.pop("version")
+
+    # Verify both named shadows are present
+    for name in ["shadow1", "shadow2"]:
+        assert {
+            "state": {"reported": {"name": name}, "delta": {"name": name}}
+        } in shadows
+
+    # Verify we can delete a named shadow
+    client.delete_thing_shadow(thingName=thing_name, shadowName="shadow2")
+
+    with pytest.raises(ClientError):
+        client.get_thing_shadow(thingName="shadow1")
+
+    # The default and other named shadow are still there
+    assert "payload" in client.get_thing_shadow(thingName=thing_name)
+    assert "payload" in client.get_thing_shadow(
+        thingName=thing_name, shadowName="shadow1"
+    )
+
+
 @mock_iotdata
 def test_publish():
     region_name = "ap-northeast-1"

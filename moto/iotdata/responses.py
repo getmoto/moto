@@ -26,20 +26,28 @@ class IoTDataPlaneResponse(BaseResponse):
 
     def update_thing_shadow(self) -> str:
         thing_name = self._get_param("thingName")
-        payload = self.body
+        shadow_name = self.querystring.get("name", [None])[0]
         payload = self.iotdata_backend.update_thing_shadow(
-            thing_name=thing_name, payload=payload
+            thing_name=thing_name,
+            payload=self.body,
+            shadow_name=shadow_name,
         )
         return json.dumps(payload.to_response_dict())
 
     def get_thing_shadow(self) -> str:
         thing_name = self._get_param("thingName")
-        payload = self.iotdata_backend.get_thing_shadow(thing_name=thing_name)
+        shadow_name = self.querystring.get("name", [None])[0]
+        payload = self.iotdata_backend.get_thing_shadow(
+            thing_name=thing_name, shadow_name=shadow_name
+        )
         return json.dumps(payload.to_dict())
 
     def delete_thing_shadow(self) -> str:
         thing_name = self._get_param("thingName")
-        payload = self.iotdata_backend.delete_thing_shadow(thing_name=thing_name)
+        shadow_name = self.querystring.get("name", [None])[0]
+        payload = self.iotdata_backend.delete_thing_shadow(
+            thing_name=thing_name, shadow_name=shadow_name
+        )
         return json.dumps(payload.to_dict())
 
     def publish(self) -> str:
@@ -49,3 +57,8 @@ class IoTDataPlaneResponse(BaseResponse):
         topic = unquote(topic) if "%" in topic else topic
         self.iotdata_backend.publish(topic=topic, payload=self.body)
         return json.dumps(dict())
+
+    def list_named_shadows_for_thing(self) -> str:
+        thing_name = self._get_param("thingName")
+        shadows = self.iotdata_backend.list_named_shadows_for_thing(thing_name)
+        return json.dumps({"results": [shadow.to_dict() for shadow in shadows]})
