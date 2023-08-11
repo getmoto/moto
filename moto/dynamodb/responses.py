@@ -351,6 +351,22 @@ class DynamoHandler(BaseResponse):
                     + dump_list(actual_attrs)
                 )
 
+    def _get_filter_expression(self) -> Optional[str]:
+        filter_expression = self.body.get("FilterExpression")
+        if filter_expression == "":
+            raise MockValidationException(
+                "Invalid FilterExpression: The expression can not be empty;"
+            )
+        return filter_expression
+
+    def _get_projection_expression(self) -> Optional[str]:
+        expression = self.body.get("ProjectionExpression")
+        if expression == "":
+            raise MockValidationException(
+                "Invalid ProjectionExpression: The expression can not be empty;"
+            )
+        return expression
+
     def delete_table(self) -> str:
         name = self.body["TableName"]
         table = self.dynamodb_backend.delete_table(name)
@@ -521,7 +537,7 @@ class DynamoHandler(BaseResponse):
                 f"empty string value. Key: {empty_keys[0]}"
             )
 
-        projection_expression = self.body.get("ProjectionExpression")
+        projection_expression = self._get_projection_expression()
         attributes_to_get = self.body.get("AttributesToGet")
         if projection_expression and attributes_to_get:
             raise MockValidationException(
@@ -631,9 +647,9 @@ class DynamoHandler(BaseResponse):
     def query(self) -> str:
         name = self.body["TableName"]
         key_condition_expression = self.body.get("KeyConditionExpression")
-        projection_expression = self.body.get("ProjectionExpression")
+        projection_expression = self._get_projection_expression()
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
-        filter_expression = self.body.get("FilterExpression")
+        filter_expression = self._get_filter_expression()
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
         projection_expression = self._adjust_projection_expression(
@@ -726,8 +742,8 @@ class DynamoHandler(BaseResponse):
         return dynamo_json_dump(result)
 
     def _adjust_projection_expression(
-        self, projection_expression: str, expr_attr_names: Dict[str, str]
-    ) -> str:
+        self, projection_expression: Optional[str], expr_attr_names: Dict[str, str]
+    ) -> Optional[str]:
         def _adjust(expression: str) -> str:
             return (
                 expr_attr_names[expression]
@@ -762,10 +778,10 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
-        filter_expression = self.body.get("FilterExpression")
+        filter_expression = self._get_filter_expression()
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
-        projection_expression = self.body.get("ProjectionExpression", "")
+        projection_expression = self._get_projection_expression()
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
