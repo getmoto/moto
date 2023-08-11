@@ -354,11 +354,35 @@ def test_search_provisioned_products():
 
 
 @mock_servicecatalog
+@mock_s3
 def test_terminate_provisioned_product():
-    client = boto3.client("servicecatalog", region_name="eu-west-1")
-    resp = client.terminate_provisioned_product()
+    region_name = "us-east-2"
+    product_name = "test product"
 
-    raise Exception("NotYetImplemented")
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+    provisioned_product = _create_provisioned_product(
+        region_name=region_name,
+        product_name=product_name,
+        provisioning_artifact_id=provisioning_artifact_id,
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.terminate_provisioned_product(
+        ProvisionedProductId=provisioned_product_id
+    )
+
+    rec = resp["RecordDetail"]
+    assert rec["RecordType"] == "TERMINATE_PROVISIONED_PRODUCT"
+    assert rec["ProductId"] == product_id
+    assert rec["ProvisionedProductId"] == provisioned_product_id
 
 
 @mock_servicecatalog

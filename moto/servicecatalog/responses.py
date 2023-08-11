@@ -146,7 +146,7 @@ class ServiceCatalogResponse(BaseResponse):
             retain_physical_resources=retain_physical_resources,
         )
         # TODO: adjust response
-        return json.dumps(dict(recordDetail=record_detail))
+        return json.dumps(dict(RecordDetail=record_detail))
 
     def search_products(self):
         accept_language = self._get_param("AcceptLanguage")

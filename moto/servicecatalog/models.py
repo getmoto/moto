@@ -785,7 +785,27 @@ class ServiceCatalogBackend(BaseBackend):
         retain_physical_resources,
     ):
         # implement here
-        record_detail = {}
+        provisioned_product = self.provisioned_products[provisioned_product_id]
+
+        record = Record(
+            region=self.region_name,
+            backend=self,
+            product_id=provisioned_product.product_id,
+            provisioned_product_id=provisioned_product.provisioned_product_id,
+            provisioned_product_name=provisioned_product.name,
+            path_id="",
+            provisioning_artifact_id=provisioned_product.provisioning_artifact_id,
+            record_type="TERMINATE_PROVISIONED_PRODUCT",
+        )
+
+        self.records[record.record_id] = record
+
+        provisioned_product.last_record_id = record.record_id
+        provisioned_product.last_successful_provisioning_record_id = record.record_id
+        provisioned_product.last_provisioning_record_id = record.record_id
+
+        record_detail = record.to_record_detail_json()
+
         return record_detail
 
     def get_tags(self, resource_id: str) -> Dict[str, str]:
