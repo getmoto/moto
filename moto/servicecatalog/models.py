@@ -553,9 +553,12 @@ class ServiceCatalogBackend(BaseBackend):
 
         # Get product by id or name
         product = None
-        for product_id, item in self.products.items():
-            if item.name == product_name:
-                product = item
+        if product_id:
+            product = self.products[product_id]
+        else:
+            for product_id, item in self.products.items():
+                if item.name == product_name:
+                    product = item
 
         # Get specified provisioning artifact from product by id or name
         # search product for specific provision_artifact_id or name
