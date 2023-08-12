@@ -1,13 +1,9 @@
+"""Test the different server responses."""
 import re
-import sure  # noqa # pylint: disable=unused-import
 import xmltodict
 
 import moto.server as server
 from tests import EXAMPLE_AMI_ID
-
-"""
-Test the different server responses
-"""
 
 
 def test_ec2_server_get():
