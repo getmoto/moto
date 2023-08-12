@@ -1,5 +1,4 @@
 from moto.swf.models import GenericType
-import sure  # noqa # pylint: disable=unused-import
 
 
 # Tests for GenericType (ActivityType, WorkflowType)
@@ -15,44 +14,40 @@ class FooType(GenericType):
 
 def test_type_short_dict_representation():
     _type = FooType("test-foo", "v1.0")
-    _type.to_short_dict().should.equal({"name": "test-foo", "version": "v1.0"})
+    assert _type.to_short_dict() == {"name": "test-foo", "version": "v1.0"}
 
 
 def test_type_medium_dict_representation():
     _type = FooType("test-foo", "v1.0")
-    _type.to_medium_dict()["fooType"].should.equal(_type.to_short_dict())
-    _type.to_medium_dict()["status"].should.equal("REGISTERED")
-    _type.to_medium_dict().should.contain("creationDate")
-    _type.to_medium_dict().should_not.contain("deprecationDate")
-    _type.to_medium_dict().should_not.contain("description")
+    assert _type.to_medium_dict()["fooType"] == _type.to_short_dict()
+    assert _type.to_medium_dict()["status"] == "REGISTERED"
+    assert "creationDate" in _type.to_medium_dict()
+    assert "deprecationDate" not in _type.to_medium_dict()
+    assert "description" not in _type.to_medium_dict()
 
     _type.description = "foo bar"
-    _type.to_medium_dict()["description"].should.equal("foo bar")
+    assert _type.to_medium_dict()["description"] == "foo bar"
 
     _type.status = "DEPRECATED"
-    _type.to_medium_dict().should.contain("deprecationDate")
+    assert "deprecationDate" in _type.to_medium_dict()
 
 
 def test_type_full_dict_representation():
     _type = FooType("test-foo", "v1.0")
-    _type.to_full_dict()["typeInfo"].should.equal(_type.to_medium_dict())
-    _type.to_full_dict()["configuration"].should.equal({})
+    assert _type.to_full_dict()["typeInfo"] == _type.to_medium_dict()
+    assert not _type.to_full_dict()["configuration"]
 
     _type.task_list = "foo"
-    _type.to_full_dict()["configuration"]["defaultTaskList"].should.equal(
-        {"name": "foo"}
-    )
+    assert _type.to_full_dict()["configuration"]["defaultTaskList"] == {"name": "foo"}
 
     _type.just_an_example_timeout = "60"
-    _type.to_full_dict()["configuration"]["justAnExampleTimeout"].should.equal("60")
+    assert _type.to_full_dict()["configuration"]["justAnExampleTimeout"] == "60"
 
     _type.non_whitelisted_property = "34"
     keys = _type.to_full_dict()["configuration"].keys()
-    sorted(keys).should.equal(["defaultTaskList", "justAnExampleTimeout"])
+    assert sorted(keys) == ["defaultTaskList", "justAnExampleTimeout"]
 
 
 def test_type_string_representation():
     _type = FooType("test-foo", "v1.0")
-    str(_type).should.equal(
-        "FooType(name: test-foo, version: v1.0, status: REGISTERED)"
-    )
+    assert str(_type) == "FooType(name: test-foo, version: v1.0, status: REGISTERED)"

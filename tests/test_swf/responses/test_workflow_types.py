@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import boto3
 import pytest
 
@@ -21,8 +20,8 @@ def test_register_workflow_type_boto3():
         domain="test-domain", registrationStatus="REGISTERED"
     )
     actype = types["typeInfos"][0]
-    actype["workflowType"]["name"].should.equal("test-workflow")
-    actype["workflowType"]["version"].should.equal("v1.0")
+    assert actype["workflowType"]["name"] == "test-workflow"
+    assert actype["workflowType"]["version"] == "v1.0"
 
 
 @mock_swf
@@ -39,8 +38,8 @@ def test_register_already_existing_workflow_type_boto3():
         client.register_workflow_type(
             domain="test-domain", name="test-workflow", version="v1.0"
         )
-    ex.value.response["Error"]["Code"].should.equal("TypeAlreadyExistsFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "TypeAlreadyExistsFault"
+    assert ex.value.response["Error"]["Message"] == (
         "WorkflowType=[name=test-workflow, version=v1.0]"
     )
 
@@ -69,7 +68,7 @@ def test_list_workflow_types_boto3():
         activity_type["workflowType"]["name"]
         for activity_type in all_workflow_types["typeInfos"]
     ]
-    names.should.equal(["a-test-workflow", "b-test-workflow", "c-test-workflow"])
+    assert names == ["a-test-workflow", "b-test-workflow", "c-test-workflow"]
 
 
 # ListWorkflowTypes endpoint
@@ -96,7 +95,7 @@ def test_list_workflow_types_reverse_order_boto3():
         activity_type["workflowType"]["name"]
         for activity_type in all_workflow_types["typeInfos"]
     ]
-    names.should.equal(["c-test-workflow", "b-test-workflow", "a-test-workflow"])
+    assert names == ["c-test-workflow", "b-test-workflow", "a-test-workflow"]
 
 
 # DeprecateWorkflowType endpoint
@@ -117,8 +116,8 @@ def test_deprecate_workflow_type_boto3():
         domain="test-domain", registrationStatus="DEPRECATED"
     )
     actype = actypes["typeInfos"][0]
-    actype["workflowType"]["name"].should.equal("test-workflow")
-    actype["workflowType"]["version"].should.equal("v1.0")
+    assert actype["workflowType"]["name"] == "test-workflow"
+    assert actype["workflowType"]["version"] == "v1.0"
 
 
 @mock_swf
@@ -139,8 +138,8 @@ def test_deprecate_already_deprecated_workflow_type_boto3():
             domain="test-domain",
             workflowType={"name": "test-workflow", "version": "v1.0"},
         )
-    ex.value.response["Error"]["Code"].should.equal("TypeDeprecatedFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "TypeDeprecatedFault"
+    assert ex.value.response["Error"]["Message"] == (
         "WorkflowType=[name=test-workflow, version=v1.0]"
     )
 
@@ -157,8 +156,8 @@ def test_deprecate_non_existent_workflow_type_boto3():
             domain="test-domain",
             workflowType={"name": "test-workflow", "version": "v1.0"},
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown type: WorkflowType=[name=test-workflow, version=v1.0]"
     )
 
@@ -183,7 +182,7 @@ def test_undeprecate_workflow_type():
     resp = client.describe_workflow_type(
         domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
     )
-    resp["typeInfo"]["status"].should.equal("REGISTERED")
+    assert resp["typeInfo"]["status"] == "REGISTERED"
 
 
 @mock_swf
@@ -202,9 +201,11 @@ def test_undeprecate_already_undeprecated_workflow_type():
         domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
     )
 
-    client.undeprecate_workflow_type.when.called_with(
-        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        client.undeprecate_workflow_type(
+            domain="test-domain",
+            workflowType={"name": "test-workflow", "version": "v1.0"},
+        )
 
 
 @mock_swf
@@ -217,9 +218,11 @@ def test_undeprecate_never_deprecated_workflow_type():
         domain="test-domain", name="test-workflow", version="v1.0"
     )
 
-    client.undeprecate_workflow_type.when.called_with(
-        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        client.undeprecate_workflow_type(
+            domain="test-domain",
+            workflowType={"name": "test-workflow", "version": "v1.0"},
+        )
 
 
 @mock_swf
@@ -229,9 +232,11 @@ def test_undeprecate_non_existent_workflow_type():
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
 
-    client.undeprecate_workflow_type.when.called_with(
-        domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        client.undeprecate_workflow_type(
+            domain="test-domain",
+            workflowType={"name": "test-workflow", "version": "v1.0"},
+        )
 
 
 # DescribeWorkflowType endpoint
@@ -258,16 +263,16 @@ def test_describe_workflow_type_full_boto3():
     resp = client.describe_workflow_type(
         domain="test-domain", workflowType={"name": "test-workflow", "version": "v1.0"}
     )
-    resp["typeInfo"]["workflowType"]["name"].should.equal("test-workflow")
-    resp["typeInfo"]["workflowType"]["version"].should.equal("v1.0")
-    resp["typeInfo"]["status"].should.equal("REGISTERED")
-    resp["typeInfo"]["description"].should.equal("Test workflow.")
-    resp["configuration"]["defaultTaskStartToCloseTimeout"].should.equal("20")
-    resp["configuration"]["defaultExecutionStartToCloseTimeout"].should.equal("60")
-    resp["configuration"]["defaultTaskList"]["name"].should.equal("foo")
-    resp["configuration"]["defaultTaskPriority"].should.equal("-2")
-    resp["configuration"]["defaultChildPolicy"].should.equal("ABANDON")
-    resp["configuration"]["defaultLambdaRole"].should.equal("arn:bar")
+    assert resp["typeInfo"]["workflowType"]["name"] == "test-workflow"
+    assert resp["typeInfo"]["workflowType"]["version"] == "v1.0"
+    assert resp["typeInfo"]["status"] == "REGISTERED"
+    assert resp["typeInfo"]["description"] == "Test workflow."
+    assert resp["configuration"]["defaultTaskStartToCloseTimeout"] == "20"
+    assert resp["configuration"]["defaultExecutionStartToCloseTimeout"] == "60"
+    assert resp["configuration"]["defaultTaskList"]["name"] == "foo"
+    assert resp["configuration"]["defaultTaskPriority"] == "-2"
+    assert resp["configuration"]["defaultChildPolicy"] == "ABANDON"
+    assert resp["configuration"]["defaultLambdaRole"] == "arn:bar"
 
 
 @mock_swf
@@ -282,7 +287,7 @@ def test_describe_non_existent_workflow_type_boto3():
             domain="test-domain",
             workflowType={"name": "non-existent", "version": "v1.0"},
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown type: WorkflowType=[name=non-existent, version=v1.0]"
     )
