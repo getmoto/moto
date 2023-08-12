@@ -128,7 +128,9 @@ class _TemplateEnvironmentMixin(object):
 class ActionAuthenticatorMixin(object):
     request_count: ClassVar[int] = 0
 
-    def _authenticate_and_authorize_action(self, iam_request_cls: type) -> None:
+    def _authenticate_and_authorize_action(
+        self, iam_request_cls: type, resource: str = "*"
+    ) -> None:
         if (
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
@@ -145,7 +147,7 @@ class ActionAuthenticatorMixin(object):
                 headers=self.headers,  # type: ignore[attr-defined]
             )
             iam_request.check_signature()
-            iam_request.check_action_permitted()
+            iam_request.check_action_permitted(resource)
         else:
             ActionAuthenticatorMixin.request_count += 1
 
@@ -154,10 +156,15 @@ class ActionAuthenticatorMixin(object):
 
         self._authenticate_and_authorize_action(IAMRequest)
 
-    def _authenticate_and_authorize_s3_action(self) -> None:
+    def _authenticate_and_authorize_s3_action(
+        self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
+    ) -> None:
+        arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
+        resource = f"arn:aws:s3:::{arn}"
+
         from moto.iam.access_control import S3IAMRequest
 
-        self._authenticate_and_authorize_action(S3IAMRequest)
+        self._authenticate_and_authorize_action(S3IAMRequest, resource)
 
     @staticmethod
     def set_initial_no_auth_action_count(initial_no_auth_action_count: int) -> Callable[..., Callable[..., TYPE_RESPONSE]]:  # type: ignore[misc]

@@ -353,7 +353,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         self._set_action("BUCKET", "HEAD", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         try:
             bucket = self.backend.head_bucket(bucket_name)
@@ -415,7 +415,7 @@ class S3Response(BaseResponse):
         self, headers: Dict[str, str], bucket_name: str
     ) -> TYPE_RESPONSE:
         # Return 200 with the headers from the bucket CORS configuration
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
         try:
             bucket = self.backend.head_bucket(bucket_name)
         except MissingBucket:
@@ -477,7 +477,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> Union[str, TYPE_RESPONSE]:
         self._set_action("BUCKET", "GET", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "object-lock" in querystring:
             (
@@ -822,7 +822,7 @@ class S3Response(BaseResponse):
             return 411, {}, "Content-Length required"
 
         self._set_action("BUCKET", "PUT", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "object-lock" in querystring:
             config = self._lock_config_from_body()
@@ -1008,7 +1008,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         self._set_action("BUCKET", "DELETE", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "policy" in querystring:
             self.backend.delete_bucket_policy(bucket_name)
@@ -1059,7 +1059,7 @@ class S3Response(BaseResponse):
         if self.is_delete_keys():
             self.data["Action"] = "DeleteObject"
             try:
-                self._authenticate_and_authorize_s3_action()
+                self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
                 return self._bucket_response_delete_keys(bucket_name)
             except BucketAccessDeniedError:
                 return self._bucket_response_delete_keys(
@@ -1067,7 +1067,7 @@ class S3Response(BaseResponse):
                 )
 
         self.data["Action"] = "PutObject"
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         # POST to bucket-url should create file from form
         form = request.form
@@ -1359,7 +1359,9 @@ class S3Response(BaseResponse):
         headers: Dict[str, Any],
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "GET", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         response_headers = self._get_cors_headers_other(headers, bucket_name)
         if query.get("uploadId"):
@@ -1476,7 +1478,9 @@ class S3Response(BaseResponse):
         key_name: str,
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "PUT", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         response_headers = self._get_cors_headers_other(request.headers, bucket_name)
         if query.get("uploadId") and query.get("partNumber"):
@@ -1748,7 +1752,9 @@ class S3Response(BaseResponse):
         headers: Dict[str, Any],
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "HEAD", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         response_headers: Dict[str, Any] = {}
         version_id = query.get("versionId", [None])[0]
@@ -2147,7 +2153,9 @@ class S3Response(BaseResponse):
         self, headers: Any, bucket_name: str, query: Dict[str, Any], key_name: str
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "DELETE", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         if query.get("uploadId"):
             upload_id = query["uploadId"][0]
@@ -2188,7 +2196,9 @@ class S3Response(BaseResponse):
         key_name: str,
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "POST", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         encryption = request.headers.get("x-amz-server-side-encryption")
         kms_key_id = request.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
