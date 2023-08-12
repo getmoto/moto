@@ -637,7 +637,7 @@ class Table(CloudFormationModel):
         limit: int,
         exclusive_start_key: Dict[str, Any],
         scan_index_forward: bool,
-        projection_expression: str,
+        projection_expression: Optional[str],
         index_name: Optional[str] = None,
         filter_expression: Any = None,
         **filter_kwargs: Any,
