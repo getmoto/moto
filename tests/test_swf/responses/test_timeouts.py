@@ -1,8 +1,8 @@
 from datetime import datetime
+from unittest import SkipTest
+
 from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
-import sure  # noqa # pylint: disable=unused-import
-from unittest import SkipTest
 
 from moto import mock_swf, settings
 
@@ -35,7 +35,7 @@ def test_activity_task_heartbeat_timeout_boto3():
             domain="test-domain",
             execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
         )
-        resp["events"][-1]["eventType"].should.equal("ActivityTaskStarted")
+        assert resp["events"][-1]["eventType"] == "ActivityTaskStarted"
 
     with freeze_time("2015-01-01 12:05:30 UTC"):
         # => Activity Task Heartbeat timeout reached!!
@@ -44,13 +44,13 @@ def test_activity_task_heartbeat_timeout_boto3():
             execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
         )
 
-        resp["events"][-2]["eventType"].should.equal("ActivityTaskTimedOut")
+        assert resp["events"][-2]["eventType"] == "ActivityTaskTimedOut"
         attrs = resp["events"][-2]["activityTaskTimedOutEventAttributes"]
-        attrs["timeoutType"].should.equal("HEARTBEAT")
+        assert attrs["timeoutType"] == "HEARTBEAT"
         # checks that event has been emitted at 12:05:00, not 12:05:30
-        resp["events"][-2]["eventTimestamp"].should.be.a(datetime)
+        assert isinstance(resp["events"][-2]["eventTimestamp"], datetime)
         ts = resp["events"][-2]["eventTimestamp"]
-        ts.should.equal(dtparse("2015-01-01 12:05:00 UTC"))
+        assert ts == dtparse("2015-01-01 12:05:00 UTC")
 
 
 # Decision Task Start to Close timeout
@@ -71,9 +71,11 @@ def test_decision_task_start_to_close_timeout_boto3():
         )
 
         event_types = [evt["eventType"] for evt in resp["events"]]
-        event_types.should.equal(
-            ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"]
-        )
+        assert event_types == [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+        ]
 
     with freeze_time("2015-01-01 12:05:30 UTC"):
         # => Decision Task Start to Close timeout reached!!
@@ -83,27 +85,23 @@ def test_decision_task_start_to_close_timeout_boto3():
         )
 
         event_types = [evt["eventType"] for evt in resp["events"]]
-        event_types.should.equal(
-            [
-                "WorkflowExecutionStarted",
-                "DecisionTaskScheduled",
-                "DecisionTaskStarted",
-                "DecisionTaskTimedOut",
-                "DecisionTaskScheduled",
-            ]
-        )
+        assert event_types == [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "DecisionTaskStarted",
+            "DecisionTaskTimedOut",
+            "DecisionTaskScheduled",
+        ]
         attrs = resp["events"][-2]["decisionTaskTimedOutEventAttributes"]
-        attrs.should.equal(
-            {
-                "scheduledEventId": 2,
-                "startedEventId": 3,
-                "timeoutType": "START_TO_CLOSE",
-            }
-        )
+        assert attrs == {
+            "scheduledEventId": 2,
+            "startedEventId": 3,
+            "timeoutType": "START_TO_CLOSE",
+        }
         # checks that event has been emitted at 12:05:00, not 12:05:30
-        resp["events"][-2]["eventTimestamp"].should.be.a(datetime)
+        assert isinstance(resp["events"][-2]["eventTimestamp"], datetime)
         ts = resp["events"][-2]["eventTimestamp"]
-        ts.should.equal(dtparse("2015-01-01 12:05:00 UTC"))
+        assert ts == dtparse("2015-01-01 12:05:00 UTC")
 
 
 # Workflow Execution Start to Close timeout
@@ -122,7 +120,7 @@ def test_workflow_execution_start_to_close_timeout_boto3():
         )
 
         event_types = [evt["eventType"] for evt in resp["events"]]
-        event_types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
+        assert event_types == ["WorkflowExecutionStarted", "DecisionTaskScheduled"]
 
     with freeze_time("2015-01-01 14:00:30 UTC"):
         # => Workflow Execution Start to Close timeout reached!!
@@ -132,16 +130,14 @@ def test_workflow_execution_start_to_close_timeout_boto3():
         )
 
         event_types = [evt["eventType"] for evt in resp["events"]]
-        event_types.should.equal(
-            [
-                "WorkflowExecutionStarted",
-                "DecisionTaskScheduled",
-                "WorkflowExecutionTimedOut",
-            ]
-        )
+        assert event_types == [
+            "WorkflowExecutionStarted",
+            "DecisionTaskScheduled",
+            "WorkflowExecutionTimedOut",
+        ]
         attrs = resp["events"][-1]["workflowExecutionTimedOutEventAttributes"]
-        attrs.should.equal({"childPolicy": "ABANDON", "timeoutType": "START_TO_CLOSE"})
+        assert attrs == {"childPolicy": "ABANDON", "timeoutType": "START_TO_CLOSE"}
         # checks that event has been emitted at 14:00:00, not 14:00:30
-        resp["events"][-1]["eventTimestamp"].should.be.a(datetime)
+        assert isinstance(resp["events"][-1]["eventTimestamp"], datetime)
         ts = resp["events"][-1]["eventTimestamp"]
-        ts.should.equal(dtparse("2015-01-01 14:00:00 UTC"))
+        assert ts == dtparse("2015-01-01 14:00:00 UTC")

@@ -1,9 +1,10 @@
-from botocore.exceptions import ClientError
 from datetime import datetime
+import re
+from time import sleep
+
+from botocore.exceptions import ClientError
 from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
-from time import sleep
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_swf, settings
@@ -23,18 +24,20 @@ def test_poll_for_decision_task_when_one_boto3():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
+    assert types == ["WorkflowExecutionStarted", "DecisionTaskScheduled"]
 
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}, identity="srv01"
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"]
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+    ]
 
-    resp["events"][-1]["decisionTaskStartedEventAttributes"]["identity"].should.equal(
-        "srv01"
+    assert (
+        resp["events"][-1]["decisionTaskStartedEventAttributes"]["identity"] == "srv01"
     )
 
 
@@ -75,14 +78,16 @@ def test_poll_for_decision_task_ensure_single_started_task():
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
-    resp.should.have.key("taskToken")
+    assert "taskToken" in resp
     first_decision_task = resp["taskToken"]
 
     # History should have just the decision task triggered on workflow start
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        ["WorkflowExecutionStarted", "DecisionTaskScheduled", "DecisionTaskStarted"]
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+    ]
 
     # Schedule another decision task, before first one is completed
     client.signal_workflow_execution(
@@ -99,42 +104,38 @@ def test_poll_for_decision_task_ensure_single_started_task():
     )
     assert resp["previousStartedEventId"] == 0
     assert resp["startedEventId"] == 0
-    assert resp.should_not.have.key("taskToken")
+    assert "taskToken" not in resp
 
     resp = client.get_workflow_execution_history(
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "WorkflowExecutionSignaled",
-            "DecisionTaskScheduled",
-        ]
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "WorkflowExecutionSignaled",
+        "DecisionTaskScheduled",
+    ]
 
     client.respond_decision_task_completed(taskToken=first_decision_task)
 
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
-    resp.should.have.key("taskToken")
+    assert "taskToken" in resp
 
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "WorkflowExecutionSignaled",
-            "DecisionTaskScheduled",
-            "DecisionTaskCompleted",
-            "DecisionTaskStarted",
-        ]
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "WorkflowExecutionSignaled",
+        "DecisionTaskScheduled",
+        "DecisionTaskCompleted",
+        "DecisionTaskStarted",
+    ]
 
 
 @mock_swf
@@ -146,7 +147,7 @@ def test_poll_for_decision_task_exclude_completed_executions():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
+    assert types == ["WorkflowExecutionStarted", "DecisionTaskScheduled"]
 
     client.terminate_workflow_execution(
         domain="test-domain", runId=client.run_id, workflowId="uid-abcd1234"
@@ -154,7 +155,7 @@ def test_poll_for_decision_task_exclude_completed_executions():
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
-    resp.should_not.have.key("taskToken")
+    assert "taskToken" not in resp
 
 
 @mock_swf
@@ -168,8 +169,8 @@ def test_poll_for_decision_task_when_none_boto3():
     )
     # this is the DecisionTask representation you get from the real SWF
     # after waiting 60s when there's no decision to be taken
-    resp.should.have.key("previousStartedEventId").equal(0)
-    resp.should.have.key("startedEventId").equal(0)
+    assert resp["previousStartedEventId"] == 0
+    assert resp["startedEventId"] == 0
 
 
 @mock_swf
@@ -178,8 +179,8 @@ def test_poll_for_decision_task_on_non_existent_queue_boto3():
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "non-existent-queue"}
     )
-    resp.should.have.key("previousStartedEventId").equal(0)
-    resp.should.have.key("startedEventId").equal(0)
+    assert resp["previousStartedEventId"] == 0
+    assert resp["startedEventId"] == 0
 
 
 @mock_swf
@@ -189,9 +190,11 @@ def test_poll_for_decision_task_with_reverse_order_boto3():
         domain="test-domain", taskList={"name": "queue"}, reverseOrder=True
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        ["DecisionTaskStarted", "DecisionTaskScheduled", "WorkflowExecutionStarted"]
-    )
+    assert types == [
+        "DecisionTaskStarted",
+        "DecisionTaskScheduled",
+        "WorkflowExecutionStarted",
+    ]
 
 
 # CountPendingDecisionTasks endpoint
@@ -204,8 +207,8 @@ def test_count_pending_decision_tasks_boto3():
     resp = client.count_pending_decision_tasks(
         domain="test-domain", taskList={"name": "queue"}
     )
-    resp.should.have.key("count").equal(1)
-    resp.should.have.key("truncated").equal(False)
+    assert resp["count"] == 1
+    assert resp["truncated"] is False
 
 
 @mock_swf
@@ -214,8 +217,8 @@ def test_count_pending_decision_tasks_on_non_existent_task_list_boto3():
     resp = client.count_pending_decision_tasks(
         domain="test-domain", taskList={"name": "non-existent"}
     )
-    resp.should.have.key("count").equal(0)
-    resp.should.have.key("truncated").equal(False)
+    assert resp["count"] == 0
+    assert resp["truncated"] is False
 
 
 @mock_swf
@@ -229,8 +232,8 @@ def test_count_pending_decision_tasks_after_decision_completes_boto3():
     resp = client.count_pending_decision_tasks(
         domain="test-domain", taskList={"name": "queue"}
     )
-    resp.should.have.key("count").equal(0)
-    resp.should.have.key("truncated").equal(False)
+    assert resp["count"] == 0
+    assert resp["truncated"] is False
 
 
 # RespondDecisionTaskCompleted endpoint
@@ -253,28 +256,24 @@ def test_respond_decision_task_completed_with_no_decision_boto3():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-        ]
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+    ]
     evt = resp["events"][-1]
-    evt["decisionTaskCompletedEventAttributes"].should.equal(
-        {
-            "executionContext": "free-form context",
-            "scheduledEventId": 2,
-            "startedEventId": 3,
-        }
-    )
+    assert evt["decisionTaskCompletedEventAttributes"] == {
+        "executionContext": "free-form context",
+        "scheduledEventId": 2,
+        "startedEventId": 3,
+    }
 
     resp = client.describe_workflow_execution(
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
-    resp["latestExecutionContext"].should.equal("free-form context")
+    assert resp["latestExecutionContext"] == "free-form context"
 
 
 @mock_swf
@@ -283,9 +282,9 @@ def test_respond_decision_task_completed_with_wrong_token_boto3():
     client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
     with pytest.raises(ClientError) as ex:
         client.respond_decision_task_completed(taskToken="not-a-correct-token")
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid token")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == "Invalid token"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -300,11 +299,11 @@ def test_respond_decision_task_completed_on_close_workflow_execution_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.respond_decision_task_completed(taskToken=task_token)
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         f"Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={client.run_id}]"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -318,11 +317,11 @@ def test_respond_decision_task_completed_with_task_already_completed_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.respond_decision_task_completed(taskToken=task_token)
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown decision task, scheduledEventId = 2"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -346,18 +345,17 @@ def test_respond_decision_task_completed_with_complete_workflow_execution_boto3(
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-            "WorkflowExecutionCompleted",
-        ]
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "WorkflowExecutionCompleted",
+    ]
+    assert (
+        resp["events"][-1]["workflowExecutionCompletedEventAttributes"]["result"]
+        == "foo bar"
     )
-    resp["events"][-1]["workflowExecutionCompletedEventAttributes"][
-        "result"
-    ].should.equal("foo bar")
 
 
 @mock_swf
@@ -377,11 +375,11 @@ def test_respond_decision_task_completed_with_close_decision_not_last_boto3():
         client.respond_decision_task_completed(
             taskToken=task_token, decisions=decisions
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == (
         "Close must be last decision in list"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -401,11 +399,12 @@ def test_respond_decision_task_completed_with_invalid_decision_type_boto3():
         client.respond_decision_task_completed(
             taskToken=task_token, decisions=decisions
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.match(
-        "Value 'BadDecisionType' at 'decisions.1.member.decisionType'"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert re.search(
+        "Value 'BadDecisionType' at 'decisions.1.member.decisionType'",
+        ex.value.response["Error"]["Message"],
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -422,11 +421,16 @@ def test_respond_decision_task_completed_with_missing_attributes_totally_boto3()
         client.respond_decision_task_completed(
             taskToken=task_token, decisions=decisions
         )
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.match(
-        "Value null at 'decisions.1.member.startTimerDecisionAttributes.timerId' failed to satisfy constraint"
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert re.search(
+        (
+            "Value null at "
+            "'decisions.1.member.startTimerDecisionAttributes.timerId' "
+            "failed to satisfy constraint"
+        ),
+        ex.value.response["Error"]["Message"],
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -453,18 +457,16 @@ def test_respond_decision_task_completed_with_fail_workflow_execution_boto3():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-            "WorkflowExecutionFailed",
-        ]
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "WorkflowExecutionFailed",
+    ]
     attrs = resp["events"][-1]["workflowExecutionFailedEventAttributes"]
-    attrs["reason"].should.equal("my rules")
-    attrs["details"].should.equal("foo")
+    assert attrs["reason"] == "my rules"
+    assert attrs["details"] == "foo"
 
 
 @mock_swf
@@ -495,34 +497,30 @@ def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-            "ActivityTaskScheduled",
-        ]
-    )
-    resp["events"][-1]["activityTaskScheduledEventAttributes"].should.equal(
-        {
-            "decisionTaskCompletedEventId": 4,
-            "activityId": "my-activity-001",
-            "activityType": {"name": "test-activity", "version": "v1.1"},
-            "heartbeatTimeout": "60",
-            "input": "123",
-            "taskList": {"name": "my-task-list"},
-        }
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "ActivityTaskScheduled",
+    ]
+    assert resp["events"][-1]["activityTaskScheduledEventAttributes"] == {
+        "decisionTaskCompletedEventId": 4,
+        "activityId": "my-activity-001",
+        "activityType": {"name": "test-activity", "version": "v1.1"},
+        "heartbeatTimeout": "60",
+        "input": "123",
+        "taskList": {"name": "my-task-list"},
+    }
 
     resp = client.describe_workflow_execution(
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
-    resp["latestActivityTaskTimestamp"].should.be.a(datetime)
+    assert isinstance(resp["latestActivityTaskTimestamp"], datetime)
     if not settings.TEST_SERVER_MODE:
         ts = resp["latestActivityTaskTimestamp"]
-        ts.should.equal(dtparse("2015-01-01 12:00:00 UTC"))
+        assert ts == dtparse("2015-01-01 12:00:00 UTC")
 
 
 @mock_swf
@@ -546,18 +544,17 @@ def test_record_marker_decision():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-            "MarkerRecorded",
-        ]
-    )
-    resp["events"][-1]["markerRecordedEventAttributes"].should.equal(
-        {"decisionTaskCompletedEventId": 4, "markerName": "TheMarker"}
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "MarkerRecorded",
+    ]
+    assert resp["events"][-1]["markerRecordedEventAttributes"] == {
+        "decisionTaskCompletedEventId": 4,
+        "markerName": "TheMarker",
+    }
 
 
 @mock_swf
@@ -585,27 +582,24 @@ def test_start_and_fire_timer_decision():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-            "TimerStarted",
-            "TimerFired",
-            "DecisionTaskScheduled",
-        ]
-    )
-    resp["events"][-3]["timerStartedEventAttributes"].should.equal(
-        {
-            "decisionTaskCompletedEventId": 4,
-            "startToFireTimeout": "1",
-            "timerId": "timer1",
-        }
-    )
-    resp["events"][-2]["timerFiredEventAttributes"].should.equal(
-        {"startedEventId": 5, "timerId": "timer1"}
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "TimerStarted",
+        "TimerFired",
+        "DecisionTaskScheduled",
+    ]
+    assert resp["events"][-3]["timerStartedEventAttributes"] == {
+        "decisionTaskCompletedEventId": 4,
+        "startToFireTimeout": "1",
+        "timerId": "timer1",
+    }
+    assert resp["events"][-2]["timerFiredEventAttributes"] == {
+        "startedEventId": 5,
+        "timerId": "timer1",
+    }
 
 
 @mock_swf
@@ -631,23 +625,22 @@ def test_cancel_workflow_decision():
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(
-        [
-            "WorkflowExecutionStarted",
-            "DecisionTaskScheduled",
-            "DecisionTaskStarted",
-            "DecisionTaskCompleted",
-            "WorkflowExecutionCanceled",
-        ]
-    )
-    resp["events"][-1]["workflowExecutionCanceledEventAttributes"].should.equal(
-        {"decisionTaskCompletedEventId": 4, "details": "decide to cancel"}
-    )
+    assert types == [
+        "WorkflowExecutionStarted",
+        "DecisionTaskScheduled",
+        "DecisionTaskStarted",
+        "DecisionTaskCompleted",
+        "WorkflowExecutionCanceled",
+    ]
+    assert resp["events"][-1]["workflowExecutionCanceledEventAttributes"] == {
+        "decisionTaskCompletedEventId": 4,
+        "details": "decide to cancel",
+    }
     workflow_result = client.describe_workflow_execution(
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )["executionInfo"]
-    workflow_result.should.contain("closeTimestamp")
-    workflow_result["executionStatus"].should.equal("CLOSED")
-    workflow_result["closeStatus"].should.equal("CANCELED")
-    workflow_result["cancelRequested"].should.equal(True)
+    assert "closeTimestamp" in workflow_result
+    assert workflow_result["executionStatus"] == "CLOSED"
+    assert workflow_result["closeStatus"] == "CANCELED"
+    assert workflow_result["cancelRequested"] is True
