@@ -5,6 +5,7 @@ from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 
+from .exceptions import ScheduleExists
 from .exceptions import ScheduleNotFound, ScheduleGroupNotFound
 
 
@@ -155,6 +156,8 @@ class EventBridgeSchedulerBackend(BaseBackend):
         The ClientToken parameter is not yet implemented
         """
         group = self.schedule_groups[group_name or "default"]
+        if name in group.schedules:
+            raise ScheduleExists(name)
         schedule = Schedule(
             region=self.region_name,
             account_id=self.account_id,
