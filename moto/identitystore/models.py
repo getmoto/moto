@@ -71,6 +71,12 @@ class IdentityStoreBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "MembershipId",
         },
+        "list_groups": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "GroupId",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:
@@ -224,6 +230,24 @@ class IdentityStoreBackend(BaseBackend):
             for m in identity_store.group_memberships.values()
             if m["GroupId"] == group_id
         ]
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_groups(
+        self, identity_store_id: str, filters: list[dict[str, str]]
+    ) -> List[str]:
+        identity_store = self.__get_identity_store(identity_store_id)
+
+        if filters:
+            for fil in filters:
+                if fil.get("AttributePath") == "DisplayName":
+                    displayname = fil.get("AttributeValue")
+                    return [
+                        m
+                        for m in identity_store.groups.values()
+                        if m["DisplayName"] == displayname
+                    ]
+
+        return [m for m in identity_store.groups.values()]
 
     def delete_group_membership(
         self, identity_store_id: str, membership_id: str
