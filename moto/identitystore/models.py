@@ -234,7 +234,7 @@ class IdentityStoreBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_groups(
         self, identity_store_id: str, filters: list[dict[str, str]]
-    ) -> List[str]:
+    ) -> List[dict[str, str]]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         if filters:
