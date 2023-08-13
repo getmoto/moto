@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ssm
 
@@ -48,13 +47,13 @@ def test_create_patch_baseLine():
         ],
         MaxResults=50,
     )
-    response.should.have.key("BaselineIdentities").have.length_of(1)
+    assert len(response["BaselineIdentities"]) == 1
     baseline = response["BaselineIdentities"][0]
-    baseline.should.have.key("BaselineId").equal(_id)
-    baseline.should.have.key("BaselineName").equal(baseline_name)
-    baseline.should.have.key("DefaultBaseline").equal(False)
-    baseline.should.have.key("OperatingSystem").equal("AMAZON_LINUX")
-    baseline.should.have.key("BaselineDescription").equal(baseline_description)
+    assert baseline["BaselineId"] == _id
+    assert baseline["BaselineName"] == baseline_name
+    assert baseline["DefaultBaseline"] is False
+    assert baseline["OperatingSystem"] == "AMAZON_LINUX"
+    assert baseline["BaselineDescription"] == baseline_description
 
 
 @mock_ssm
@@ -97,4 +96,4 @@ def test_delete_patch_baseline():
         ],
         MaxResults=50,
     )
-    response.should.have.key("BaselineIdentities").have.length_of(0)
+    assert len(response["BaselineIdentities"]) == 0
