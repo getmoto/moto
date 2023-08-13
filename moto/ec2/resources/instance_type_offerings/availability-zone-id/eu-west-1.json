@@ -5148,6 +5148,18 @@
   "Location": "euw1-az2"
  },
  {
+  "InstanceType": "vt1.24xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "vt1.3xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "vt1.6xlarge",
+  "Location": "euw1-az2"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "euw1-az2"
  },

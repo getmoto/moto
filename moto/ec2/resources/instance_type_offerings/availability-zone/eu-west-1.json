@@ -5148,6 +5148,18 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "vt1.24xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "vt1.3xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "vt1.6xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-1b"
  },
