@@ -1,12 +1,12 @@
 """Unit tests for lambda-supported APIs."""
-import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
+from uuid import uuid4
 
+import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_lambda
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
 from .utilities import (
     get_role_name,
     get_test_zip_file1,
@@ -195,9 +195,9 @@ def test_aliases_are_unique_per_function():
 
     err = exc.value.response["Error"]
     assert err["Code"] == "ConflictException"
-    assert (
-        err["Message"]
-        == f"Alias already exists: arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert err["Message"] == (
+        f"Alias already exists: arn:aws:lambda:us-west-1:{ACCOUNT_ID}"
+        f":function:{function_name}:alias1"
     )
 
 
@@ -278,9 +278,9 @@ def test_get_unknown_alias():
         client.get_alias(FunctionName=function_name, Name="unknown")
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-    assert (
-        err["Message"]
-        == f"Cannot find alias arn: arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:unknown"
+    assert err["Message"] == (
+        f"Cannot find alias arn: arn:aws:lambda:us-west-1:{ACCOUNT_ID}"
+        f":function:{function_name}:unknown"
     )
 
 
