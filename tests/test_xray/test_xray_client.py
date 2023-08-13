@@ -1,23 +1,21 @@
 import os
+import requests  # noqa # pylint: disable=all
+import sys
+from unittest import SkipTest
+
+import aws_xray_sdk.core as xray_core
+import aws_xray_sdk.core.patcher as xray_core_patcher
+import boto3
+import botocore.client
+import botocore.endpoint
 
 from moto import mock_xray_client, XRaySegment, mock_dynamodb
 from moto.utilities.distutils_version import LooseVersion
-from unittest import SkipTest
-import sure  # noqa # pylint: disable=unused-import
-import boto3
-import sys
-
 from moto.xray.mock_client import MockEmitter
-import aws_xray_sdk.core as xray_core
-import aws_xray_sdk.core.patcher as xray_core_patcher
-
-import botocore.client
-import botocore.endpoint
 
 original_make_api_call = botocore.client.BaseClient._make_api_call
 original_encode_headers = botocore.endpoint.Endpoint._encode_headers
 
-import requests  # noqa # pylint: disable=all
 
 original_session_request = requests.Session.request
 original_session_prep_request = requests.Session.prepare_request
@@ -52,7 +50,7 @@ def test_xray_dynamo_request_id():
 
     with XRaySegment():
         resp = client.list_tables()
-        resp["ResponseMetadata"].should.contain("RequestId")
+        assert "RequestId" in resp["ResponseMetadata"]
         id1 = resp["ResponseMetadata"]["RequestId"]
 
     with XRaySegment():
@@ -60,7 +58,7 @@ def test_xray_dynamo_request_id():
         resp = client.list_tables()
         id2 = resp["ResponseMetadata"]["RequestId"]
 
-    id1.should_not.equal(id2)
+    assert id1 != id2
 
     setattr(botocore.client.BaseClient, "_make_api_call", original_make_api_call)
     setattr(botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers)
@@ -82,7 +80,7 @@ def test_xray_dynamo_request_id_with_context_mgr():
 
             with XRaySegment():
                 resp = client.list_tables()
-                resp["ResponseMetadata"].should.contain("RequestId")
+                assert "RequestId" in resp["ResponseMetadata"]
                 id1 = resp["ResponseMetadata"]["RequestId"]
 
             with XRaySegment():
@@ -90,7 +88,7 @@ def test_xray_dynamo_request_id_with_context_mgr():
                 resp = client.list_tables()
                 id2 = resp["ResponseMetadata"]["RequestId"]
 
-            id1.should_not.equal(id2)
+            assert id1 != id2
 
             setattr(
                 botocore.client.BaseClient, "_make_api_call", original_make_api_call
@@ -129,7 +127,7 @@ def test_xray_context_patched():
     xray_core_patcher._PATCHED_MODULES = set()
     xray_core.patch_all()
 
-    xray_core.xray_recorder._context.context_missing.should.equal("LOG_ERROR")
+    assert xray_core.xray_recorder._context.context_missing == "LOG_ERROR"
 
     setattr(botocore.client.BaseClient, "_make_api_call", original_make_api_call)
     setattr(botocore.endpoint.Endpoint, "_encode_headers", original_encode_headers)
