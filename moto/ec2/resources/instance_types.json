@@ -47228,7 +47228,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 30000,
@@ -47460,7 +47460,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 40000,
