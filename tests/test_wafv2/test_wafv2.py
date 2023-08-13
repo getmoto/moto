@@ -1,11 +1,10 @@
-import pytest
-
-import sure  # noqa # pylint: disable=unused-import
 import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_wafv2
-from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 
 
 @mock_wafv2
@@ -22,10 +21,11 @@ def test_create_web_acl():
     with pytest.raises(ClientError) as ex:
         conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))
     err = ex.value.response["Error"]
-    err["Message"].should.contain(
-        "AWS WAF could not perform the operation because some resource in your request is a duplicate of an existing one."
-    )
-    err["Code"].should.equal("WafV2DuplicateItem")
+    assert (
+        "AWS WAF could not perform the operation because some resource "
+        "in your request is a duplicate of an existing one."
+    ) in err["Message"]
+    assert err["Code"] == "WafV2DuplicateItem"
 
     res = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Carl", "CLOUDFRONT"))
     web_acl = res["Summary"]
@@ -84,16 +84,14 @@ def test_create_web_acl_with_all_arguments():
     )["Summary"]["Id"]
 
     wacl = client.get_web_acl(Name="test", Scope="CLOUDFRONT", Id=web_acl_id)["WebACL"]
-    wacl.should.have.key("Description").equals("test desc")
-    wacl.should.have.key("DefaultAction").equals({"Allow": {}})
-    wacl.should.have.key("VisibilityConfig").equals(
-        {
-            "SampledRequestsEnabled": False,
-            "CloudWatchMetricsEnabled": False,
-            "MetricName": "idk",
-        }
-    )
-    wacl.should.have.key("Rules").length_of(2)
+    assert wacl["Description"] == "test desc"
+    assert wacl["DefaultAction"] == {"Allow": {}}
+    assert wacl["VisibilityConfig"] == {
+        "SampledRequestsEnabled": False,
+        "CloudWatchMetricsEnabled": False,
+        "MetricName": "idk",
+    }
+    assert len(wacl["Rules"]) == 2
 
 
 @mock_wafv2
@@ -102,8 +100,8 @@ def test_get_web_acl():
     body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
     web_acl_id = conn.create_web_acl(**body)["Summary"]["Id"]
     wacl = conn.get_web_acl(Name="John", Scope="REGIONAL", Id=web_acl_id)["WebACL"]
-    wacl.should.have.key("Name").equals("John")
-    wacl.should.have.key("Id").equals(web_acl_id)
+    assert wacl["Name"] == "John"
+    assert wacl["Id"] == web_acl_id
 
 
 @mock_wafv2
@@ -134,13 +132,13 @@ def test_delete_web_acl():
     conn.delete_web_acl(Name="Daphne", Id=wacl_id, Scope="REGIONAL", LockToken="n/a")
 
     res = conn.list_web_acls(**LIST_WEB_ACL_BODY("REGIONAL"))
-    res["WebACLs"].should.have.length_of(0)
+    assert len(res["WebACLs"]) == 0
 
     with pytest.raises(ClientError) as exc:
         conn.get_web_acl(Name="Daphne", Scope="REGIONAL", Id=wacl_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("WAFNonexistentItemException")
-    err["Message"].should.equal(
+    assert err["Code"] == "WAFNonexistentItemException"
+    assert err["Message"] == (
         "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
     )
 
@@ -177,31 +175,25 @@ def test_update_web_acl():
             "MetricName": "updated",
         },
     )
-    resp.should.have.key("NextLockToken")
+    assert "NextLockToken" in resp
 
     acl = conn.get_web_acl(Name="Daphne", Scope="REGIONAL", Id=wacl_id)["WebACL"]
-    acl.should.have.key("Description").equals("updated_desc")
-    acl.should.have.key("DefaultAction").equals(
-        {"Block": {"CustomResponse": {"ResponseCode": 412}}}
-    )
-    acl.should.have.key("Rules").equals(
-        [
-            {
-                "Name": "rule1",
-                "Priority": 456,
-                "Statement": {},
-                "VisibilityConfig": {
-                    "SampledRequestsEnabled": True,
-                    "CloudWatchMetricsEnabled": True,
-                    "MetricName": "updated",
-                },
-            }
-        ]
-    )
-    acl.should.have.key("VisibilityConfig").equals(
+    assert acl["Description"] == "updated_desc"
+    assert acl["DefaultAction"] == {"Block": {"CustomResponse": {"ResponseCode": 412}}}
+    assert acl["Rules"] == [
         {
-            "SampledRequestsEnabled": True,
-            "CloudWatchMetricsEnabled": True,
-            "MetricName": "updated",
+            "Name": "rule1",
+            "Priority": 456,
+            "Statement": {},
+            "VisibilityConfig": {
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": "updated",
+            },
         }
-    )
+    ]
+    assert acl["VisibilityConfig"] == {
+        "SampledRequestsEnabled": True,
+        "CloudWatchMetricsEnabled": True,
+        "MetricName": "updated",
+    }
