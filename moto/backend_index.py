@@ -114,7 +114,7 @@ backend_url_patterns = [
     ),
     (
         "meteringmarketplace",
-        re.compile("https?://metering.marketplace.(.+).amazonaws.com"),
+        re.compile("https?://metering\\.marketplace.(.+).amazonaws.com"),
     ),
     ("meteringmarketplace", re.compile("https?://aws-marketplace.(.+).amazonaws.com")),
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
