@@ -2,7 +2,6 @@ import json
 
 import boto3
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
