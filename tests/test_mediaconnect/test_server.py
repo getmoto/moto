@@ -1,5 +1,4 @@
-import sure  # noqa # pylint: disable=unused-import
-
+import json
 import moto.server as server
 from moto import mock_mediaconnect
 
@@ -16,4 +15,4 @@ def test_mediaconnect_list_flows():
     res = test_client.get("/v1/flows")
 
     result = res.data.decode("utf-8")
-    result.should.contain('"flows": []')
+    assert json.loads(result) == {"flows": []}
