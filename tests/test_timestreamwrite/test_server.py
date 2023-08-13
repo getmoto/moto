@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_timestreamwrite
@@ -12,5 +11,5 @@ def test_timestreamwrite_list():
 
     headers = {"X-Amz-Target": "Timestream_20181101.ListDatabases"}
     resp = test_client.post("/", headers=headers, json={})
-    resp.status_code.should.equal(200)
-    json.loads(resp.data).should.equal({"Databases": []})
+    assert resp.status_code == 200
+    assert json.loads(resp.data) == {"Databases": []}
