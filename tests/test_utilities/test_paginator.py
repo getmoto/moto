@@ -190,7 +190,7 @@ class TestDecorator(unittest.TestCase):
         return [{"name": "item1"}, {"name": "item2"}]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def method_with_list_as_kwarg(self, resources):
+    def method_with_list_as_kwarg(self, resources=None):
         if not resources:
             resources = []
         return resources or results
