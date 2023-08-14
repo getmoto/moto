@@ -264,7 +264,7 @@ class TestDecorator(unittest.TestCase):
 
     def test__invoke_function_that_expects_limit_as_keyword(self):
         self.method_expecting_limit_as_kwarg(custom_limit=None)
-        assert self.custom_limit == None
+        assert self.custom_limit is None
 
         # Verify the custom_limit is received in the business method
         # Could be handy for additional validation
