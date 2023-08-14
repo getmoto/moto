@@ -6,7 +6,7 @@ def test_list_empty():
     svc = TaggingService()
     result = svc.list_tags_for_resource("test")
 
-    {"Tags": []}.should.be.equal(result)
+    assert {"Tags": []} == result
 
 
 def test_create_tag():
@@ -16,7 +16,7 @@ def test_create_tag():
     actual = svc.list_tags_for_resource("arn")
     expected = {"TheTags": [{"TagKey": "key_key", "TagValue": "value_value"}]}
 
-    expected.should.be.equal(actual)
+    assert expected == actual
 
 
 def test_create_tag_without_value():
@@ -26,7 +26,7 @@ def test_create_tag_without_value():
     actual = svc.list_tags_for_resource("arn")
     expected = {"Tags": [{"Key": "key_key", "Value": None}]}
 
-    expected.should.be.equal(actual)
+    assert expected == actual
 
 
 def test_delete_tag_using_names():
@@ -36,7 +36,7 @@ def test_delete_tag_using_names():
     svc.untag_resource_using_names("arn", ["key_key"])
     result = svc.list_tags_for_resource("arn")
 
-    {"Tags": []}.should.be.equal(result)
+    assert {"Tags": []} == result
 
 
 def test_delete_all_tags_for_resource():
@@ -48,7 +48,7 @@ def test_delete_all_tags_for_resource():
     svc.delete_all_tags_for_resource("arn")
     result = svc.list_tags_for_resource("arn")
 
-    {"Tags": []}.should.be.equal(result)
+    assert {"Tags": []} == result
 
 
 def test_list_empty_delete():
@@ -56,7 +56,7 @@ def test_list_empty_delete():
     svc.untag_resource_using_names("arn", ["key_key"])
     result = svc.list_tags_for_resource("arn")
 
-    {"Tags": []}.should.be.equal(result)
+    assert {"Tags": []} == result
 
 
 def test_delete_tag_using_tags():
@@ -66,7 +66,7 @@ def test_delete_tag_using_tags():
     svc.untag_resource_using_tags("arn", tags)
     result = svc.list_tags_for_resource("arn")
 
-    {"Tags": []}.should.be.equal(result)
+    assert {"Tags": []} == result
 
 
 def test_extract_tag_names():
@@ -75,7 +75,7 @@ def test_extract_tag_names():
     actual = svc.extract_tag_names(tags)
     expected = ["key1", "key2"]
 
-    expected.should.be.equal(actual)
+    assert expected == actual
 
 
 def test_copy_non_existing_arn():
@@ -89,7 +89,7 @@ def test_copy_non_existing_arn():
     actual = sorted(
         svc.list_tags_for_resource("new_arn")["Tags"], key=lambda t: t["Key"]
     )
-    actual.should.equal(tags)
+    assert actual == tags
 
 
 def test_copy_existing_arn():
@@ -104,9 +104,10 @@ def test_copy_existing_arn():
     actual = sorted(
         svc.list_tags_for_resource("new_arn")["Tags"], key=lambda t: t["Key"]
     )
-    actual.should.equal(
-        [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
-    )
+    assert actual == [
+        {"Key": "key1", "Value": "value1"},
+        {"Key": "key2", "Value": "value2"},
+    ]
 
 
 def test_validate_tags():

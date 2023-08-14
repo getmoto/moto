@@ -1,7 +1,7 @@
 import unittest
 
 import pytest
-import sure  # noqa # pylint: disable=unused-import
+
 from moto.utilities.paginator import Paginator, paginate
 from moto.core.exceptions import InvalidToken
 
@@ -31,11 +31,11 @@ def test_paginator_without_max_results__throws_error():
 def test_paginator__paginate_with_just_max_results():
     p = Paginator(max_results=50)
     resp = p.paginate(results)
-    resp.should.have.length_of(2)
+    assert len(resp) == 2
 
     page, next_token = resp
-    next_token.should.equal(None)
-    page.should.equal(results)
+    assert next_token is None
+    assert page == results
 
 
 def test_paginator__paginate_without_range_key__throws_error():
@@ -53,11 +53,11 @@ def test_paginator__paginate_with_unknown_range_key__throws_error():
 def test_paginator__paginate_5():
     p = Paginator(max_results=5, unique_attribute=["name"])
     resp = p.paginate(results)
-    resp.should.have.length_of(2)
+    assert len(resp) == 2
 
     page, next_token = resp
-    next_token.shouldnt.equal(None)
-    page.should.equal(results[0:5])
+    assert next_token is not None
+    assert page == results[0:5]
 
 
 def test_paginator__paginate_5__use_different_range_keys():
@@ -67,19 +67,19 @@ def test_paginator__paginate_5__use_different_range_keys():
     p = Paginator(max_results=5, unique_attribute=["name"])
     _, token_as_lst = p.paginate(results)
 
-    token_as_lst.shouldnt.be(None)
-    token_as_lst.should.equal(token_as_str)
+    assert token_as_lst is not None
+    assert token_as_lst == token_as_str
 
     p = Paginator(max_results=5, unique_attribute=["name", "arn"])
     _, token_multiple = p.paginate(results)
-    token_multiple.shouldnt.be(None)
-    token_multiple.shouldnt.equal(token_as_str)
+    assert token_multiple is not None
+    assert token_multiple != token_as_str
 
 
 def test_paginator__paginate_twice():
     p = Paginator(max_results=5, unique_attribute=["name"])
     resp = p.paginate(results)
-    resp.should.have.length_of(2)
+    assert len(resp) == 2
 
     page, next_token = resp
 
@@ -87,8 +87,8 @@ def test_paginator__paginate_twice():
     resp = p.paginate(results)
 
     page, next_token = resp
-    next_token.should.equal(None)
-    page.should.equal(results[5:])
+    assert next_token is None
+    assert page == results[5:]
 
 
 def test_paginator__invalid_token():
@@ -105,8 +105,8 @@ def test_paginator__invalid_token__but_we_just_dont_care():
     )
     res, token = p.paginate(results)
 
-    res.should.equal([])
-    token.should.equal(None)
+    assert res == []
+    assert token is None
 
 
 class CustomInvalidTokenException(BaseException):
@@ -177,7 +177,7 @@ class TestDecorator(unittest.TestCase):
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_returning_args(self, *args, **kwargs):
-        return [*args] + [(k, v) for k, v in kwargs.items()]
+        return [*args] + list(kwargs.items())
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def method_expecting_token_as_kwarg(self, custom_token=None):
@@ -190,7 +190,9 @@ class TestDecorator(unittest.TestCase):
         return [{"name": "item1"}, {"name": "item2"}]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def method_with_list_as_kwarg(self, resources=[]):
+    def method_with_list_as_kwarg(self, resources):
+        if not resources:
+            resources = []
         return resources or results
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
@@ -203,26 +205,25 @@ class TestDecorator(unittest.TestCase):
 
     def test__method_returning_dict(self):
         page, token = self.method_returning_dict()
-        page.should.equal(results)
-        token.should.equal(None)
+        assert page == results
+        assert token is None
 
     def test__method_returning_instances(self):
         page, token = self.method_returning_instances()
-        page.should.equal(model_results[0:10])
-        token.shouldnt.equal(None)
+        assert page == model_results[0:10]
+        assert token is not None
 
     def test__method_without_configuration(self):
         with pytest.raises(ValueError):
             self.method_without_configuration()
 
     def test__input_arguments_are_returned(self):
-        resp, token = self.method_returning_args(1, "2", next_token=None, max_results=5)
-        resp.should.have.length_of(4)
-        resp.should.contain(1)
-        resp.should.contain("2")
-        resp.should.contain(("next_token", None))
-        resp.should.contain(("max_results", 5))
-        token.should.equal(None)
+        resp = self.method_returning_args(1, "2", next_token=None, max_results=5)
+        assert len(resp) == 4
+        assert 1 in resp
+        assert "2" in resp
+        assert ("next_token", None) in resp
+        assert ("max_results", 5) in resp
 
     def test__pass_exception_on_invalid_token(self):
         # works fine if no token is specified
@@ -233,67 +234,69 @@ class TestDecorator(unittest.TestCase):
             self.method_specifying_invalidtoken_exception(
                 next_token="some invalid token"
             )
-        exc.value.should.be.a(CustomInvalidTokenException)
-        exc.value.message.should.equal("Invalid token: some invalid token")
+        assert isinstance(exc.value, CustomInvalidTokenException)
+        assert exc.value.message == "Invalid token: some invalid token"
 
     def test__pass_generic_exception_on_invalid_token(self):
         # works fine if no token is specified
         self.method_specifying_generic_invalidtoken_exception()
 
         # throws exception if next_token is invalid
-        # Exception does not take any arguments - our paginator needs to verify whether the next_token arg is expected
+        # Exception does not take any arguments - our paginator needs to
+        # verify whether the next_token arg is expected
         with pytest.raises(GenericInvalidTokenException) as exc:
             self.method_specifying_generic_invalidtoken_exception(
                 next_token="some invalid token"
             )
-        exc.value.should.be.a(GenericInvalidTokenException)
-        exc.value.message.should.equal("Invalid token!")
+        assert isinstance(exc.value, GenericInvalidTokenException)
+        assert exc.value.message == "Invalid token!"
 
     def test__invoke_function_that_expects_token_as_keyword(self):
         resp, first_token = self.method_expecting_token_as_kwarg()
-        resp.should.equal([{"name": "item1"}])
-        first_token.shouldnt.equal(None)
-        self.custom_token.should.equal(None)
+        assert resp == [{"name": "item1"}]
+        assert first_token is not None
+        assert self.custom_token is None
 
         # Verify the custom_token is received in the business method
         # Could be handy for additional validation
-        resp, token = self.method_expecting_token_as_kwarg(custom_token=first_token)
-        self.custom_token.should.equal(first_token)
+        resp, _ = self.method_expecting_token_as_kwarg(custom_token=first_token)
+        assert self.custom_token == first_token
 
     def test__invoke_function_that_expects_limit_as_keyword(self):
         self.method_expecting_limit_as_kwarg(custom_limit=None)
-        self.custom_limit.should.equal(None)
+        assert self.custom_limit == None
 
         # Verify the custom_limit is received in the business method
         # Could be handy for additional validation
         self.method_expecting_limit_as_kwarg(custom_limit=1)
-        self.custom_limit.should.equal(1)
+        assert self.custom_limit == 1
 
     def test__verify_kwargs_can_be_a_list(self):
         # Use case - verify that the kwarg can be of type list
         # Paginator creates a hash for all kwargs
         # We need to be make sure that the hash-function can deal with lists
         resp, token = self.method_with_list_as_kwarg()
-        resp.should.equal(results[0:1])
+        assert resp == results[0:1]
 
         resp, token = self.method_with_list_as_kwarg(next_token=token)
-        resp.should.equal(results[1:2])
+        assert resp == results[1:2]
 
         custom_list = [{"name": "a"}, {"name": "b"}]
         resp, token = self.method_with_list_as_kwarg(resources=custom_list)
-        resp.should.equal(custom_list[0:1])
+        assert resp == custom_list[0:1]
 
         resp, token = self.method_with_list_as_kwarg(
             resources=custom_list, next_token=token
         )
-        resp.should.equal(custom_list[1:])
-        token.should.equal(None)
+        assert resp == custom_list[1:]
+        assert token is None
 
     def test__paginator_fails_with_inconsistent_arguments(self):
         custom_list = [{"name": "a"}, {"name": "b"}]
         resp, token = self.method_with_list_as_kwarg(resources=custom_list)
-        resp.should.equal(custom_list[0:1])
+        assert resp == custom_list[0:1]
 
         with pytest.raises(InvalidToken):
-            # This should fail, as our 'resources' argument is inconsistent with the original resources that were provided
+            # This should fail, as our 'resources' argument is inconsistent
+            # with the original resources that were provided
             self.method_with_list_as_kwarg(resources=results, next_token=token)
