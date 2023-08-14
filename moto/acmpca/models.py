@@ -23,6 +23,7 @@ class CertificateAuthority(BaseModel):
         certificate_authority_configuration: Dict[str, Any],
         certificate_authority_type: str,
         revocation_configuration: Dict[str, Any],
+        security_standard: Optional[str],
     ):
         self.id = mock_random.uuid4()
         self.arn = (
@@ -40,6 +41,7 @@ class CertificateAuthority(BaseModel):
         self.updated_at: Optional[float] = None
         self.status = "PENDING_CERTIFICATE"
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
+        self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
 
         common_name = self.certificate_authority_configuration.get("Subject", {}).get(
             "CommonName", "Moto.org"
@@ -170,6 +172,7 @@ class CertificateAuthority(BaseModel):
             "CreatedAt": self.created_at,
             "Status": self.status,
             "UsageMode": self.usage_mode,
+            "KeyStorageSecurityStandard": self.security_standard,
         }
         if self.updated_at:
             dct["LastStateChangeAt"] = self.updated_at
@@ -196,6 +199,7 @@ class ACMPCABackend(BaseBackend):
         certificate_authority_configuration: Dict[str, Any],
         revocation_configuration: Dict[str, Any],
         certificate_authority_type: str,
+        security_standard: Optional[str],
         tags: List[Dict[str, str]],
     ) -> str:
         """
@@ -207,6 +211,7 @@ class ACMPCABackend(BaseBackend):
             certificate_authority_configuration=certificate_authority_configuration,
             certificate_authority_type=certificate_authority_type,
             revocation_configuration=revocation_configuration,
+            security_standard=security_standard,
         )
         self.certificate_authorities[authority.arn] = authority
         if tags:

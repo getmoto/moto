@@ -381,11 +381,15 @@ def test_target_group_attributes():
 
     # The attributes should start with the two defaults
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    assert len(response["Attributes"]) == 5
+    assert len(response["Attributes"]) == 6
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["deregistration_delay.timeout_seconds"] == "300"
     assert attributes["stickiness.enabled"] == "false"
     assert attributes["waf.fail_open.enabled"] == "false"
+    assert (
+        attributes["load_balancing.cross_zone.enabled"]
+        == "use_load_balancer_configuration"
+    )
 
     # Add cookie stickiness
     response = conn.modify_target_group_attributes(
@@ -404,7 +408,7 @@ def test_target_group_attributes():
 
     # These new values should be in the full attribute list
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    assert len(response["Attributes"]) == 6
+    assert len(response["Attributes"]) == 7
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["stickiness.type"] == "lb_cookie"
     assert attributes["stickiness.enabled"] == "true"

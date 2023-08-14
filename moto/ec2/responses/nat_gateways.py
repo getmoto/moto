@@ -53,6 +53,9 @@ DESCRIBE_NAT_GATEWAYS_RESPONSE = """<DescribeNatGatewaysResponse xmlns="http://e
                     {% if address_set.networkInterfaceId %}
                     <networkInterfaceId>{{ address_set.networkInterfaceId }}</networkInterfaceId>
                     {% endif %}
+                    {% if address_set.associationId %}
+                    <associationId>{{ address_set.associationId }}</associationId>
+                    {% endif %}
                 </item>
             {% endfor %}
             </natGatewayAddressSet>
@@ -93,6 +96,9 @@ CREATE_NAT_GATEWAY = """<CreateNatGatewayResponse xmlns="http://ec2.amazonaws.co
                     {% endif %}
                     {% if address_set.networkInterfaceId %}
                     <networkInterfaceId>{{ address_set.networkInterfaceId }}</networkInterfaceId>
+                    {% endif %}
+                    {% if address_set.associationId %}
+                    <associationId>{{ address_set.associationId }}</associationId>
                     {% endif %}
                 </item>
             {% endfor %}

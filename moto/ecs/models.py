@@ -437,7 +437,7 @@ class CapacityProvider(BaseObject):
     def _prepare_asg_provider(self, asg_details: Dict[str, Any]) -> Dict[str, Any]:
         if "managedScaling" not in asg_details:
             asg_details["managedScaling"] = {}
-        if not asg_details["managedScaling"].get("instanceWarmupPeriod"):
+        if asg_details["managedScaling"].get("instanceWarmupPeriod") is None:
             asg_details["managedScaling"]["instanceWarmupPeriod"] = 300
         if not asg_details["managedScaling"].get("minimumScalingStepSize"):
             asg_details["managedScaling"]["minimumScalingStepSize"] = 1

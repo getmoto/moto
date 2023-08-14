@@ -24,11 +24,13 @@ class ACMPCAResponse(BaseResponse):
         )
         revocation_configuration = params.get("RevocationConfiguration")
         certificate_authority_type = params.get("CertificateAuthorityType")
+        security_standard = params.get("KeyStorageSecurityStandard")
         tags = params.get("Tags")
         certificate_authority_arn = self.acmpca_backend.create_certificate_authority(
             certificate_authority_configuration=certificate_authority_configuration,
             revocation_configuration=revocation_configuration,
             certificate_authority_type=certificate_authority_type,
+            security_standard=security_standard,
             tags=tags,
         )
         return json.dumps(dict(CertificateAuthorityArn=certificate_authority_arn))

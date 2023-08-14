@@ -370,6 +370,12 @@ DEFAULT_USER_POOL_CONFIG: Dict[str, Any] = {
         "EmailSubject": "Your verification code",
         "DefaultEmailOption": "CONFIRM_WITH_CODE",
     },
+    "AccountRecoverySetting": {
+        "RecoveryMechanisms": [
+            {"Priority": 1, "Name": "verified_email"},
+            {"Priority": 2, "Name": "verified_phone_number"},
+        ]
+    },
 }
 
 
@@ -463,19 +469,6 @@ class CognitoIdpUserPool(BaseModel):
                 if upd.user_pool_id == self.id
             ),
             None,
-        )
-
-    def _account_recovery_setting(self) -> Any:
-        # AccountRecoverySetting is not present in DescribeUserPool response if the pool was created without
-        # specifying it, ForgotPassword works on default settings nonetheless
-        return self.extended_config.get(
-            "AccountRecoverySetting",
-            {
-                "RecoveryMechanisms": [
-                    {"Priority": 1, "Name": "verified_phone_number"},
-                    {"Priority": 2, "Name": "verified_email"},
-                ]
-            },
         )
 
     def _base_json(self) -> Dict[str, Any]:
@@ -684,7 +677,15 @@ class CognitoIdpUserPoolClient(BaseModel):
         self.id = create_id()
         self.secret = str(random.uuid4())
         self.generate_secret = generate_secret or False
-        self.extended_config = extended_config or {}
+        # Some default values - may be overridden by the user
+        self.extended_config: Dict[str, Any] = {
+            "AllowedOAuthFlowsUserPoolClient": False,
+            "AuthSessionValidity": 3,
+            "EnablePropagateAdditionalUserContextData": False,
+            "EnableTokenRevocation": True,
+            "RefreshTokenValidity": 30,
+        }
+        self.extended_config.update(extended_config or {})
 
     def _base_json(self) -> Dict[str, Any]:
         return {
@@ -1590,7 +1591,7 @@ class CognitoIdpBackend(BaseBackend):
         """
         for user_pool in self.user_pools.values():
             if client_id in user_pool.clients:
-                recovery_settings = user_pool._account_recovery_setting()
+                recovery_settings = user_pool.extended_config["AccountRecoverySetting"]
                 user = user_pool._get_user(username)
                 break
         else:

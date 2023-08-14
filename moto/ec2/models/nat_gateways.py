@@ -133,6 +133,7 @@ class NatGatewayBackend:
             if eip:
                 address_set["allocationId"] = allocation_id
                 address_set["publicIp"] = eip.public_ip or None
+                address_set["associationId"] = eip.association_id or None
         address_set["networkInterfaceId"] = nat_gateway._eni.id
         address_set["privateIp"] = nat_gateway._eni.private_ip_address
         nat_gateway.address_set.append(address_set)

@@ -434,9 +434,10 @@ def test_create_distribution_with_invalid_s3_bucket():
 
 
 @mock_cloudfront
-def test_create_distribution_custom_config():
+@pytest.mark.parametrize("ssl_protocols", (["TLSv1"], ["TLSv1", "SSLv3"]))
+def test_create_distribution_custom_config(ssl_protocols):
     client = boto3.client("cloudfront", region_name="us-west-1")
-    config = scaffold.example_dist_custom_config("ref")
+    config = scaffold.example_dist_custom_config("ref", ssl_protocols)
 
     dist = client.create_distribution(DistributionConfig=config)["Distribution"][
         "DistributionConfig"
@@ -450,8 +451,8 @@ def test_create_distribution_custom_config():
     assert custom_config["OriginKeepaliveTimeout"] == 10
     assert custom_config["OriginProtocolPolicy"] == "http-only"
     assert custom_config["OriginSslProtocols"] == {
-        "Items": ["TLSv1", "SSLv3"],
-        "Quantity": 2,
+        "Items": ssl_protocols,
+        "Quantity": len(ssl_protocols),
     }
 
 

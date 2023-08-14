@@ -113,6 +113,8 @@ def test_list_users():
 
     assert len(resp["UserList"]) == 4
     assert resp["Status"] == 200
+    for user in resp["UserList"]:
+        user.pop("PrincipalId")
 
     assert {
         "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fake0",
