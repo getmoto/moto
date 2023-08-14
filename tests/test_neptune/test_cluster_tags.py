@@ -17,9 +17,9 @@ def test_add_tags_to_cluster():
     )
 
     tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
-    tags.should.equal([{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}])
+    assert tags == [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
 
     conn.remove_tags_from_resource(ResourceName=cluster_arn, TagKeys=["k1"])
 
     tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
-    tags.should.equal([{"Key": "k2", "Value": "v2"}])
+    assert tags == [{"Key": "k2", "Value": "v2"}]
