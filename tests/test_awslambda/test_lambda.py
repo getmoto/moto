@@ -1662,6 +1662,33 @@ def test_put_function_concurrency_success():
 
 
 @mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "don't care"})
+def test_put_function_concurrency_not_enforced():
+    del os.environ["MOTO_LAMBDA_CONCURRENCY_QUOTA"]  # i.e. not set by user
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime="python2.7",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # This works, even though it normally would be disallowed by AWS
+    response = conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=901
+    )
+    assert response["ReservedConcurrentExecutions"] == 901
+
+
+@mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_failure():
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -1683,7 +1710,7 @@ def test_put_function_concurrency_failure():
             FunctionName=function_name, ReservedConcurrentExecutions=901
         )
 
-        assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
 
     # No reservation should have been set
     response = conn.get_function_concurrency(FunctionName=function_name)
@@ -1691,6 +1718,7 @@ def test_put_function_concurrency_failure():
 
 
 @mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_i_can_has_math():
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -1740,6 +1768,6 @@ def test_put_function_concurrency_i_can_has_math():
             FunctionName=function_name_2, ReservedConcurrentExecutions=201
         )
 
-        assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
     response = conn.get_function_concurrency(FunctionName=function_name_2)
     assert response["ReservedConcurrentExecutions"] == 100

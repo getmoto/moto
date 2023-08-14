@@ -2034,20 +2034,30 @@ class LambdaBackend(BaseBackend):
     def put_function_concurrency(
         self, function_name: str, reserved_concurrency: str
     ) -> str:
-        # Actual lambda restricts concurrency to 1000 (default) per region/account
-        # across all functions; we approximate that behavior by summing across all
-        # functions (hopefully all in the same account and region) and allowing the
-        # caller to simulate an increased quota.
-        available = int(os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA", "1000")) - int(
-            reserved_concurrency
-        )
-        for fnx in self.list_functions():
-            if fnx.reserved_concurrency and fnx.function_name != function_name:
-                available -= int(fnx.reserved_concurrency)
-        if available < 100:
-            raise InvalidParameterValueException(
-                "Specified ReservedConcurrentExecutions for function decreases account's UnreservedConcurrentExecution below its minimum value of [100]."
-            )
+        """Establish concurrency limit/reservations for a function
+
+        Actual lambda restricts concurrency to 1000 (default) per region/account
+        across all functions; we approximate that behavior by summing across all
+        functions (hopefully all in the same account and region) and allowing the
+        caller to simulate an increased quota.
+
+        By default, no quota is enforced in order to preserve compatibility with
+        existing code that assumes it can do as many things as it likes. To model
+        actual AWS behavior, define the MOTO_LAMBDA_CONCURRENCY_QUOTA environment
+        variable prior to testing.
+        """
+
+        quota: Optional[str] = os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA")
+        if quota is not None:
+            # Enforce concurrency limits as described above
+            available = int(quota) - int(reserved_concurrency)
+            for fnx in self.list_functions():
+                if fnx.reserved_concurrency and fnx.function_name != function_name:
+                    available -= int(fnx.reserved_concurrency)
+            if available < 100:
+                raise InvalidParameterValueException(
+                    "Specified ReservedConcurrentExecutions for function decreases account's UnreservedConcurrentExecution below its minimum value of [100]."
+                )
 
         fn = self.get_function(function_name)
         fn.reserved_concurrency = reserved_concurrency
