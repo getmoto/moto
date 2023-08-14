@@ -1218,7 +1218,7 @@ def test_create_function_with_already_exists():
             Publish=True,
         )
 
-        assert exc.value.response["Error"]["Code"] == "ResourceConflictException"
+    assert exc.value.response["Error"]["Code"] == "ResourceConflictException"
 
 
 @mock_lambda
