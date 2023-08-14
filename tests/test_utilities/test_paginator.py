@@ -218,7 +218,7 @@ class TestDecorator(unittest.TestCase):
             self.method_without_configuration()
 
     def test__input_arguments_are_returned(self):
-        resp = self.method_returning_args(1, "2", next_token=None, max_results=5)
+        resp, _ = self.method_returning_args(1, "2", next_token=None, max_results=5)
         assert len(resp) == 4
         assert 1 in resp
         assert "2" in resp
