@@ -10,6 +10,7 @@ from moto.utilities.tagging_service import TaggingService
 from moto.cloudformation.utils import get_stack_from_s3_url
 
 from .utils import create_cloudformation_stack_from_template
+from .exceptions import ProductNotFound, PortfolioNotFound, InvalidParametersException
 
 
 class Portfolio(BaseModel):
@@ -39,7 +40,9 @@ class Portfolio(BaseModel):
         self.product_ids = list()
         self.launch_path = LaunchPath(name="LP?", backend=backend)
 
-        self.arn = f"arn:aws:servicecatalog:{region}::{self.portfolio_id}"
+        self.arn = (
+            f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:portfolio/{self.portfolio_id}"
+        )
         self.tags = tags
         self.backend.tag_resource(self.arn, tags)
 
@@ -129,7 +132,9 @@ class Product(BaseModel):
         self.provisioning_artifacts: OrderedDict[str, "ProvisioningArtifact"] = dict()
 
         self.backend = backend
-        self.arn = f"arn:aws:servicecatalog:{region}::product/{self.product_id}"
+        self.arn = (
+            f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:product/{self.product_id}"
+        )
         self.tags = tags
         self.backend.tag_resource(self.arn, tags)
 
@@ -389,7 +394,7 @@ class ProvisionedProduct(BaseModel):
             "SUCCEEDED"  # CREATE,IN_PROGRESS,IN_PROGRESS_IN_ERROR,IN_PROGRESS_IN_ERROR
         )
         self.backend = backend
-        self.arn = f"arn:aws:servicecatalog:{region}:ACCOUNT_ID::stack/{self.name}/{self.provisioned_product_id}"
+        self.arn = f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:stack/{self.name}/{self.provisioned_product_id}"
         self.tags = tags
         # self.backend.tag_resource(self.arn, tags)
 
@@ -429,6 +434,28 @@ class ServiceCatalogBackend(BaseBackend):
 
         self.tagger = TaggingService()
 
+    def _get_product(self, identifier: str = "", name: str = "") -> bool:
+        if identifier in self.products:
+            return self.products[identifier]
+
+        for product_id, product in self.products.items():
+            if product.name == name:
+                return product
+
+        raise ProductNotFound(product_id=identifier or name)
+
+    def _get_portfolio(self, identifier: str = "", name: str = "") -> bool:
+        if identifier in self.portfolios:
+            return self.portfolios[identifier]
+
+        for portfolio_id, portfolio in self.portfolios.items():
+            if portfolio.display_name == name:
+                return portfolio
+
+        raise PortfolioNotFound(
+            identifier=identifier or name, identifier_name="Name" if name else "Id"
+        )
+
     def create_portfolio(
         self,
         accept_language,
@@ -438,6 +465,14 @@ class ServiceCatalogBackend(BaseBackend):
         tags,
         idempotency_token,
     ):
+        try:
+            self._get_portfolio(name=display_name)
+            raise InvalidParametersException(
+                message="Portfolio with this name already exists"
+            )
+        except PortfolioNotFound:
+            pass
+
         portfolio = Portfolio(
             region=self.region_name,
             accept_language=accept_language,
@@ -467,7 +502,13 @@ class ServiceCatalogBackend(BaseBackend):
         idempotency_token,
         source_connection,
     ):
-        # implement here
+        try:
+            self._get_product(name=name)
+            raise InvalidParametersException(
+                message="Product with this name already exists"
+            )
+        except ProductNotFound:
+            pass
 
         product = Product(
             region=self.region_name,
@@ -483,8 +524,10 @@ class ServiceCatalogBackend(BaseBackend):
         provisioning_artifact = product._create_provisioning_artifact(
             account_id=self.account_id,
             name=provisioning_artifact_parameters["Name"],
-            description=provisioning_artifact_parameters["Description"],
-            artifact_type=provisioning_artifact_parameters["Type"],
+            description=provisioning_artifact_parameters.get("Description"),
+            artifact_type=provisioning_artifact_parameters.get(
+                "Type", "CLOUD_FORMATION_TEMPLATE"
+            ),
             info=provisioning_artifact_parameters["Info"],
         )
         self.products[product.product_id] = product
@@ -528,8 +571,11 @@ class ServiceCatalogBackend(BaseBackend):
     def associate_product_with_portfolio(
         self, accept_language, product_id, portfolio_id, source_portfolio_id
     ):
-        portfolio = self.portfolios[portfolio_id]
-        portfolio.link_product(product_id)
+        # source_portfolio_id - not implemented yet as copying portfolios not implemented
+        product = self._get_product(identifier=product_id)
+        portfolio = self._get_portfolio(identifier=portfolio_id)
+        portfolio.link_product(product.product_id)
+
         return
 
     def provision_product(
@@ -678,8 +724,6 @@ class ServiceCatalogBackend(BaseBackend):
         page_token,
     ):
         # implement here
-        provisioned_products = list()
-
         # TODO: Filter
         provisioned_products = [
             value.to_provisioned_product_detail_json(include_tags=True)
@@ -710,30 +754,7 @@ class ServiceCatalogBackend(BaseBackend):
             launch_path_summaries.append(launch_path_detail)
 
         next_page_token = None
-        # {
-        #     "LaunchPathSummaries": [
-        #         {
-        #             "Id": "lpv3-w4u2yosjlxdkw",
-        #             "ConstraintSummaries": [
-        #                 {
-        #                     "Type": "LAUNCH",
-        #                     "Description": "Launch as arn:aws:iam::811011756959:role/LaunchRoleBad"
-        #                 }
-        #             ],
-        #             "Tags": [
-        #                 {
-        #                     "Key": "tag1",
-        #                     "Value": "value1"
-        #                 },
-        #                 {
-        #                     "Key": "tag1",
-        #                     "Value": "something"
-        #                 }
-        #             ],
-        #             "Name": "First Portfolio"
-        #         }
-        #     ]
-        # }
+
         return launch_path_summaries, next_page_token
 
     def list_provisioning_artifacts(self, accept_language, product_id):

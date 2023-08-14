@@ -1,8 +1,10 @@
 """Unit tests for servicecatalog-supported APIs."""
+import pytest
 import boto3
 import uuid
 from datetime import date
 from moto import mock_servicecatalog, mock_s3
+from botocore.exceptions import ClientError, ParamValidationError
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -131,6 +133,21 @@ def test_create_portfolio():
 
 
 @mock_servicecatalog
+def test_create_portfolio_duplicate():
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    client.create_portfolio(DisplayName="Test Portfolio", ProviderName="Test Provider")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_portfolio(
+            DisplayName="Test Portfolio", ProviderName="Test Provider"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParametersException"
+    assert err["Message"] == "Portfolio with this name already exists"
+
+
+@mock_servicecatalog
 @mock_s3
 def test_create_product():
     region_name = "us-east-2"
@@ -154,6 +171,41 @@ def test_create_product():
     # TODO: Much more comprehensive
     assert "ProductViewDetail" in resp
     assert "ProvisioningArtifactDetail" in resp
+
+
+@mock_servicecatalog
+@mock_s3
+def test_create_product_duplicate():
+    region_name = "us-east-2"
+    cloud_url = _create_cf_template_in_s3(region_name=region_name)
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    client.create_product(
+        Name="test product",
+        Owner="owner arn",
+        ProductType="CLOUD_FORMATION_TEMPLATE",
+        ProvisioningArtifactParameters={
+            "Name": "InitialCreation",
+            "Info": {"LoadTemplateFromURL": cloud_url},
+        },
+        IdempotencyToken=str(uuid.uuid4()),
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_product(
+            Name="test product",
+            Owner="owner arn",
+            ProductType="CLOUD_FORMATION_TEMPLATE",
+            ProvisioningArtifactParameters={
+                "Name": "InitialCreation",
+                "Info": {"LoadTemplateFromURL": cloud_url},
+            },
+            IdempotencyToken=str(uuid.uuid4()),
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParametersException"
+    assert err["Message"] == "Product with this name already exists"
 
 
 @mock_servicecatalog
