@@ -6,6 +6,7 @@ from urllib.parse import unquote
 from moto.core.utils import path_url
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse, TYPE_RESPONSE
+from .exceptions import FunctionAlreadyExists
 from .models import lambda_backends, LambdaBackend
 
 
@@ -323,20 +324,7 @@ class LambdaResponse(BaseResponse):
             fn = self.backend.create_function(self.json_body)
             config = fn.get_configuration(on_create=True)
             return 201, {}, json.dumps(config)
-        payload = json.dumps(
-            {
-                "Type": "User",
-                "message": f"Function already exist: {function_name}",
-            }
-        ).encode("utf-8")
-        return (
-            409,
-            {
-                "x-amzn-ErrorType": "ResourceConflictException",
-                "Content-Length": str(len(payload)),
-            },
-            payload,
-        )
+        raise FunctionAlreadyExists(function_name)
 
     def _create_function_url_config(self) -> TYPE_RESPONSE:
         function_name = unquote(self.path.split("/")[-2])
