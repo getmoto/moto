@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.moto_api import state_manager
 
@@ -16,13 +14,13 @@ class ExampleModel(ManagedState):
 
 
 def test_initial_state():
-    ExampleModel().status.should.equal("frist_status")
+    assert ExampleModel().status == "frist_status"
 
 
 def test_advancing_without_specifying_configuration_does_nothing():
     model = ExampleModel()
     for _ in range(5):
-        model.status.should.equal("frist_status")
+        assert model.status == "frist_status"
         model.advance()
 
 
@@ -38,11 +36,11 @@ def test_advance_immediately():
         model_name="example::model", transition={"progression": "immediate"}
     )
 
-    model.status.should.equal("fifth")
+    assert model.status == "fifth"
 
     model.advance()
 
-    model.status.should.equal("fifth")
+    assert model.status == "fifth"
 
 
 def test_advance_x_times():
@@ -52,18 +50,18 @@ def test_advance_x_times():
     )
     for _ in range(2):
         model.advance()
-        model.status.should.equal("frist_status")
+        assert model.status == "frist_status"
 
     # 3rd time is a charm
     model.advance()
-    model.status.should.equal("second_status")
+    assert model.status == "second_status"
 
     # Status is still the same if we keep asking for it
-    model.status.should.equal("second_status")
+    assert model.status == "second_status"
 
     # Advancing more does not make a difference - there's nothing to advance to
     model.advance()
-    model.status.should.equal("second_status")
+    assert model.status == "second_status"
 
 
 def test_advance_multiple_stages():
@@ -78,20 +76,20 @@ def test_advance_multiple_stages():
         model_name="example::model", transition={"progression": "manual", "times": 1}
     )
 
-    model.status.should.equal("frist_status")
-    model.status.should.equal("frist_status")
+    assert model.status == "frist_status"
+    assert model.status == "frist_status"
     model.advance()
-    model.status.should.equal("second")
-    model.status.should.equal("second")
+    assert model.status == "second"
+    assert model.status == "second"
     model.advance()
-    model.status.should.equal("third")
-    model.status.should.equal("third")
+    assert model.status == "third"
+    assert model.status == "third"
     model.advance()
-    model.status.should.equal("fourth")
-    model.status.should.equal("fourth")
+    assert model.status == "fourth"
+    assert model.status == "fourth"
     model.advance()
-    model.status.should.equal("fifth")
-    model.status.should.equal("fifth")
+    assert model.status == "fifth"
+    assert model.status == "fifth"
 
 
 def test_override_status():
@@ -102,22 +100,22 @@ def test_override_status():
         model_name="example::model", transition={"progression": "manual", "times": 1}
     )
 
-    model.status.should.equal("creating")
+    assert model.status == "creating"
     model.advance()
-    model.status.should.equal("ready")
+    assert model.status == "ready"
     model.advance()
     # We're still ready
-    model.status.should.equal("ready")
+    assert model.status == "ready"
 
     # Override status manually
     model.status = "updating"
 
-    model.status.should.equal("updating")
+    assert model.status == "updating"
     model.advance()
-    model.status.should.equal("ready")
-    model.status.should.equal("ready")
+    assert model.status == "ready"
+    assert model.status == "ready"
     model.advance()
-    model.status.should.equal("ready")
+    assert model.status == "ready"
 
 
 class SlowModel(ManagedState):
@@ -134,15 +132,15 @@ def test_realworld_delay():
         transition={"progression": "time", "seconds": 2},
     )
 
-    model.status.should.equal("first")
+    assert model.status == "first"
     # The status will stick to 'first' for a long time
     # Advancing the model doesn't do anything, really
     for _ in range(10):
         model.advance()
-        model.status.should.equal("first")
+        assert model.status == "first"
 
     import time
 
     time.sleep(2)
     # Status has only progressed after 2 seconds have passed
-    model.status.should.equal("second")
+    assert model.status == "second"

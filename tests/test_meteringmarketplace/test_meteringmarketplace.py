@@ -1,6 +1,5 @@
 import boto3
 import copy
-import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
 from moto import mock_meteringmarketplace
 from moto.meteringmarketplace.models import Result
@@ -78,7 +77,7 @@ def test_batch_meter_usage():
         UsageRecords=USAGE_RECORDS, ProductCode="PUFXZLyUElvQvrsG"
     )
 
-    res.should.have.key("Results").length_of(10)
+    assert len(res["Results"]) == 10
 
     records_without_time = copy.copy(USAGE_RECORDS)
     for r in records_without_time:
