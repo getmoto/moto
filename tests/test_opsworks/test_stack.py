@@ -1,6 +1,5 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
-import re
+import pytest
 
 from moto import mock_opsworks
 
@@ -14,7 +13,7 @@ def test_create_stack_response():
         ServiceRoleArn="service_arn",
         DefaultInstanceProfileArn="profile_arn",
     )
-    response.should.contain("StackId")
+    assert "StackId" in response
 
 
 @mock_opsworks
@@ -29,17 +28,17 @@ def test_describe_stacks():
         )
 
     response = client.describe_stacks()
-    response["Stacks"].should.have.length_of(3)
+    assert len(response["Stacks"]) == 3
     for stack in response["Stacks"]:
-        stack["ServiceRoleArn"].should.equal("service_arn")
-        stack["DefaultInstanceProfileArn"].should.equal("profile_arn")
+        assert stack["ServiceRoleArn"] == "service_arn"
+        assert stack["DefaultInstanceProfileArn"] == "profile_arn"
 
     _id = response["Stacks"][0]["StackId"]
     response = client.describe_stacks(StackIds=[_id])
-    response["Stacks"].should.have.length_of(1)
-    response["Stacks"][0]["Arn"].should.contain(_id)
+    assert len(response["Stacks"]) == 1
+    assert _id in response["Stacks"][0]["Arn"]
 
     # ClientError/ResourceNotFoundException
-    client.describe_stacks.when.called_with(StackIds=["foo"]).should.throw(
-        Exception, re.compile(r"foo")
-    )
+    with pytest.raises(Exception) as exc:
+        client.describe_stacks(StackIds=["foo"])
+    assert r"foo" in exc.value.response["Error"]["Message"]
