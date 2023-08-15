@@ -37,7 +37,7 @@ class PortfolioNotFound(ResourceNotFoundException):
 
     def __init__(self, identifier: str, identifier_name: str):
         super().__init__(
-            "ResourceNotFoundException",
+            "Portfolio not found",
             resource_id=f"{identifier_name}={identifier}",
             resource_type="AWS::ServiceCatalog::Portfolio",
         )

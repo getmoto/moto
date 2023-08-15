@@ -312,6 +312,34 @@ def test_list_portfolios():
 
 
 @mock_servicecatalog
+def test_describe_portfolio():
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    assert len(client.list_portfolios()["PortfolioDetails"]) == 0
+
+    portfolio_id = client.create_portfolio(DisplayName="test-1", ProviderName="prov-1")[
+        "PortfolioDetail"
+    ]["Id"]
+
+    portfolio_response = client.describe_portfolio(Id=portfolio_id)
+    assert portfolio_id == portfolio_response["PortfolioDetail"]["Id"]
+
+
+@mock_servicecatalog
+def test_describe_portfolio_not_existing():
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    assert len(client.list_portfolios()["PortfolioDetails"]) == 0
+
+    portfolio_id = "not-found"
+
+    with pytest.raises(ClientError) as exc:
+        portfolio_response = client.describe_portfolio(Id=portfolio_id)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParametersException"
+    assert err["Message"] == "Portfolio not found"
+
+
+@mock_servicecatalog
 @mock_s3
 def test_describe_provisioned_product():
     region_name = "us-east-2"
@@ -504,3 +532,89 @@ def test_list_provisioning_artifacts():
     pad = resp["ProvisioningArtifactDetails"]
     assert len(pad) == 1
     assert pad[0]["Id"] == product["ProvisioningArtifactDetail"]["Id"]
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product_as_admin():
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.describe_product_as_admin(Id=product_id)
+
+    assert resp["ProductViewDetail"]["ProductViewSummary"]["ProductId"] == product_id
+    assert len(resp["ProvisioningArtifactSummaries"]) == 1
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product():
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_default_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.describe_product_as_admin(Id=product_id)
+
+    assert resp["ProductViewDetail"]["ProductViewSummary"]["ProductId"] == product_id
+    assert len(resp["ProvisioningArtifactSummaries"]) == 1
+
+
+@mock_servicecatalog
+@mock_s3
+def test_update_portfolio():
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+
+    create_portfolio_response = client.create_portfolio(
+        DisplayName="Original Name", ProviderName="Test Provider"
+    )
+
+    portfolio_id = create_portfolio_response["PortfolioDetail"]["Id"]
+    new_portfolio_name = "New Portfolio Name"
+    resp = client.update_portfolio(
+        Id=portfolio_id,
+        DisplayName=new_portfolio_name,
+    )
+
+    assert resp["PortfolioDetail"]["Id"] == portfolio_id
+    assert resp["PortfolioDetail"]["DisplayName"] == new_portfolio_name
+
+
+@mock_servicecatalog
+@mock_s3
+def test_update_product():
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    resp = client.update_product()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_servicecatalog
+@mock_s3
+def test_list_portfolios_for_product():
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    portfolio, product = _create_default_product_with_portfolio(
+        region_name=region_name,
+        portfolio_name="My Portfolio",
+        product_name=product_name,
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.list_portfolios_for_product(ProductId=product_id)
+
+    assert resp["PortfolioDetails"][0]["Id"] == portfolio["PortfolioDetail"]["Id"]

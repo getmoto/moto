@@ -333,3 +333,145 @@ class ServiceCatalogResponse(BaseResponse):
                 Status=status,
             )
         )
+
+    def describe_portfolio(self):
+        accept_language = self._get_param("AcceptLanguage")
+        identifier = self._get_param("Id")
+        (
+            portfolio_detail,
+            tags,
+            tag_options,
+            budgets,
+        ) = self.servicecatalog_backend.describe_portfolio(
+            accept_language=accept_language,
+            identifier=identifier,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                PortfolioDetail=portfolio_detail,
+                Tags=tags,
+                TagOptions=tag_options,
+                Budgets=budgets,
+            )
+        )
+
+    def describe_product_as_admin(self):
+        accept_language = self._get_param("AcceptLanguage")
+        identifier = self._get_param("Id")
+        name = self._get_param("Name")
+        source_portfolio_id = self._get_param("SourcePortfolioId")
+        (
+            product_view_detail,
+            provisioning_artifact_summaries,
+            tags,
+            tag_options,
+            budgets,
+        ) = self.servicecatalog_backend.describe_product_as_admin(
+            accept_language=accept_language,
+            identifier=identifier,
+            name=name,
+            source_portfolio_id=source_portfolio_id,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                ProductViewDetail=product_view_detail,
+                ProvisioningArtifactSummaries=provisioning_artifact_summaries,
+                Tags=tags,
+                TagOptions=tag_options,
+                Budgets=budgets,
+            )
+        )
+
+    def describe_product(self):
+        accept_language = self._get_param("AcceptLanguage")
+        identifier = self._get_param("Id")
+        name = self._get_param("Name")
+        (
+            product_view_summary,
+            provisioning_artifacts,
+            budgets,
+            launch_paths,
+        ) = self.servicecatalog_backend.describe_product(
+            accept_language=accept_language,
+            identifier=identifier,
+            name=name,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(
+                ProductViewSummary=product_view_summary,
+                ProvisioningArtifacts=provisioning_artifacts,
+                Budgets=budgets,
+                LaunchPaths=launch_paths,
+            )
+        )
+
+    def update_portfolio(self):
+        accept_language = self._get_param("AcceptLanguage")
+        identifier = self._get_param("Id")
+        display_name = self._get_param("DisplayName")
+        description = self._get_param("Description")
+        provider_name = self._get_param("ProviderName")
+        add_tags = self._get_param("AddTags")
+        remove_tags = self._get_param("RemoveTags")
+        portfolio_detail, tags = self.servicecatalog_backend.update_portfolio(
+            accept_language=accept_language,
+            identifier=identifier,
+            display_name=display_name,
+            description=description,
+            provider_name=provider_name,
+            add_tags=add_tags,
+            remove_tags=remove_tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(PortfolioDetail=portfolio_detail, Tags=tags))
+
+    def update_product(self):
+        accept_language = self._get_param("AcceptLanguage")
+        identifier = self._get_param("Id")
+        name = self._get_param("Name")
+        owner = self._get_param("Owner")
+        description = self._get_param("Description")
+        distributor = self._get_param("Distributor")
+        support_description = self._get_param("SupportDescription")
+        support_email = self._get_param("SupportEmail")
+        support_url = self._get_param("SupportUrl")
+        add_tags = self._get_param("AddTags")
+        remove_tags = self._get_param("RemoveTags")
+        source_connection = self._get_param("SourceConnection")
+        product_view_detail, tags = self.servicecatalog_backend.update_product(
+            accept_language=accept_language,
+            identifier=identifier,
+            name=name,
+            owner=owner,
+            description=description,
+            distributor=distributor,
+            support_description=support_description,
+            support_email=support_email,
+            support_url=support_url,
+            add_tags=add_tags,
+            remove_tags=remove_tags,
+            source_connection=source_connection,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(ProductViewDetail=product_view_detail, Tags=tags))
+
+    def list_portfolios_for_product(self):
+        accept_language = self._get_param("AcceptLanguage")
+        product_id = self._get_param("ProductId")
+        page_token = self._get_param("PageToken")
+        page_size = self._get_param("PageSize")
+        (
+            portfolio_details,
+            next_page_token,
+        ) = self.servicecatalog_backend.list_portfolios_for_product(
+            accept_language=accept_language,
+            product_id=product_id,
+            page_token=page_token,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(PortfolioDetails=portfolio_details, NextPageToken=next_page_token)
+        )

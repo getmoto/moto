@@ -44,7 +44,7 @@ class Portfolio(BaseModel):
             f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:portfolio/{self.portfolio_id}"
         )
         self.tags = tags
-        self.backend.tag_resource(self.arn, tags)
+        # self.backend.tag_resource(self.arn, tags)
 
     def link_product(self, product_id: str):
         if product_id not in self.product_ids:
@@ -136,7 +136,7 @@ class Product(BaseModel):
             f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:product/{self.product_id}"
         )
         self.tags = tags
-        self.backend.tag_resource(self.arn, tags)
+        # self.backend.tag_resource(self.arn, tags)
 
     def get_provisioning_artifact(self, artifact_id: str):
         return self.provisioning_artifacts[artifact_id]
@@ -843,6 +843,104 @@ class ServiceCatalogBackend(BaseBackend):
                 and constraint.portfolio_id == portfolio_id
             ):
                 return constraint
+
+    def describe_portfolio(self, accept_language, identifier):
+        portfolio = self._get_portfolio(identifier=identifier)
+        portfolio_detail = portfolio.to_json()
+
+        tags = []
+        tag_options = None
+        budgets = None
+        return portfolio_detail, tags, tag_options, budgets
+
+    def describe_product_as_admin(
+        self, accept_language, identifier, name, source_portfolio_id
+    ):
+        # implement here
+        product = self._get_product(identifier=identifier, name=name)
+        product_view_detail = product.to_product_view_detail_json()
+
+        provisioning_artifact_summaries = []
+        for key, summary in product.provisioning_artifacts.items():
+            provisioning_artifact_summaries.append(
+                summary.to_provisioning_artifact_detail_json()
+            )
+        tags = []
+        tag_options = None
+        budgets = None
+
+        return (
+            product_view_detail,
+            provisioning_artifact_summaries,
+            tags,
+            tag_options,
+            budgets,
+        )
+
+    def describe_product(self, accept_language, identifier, name):
+
+        (
+            product_view_summary,
+            provisioning_artifacts,
+            _,
+            _,
+            budgets,
+        ) = self.describe_product_as_admin(accept_language, identifier, name)
+        launch_paths = []
+        return product_view_summary, provisioning_artifacts, budgets, launch_paths
+
+    def update_portfolio(
+        self,
+        accept_language,
+        identifier,
+        display_name,
+        description,
+        provider_name,
+        add_tags,
+        remove_tags,
+    ):
+        portfolio = self._get_portfolio(identifier=identifier)
+
+        portfolio.display_name = display_name
+        portfolio.description = description
+        portfolio.provider_name = provider_name
+
+        # tags
+
+        portfolio_detail = portfolio.to_json()
+        tags = []
+
+        return portfolio_detail, tags
+
+    def update_product(
+        self,
+        accept_language,
+        identifier,
+        name,
+        owner,
+        description,
+        distributor,
+        support_description,
+        support_email,
+        support_url,
+        add_tags,
+        remove_tags,
+        source_connection,
+    ):
+        # implement here
+        product_view_detail = {}
+        tags = []
+        return product_view_detail, tags
+
+    def list_portfolios_for_product(self, accept_language, product_id, page_token):
+        portfolio_details = []
+        for portfolio_id, portfolio in self.portfolios.items():
+            if product_id in portfolio.product_ids:
+                portfolio_details.append(portfolio.to_json())
+
+        next_page_token = None
+
+        return portfolio_details, next_page_token
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")
