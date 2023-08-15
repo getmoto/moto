@@ -316,7 +316,7 @@ class DynamoDBBackend(BaseBackend):
         limit: int,
         exclusive_start_key: Dict[str, Any],
         scan_index_forward: bool,
-        projection_expression: str,
+        projection_expression: Optional[str],
         index_name: Optional[str] = None,
         expr_names: Optional[Dict[str, str]] = None,
         expr_values: Optional[Dict[str, str]] = None,
@@ -351,11 +351,11 @@ class DynamoDBBackend(BaseBackend):
         filters: Dict[str, Any],
         limit: int,
         exclusive_start_key: Dict[str, Any],
-        filter_expression: str,
+        filter_expression: Optional[str],
         expr_names: Dict[str, Any],
         expr_values: Dict[str, Any],
         index_name: str,
-        projection_expression: str,
+        projection_expression: Optional[str],
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         table = self.get_table(table_name)
 

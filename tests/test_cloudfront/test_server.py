@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import xmltodict
 
 from moto import mock_cloudfront
@@ -12,5 +11,5 @@ def test_cloudfront_list():
 
     res = test_client.get("/2020-05-31/distribution")
     data = xmltodict.parse(res.data, dict_constructor=dict)
-    data.should.have.key("DistributionList")
-    data["DistributionList"].shouldnt.have.key("Items")
+    assert "DistributionList" in data
+    assert "Items" not in data["DistributionList"]

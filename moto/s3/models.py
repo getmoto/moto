@@ -53,12 +53,7 @@ from moto.s3.exceptions import (
 from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
 from .select_object_content import parse_query
-from .utils import (
-    clean_key_name,
-    _VersionedKeyStore,
-    undo_clean_key_name,
-    CaseInsensitiveDict,
-)
+from .utils import _VersionedKeyStore, CaseInsensitiveDict
 from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS
 from ..events.notifications import send_notification as events_send_notification
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
@@ -1904,7 +1899,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_until: Optional[str] = None,
         checksum_value: Optional[str] = None,
     ) -> FakeKey:
-        key_name = clean_key_name(key_name)
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
 
@@ -1963,9 +1957,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         key_name: str,
         acl: Optional[FakeAcl],
-        key_is_clean: bool = False,
     ) -> None:
-        key = self.get_object(bucket_name, key_name, key_is_clean=key_is_clean)
+        key = self.get_object(bucket_name, key_name)
         # TODO: Support the XML-based ACL format
         if key is not None:
             key.set_acl(acl)
@@ -2023,10 +2016,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         version_id: Optional[str] = None,
         part_number: Optional[str] = None,
-        key_is_clean: bool = False,
     ) -> Optional[FakeKey]:
-        if not key_is_clean:
-            key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
         key = None
@@ -2360,7 +2350,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         version_id: Optional[str] = None,
         bypass: bool = False,
     ) -> Tuple[bool, Optional[Dict[str, Any]]]:
-        key_name = clean_key_name(key_name)
         bucket = self.get_bucket(bucket_name)
 
         response_meta = {}
@@ -2422,9 +2411,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            self.delete_object(
-                bucket_name, undo_clean_key_name(key_name), version_id=version_id
-            )
+            self.delete_object(bucket_name, key_name, version_id=version_id)
             deleted_objects.append((key_name, version_id))
         return deleted_objects
 
@@ -2535,7 +2522,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         select_query: str,
         input_details: Dict[str, Any],
-        output_details: Dict[str, Any],  # pylint: disable=unused-argument
     ) -> List[bytes]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
@@ -2544,7 +2530,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - Function aliases (count(*) as cnt)
          - Most functions (only count() is supported)
          - Result is always in JSON
-         - FieldDelimiters and RecordDelimiters are ignored
+         - FieldDelimiters are ignored
         """
         self.get_bucket(bucket_name)
         key = self.get_object(bucket_name, key_name)

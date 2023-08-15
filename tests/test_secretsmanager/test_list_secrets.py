@@ -2,12 +2,11 @@
 from datetime import datetime
 
 import boto3
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
+import pytest
 
 from moto import mock_secretsmanager
-from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
-import pytest
 
 
 def boto_client():
@@ -108,7 +107,8 @@ def test_with_description_filter():
 
 @mock_secretsmanager
 def test_with_all_filter():
-    # The 'all' filter will match a secret that contains ANY field with the criteria. In other words an implicit OR.
+    # The 'all' filter will match a secret that contains ANY field with
+    # the criteria. In other words an implicit OR.
 
     conn = boto_client()
 
@@ -138,8 +138,8 @@ def test_with_no_filter_key():
     with pytest.raises(ClientError) as ire:
         conn.list_secrets(Filters=[{"Values": ["foo"]}])
 
-    ire.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ire.value.response["Error"]["Message"].should.equal("Invalid filter key")
+    assert ire.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert ire.value.response["Error"]["Message"] == "Invalid filter key"
 
 
 @mock_secretsmanager
@@ -151,8 +151,8 @@ def test_with_no_filter_values():
     with pytest.raises(ClientError) as ire:
         conn.list_secrets(Filters=[{"Key": "description"}])
 
-    ire.value.response["Error"]["Code"].should.equal("InvalidParameterException")
-    ire.value.response["Error"]["Message"].should.equal(
+    assert ire.value.response["Error"]["Code"] == "InvalidParameterException"
+    assert ire.value.response["Error"]["Message"] == (
         "Invalid filter values for key: description"
     )
 
@@ -164,9 +164,10 @@ def test_with_invalid_filter_key():
     with pytest.raises(ClientError) as ire:
         conn.list_secrets(Filters=[{"Key": "invalid", "Values": ["foo"]}])
 
-    ire.value.response["Error"]["Code"].should.equal("ValidationException")
-    ire.value.response["Error"]["Message"].should.equal(
-        "1 validation error detected: Value 'invalid' at 'filters.1.member.key' failed to satisfy constraint: Member "
+    assert ire.value.response["Error"]["Code"] == "ValidationException"
+    assert ire.value.response["Error"]["Message"] == (
+        "1 validation error detected: Value 'invalid' at "
+        "'filters.1.member.key' failed to satisfy constraint: Member "
         "must satisfy enum value set: [all, name, tag-key, description, tag-value]"
     )
 

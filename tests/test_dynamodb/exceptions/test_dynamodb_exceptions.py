@@ -144,7 +144,7 @@ def test_empty_expressionattributenames_with_empty_projection():
     table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
-            Key={"id": "my_id"}, ProjectionExpression="", ExpressionAttributeNames={}
+            Key={"id": "my_id"}, ProjectionExpression="a", ExpressionAttributeNames={}
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -1066,4 +1066,31 @@ def test_list_append_errors_for_unknown_attribute_value():
         UpdateExpression="SET uk = list_append(crontab, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
         ReturnValues="UPDATED_NEW",
+    )
+
+
+@mock_dynamodb
+def test_query_with_empty_filter_expression():
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+    ddb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    table = ddb.Table("test-table")
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="partitionKey = sth", ProjectionExpression=""
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid ProjectionExpression: The expression can not be empty;"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        table.query(KeyConditionExpression="partitionKey = sth", FilterExpression="")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "Invalid FilterExpression: The expression can not be empty;"
     )

@@ -1,5 +1,5 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
+
 from moto import mock_wafv2
 from .test_helper_functions import CREATE_WEB_ACL_BODY
 
@@ -12,7 +12,7 @@ def test_list_tags_for_resource__none_supplied():
     ]
 
     tag_info = conn.list_tags_for_resource(ResourceARN=arn)["TagInfoForResource"]
-    tag_info.should.have.key("TagList").equals([])
+    assert tag_info["TagList"] == []
 
 
 @mock_wafv2
@@ -31,7 +31,7 @@ def test_list_tags_for_resource():
     )["Summary"]["ARN"]
 
     tag_info = conn.list_tags_for_resource(ResourceARN=arn)["TagInfoForResource"]
-    tag_info.should.have.key("TagList").equals([{"Key": "k1", "Value": "v1"}])
+    assert tag_info["TagList"] == [{"Key": "k1", "Value": "v1"}]
 
 
 @mock_wafv2
@@ -57,9 +57,10 @@ def test_tag_resource():
     )
 
     tag_info = conn.list_tags_for_resource(ResourceARN=arn)["TagInfoForResource"]
-    tag_info.should.have.key("TagList").equals(
-        [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
-    )
+    assert tag_info["TagList"] == [
+        {"Key": "k1", "Value": "v1"},
+        {"Key": "k2", "Value": "v2"},
+    ]
 
 
 @mock_wafv2
@@ -80,4 +81,4 @@ def test_untag_resource():
     conn.untag_resource(ResourceARN=arn, TagKeys=["k1"])
 
     tag_info = conn.list_tags_for_resource(ResourceARN=arn)["TagInfoForResource"]
-    tag_info.should.have.key("TagList").equals([{"Key": "k2", "Value": "v2"}])
+    assert tag_info["TagList"] == [{"Key": "k2", "Value": "v2"}]

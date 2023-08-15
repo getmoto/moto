@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_mq
@@ -23,8 +22,8 @@ def test_create_broker_minimal():
         Users=[{"Username": "admin", "Password": "adm1n"}],
     )
 
-    resp.should.have.key("BrokerId")
-    resp.should.have.key("BrokerArn").match("arn:aws")
+    assert "BrokerId" in resp
+    assert resp["BrokerArn"].startswith("arn:aws")
 
 
 @mock_mq
@@ -44,7 +43,7 @@ def test_create_with_tags():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Tags").equals({"key1": "val2", "key2": "val2"})
+    assert resp["Tags"] == {"key1": "val2", "key2": "val2"}
 
 
 @mock_mq
@@ -75,14 +74,14 @@ def test_create_with_multiple_users():
     )["BrokerId"]
 
     user1 = client.describe_user(BrokerId=broker_id, Username="SecondTest")
-    user1.should.have.key("Username").equals("SecondTest")
-    user1.should.have.key("Groups").equals(["second", "first", "third"])
-    user1.should.have.key("ConsoleAccess").equals(True)
+    assert user1["Username"] == "SecondTest"
+    assert user1["Groups"] == ["second", "first", "third"]
+    assert user1["ConsoleAccess"] is True
 
     user2 = client.describe_user(BrokerId=broker_id, Username="Test")
-    user2.should.have.key("Username").equals("Test")
-    user2.should.have.key("Groups").equals([])
-    user2.should.have.key("ConsoleAccess").equals(False)
+    assert user2["Username"] == "Test"
+    assert user2["Groups"] == []
+    assert user2["ConsoleAccess"] is False
 
 
 @mock_mq
@@ -103,10 +102,8 @@ def test_create_with_configuration():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Configurations")
-    resp["Configurations"].should.have.key("Current").equals(
-        {"Id": "config_id_x", "Revision": 3}
-    )
+    assert "Configurations" in resp
+    assert resp["Configurations"]["Current"] == {"Id": "config_id_x", "Revision": 3}
 
 
 @mock_mq
@@ -131,10 +128,8 @@ def test_update_with_configuration():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Configurations")
-    resp["Configurations"].should.have.key("Current").equals(
-        {"Id": "config_id_x", "Revision": 2}
-    )
+    assert "Configurations" in resp
+    assert resp["Configurations"]["Current"] == {"Id": "config_id_x", "Revision": 2}
 
 
 @mock_mq
@@ -152,9 +147,9 @@ def test_delete_broker():
     )["BrokerId"]
 
     resp = client.delete_broker(BrokerId=broker_id)
-    resp.should.have.key("BrokerId").equals(broker_id)
+    assert resp["BrokerId"] == broker_id
 
-    client.list_brokers().should.have.key("BrokerSummaries").length_of(0)
+    assert len(client.list_brokers()["BrokerSummaries"]) == 0
 
 
 @mock_mq
@@ -187,37 +182,33 @@ def test_describe_broker():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("BrokerArn").match("arn:aws")
-    resp.should.have.key("BrokerState").equals("RUNNING")
+    assert resp["BrokerId"] == broker_id
+    assert resp["BrokerArn"].startswith("arn:aws")
+    assert resp["BrokerState"] == "RUNNING"
 
-    resp.should.have.key("Created")
+    assert "Created" in resp
 
-    resp.should.have.key("AuthenticationStrategy").equals("SIMPLE")
-    resp.should.have.key("AutoMinorVersionUpgrade").equals(False)
-    resp.should.have.key("BrokerName").equals("testbroker")
-    resp.should.have.key("DeploymentMode").equals("dm")
-    resp.should.have.key("EncryptionOptions").equals(
-        {"KmsKeyId": "kms-key", "UseAwsOwnedKey": False}
-    )
-    resp.should.have.key("EngineType").equals("ACTIVEMQ")
-    resp.should.have.key("EngineVersion").equals("version")
-    resp.should.have.key("HostInstanceType").equals("hit")
-    resp.should.have.key("LdapServerMetadata").equals(
-        {
-            "Hosts": ["host1"],
-            "RoleBase": "role_base_thingy",
-            "RoleSearchMatching": "rsm",
-            "ServiceAccountUsername": "sau",
-            "UserBase": "ub",
-            "UserSearchMatching": "usm",
-        }
-    )
-    resp.should.have.key("PubliclyAccessible").equals(True)
-    resp.should.have.key("SecurityGroups").equals(["secgroup1"])
-    resp.should.have.key("StorageType").equals("efs")
-    resp.should.have.key("SubnetIds").equals(["s-id"])
-    resp.should.have.key("Users").equals([{"Username": "admin"}])
+    assert resp["AuthenticationStrategy"] == "SIMPLE"
+    assert resp["AutoMinorVersionUpgrade"] is False
+    assert resp["BrokerName"] == "testbroker"
+    assert resp["DeploymentMode"] == "dm"
+    assert resp["EncryptionOptions"] == {"KmsKeyId": "kms-key", "UseAwsOwnedKey": False}
+    assert resp["EngineType"] == "ACTIVEMQ"
+    assert resp["EngineVersion"] == "version"
+    assert resp["HostInstanceType"] == "hit"
+    assert resp["LdapServerMetadata"] == {
+        "Hosts": ["host1"],
+        "RoleBase": "role_base_thingy",
+        "RoleSearchMatching": "rsm",
+        "ServiceAccountUsername": "sau",
+        "UserBase": "ub",
+        "UserSearchMatching": "usm",
+    }
+    assert resp["PubliclyAccessible"] is True
+    assert resp["SecurityGroups"] == ["secgroup1"]
+    assert resp["StorageType"] == "efs"
+    assert resp["SubnetIds"] == ["s-id"]
+    assert resp["Users"] == [{"Username": "admin"}]
 
 
 @mock_mq
@@ -236,22 +227,24 @@ def test_describe_broker_with_defaults():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("BrokerInstances").length_of(1)
+    assert len(resp["BrokerInstances"]) == 1
 
-    resp.should.have.key("Configurations")
-    resp["Configurations"].should.have.key("Current")
-    resp["Configurations"].should.have.key("History").length_of(0)
-    resp["Configurations"].shouldnt.have.key("Pending")
+    assert "Configurations" in resp
+    assert "Current" in resp["Configurations"]
+    assert len(resp["Configurations"]["History"]) == 0
+    assert "Pending" not in resp["Configurations"]
 
-    resp.should.have.key("EncryptionOptions").equals({"UseAwsOwnedKey": True})
+    assert resp["EncryptionOptions"] == {"UseAwsOwnedKey": True}
 
-    resp.should.have.key("MaintenanceWindowStartTime").equals(
-        {"DayOfWeek": "Sunday", "TimeOfDay": "00:00", "TimeZone": "UTC"}
-    )
+    assert resp["MaintenanceWindowStartTime"] == {
+        "DayOfWeek": "Sunday",
+        "TimeOfDay": "00:00",
+        "TimeZone": "UTC",
+    }
 
-    resp.should.have.key("Logs").equals({"Audit": False, "General": False})
+    assert resp["Logs"] == {"Audit": False, "General": False}
 
-    resp.should.have.key("SubnetIds").length_of(1)
+    assert len(resp["SubnetIds"]) == 1
 
 
 @mock_mq
@@ -270,14 +263,15 @@ def test_describe_multiple_rabbits():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("BrokerInstances")
-    resp["BrokerInstances"][0]["ConsoleURL"].should.equal(
-        "https://0000.mq.us-east-2.amazonaws.com"
+    assert "BrokerInstances" in resp
+    assert (
+        resp["BrokerInstances"][0]["ConsoleURL"]
+        == "https://0000.mq.us-east-2.amazonaws.com"
     )
-    resp["BrokerInstances"][0]["Endpoints"].should.have.length_of(1)
-    resp.shouldnt.have.key("Configurations")
-    resp.should.have.key("Logs").equals({"General": False})
-    resp.should.have.key("SubnetIds").length_of(4)
+    assert len(resp["BrokerInstances"][0]["Endpoints"]) == 1
+    assert "Configurations" not in resp
+    assert resp["Logs"] == {"General": False}
+    assert len(resp["SubnetIds"]) == 4
 
 
 @mock_mq
@@ -297,8 +291,8 @@ def test_describe_active_mq_with_standby():
     resp = client.describe_broker(BrokerId=broker_id)
 
     # Instances and subnets in two regions - one active, one standby
-    resp.should.have.key("BrokerInstances").length_of(2)
-    resp.should.have.key("SubnetIds").length_of(2)
+    assert len(resp["BrokerInstances"]) == 2
+    assert len(resp["SubnetIds"]) == 2
 
 
 @mock_mq
@@ -308,9 +302,10 @@ def test_describe_broker_unknown():
     with pytest.raises(ClientError) as exc:
         client.describe_broker(BrokerId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Can't find requested broker [unknown]. Make sure your broker exists."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Can't find requested broker [unknown]. Make sure your broker exists."
     )
 
 
@@ -319,7 +314,7 @@ def test_list_brokers_empty():
     client = boto3.client("mq", region_name="eu-west-1")
     resp = client.list_brokers()
 
-    resp.should.have.key("BrokerSummaries").equals([])
+    assert resp["BrokerSummaries"] == []
 
 
 @mock_mq
@@ -338,19 +333,19 @@ def test_list_brokers():
 
     resp = client.list_brokers()
 
-    resp.should.have.key("BrokerSummaries").length_of(1)
+    assert len(resp["BrokerSummaries"]) == 1
 
     summary = resp["BrokerSummaries"][0]
-    summary.should.have.key("BrokerArn")
-    summary.should.have.key("BrokerId").equals(broker_id)
-    summary.should.have.key("BrokerName").equals("testbroker")
-    summary.should.have.key("BrokerState").equals("RUNNING")
-    summary.should.have.key("Created")
-    summary.should.have.key("DeploymentMode").equals("dm")
-    summary.should.have.key("EngineType").equals("ACTIVEMQ")
-    summary.should.have.key("HostInstanceType").equals("hit")
+    assert "BrokerArn" in summary
+    assert summary["BrokerId"] == broker_id
+    assert summary["BrokerName"] == "testbroker"
+    assert summary["BrokerState"] == "RUNNING"
+    assert "Created" in summary
+    assert summary["DeploymentMode"] == "dm"
+    assert summary["EngineType"] == "ACTIVEMQ"
+    assert summary["HostInstanceType"] == "hit"
 
-    summary.shouldnt.have.key("Users")
+    assert "Users" not in summary
 
 
 @mock_mq
@@ -369,11 +364,11 @@ def test_update_broker_single_attribute():
     resp = client.update_broker(AutoMinorVersionUpgrade=True, BrokerId=broker_id)
 
     # Changed
-    resp.should.have.key("AutoMinorVersionUpgrade").equals(True)
+    assert resp["AutoMinorVersionUpgrade"] is True
 
     # Unchanged
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("EngineVersion").equals("version")
+    assert resp["BrokerId"] == broker_id
+    assert resp["EngineVersion"] == "version"
 
 
 @mock_mq
@@ -399,13 +394,13 @@ def test_update_broker_multiple_attributes():
     )
 
     # Changed
-    resp.should.have.key("AutoMinorVersionUpgrade").equals(True)
-    resp.should.have.key("Logs").equals({"Audit": True, "General": True})
-    resp.should.have.key("EngineVersion").equals("version2")
-    resp.should.have.key("SecurityGroups").equals(["sg-1", "sg-2"])
+    assert resp["AutoMinorVersionUpgrade"] is True
+    assert resp["Logs"] == {"Audit": True, "General": True}
+    assert resp["EngineVersion"] == "version2"
+    assert resp["SecurityGroups"] == ["sg-1", "sg-2"]
 
     # Unchanged
-    resp.should.have.key("BrokerId").equals(broker_id)
+    assert resp["BrokerId"] == broker_id
 
 
 @mock_mq

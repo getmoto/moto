@@ -1,5 +1,6 @@
-from moto.sns.utils import FilterPolicyMatcher
 import pytest
+
+from moto.sns.utils import FilterPolicyMatcher
 
 
 def test_filter_policy_matcher_scope_sanity_check():

@@ -1,7 +1,8 @@
+import datetime
+import re
+
 import boto3
 from botocore.exceptions import ClientError
-import datetime
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_sagemaker
@@ -11,7 +12,7 @@ FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 TEST_REGION_NAME = "us-east-1"
 
 
-class MyTransformJobModel(object):
+class MyTransformJobModel:
     def __init__(
         self,
         transform_job_name,
@@ -147,23 +148,24 @@ def test_create_transform_job():
         experiment_config=experiment_config,
     )
     resp = job.save()
-    resp["TransformJobArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:transform-job/{transform_job_name}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:transform-job/{transform_job_name}$",
+        resp["TransformJobArn"],
     )
     resp = sagemaker.describe_transform_job(TransformJobName=transform_job_name)
-    resp["TransformJobName"].should.equal(transform_job_name)
-    resp["TransformJobStatus"].should.equal("Completed")
-    resp["ModelName"].should.equal(model_name)
-    resp["MaxConcurrentTransforms"].should.equal(1)
-    resp["ModelClientConfig"].should.equal(model_client_config)
-    resp["MaxPayloadInMB"].should.equal(max_payload_in_mb)
-    resp["BatchStrategy"].should.equal("SingleRecord")
-    resp["TransformInput"].should.equal(transform_input)
-    resp["TransformOutput"].should.equal(transform_output)
-    resp["DataCaptureConfig"].should.equal(data_capture_config)
-    resp["TransformResources"].should.equal(transform_resources)
-    resp["DataProcessing"].should.equal(data_processing)
-    resp["ExperimentConfig"].should.equal(experiment_config)
+    assert resp["TransformJobName"] == transform_job_name
+    assert resp["TransformJobStatus"] == "Completed"
+    assert resp["ModelName"] == model_name
+    assert resp["MaxConcurrentTransforms"] == 1
+    assert resp["ModelClientConfig"] == model_client_config
+    assert resp["MaxPayloadInMB"] == max_payload_in_mb
+    assert resp["BatchStrategy"] == "SingleRecord"
+    assert resp["TransformInput"] == transform_input
+    assert resp["TransformOutput"] == transform_output
+    assert resp["DataCaptureConfig"] == data_capture_config
+    assert resp["TransformResources"] == transform_resources
+    assert resp["DataProcessing"] == data_processing
+    assert resp["ExperimentConfig"] == experiment_config
     assert isinstance(resp["CreationTime"], datetime.datetime)
     assert isinstance(resp["TransformStartTime"], datetime.datetime)
     assert isinstance(resp["TransformEndTime"], datetime.datetime)
@@ -179,13 +181,12 @@ def test_list_transform_jobs():
     )
     test_transform_job.save()
     transform_jobs = client.list_transform_jobs()
-    assert len(transform_jobs["TransformJobSummaries"]).should.equal(1)
-    assert transform_jobs["TransformJobSummaries"][0]["TransformJobName"].should.equal(
-        name
-    )
+    assert len(transform_jobs["TransformJobSummaries"]) == 1
+    assert transform_jobs["TransformJobSummaries"][0]["TransformJobName"] == name
 
-    assert transform_jobs["TransformJobSummaries"][0]["TransformJobArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:transform-job/{name}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:transform-job/{name}$",
+        transform_jobs["TransformJobSummaries"][0]["TransformJobArn"],
     )
     assert transform_jobs.get("NextToken") is None
 
@@ -207,18 +208,18 @@ def test_list_transform_jobs_multiple():
     )
     test_transform_job_2.save()
     transform_jobs_limit = client.list_transform_jobs(MaxResults=1)
-    assert len(transform_jobs_limit["TransformJobSummaries"]).should.equal(1)
+    assert len(transform_jobs_limit["TransformJobSummaries"]) == 1
 
     transform_jobs = client.list_transform_jobs()
-    assert len(transform_jobs["TransformJobSummaries"]).should.equal(2)
-    assert transform_jobs.get("NextToken").should.be.none
+    assert len(transform_jobs["TransformJobSummaries"]) == 2
+    assert transform_jobs.get("NextToken") is None
 
 
 @mock_sagemaker
 def test_list_transform_jobs_none():
     client = boto3.client("sagemaker", region_name="us-east-1")
     transform_jobs = client.list_transform_jobs()
-    assert len(transform_jobs["TransformJobSummaries"]).should.equal(0)
+    assert len(transform_jobs["TransformJobSummaries"]) == 0
 
 
 @mock_sagemaker
@@ -227,7 +228,12 @@ def test_list_transform_jobs_should_validate_input():
     junk_status_equals = "blah"
     with pytest.raises(ClientError) as ex:
         client.list_transform_jobs(StatusEquals=junk_status_equals)
-    expected_error = f"1 validation errors detected: Value '{junk_status_equals}' at 'statusEquals' failed to satisfy constraint: Member must satisfy enum value set: ['Completed', 'Stopped', 'InProgress', 'Stopping', 'Failed']"
+    expected_error = (
+        f"1 validation errors detected: Value '{junk_status_equals}' at "
+        "'statusEquals' failed to satisfy constraint: Member must satisfy "
+        "enum value set: ['Completed', 'Stopped', 'InProgress', 'Stopping', "
+        "'Failed']"
+    )
     assert ex.value.response["Error"]["Code"] == "ValidationException"
     assert ex.value.response["Error"]["Message"] == expected_error
 
@@ -253,10 +259,10 @@ def test_list_transform_jobs_with_name_filters():
         model_name = f"blah_model-{i}"
         MyTransformJobModel(transform_job_name=name, model_name=model_name).save()
     xgboost_transform_jobs = client.list_transform_jobs(NameContains="xgboost")
-    assert len(xgboost_transform_jobs["TransformJobSummaries"]).should.equal(5)
+    assert len(xgboost_transform_jobs["TransformJobSummaries"]) == 5
 
     transform_jobs_with_2 = client.list_transform_jobs(NameContains="2")
-    assert len(transform_jobs_with_2["TransformJobSummaries"]).should.equal(2)
+    assert len(transform_jobs_with_2["TransformJobSummaries"]) == 2
 
 
 @mock_sagemaker
@@ -269,22 +275,24 @@ def test_list_transform_jobs_paginated():
     xgboost_transform_job_1 = client.list_transform_jobs(
         NameContains="xgboost", MaxResults=1
     )
-    assert len(xgboost_transform_job_1["TransformJobSummaries"]).should.equal(1)
-    assert xgboost_transform_job_1["TransformJobSummaries"][0][
-        "TransformJobName"
-    ].should.equal("xgboost-0")
-    assert xgboost_transform_job_1.get("NextToken").should_not.be.none
+    assert len(xgboost_transform_job_1["TransformJobSummaries"]) == 1
+    assert (
+        xgboost_transform_job_1["TransformJobSummaries"][0]["TransformJobName"]
+        == "xgboost-0"
+    )
+    assert xgboost_transform_job_1.get("NextToken") is not None
 
     xgboost_transform_job_next = client.list_transform_jobs(
         NameContains="xgboost",
         MaxResults=1,
         NextToken=xgboost_transform_job_1.get("NextToken"),
     )
-    assert len(xgboost_transform_job_next["TransformJobSummaries"]).should.equal(1)
-    assert xgboost_transform_job_next["TransformJobSummaries"][0][
-        "TransformJobName"
-    ].should.equal("xgboost-1")
-    assert xgboost_transform_job_next.get("NextToken").should_not.be.none
+    assert len(xgboost_transform_job_next["TransformJobSummaries"]) == 1
+    assert (
+        xgboost_transform_job_next["TransformJobSummaries"][0]["TransformJobName"]
+        == "xgboost-1"
+    )
+    assert xgboost_transform_job_next.get("NextToken") is not None
 
 
 @mock_sagemaker
@@ -299,24 +307,24 @@ def test_list_transform_jobs_paginated_with_target_in_middle():
         MyTransformJobModel(transform_job_name=name, model_name=model_name).save()
 
     vgg_transform_job_1 = client.list_transform_jobs(NameContains="vgg", MaxResults=1)
-    assert len(vgg_transform_job_1["TransformJobSummaries"]).should.equal(0)
-    assert vgg_transform_job_1.get("NextToken").should_not.be.none
+    assert len(vgg_transform_job_1["TransformJobSummaries"]) == 0
+    assert vgg_transform_job_1.get("NextToken") is not None
 
     vgg_transform_job_6 = client.list_transform_jobs(NameContains="vgg", MaxResults=6)
 
-    assert len(vgg_transform_job_6["TransformJobSummaries"]).should.equal(1)
-    assert vgg_transform_job_6["TransformJobSummaries"][0][
-        "TransformJobName"
-    ].should.equal("vgg-0")
-    assert vgg_transform_job_6.get("NextToken").should_not.be.none
+    assert len(vgg_transform_job_6["TransformJobSummaries"]) == 1
+    assert (
+        vgg_transform_job_6["TransformJobSummaries"][0]["TransformJobName"] == "vgg-0"
+    )
+    assert vgg_transform_job_6.get("NextToken") is not None
 
     vgg_transform_job_10 = client.list_transform_jobs(NameContains="vgg", MaxResults=10)
 
-    assert len(vgg_transform_job_10["TransformJobSummaries"]).should.equal(5)
-    assert vgg_transform_job_10["TransformJobSummaries"][-1][
-        "TransformJobName"
-    ].should.equal("vgg-4")
-    assert vgg_transform_job_10.get("NextToken").should.be.none
+    assert len(vgg_transform_job_10["TransformJobSummaries"]) == 5
+    assert (
+        vgg_transform_job_10["TransformJobSummaries"][-1]["TransformJobName"] == "vgg-4"
+    )
+    assert vgg_transform_job_10.get("NextToken") is None
 
 
 @mock_sagemaker
@@ -331,22 +339,22 @@ def test_list_transform_jobs_paginated_with_fragmented_targets():
         MyTransformJobModel(transform_job_name=name, model_name=model_name).save()
 
     transform_jobs_with_2 = client.list_transform_jobs(NameContains="2", MaxResults=8)
-    assert len(transform_jobs_with_2["TransformJobSummaries"]).should.equal(2)
-    assert transform_jobs_with_2.get("NextToken").should_not.be.none
+    assert len(transform_jobs_with_2["TransformJobSummaries"]) == 2
+    assert transform_jobs_with_2.get("NextToken") is not None
 
     transform_jobs_with_2_next = client.list_transform_jobs(
         NameContains="2", MaxResults=1, NextToken=transform_jobs_with_2.get("NextToken")
     )
-    assert len(transform_jobs_with_2_next["TransformJobSummaries"]).should.equal(0)
-    assert transform_jobs_with_2_next.get("NextToken").should_not.be.none
+    assert len(transform_jobs_with_2_next["TransformJobSummaries"]) == 0
+    assert transform_jobs_with_2_next.get("NextToken") is not None
 
     transform_jobs_with_2_next_next = client.list_transform_jobs(
         NameContains="2",
         MaxResults=1,
         NextToken=transform_jobs_with_2_next.get("NextToken"),
     )
-    assert len(transform_jobs_with_2_next_next["TransformJobSummaries"]).should.equal(0)
-    assert transform_jobs_with_2_next_next.get("NextToken").should.be.none
+    assert len(transform_jobs_with_2_next_next["TransformJobSummaries"]) == 0
+    assert transform_jobs_with_2_next_next.get("NextToken") is None
 
 
 @mock_sagemaker
@@ -401,7 +409,8 @@ def test_describe_unknown_transform_job():
     with pytest.raises(ClientError) as exc:
         client.describe_transform_job(TransformJobName="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        f"Could not find transform job 'arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:transform-job/unknown'."
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "Could not find transform job 'arn:aws:sagemaker:us-east-1:"
+        f"{ACCOUNT_ID}:transform-job/unknown'."
     )

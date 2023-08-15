@@ -992,6 +992,22 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "us-west-2"
  },

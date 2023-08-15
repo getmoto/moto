@@ -216,7 +216,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         if original_signature != calculated_signature:
             self._raise_signature_does_not_match()
 
-    def check_action_permitted(self) -> None:
+    def check_action_permitted(self, resource: str) -> None:
         if (
             self._action == "sts:GetCallerIdentity"
         ):  # always allowed, even if there's an explicit Deny for it
@@ -226,7 +226,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         permitted = False
         for policy in policies:
             iam_policy = IAMPolicy(policy)
-            permission_result = iam_policy.is_action_permitted(self._action)
+            permission_result = iam_policy.is_action_permitted(self._action, resource)
             if permission_result == PermissionResult.DENIED:
                 self._raise_access_denied()
             elif permission_result == PermissionResult.PERMITTED:

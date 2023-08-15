@@ -5900,6 +5900,22 @@
   "Location": "use2-az3"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "use2-az3"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "use2-az3"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "use2-az3"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "use2-az3"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "use2-az3"
  },

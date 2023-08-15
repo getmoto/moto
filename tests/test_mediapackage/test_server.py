@@ -1,4 +1,4 @@
-import sure  # noqa # pylint: disable=unused-import
+import json
 
 import moto.server as server
 from moto import mock_mediapackage
@@ -15,7 +15,7 @@ def test_mediapackage_list_channels():
 
     res = test_client.get("/channels")
     result = res.data.decode("utf-8")
-    result.should.contain('"channels": []')
+    assert json.loads(result) == {"channels": []}
 
 
 @mock_mediapackage
@@ -25,4 +25,4 @@ def test_mediapackage_list_origin_endpoints():
 
     res = test_client.get("/origin_endpoints")
     result = res.data.decode("utf-8")
-    result.should.contain('"originEndpoints": []')
+    assert json.loads(result) == {"originEndpoints": []}

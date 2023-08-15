@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_mq
 import moto.server as server
@@ -11,5 +10,5 @@ def test_mq_list():
     test_client = backend.test_client()
 
     resp = test_client.get("/v1/brokers")
-    resp.status_code.should.equal(200)
-    json.loads(resp.data).should.equal({"brokerSummaries": []})
+    assert resp.status_code == 200
+    assert json.loads(resp.data) == {"brokerSummaries": []}

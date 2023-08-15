@@ -1,11 +1,10 @@
-import pytest
-
-import sure  # noqa # pylint: disable=unused-import
 import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_apigateway, mock_wafv2
-from .test_helper_functions import CREATE_WEB_ACL_BODY
 from tests.test_apigateway.test_apigateway_stage import create_method_integration
+from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 
 @mock_wafv2
@@ -28,8 +27,8 @@ def test_associate_with_unknown_resource():
             WebACLArn=f"{wacl_arn}2", ResourceArn="unknownarnwithminlength20"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("WAFNonexistentItemException")
-    err["Message"].should.equal(
+    assert err["Code"] == "WAFNonexistentItemException"
+    assert err["Message"] == (
         "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
     )
 
@@ -48,12 +47,12 @@ def test_associate_with_apigateway_stage():
     conn.associate_web_acl(WebACLArn=wacl_arn, ResourceArn=stage_arn)
 
     stage = apigw.get_stage(restApiId=api_id, stageName="test")
-    stage.should.have.key("webAclArn").equals(wacl_arn)
+    assert stage["webAclArn"] == wacl_arn
 
     conn.disassociate_web_acl(ResourceArn=stage_arn)
 
     stage = apigw.get_stage(restApiId=api_id, stageName="test")
-    stage.shouldnt.have.key("webAclArn")
+    assert "webAclArn" not in stage
 
 
 @mock_apigateway
@@ -68,14 +67,14 @@ def test_get_web_acl_for_resource():
     _, stage_arn = create_apigateway_stage(client=apigw)
 
     resp = conn.get_web_acl_for_resource(ResourceArn=stage_arn)
-    resp.shouldnt.have.key("WebACL")
+    assert "WebACL" not in resp
 
     conn.associate_web_acl(WebACLArn=wacl_arn, ResourceArn=stage_arn)
 
     resp = conn.get_web_acl_for_resource(ResourceArn=stage_arn)
-    resp.should.have.key("WebACL")
-    resp["WebACL"].should.have.key("Name").equals("John")
-    resp["WebACL"].should.have.key("ARN").equals(wacl_arn)
+    assert "WebACL" in resp
+    assert resp["WebACL"]["Name"] == "John"
+    assert resp["WebACL"]["ARN"] == wacl_arn
 
 
 @mock_wafv2

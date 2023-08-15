@@ -38,12 +38,7 @@ default_nodeconfiguration = {
 
 
 def member_id_exist_in_list(members, memberid):
-    memberidxists = False
-    for member in members:
-        if member["Id"] == memberid:
-            memberidxists = True
-            break
-    return memberidxists
+    return any([member["Id"] == memberid for member in members])
 
 
 def create_member_configuration(
@@ -76,9 +71,4 @@ def select_invitation_id_for_network(invitations, networkid, status=None):
 
 
 def node_id_exist_in_list(nodes, nodeid):
-    nodeidxists = False
-    for node in nodes:
-        if node["Id"] == nodeid:
-            nodeidxists = True
-            break
-    return nodeidxists
+    return any([node["Id"] == nodeid for node in nodes])
