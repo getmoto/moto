@@ -6,7 +6,7 @@ from urllib.parse import unquote
 from moto.core.utils import path_url
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse, TYPE_RESPONSE
-from .exceptions import FunctionAlreadyExists
+from .exceptions import FunctionAlreadyExists, UnknownFunctionException
 from .models import lambda_backends, LambdaBackend
 
 
@@ -320,7 +320,7 @@ class LambdaResponse(BaseResponse):
         function_name = self.json_body["FunctionName"].rsplit(":", 1)[-1]
         try:
             self.backend.get_function(function_name, None)
-        except:
+        except UnknownFunctionException:
             fn = self.backend.create_function(self.json_body)
             config = fn.get_configuration(on_create=True)
             return 201, {}, json.dumps(config)
