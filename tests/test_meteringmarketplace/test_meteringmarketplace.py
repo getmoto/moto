@@ -1,6 +1,8 @@
-import boto3
 import copy
 from datetime import datetime
+
+import boto3
+
 from moto import mock_meteringmarketplace
 from moto.meteringmarketplace.models import Result
 
