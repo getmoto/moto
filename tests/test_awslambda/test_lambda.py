@@ -1641,6 +1641,10 @@ def test_get_role_name_utility_race_condition():
 @mock_lambda
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_success():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
@@ -1691,6 +1695,10 @@ def test_put_function_concurrency_not_enforced():
 @mock_lambda
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_failure():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
@@ -1721,6 +1729,10 @@ def test_put_function_concurrency_failure():
 @mock_lambda
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_i_can_has_math():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name_1 = str(uuid4())[0:6]
