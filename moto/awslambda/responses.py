@@ -6,6 +6,7 @@ from urllib.parse import unquote
 from moto.core.utils import path_url
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse, TYPE_RESPONSE
+from .exceptions import FunctionAlreadyExists, UnknownFunctionException
 from .models import lambda_backends, LambdaBackend
 
 
@@ -316,9 +317,14 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps(result)
 
     def _create_function(self) -> TYPE_RESPONSE:
-        fn = self.backend.create_function(self.json_body)
-        config = fn.get_configuration(on_create=True)
-        return 201, {}, json.dumps(config)
+        function_name = self.json_body["FunctionName"].rsplit(":", 1)[-1]
+        try:
+            self.backend.get_function(function_name, None)
+        except UnknownFunctionException:
+            fn = self.backend.create_function(self.json_body)
+            config = fn.get_configuration(on_create=True)
+            return 201, {}, json.dumps(config)
+        raise FunctionAlreadyExists(function_name)
 
     def _create_function_url_config(self) -> TYPE_RESPONSE:
         function_name = unquote(self.path.split("/")[-2])
