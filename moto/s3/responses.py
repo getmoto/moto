@@ -292,7 +292,7 @@ class S3Response(BaseResponse):
     def _bucket_response(
         self, request: Any, full_url: str
     ) -> Union[str, TYPE_RESPONSE]:
-        querystring = self._get_querystring(request)
+        querystring = self._get_querystring(request, full_url)
         method = request.method
         region_name = parse_region_from_url(full_url, use_default_region=False)
         if region_name is None:
@@ -327,7 +327,7 @@ class S3Response(BaseResponse):
                 f"Method {method} has not been implemented in the S3 backend yet"
             )
 
-    def _get_querystring(self, request: Any) -> Dict[str, Any]:  # type: ignore[misc]
+    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
         # Flask's Request has the querystring already parsed
         # In ServerMode, we can use this, instead of manually parsing this
         if hasattr(request, "args"):
@@ -338,6 +338,7 @@ class S3Response(BaseResponse):
                 query_dict[key] = val if isinstance(val, list) else [val]
             return query_dict
 
+        parsed_url = urlparse(full_url)
         # full_url can be one of two formats, depending on the version of werkzeug used:
         # http://foobaz.localhost:5000/?prefix=bar%2Bbaz
         # http://foobaz.localhost:5000/?prefix=bar+baz
@@ -346,7 +347,7 @@ class S3Response(BaseResponse):
         #
         # Workaround - manually reverse the encoding.
         # Keep the + encoded, ensuring that parse_qsl doesn't replace it, and parse_qsl will unquote it afterwards
-        qs = (self.parsed_url.query or "").replace("+", "%2B")
+        qs = (parsed_url.query or "").replace("+", "%2B")
         return parse_qs(qs, keep_blank_values=True)
 
     def _bucket_response_head(
@@ -1248,8 +1249,9 @@ class S3Response(BaseResponse):
     def _key_response(
         self, request: Any, full_url: str, headers: Dict[str, Any]
     ) -> TYPE_RESPONSE:
-        url_path = self.get_safe_path_from_url(self.parsed_url)
-        query = parse_qs(self.parsed_url.query, keep_blank_values=True)
+        parsed_url = urlparse(full_url)
+        url_path = self.get_safe_path_from_url(parsed_url)
+        query = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
 
         key_name = self.parse_key_name(request, url_path)
