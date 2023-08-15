@@ -1,17 +1,17 @@
 """Unit tests for emrserverless-supported APIs."""
 import re
-from datetime import datetime, timezone
 from contextlib import contextmanager
+from datetime import datetime, timezone
+from unittest.mock import patch
 
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_emrserverless, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.emrserverless import REGION as DEFAULT_REGION
 from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
-from unittest.mock import patch
 
 
 @contextmanager
@@ -81,9 +81,9 @@ class TestCreateApplication:
 
         assert resp["name"] == "test-emr-serverless-application"
         assert re.match(r"[a-z,0-9]{16}", resp["applicationId"])
-        assert (
-            resp["arn"]
-            == f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/applications/{resp['applicationId']}"
+        assert resp["arn"] == (
+            f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}"
+            f":/applications/{resp['applicationId']}"
         )
 
     @staticmethod
@@ -114,9 +114,9 @@ class TestCreateApplication:
         err = exc.value.response["Error"]
 
         assert err["Code"] == "ValidationException"
-        assert (
-            err["Message"]
-            == "Type 'SPARK' is not supported for release label 'emr-fake' or release label does not exist"
+        assert err["Message"] == (
+            "Type 'SPARK' is not supported for release label 'emr-fake' "
+            "or release label does not exist"
         )
 
 
@@ -154,9 +154,10 @@ class TestDeleteApplication:
         if exc:
             err = exc.value.response["Error"]
             assert err["Code"] == "ValidationException"
-            assert (
-                err["Message"]
-                == f"Application {self.application_ids[index]} must be in one of the following statuses [CREATED, STOPPED]. Current status: {status}"
+            assert err["Message"] == (
+                f"Application {self.application_ids[index]} must be in one "
+                "of the following statuses [CREATED, STOPPED]. Current "
+                f"status: {status}"
             )
         else:
             assert resp is not None
@@ -289,7 +290,10 @@ class TestListApplication:
         expected_resp = {
             "id": self.application_ids[0],
             "name": "test-emr-serverless-application-STARTED",
-            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{self.application_ids[0]}",
+            "arn": (
+                f"arn:aws:emr-containers:us-east-1:123456789012"
+                f":/applications/{self.application_ids[0]}"
+            ),
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
             "state": "STARTED",
@@ -451,9 +455,10 @@ class TestUpdateApplication:
         if exc:
             err = exc.value.response["Error"]
             assert err["Code"] == "ValidationException"
-            assert (
-                err["Message"]
-                == f"Application {self.application_ids[index]} must be in one of the following statuses [CREATED, STOPPED]. Current status: {status}"
+            assert err["Message"] == (
+                f"Application {self.application_ids[index]} must be in one "
+                "of the following statuses [CREATED, STOPPED]. Current "
+                f"status: {status}"
             )
         else:
             assert resp is not None
