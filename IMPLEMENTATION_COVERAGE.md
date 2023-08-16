@@ -1165,7 +1165,7 @@
 
 ## cognito-idp
 <details>
-<summary>58% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -1227,6 +1227,7 @@
 - [ ] get_device
 - [X] get_group
 - [ ] get_identity_provider_by_identifier
+- [ ] get_log_delivery_configuration
 - [ ] get_signing_certificate
 - [ ] get_ui_customization
 - [X] get_user
@@ -1247,6 +1248,7 @@
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
 - [ ] revoke_token
+- [ ] set_log_delivery_configuration
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [X] set_user_mfa_preference
@@ -1628,25 +1630,31 @@
 
 ## dms
 <details>
-<summary>6% implemented</summary>
+<summary>4% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
 - [ ] batch_start_recommendations
 - [ ] cancel_replication_task_assessment_run
+- [ ] create_data_provider
 - [ ] create_endpoint
 - [ ] create_event_subscription
 - [ ] create_fleet_advisor_collector
+- [ ] create_instance_profile
+- [ ] create_migration_project
 - [ ] create_replication_config
 - [ ] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
+- [ ] delete_data_provider
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_fleet_advisor_collector
 - [ ] delete_fleet_advisor_databases
+- [ ] delete_instance_profile
+- [ ] delete_migration_project
 - [ ] delete_replication_config
 - [ ] delete_replication_instance
 - [ ] delete_replication_subnet_group
@@ -1656,17 +1664,28 @@
 - [ ] describe_applicable_individual_assessments
 - [ ] describe_certificates
 - [ ] describe_connections
+- [ ] describe_conversion_configuration
+- [ ] describe_data_providers
 - [ ] describe_endpoint_settings
 - [ ] describe_endpoint_types
 - [ ] describe_endpoints
+- [ ] describe_engine_versions
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
 - [ ] describe_events
+- [ ] describe_extension_pack_associations
 - [ ] describe_fleet_advisor_collectors
 - [ ] describe_fleet_advisor_databases
 - [ ] describe_fleet_advisor_lsa_analysis
 - [ ] describe_fleet_advisor_schema_object_summary
 - [ ] describe_fleet_advisor_schemas
+- [ ] describe_instance_profiles
+- [ ] describe_metadata_model_assessments
+- [ ] describe_metadata_model_conversions
+- [ ] describe_metadata_model_exports_as_script
+- [ ] describe_metadata_model_exports_to_target
+- [ ] describe_metadata_model_imports
+- [ ] describe_migration_projects
 - [ ] describe_orderable_replication_instances
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_recommendation_limitations
@@ -1684,10 +1703,15 @@
 - [ ] describe_replications
 - [ ] describe_schemas
 - [ ] describe_table_statistics
+- [ ] export_metadata_model_assessment
 - [ ] import_certificate
 - [ ] list_tags_for_resource
+- [ ] modify_conversion_configuration
+- [ ] modify_data_provider
 - [ ] modify_endpoint
 - [ ] modify_event_subscription
+- [ ] modify_instance_profile
+- [ ] modify_migration_project
 - [ ] modify_replication_config
 - [ ] modify_replication_instance
 - [ ] modify_replication_subnet_group
@@ -1699,6 +1723,12 @@
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [ ] run_fleet_advisor_lsa_analysis
+- [ ] start_extension_pack_association
+- [ ] start_metadata_model_assessment
+- [ ] start_metadata_model_conversion
+- [ ] start_metadata_model_export_as_script
+- [ ] start_metadata_model_export_to_target
+- [ ] start_metadata_model_import
 - [ ] start_recommendations
 - [ ] start_replication
 - [X] start_replication_task
@@ -2727,6 +2757,7 @@
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
 - [ ] test_failover
+- [ ] test_migration
 </details>
 
 ## elasticbeanstalk
@@ -3778,7 +3809,7 @@
 
 ## identitystore
 <details>
-<summary>47% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -3795,7 +3826,7 @@
 - [ ] is_member_in_groups
 - [X] list_group_memberships
 - [ ] list_group_memberships_for_member
-- [ ] list_groups
+- [X] list_groups
 - [ ] list_users
 - [ ] update_group
 - [ ] update_user
@@ -4059,12 +4090,12 @@
 
 ## iot-data
 <details>
-<summary>57% implemented</summary>
+<summary>71% implemented</summary>
 
 - [X] delete_thing_shadow
 - [ ] get_retained_message
 - [X] get_thing_shadow
-- [ ] list_named_shadows_for_thing
+- [X] list_named_shadows_for_thing
 - [ ] list_retained_messages
 - [X] publish
 - [X] update_thing_shadow
@@ -5386,6 +5417,7 @@
 - [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
+- [ ] delete_db_cluster_automated_backup
 - [ ] delete_db_cluster_endpoint
 - [X] delete_db_cluster_parameter_group
 - [X] delete_db_cluster_snapshot
@@ -5404,6 +5436,7 @@
 - [ ] describe_account_attributes
 - [ ] describe_blue_green_deployments
 - [ ] describe_certificates
+- [ ] describe_db_cluster_automated_backups
 - [ ] describe_db_cluster_backtracks
 - [ ] describe_db_cluster_endpoints
 - [X] describe_db_cluster_parameter_groups
@@ -6265,6 +6298,7 @@
 - [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
+- [ ] get_scaling_configuration_recommendation
 - [ ] get_search_suggestions
 - [ ] import_hub_content
 - [ ] list_actions
