@@ -1,9 +1,11 @@
 """Unit tests for personalize-supported APIs."""
-import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
-import pytest
+import re
+
+import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_personalize
 from moto.core import DEFAULT_ACCOUNT_ID
 
@@ -29,8 +31,9 @@ def test_create_schema():
     create_schema_response = client.create_schema(
         name="personalize-demo-schema", schema=json.dumps(schema)
     )
-    create_schema_response.should.have.key("schemaArn").equals(
-        f"arn:aws:personalize:ap-southeast-1:{DEFAULT_ACCOUNT_ID}:schema/personalize-demo-schema"
+    assert create_schema_response["schemaArn"] == (
+        f"arn:aws:personalize:ap-southeast-1:{DEFAULT_ACCOUNT_ID}"
+        ":schema/personalize-demo-schema"
     )
 
 
@@ -42,7 +45,7 @@ def test_delete_schema():
     ]
     client.delete_schema(schemaArn=schema_arn)
 
-    client.list_schemas().should.have.key("schemas").equals([])
+    assert client.list_schemas()["schemas"] == []
 
 
 @mock_personalize
@@ -52,8 +55,8 @@ def test_delete_schema__unknown():
     with pytest.raises(ClientError) as exc:
         client.delete_schema(schemaArn=arn)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"Resource Arn {arn} does not exist.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource Arn {arn} does not exist."
 
 
 @mock_personalize
@@ -61,14 +64,14 @@ def test_describe_schema():
     client = boto3.client("personalize", region_name="us-east-2")
     schema_arn = client.create_schema(name="myname", schema="sth")["schemaArn"]
     resp = client.describe_schema(schemaArn=schema_arn)
-    resp.should.have.key("schema")
+    assert "schema" in resp
     schema = resp["schema"]
 
-    schema.should.have.key("name").equals("myname")
-    schema.should.have.key("schemaArn").match("schema/myname")
-    schema.should.have.key("schema").equals("sth")
-    schema.should.have.key("creationDateTime")
-    schema.should.have.key("lastUpdatedDateTime")
+    assert schema["name"] == "myname"
+    assert re.search("schema/myname", schema["schemaArn"])
+    assert schema["schema"] == "sth"
+    assert "creationDateTime" in schema
+    assert "lastUpdatedDateTime" in schema
 
 
 @mock_personalize
@@ -78,10 +81,10 @@ def test_describe_schema__with_domain():
         "schemaArn"
     ]
     resp = client.describe_schema(schemaArn=schema_arn)
-    resp.should.have.key("schema")
+    assert "schema" in resp
     schema = resp["schema"]
 
-    schema.should.have.key("domain").equals("ECOMMERCE")
+    assert schema["domain"] == "ECOMMERCE"
 
 
 @mock_personalize
@@ -93,8 +96,8 @@ def test_describe_schema__unknown():
     with pytest.raises(ClientError) as exc:
         client.describe_schema(schemaArn=arn)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(f"Resource Arn {arn} does not exist.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Resource Arn {arn} does not exist."
 
 
 @mock_personalize
@@ -102,7 +105,7 @@ def test_list_schemas__initial():
     client = boto3.client("personalize", region_name="us-east-2")
     resp = client.list_schemas()
 
-    resp.should.have.key("schemas").equals([])
+    assert resp["schemas"] == []
 
 
 @mock_personalize
@@ -111,11 +114,11 @@ def test_list_schema():
     schema_arn = client.create_schema(name="myname", schema="sth")["schemaArn"]
 
     resp = client.list_schemas()
-    resp.should.have.key("schemas").length_of(1)
+    assert len(resp["schemas"]) == 1
     schema = resp["schemas"][0]
 
-    schema.should.have.key("name").equals("myname")
-    schema.should.have.key("schemaArn").equals(schema_arn)
-    schema.shouldnt.have.key("schema")
-    schema.should.have.key("creationDateTime")
-    schema.should.have.key("lastUpdatedDateTime")
+    assert schema["name"] == "myname"
+    assert schema["schemaArn"] == schema_arn
+    assert "schema" not in schema
+    assert "creationDateTime" in schema
+    assert "lastUpdatedDateTime" in schema
