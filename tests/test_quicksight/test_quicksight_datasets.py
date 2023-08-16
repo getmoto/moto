@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_quicksight
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -29,11 +28,9 @@ def test_create_data_set():
         },
     )
 
-    resp.should.have.key("Arn").equals(
-        f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:data-set/myset"
-    )
-    resp.should.have.key("DataSetId").equals("myset")
-    resp.should.have.key("IngestionArn").equals(
+    assert resp["Arn"] == (f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:data-set/myset")
+    assert resp["DataSetId"] == "myset"
+    assert resp["IngestionArn"] == (
         f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:ingestion/tbd"
     )
 
@@ -66,8 +63,8 @@ def test_create_ingestion():
         IngestionType="FULL_REFRESH",
     )
 
-    resp.should.have.key("Arn").equals(
+    assert resp["Arn"] == (
         f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:data-set/n_a/ingestions/n_a2"
     )
-    resp.should.have.key("IngestionId").equals("n_a2")
-    resp.should.have.key("IngestionStatus").equals("INITIALIZED")
+    assert resp["IngestionId"] == "n_a2"
+    assert resp["IngestionStatus"] == "INITIALIZED"
