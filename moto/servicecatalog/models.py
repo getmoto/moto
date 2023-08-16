@@ -25,26 +25,25 @@ class Portfolio(BaseModel):
         idempotency_token: str,
         backend: "ServiceCatalogBackend",
     ):
+        self.backend = backend
         self.portfolio_id = "port-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
-        self.created_date: datetime = unix_time()
         self.region = region
+
+        self.arn = f"arn:aws:servicecatalog:{self.region}:{self.backend.account_id}:portfolio/{self.portfolio_id}"
+        self.created_date: datetime = unix_time()
+
         self.accept_language = accept_language
         self.display_name = display_name
         self.description = description
         self.provider_name = provider_name
         self.idempotency_token = idempotency_token
-        self.backend = backend
 
         self.product_ids = list()
         self.launch_path = LaunchPath(name="LP?", backend=backend)
 
-        self.arn = (
-            f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:portfolio/{self.portfolio_id}"
-        )
-        self.tags = tags
-        # self.backend.tag_resource(self.arn, tags)
+        self.backend.tag_resource(self.arn, tags)
 
     def link_product(self, product_id: str):
         if product_id not in self.product_ids:
@@ -63,6 +62,10 @@ class Portfolio(BaseModel):
             "ProviderName": self.provider_name,
         }
         return met
+
+    @property
+    def tags(self):
+        return self.backend.get_tags(self.arn)
 
 
 class ProvisioningArtifact(BaseModel):
@@ -114,29 +117,46 @@ class Product(BaseModel):
         product_type: str,
         tags: Dict[str, str],
         backend: "ServiceCatalogBackend",
+        distributor: str = "",
+        support_email: str = "",
+        support_url: str = "",
+        support_description: str = "",
+        source_connection: str = "",
     ):
+        self.backend = backend
         self.product_view_summary_id = "prodview-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
         self.product_id = "prod-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
-        self.created_time: datetime = unix_time()
         self.region = region
+        self.arn = f"arn:aws:servicecatalog:{self.region}:{self.backend.account_id}:product/{self.product_id}"
+
+        self.created_time: datetime = unix_time()
+
         self.accept_language = accept_language
         self.name = name
         self.description = description
         self.owner = owner
         self.product_type = product_type
+        self.distributor = distributor
+        self.support_email = support_email
+        self.support_url = support_url
+        self.support_description = support_description
+        self.source_connection = source_connection
 
         self.provisioning_artifacts: OrderedDict[str, "ProvisioningArtifact"] = dict()
 
-        self.backend = backend
-        self.arn = (
-            f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:product/{self.product_id}"
-        )
-        self.tags = tags
-        # self.backend.tag_resource(self.arn, tags)
+        self.backend.tag_resource(self.arn, tags)
+
+        # TODO: Implement `status` provisioning as a moto state machine to emulate the product deployment process.
+        # At the moment, the process is synchronous and goes straight to status=AVAILABLE
+        self.status = "AVAILABLE"
+
+    @property
+    def tags(self):
+        return self.backend.get_tags(self.arn)
 
     def get_provisioning_artifact(self, artifact_id: str):
         return self.provisioning_artifacts[artifact_id]
@@ -186,11 +206,13 @@ class Product(BaseModel):
                 "Owner": self.owner,
                 "ShortDescription": self.description,
                 "Type": self.product_type,
-                # "Distributor": "Some person",
+                "Distributor": self.distributor,
+                "SupportEmail": self.support_email,
+                "SupportUrl": self.support_url,
+                "SupportDescription": self.support_description,
                 # "HasDefaultPath": false,
-                # "SupportEmail": "frank@stallone.example"
             },
-            "Status": "AVAILABLE",
+            "Status": self.status,
         }
 
     def to_json(self) -> Dict[str, Any]:
@@ -364,15 +386,19 @@ class ProvisionedProduct(BaseModel):
         tags: Dict[str, str],
         backend: "ServiceCatalogBackend",
     ):
+        self.backend = backend
         self.provisioned_product_id = "pp-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )
+        self.region = region
+        self.name = name
+        self.arn = f"arn:aws:servicecatalog:{self.region}:{self.backend.account_id}:stack/{self.name}/{self.provisioned_product_id}"
+
         self.created_time: datetime = unix_time()
         self.updated_time: datetime = self.created_time
-        self.region = region
+
         self.accept_language = accept_language
 
-        self.name = name
         # CFN_STACK, CFN_STACKSET, TERRAFORM_OPEN_SOURCE, TERRAFORM_CLOUD
         # self.product_type = product_type
         # PROVISION_PRODUCT, UPDATE_PROVISIONED_PRODUCT, TERMINATE_PROVISIONED_PRODUCT
@@ -393,10 +419,12 @@ class ProvisionedProduct(BaseModel):
         self.status: str = (
             "SUCCEEDED"  # CREATE,IN_PROGRESS,IN_PROGRESS_IN_ERROR,IN_PROGRESS_IN_ERROR
         )
-        self.backend = backend
-        self.arn = f"arn:aws:servicecatalog:{region}:ACCOUNT_ID:stack/{self.name}/{self.provisioned_product_id}"
-        self.tags = tags
-        # self.backend.tag_resource(self.arn, tags)
+
+        self.backend.tag_resource(self.arn, tags)
+
+    @property
+    def tags(self):
+        return self.backend.get_tags(self.arn)
 
     def to_provisioned_product_detail_json(self, include_tags=False) -> Dict[str, Any]:
         detail = {
@@ -484,7 +512,10 @@ class ServiceCatalogBackend(BaseBackend):
             backend=self,
         )
         self.portfolios[portfolio.portfolio_id] = portfolio
-        return portfolio, tags
+
+        output_tags = portfolio.tags
+
+        return portfolio, output_tags
 
     def create_product(
         self,
@@ -517,6 +548,11 @@ class ServiceCatalogBackend(BaseBackend):
             product_type=product_type,
             name=name,
             description=description,
+            distributor=distributor,
+            support_email=support_email,
+            support_url=support_url,
+            support_description=support_description,
+            source_connection=source_connection,
             tags=tags,
             backend=self,
         )
@@ -537,7 +573,9 @@ class ServiceCatalogBackend(BaseBackend):
             provisioning_artifact.to_provisioning_artifact_detail_json()
         )
 
-        return product_view_detail, provisioning_artifact_detail, tags
+        output_tags = product.tags
+
+        return product_view_detail, provisioning_artifact_detail, output_tags
 
     def create_constraint(
         self,
@@ -624,7 +662,7 @@ class ServiceCatalogBackend(BaseBackend):
         )
 
         if tags is None:
-            tags = list()
+            tags = []
 
         # Outputs will be a provisioned product and a record
         provisioned_product = ProvisionedProduct(
@@ -830,11 +868,16 @@ class ServiceCatalogBackend(BaseBackend):
         return record_detail
 
     def get_tags(self, resource_id: str) -> Dict[str, str]:
-        return self.tagger.get_tag_dict_for_resource(resource_id)
+        """
+        Returns tags in original input format:
+        [{"Key":"A key", "Value:"A Value"},...]
+        """
+        return self.tagger.convert_dict_to_tags_input(
+            self.tagger.get_tag_dict_for_resource(resource_id)
+        )
 
     def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
-        tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
-        self.tagger.tag_resource(resource_arn, tags_input)
+        self.tagger.tag_resource(resource_arn, tags)
 
     def get_constraint_by(self, product_id: str, portfolio_id: str):
         for constraint_id, constraint in self.constraints.items():
@@ -878,16 +921,24 @@ class ServiceCatalogBackend(BaseBackend):
         )
 
     def describe_product(self, accept_language, identifier, name):
+        product = self._get_product(identifier=identifier, name=name)
+        product_view_detail = product.to_product_view_detail_json()
 
-        (
-            product_view_summary,
-            provisioning_artifacts,
-            _,
-            _,
-            budgets,
-        ) = self.describe_product_as_admin(accept_language, identifier, name)
+        provisioning_artifact_summaries = []
+        for key, summary in product.provisioning_artifacts.items():
+            provisioning_artifact_summaries.append(
+                summary.to_provisioning_artifact_detail_json()
+            )
+
+        budgets = None
         launch_paths = []
-        return product_view_summary, provisioning_artifacts, budgets, launch_paths
+
+        return (
+            product_view_detail,
+            provisioning_artifact_summaries,
+            budgets,
+            launch_paths,
+        )
 
     def update_portfolio(
         self,
@@ -927,8 +978,11 @@ class ServiceCatalogBackend(BaseBackend):
         remove_tags,
         source_connection,
     ):
-        # implement here
-        product_view_detail = {}
+        product = self._get_product(identifier=identifier)
+
+        product.name = name
+
+        product_view_detail = product.to_product_view_detail_json()
         tags = []
         return product_view_detail, tags
 

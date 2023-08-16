@@ -23,6 +23,9 @@ Outputs:
 
 
 def _create_cf_template_in_s3(region_name: str):
+    """
+    Creates a bucket and uploads a cloudformation template to be used in product provisioning
+    """
     cloud_bucket = "cf-servicecatalog"
     cloud_s3_key = "sc-templates/test-product/stack.yaml"
     cloud_url = f"https://s3.amazonaws.com/{cloud_bucket}/{cloud_s3_key}"
@@ -37,19 +40,19 @@ def _create_cf_template_in_s3(region_name: str):
     return cloud_url
 
 
-def _create_default_product_with_portfolio(
-    region_name: str, portfolio_name: str, product_name: str
-):
-
-    cloud_url = _create_cf_template_in_s3(region_name)
-
+def _create_portfolio(region_name: str, portfolio_name: str):
     client = boto3.client("servicecatalog", region_name=region_name)
 
     # Create portfolio
     create_portfolio_response = client.create_portfolio(
         DisplayName=portfolio_name, ProviderName="Test Provider"
     )
+    return create_portfolio_response
 
+
+def _create_product(region_name: str, product_name: str):
+    cloud_url = _create_cf_template_in_s3(region_name)
+    client = boto3.client("servicecatalog", region_name=region_name)
     # Create Product
     create_product_response = client.create_product(
         Name=product_name,
@@ -65,9 +68,27 @@ def _create_default_product_with_portfolio(
         },
         IdempotencyToken=str(uuid.uuid4()),
     )
+    return create_product_response
+
+
+def _create_default_product_with_portfolio(
+    region_name: str, portfolio_name: str, product_name: str
+):
+    """
+    Create a portfolio and product with a uploaded cloud formation template
+    """
+
+    create_portfolio_response = _create_portfolio(
+        region_name=region_name, portfolio_name=portfolio_name
+    )
+    create_product_response = _create_product(
+        region_name=region_name, product_name=product_name
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
 
     # Associate product to portfolio
-    resp = client.associate_product_with_portfolio(
+    client.associate_product_with_portfolio(
         PortfolioId=create_portfolio_response["PortfolioDetail"]["Id"],
         ProductId=create_product_response["ProductViewDetail"]["ProductViewSummary"][
             "ProductId"
@@ -77,8 +98,15 @@ def _create_default_product_with_portfolio(
 
 
 def _create_default_product_with_constraint(
-    region_name: str, portfolio_name: str, product_name: str
+    region_name: str,
+    portfolio_name: str,
+    product_name: str,
+    role_arn: str = "arn:aws:iam::123456789012:role/LaunchRole",
 ):
+    """
+    Create a portfolio and product with a uploaded cloud formation template including
+    a launch constraint on the roleARN
+    """
     portfolio, product = _create_default_product_with_portfolio(
         region_name=region_name,
         portfolio_name=portfolio_name,
@@ -88,7 +116,7 @@ def _create_default_product_with_constraint(
     create_constraint_response = client.create_constraint(
         PortfolioId=portfolio["PortfolioDetail"]["Id"],
         ProductId=product["ProductViewDetail"]["ProductViewSummary"]["ProductId"],
-        Parameters="""{"RoleArn": "arn:aws:iam::123456789012:role/LaunchRole"}""",
+        Parameters=f"""{{"RoleArn": "{role_arn}"}}""",
         Type="LAUNCH",
     )
     return create_constraint_response, portfolio, product
@@ -100,18 +128,15 @@ def _create_provisioned_product(
     provisioning_artifact_id: str,
     provisioned_product_name: str,
 ):
+    """
+    Create a provisioned product from the specified product_name
+    """
     client = boto3.client("servicecatalog", region_name=region_name)
-
-    stack_id = uuid.uuid4().hex
-    today = date.today()
-    today = today.strftime("%Y%m%d")
-    requesting_user = "test-user"
-    provisioning_product_name = requesting_user + "-" + today + "_" + stack_id
-
+    # TODO: Path from launch object
     provisioned_product_response = client.provision_product(
         ProvisionedProductName=provisioned_product_name,
         ProvisioningArtifactId=provisioning_artifact_id,
-        PathId="asdf",
+        PathId="TODO: Launch path",
         ProductName=product_name,
         Tags=[
             {"Key": "MyCustomTag", "Value": "A Value"},
@@ -125,11 +150,22 @@ def _create_provisioned_product(
 def test_create_portfolio():
     client = boto3.client("servicecatalog", region_name="ap-southeast-1")
     resp = client.create_portfolio(
-        DisplayName="Test Portfolio", ProviderName="Test Provider"
+        DisplayName="Test Portfolio",
+        ProviderName="Test Provider",
+        Tags=[
+            {"Key": "FirstTag", "Value": "FirstTagValue"},
+            {"Key": "SecondTag", "Value": "SecondTagValue"},
+        ],
     )
 
-    assert resp is not None
     assert "PortfolioDetail" in resp
+    portfolio = resp["PortfolioDetail"]
+    assert portfolio["DisplayName"] == "Test Portfolio"
+    assert portfolio["ProviderName"] == "Test Provider"
+    assert "Tags" in resp
+    assert len(resp["Tags"]) == 2
+    assert resp["Tags"][0]["Key"] == "FirstTag"
+    assert resp["Tags"][0]["Value"] == "FirstTagValue"
 
 
 @mock_servicecatalog
@@ -167,10 +203,29 @@ def test_create_product():
             "Type": "CLOUD_FORMATION_TEMPLATE",
         },
         IdempotencyToken=str(uuid.uuid4()),
+        Tags=[
+            {"Key": "FirstTag", "Value": "FirstTagValue"},
+            {"Key": "SecondTag", "Value": "SecondTagValue"},
+        ],
     )
-    # TODO: Much more comprehensive
+
     assert "ProductViewDetail" in resp
+    assert resp["ProductViewDetail"]["Status"] == "AVAILABLE"
+    product = resp["ProductViewDetail"]["ProductViewSummary"]
+    assert product["Name"] == "test product"
+    assert product["Owner"] == "owner arn"
+    assert product["ShortDescription"] == "description"
+    assert product["SupportEmail"] == "test@example.com"
+
     assert "ProvisioningArtifactDetail" in resp
+    artifact = resp["ProvisioningArtifactDetail"]
+    assert artifact["Name"] == "InitialCreation"
+    assert artifact["Type"] == "CLOUD_FORMATION_TEMPLATE"
+
+    assert "Tags" in resp
+    assert len(resp["Tags"]) == 2
+    assert resp["Tags"][0]["Key"] == "FirstTag"
+    assert resp["Tags"][0]["Value"] == "FirstTagValue"
 
 
 @mock_servicecatalog
@@ -212,12 +267,10 @@ def test_create_product_duplicate():
 @mock_s3
 def test_create_constraint():
     region_name = "us-east-2"
-    product_name = "test product"
-
     portfolio, product = _create_default_product_with_portfolio(
         region_name=region_name,
         portfolio_name="My Portfolio",
-        product_name=product_name,
+        product_name="test product",
     )
 
     client = boto3.client("servicecatalog", region_name=region_name)
@@ -237,26 +290,36 @@ def test_create_constraint():
 @mock_s3
 def test_associate_product_with_portfolio():
     region_name = "us-east-2"
-    portfolio, product = _create_default_product_with_portfolio(
-        region_name=region_name,
-        product_name="My PRoduct",
-        portfolio_name="The Portfolio",
-    )
 
+    portfolio = _create_portfolio(
+        region_name=region_name, portfolio_name="The Portfolio"
+    )
+    product = _create_product(region_name=region_name, product_name="My Product")
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    # Verify product is not linked to portfolio
     client = boto3.client("servicecatalog", region_name=region_name)
+    linked = client.list_portfolios_for_product(ProductId=product_id)
+    assert len(linked["PortfolioDetails"]) == 0
+
+    # Link product to portfolio
     resp = client.associate_product_with_portfolio(
         PortfolioId=portfolio["PortfolioDetail"]["Id"],
         ProductId=product["ProductViewDetail"]["ProductViewSummary"]["ProductId"],
     )
-
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Verify product is now linked to portfolio
+    linked = client.list_portfolios_for_product(ProductId=product_id)
+    assert len(linked["PortfolioDetails"]) == 1
+    assert linked["PortfolioDetails"][0]["Id"] == portfolio["PortfolioDetail"]["Id"]
 
 
 @mock_servicecatalog
 @mock_s3
 def test_provision_product():
     region_name = "us-east-2"
-    product_name = "My PRoduct"
+    product_name = "My Product"
     portfolio, product = _create_default_product_with_portfolio(
         region_name=region_name,
         product_name=product_name,
@@ -266,34 +329,43 @@ def test_provision_product():
     client = boto3.client("servicecatalog", region_name=region_name)
     provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
 
-    stack_id = uuid.uuid4().hex
-    today = date.today()
-    today = today.strftime("%Y%m%d")
-    requesting_user = "test-user"
-    provisioning_product_name = requesting_user + "-" + today + "_" + stack_id
-
+    # TODO: Paths
     provisioned_product_response = client.provision_product(
-        ProvisionedProductName=provisioning_product_name,
+        ProvisionedProductName="Provisioned Product Name",
         ProvisioningArtifactId=provisioning_artifact_id,
-        PathId="asdf",
+        PathId="TODO",
         ProductName=product_name,
         Tags=[
             {"Key": "MyCustomTag", "Value": "A Value"},
             {"Key": "MyOtherTag", "Value": "Another Value"},
         ],
     )
-    print(provisioned_product_response)
+    provisioned_product_id = provisioned_product_response["RecordDetail"][
+        "ProvisionedProductId"
+    ]
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
 
+    # Verify record details
+    rec = provisioned_product_response["RecordDetail"]
+    assert rec["ProvisionedProductName"] == "Provisioned Product Name"
+    assert rec["Status"] == "CREATED"
+    assert rec["ProductId"] == product_id
+    assert rec["ProvisionedProductId"] == provisioned_product_id
+    assert rec["ProvisionedProductType"] == "CFN_STACK"
+    assert rec["ProvisioningArtifactId"] == provisioning_artifact_id
+    assert rec["PathId"] == ""
+    assert rec["RecordType"] == "PROVISION_PRODUCT"
+    # tags
+
+    # Verify cloud formation stack has been created - this example creates a bucket named "cfn-quickstart-bucket"
     s3_client = boto3.client("s3", region_name=region_name)
     all_buckets_response = s3_client.list_buckets()
     bucket_names = [bucket["Name"] for bucket in all_buckets_response["Buckets"]]
-
     assert "cfn-quickstart-bucket" in bucket_names
 
 
 @mock_servicecatalog
 def test_list_portfolios():
-
     client = boto3.client("servicecatalog", region_name="ap-southeast-1")
     assert len(client.list_portfolios()["PortfolioDetails"]) == 0
 
@@ -329,13 +401,11 @@ def test_describe_portfolio_not_existing():
     client = boto3.client("servicecatalog", region_name="ap-southeast-1")
     assert len(client.list_portfolios()["PortfolioDetails"]) == 0
 
-    portfolio_id = "not-found"
-
     with pytest.raises(ClientError) as exc:
-        portfolio_response = client.describe_portfolio(Id=portfolio_id)
+        client.describe_portfolio(Id="not-found")
 
     err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidParametersException"
+    assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Portfolio not found"
 
 
@@ -595,10 +665,13 @@ def test_update_portfolio():
 @mock_servicecatalog
 @mock_s3
 def test_update_product():
-    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
-    resp = client.update_product()
+    product = _create_product(region_name="ap-southeast-1", product_name="Test Product")
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
 
-    raise Exception("NotYetImplemented")
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    resp = client.update_product(Id=product_id, Name="New Product Name")
+    new_product = resp["ProductViewDetail"]["ProductViewSummary"]
+    assert new_product["Name"] == "New Product Name"
 
 
 @mock_servicecatalog
