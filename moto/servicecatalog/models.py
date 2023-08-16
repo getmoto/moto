@@ -8,6 +8,8 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 from moto.cloudformation.utils import get_stack_from_s3_url
+from moto.ec2.utils import generic_filter
+from moto.ec2.exceptions import FilterNotImplementedError
 
 from .utils import create_cloudformation_stack_from_template
 from .exceptions import (
@@ -159,6 +161,18 @@ class Product(BaseModel):
         # TODO: Implement `status` provisioning as a moto state machine to emulate the product deployment process.
         # At the moment, the process is synchronous and goes straight to status=AVAILABLE
         self.status = "AVAILABLE"
+
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
+        if filter_name == "Owner":
+            return self.owner
+        elif filter_name == "ProductType":
+            return self.product_type
+
+        # Remaining fields: FullTextSearch | SourceProductId
+
+        raise FilterNotImplementedError(filter_name, method_name)
 
     @property
     def tags(self):
@@ -433,37 +447,39 @@ class ProvisionedProduct(BaseModel):
             "SUCCEEDED"  # CREATE,IN_PROGRESS,IN_PROGRESS_IN_ERROR,IN_PROGRESS_IN_ERROR
         )
 
-        self.searchable_fields = [
-            "arn",
-            "createdTime",
-            "id",
-            "lastRecordId",
-            "idempotencyToken",
-            "name",
-            "physicalId",
-            "productId",
-            "provisioningArtifactId",
-            "type",
-            "status",
-            "tags",
-            "userArn",
-            "userArnSession",
-            "lastProvisioningRecordId",
-            "lastSuccessfulProvisioningRecordId",
-            "productName",
-            "provisioningArtifactName",
-        ]
-
         self.backend.tag_resource(self.arn, tags)
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
     ) -> Any:
-        if filter_name == "arn":
+        if filter_name == "id":
+            return self.provisioned_product_id
+        elif filter_name == "arn":
             return self.arn
         elif filter_name == "name":
             return self.name
-        return None
+        elif filter_name == "createdTime":
+            return self.created_time
+        elif filter_name == "lastRecordId":
+            return self.last_record_id
+        elif filter_name == "productId":
+            return self.product_id
+
+        # Remaining fields
+        # "idempotencyToken",
+        # "physicalId",
+        # "provisioningArtifactId",
+        # "type",
+        # "status",
+        # "tags",
+        # "userArn",
+        # "userArnSession",
+        # "lastProvisioningRecordId",
+        # "lastSuccessfulProvisioningRecordId",
+        # "productName",
+        # "provisioningArtifactName",
+
+        raise FilterNotImplementedError(filter_name, method_name)
 
     @property
     def tags(self):
@@ -783,9 +799,14 @@ class ServiceCatalogBackend(BaseBackend):
     def search_products(
         self, accept_language, filters, sort_by, sort_order, page_token
     ):
-        product_view_summaries = list()
-        # TODO: Filter
-        for key, product in self.products.items():
+
+        if filters:
+            products = generic_filter(filters, self.products.values())
+        else:
+            products = self.products.values()
+
+        product_view_summaries = []
+        for product in products:
             product_view_summaries.append(
                 product.to_product_view_detail_json()["ProductViewSummary"]
             )
@@ -809,8 +830,6 @@ class ServiceCatalogBackend(BaseBackend):
     ):
         # implement here
         # TODO: Filter
-
-        from moto.ec2.utils import generic_filter
 
         if filters:
             source_provisioned_products = generic_filter(
