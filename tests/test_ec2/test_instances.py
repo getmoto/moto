@@ -2664,3 +2664,35 @@ def test_run_multiple_instances_with_single_nic_template():
     instance_1_ip = enis[1]["PrivateIpAddresses"][0]["PrivateIpAddress"]
 
     assert instance_0_ip != instance_1_ip
+
+
+@mock_ec2
+def test_describe_instance_without_enhanced_monitoring():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    instance = conn.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, Monitoring={"Enabled": True}
+    )
+    assert instance["Instances"][0]["Monitoring"] == {"State": "enabled"}
+
+    result = conn.describe_instances(
+        InstanceIds=[instance["Instances"][0]["InstanceId"]]
+    )["Reservations"][0]["Instances"]
+
+    assert result[0]["Monitoring"] == {"State": "enabled"}
+
+
+@mock_ec2
+def test_describe_instance_with_enhanced_monitoring():
+    conn = boto3.client("ec2", region_name="us-west-1")
+
+    instance = conn.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, Monitoring={"Enabled": False}
+    )
+    assert instance["Instances"][0]["Monitoring"] == {"State": "disabled"}
+
+    result = conn.describe_instances(
+        InstanceIds=[instance["Instances"][0]["InstanceId"]]
+    )["Reservations"][0]["Instances"]
+
+    assert result[0]["Monitoring"] == {"State": "disabled"}
