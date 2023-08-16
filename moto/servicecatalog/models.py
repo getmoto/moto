@@ -1,6 +1,6 @@
 """ServiceCatalogBackend class with methods for supported APIs."""
 import string
-from typing import Any, Dict, OrderedDict, List, Optional, Union
+from typing import Any, Dict, OrderedDict, Optional
 from datetime import datetime
 
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -10,7 +10,13 @@ from moto.utilities.tagging_service import TaggingService
 from moto.cloudformation.utils import get_stack_from_s3_url
 
 from .utils import create_cloudformation_stack_from_template
-from .exceptions import ProductNotFound, PortfolioNotFound, InvalidParametersException
+from .exceptions import (
+    ProductNotFound,
+    PortfolioNotFound,
+    ProvisionedProductNotFound,
+    RecordNotFound,
+    InvalidParametersException,
+)
 
 
 class Portfolio(BaseModel):
@@ -158,8 +164,15 @@ class Product(BaseModel):
     def tags(self):
         return self.backend.get_tags(self.arn)
 
-    def get_provisioning_artifact(self, artifact_id: str):
-        return self.provisioning_artifacts[artifact_id]
+    def get_provisioning_artifact(self, artifact_id: str, artifact_name: str):
+        if artifact_id in self.provisioning_artifacts:
+            return self.provisioning_artifacts[artifact_id]
+
+        for key, artifact in self.provisioning_artifacts.items():
+            if artifact.name == artifact_name:
+                return artifact
+
+        return None
 
     def _create_provisioning_artifact(
         self,
@@ -420,7 +433,37 @@ class ProvisionedProduct(BaseModel):
             "SUCCEEDED"  # CREATE,IN_PROGRESS,IN_PROGRESS_IN_ERROR,IN_PROGRESS_IN_ERROR
         )
 
+        self.searchable_fields = [
+            "arn",
+            "createdTime",
+            "id",
+            "lastRecordId",
+            "idempotencyToken",
+            "name",
+            "physicalId",
+            "productId",
+            "provisioningArtifactId",
+            "type",
+            "status",
+            "tags",
+            "userArn",
+            "userArnSession",
+            "lastProvisioningRecordId",
+            "lastSuccessfulProvisioningRecordId",
+            "productName",
+            "provisioningArtifactName",
+        ]
+
         self.backend.tag_resource(self.arn, tags)
+
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
+        if filter_name == "arn":
+            return self.arn
+        elif filter_name == "name":
+            return self.name
+        return None
 
     @property
     def tags(self):
@@ -481,6 +524,18 @@ class ServiceCatalogBackend(BaseBackend):
                 return portfolio
 
         raise PortfolioNotFound(
+            identifier=identifier or name, identifier_name="Name" if name else "Id"
+        )
+
+    def _get_provisioned_product(self, identifier: str = "", name: str = "") -> bool:
+        if identifier in self.provisioned_products:
+            return self.provisioned_products[identifier]
+
+        for product_id, provisioned_product in self.provisioned_products.items():
+            if provisioned_product.name == name:
+                return provisioned_product
+
+        raise ProvisionedProductNotFound(
             identifier=identifier or name, identifier_name="Name" if name else "Id"
         )
 
@@ -632,26 +687,17 @@ class ServiceCatalogBackend(BaseBackend):
         notification_arns,
         provision_token,
     ):
-        # implement here
-        # TODO: Big damn cleanup before this counts as anything useful.
-
         # Get product by id or name
-        product = None
-        if product_id:
-            product = self.products[product_id]
-        else:
-            for product_id, item in self.products.items():
-                if item.name == product_name:
-                    product = item
+        product = self._get_product(identifier=product_id, name=product_name)
 
         # Get specified provisioning artifact from product by id or name
-        # search product for specific provision_artifact_id or name
-        # TODO: ID vs name
         provisioning_artifact = product.get_provisioning_artifact(
-            provisioning_artifact_id
+            artifact_id=provisioning_artifact_id,
+            artifact_name=provisioning_artifact_name,
         )
 
         # Verify path exists for product by id or name
+        # TODO: Paths
 
         # Create initial stack in CloudFormation
         stack = create_cloudformation_stack_from_template(
@@ -673,8 +719,8 @@ class ServiceCatalogBackend(BaseBackend):
             stack_outputs=stack.stack_outputs,
             product_id=product.product_id,
             provisioning_artifact_id=provisioning_artifact.provisioning_artifact_id,
-            path_id="asdf",
-            launch_role_arn="asdf2",
+            path_id="TODO: paths",
+            launch_role_arn="TODO: launch role",
             tags=tags,
             backend=self,
         )
@@ -763,10 +809,23 @@ class ServiceCatalogBackend(BaseBackend):
     ):
         # implement here
         # TODO: Filter
+
+        from moto.ec2.utils import generic_filter
+
+        if filters:
+            source_provisioned_products = generic_filter(
+                filters, self.provisioned_products.values()
+            )
+        else:
+            source_provisioned_products = self.provisioned_products.values()
+
         provisioned_products = [
             value.to_provisioned_product_detail_json(include_tags=True)
-            for key, value in self.provisioned_products.items()
+            for value in source_provisioned_products
         ]
+
+        #  search-product - FullTextSearch | Owner | ProductType | SourceProductId - with arrays
+        #
 
         total_results_count = len(provisioned_products)
         next_page_token = None
@@ -781,14 +840,14 @@ class ServiceCatalogBackend(BaseBackend):
         for portfolio_id, portfolio in self.portfolios.items():
             launch_path_detail = portfolio.launch_path.to_json()
             launch_path_detail["Name"] = portfolio.display_name
-            launch_path_detail["ConstraintSummaries"] = list()
+            launch_path_detail["ConstraintSummaries"] = []
             if product.product_id in portfolio.product_ids:
-                constraint = self.get_constraint_by(
+                if constraint := self.get_constraint_by(
                     product_id=product.product_id, portfolio_id=portfolio_id
-                )
-                launch_path_detail["ConstraintSummaries"].append(
-                    constraint.to_summary_json()
-                )
+                ):
+                    launch_path_detail["ConstraintSummaries"].append(
+                        constraint.to_summary_json()
+                    )
             launch_path_summaries.append(launch_path_detail)
 
         next_page_token = None
@@ -995,6 +1054,18 @@ class ServiceCatalogBackend(BaseBackend):
         next_page_token = None
 
         return portfolio_details, next_page_token
+
+    def describe_record(self, accept_language, identifier, page_token):
+        try:
+            record = self.records[identifier]
+        except KeyError:
+            raise RecordNotFound(identifier=identifier)
+
+        record_detail = record.to_record_detail_json()
+        record_outputs = None  # TODO: Stack outputs
+        next_page_token = None
+
+        return record_detail, record_outputs, next_page_token
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

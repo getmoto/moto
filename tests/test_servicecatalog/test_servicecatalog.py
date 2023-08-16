@@ -11,13 +11,24 @@ from botocore.exceptions import ClientError, ParamValidationError
 
 BASIC_CLOUD_STACK = """---
 Resources:
-  LocalBucket:
-    Type: AWS::S3::Bucket
+  BucketWithSemiRandomName:
+    Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: cfn-quickstart-bucket
+      BucketName: !Join
+        - "-"
+        - - "bucket-with-semi-random-name"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
 Outputs:
   WebsiteURL:
-    Value: !GetAtt LocalBucket.WebsiteURL
+    Value: !GetAtt BucketWithSemiRandomName.WebsiteURL
     Description: URL for website hosted on S3
 """
 
@@ -71,7 +82,7 @@ def _create_product(region_name: str, product_name: str):
     return create_product_response
 
 
-def _create_default_product_with_portfolio(
+def _create_product_with_portfolio(
     region_name: str, portfolio_name: str, product_name: str
 ):
     """
@@ -97,7 +108,7 @@ def _create_default_product_with_portfolio(
     return create_portfolio_response, create_product_response
 
 
-def _create_default_product_with_constraint(
+def _create_product_with_constraint(
     region_name: str,
     portfolio_name: str,
     product_name: str,
@@ -107,7 +118,7 @@ def _create_default_product_with_constraint(
     Create a portfolio and product with a uploaded cloud formation template including
     a launch constraint on the roleARN
     """
-    portfolio, product = _create_default_product_with_portfolio(
+    portfolio, product = _create_product_with_portfolio(
         region_name=region_name,
         portfolio_name=portfolio_name,
         product_name=product_name,
@@ -144,6 +155,30 @@ def _create_provisioned_product(
         ],
     )
     return provisioned_product_response
+
+
+def _create_portfolio_with_provisioned_product(
+    region_name: str,
+    portfolio_name: str,
+    product_name: str,
+    provisioned_product_name: str,
+):
+
+    constraint, portfolio, product = _create_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name=portfolio_name,
+    )
+
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+    provisioned_product = _create_provisioned_product(
+        region_name=region_name,
+        product_name=product_name,
+        provisioning_artifact_id=provisioning_artifact_id,
+        provisioned_product_name=provisioned_product_name,
+    )
+
+    return constraint, portfolio, product, provisioned_product
 
 
 @mock_servicecatalog
@@ -267,7 +302,7 @@ def test_create_product_duplicate():
 @mock_s3
 def test_create_constraint():
     region_name = "us-east-2"
-    portfolio, product = _create_default_product_with_portfolio(
+    portfolio, product = _create_product_with_portfolio(
         region_name=region_name,
         portfolio_name="My Portfolio",
         product_name="test product",
@@ -317,10 +352,10 @@ def test_associate_product_with_portfolio():
 
 @mock_servicecatalog
 @mock_s3
-def test_provision_product():
+def test_provision_product_by_product_name_and_artifact_id():
     region_name = "us-east-2"
     product_name = "My Product"
-    portfolio, product = _create_default_product_with_portfolio(
+    portfolio, product = _create_product_with_portfolio(
         region_name=region_name,
         product_name=product_name,
         portfolio_name="The Portfolio",
@@ -361,7 +396,51 @@ def test_provision_product():
     s3_client = boto3.client("s3", region_name=region_name)
     all_buckets_response = s3_client.list_buckets()
     bucket_names = [bucket["Name"] for bucket in all_buckets_response["Buckets"]]
-    assert "cfn-quickstart-bucket" in bucket_names
+
+    assert any(
+        [name.startswith("bucket-with-semi-random-name") for name in bucket_names]
+    )
+
+
+@mock_servicecatalog
+@mock_s3
+def test_provision_product_by_artifact_name_and_product_id():
+    region_name = "us-east-2"
+
+    portfolio, product = _create_product_with_portfolio(
+        region_name=region_name,
+        product_name="My Product",
+        portfolio_name="The Portfolio",
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    provisioning_artifact_name = product["ProvisioningArtifactDetail"]["Name"]
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    # TODO: Paths
+    provisioned_product_response = client.provision_product(
+        ProvisionedProductName="Provisioned Product Name",
+        ProvisioningArtifactName=provisioning_artifact_name,
+        PathId="TODO",
+        ProductId=product_id,
+        Tags=[
+            {"Key": "MyCustomTag", "Value": "A Value"},
+            {"Key": "MyOtherTag", "Value": "Another Value"},
+        ],
+    )
+
+    # Verify record details
+    rec = provisioned_product_response["RecordDetail"]
+    assert rec["ProvisionedProductName"] == "Provisioned Product Name"
+
+    # Verify cloud formation stack has been created - this example creates a bucket named "cfn-quickstart-bucket"
+    s3_client = boto3.client("s3", region_name=region_name)
+    all_buckets_response = s3_client.list_buckets()
+    bucket_names = [bucket["Name"] for bucket in all_buckets_response["Buckets"]]
+
+    assert any(
+        [name.startswith("bucket-with-semi-random-name") for name in bucket_names]
+    )
 
 
 @mock_servicecatalog
@@ -413,21 +492,19 @@ def test_describe_portfolio_not_existing():
 @mock_s3
 def test_describe_provisioned_product():
     region_name = "us-east-2"
-    product_name = "test product"
-
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
         region_name=region_name,
-        product_name=product_name,
+        product_name="test product",
         portfolio_name="Test Portfolio",
-    )
-
-    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
-    provisioned_product = _create_provisioned_product(
-        region_name=region_name,
-        product_name=product_name,
-        provisioning_artifact_id=provisioning_artifact_id,
         provisioned_product_name="My Provisioned Product",
     )
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+
     client = boto3.client("servicecatalog", region_name=region_name)
 
     provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
@@ -441,24 +518,22 @@ def test_describe_provisioned_product():
         == provisioning_artifact_id
     )
 
+    resp = client.search_provisioned_products(Filters={"SearchQuery": []})
+
 
 @mock_servicecatalog
 @mock_s3
 def test_get_provisioned_product_outputs():
     region_name = "us-east-2"
-    product_name = "test product"
-
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
         region_name=region_name,
-        product_name=product_name,
+        product_name="test product",
         portfolio_name="Test Portfolio",
-    )
-
-    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
-    provisioned_product = _create_provisioned_product(
-        region_name=region_name,
-        product_name=product_name,
-        provisioning_artifact_id=provisioning_artifact_id,
         provisioned_product_name="My Provisioned Product",
     )
     provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
@@ -477,51 +552,82 @@ def test_get_provisioned_product_outputs():
 @mock_s3
 def test_search_provisioned_products():
     region_name = "us-east-2"
-    product_name = "test product"
-
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
         region_name=region_name,
-        product_name=product_name,
+        product_name="test product",
         portfolio_name="Test Portfolio",
-    )
-
-    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
-    provisioned_product = _create_provisioned_product(
-        region_name=region_name,
-        product_name=product_name,
-        provisioning_artifact_id=provisioning_artifact_id,
         provisioned_product_name="My Provisioned Product",
     )
     provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+    provisioned_product_2 = _create_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        provisioning_artifact_id=provisioning_artifact_id,
+        provisioned_product_name="Second Provisioned Product",
+    )
+    provisioned_product_id_2 = provisioned_product_2["RecordDetail"][
+        "ProvisionedProductId"
+    ]
 
     client = boto3.client("servicecatalog", region_name=region_name)
 
     resp = client.search_provisioned_products()
 
     pps = resp["ProvisionedProducts"]
-    assert len(pps) == 1
+    assert len(pps) == 2
     assert pps[0]["Id"] == provisioned_product_id
+    assert pps[1]["Id"] == provisioned_product_id_2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_search_provisioned_products_filter_by():
+    region_name = "us-east-2"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    resp = client.search_provisioned_products(
+        Filters={"SearchQuery": ["name:My Provisioned Product"]}
+    )
+
+    assert len(resp["ProvisionedProducts"]) == 1
+    assert resp["ProvisionedProducts"][0]["Id"] == provisioned_product_id
 
 
 @mock_servicecatalog
 @mock_s3
 def test_terminate_provisioned_product():
     region_name = "us-east-2"
-    product_name = "test product"
-
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
         region_name=region_name,
-        product_name=product_name,
+        product_name="test product",
         portfolio_name="Test Portfolio",
-    )
-
-    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
-    provisioned_product = _create_provisioned_product(
-        region_name=region_name,
-        product_name=product_name,
-        provisioning_artifact_id=provisioning_artifact_id,
         provisioned_product_name="My Provisioned Product",
     )
+
     provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
     product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
     client = boto3.client("servicecatalog", region_name=region_name)
@@ -541,7 +647,7 @@ def test_search_products():
     region_name = "us-east-2"
     product_name = "test product"
 
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    constraint, portfolio, product = _create_product_with_constraint(
         region_name=region_name,
         product_name=product_name,
         portfolio_name="Test Portfolio",
@@ -566,7 +672,7 @@ def test_list_launch_paths():
     region_name = "us-east-2"
     product_name = "test product"
 
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    constraint, portfolio, product = _create_product_with_constraint(
         region_name=region_name,
         product_name=product_name,
         portfolio_name="Test Portfolio",
@@ -584,11 +690,29 @@ def test_list_launch_paths():
 
 @mock_servicecatalog
 @mock_s3
+def test_list_launch_paths_no_constraints_attached():
+    portfolio, product = _create_product_with_portfolio(
+        region_name="us-east-2",
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    client = boto3.client("servicecatalog", region_name="us-east-2")
+    resp = client.list_launch_paths(ProductId=product_id)
+
+    lps = resp["LaunchPathSummaries"]
+    assert len(lps) == 1
+    assert len(lps[0]["ConstraintSummaries"]) == 0
+
+
+@mock_servicecatalog
+@mock_s3
 def test_list_provisioning_artifacts():
     region_name = "us-east-2"
     product_name = "test product"
 
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    constraint, portfolio, product = _create_product_with_constraint(
         region_name=region_name,
         product_name=product_name,
         portfolio_name="Test Portfolio",
@@ -610,7 +734,7 @@ def test_describe_product_as_admin():
     region_name = "us-east-2"
     product_name = "test product"
 
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    constraint, portfolio, product = _create_product_with_constraint(
         region_name=region_name,
         product_name=product_name,
         portfolio_name="Test Portfolio",
@@ -629,7 +753,7 @@ def test_describe_product():
     region_name = "us-east-2"
     product_name = "test product"
 
-    constraint, portfolio, product = _create_default_product_with_constraint(
+    constraint, portfolio, product = _create_product_with_constraint(
         region_name=region_name,
         product_name=product_name,
         portfolio_name="Test Portfolio",
@@ -680,7 +804,7 @@ def test_list_portfolios_for_product():
     region_name = "us-east-2"
     product_name = "test product"
 
-    portfolio, product = _create_default_product_with_portfolio(
+    portfolio, product = _create_product_with_portfolio(
         region_name=region_name,
         portfolio_name="My Portfolio",
         product_name=product_name,
@@ -691,3 +815,28 @@ def test_list_portfolios_for_product():
     resp = client.list_portfolios_for_product(ProductId=product_id)
 
     assert resp["PortfolioDetails"][0]["Id"] == portfolio["PortfolioDetail"]["Id"]
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_record():
+    region_name = "eu-west-1"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="My Provisioned Product",
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.describe_record(Id=provisioned_product["RecordDetail"]["RecordId"])
+
+    assert (
+        resp["RecordDetail"]["RecordId"]
+        == provisioned_product["RecordDetail"]["RecordId"]
+    )

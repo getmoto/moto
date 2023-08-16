@@ -44,6 +44,28 @@ class PortfolioNotFound(ResourceNotFoundException):
         )
 
 
+class ProvisionedProductNotFound(ResourceNotFoundException):
+    code = 404
+
+    def __init__(self, identifier: str, identifier_name: str):
+        super().__init__(
+            message="Provisioned product not found",
+            resource_id=f"{identifier_name}={identifier}",
+            resource_type="AWS::ServiceCatalog::Product",
+        )
+
+
+class RecordNotFound(ResourceNotFoundException):
+    code = 404
+
+    def __init__(self, identifier: str):
+        super().__init__(
+            message="Record not found",
+            resource_id=identifier,
+            resource_type="AWS::ServiceCatalog::Record",
+        )
+
+
 class InvalidParametersException(ServiceCatalogClientError):
     code = 400
 

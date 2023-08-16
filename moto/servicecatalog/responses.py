@@ -1,7 +1,8 @@
 """Handles incoming servicecatalog requests, invokes methods, returns responses."""
 import json
+import re
 
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
+from moto.core.responses import BaseResponse
 from .models import servicecatalog_backends
 
 
@@ -40,15 +41,13 @@ class ServiceCatalogResponse(BaseResponse):
     def list_portfolios(self) -> str:
         accept_language = self._get_param("AcceptLanguage")
         page_token = self._get_param("PageToken")
-        page_size = self._get_param("PageSize")
+        # page_size = self._get_param("PageSize")
         (portfolios, next_page_token,) = self.servicecatalog_backend.list_portfolios(
             accept_language=accept_language,
             page_token=page_token,
         )
 
         portfolio_details = [portfolio.to_json() for portfolio in portfolios]
-
-        # TODO: adjust response
 
         ret = json.dumps(
             dict(
@@ -86,7 +85,7 @@ class ServiceCatalogResponse(BaseResponse):
         provisioned_product_id = self._get_param("ProvisionedProductId")
         provisioned_product_name = self._get_param("ProvisionedProductName")
         output_keys = self._get_param("OutputKeys")
-        page_size = self._get_param("PageSize")
+        # page_size = self._get_param("PageSize")
         page_token = self._get_param("PageToken")
         (
             outputs,
@@ -107,8 +106,34 @@ class ServiceCatalogResponse(BaseResponse):
         filters = self._get_param("Filters")
         sort_by = self._get_param("SortBy")
         sort_order = self._get_param("SortOrder")
-        page_size = self._get_param("PageSize")
+        # page_size = self._get_param("PageSize")
         page_token = self._get_param("PageToken")
+
+        # Change filter to match search-products style
+        new_filters = {}
+        if (
+            filters
+            and "SearchQuery" in filters
+            and isinstance(filters["SearchQuery"], list)
+        ):
+            filters = filters["SearchQuery"]
+
+            # Convert filters into style used by the Moto EC2 filtering. This is the format:
+            # {
+            #    "FilterName": ["FilterValue"]
+            #   ...
+            #  }
+            # This allows the service-catalog endpoints with filters to reuse the backend filtering from EC2
+
+            for filter_value in filters:
+                parts = re.split(":|=", filter_value)
+                if len(parts) == 1:
+                    parts = ["*", parts[0]]  # wildcard filter
+
+                if parts[0] not in new_filters:
+                    new_filters[parts[0]] = []
+                new_filters[parts[0]].append(parts[1])
+
         (
             provisioned_products,
             total_results_count,
@@ -116,7 +141,7 @@ class ServiceCatalogResponse(BaseResponse):
         ) = self.servicecatalog_backend.search_provisioned_products(
             accept_language=accept_language,
             access_level_filter=access_level_filter,
-            filters=filters,
+            filters=new_filters,
             sort_by=sort_by,
             sort_order=sort_order,
             page_token=page_token,
@@ -151,10 +176,11 @@ class ServiceCatalogResponse(BaseResponse):
     def search_products(self):
         accept_language = self._get_param("AcceptLanguage")
         filters = self._get_param("Filters")
-        page_size = self._get_param("PageSize")
+        # page_size = self._get_param("PageSize")
         sort_by = self._get_param("SortBy")
         sort_order = self._get_param("SortOrder")
         page_token = self._get_param("PageToken")
+
         (
             product_view_summaries,
             product_view_aggregations,
@@ -178,7 +204,7 @@ class ServiceCatalogResponse(BaseResponse):
     def list_launch_paths(self):
         accept_language = self._get_param("AcceptLanguage")
         product_id = self._get_param("ProductId")
-        page_size = self._get_param("PageSize")
+        # page_size = self._get_param("PageSize")
         page_token = self._get_param("PageToken")
         (
             launch_path_summaries,
@@ -462,7 +488,7 @@ class ServiceCatalogResponse(BaseResponse):
         accept_language = self._get_param("AcceptLanguage")
         product_id = self._get_param("ProductId")
         page_token = self._get_param("PageToken")
-        page_size = self._get_param("PageSize")
+        # page_size = self._get_param("PageSize")
         (
             portfolio_details,
             next_page_token,
@@ -474,4 +500,27 @@ class ServiceCatalogResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(
             dict(PortfolioDetails=portfolio_details, NextPageToken=next_page_token)
+        )
+
+    def describe_record(self):
+        accept_language = self._get_param("AcceptLanguage")
+        identifier = self._get_param("Id")
+        page_token = self._get_param("PageToken")
+        # page_size = self._get_param("PageSize")
+        (
+            record_detail,
+            record_outputs,
+            next_page_token,
+        ) = self.servicecatalog_backend.describe_record(
+            accept_language=accept_language,
+            identifier=identifier,
+            page_token=page_token,
+        )
+
+        return json.dumps(
+            dict(
+                RecordDetail=record_detail,
+                RecordOutputs=record_outputs,
+                NextPageToken=next_page_token,
+            )
         )
