@@ -4,7 +4,6 @@ import string
 
 import boto3
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_rekognition
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -24,9 +23,8 @@ def test_start_face_search():
 
     resp = client.start_face_search(CollectionId=collection_id, Video=video)
 
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    resp.should.have.key("JobId")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "JobId" in resp
 
 
 @mock_rekognition
@@ -41,9 +39,8 @@ def test_start_text_detection():
 
     resp = client.start_text_detection(Video=video)
 
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-
-    resp.should.have.key("JobId")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "JobId" in resp
 
 
 @mock_rekognition
@@ -55,11 +52,11 @@ def test_get_face_search():
 
     resp = client.get_face_search(JobId=job_id)
 
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    resp["JobStatus"].should.equal("SUCCEEDED")
-    resp["Persons"][0]["FaceMatches"][0]["Face"]["ExternalImageId"].should.equal(
-        "Dave_Bloggs"
+    assert resp["JobStatus"] == "SUCCEEDED"
+    assert (
+        resp["Persons"][0]["FaceMatches"][0]["Face"]["ExternalImageId"] == "Dave_Bloggs"
     )
 
 
@@ -72,9 +69,7 @@ def test_get_text_detection():
 
     resp = client.get_text_detection(JobId=job_id)
 
-    resp["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    resp["JobStatus"].should.equal("SUCCEEDED")
-    resp["TextDetections"][0]["TextDetection"]["DetectedText"].should.equal(
-        "Hello world"
-    )
+    assert resp["JobStatus"] == "SUCCEEDED"
+    assert resp["TextDetections"][0]["TextDetection"]["DetectedText"] == "Hello world"
