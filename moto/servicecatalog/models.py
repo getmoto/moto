@@ -1,5 +1,6 @@
 """ServiceCatalogBackend class with methods for supported APIs."""
 import string
+import warnings
 from typing import Any, Dict, OrderedDict, Optional
 from datetime import datetime
 
@@ -158,8 +159,10 @@ class Product(BaseModel):
 
         self.backend.tag_resource(self.arn, tags)
 
-        # TODO: Implement `status` provisioning as a moto state machine to emulate the product deployment process.
+        # TODO: Implement `status` provisioning as a moto state machine to emulate the product deployment process with
+        #  additional states for CREATING, FAILED.
         # At the moment, the process is synchronous and goes straight to status=AVAILABLE
+
         self.status = "AVAILABLE"
 
     def get_filter_value(
@@ -205,8 +208,9 @@ class Product(BaseModel):
                 template_url=template_url, account_id=account_id
             )
         else:
-            raise NotImplementedError("Nope")
-        # elif "ImportFromPhysicalId" in info:
+            warnings.warn(
+                "Only LoadTemplateFromURL is implemented as a template source."
+            )
 
         provisioning_artifact = ProvisioningArtifact(
             name=name,
@@ -706,6 +710,12 @@ class ServiceCatalogBackend(BaseBackend):
         # Get product by id or name
         product = self._get_product(identifier=product_id, name=product_name)
 
+        if notification_arns is not None:
+            warnings.warn("Notifications not implemented")
+
+        if provisioning_preferences is not None:
+            warnings.warn("provisioning_preferences not implemented")
+
         # Get specified provisioning artifact from product by id or name
         provisioning_artifact = product.get_provisioning_artifact(
             artifact_id=provisioning_artifact_id,
@@ -762,10 +772,18 @@ class ServiceCatalogBackend(BaseBackend):
         return record.to_record_detail_json()
 
     def list_portfolios(self, accept_language, page_token):
-        # implement here
         portfolio_details = list(self.portfolios.values())
         next_page_token = None
         return portfolio_details, next_page_token
+
+    def describe_portfolio(self, accept_language, identifier):
+        portfolio = self._get_portfolio(identifier=identifier)
+        portfolio_detail = portfolio.to_json()
+
+        tags = []
+        tag_options = None
+        budgets = None
+        return portfolio_detail, tags, tag_options, budgets
 
     def get_last_record_for_provisioned_product(self, provisioned_product_id: str):
         for record_key, record in reversed(self.records.items()):
@@ -773,15 +791,16 @@ class ServiceCatalogBackend(BaseBackend):
                 return record
         raise Exception("TODO")
 
-    def describe_provisioned_product(self, accept_language, id, name):
-        # implement here
+    def describe_provisioned_product(self, accept_language, identifier, name):
+        provisioned_product = self._get_provisioned_product(
+            identifier=identifier, name=name
+        )
 
-        if id:
-            provisioned_product = self.provisioned_products[id]
-        else:
-            # get by name
-            provisioned_product = self.provisioned_products[id]
+        provisioned_product_detail = (
+            provisioned_product.to_provisioned_product_detail_json()
+        )
 
+        cloud_watch_dashboards = None
         # TODO
         #    "CloudWatchDashboards": [
         #       {
@@ -789,11 +808,6 @@ class ServiceCatalogBackend(BaseBackend):
         #       }
         #    ],
 
-        provisioned_product_detail = (
-            provisioned_product.to_provisioned_product_detail_json()
-        )
-
-        cloud_watch_dashboards = None
         return provisioned_product_detail, cloud_watch_dashboards
 
     def search_products(
@@ -828,9 +842,6 @@ class ServiceCatalogBackend(BaseBackend):
         sort_order,
         page_token,
     ):
-        # implement here
-        # TODO: Filter
-
         if filters:
             source_provisioned_products = generic_filter(
                 filters, self.provisioned_products.values()
@@ -838,23 +849,24 @@ class ServiceCatalogBackend(BaseBackend):
         else:
             source_provisioned_products = self.provisioned_products.values()
 
+        # Access Filter
+        # User, Role, Account
+        # access_level_filter
+
         provisioned_products = [
             value.to_provisioned_product_detail_json(include_tags=True)
             for value in source_provisioned_products
         ]
 
-        #  search-product - FullTextSearch | Owner | ProductType | SourceProductId - with arrays
-        #
-
         total_results_count = len(provisioned_products)
         next_page_token = None
+
         return provisioned_products, total_results_count, next_page_token
 
     def list_launch_paths(self, accept_language, product_id, page_token):
-        # implement here
-        product = self.products[product_id]
+        product = self._get_product(identifier=product_id)
 
-        launch_path_summaries = list()
+        launch_path_summaries = []
 
         for portfolio_id, portfolio in self.portfolios.items():
             launch_path_detail = portfolio.launch_path.to_json()
@@ -874,10 +886,8 @@ class ServiceCatalogBackend(BaseBackend):
         return launch_path_summaries, next_page_token
 
     def list_provisioning_artifacts(self, accept_language, product_id):
-        # implement here
-
-        product = self.products[product_id]
-        provisioning_artifact_details = list()
+        product = self._get_product(identifier=product_id)
+        provisioning_artifact_details = []
         for artifact_id, artifact in product.provisioning_artifacts.items():
             provisioning_artifact_details.append(
                 artifact.to_provisioning_artifact_detail_json()
@@ -895,8 +905,9 @@ class ServiceCatalogBackend(BaseBackend):
         output_keys,
         page_token,
     ):
-        # implement here
-        provisioned_product = self.provisioned_products[provisioned_product_id]
+        provisioned_product = self._get_provisioned_product(
+            identifier=provisioned_product_id, name=provisioned_product_name
+        )
 
         outputs = []
 
@@ -945,18 +956,6 @@ class ServiceCatalogBackend(BaseBackend):
 
         return record_detail
 
-    def get_tags(self, resource_id: str) -> Dict[str, str]:
-        """
-        Returns tags in original input format:
-        [{"Key":"A key", "Value:"A Value"},...]
-        """
-        return self.tagger.convert_dict_to_tags_input(
-            self.tagger.get_tag_dict_for_resource(resource_id)
-        )
-
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
-
     def get_constraint_by(self, product_id: str, portfolio_id: str):
         for constraint_id, constraint in self.constraints.items():
             if (
@@ -964,15 +963,6 @@ class ServiceCatalogBackend(BaseBackend):
                 and constraint.portfolio_id == portfolio_id
             ):
                 return constraint
-
-    def describe_portfolio(self, accept_language, identifier):
-        portfolio = self._get_portfolio(identifier=identifier)
-        portfolio_detail = portfolio.to_json()
-
-        tags = []
-        tag_options = None
-        budgets = None
-        return portfolio_detail, tags, tag_options, budgets
 
     def describe_product_as_admin(
         self, accept_language, identifier, name, source_portfolio_id
@@ -1085,6 +1075,18 @@ class ServiceCatalogBackend(BaseBackend):
         next_page_token = None
 
         return record_detail, record_outputs, next_page_token
+
+    def get_tags(self, resource_id: str) -> Dict[str, str]:
+        """
+        Returns tags in original input format:
+        [{"Key":"A key", "Value:"A Value"},...]
+        """
+        return self.tagger.convert_dict_to_tags_input(
+            self.tagger.get_tag_dict_for_resource(resource_id)
+        )
+
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        self.tagger.tag_resource(resource_arn, tags)
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

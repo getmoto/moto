@@ -204,6 +204,11 @@ def test_create_portfolio():
 
 
 @mock_servicecatalog
+def test_create_portfolio_missing_required():
+    assert 1 == 2
+
+
+@mock_servicecatalog
 def test_create_portfolio_duplicate():
     client = boto3.client("servicecatalog", region_name="ap-southeast-1")
     client.create_portfolio(DisplayName="Test Portfolio", ProviderName="Test Provider")
@@ -261,6 +266,12 @@ def test_create_product():
     assert len(resp["Tags"]) == 2
     assert resp["Tags"][0]["Key"] == "FirstTag"
     assert resp["Tags"][0]["Value"] == "FirstTagValue"
+
+
+@mock_servicecatalog
+@mock_s3
+def test_create_product_missing_required():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -323,6 +334,18 @@ def test_create_constraint():
 
 @mock_servicecatalog
 @mock_s3
+def test_create_constraint_duplicate():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_create_constraint_missing_required():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
 def test_associate_product_with_portfolio():
     region_name = "us-east-2"
 
@@ -348,6 +371,12 @@ def test_associate_product_with_portfolio():
     linked = client.list_portfolios_for_product(ProductId=product_id)
     assert len(linked["PortfolioDetails"]) == 1
     assert linked["PortfolioDetails"][0]["Id"] == portfolio["PortfolioDetail"]["Id"]
+
+
+@mock_servicecatalog
+@mock_s3
+def test_associate_product_with_portfolio_invalid_ids():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -444,6 +473,24 @@ def test_provision_product_by_artifact_name_and_product_id():
 
 
 @mock_servicecatalog
+@mock_s3
+def test_provision_product_by_artifact_id_and_product_id_and_path_id():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_provision_product_by_artifact_id_and_product_id_and_path_name():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_provision_product_with_parameters():
+    assert 1 == 2
+
+
+@mock_servicecatalog
 def test_list_portfolios():
     client = boto3.client("servicecatalog", region_name="ap-southeast-1")
     assert len(client.list_portfolios()["PortfolioDetails"]) == 0
@@ -490,7 +537,7 @@ def test_describe_portfolio_not_existing():
 
 @mock_servicecatalog
 @mock_s3
-def test_describe_provisioned_product():
+def test_describe_provisioned_product_by_id():
     region_name = "us-east-2"
     (
         constraint,
@@ -519,11 +566,24 @@ def test_describe_provisioned_product():
     )
 
     resp = client.search_provisioned_products(Filters={"SearchQuery": []})
+    # TODO: Verift
 
 
 @mock_servicecatalog
 @mock_s3
-def test_get_provisioned_product_outputs():
+def test_describe_provisioned_product_by_name():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_provisioned_product_not_found():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_get_provisioned_product_outputs_by_id():
     region_name = "us-east-2"
     (
         constraint,
@@ -546,6 +606,18 @@ def test_get_provisioned_product_outputs():
 
     assert len(resp["Outputs"]) == 1
     assert resp["Outputs"][0]["OutputKey"] == "WebsiteURL"
+
+
+@mock_servicecatalog
+@mock_s3
+def test_get_provisioned_product_outputs_filtered_output_by_name():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_get_provisioned_product_outputs_filtered_by_output_keys():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -610,6 +682,18 @@ def test_search_provisioned_products_filter_by():
 
     assert len(resp["ProvisionedProducts"]) == 1
     assert resp["ProvisionedProducts"][0]["Id"] == provisioned_product_id
+
+
+@mock_servicecatalog
+@mock_s3
+def test_search_provisioned_products_access_level():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_search_provisioned_products_with_sort():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -693,6 +777,12 @@ def test_search_products_by_filter():
 
 @mock_servicecatalog
 @mock_s3
+def test_search_products_with_sort():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
 def test_list_launch_paths():
     region_name = "us-east-2"
     product_name = "test product"
@@ -755,7 +845,13 @@ def test_list_provisioning_artifacts():
 
 @mock_servicecatalog
 @mock_s3
-def test_describe_product_as_admin():
+def test_list_provisioning_artifacts_product_not_found():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product_as_admin_by_id():
     region_name = "us-east-2"
     product_name = "test product"
 
@@ -774,7 +870,19 @@ def test_describe_product_as_admin():
 
 @mock_servicecatalog
 @mock_s3
-def test_describe_product():
+def test_describe_product_as_admin_by_name():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product_as_admin_with_source_portfolio_id():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product_by_id():
     region_name = "us-east-2"
     product_name = "test product"
 
@@ -789,6 +897,12 @@ def test_describe_product():
 
     assert resp["ProductViewDetail"]["ProductViewSummary"]["ProductId"] == product_id
     assert len(resp["ProvisioningArtifactSummaries"]) == 1
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product_by_name():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -813,6 +927,18 @@ def test_update_portfolio():
 
 @mock_servicecatalog
 @mock_s3
+def test_update_portfolio_not_found():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_update_portfolio_invalid_fields():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
 def test_update_product():
     product = _create_product(region_name="ap-southeast-1", product_name="Test Product")
     product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
@@ -821,6 +947,18 @@ def test_update_product():
     resp = client.update_product(Id=product_id, Name="New Product Name")
     new_product = resp["ProductViewDetail"]["ProductViewSummary"]
     assert new_product["Name"] == "New Product Name"
+
+
+@mock_servicecatalog
+@mock_s3
+def test_update_product_not_found():
+    assert 1 == 2
+
+
+@mock_servicecatalog
+@mock_s3
+def test_update_product_invalid_fields():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -840,6 +978,12 @@ def test_list_portfolios_for_product():
     resp = client.list_portfolios_for_product(ProductId=product_id)
 
     assert resp["PortfolioDetails"][0]["Id"] == portfolio["PortfolioDetail"]["Id"]
+
+
+@mock_servicecatalog
+@mock_s3
+def test_list_portfolios_for_product_not_found():
+    assert 1 == 2
 
 
 @mock_servicecatalog
@@ -865,3 +1009,9 @@ def test_describe_record():
         resp["RecordDetail"]["RecordId"]
         == provisioned_product["RecordDetail"]["RecordId"]
     )
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_record_not_found():
+    assert 1 == 2

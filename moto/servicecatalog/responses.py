@@ -60,14 +60,14 @@ class ServiceCatalogResponse(BaseResponse):
 
     def describe_provisioned_product(self):
         accept_language = self._get_param("AcceptLanguage")
-        id = self._get_param("Id")
+        identifier = self._get_param("Id")
         name = self._get_param("Name")
         (
             provisioned_product_detail,
             cloud_watch_dashboards,
         ) = self.servicecatalog_backend.describe_provisioned_product(
             accept_language=accept_language,
-            id=id,
+            identifier=identifier,
             name=name,
         )
         # TODO: adjust response
