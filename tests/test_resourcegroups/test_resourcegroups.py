@@ -1,6 +1,6 @@
-import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
+
+import boto3
 
 from moto import mock_resourcegroups
 
@@ -29,11 +29,9 @@ def test_create_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
     response = create_group(client=resource_groups)
-    response["Group"]["Name"].should.contain("test_resource_group")
-    response["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
-    response["Tags"]["resource_group_tag_key"].should.contain(
-        "resource_group_tag_value"
-    )
+    assert "test_resource_group" in response["Group"]["Name"]
+    assert "TAG_FILTERS_1_0" in response["ResourceQuery"]["Type"]
+    assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
 
 
 @mock_resourcegroups
@@ -43,11 +41,11 @@ def test_delete_group():
     create_group(client=resource_groups)
 
     response = resource_groups.delete_group(GroupName="test_resource_group")
-    response["Group"]["Name"].should.contain("test_resource_group")
+    assert "test_resource_group" in response["Group"]["Name"]
 
     response = resource_groups.list_groups()
-    response["GroupIdentifiers"].should.have.length_of(0)
-    response["Groups"].should.have.length_of(0)
+    assert len(response["GroupIdentifiers"]) == 0
+    assert len(response["Groups"]) == 0
 
 
 @mock_resourcegroups
@@ -57,7 +55,7 @@ def test_get_group():
     create_group(client=resource_groups)
 
     response = resource_groups.get_group(GroupName="test_resource_group")
-    response["Group"]["Description"].should.contain("description")
+    assert "description" in response["Group"]["Description"]
 
 
 @mock_resourcegroups
@@ -67,12 +65,10 @@ def test_get_group_query():
     group_arn = create_group(resource_groups)["Group"]["GroupArn"]
 
     response = resource_groups.get_group_query(GroupName="test_resource_group")
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+    assert "TAG_FILTERS_1_0" in response["GroupQuery"]["ResourceQuery"]["Type"]
 
     response_get = resource_groups.get_group_query(Group=group_arn)
-    response_get["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
-        "TAG_FILTERS_1_0"
-    )
+    assert "TAG_FILTERS_1_0" in response_get["GroupQuery"]["ResourceQuery"]["Type"]
 
 
 @mock_resourcegroups
@@ -82,10 +78,8 @@ def test_get_tags():
     group_arn = create_group(resource_groups)["Group"]["GroupArn"]
 
     response = resource_groups.get_tags(Arn=group_arn)
-    response["Tags"].should.have.length_of(1)
-    response["Tags"]["resource_group_tag_key"].should.contain(
-        "resource_group_tag_value"
-    )
+    assert len(response["Tags"]) == 1
+    assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
 
 
 @mock_resourcegroups
@@ -95,8 +89,8 @@ def test_list_groups():
     create_group(resource_groups)
 
     response = resource_groups.list_groups()
-    response["GroupIdentifiers"].should.have.length_of(1)
-    response["Groups"].should.have.length_of(1)
+    assert len(response["GroupIdentifiers"]) == 1
+    assert len(response["Groups"]) == 1
 
 
 @mock_resourcegroups
@@ -109,15 +103,11 @@ def test_tag():
         Arn=group_arn,
         Tags={"resource_group_tag_key_2": "resource_group_tag_value_2"},
     )
-    response["Tags"]["resource_group_tag_key_2"].should.contain(
-        "resource_group_tag_value_2"
-    )
+    assert "resource_group_tag_value_2" in response["Tags"]["resource_group_tag_key_2"]
 
     response = resource_groups.get_tags(Arn=group_arn)
-    response["Tags"].should.have.length_of(2)
-    response["Tags"]["resource_group_tag_key_2"].should.contain(
-        "resource_group_tag_value_2"
-    )
+    assert len(response["Tags"]) == 2
+    assert "resource_group_tag_value_2" in response["Tags"]["resource_group_tag_key_2"]
 
 
 @mock_resourcegroups
@@ -127,10 +117,10 @@ def test_untag():
     group_arn = create_group(resource_groups)["Group"]["GroupArn"]
 
     response = resource_groups.untag(Arn=group_arn, Keys=["resource_group_tag_key"])
-    response["Keys"].should.contain("resource_group_tag_key")
+    assert "resource_group_tag_key" in response["Keys"]
 
     response = resource_groups.get_tags(Arn=group_arn)
-    response["Tags"].should.have.length_of(0)
+    assert len(response["Tags"]) == 0
 
 
 @mock_resourcegroups
@@ -142,10 +132,10 @@ def test_update_group():
     response = resource_groups.update_group(
         GroupName="test_resource_group", Description="description_2"
     )
-    response["Group"]["Description"].should.contain("description_2")
+    assert "description_2" in response["Group"]["Description"]
 
     response = resource_groups.get_group(GroupName="test_resource_group")
-    response["Group"]["Description"].should.contain("description_2")
+    assert "description_2" in response["Group"]["Description"]
 
 
 @mock_resourcegroups
@@ -209,12 +199,10 @@ def test_create_group_with_configuration():
         Tags={"resource_group_tag_key": "resource_group_tag_value"},
     )
 
-    response["Group"]["Name"].should.contain("test_resource_group_new")
+    assert "test_resource_group_new" in response["Group"]["Name"]
 
     assert response["GroupConfiguration"]["Configuration"] == configuration
-    response["Tags"]["resource_group_tag_key"].should.contain(
-        "resource_group_tag_value"
-    )
+    assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
 
 
 @mock_resourcegroups
@@ -238,14 +226,10 @@ def test_update_group_query():
             ),
         },
     )
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
-        "CLOUDFORMATION_STACK_1_0"
-    )
+    assert "CLOUDFORMATION_STACK_1_0" in response["GroupQuery"]["ResourceQuery"]["Type"]
 
     response = resource_groups.get_group_query(GroupName="test_resource_group")
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain(
-        "CLOUDFORMATION_STACK_1_0"
-    )
+    assert "CLOUDFORMATION_STACK_1_0" in response["GroupQuery"]["ResourceQuery"]["Type"]
 
     response = resource_groups.update_group_query(
         Group=group_arn,
@@ -262,7 +246,7 @@ def test_update_group_query():
         },
     )
 
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+    assert "TAG_FILTERS_1_0" in response["GroupQuery"]["ResourceQuery"]["Type"]
 
     response = resource_groups.get_group_query(Group=group_arn)
-    response["GroupQuery"]["ResourceQuery"]["Type"].should.contain("TAG_FILTERS_1_0")
+    assert "TAG_FILTERS_1_0" in response["GroupQuery"]["ResourceQuery"]["Type"]
