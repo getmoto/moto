@@ -300,6 +300,14 @@ class CloudTrailBackend(BaseBackend):
     def get_trail_status(self, name: str) -> TrailStatus:
         if len(name) < 3:
             raise TrailNameTooShort(actual_length=len(name))
+        current_account = cloudtrail_backends[self.account_id]
+
+        # We need to check if there is a MultiRegion trail created for the region checked
+        for backend in current_account.values():
+            for trail in backend.trails.values():
+                if trail.is_multi_region or trail.region_name == self.region_name:
+                    self.trails[trail.trail_name] = trail
+
         trail_name = next(
             (
                 trail.trail_name
