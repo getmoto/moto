@@ -4,6 +4,7 @@ import time
 
 import boto3
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 import pytest
 
 from moto import mock_ec2
@@ -1890,7 +1891,7 @@ def test_get_cluster_credentials():
     )
 
     expected_expiration = time.mktime(
-        (datetime.datetime.now() + datetime.timedelta(0, 900)).timetuple()
+        (datetime.datetime.now(tzutc()) + datetime.timedelta(0, 900)).timetuple()
     )
     db_user = "some_user"
     response = client.get_cluster_credentials(
@@ -1913,7 +1914,7 @@ def test_get_cluster_credentials():
     assert response["DbUser"] == "IAM:some_other_user"
 
     expected_expiration = time.mktime(
-        (datetime.datetime.now() + datetime.timedelta(0, 3000)).timetuple()
+        (datetime.datetime.now(tzutc()) + datetime.timedelta(0, 3000)).timetuple()
     )
     response = client.get_cluster_credentials(
         ClusterIdentifier=cluster_identifier, DbUser=db_user, DurationSeconds=3000
