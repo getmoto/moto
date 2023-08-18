@@ -120,6 +120,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
+        self.monitoring_state = kwargs.get("monitoring_state", "disabled")
         self.source_dest_check = "true"
         self.launch_time = utc_date_and_time()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)

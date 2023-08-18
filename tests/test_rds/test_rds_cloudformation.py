@@ -1,6 +1,7 @@
-import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
+
+import boto3
+
 from moto import mock_cloudformation, mock_ec2, mock_rds
 from tests.test_cloudformation.fixtures import rds_mysql_with_db_parameter_group
 from tests.test_cloudformation.fixtures import rds_mysql_with_read_replica
@@ -36,12 +37,12 @@ def test_create_subnetgroup_via_cf():
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
 
     response = rds.describe_db_subnet_groups()["DBSubnetGroups"]
-    response.should.have.length_of(1)
+    assert len(response) == 1
 
     created_subnet = response[0]
-    created_subnet.should.have.key("DBSubnetGroupName").equal("subnetgroupname")
-    created_subnet.should.have.key("DBSubnetGroupDescription").equal("subnetgroupdesc")
-    created_subnet.should.have.key("VpcId").equal(vpc["VpcId"])
+    assert created_subnet["DBSubnetGroupName"] == "subnetgroupname"
+    assert created_subnet["DBSubnetGroupDescription"] == "subnetgroupdesc"
+    assert created_subnet["VpcId"] == vpc["VpcId"]
 
 
 @mock_ec2
@@ -82,19 +83,19 @@ def test_create_dbinstance_via_cf():
 
     db_instance_identifier = summaries[0]["PhysicalResourceId"]
     resp = rds.describe_db_instances()["DBInstances"]
-    resp.should.have.length_of(1)
+    assert len(resp) == 1
 
     created = resp[0]
-    created["DBInstanceIdentifier"].should.equal(db_instance_identifier)
-    created["Engine"].should.equal("mysql")
-    created["DBInstanceStatus"].should.equal("available")
+    assert created["DBInstanceIdentifier"] == db_instance_identifier
+    assert created["Engine"] == "mysql"
+    assert created["DBInstanceStatus"] == "available"
 
     # Verify the stack outputs are correct
     o = _get_stack_outputs(cf, stack_name="test_stack")
-    o.should.have.key("db_address").equals(
+    assert o["db_address"] == (
         f"{db_instance_identifier}.aaaaaaaaaa.us-west-2.rds.amazonaws.com"
     )
-    o.should.have.key("db_port").equals("3307")
+    assert o["db_port"] == "3307"
 
 
 @mock_ec2
@@ -121,10 +122,10 @@ def test_create_dbsecuritygroup_via_cf():
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
 
     result = rds.describe_db_security_groups()["DBSecurityGroups"]
-    result.should.have.length_of(1)
+    assert len(result) == 1
 
     created = result[0]
-    created["DBSecurityGroupDescription"].should.equal("my sec group")
+    assert created["DBSecurityGroupDescription"] == "my sec group"
 
 
 @mock_cloudformation
@@ -159,7 +160,7 @@ def test_rds_db_parameter_groups():
     rds_conn = boto3.client("rds", region_name="us-west-1")
 
     db_parameter_groups = rds_conn.describe_db_parameter_groups()
-    db_parameter_groups["DBParameterGroups"].should.have.length_of(1)
+    assert len(db_parameter_groups["DBParameterGroups"]) == 1
     db_parameter_group_name = db_parameter_groups["DBParameterGroups"][0][
         "DBParameterGroupName"
     ]
@@ -174,7 +175,7 @@ def test_rds_db_parameter_groups():
         ):
             found_cloudformation_set_parameter = True
 
-    found_cloudformation_set_parameter.should.equal(True)
+    assert found_cloudformation_set_parameter is True
 
 
 @mock_cloudformation
@@ -260,7 +261,7 @@ def test_rds_mysql_with_read_replica_in_vpc():
     subnet_group = rds.describe_db_subnet_groups(DBSubnetGroupName=subnet_group_name)[
         "DBSubnetGroups"
     ][0]
-    subnet_group.should.have.key("DBSubnetGroupDescription").equal("my db subnet group")
+    assert subnet_group["DBSubnetGroupDescription"] == "my db subnet group"
 
 
 @mock_ec2
@@ -292,12 +293,12 @@ def test_delete_dbinstance_via_cf():
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
 
     resp = rds.describe_db_instances()["DBInstances"]
-    resp.should.have.length_of(1)
+    assert len(resp) == 1
 
     cf.delete_stack(StackName="test_stack")
 
     resp = rds.describe_db_instances()["DBInstances"]
-    resp.should.have.length_of(0)
+    assert len(resp) == 0
 
 
 def _get_stack_outputs(cf_client, stack_name):
