@@ -485,6 +485,11 @@ class ClusterSnapshot(BaseModel):
                 {% else %}
                 <StorageType>{{ cluster.storage_type }}</StorageType>
                 {% endif %}
+                <TagList>
+                {%- for tag in snapshot.tags -%}
+                    <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
+                {%- endfor -%}
+                </TagList>
                 <Timezone></Timezone>
                 <LicenseModel>{{ cluster.license_model }}</LicenseModel>
             </DBClusterSnapshot>
@@ -2245,6 +2250,7 @@ class RDSBackend(BaseBackend):
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
+
         snapshot = ClusterSnapshot(cluster, db_snapshot_identifier, snapshot_type, tags)
         self.cluster_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
