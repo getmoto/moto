@@ -2250,7 +2250,6 @@ class RDSBackend(BaseBackend):
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
-
         snapshot = ClusterSnapshot(cluster, db_snapshot_identifier, snapshot_type, tags)
         self.cluster_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
