@@ -1525,6 +1525,15 @@ class CognitoIdpBackend(BaseBackend):
                     "ChallengeParameters": {},
                 }
 
+            if user.status == UserStatus.FORCE_CHANGE_PASSWORD:
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {
+                        "USERNAME": username,
+                    },
+                    "Session": session,
+                }
+
             del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "SOFTWARE_TOKEN_MFA":
