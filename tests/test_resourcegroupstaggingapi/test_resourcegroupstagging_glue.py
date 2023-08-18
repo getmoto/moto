@@ -1,8 +1,9 @@
+from uuid import uuid4
+
 import boto3
 
 from moto import mock_glue, mock_resourcegroupstaggingapi
 from moto.core import DEFAULT_ACCOUNT_ID
-from uuid import uuid4
 
 
 @mock_glue
@@ -14,7 +15,7 @@ def test_glue_jobs():
     job_name = glue.create_job(
         Name=str(uuid4()),
         Role="test_role",
-        Command=dict(Name="test_command"),
+        Command={"Name": "test_command"},
         Tags={tag_key: tag_val},
     )["Name"]
     job_arn = f"arn:aws:glue:us-west-1:{DEFAULT_ACCOUNT_ID}:job/{job_name}"
