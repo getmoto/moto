@@ -300,29 +300,22 @@ class CloudTrailBackend(BaseBackend):
     def get_trail_status(self, name: str) -> TrailStatus:
         if len(name) < 3:
             raise TrailNameTooShort(actual_length=len(name))
-        current_account = cloudtrail_backends[self.account_id]
 
-        # We need to check if there is a MultiRegion trail created for the region checked
-        for backend in current_account.values():
-            for trail in backend.trails.values():
-                if trail.is_multi_region or trail.region_name == self.region_name:
-                    self.trails[trail.trail_name] = trail
-
-        trail_name = next(
+        all_trails = self.describe_trails(include_shadow_trails=True)
+        trail = next(
             (
-                trail.trail_name
-                for trail in self.trails.values()
+                trail
+                for trail in all_trails
                 if trail.trail_name == name or trail.arn == name
             ),
             None,
         )
-        if not trail_name:
+        if not trail:
             # This particular method returns the ARN as part of the error message
             arn = (
                 f"arn:aws:cloudtrail:{self.region_name}:{self.account_id}:trail/{name}"
             )
             raise TrailNotFoundException(account_id=self.account_id, name=arn)
-        trail = self.trails[trail_name]
         return trail.status
 
     def describe_trails(self, include_shadow_trails: bool) -> Iterable[Trail]:
