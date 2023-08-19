@@ -1,6 +1,6 @@
-import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
+
+import boto3
 
 from moto import mock_cloudformation, mock_ec2, mock_redshift
 from tests.test_cloudformation.fixtures import redshift
@@ -33,20 +33,20 @@ def test_redshift_stack():
 
     cluster_res = redshift_conn.describe_clusters()
     clusters = cluster_res["Clusters"]
-    clusters.should.have.length_of(1)
+    assert len(clusters) == 1
     cluster = clusters[0]
-    cluster["DBName"].should.equal("mydb")
-    cluster["NumberOfNodes"].should.equal(2)
-    cluster["NodeType"].should.equal("dw1.xlarge")
-    cluster["MasterUsername"].should.equal("myuser")
-    cluster["Endpoint"]["Port"].should.equal(5439)
-    cluster["VpcSecurityGroups"].should.have.length_of(1)
+    assert cluster["DBName"] == "mydb"
+    assert cluster["NumberOfNodes"] == 2
+    assert cluster["NodeType"] == "dw1.xlarge"
+    assert cluster["MasterUsername"] == "myuser"
+    assert cluster["Endpoint"]["Port"] == 5439
+    assert len(cluster["VpcSecurityGroups"]) == 1
     security_group_id = cluster["VpcSecurityGroups"][0]["VpcSecurityGroupId"]
 
     groups = ec2.describe_security_groups(GroupIds=[security_group_id])[
         "SecurityGroups"
     ]
-    groups.should.have.length_of(1)
+    assert len(groups) == 1
     group = groups[0]
-    group["IpPermissions"].should.have.length_of(1)
-    group["IpPermissions"][0]["IpRanges"][0]["CidrIp"].should.equal("10.0.0.1/16")
+    assert len(group["IpPermissions"]) == 1
+    assert group["IpPermissions"][0]["IpRanges"][0]["CidrIp"] == "10.0.0.1/16"

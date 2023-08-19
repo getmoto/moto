@@ -1,15 +1,17 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
+
 from moto import mock_s3
 from moto import settings
-from unittest import SkipTest
 
 
 @pytest.fixture(scope="function", name="aws_credentials")
 def fixture_aws_credentials(monkeypatch):
+    """Mocked AWS Credentials for moto."""
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this in ServerMode.")
-    """Mocked AWS Credentials for moto."""
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
@@ -63,8 +65,7 @@ def test_mock_works_with_resource_created_outside(
 
     patch_resource(outside_resource)
 
-    b = list(outside_resource.buckets.all())
-    assert b == []
+    assert not list(outside_resource.buckets.all())
     m.stop()
 
 
@@ -126,7 +127,7 @@ def test_mock_works_when_replacing_client(
     try:
         logic.do_important_things()
     except Exception as e:
-        str(e).should.contain("InvalidAccessKeyId")
+        assert str(e) == "InvalidAccessKeyId"
 
     client_initialized_after_mock = boto3.client("s3", region_name="us-east-1")
     logic._s3 = client_initialized_after_mock
