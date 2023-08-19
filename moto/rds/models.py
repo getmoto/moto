@@ -485,6 +485,11 @@ class ClusterSnapshot(BaseModel):
                 {% else %}
                 <StorageType>{{ cluster.storage_type }}</StorageType>
                 {% endif %}
+                <TagList>
+                {%- for tag in snapshot.tags -%}
+                    <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
+                {%- endfor -%}
+                </TagList>
                 <Timezone></Timezone>
                 <LicenseModel>{{ cluster.license_model }}</LicenseModel>
             </DBClusterSnapshot>
