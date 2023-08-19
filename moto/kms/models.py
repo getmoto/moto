@@ -22,6 +22,7 @@ from .utils import (
     generate_key_id,
     generate_master_key,
     generate_private_key,
+    KeySpec,
 )
 
 
@@ -302,6 +303,8 @@ class KmsBackend(BaseBackend):
          - The resource is set to "*"
          - The Action matches `describe_key`
         """
+        if key_spec:
+            self.__ensure_valid_key_spec(key_spec)
         key = Key(
             policy,
             key_usage,
@@ -613,6 +616,16 @@ class KmsBackend(BaseBackend):
                     signing_algorithm=signing_algorithm,
                     valid_sign_algorithms=key.signing_algorithms,
                 )
+            )
+
+    def __ensure_valid_key_spec(self, key_spec: str) -> None:
+        if key_spec not in KeySpec.key_specs():
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_key_specs}"
+                ).format(key_spec=key_spec, valid_key_specs=KeySpec.key_specs())
             )
 
     def sign(
