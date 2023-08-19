@@ -23,6 +23,7 @@ from .utils import (
     generate_master_key,
     generate_private_key,
     KeySpec,
+    SigningAlgorithm,
 )
 
 
@@ -167,22 +168,20 @@ class Key(CloudFormationModel):
     def signing_algorithms(self) -> List[str]:
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None  # type: ignore[return-value]
-        elif self.key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
-            return ["ECDSA_SHA_256"]
-        elif self.key_spec == "ECC_NIST_P384":
-            return ["ECDSA_SHA_384"]
-        elif self.key_spec == "ECC_NIST_P521":
-            return ["ECDSA_SHA_512"]
+        elif self.key_spec in KeySpec.ecc_key_specs():
+            if self.key_spec == KeySpec.ECC_NIST_P384:
+                return [SigningAlgorithm.ECDSA_SHA_384]
+            elif self.key_spec == KeySpec.ECC_NIST_P512:
+                return [SigningAlgorithm.ECDSA_SHA_512]
+            else:
+                # key_spec is 'ECC_NIST_P256' or 'ECC_SECG_P256K1'
+                return [SigningAlgorithm.ECDSA_SHA_256]
+        elif self.key_spec in KeySpec.rsa_key_specs():
+            return SigningAlgorithm.rsa_signing_algorithms()
+        elif self.key_spec == KeySpec.SM2:
+            return [SigningAlgorithm.SM2DSA.value]
         else:
-            return [
-                "RSASSA_PKCS1_V1_5_SHA_256",
-                "RSASSA_PKCS1_V1_5_SHA_384",
-                "RSASSA_PKCS1_V1_5_SHA_512",
-                "RSASSA_PSS_SHA_256",
-                "RSASSA_PSS_SHA_384",
-                "RSASSA_PSS_SHA_512",
-                "SM2DSA",
-            ]
+            return []
 
     def to_dict(self) -> Dict[str, Any]:
         key_dict = {

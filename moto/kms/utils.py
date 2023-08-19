@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Any, Dict, Tuple, List
+from typing import Any, Dict, Tuple, List, Optional
 from enum import Enum
 import io
 import os
@@ -69,6 +69,48 @@ class KeySpec(str, Enum):
     @classmethod
     def key_specs(self) -> List[str]:
         return sorted([item.value for item in KeySpec])
+
+    @classmethod
+    def rsa_key_specs(self) -> List[str]:
+        return [spec for spec in self.key_specs() if spec.startswith("RSA")]
+
+    @classmethod
+    def ecc_key_specs(self) -> List[str]:
+        return [spec for spec in self.key_specs() if spec.startswith("ECC")]
+
+    @classmethod
+    def hmac_key_specs(self) -> List[str]:
+        return [spec for spec in self.key_specs() if spec.startswith("HMAC")]
+
+
+class SigningAlgorithm(str, Enum):
+    # sigingin algorithms for RSA key spec
+    RSASSA_PSS_SHA_256 = "RSASSA_PSS_SHA_256"
+    RSASSA_PSS_SHA_384 = "RSASSA_PSS_SHA_384"
+    RSASSA_PSS_SHA_512 = "RSASSA_PSS_SHA_512"
+    RSASSA_PKCS1_V1_5_SHA_256 = "RSASSA_PKCS1_V1_5_SHA_256"
+    RSASSA_PKCS1_V1_5_SHA_384 = "RSASSA_PKCS1_V1_5_SHA_384"
+    RSASSA_PKCS1_V1_5_SHA_512 = "RSASSA_PKCS1_V1_5_SHA_512"
+    # sigining algorithms for ECC_NIST_P256, P256K1 spec
+    ECDSA_SHA_256 = "ECDSA_SHA_256"
+    # siginging algorithm for ECC_NIST_P384
+    ECDSA_SHA_384 = "ECDSA_SHA_384"
+    # sigining algorithm for ECC_NIST_P512
+    ECDSA_SHA_512 = "ECDSA_SHA_512"
+    # sigining algorithm for SM2
+    SM2DSA = "SM2DSA"
+
+    @classmethod
+    def signing_algorithms(self) -> List[str]:
+        return sorted([item.value for item in SigningAlgorithm])
+
+    @classmethod
+    def rsa_signing_algorithms(self) -> List[str]:
+        return [algo for algo in self.signing_algorithms() if algo.startswith("RSASSA")]
+
+    @classmethod
+    def ecc_signing_algorithms(self) -> List[str]:
+        return [algo for algo in self.signing_algorithms() if algo.startswith("ECDSA")]
 
 
 def generate_key_id(multi_region: bool = False) -> str:
