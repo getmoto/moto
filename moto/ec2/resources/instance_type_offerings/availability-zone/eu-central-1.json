@@ -524,6 +524,30 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "g2.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -2601,6 +2625,30 @@
  },
  {
   "InstanceType": "d3.xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -4885,6 +4933,30 @@
  },
  {
   "InstanceType": "d3.xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
   "Location": "eu-central-1c"
  },
  {
