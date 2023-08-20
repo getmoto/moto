@@ -564,6 +564,30 @@
   "Location": "eu-central-1"
  },
  {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
+  "Location": "eu-central-1"
+ },
+ {
   "InstanceType": "f1.2xlarge",
   "Location": "eu-central-1"
  },
