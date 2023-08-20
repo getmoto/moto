@@ -638,7 +638,6 @@ class KmsBackend(BaseBackend):
         self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
-        # TODO: support more than one hardcoded algorithm based on KeySpec
         signature = key.private_key.sign(message, signing_algorithm)
 
         return key.arn, signature, signing_algorithm

@@ -152,7 +152,9 @@ class AbstractPrivateKey(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-def validate_signing_algorithm(target_algorithm: str, valid_algorithms: List[str]):
+def validate_signing_algorithm(
+    target_algorithm: str, valid_algorithms: List[str]
+) -> None:
     if target_algorithm not in valid_algorithms:
         raise ValidationException(
             (
@@ -217,11 +219,7 @@ class RSAPrivateKey(AbstractPrivateKey):
 
 
 def generate_private_key(key_spec: str) -> AbstractPrivateKey:
-    """Generate a private key to be used on asymmetric sign/verify.
-
-    NOTE: KeySpec is not taken into consideration and the key is always RSA_2048
-    this could be improved to support multiple key types
-    """
+    """Generate a private key to be used on asymmetric sign/verify."""
     if key_spec == KeySpec.RSA_2048:
         return RSAPrivateKey(key_size=2048)
     else:
