@@ -1163,7 +1163,7 @@ def test_sign_and_verify_ignoring_grant_tokens():
 
 
 @mock_kms
-def test_sign_and_verify_digest_message_type_256():
+def test_sign_and_verify_digest_message_type_RSASSA_PSS_SHA_256():
     client = boto3.client("kms", region_name="us-west-2")
 
     key = client.create_key(

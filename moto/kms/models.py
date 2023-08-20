@@ -3,9 +3,6 @@ import os
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 from typing import Any, Dict, List, Tuple, Optional, Iterable, Set
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -82,10 +79,10 @@ class Key(CloudFormationModel):
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
         self.key_material = generate_master_key()
-        self.private_key = generate_private_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
+        self.private_key = generate_private_key(self.key_spec)
         self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
 
         self.grants: Dict[str, Grant] = dict()
@@ -641,14 +638,7 @@ class KmsBackend(BaseBackend):
         self.__ensure_valid_sign_and_verify_key(key)
         self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
-        # TODO: support more than one hardcoded algorithm based on KeySpec
-        signature = key.private_key.sign(
-            message,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256(),
-        )
+        signature = key.private_key.sign(message, signing_algorithm)
 
         return key.arn, signature, signing_algorithm
 
@@ -678,31 +668,15 @@ class KmsBackend(BaseBackend):
                 )
             )
 
-        public_key = key.private_key.public_key()
-
-        try:
-            # TODO: support more than one hardcoded algorithm based on KeySpec
-            public_key.verify(
-                signature,
-                message,
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH,
-                ),
-                hashes.SHA256(),
-            )
-            return key.arn, True, signing_algorithm
-        except InvalidSignature:
-            return key.arn, False, signing_algorithm
+        return (
+            key.arn,
+            key.private_key.verify(message, signature, signing_algorithm),
+            signing_algorithm,
+        )
 
     def get_public_key(self, key_id: str) -> Tuple[Key, bytes]:
         key = self.describe_key(key_id)
-        public_key = key.private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.DER,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-
-        return key, public_key
+        return key, key.private_key.public_key()
 
 
 kms_backends = BackendDict(KmsBackend, "kms")
