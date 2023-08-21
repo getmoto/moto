@@ -50,12 +50,18 @@ class SecondaryIndex(BaseModel):
             ]
 
             if projection_type == "KEYS_ONLY":
-                item = item.project(",".join(key_attributes))
+                # 'project' expects lists of lists of strings
+                # project([["attr1"], ["nested", "attr2"]]
+                #
+                # In our case, we need to convert
+                # ["key1", "key2"]
+                # into
+                # [["key1"], ["key2"]]
+                item = item.project([[attr] for attr in key_attributes])
             elif projection_type == "INCLUDE":
-                allowed_attributes = key_attributes + self.projection.get(
-                    "NonKeyAttributes", []
-                )
-                item = item.project(",".join(allowed_attributes))
+                allowed_attributes = key_attributes
+                allowed_attributes.extend(self.projection.get("NonKeyAttributes", []))
+                item = item.project([[attr] for attr in allowed_attributes])
             # ALL is handled implicitly by not filtering
         return item
 
@@ -592,7 +598,7 @@ class Table(CloudFormationModel):
         self,
         hash_key: DynamoType,
         range_key: Optional[DynamoType] = None,
-        projection_expression: Optional[str] = None,
+        projection_expression: Optional[List[List[str]]] = None,
     ) -> Optional[Item]:
         if self.has_range_key and not range_key:
             raise MockValidationException(
@@ -637,7 +643,7 @@ class Table(CloudFormationModel):
         limit: int,
         exclusive_start_key: Dict[str, Any],
         scan_index_forward: bool,
-        projection_expression: Optional[str],
+        projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
         filter_expression: Any = None,
         **filter_kwargs: Any,
@@ -754,8 +760,8 @@ class Table(CloudFormationModel):
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
 
-        if projection_expression:
-            results = [r.project(projection_expression) for r in results]
+        if projection_expressions:
+            results = [r.project(projection_expressions) for r in results]
 
         return results, scanned_count, last_evaluated_key
 
@@ -799,7 +805,7 @@ class Table(CloudFormationModel):
         exclusive_start_key: Dict[str, Any],
         filter_expression: Any = None,
         index_name: Optional[str] = None,
-        projection_expression: Optional[str] = None,
+        projection_expression: Optional[List[List[str]]] = None,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results = []
         scanned_count = 0

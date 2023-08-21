@@ -556,11 +556,11 @@ class DynamoHandler(BaseResponse):
                 )
 
         expression_attribute_names = expression_attribute_names or {}
-        projection_expression = self._adjust_projection_expression(
+        projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
 
-        item = self.dynamodb_backend.get_item(name, key, projection_expression)
+        item = self.dynamodb_backend.get_item(name, key, projection_expressions)
         if item:
             item_dict = item.describe_attrs(attributes=None)
             return dynamo_json_dump(item_dict)
@@ -608,14 +608,14 @@ class DynamoHandler(BaseResponse):
                 "ExpressionAttributeNames", {}
             )
 
-            projection_expression = self._adjust_projection_expression(
+            projection_expressions = self._adjust_projection_expression(
                 projection_expression, expression_attribute_names
             )
 
             results["Responses"][table_name] = []
             for key in keys:
                 item = self.dynamodb_backend.get_item(
-                    table_name, key, projection_expression
+                    table_name, key, projection_expressions
                 )
                 if item:
                     # A single operation can retrieve up to 16 MB of data [and] returns a partial result if the response size limit is exceeded
@@ -652,7 +652,7 @@ class DynamoHandler(BaseResponse):
         filter_expression = self._get_filter_expression()
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
-        projection_expression = self._adjust_projection_expression(
+        projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
 
@@ -720,7 +720,7 @@ class DynamoHandler(BaseResponse):
             limit,
             exclusive_start_key,
             scan_index_forward,
-            projection_expression,
+            projection_expressions,
             index_name=index_name,
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
@@ -743,27 +743,24 @@ class DynamoHandler(BaseResponse):
 
     def _adjust_projection_expression(
         self, projection_expression: Optional[str], expr_attr_names: Dict[str, str]
-    ) -> Optional[str]:
+    ) -> List[List[str]]:
+        """
+        lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
+        """
+
         def _adjust(expression: str) -> str:
-            return (
-                expr_attr_names[expression]
-                if expression in expr_attr_names
-                else expression
-            )
+            return (expr_attr_names or {}).get(expression, expression)
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
             for expression in expressions:
                 check_projection_expression(expression)
-            if expr_attr_names:
-                return ",".join(
-                    [
-                        ".".join([_adjust(expr) for expr in nested_expr.split(".")])
-                        for nested_expr in expressions
-                    ]
-                )
+            return [
+                [_adjust(expr) for expr in nested_expr.split(".")]
+                for nested_expr in expressions
+            ]
 
-        return projection_expression
+        return []
 
     @include_consumed_capacity()
     def scan(self) -> str:
@@ -786,7 +783,7 @@ class DynamoHandler(BaseResponse):
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
 
-        projection_expression = self._adjust_projection_expression(
+        projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
 
@@ -800,7 +797,7 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_names,
                 expression_attribute_values,
                 index_name,
-                projection_expression,
+                projection_expressions,
             )
         except ValueError as err:
             raise MockValidationException(f"Bad Filter Expression: {err}")
