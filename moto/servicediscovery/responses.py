@@ -171,3 +171,27 @@ class ServiceDiscoveryResponse(BaseResponse):
             service_id=service_id, details=details
         )
         return json.dumps(dict(OperationId=operation_id))
+
+    def update_private_dns_namespace(self) -> str:
+        params = json.loads(self.body)
+        _id = params.get("Id")
+        description = params["Namespace"].get("Description")
+        properties = params["Namespace"].get("Properties", {}).get("DnsProperties")
+        operation_id = self.servicediscovery_backend.update_private_dns_namespace(
+            _id=_id,
+            description=description,
+            properties=properties,
+        )
+        return json.dumps(dict(OperationId=operation_id))
+
+    def update_public_dns_namespace(self) -> str:
+        params = json.loads(self.body)
+        _id = params.get("Id")
+        description = params["Namespace"].get("Description")
+        properties = params["Namespace"].get("Properties", {}).get("DnsProperties")
+        operation_id = self.servicediscovery_backend.update_public_dns_namespace(
+            _id=_id,
+            description=description,
+            properties=properties,
+        )
+        return json.dumps(dict(OperationId=operation_id))

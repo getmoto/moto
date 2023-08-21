@@ -1047,6 +1047,7 @@ class FunctionUrlConfig:
             "Cors": self.config.get("Cors"),
             "CreationTime": self.created,
             "LastModifiedTime": self.last_modified,
+            "InvokeMode": self.config.get("InvokeMode") or "Buffered",
         }
 
     def update(self, new_config: Dict[str, Any]) -> None:

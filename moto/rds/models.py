@@ -258,6 +258,9 @@ class Cluster:
                     "5.6.1",
                     "2.07.1",
                     "5.7.2",
+                    "5.7.mysql_aurora.2.07.1",
+                    "5.7.mysql_aurora.2.07.2",
+                    "5.7.mysql_aurora.2.08.3",
                 ]:
                     self._enable_http_endpoint = val
                 elif self.engine == "aurora-postgresql" and self.engine_version in [
@@ -344,7 +347,7 @@ class Cluster:
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
-              <HttpEndpointEnabled>{{ cluster.enable_http_endpoint }}</HttpEndpointEnabled>
+              <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
               <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>

@@ -3040,8 +3040,8 @@ def test_forgot_password():
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
     assert result["CodeDeliveryDetails"]["Destination"] is not None
-    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
-    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
 
 @mock_cognitoidp
