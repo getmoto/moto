@@ -481,8 +481,9 @@ def test_create_db_cluster_snapshot():
 def test_create_db_cluster_snapshot_copy_tags():
     conn = boto3.client("rds", region_name="us-west-2")
 
+    dbci = "db-primary-1"
     conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
+        DBClusterIdentifier=dbci,
         AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
@@ -495,17 +496,25 @@ def test_create_db_cluster_snapshot_copy_tags():
     )
 
     snapshot = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
+        DBClusterIdentifier=dbci, DBClusterSnapshotIdentifier="g-1"
     ).get("DBClusterSnapshot")
 
     assert snapshot.get("Engine") == "postgres"
-    assert snapshot.get("DBClusterIdentifier") == "db-primary-1"
+    assert snapshot.get("DBClusterIdentifier") == dbci
     assert snapshot.get("DBClusterSnapshotIdentifier") == "g-1"
 
     result = conn.list_tags_for_resource(ResourceName=snapshot["DBClusterSnapshotArn"])
     assert result["TagList"] == [
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
+    ]
+
+    snapshot = conn.describe_db_cluster_snapshots(DBClusterIdentifier=dbci)[
+        "DBClusterSnapshots"
+    ][0]
+    assert snapshot["TagList"] == [
+        {"Key": "foo", "Value": "bar"},
+        {"Key": "foo1", "Value": "bar1"},
     ]
 
 
