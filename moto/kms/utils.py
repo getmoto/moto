@@ -222,6 +222,10 @@ def generate_private_key(key_spec: str) -> AbstractPrivateKey:
     """Generate a private key to be used on asymmetric sign/verify."""
     if key_spec == KeySpec.RSA_2048:
         return RSAPrivateKey(key_size=2048)
+    elif key_spec == KeySpec.RSA_3072:
+        return RSAPrivateKey(key_size=3072)
+    elif key_spec == KeySpec.RSA_4096:
+        return RSAPrivateKey(key_size=4096)
     else:
         return RSAPrivateKey(key_size=2048)
 

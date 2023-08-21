@@ -1163,11 +1163,12 @@ def test_sign_and_verify_ignoring_grant_tokens():
 
 
 @mock_kms
-def test_sign_and_verify_digest_message_type_RSASSA_PSS_SHA_256():
+@pytest.mark.parametrize("key_spec", ["RSA_2048", "RSA_3072", "RSA_4096"])
+def test_sign_and_verify_digest_message_type_RSASSA_PSS_SHA_256(key_spec):
     client = boto3.client("kms", region_name="us-west-2")
 
     key = client.create_key(
-        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
     )
     key_id = key["KeyMetadata"]["KeyId"]
 
