@@ -418,13 +418,12 @@ class Item(BaseModel):
                     f"{action} action not support for update_with_attribute_updates"
                 )
 
-    def project(self, projection_expression: str) -> "Item":
+    def project(self, projection_expressions: List[List[str]]) -> "Item":
         # Returns a new Item with only the dictionary-keys that match the provided projection_expression
         # Will return an empty Item if the expression does not match anything
         result: Dict[str, Any] = dict()
-        expressions = [x.strip() for x in projection_expression.split(",")]
-        for expr in expressions:
-            x = find_nested_key(expr.split("."), self.to_regular_json())
+        for expr in projection_expressions:
+            x = find_nested_key(expr, self.to_regular_json())
             merge_dicts(result, x)
 
         return Item(

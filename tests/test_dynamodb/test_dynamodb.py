@@ -886,7 +886,7 @@ def test_nested_projection_expression_using_get_item_with_attr_expression():
             "forum_name": "key1",
             "nested": {
                 "level1": {"id": "id1", "att": "irrelevant"},
-                "level2": {"id": "id2", "include": "all"},
+                "level.2": {"id": "id2", "include": "all"},
                 "level3": {
                     "id": "irrelevant",
                     "children": [{"Name": "child_a"}, {"Name": "child_b"}],
@@ -907,10 +907,10 @@ def test_nested_projection_expression_using_get_item_with_attr_expression():
     result = table.get_item(
         Key={"forum_name": "key1"},
         ProjectionExpression="#nst.level1.id, #nst.#lvl2",
-        ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
+        ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level.2"},
     )["Item"]
     assert result == {
-        "nested": {"level1": {"id": "id1"}, "level2": {"id": "id2", "include": "all"}}
+        "nested": {"level1": {"id": "id1"}, "level.2": {"id": "id2", "include": "all"}}
     }
     # Assert actual data has not been deleted
     result = table.get_item(Key={"forum_name": "key1"})["Item"]
@@ -919,7 +919,7 @@ def test_nested_projection_expression_using_get_item_with_attr_expression():
         "forum_name": "key1",
         "nested": {
             "level1": {"id": "id1", "att": "irrelevant"},
-            "level2": {"id": "id2", "include": "all"},
+            "level.2": {"id": "id2", "include": "all"},
             "level3": {
                 "id": "irrelevant",
                 "children": [{"Name": "child_a"}, {"Name": "child_b"}],
