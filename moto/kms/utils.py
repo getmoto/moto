@@ -165,7 +165,17 @@ def validate_signing_algorithm(
 
 
 class RSAPrivateKey(AbstractPrivateKey):
+    # See https://docs.aws.amazon.com/kms/latest/cryptographic-details/crypto-primitives.html
+    __supported_key_sizes = [2048, 3072, 4096]
+
     def __init__(self, key_size: int):
+        if key_size not in self.__supported_key_sizes:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value at 'key_size' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: {supported_key_sizes}"
+                ).format(supported_key_sizes=self.__supported_key_sizes)
+            )
         self.key_size = key_size
         self.private_key = rsa.generate_private_key(
             public_exponent=65537, key_size=self.key_size

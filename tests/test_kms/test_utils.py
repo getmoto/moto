@@ -4,6 +4,7 @@ from moto.kms.exceptions import (
     AccessDeniedException,
     InvalidCiphertextException,
     NotFoundException,
+    ValidationException,
 )
 from moto.kms.models import Key
 from moto.kms.utils import (
@@ -18,6 +19,7 @@ from moto.kms.utils import (
     Ciphertext,
     KeySpec,
     SigningAlgorithm,
+    RSAPrivateKey,
 )
 
 ENCRYPTION_CONTEXT_VECTORS = [
@@ -92,6 +94,15 @@ def test_SigningAlgorithm_Enum():
             SigningAlgorithm.ECDSA_SHA_384,
             SigningAlgorithm.ECDSA_SHA_512,
         ]
+    )
+
+
+def test_RSAPrivateKey_invalid_key_size():
+    with pytest.raises(ValidationException) as ex:
+        _ = RSAPrivateKey(key_size=100)
+    assert (
+        ex.value.message
+        == "1 validation error detected: Value at 'key_size' failed to satisfy constraint: Member must satisfy enum value set: [2048, 3072, 4096]"
     )
 
 
