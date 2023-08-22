@@ -1151,7 +1151,7 @@
           "ahl": {
             "Value": "ahl",
             "longName": {
-              "Value": "Amazon HealthLake"
+              "Value": "AWS HealthLake"
             },
             "marketingHomeURL": {
               "Value": "https://aws.amazon.com/healthlake/"
@@ -12162,6 +12162,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "cn-north-1": {
+                "Value": "cn-north-1",
+                "endpoint": {
+                  "Value": "codepipeline.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cn-northwest-1": {
+                "Value": "cn-northwest-1",
+                "endpoint": {
+                  "Value": "codepipeline.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
@@ -14101,6 +14119,15 @@
                 "Value": "ap-northeast-2",
                 "endpoint": {
                   "Value": "contact-lens.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-south-1": {
+                "Value": "ap-south-1",
+                "endpoint": {
+                  "Value": "contact-lens.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23843,6 +23870,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "fms.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "fms.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36855,6 +36891,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3",
+                "endpoint": {
+                  "Value": "mediaconvert.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-south-1": {
                 "Value": "ap-south-1",
                 "endpoint": {
@@ -36877,6 +36922,15 @@
                 "Value": "ap-southeast-2",
                 "endpoint": {
                   "Value": "mediaconvert.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "mediaconvert.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40569,10 +40623,10 @@
           "omics": {
             "Value": "omics",
             "longName": {
-              "Value": "Amazon Omics"
+              "Value": "AWS HealthOmics"
             },
             "marketingHomeURL": {
-              "Value": "https://aws.amazon.com/omics/"
+              "Value": "https://aws.amazon.com/healthomics/"
             },
             "regions": {
               "ap-southeast-1": {
@@ -43002,6 +43056,15 @@
                 "Value": "ap-south-1",
                 "endpoint": {
                   "Value": "api.pricing.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-central-1": {
+                "Value": "eu-central-1",
+                "endpoint": {
+                  "Value": "api.pricing.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46752,6 +46815,9 @@
               "ap-southeast-3": {
                 "Value": "ap-southeast-3"
               },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4"
+              },
               "ca-central-1": {
                 "Value": "ca-central-1"
               },
@@ -47074,6 +47140,80 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              }
+            }
+          },
+          "route53-application-recovery-controller": {
+            "Value": "route53-application-recovery-controller",
+            "longName": {
+              "Value": "Amazon Route 53 Application Recovery Controller"
+            },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/route53/application-recovery-controller/"
+            },
+            "regions": {
+              "af-south-1": {
+                "Value": "af-south-1"
+              },
+              "ap-east-1": {
+                "Value": "ap-east-1"
+              },
+              "ap-northeast-1": {
+                "Value": "ap-northeast-1"
+              },
+              "ap-northeast-2": {
+                "Value": "ap-northeast-2"
+              },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3"
+              },
+              "ap-south-1": {
+                "Value": "ap-south-1"
+              },
+              "ap-southeast-1": {
+                "Value": "ap-southeast-1"
+              },
+              "ap-southeast-2": {
+                "Value": "ap-southeast-2"
+              },
+              "ca-central-1": {
+                "Value": "ca-central-1"
+              },
+              "eu-central-1": {
+                "Value": "eu-central-1"
+              },
+              "eu-north-1": {
+                "Value": "eu-north-1"
+              },
+              "eu-south-1": {
+                "Value": "eu-south-1"
+              },
+              "eu-west-1": {
+                "Value": "eu-west-1"
+              },
+              "eu-west-2": {
+                "Value": "eu-west-2"
+              },
+              "eu-west-3": {
+                "Value": "eu-west-3"
+              },
+              "me-south-1": {
+                "Value": "me-south-1"
+              },
+              "sa-east-1": {
+                "Value": "sa-east-1"
+              },
+              "us-east-1": {
+                "Value": "us-east-1"
+              },
+              "us-east-2": {
+                "Value": "us-east-2"
+              },
+              "us-west-1": {
+                "Value": "us-west-1"
+              },
+              "us-west-2": {
+                "Value": "us-west-2"
               }
             }
           },
@@ -48817,6 +48957,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "featurestore-runtime.sagemaker.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
@@ -49649,6 +49798,15 @@
               },
               "eu-west-3": {
                 "Value": "eu-west-3",
+                "endpoint": {
+                  "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
                 },

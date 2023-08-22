@@ -20,7 +20,7 @@ class TestAutoScalingGroup(TestCase):
         )
 
     def test_create_autoscaling_groups_defaults(self):
-        """Test with the minimum inputs and check that all of the proper defaults
+        """Test with the minimum inputs and check that all proper defaults
         are assigned for the other attributes"""
 
         self._create_group(name="tester_group")

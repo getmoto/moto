@@ -97,4 +97,5 @@ elasticache
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
 - [ ] test_failover
+- [ ] test_migration
 

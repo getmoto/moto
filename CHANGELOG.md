@@ -1,6 +1,57 @@
 Moto Changelog
 ==============
 
+4.1.15
+------
+Docker Digest for 4.1.15: _sha256:eb63b1e0cbbd757e4596844e6ac1865660cbf8e358203b79e5404d57de94dd69_
+
+    New Services:
+        * APIGateway Management API:
+            * delete_connection()
+            * get_connection()
+            * post_to_connection()
+
+    New Methods:
+        * Autoscaling:
+            * delete_warm_pool()
+            * describe_warm_pool()
+            * put_warm_pool()
+
+        * IdentityStore:
+            * list_groups()
+
+        * IOTData:
+            * list_named_shadows_for_thing()
+
+        * MQ:
+            * list_tags()
+
+        * ServiceDiscovery:
+            * update_private_dns_namespace()
+            * update_public_dns_namespace()
+
+    Miscellaneous:
+        * ACM-PCA: create_certificate_authority() now supports the KeyStorageSecurityStandard-parameter
+        * Batch: create_job_definition() now returns more default fields in the containerProperties field
+        * CloudTrail: get_trail_status now works with MultiRegion trails
+        * CognitoIDP: UserPools now return the AccountRecoverySetting-field by default
+        * DynamoDB: query() now throws an exception when providing empty ProjectionExpressions/FilterExpressions
+        * EC2: describe_vpc_endpoint_services() now returns user-defined ones
+        * EC2: run_instances() now supports the Monitoring-attribute
+        * IOT: group names can now contain special characters
+        * IOTData now supports named shadows
+        * KMS: create_key() now supports KeySpecs RSA_3072 and RSA_4096
+        * KMS: create_key() now validates the provided KeySpec
+        * Lambda: create_function() now fails when creating a function with a name that already exists
+        * Lambda: put_function_concurrency() now errors on a quota that exceeds the value set by MOTO_LAMBDA_CONCURRENCY_QUOTA
+        * Lambda: update_function_code() now supports the ImageUri-attribute
+        * RDS: describe_db_cluster_snapshots() now returns the TagList-property
+        * ResourceTaggingsAPI: Now supports Glue resources
+        * S3: Authentication now allows specific resources in the IAM access policy 
+        * S3: select_object_content() now takes RecordDelimiter into account
+        * Scheduler: create_scheduler() now errors on duplicate names
+        * TimestreamWrite: create_table() now supports the Schema-attribute
+
 
 4.1.14
 ------

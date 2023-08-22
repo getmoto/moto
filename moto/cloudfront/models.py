@@ -106,6 +106,8 @@ class CustomOriginConfig:
         self.read_timeout = config.get("OriginReadTimeout") or 30
         protocols = config.get("OriginSslProtocols", {}).get("Items") or {}
         self.ssl_protocols = protocols.get("SslProtocol") or []
+        if isinstance(self.ssl_protocols, str):
+            self.ssl_protocols = [self.ssl_protocols]
 
 
 class Origin:

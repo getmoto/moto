@@ -43,6 +43,21 @@ def test_create_key_without_description():
 
 
 @mock_kms
+def test_create_key_with_invalid_key_spec():
+    conn = boto3.client("kms", region_name="us-east-1")
+    unsupported_key_spec = "NotSupportedKeySpec"
+    with pytest.raises(ClientError) as ex:
+        conn.create_key(Policy="my policy", KeySpec=unsupported_key_spec)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+        "to satisfy constraint: Member must satisfy enum value set: "
+        "['ECC_NIST_P256', 'ECC_NIST_P384', 'ECC_NIST_P521', 'ECC_SECG_P256K1', 'HMAC_224', 'HMAC_256', 'HMAC_384', 'HMAC_512', 'RSA_2048', 'RSA_3072', 'RSA_4096', 'SM2', 'SYMMETRIC_DEFAULT']"
+    ).format(key_spec=unsupported_key_spec)
+
+
+@mock_kms
 def test_create_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -86,7 +101,6 @@ def test_create_key():
         "RSASSA_PSS_SHA_256",
         "RSASSA_PSS_SHA_384",
         "RSASSA_PSS_SHA_512",
-        "SM2DSA",
     ]
 
     key = conn.create_key(KeyUsage="SIGN_VERIFY", KeySpec="ECC_SECG_P256K1")
@@ -1078,7 +1092,9 @@ def test_key_tag_added_arn_based_happy():
 def test_sign_happy(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
     key_arn = key["KeyMetadata"]["Arn"]
     signing_algorithm = "RSASSA_PSS_SHA_256"
@@ -1096,7 +1112,9 @@ def test_sign_happy(plaintext):
 def test_sign_invalid_signing_algorithm():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     message = "My message"
@@ -1108,7 +1126,7 @@ def test_sign_invalid_signing_algorithm():
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512', 'SM2DSA']"
+        == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
     )
 
 
@@ -1116,7 +1134,9 @@ def test_sign_invalid_signing_algorithm():
 def test_sign_and_verify_ignoring_grant_tokens():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     message = "My message"
@@ -1143,10 +1163,13 @@ def test_sign_and_verify_ignoring_grant_tokens():
 
 
 @mock_kms
-def test_sign_and_verify_digest_message_type_256():
+@pytest.mark.parametrize("key_spec", ["RSA_2048", "RSA_3072", "RSA_4096"])
+def test_sign_and_verify_digest_message_type_RSASSA_PSS_SHA_256(key_spec):
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     digest = hashes.Hash(hashes.SHA256())
@@ -1176,7 +1199,9 @@ def test_sign_and_verify_digest_message_type_256():
 def test_sign_invalid_key_usage():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="ENCRYPT_DECRYPT")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="ENCRYPT_DECRYPT", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     message = "My message"
@@ -1196,7 +1221,9 @@ def test_sign_invalid_key_usage():
 def test_sign_invalid_message():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     message = ""
@@ -1217,7 +1244,9 @@ def test_sign_invalid_message():
 def test_verify_happy(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
     key_arn = key["KeyMetadata"]["Arn"]
     signing_algorithm = "RSASSA_PSS_SHA_256"
@@ -1244,7 +1273,9 @@ def test_verify_happy(plaintext):
 def test_verify_happy_with_invalid_signature():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
     key_arn = key["KeyMetadata"]["Arn"]
     signing_algorithm = "RSASSA_PSS_SHA_256"
@@ -1265,7 +1296,9 @@ def test_verify_happy_with_invalid_signature():
 def test_verify_invalid_signing_algorithm():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     message = "My message"
@@ -1283,7 +1316,7 @@ def test_verify_invalid_signing_algorithm():
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
-        == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512', 'SM2DSA']"
+        == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
     )
 
 
@@ -1291,7 +1324,9 @@ def test_verify_invalid_signing_algorithm():
 def test_verify_invalid_message():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
     signing_algorithm = "RSASSA_PSS_SHA_256"
 
@@ -1315,7 +1350,9 @@ def test_verify_invalid_message():
 def test_verify_empty_signature():
     client = boto3.client("kms", region_name="us-west-2")
 
-    key = client.create_key(Description="sign-key", KeyUsage="SIGN_VERIFY")
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
     key_id = key["KeyMetadata"]["KeyId"]
 
     message = "My message"

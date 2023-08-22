@@ -499,7 +499,7 @@
 
 ## autoscaling
 <details>
-<summary>52% implemented</summary>
+<summary>56% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
@@ -519,7 +519,7 @@
 - [X] delete_policy
 - [X] delete_scheduled_action
 - [X] delete_tags
-- [ ] delete_warm_pool
+- [X] delete_warm_pool
 - [ ] describe_account_limits
 - [ ] describe_adjustment_types
 - [X] describe_auto_scaling_groups
@@ -540,7 +540,7 @@
 - [X] describe_tags
 - [ ] describe_termination_policy_types
 - [ ] describe_traffic_sources
-- [ ] describe_warm_pool
+- [X] describe_warm_pool
 - [X] detach_instances
 - [X] detach_load_balancer_target_groups
 - [X] detach_load_balancers
@@ -555,7 +555,7 @@
 - [ ] put_notification_configuration
 - [X] put_scaling_policy
 - [X] put_scheduled_update_group_action
-- [ ] put_warm_pool
+- [X] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes
 - [ ] rollback_instance_refresh
@@ -1055,6 +1055,7 @@
 - [ ] list_approval_rule_templates
 - [ ] list_associated_approval_rule_templates_for_repository
 - [ ] list_branches
+- [ ] list_file_commit_history
 - [ ] list_pull_requests
 - [ ] list_repositories
 - [ ] list_repositories_for_approval_rule_template
@@ -5382,7 +5383,7 @@
 
 ## rds
 <details>
-<summary>39% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5526,6 +5527,7 @@
 - [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
 - [ ] switchover_blue_green_deployment
+- [ ] switchover_global_cluster
 - [ ] switchover_read_replica
 </details>
 
@@ -6524,7 +6526,7 @@
 
 ## servicediscovery
 <details>
-<summary>61% implemented</summary>
+<summary>69% implemented</summary>
 
 - [X] create_http_namespace
 - [X] create_private_dns_namespace
@@ -6549,8 +6551,8 @@
 - [X] untag_resource
 - [ ] update_http_namespace
 - [ ] update_instance_custom_health_status
-- [ ] update_private_dns_namespace
-- [ ] update_public_dns_namespace
+- [X] update_private_dns_namespace
+- [X] update_public_dns_namespace
 - [X] update_service
 </details>
 

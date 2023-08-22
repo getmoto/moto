@@ -1,7 +1,7 @@
 import boto3
+from botocore.exceptions import ClientError
 import pytest
 
-from botocore.exceptions import ClientError
 from moto import mock_rds
 from moto.core import DEFAULT_ACCOUNT_ID
 
@@ -65,7 +65,8 @@ def test_global_cluster_members():
 @mock_rds
 def test_create_global_cluster_from_regular_cluster():
     # WHEN create_db_cluster is called
-    # AND create_global_cluster is called with SourceDBClusterIdentifier set as the earlier created db cluster
+    # AND create_global_cluster is called with SourceDBClusterIdentifier
+    #     set as the earlier created db cluster
     # THEN that db cluster is elevated to a global cluster
     # AND it still shows up when calling describe_db_clusters
     client = boto3.client("rds", "us-east-1")
@@ -184,9 +185,10 @@ def test_create_global_cluster_from_regular_cluster__and_specify_engine():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterCombination"
-    assert (
-        err["Message"]
-        == "When creating global cluster from existing db cluster, value for engineName should not be specified since it will be inherited from source cluster"
+    assert err["Message"] == (
+        "When creating global cluster from existing db cluster, value for "
+        "engineName should not be specified since it will be inherited "
+        "from source cluster"
     )
 
 
@@ -195,11 +197,13 @@ def test_delete_non_global_cluster():
     # WHEN a global cluster contains a regular cluster
     # AND we attempt to delete the global cluster
     # THEN we get an error message
-    # An error occurs (InvalidGlobalClusterStateFault) when calling the DeleteGlobalCluster operation: Global Cluster arn:aws:rds::486285699788:global-cluster:g1 is not empty
+    # An error occurs (InvalidGlobalClusterStateFault) when calling the
+    #    DeleteGlobalCluster operation: Global Cluster
+    #    arn:aws:rds::486285699788:global-cluster:g1 is not empty
     client = boto3.client("rds", "us-east-1")
 
     client.create_global_cluster(GlobalClusterIdentifier="gc1", Engine="aurora-mysql")
-    client.create_db_cluster(
+    _ = client.create_db_cluster(
         DBClusterIdentifier="dbci",
         GlobalClusterIdentifier="gc1",
         Engine="mysql",

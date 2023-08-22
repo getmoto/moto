@@ -1,13 +1,14 @@
 """Test different server responses."""
 import json
+from uuid import UUID
+
 import pytest
-import sure  # noqa # pylint: disable=unused-import
+
 import moto.server as server
 from tests.test_redshiftdata.test_redshiftdata_constants import (
     DEFAULT_ENCODING,
     HttpHeaders,
 )
-from tests.helpers import match_uuid4  # noqa # pylint: disable=unused-import
 
 CLIENT_ENDPOINT = "/"
 
@@ -32,7 +33,7 @@ def test_redshiftdata_cancel_statement_unknown_statement(client):
         data=json.dumps({"Id": statement_id}),
         headers=headers("CancelStatement"),
     )
-    response.status_code.should.equal(400)
+    assert response.status_code == 400
     should_return_expected_exception(
         response, "ResourceNotFoundException", "Query does not exist."
     )
@@ -45,7 +46,7 @@ def test_redshiftdata_describe_statement_unknown_statement(client):
         data=json.dumps({"Id": statement_id}),
         headers=headers("DescribeStatement"),
     )
-    response.status_code.should.equal(400)
+    assert response.status_code == 400
     should_return_expected_exception(
         response, "ResourceNotFoundException", "Query does not exist."
     )
@@ -58,7 +59,7 @@ def test_redshiftdata_get_statement_result_unknown_statement(client):
         data=json.dumps({"Id": statement_id}),
         headers=headers("GetStatementResult"),
     )
-    response.status_code.should.equal(400)
+    assert response.status_code == 400
     should_return_expected_exception(
         response, "ResourceNotFoundException", "Query does not exist."
     )
@@ -72,14 +73,16 @@ def test_redshiftdata_execute_statement_with_minimal_values(client):
         data=json.dumps({"Database": database, "Sql": sql}),
         headers=headers("ExecuteStatement"),
     )
-    response.status_code.should.equal(200)
+    assert response.status_code == 200
     payload = get_payload(response)
 
-    payload["ClusterIdentifier"].should.equal(None)
-    payload["Database"].should.equal(database)
-    payload["DbUser"].should.equal(None)
-    payload["SecretArn"].should.equal(None)
-    payload["Id"].should.match_uuid4()
+    assert payload["ClusterIdentifier"] is None
+    assert payload["Database"] == database
+    assert payload["DbUser"] is None
+    assert payload["SecretArn"] is None
+
+    uuid_obj = UUID(payload["Id"], version=4)
+    assert str(uuid_obj) == payload["Id"]
 
 
 def test_redshiftdata_execute_statement_with_all_values(client):
@@ -102,13 +105,13 @@ def test_redshiftdata_execute_statement_with_all_values(client):
         ),
         headers=headers("ExecuteStatement"),
     )
-    response.status_code.should.equal(200)
+    assert response.status_code == 200
     payload = get_payload(response)
 
-    payload["ClusterIdentifier"].should.equal(cluster)
-    payload["Database"].should.equal(database)
-    payload["DbUser"].should.equal(dbUser)
-    payload["SecretArn"].should.equal(secretArn)
+    assert payload["ClusterIdentifier"] == cluster
+    assert payload["Database"] == database
+    assert payload["DbUser"] == dbUser
+    assert payload["SecretArn"] == secretArn
 
 
 def test_redshiftdata_execute_statement_and_describe_statement(client):
@@ -132,7 +135,7 @@ def test_redshiftdata_execute_statement_and_describe_statement(client):
         ),
         headers=headers("ExecuteStatement"),
     )
-    execute_response.status_code.should.equal(200)
+    assert execute_response.status_code == 200
     execute_payload = get_payload(execute_response)
 
     # DescribeStatement
@@ -141,13 +144,13 @@ def test_redshiftdata_execute_statement_and_describe_statement(client):
         data=json.dumps({"Id": execute_payload["Id"]}),
         headers=headers("DescribeStatement"),
     )
-    describe_response.status_code.should.equal(200)
+    assert describe_response.status_code == 200
     describe_payload = get_payload(execute_response)
 
-    describe_payload["ClusterIdentifier"].should.equal(cluster)
-    describe_payload["Database"].should.equal(database)
-    describe_payload["DbUser"].should.equal(dbUser)
-    describe_payload["SecretArn"].should.equal(secretArn)
+    assert describe_payload["ClusterIdentifier"] == cluster
+    assert describe_payload["Database"] == database
+    assert describe_payload["DbUser"] == dbUser
+    assert describe_payload["SecretArn"] == secretArn
 
 
 def test_redshiftdata_execute_statement_and_get_statement_result(client):
@@ -160,7 +163,7 @@ def test_redshiftdata_execute_statement_and_get_statement_result(client):
         data=json.dumps({"Database": database, "Sql": sql}),
         headers=headers("ExecuteStatement"),
     )
-    execute_response.status_code.should.equal(200)
+    assert execute_response.status_code == 200
     execute_payload = get_payload(execute_response)
 
     # GetStatementResult
@@ -169,21 +172,21 @@ def test_redshiftdata_execute_statement_and_get_statement_result(client):
         data=json.dumps({"Id": execute_payload["Id"]}),
         headers=headers("GetStatementResult"),
     )
-    statement_result_response.status_code.should.equal(200)
+    assert statement_result_response.status_code == 200
     statement_result_payload = get_payload(statement_result_response)
-    statement_result_payload["TotalNumberRows"].should.equal(3)
+    assert statement_result_payload["TotalNumberRows"] == 3
 
     # columns
-    len(statement_result_payload["ColumnMetadata"]).should.equal(3)
-    statement_result_payload["ColumnMetadata"][0]["name"].should.equal("Number")
-    statement_result_payload["ColumnMetadata"][1]["name"].should.equal("Street")
-    statement_result_payload["ColumnMetadata"][2]["name"].should.equal("City")
+    assert len(statement_result_payload["ColumnMetadata"]) == 3
+    assert statement_result_payload["ColumnMetadata"][0]["name"] == "Number"
+    assert statement_result_payload["ColumnMetadata"][1]["name"] == "Street"
+    assert statement_result_payload["ColumnMetadata"][2]["name"] == "City"
 
     # records
-    len(statement_result_payload["Records"]).should.equal(3)
-    statement_result_payload["Records"][0][0]["longValue"].should.equal(10)
-    statement_result_payload["Records"][1][1]["stringValue"].should.equal("Beta st")
-    statement_result_payload["Records"][2][2]["stringValue"].should.equal("Seattle")
+    assert len(statement_result_payload["Records"]) == 3
+    assert statement_result_payload["Records"][0][0]["longValue"] == 10
+    assert statement_result_payload["Records"][1][1]["stringValue"] == "Beta st"
+    assert statement_result_payload["Records"][2][2]["stringValue"] == "Seattle"
 
 
 def test_redshiftdata_execute_statement_and_cancel_statement(client):
@@ -196,7 +199,7 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
         data=json.dumps({"Database": database, "Sql": sql}),
         headers=headers("ExecuteStatement"),
     )
-    execute_response.status_code.should.equal(200)
+    assert execute_response.status_code == 200
     execute_payload = get_payload(execute_response)
 
     # CancelStatement 1
@@ -205,9 +208,9 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
         data=json.dumps({"Id": execute_payload["Id"]}),
         headers=headers("CancelStatement"),
     )
-    cancel_response1.status_code.should.equal(200)
+    assert cancel_response1.status_code == 200
     cancel_payload1 = get_payload(cancel_response1)
-    cancel_payload1["Status"].should.equal(True)
+    assert cancel_payload1["Status"] is True
 
     # CancelStatement 2
     cancel_response2 = client.post(
@@ -215,11 +218,14 @@ def test_redshiftdata_execute_statement_and_cancel_statement(client):
         data=json.dumps({"Id": execute_payload["Id"]}),
         headers=headers("CancelStatement"),
     )
-    cancel_response2.status_code.should.equal(400)
+    assert cancel_response2.status_code == 400
     should_return_expected_exception(
         cancel_response2,
         "ValidationException",
-        f"Could not cancel a query that is already in ABORTED state with ID: {execute_payload['Id']}",
+        (
+            "Could not cancel a query that is already in ABORTED state "
+            f"with ID: {execute_payload['Id']}"
+        ),
     )
 
 
@@ -229,5 +235,5 @@ def get_payload(response):
 
 def should_return_expected_exception(response, expected_exception, message):
     result_data = get_payload(response)
-    response.headers.get(HttpHeaders.ErrorType).should.equal(expected_exception)
-    result_data["message"].should.equal(message)
+    assert response.headers.get(HttpHeaders.ErrorType) == expected_exception
+    assert result_data["message"] == message

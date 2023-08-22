@@ -1045,6 +1045,7 @@ DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http:
       {% if stackset.description %}
       <Description>{{ stackset.description }}</Description>
       {% endif %}
+      <ManagedExecution><Active>false</Active></ManagedExecution>
     </StackSet>
   </DescribeStackSetResult>
   <ResponseMetadata>

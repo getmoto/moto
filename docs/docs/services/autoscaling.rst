@@ -43,7 +43,7 @@ autoscaling
 - [X] delete_policy
 - [X] delete_scheduled_action
 - [X] delete_tags
-- [ ] delete_warm_pool
+- [X] delete_warm_pool
 - [ ] describe_account_limits
 - [ ] describe_adjustment_types
 - [X] describe_auto_scaling_groups
@@ -69,7 +69,11 @@ autoscaling
 
 - [ ] describe_termination_policy_types
 - [ ] describe_traffic_sources
-- [ ] describe_warm_pool
+- [X] describe_warm_pool
+  
+        Pagination is not yet implemented. Does not create/return any Instances currently.
+        
+
 - [X] detach_instances
 - [X] detach_load_balancer_target_groups
 - [X] detach_load_balancers
@@ -84,7 +88,7 @@ autoscaling
 - [ ] put_notification_configuration
 - [X] put_scaling_policy
 - [X] put_scheduled_update_group_action
-- [ ] put_warm_pool
+- [X] put_warm_pool
 - [ ] record_lifecycle_action_heartbeat
 - [X] resume_processes
 - [ ] rollback_instance_refresh

@@ -1,10 +1,5 @@
-import sure  # noqa # pylint: disable=unused-import
-
+"""Test the different server responses."""
 import moto.server as server
-
-"""
-Test the different server responses
-"""
 
 
 def test_resourcegroupstaggingapi_list():

@@ -1,7 +1,6 @@
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
+import pytest
 
 from moto import mock_rds
 
@@ -37,8 +36,8 @@ class TestDBInstanceFilters:
             self.client.describe_db_instances(
                 Filters=[{"Name": "invalid-filter-name", "Values": []}]
             )
-        ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+        assert ex.value.response["Error"]["Message"] == (
             "Unrecognized filter name: invalid-filter-name"
         )
 
@@ -47,8 +46,8 @@ class TestDBInstanceFilters:
             self.client.describe_db_instances(
                 Filters=[{"Name": "db-instance-id", "Values": []}]
             )
-        ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
-        ex.value.response["Error"]["Message"].should.contain("must not be empty")
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+        assert "must not be empty" in ex.value.response["Error"]["Message"]
 
     def test_db_cluster_id_filter(self):
         resp = self.client.describe_db_instances()
@@ -57,8 +56,8 @@ class TestDBInstanceFilters:
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "db-cluster-id", "Values": [db_cluster_identifier]}]
         ).get("DBInstances")
-        db_instances.should.have.length_of(1)
-        db_instances[0]["DBClusterIdentifier"].should.equal(db_cluster_identifier)
+        assert len(db_instances) == 1
+        assert db_instances[0]["DBClusterIdentifier"] == db_cluster_identifier
 
     def test_db_instance_id_filter(self):
         resp = self.client.describe_db_instances()
@@ -67,8 +66,8 @@ class TestDBInstanceFilters:
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_identifier]}]
         ).get("DBInstances")
-        db_instances.should.have.length_of(1)
-        db_instances[0]["DBInstanceIdentifier"].should.equal(db_instance_identifier)
+        assert len(db_instances) == 1
+        assert db_instances[0]["DBInstanceIdentifier"] == db_instance_identifier
 
     def test_db_instance_id_filter_works_with_arns(self):
         resp = self.client.describe_db_instances()
@@ -77,8 +76,8 @@ class TestDBInstanceFilters:
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_arn]}]
         ).get("DBInstances")
-        db_instances.should.have.length_of(1)
-        db_instances[0]["DBInstanceArn"].should.equal(db_instance_arn)
+        assert len(db_instances) == 1
+        assert db_instances[0]["DBInstanceArn"] == db_instance_arn
 
     def test_dbi_resource_id_filter(self):
         resp = self.client.describe_db_instances()
@@ -88,19 +87,19 @@ class TestDBInstanceFilters:
             Filters=[{"Name": "dbi-resource-id", "Values": [dbi_resource_identifier]}]
         ).get("DBInstances")
         for db_instance in db_instances:
-            db_instance["DbiResourceId"].should.equal(dbi_resource_identifier)
+            assert db_instance["DbiResourceId"] == dbi_resource_identifier
 
     def test_engine_filter(self):
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "engine", "Values": ["postgres"]}]
         ).get("DBInstances")
         for db_instance in db_instances:
-            db_instance["Engine"].should.equal("postgres")
+            assert db_instance["Engine"] == "postgres"
 
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "engine", "Values": ["oracle"]}]
         ).get("DBInstances")
-        db_instances.should.have.length_of(0)
+        assert len(db_instances) == 0
 
     def test_multiple_filters(self):
         resp = self.client.describe_db_instances(
@@ -115,9 +114,9 @@ class TestDBInstanceFilters:
         returned_identifiers = [
             db["DBInstanceIdentifier"] for db in resp["DBInstances"]
         ]
-        returned_identifiers.should.have.length_of(2)
-        "db-instance-0".should.be.within(returned_identifiers)
-        "db-instance-3".should.be.within(returned_identifiers)
+        assert len(returned_identifiers) == 2
+        assert "db-instance-0" in returned_identifiers
+        assert "db-instance-3" in returned_identifiers
 
     def test_invalid_db_instance_identifier_with_exclusive_filter(self):
         # Passing a non-existent DBInstanceIdentifier will not raise an error
@@ -126,8 +125,8 @@ class TestDBInstanceFilters:
             DBInstanceIdentifier="non-existent",
             Filters=[{"Name": "db-instance-id", "Values": ["db-instance-1"]}],
         )
-        resp["DBInstances"].should.have.length_of(1)
-        resp["DBInstances"][0]["DBInstanceIdentifier"].should.equal("db-instance-1")
+        assert len(resp["DBInstances"]) == 1
+        assert resp["DBInstances"][0]["DBInstanceIdentifier"] == "db-instance-1"
 
     def test_invalid_db_instance_identifier_with_non_matching_filter(self):
         # Passing a non-existent DBInstanceIdentifier will raise an error if
@@ -137,8 +136,8 @@ class TestDBInstanceFilters:
                 DBInstanceIdentifier="non-existent",
                 Filters=[{"Name": "engine", "Values": ["mysql"]}],
             )
-        ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "DBInstanceNotFound"
+        assert ex.value.response["Error"]["Message"] == (
             "DBInstance non-existent not found."
         )
 
@@ -155,8 +154,8 @@ class TestDBInstanceFilters:
         returned_identifiers = [
             db["DBInstanceIdentifier"] for db in resp["DBInstances"]
         ]
-        "db-instance-0".should_not.be.within(returned_identifiers)
-        "db-instance-1".should.be.within(returned_identifiers)
+        assert "db-instance-0" not in returned_identifiers
+        assert "db-instance-1" in returned_identifiers
 
     def test_valid_db_instance_identifier_with_inclusive_filter(self):
         # Passing a valid DBInstanceIdentifier with a filter it matches but also
@@ -171,8 +170,8 @@ class TestDBInstanceFilters:
         returned_identifiers = [
             db["DBInstanceIdentifier"] for db in resp["DBInstances"]
         ]
-        "db-instance-0".should.be.within(returned_identifiers)
-        "db-instance-1".should.be.within(returned_identifiers)
+        assert "db-instance-0" in returned_identifiers
+        assert "db-instance-1" in returned_identifiers
 
     def test_valid_db_instance_identifier_with_non_matching_filter(self):
         # Passing a valid DBInstanceIdentifier will raise an error if the
@@ -182,8 +181,8 @@ class TestDBInstanceFilters:
                 DBInstanceIdentifier="db-instance-0",
                 Filters=[{"Name": "engine", "Values": ["postgres"]}],
             )
-        ex.value.response["Error"]["Code"].should.equal("DBInstanceNotFound")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "DBInstanceNotFound"
+        assert ex.value.response["Error"]["Message"] == (
             "DBInstance db-instance-0 not found."
         )
 
@@ -224,8 +223,8 @@ class TestDBSnapshotFilters:
             self.client.describe_db_snapshots(
                 Filters=[{"Name": "invalid-filter-name", "Values": []}]
             )
-        ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+        assert ex.value.response["Error"]["Message"] == (
             "Unrecognized filter name: invalid-filter-name"
         )
 
@@ -234,15 +233,15 @@ class TestDBSnapshotFilters:
             self.client.describe_db_snapshots(
                 Filters=[{"Name": "db-snapshot-id", "Values": []}]
             )
-        ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
-        ex.value.response["Error"]["Message"].should.contain("must not be empty")
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+        assert "must not be empty" in ex.value.response["Error"]["Message"]
 
     def test_db_snapshot_id_filter(self):
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "db-snapshot-id", "Values": ["db-instance-1-snapshot-0"]}]
         ).get("DBSnapshots")
-        snapshots.should.have.length_of(1)
-        snapshots[0]["DBSnapshotIdentifier"].should.equal("db-instance-1-snapshot-0")
+        assert len(snapshots) == 1
+        assert snapshots[0]["DBSnapshotIdentifier"] == "db-instance-1-snapshot-0"
 
     def test_db_instance_id_filter(self):
         resp = self.client.describe_db_instances()
@@ -252,7 +251,7 @@ class TestDBSnapshotFilters:
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_identifier]}]
         ).get("DBSnapshots")
         for snapshot in snapshots:
-            snapshot["DBInstanceIdentifier"].should.equal(db_instance_identifier)
+            assert snapshot["DBInstanceIdentifier"] == db_instance_identifier
 
     def test_db_instance_id_filter_works_with_arns(self):
         resp = self.client.describe_db_instances()
@@ -263,7 +262,7 @@ class TestDBSnapshotFilters:
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_arn]}]
         ).get("DBSnapshots")
         for snapshot in snapshots:
-            snapshot["DBInstanceIdentifier"].should.equal(db_instance_identifier)
+            assert snapshot["DBInstanceIdentifier"] == db_instance_identifier
 
     def test_dbi_resource_id_filter(self):
         resp = self.client.describe_db_instances()
@@ -273,19 +272,19 @@ class TestDBSnapshotFilters:
             Filters=[{"Name": "dbi-resource-id", "Values": [dbi_resource_identifier]}]
         ).get("DBSnapshots")
         for snapshot in snapshots:
-            snapshot["DbiResourceId"].should.equal(dbi_resource_identifier)
+            assert snapshot["DbiResourceId"] == dbi_resource_identifier
 
     def test_engine_filter(self):
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "engine", "Values": ["postgres"]}]
         ).get("DBSnapshots")
         for snapshot in snapshots:
-            snapshot["Engine"].should.equal("postgres")
+            assert snapshot["Engine"] == "postgres"
 
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "engine", "Values": ["oracle"]}]
         ).get("DBSnapshots")
-        snapshots.should.have.length_of(0)
+        assert len(snapshots) == 0
 
     def test_snapshot_type_filter(self):
         snapshots = self.client.describe_db_snapshots(
@@ -310,8 +309,8 @@ class TestDBSnapshotFilters:
                 {"Name": "engine", "Values": ["mysql"]},
             ]
         ).get("DBSnapshots")
-        snapshots.should.have.length_of(1)
-        snapshots[0]["DBSnapshotIdentifier"].should.equal("db-instance-0-snapshot-1")
+        assert len(snapshots) == 1
+        assert snapshots[0]["DBSnapshotIdentifier"] == "db-instance-0-snapshot-1"
 
     def test_invalid_snapshot_id_with_db_instance_id_and_filter(self):
         # Passing a non-existent DBSnapshotIdentifier will return an empty list
@@ -321,7 +320,7 @@ class TestDBSnapshotFilters:
             DBInstanceIdentifier="a-db-instance-identifier",
             Filters=[{"Name": "db-instance-id", "Values": ["db-instance-1"]}],
         )
-        resp["DBSnapshots"].should.have.length_of(0)
+        assert len(resp["DBSnapshots"]) == 0
 
     def test_invalid_snapshot_id_with_non_matching_filter(self):
         # Passing a non-existent DBSnapshotIdentifier will raise an error if
@@ -331,8 +330,8 @@ class TestDBSnapshotFilters:
                 DBSnapshotIdentifier="non-existent",
                 Filters=[{"Name": "engine", "Values": ["oracle"]}],
             )
-        ex.value.response["Error"]["Code"].should.equal("DBSnapshotNotFound")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "DBSnapshotNotFound"
+        assert ex.value.response["Error"]["Message"] == (
             "DBSnapshot non-existent not found."
         )
 
@@ -347,8 +346,8 @@ class TestDBSnapshotFilters:
                 {"Name": "engine", "Values": ["postgres"]},
             ],
         )
-        resp["DBSnapshots"].should.have.length_of(1)
-        resp["DBSnapshots"][0]["DBSnapshotIdentifier"].should.equal(
+        assert len(resp["DBSnapshots"]) == 1
+        assert resp["DBSnapshots"][0]["DBSnapshotIdentifier"] == (
             "db-instance-1-snapshot-1"
         )
 
@@ -367,9 +366,9 @@ class TestDBSnapshotFilters:
             ],
         ).get("DBSnapshots")
         returned_identifiers = [ss["DBSnapshotIdentifier"] for ss in snapshots]
-        returned_identifiers.should.have.length_of(2)
-        "db-instance-0-snapshot-0".should.be.within(returned_identifiers)
-        "db-instance-1-snapshot-1".should.be.within(returned_identifiers)
+        assert len(returned_identifiers) == 2
+        assert "db-instance-0-snapshot-0" in returned_identifiers
+        assert "db-instance-1-snapshot-1" in returned_identifiers
 
     def test_valid_snapshot_id_with_non_matching_filter(self):
         # Passing a valid DBSnapshotIdentifier will raise an error if the
@@ -379,8 +378,8 @@ class TestDBSnapshotFilters:
                 DBSnapshotIdentifier="db-instance-0-snapshot-0",
                 Filters=[{"Name": "engine", "Values": ["postgres"]}],
             )
-        ex.value.response["Error"]["Code"].should.equal("DBSnapshotNotFound")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "DBSnapshotNotFound"
+        assert ex.value.response["Error"]["Message"] == (
             "DBSnapshot db-instance-0-snapshot-0 not found."
         )
 
@@ -422,8 +421,8 @@ class TestDBClusterSnapshotFilters:
             self.client.describe_db_cluster_snapshots(
                 Filters=[{"Name": "invalid-filter-name", "Values": []}]
             )
-        ex.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-        ex.value.response["Error"]["Message"].should.equal(
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+        assert ex.value.response["Error"]["Message"] == (
             "Unrecognized filter name: invalid-filter-name"
         )
 
@@ -432,8 +431,8 @@ class TestDBClusterSnapshotFilters:
             self.client.describe_db_cluster_snapshots(
                 Filters=[{"Name": "snapshot-type", "Values": []}]
             )
-        ex.value.response["Error"]["Code"].should.equal("InvalidParameterCombination")
-        ex.value.response["Error"]["Message"].should.contain("must not be empty")
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+        assert "must not be empty" in ex.value.response["Error"]["Message"]
 
     def test_snapshot_type_filter(self):
         snapshots = self.client.describe_db_cluster_snapshots(

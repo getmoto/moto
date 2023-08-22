@@ -1,18 +1,18 @@
-From 7b63ad24b4e5a9c874c0430431bf90cd12d9162b Mon Sep 17 00:00:00 2001
+From 83f8df495c5fc187d925a7dd61f93d1fdc4f405b Mon Sep 17 00:00:00 2001
 From: Bert Blommers <info@bertblommers.nl>
-Date: Thu, 23 Feb 2023 20:04:15 -0100
-Subject: [PATCH] Patch: Hardcode endpoints
+Date: Sun, 13 Aug 2023 21:16:30 +0000
+Subject: [PATCH] Patch endpoints to localhost:4566
 
 ---
- internal/conns/config.go      | 16 ++++++++++++++++
+ internal/conns/config.go      | 14 ++++++++++++++
  internal/provider/provider.go |  4 ++--
- 2 files changed, 18 insertions(+), 2 deletions(-)
+ 2 files changed, 16 insertions(+), 2 deletions(-)
 
 diff --git a/internal/conns/config.go b/internal/conns/config.go
-index 89ce54fc36..72d17bda71 100644
+index 72c9cabde0..1f2e0d00e9 100644
 --- a/internal/conns/config.go
 +++ b/internal/conns/config.go
-@@ -77,8 +77,24 @@ type Config struct {
+@@ -55,10 +55,24 @@ type Config struct {
  	UseFIPSEndpoint                bool
  }
 
@@ -26,11 +26,11 @@ index 89ce54fc36..72d17bda71 100644
 +	return localEndpoints
 +}
 +
-+
  // ConfigureProvider configures the provided provider Meta (instance data).
  func (c *Config) ConfigureProvider(ctx context.Context, client *AWSClient) (*AWSClient, diag.Diagnostics) {
-+
-+	// XXX: added by bblommers
+ 	var diags diag.Diagnostics
+
++    // XXX: added by bblommers
 +	// insert custom endpoints
 +	c.Endpoints = GetLocalEndpoints()
 +
@@ -38,10 +38,10 @@ index 89ce54fc36..72d17bda71 100644
  		AccessKey:                     c.AccessKey,
  		APNInfo:                       StdUserAgentProducts(c.TerraformVersion),
 diff --git a/internal/provider/provider.go b/internal/provider/provider.go
-index 1c2fcaada9..636902d879 100644
+index 88c6ea9538..cfe78c5549 100644
 --- a/internal/provider/provider.go
 +++ b/internal/provider/provider.go
-@@ -2295,13 +2295,13 @@ func configure(ctx context.Context, provider *schema.Provider, d *schema.Resourc
+@@ -452,13 +452,13 @@ func configure(ctx context.Context, provider *schema.Provider, d *schema.Resourc
  		CustomCABundle:                 d.Get("custom_ca_bundle").(string),
  		EC2MetadataServiceEndpoint:     d.Get("ec2_metadata_service_endpoint").(string),
  		EC2MetadataServiceEndpointMode: d.Get("ec2_metadata_service_endpoint_mode").(string),
@@ -52,11 +52,10 @@ index 1c2fcaada9..636902d879 100644
  		MaxRetries:                     25, // Set default here, not in schema (muxing with v6 provider).
  		Profile:                        d.Get("profile").(string),
  		Region:                         d.Get("region").(string),
--		S3UsePathStyle:                 d.Get("s3_use_path_style").(bool) || d.Get("s3_force_path_style").(bool),
+-		S3UsePathStyle:                 d.Get("s3_use_path_style").(bool),
 +		S3UsePathStyle:                 true,
  		SecretKey:                      d.Get("secret_key").(string),
  		SkipCredsValidation:            d.Get("skip_credentials_validation").(bool),
- 		SkipGetEC2Platforms:            d.Get("skip_get_ec2_platforms").(bool),
+ 		SkipRegionValidation:           d.Get("skip_region_validation").(bool),
 --
 2.25.1
-

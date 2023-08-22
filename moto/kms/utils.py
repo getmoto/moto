@@ -1,13 +1,18 @@
+from abc import abstractmethod, ABCMeta
 from collections import namedtuple
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, List
+from enum import Enum
 import io
 import os
 import struct
 from moto.moto_api._internal import mock_random
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+
 
 from .exceptions import (
     InvalidCiphertextException,
@@ -48,6 +53,70 @@ RESERVED_ALIASE_TARGET_KEY_IDS = {
 RESERVED_ALIASES = list(RESERVED_ALIASE_TARGET_KEY_IDS.keys())
 
 
+class KeySpec(str, Enum):
+    # Asymmetric key specs
+    RSA_2048 = "RSA_2048"
+    RSA_3072 = "RSA_3072"
+    RSA_4096 = "RSA_4096"
+    ECC_NIST_P256 = "ECC_NIST_P256"
+    ECC_SECG_P256K1 = "ECC_SECG_P256K1"
+    ECC_NIST_P384 = "ECC_NIST_P384"
+    ECC_NIST_P512 = "ECC_NIST_P521"
+    SM2 = "SM2"  # China Regions only
+    # Symmetric key specs
+    SYMMETRIC_DEFAULT = "SYMMETRIC_DEFAULT"
+    HMAC_224 = "HMAC_224"
+    HMAC_256 = "HMAC_256"
+    HMAC_284 = "HMAC_384"
+    HMAC_512 = "HMAC_512"
+
+    @classmethod
+    def key_specs(self) -> List[str]:
+        return sorted([item.value for item in KeySpec])
+
+    @classmethod
+    def rsa_key_specs(self) -> List[str]:
+        return [spec for spec in self.key_specs() if spec.startswith("RSA")]
+
+    @classmethod
+    def ecc_key_specs(self) -> List[str]:
+        return [spec for spec in self.key_specs() if spec.startswith("ECC")]
+
+    @classmethod
+    def hmac_key_specs(self) -> List[str]:
+        return [spec for spec in self.key_specs() if spec.startswith("HMAC")]
+
+
+class SigningAlgorithm(str, Enum):
+    # sigingin algorithms for RSA key spec
+    RSASSA_PSS_SHA_256 = "RSASSA_PSS_SHA_256"
+    RSASSA_PSS_SHA_384 = "RSASSA_PSS_SHA_384"
+    RSASSA_PSS_SHA_512 = "RSASSA_PSS_SHA_512"
+    RSASSA_PKCS1_V1_5_SHA_256 = "RSASSA_PKCS1_V1_5_SHA_256"
+    RSASSA_PKCS1_V1_5_SHA_384 = "RSASSA_PKCS1_V1_5_SHA_384"
+    RSASSA_PKCS1_V1_5_SHA_512 = "RSASSA_PKCS1_V1_5_SHA_512"
+    # sigining algorithms for ECC_NIST_P256, P256K1 spec
+    ECDSA_SHA_256 = "ECDSA_SHA_256"
+    # siginging algorithm for ECC_NIST_P384
+    ECDSA_SHA_384 = "ECDSA_SHA_384"
+    # sigining algorithm for ECC_NIST_P512
+    ECDSA_SHA_512 = "ECDSA_SHA_512"
+    # sigining algorithm for SM2
+    SM2DSA = "SM2DSA"
+
+    @classmethod
+    def signing_algorithms(self) -> List[str]:
+        return sorted([item.value for item in SigningAlgorithm])
+
+    @classmethod
+    def rsa_signing_algorithms(self) -> List[str]:
+        return [algo for algo in self.signing_algorithms() if algo.startswith("RSASSA")]
+
+    @classmethod
+    def ecc_signing_algorithms(self) -> List[str]:
+        return [algo for algo in self.signing_algorithms() if algo.startswith("ECDSA")]
+
+
 def generate_key_id(multi_region: bool = False) -> str:
     key = str(mock_random.uuid4())
     # https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html
@@ -69,16 +138,106 @@ def generate_master_key() -> bytes:
     return generate_data_key(MASTER_KEY_LEN)
 
 
-def generate_private_key() -> rsa.RSAPrivateKey:
-    """Generate a private key to be used on asymmetric sign/verify.
+class AbstractPrivateKey(metaclass=ABCMeta):
+    @abstractmethod
+    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+        raise NotImplementedError
 
-    NOTE: KeySpec is not taken into consideration and the key is always RSA_2048
-    this could be improved to support multiple key types
-    """
-    return rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-    )
+    @abstractmethod
+    def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def public_key(self) -> bytes:
+        raise NotImplementedError
+
+
+def validate_signing_algorithm(
+    target_algorithm: str, valid_algorithms: List[str]
+) -> None:
+    if target_algorithm not in valid_algorithms:
+        raise ValidationException(
+            (
+                "1 validation error detected: Value at 'signing_algorithm' failed"
+                "to satisfy constraint: Member must satisfy enum value set: {valid_signing_algorithms}"
+            ).format(valid_signing_algorithms=valid_algorithms)
+        )
+
+
+class RSAPrivateKey(AbstractPrivateKey):
+    # See https://docs.aws.amazon.com/kms/latest/cryptographic-details/crypto-primitives.html
+    __supported_key_sizes = [2048, 3072, 4096]
+
+    def __init__(self, key_size: int):
+        if key_size not in self.__supported_key_sizes:
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value at 'key_size' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: {supported_key_sizes}"
+                ).format(supported_key_sizes=self.__supported_key_sizes)
+            )
+        self.key_size = key_size
+        self.private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=self.key_size
+        )
+
+    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+        validate_signing_algorithm(
+            signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
+        )
+
+        if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
+            pad = padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            )
+            algorithm = hashes.SHA256()
+        else:
+            pad = padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            )
+            algorithm = hashes.SHA256()
+        return self.private_key.sign(message, pad, algorithm)
+
+    def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
+        validate_signing_algorithm(
+            signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
+        )
+
+        if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
+            pad = padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            )
+            algorithm = hashes.SHA256()
+        else:
+            pad = padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            )
+            algorithm = hashes.SHA256()
+
+        public_key = self.private_key.public_key()
+        try:
+            public_key.verify(signature, message, pad, algorithm)
+            return True
+        except InvalidSignature:
+            return False
+
+    def public_key(self) -> bytes:
+        return self.private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+
+def generate_private_key(key_spec: str) -> AbstractPrivateKey:
+    """Generate a private key to be used on asymmetric sign/verify."""
+    if key_spec == KeySpec.RSA_2048:
+        return RSAPrivateKey(key_size=2048)
+    elif key_spec == KeySpec.RSA_3072:
+        return RSAPrivateKey(key_size=3072)
+    elif key_spec == KeySpec.RSA_4096:
+        return RSAPrivateKey(key_size=4096)
+    else:
+        return RSAPrivateKey(key_size=2048)
 
 
 def _serialize_ciphertext_blob(ciphertext: Ciphertext) -> bytes:

@@ -4,6 +4,7 @@ from moto.kms.exceptions import (
     AccessDeniedException,
     InvalidCiphertextException,
     NotFoundException,
+    ValidationException,
 )
 from moto.kms.models import Key
 from moto.kms.utils import (
@@ -16,6 +17,9 @@ from moto.kms.utils import (
     encrypt,
     decrypt,
     Ciphertext,
+    KeySpec,
+    SigningAlgorithm,
+    RSAPrivateKey,
 )
 
 ENCRYPTION_CONTEXT_VECTORS = [
@@ -54,6 +58,52 @@ CIPHERTEXT_BLOB_VECTORS = [
         b"some ciphertext that is much longer now",
     ),
 ]
+
+
+def test_KeySpec_Enum():
+    assert KeySpec.rsa_key_specs() == sorted(
+        [KeySpec.RSA_2048, KeySpec.RSA_3072, KeySpec.RSA_4096]
+    )
+    assert KeySpec.ecc_key_specs() == sorted(
+        [
+            KeySpec.ECC_NIST_P256,
+            KeySpec.ECC_SECG_P256K1,
+            KeySpec.ECC_NIST_P384,
+            KeySpec.ECC_NIST_P512,
+        ]
+    )
+    assert KeySpec.hmac_key_specs() == sorted(
+        [KeySpec.HMAC_224, KeySpec.HMAC_256, KeySpec.HMAC_284, KeySpec.HMAC_512]
+    )
+
+
+def test_SigningAlgorithm_Enum():
+    assert SigningAlgorithm.rsa_signing_algorithms() == sorted(
+        [
+            SigningAlgorithm.RSASSA_PSS_SHA_256,
+            SigningAlgorithm.RSASSA_PSS_SHA_384,
+            SigningAlgorithm.RSASSA_PSS_SHA_512,
+            SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_256,
+            SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_384,
+            SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_512,
+        ]
+    )
+    assert SigningAlgorithm.ecc_signing_algorithms() == sorted(
+        [
+            SigningAlgorithm.ECDSA_SHA_256,
+            SigningAlgorithm.ECDSA_SHA_384,
+            SigningAlgorithm.ECDSA_SHA_512,
+        ]
+    )
+
+
+def test_RSAPrivateKey_invalid_key_size():
+    with pytest.raises(ValidationException) as ex:
+        _ = RSAPrivateKey(key_size=100)
+    assert (
+        ex.value.message
+        == "1 validation error detected: Value at 'key_size' failed to satisfy constraint: Member must satisfy enum value set: [2048, 3072, 4096]"
+    )
 
 
 def test_generate_data_key():

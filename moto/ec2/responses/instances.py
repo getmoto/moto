@@ -84,6 +84,9 @@ class InstanceResponse(EC2BaseResponse):
             or None,
             "iam_instance_profile_arn": self._get_param("IamInstanceProfile.Arn")
             or None,
+            "monitoring_state": "enabled"
+            if self._get_param("Monitoring.Enabled") == "true"
+            else "disabled",
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -472,7 +475,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
             <tenancy>default</tenancy>
           </placement>
           <monitoring>
-            <state>enabled</state>
+            <state> {{ instance.monitoring_state }} </state>
           </monitoring>
           {% if instance.subnet_id %}
             <subnetId>{{ instance.subnet_id }}</subnetId>
@@ -632,7 +635,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <platform>{{ instance.platform }}</platform>
                     {% endif %}
                     <monitoring>
-                      <state>disabled</state>
+                      <state>{{ instance.monitoring_state }}</state>
                     </monitoring>
                     {% if instance.subnet_id %}
                       <subnetId>{{ instance.subnet_id }}</subnetId>

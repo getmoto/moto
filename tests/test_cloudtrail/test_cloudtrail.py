@@ -322,6 +322,38 @@ def test_get_trail_status_after_starting_and_stopping():
 @mock_cloudtrail
 @mock_s3
 @mock_sns
+def test_get_trail_status_multi_region_not_from_the_home_region():
+    # CloudTrail client
+    client_us_east_1 = boto3.client("cloudtrail", region_name="us-east-1")
+
+    # Create Trail
+    _, _, _, trail_name_us_east_1 = create_trail_advanced()
+
+    # Start Logging
+    _ = client_us_east_1.start_logging(Name=trail_name_us_east_1)
+
+    # Check Trails in the Home Region us-east-1
+    trails_us_east_1 = client_us_east_1.describe_trails()["trailList"]
+    trail_arn_us_east_1 = trails_us_east_1[0]["TrailARN"]
+    assert len(trails_us_east_1) == 1
+
+    # Get Trail status in the Home Region us-east-1
+    trail_status_us_east_1 = client_us_east_1.get_trail_status(Name=trail_arn_us_east_1)
+    assert trail_status_us_east_1["IsLogging"]
+
+    # Check Trails in another region eu-west-1 for a MultiRegion trail
+    client_eu_west_1 = boto3.client("cloudtrail", region_name="eu-west-1")
+    trails_eu_west_1 = client_eu_west_1.describe_trails()["trailList"]
+    assert len(trails_eu_west_1) == 1
+
+    # Get Trail status in another region eu-west-1 for a MultiRegion trail
+    trail_status_us_east_1 = client_eu_west_1.get_trail_status(Name=trail_arn_us_east_1)
+    assert trail_status_us_east_1["IsLogging"]
+
+
+@mock_cloudtrail
+@mock_s3
+@mock_sns
 def test_list_trails_different_home_region_one_multiregion():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
 

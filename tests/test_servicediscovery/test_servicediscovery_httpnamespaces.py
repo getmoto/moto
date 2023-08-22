@@ -186,6 +186,33 @@ def test_create_private_dns_namespace():
 
 
 @mock_servicediscovery
+def test_update_private_dns_namespace():
+    client = boto3.client("servicediscovery", region_name="eu-west-1")
+    client.create_private_dns_namespace(
+        Name="dns_ns",
+        Vpc="vpc_id",
+        Description="my private dns",
+        Properties={"DnsProperties": {"SOA": {"TTL": 123}}},
+    )
+
+    ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
+
+    client.update_private_dns_namespace(
+        Id=ns_id,
+        Namespace={
+            "Description": "updated dns",
+            "Properties": {"DnsProperties": {"SOA": {"TTL": 654}}},
+        },
+    )
+
+    namespace = client.get_namespace(Id=ns_id)["Namespace"]
+    assert namespace["Description"] == "updated dns"
+
+    props = namespace["Properties"]
+    assert props["DnsProperties"]["SOA"] == {"TTL": 654}
+
+
+@mock_servicediscovery
 def test_create_private_dns_namespace_with_duplicate_vpc():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_private_dns_namespace(Name="dns_ns", Vpc="vpc_id")
@@ -237,3 +264,30 @@ def test_create_public_dns_namespace():
     assert "DnsProperties" in namespace["Properties"]
     dns_props = namespace["Properties"]["DnsProperties"]
     assert dns_props == {"HostedZoneId": "hzi", "SOA": {"TTL": 124}}
+
+
+@mock_servicediscovery
+def test_update_public_dns_namespace():
+    client = boto3.client("servicediscovery", region_name="us-east-2")
+    client.create_public_dns_namespace(
+        Name="public_dns_ns",
+        CreatorRequestId="cri",
+        Description="my public dns",
+        Properties={"DnsProperties": {"SOA": {"TTL": 124}}},
+    )
+
+    ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
+
+    client.update_public_dns_namespace(
+        Id=ns_id,
+        Namespace={
+            "Description": "updated dns",
+            "Properties": {"DnsProperties": {"SOA": {"TTL": 987}}},
+        },
+    )
+
+    namespace = client.get_namespace(Id=ns_id)["Namespace"]
+    assert namespace["Description"] == "updated dns"
+
+    dns_props = namespace["Properties"]["DnsProperties"]
+    assert dns_props == {"SOA": {"TTL": 987}}

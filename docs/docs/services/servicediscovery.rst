@@ -62,7 +62,7 @@ servicediscovery
 - [X] untag_resource
 - [ ] update_http_namespace
 - [ ] update_instance_custom_health_status
-- [ ] update_private_dns_namespace
-- [ ] update_public_dns_namespace
+- [X] update_private_dns_namespace
+- [X] update_public_dns_namespace
 - [X] update_service
 

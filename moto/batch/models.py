@@ -250,10 +250,33 @@ class JobDefinition(CloudFormationModel):
         self.propagate_tags = propagate_tags
 
         if self.container_properties is not None:
-            if "resourceRequirements" not in self.container_properties:
-                self.container_properties["resourceRequirements"] = []
-            if "secrets" not in self.container_properties:
-                self.container_properties["secrets"] = []
+            # Set some default values
+            default_values: Dict[str, List[Any]] = {
+                "command": [],
+                "resourceRequirements": [],
+                "secrets": [],
+                "environment": [],
+                "mountPoints": [],
+                "ulimits": [],
+                "volumes": [],
+            }
+            for key, val in default_values.items():
+                if key not in self.container_properties:
+                    self.container_properties[key] = val
+
+            # Set default FARGATE configuration
+            if "FARGATE" in (self.platform_capabilities or []):
+                if "fargatePlatformConfiguration" not in self.container_properties:
+                    self.container_properties["fargatePlatformConfiguration"] = {
+                        "platformVersion": "LATEST"
+                    }
+
+            # Remove any empty environment variables
+            self.container_properties["environment"] = [
+                env_var
+                for env_var in self.container_properties["environment"]
+                if env_var.get("value") != ""
+            ]
 
         self._validate()
         self.revision += 1

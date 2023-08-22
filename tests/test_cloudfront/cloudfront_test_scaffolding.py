@@ -38,7 +38,7 @@ def example_dist_config_with_tags(ref):
     return config
 
 
-def example_dist_custom_config(ref):
+def example_dist_custom_config(ref, ssl_protocols):
     return {
         "CallerReference": ref,
         "Origins": {
@@ -55,7 +55,7 @@ def example_dist_custom_config(ref):
                         "OriginReadTimeout": 15,
                         "OriginSslProtocols": {
                             "Quantity": 2,
-                            "Items": ["TLSv1", "SSLv3"],
+                            "Items": ssl_protocols,
                         },
                     },
                 }

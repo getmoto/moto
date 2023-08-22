@@ -46,6 +46,9 @@ def test_create_tags():
 
     assert resp["Tags"] == {"key1": "val2", "key2": "val2"}
 
+    tags = client.list_tags(ResourceArn=broker_arn)["Tags"]
+    assert tags == {"key1": "val2", "key2": "val2"}
+
 
 @mock_mq
 def test_delete_tags():
