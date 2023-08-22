@@ -1159,13 +1159,17 @@ def test_list_portfolios_for_product():
 @mock_servicecatalog
 @mock_s3
 def test_list_portfolios_for_product_not_found():
-    client = boto3.client("servicecatalog", region_name="us-east-1")
-    with pytest.raises(ClientError) as exc:
-        client.list_portfolios_for_product(ProductId="does_not_exist")
+    region_name = "us-east-2"
+    _create_product_with_portfolio(
+        region_name=region_name,
+        portfolio_name="My Portfolio",
+        product_name="test product",
+    )
 
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "Record not found"
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.list_portfolios_for_product(ProductId="no product")
+
+    assert len(resp["PortfolioDetails"]) == 0
 
 
 @mock_servicecatalog
