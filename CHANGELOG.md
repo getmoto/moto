@@ -1,6 +1,13 @@
 Moto Changelog
 ==============
 
+4.2.0
+------
+Docker Digest for 4.2.0: <autopopulateddigest>
+
+    General:
+        The Docker image is now based on Python 3.11 (instead of 3.7)
+
 4.1.15
 ------
 Docker Digest for 4.1.15: _sha256:eb63b1e0cbbd757e4596844e6ac1865660cbf8e358203b79e5404d57de94dd69_
