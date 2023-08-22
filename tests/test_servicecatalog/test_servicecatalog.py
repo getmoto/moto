@@ -1,6 +1,7 @@
 """Unit tests for servicecatalog-supported APIs."""
 import pytest
 import boto3
+from botocore.exceptions import ParamValidationError
 import uuid
 from datetime import date
 from moto import mock_servicecatalog, mock_s3
@@ -205,7 +206,11 @@ def test_create_portfolio():
 
 @mock_servicecatalog
 def test_create_portfolio_missing_required():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    with pytest.raises(ParamValidationError) as exc:
+        client.create_portfolio()
+
+    assert "DisplayName" in exc.value.args[0]
 
 
 @mock_servicecatalog
@@ -271,7 +276,11 @@ def test_create_product():
 @mock_servicecatalog
 @mock_s3
 def test_create_product_missing_required():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    with pytest.raises(ParamValidationError) as exc:
+        client.create_product()
+
+    assert "Name" in exc.value.args[0]
 
 
 @mock_servicecatalog
@@ -335,13 +344,41 @@ def test_create_constraint():
 @mock_servicecatalog
 @mock_s3
 def test_create_constraint_duplicate():
-    assert 1 == 2
+    region_name = "us-east-2"
+    portfolio, product = _create_product_with_portfolio(
+        region_name=region_name,
+        portfolio_name="My Portfolio",
+        product_name="test product",
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    client.create_constraint(
+        PortfolioId=portfolio["PortfolioDetail"]["Id"],
+        ProductId=product["ProductViewDetail"]["ProductViewSummary"]["ProductId"],
+        Parameters="""{"RoleArn": "arn:aws:iam::123456789012:role/LaunchRole"}""",
+        Type="LAUNCH",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_constraint(
+            PortfolioId=portfolio["PortfolioDetail"]["Id"],
+            ProductId=product["ProductViewDetail"]["ProductViewSummary"]["ProductId"],
+            Parameters="""{"RoleArn": "arn:aws:iam::123456789012:role/LaunchRole"}""",
+            Type="LAUNCH",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DuplicateResourceException"
+    assert err["Message"] == "Constraint with these links already exists"
 
 
 @mock_servicecatalog
 @mock_s3
 def test_create_constraint_missing_required():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+    with pytest.raises(ParamValidationError) as exc:
+        client.create_constraint()
+
+    assert "PortfolioId" in exc.value.args[0]
 
 
 @mock_servicecatalog
@@ -376,7 +413,35 @@ def test_associate_product_with_portfolio():
 @mock_servicecatalog
 @mock_s3
 def test_associate_product_with_portfolio_invalid_ids():
-    assert 1 == 2
+    region_name = "us-east-2"
+    portfolio = _create_portfolio(
+        region_name=region_name, portfolio_name="The Portfolio"
+    )
+    product = _create_product(region_name=region_name, product_name="My Product")
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    # Link product to portfolio
+    with pytest.raises(ClientError) as exc:
+        client.associate_product_with_portfolio(
+            PortfolioId="invalid_portfolio",
+            ProductId=product["ProductViewDetail"]["ProductViewSummary"]["ProductId"],
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Portfolio not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.associate_product_with_portfolio(
+            PortfolioId=portfolio["PortfolioDetail"]["Id"],
+            ProductId="invalid_product",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Product not found"
 
 
 @mock_servicecatalog
@@ -565,20 +630,48 @@ def test_describe_provisioned_product_by_id():
         == provisioning_artifact_id
     )
 
-    resp = client.search_provisioned_products(Filters={"SearchQuery": []})
-    # TODO: Verift
-
 
 @mock_servicecatalog
 @mock_s3
 def test_describe_provisioned_product_by_name():
-    assert 1 == 2
+    region_name = "us-east-2"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    resp = client.describe_provisioned_product(Name="My Provisioned Product")
+
+    assert resp["ProvisionedProductDetail"]["Id"] == provisioned_product_id
+    assert resp["ProvisionedProductDetail"]["ProductId"] == product_id
+    assert (
+        resp["ProvisionedProductDetail"]["ProvisioningArtifactId"]
+        == provisioning_artifact_id
+    )
 
 
 @mock_servicecatalog
 @mock_s3
 def test_describe_provisioned_product_not_found():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.describe_provisioned_product(Name="does not exist")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Provisioned product not found"
 
 
 @mock_servicecatalog
@@ -874,7 +967,13 @@ def test_list_provisioning_artifacts():
 @mock_servicecatalog
 @mock_s3
 def test_list_provisioning_artifacts_product_not_found():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.list_provisioning_artifacts(ProductId="does_not_exist")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Product not found"
 
 
 @mock_servicecatalog
@@ -899,7 +998,20 @@ def test_describe_product_as_admin_by_id():
 @mock_servicecatalog
 @mock_s3
 def test_describe_product_as_admin_by_name():
-    assert 1 == 2
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.describe_product_as_admin(Name=product_name)
+
+    assert resp["ProductViewDetail"]["ProductViewSummary"]["ProductId"] == product_id
+    assert len(resp["ProvisioningArtifactSummaries"]) == 1
 
 
 @mock_servicecatalog
@@ -930,7 +1042,32 @@ def test_describe_product_by_id():
 @mock_servicecatalog
 @mock_s3
 def test_describe_product_by_name():
-    assert 1 == 2
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.describe_product_as_admin(Name=product_name)
+
+    assert resp["ProductViewDetail"]["ProductViewSummary"]["ProductId"] == product_id
+    assert len(resp["ProvisioningArtifactSummaries"]) == 1
+
+
+@mock_servicecatalog
+@mock_s3
+def test_describe_product_not_found():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.describe_product(Id="does_not_exist")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Product not found"
 
 
 @mock_servicecatalog
@@ -956,10 +1093,15 @@ def test_update_portfolio():
 @mock_servicecatalog
 @mock_s3
 def test_update_portfolio_not_found():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.update_portfolio(Id="does_not_exist", DisplayName="new value")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Portfolio not found"
 
 
-@mock_servicecatalog
 @mock_s3
 def test_update_portfolio_invalid_fields():
     assert 1 == 2
@@ -980,7 +1122,13 @@ def test_update_product():
 @mock_servicecatalog
 @mock_s3
 def test_update_product_not_found():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.update_product(Id="does_not_exist", Name="New Product Name")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Product not found"
 
 
 @mock_servicecatalog
@@ -1011,7 +1159,13 @@ def test_list_portfolios_for_product():
 @mock_servicecatalog
 @mock_s3
 def test_list_portfolios_for_product_not_found():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.list_portfolios_for_product(ProductId="does_not_exist")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Record not found"
 
 
 @mock_servicecatalog
@@ -1042,4 +1196,10 @@ def test_describe_record():
 @mock_servicecatalog
 @mock_s3
 def test_describe_record_not_found():
-    assert 1 == 2
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.describe_record(Id="does_not_exist")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Record not found"

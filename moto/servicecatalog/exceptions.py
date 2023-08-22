@@ -71,3 +71,10 @@ class InvalidParametersException(ServiceCatalogClientError):
 
     def __init__(self, message: str):
         super().__init__(error_type="InvalidParametersException", message=message)
+
+
+class DuplicateResourceException(ServiceCatalogClientError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__(error_type="DuplicateResourceException", message=message)

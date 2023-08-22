@@ -14,6 +14,7 @@ from moto.ec2.exceptions import FilterNotImplementedError
 
 from .utils import create_cloudformation_stack_from_template
 from .exceptions import (
+    DuplicateResourceException,
     ProductNotFound,
     PortfolioNotFound,
     ProvisionedProductNotFound,
@@ -563,7 +564,7 @@ class ServiceCatalogBackend(BaseBackend):
         if identifier in self.provisioned_products:
             return self.provisioned_products[identifier]
 
-        for product_id, provisioned_product in self.provisioned_products.items():
+        for provisioned_product in self.provisioned_products.values():
             if provisioned_product.name == name:
                 return provisioned_product
 
@@ -674,7 +675,15 @@ class ServiceCatalogBackend(BaseBackend):
         description,
         idempotency_token,
     ):
-        # implement here
+        for constraint in self.constraints.values():
+            if (
+                constraint.product_id == product_id
+                and constraint.portfolio_id == portfolio_id
+                and constraint.constraint_type == constraint_type
+            ):
+                raise DuplicateResourceException(
+                    message="Constraint with these links already exists"
+                )
 
         constraint = Constraint(
             backend=self,
