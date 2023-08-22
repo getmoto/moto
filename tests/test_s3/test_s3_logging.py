@@ -1,8 +1,15 @@
+import json
+
 import boto3
-from botocore.client import ClientError
 import pytest
+from botocore.client import ClientError
+from unittest.mock import patch
+
 
 from moto import mock_s3
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.s3 import s3_backends
+from moto.s3.models import FakeBucket
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
@@ -261,3 +268,301 @@ def test_log_file_is_created():
     assert any(c for c in contents if bucket_name in c)
     assert any(c for c in contents if "REST.GET.BUCKET" in c)
     assert any(c for c in contents if "REST.PUT.BUCKET" in c)
+
+
+@mock_s3
+def test_invalid_bucket_logging_when_permissions_are_false():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "mybucket"
+    log_bucket = "logbucket"
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=log_bucket)
+    with patch(
+        "moto.s3.models.FakeBucket._log_permissions_enabled_policy", return_value=False
+    ), patch(
+        "moto.s3.models.FakeBucket._log_permissions_enabled_acl", return_value=False
+    ):
+        with pytest.raises(ClientError) as err:
+            s3_client.put_bucket_logging(
+                Bucket=bucket_name,
+                BucketLoggingStatus={
+                    "LoggingEnabled": {"TargetBucket": log_bucket, "TargetPrefix": ""}
+                },
+            )
+        assert err.value.response["Error"]["Code"] == "InvalidTargetBucketForLogging"
+        assert "log-delivery" in err.value.response["Error"]["Message"]
+
+
+@mock_s3
+def test_valid_bucket_logging_when_permissions_are_true():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "mybucket"
+    log_bucket = "logbucket"
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.create_bucket(Bucket=log_bucket)
+    with patch(
+        "moto.s3.models.FakeBucket._log_permissions_enabled_policy", return_value=True
+    ), patch(
+        "moto.s3.models.FakeBucket._log_permissions_enabled_acl", return_value=True
+    ):
+        s3_client.put_bucket_logging(
+            Bucket=bucket_name,
+            BucketLoggingStatus={
+                "LoggingEnabled": {
+                    "TargetBucket": log_bucket,
+                    "TargetPrefix": f"{bucket_name}/",
+                }
+            },
+        )
+        result = s3_client.get_bucket_logging(Bucket=bucket_name)
+        assert result["LoggingEnabled"]["TargetBucket"] == log_bucket
+        assert result["LoggingEnabled"]["TargetPrefix"] == f"{bucket_name}/"
+
+
+@mock_s3
+def test_bucket_policy_not_set():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+
+    log_bucket = "log_bucket"
+    s3_client.create_bucket(Bucket=log_bucket)
+    log_bucket_obj = s3_backend.get_bucket(log_bucket)
+
+    assert (
+        FakeBucket._log_permissions_enabled_policy(
+            target_bucket=log_bucket_obj, target_prefix=""
+        )
+        is False
+    )
+
+
+@mock_s3
+def test_bucket_policy_principal():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+
+    log_bucket = "log_bucket"
+    s3_client.create_bucket(Bucket=log_bucket)
+    log_bucket_obj = s3_backend.get_bucket(log_bucket)
+
+    invalid_principal_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "not_logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(invalid_principal_policy)
+    )
+    assert (
+        FakeBucket._log_permissions_enabled_policy(
+            target_bucket=log_bucket_obj, target_prefix=""
+        )
+        is False
+    )
+
+    s3_client.delete_bucket_policy(Bucket=log_bucket)
+    valid_principal_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(valid_principal_policy)
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix=""
+    )
+
+
+@mock_s3
+def test_bucket_policy_effect():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+
+    log_bucket = "log_bucket"
+    s3_client.create_bucket(Bucket=log_bucket)
+    log_bucket_obj = s3_backend.get_bucket(log_bucket)
+    deny_effect_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Deny",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(deny_effect_policy)
+    )
+    assert (
+        FakeBucket._log_permissions_enabled_policy(
+            target_bucket=log_bucket_obj, target_prefix=""
+        )
+        is False
+    )
+
+    s3_client.delete_bucket_policy(Bucket=log_bucket)
+    allow_effect_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(allow_effect_policy)
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix=""
+    )
+
+
+@mock_s3
+def test_bucket_policy_action():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+
+    log_bucket = "log_bucket"
+    s3_client.create_bucket(Bucket=log_bucket)
+    log_bucket_obj = s3_backend.get_bucket(log_bucket)
+    non_put_object_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:GetObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(non_put_object_policy)
+    )
+    assert (
+        FakeBucket._log_permissions_enabled_policy(
+            target_bucket=log_bucket_obj, target_prefix=""
+        )
+        is False
+    )
+
+    s3_client.delete_bucket_policy(Bucket=log_bucket)
+    put_object_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(Bucket=log_bucket, Policy=json.dumps(put_object_policy))
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix=""
+    )
+
+
+@mock_s3
+def test_bucket_policy_resource():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+
+    log_bucket = "log_bucket"
+    s3_client.create_bucket(Bucket=log_bucket)
+    log_bucket_obj = s3_backend.get_bucket(log_bucket)
+    entire_bucket_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(entire_bucket_policy)
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix=""
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix="prefix"
+    )
+
+    s3_client.delete_bucket_policy(Bucket=log_bucket)
+    bucket_level_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(bucket_level_policy)
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix=""
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix="prefix"
+    )
+
+    s3_client.delete_bucket_policy(Bucket=log_bucket)
+    specfic_prefix_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "S3ServerAccessLogsPolicy",
+                "Effect": "Allow",
+                "Principal": {"Service": "logging.s3.amazonaws.com"},
+                "Action": ["s3:PutObject"],
+                "Resource": f"arn:aws:s3:::{log_bucket}/prefix*",
+            }
+        ],
+    }
+    s3_client.put_bucket_policy(
+        Bucket=log_bucket, Policy=json.dumps(specfic_prefix_policy)
+    )
+    assert (
+        FakeBucket._log_permissions_enabled_policy(
+            target_bucket=log_bucket_obj, target_prefix=""
+        )
+        is False
+    )
+    assert FakeBucket._log_permissions_enabled_policy(
+        target_bucket=log_bucket_obj, target_prefix="prefix"
+    )
