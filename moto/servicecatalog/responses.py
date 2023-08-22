@@ -1,9 +1,11 @@
 """Handles incoming servicecatalog requests, invokes methods, returns responses."""
 import json
 import re
+import warnings
 
 from moto.core.responses import BaseResponse
 from .models import servicecatalog_backends
+from .exceptions import ValidationException
 
 
 class ServiceCatalogResponse(BaseResponse):
@@ -35,13 +37,16 @@ class ServiceCatalogResponse(BaseResponse):
             tags=tags,
             idempotency_token=idempotency_token,
         )
-        # TODO: adjust response
         return json.dumps(dict(PortfolioDetail=portfolio_detail.to_json(), Tags=tags))
 
     def list_portfolios(self) -> str:
         accept_language = self._get_param("AcceptLanguage")
         page_token = self._get_param("PageToken")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
+
+        if page_size is not None:
+            warnings.warn("Pagination is not yet implemented for list_portfolios()")
+
         (portfolios, next_page_token,) = self.servicecatalog_backend.list_portfolios(
             accept_language=accept_language,
             page_token=page_token,
@@ -70,7 +75,7 @@ class ServiceCatalogResponse(BaseResponse):
             identifier=identifier,
             name=name,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProvisionedProductDetail=provisioned_product_detail,
@@ -78,15 +83,22 @@ class ServiceCatalogResponse(BaseResponse):
             )
         )
 
-    # add templates from here
-
     def get_provisioned_product_outputs(self):
         accept_language = self._get_param("AcceptLanguage")
         provisioned_product_id = self._get_param("ProvisionedProductId")
         provisioned_product_name = self._get_param("ProvisionedProductName")
         output_keys = self._get_param("OutputKeys")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
         page_token = self._get_param("PageToken")
+
+        if page_size is not None:
+            warnings.warn("Pagination is not yet implemented for list_portfolios()")
+
+        if provisioned_product_id is None and provisioned_product_name is None:
+            raise ValidationException(
+                "ProvisionedProductId and ProvisionedProductName cannot both be null"
+            )
+
         (
             outputs,
             next_page_token,
@@ -97,7 +109,7 @@ class ServiceCatalogResponse(BaseResponse):
             output_keys=output_keys,
             page_token=page_token,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(Outputs=outputs, NextPageToken=next_page_token))
 
     def search_provisioned_products(self):
@@ -106,8 +118,29 @@ class ServiceCatalogResponse(BaseResponse):
         filters = self._get_param("Filters")
         sort_by = self._get_param("SortBy")
         sort_order = self._get_param("SortOrder")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
         page_token = self._get_param("PageToken")
+
+        if page_size is not None:
+            warnings.warn("Pagination is not yet implemented for list_portfolios()")
+
+        if access_level_filter is not None:
+            warnings.warn(
+                "The access_level_filter parameter is not yet implemented for search_provisioned_products()"
+            )
+
+        # Sort check
+        sort_by_fields = ["arn", "id", "name", "lastRecordId"]
+        if sort_by is not None and sort_by not in sort_by_fields:
+            raise ValidationException(
+                f"{sort_by} is not a supported sort field. It must be {sort_by_fields}"
+            )
+
+        sort_order_fields = ["ASCENDING", "DESCENDING"]
+        if sort_order is not None and sort_order not in sort_order_fields:
+            raise ValidationException(
+                f"1 validation error detected: Value '{sort_order}' at 'sortOrder' failed to satisfy constraint: Member must satisfy enum value set: {sort_order_fields}"
+            )
 
         # Change filter to match search-products style
         new_filters = {}
@@ -148,7 +181,7 @@ class ServiceCatalogResponse(BaseResponse):
             sort_order=sort_order,
             page_token=page_token,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProvisionedProducts=provisioned_products,
@@ -172,16 +205,32 @@ class ServiceCatalogResponse(BaseResponse):
             accept_language=accept_language,
             retain_physical_resources=retain_physical_resources,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(RecordDetail=record_detail))
 
     def search_products(self):
         accept_language = self._get_param("AcceptLanguage")
         filters = self._get_param("Filters")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
         sort_by = self._get_param("SortBy")
         sort_order = self._get_param("SortOrder")
         page_token = self._get_param("PageToken")
+
+        if page_size is not None:
+            warnings.warn("Pagination is not yet implemented for search_products()")
+
+        # Sort check
+        sort_by_fields = ["CreationDate", "VersionCount", "Title"]
+        if sort_by is not None and sort_by not in sort_by_fields:
+            raise ValidationException(
+                f"1 validation error detected: Value '{sort_by}' at 'sortBy' failed to satisfy constraint: Member must satisfy enum value set: {sort_by_fields}"
+            )
+
+        sort_order_fields = ["ASCENDING", "DESCENDING"]
+        if sort_order is not None and sort_order not in sort_order_fields:
+            raise ValidationException(
+                f"1 validation error detected: Value '{sort_order}' at 'sortOrder' failed to satisfy constraint: Member must satisfy enum value set: {sort_order_fields}"
+            )
 
         (
             product_view_summaries,
@@ -194,7 +243,7 @@ class ServiceCatalogResponse(BaseResponse):
             sort_order=sort_order,
             page_token=page_token,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProductViewSummaries=product_view_summaries,
@@ -206,8 +255,12 @@ class ServiceCatalogResponse(BaseResponse):
     def list_launch_paths(self):
         accept_language = self._get_param("AcceptLanguage")
         product_id = self._get_param("ProductId")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
         page_token = self._get_param("PageToken")
+
+        if page_size is not None:
+            warnings.warn("Pagination is not yet implemented for list_launch_paths()")
+
         (
             launch_path_summaries,
             next_page_token,
@@ -216,7 +269,7 @@ class ServiceCatalogResponse(BaseResponse):
             product_id=product_id,
             page_token=page_token,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 LaunchPathSummaries=launch_path_summaries, NextPageToken=next_page_token
@@ -233,7 +286,7 @@ class ServiceCatalogResponse(BaseResponse):
             accept_language=accept_language,
             product_id=product_id,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProvisioningArtifactDetails=provisioning_artifact_details,
@@ -270,7 +323,7 @@ class ServiceCatalogResponse(BaseResponse):
             notification_arns=notification_arns,
             provision_token=provision_token,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(RecordDetail=record_detail))
 
     def create_product(self):
@@ -308,7 +361,7 @@ class ServiceCatalogResponse(BaseResponse):
             idempotency_token=idempotency_token,
             source_connection=source_connection,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProductViewDetail=product_view_detail,
@@ -318,7 +371,6 @@ class ServiceCatalogResponse(BaseResponse):
         )
 
     def associate_product_with_portfolio(self):
-
         accept_language = self._get_param("AcceptLanguage")
         product_id = self._get_param("ProductId")
         portfolio_id = self._get_param("PortfolioId")
@@ -329,7 +381,7 @@ class ServiceCatalogResponse(BaseResponse):
             portfolio_id=portfolio_id,
             source_portfolio_id=source_portfolio_id,
         )
-        # TODO: adjust response
+
         return json.dumps(dict())
 
     def create_constraint(self):
@@ -353,7 +405,7 @@ class ServiceCatalogResponse(BaseResponse):
             description=description,
             idempotency_token=idempotency_token,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ConstraintDetail=constraint_detail,
@@ -374,7 +426,7 @@ class ServiceCatalogResponse(BaseResponse):
             accept_language=accept_language,
             identifier=identifier,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 PortfolioDetail=portfolio_detail,
@@ -401,7 +453,7 @@ class ServiceCatalogResponse(BaseResponse):
             name=name,
             source_portfolio_id=source_portfolio_id,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProductViewDetail=product_view_detail,
@@ -426,7 +478,7 @@ class ServiceCatalogResponse(BaseResponse):
             identifier=identifier,
             name=name,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 ProductViewSummary=product_view_summary,
@@ -453,7 +505,7 @@ class ServiceCatalogResponse(BaseResponse):
             add_tags=add_tags,
             remove_tags=remove_tags,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(PortfolioDetail=portfolio_detail, Tags=tags))
 
     def update_product(self):
@@ -483,14 +535,20 @@ class ServiceCatalogResponse(BaseResponse):
             remove_tags=remove_tags,
             source_connection=source_connection,
         )
-        # TODO: adjust response
+
         return json.dumps(dict(ProductViewDetail=product_view_detail, Tags=tags))
 
     def list_portfolios_for_product(self):
         accept_language = self._get_param("AcceptLanguage")
         product_id = self._get_param("ProductId")
         page_token = self._get_param("PageToken")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
+
+        if page_size is not None:
+            warnings.warn(
+                "Pagination is not yet implemented for list_portfolios_for_product()"
+            )
+
         (
             portfolio_details,
             next_page_token,
@@ -508,7 +566,11 @@ class ServiceCatalogResponse(BaseResponse):
         accept_language = self._get_param("AcceptLanguage")
         identifier = self._get_param("Id")
         page_token = self._get_param("PageToken")
-        # page_size = self._get_param("PageSize")
+        page_size = self._get_param("PageSize")
+
+        if page_size is not None:
+            warnings.warn("Pagination is not yet implemented for describe_record()")
+
         (
             record_detail,
             record_outputs,

@@ -20,6 +20,7 @@ from .exceptions import (
     ProvisionedProductNotFound,
     RecordNotFound,
     InvalidParametersException,
+    ValidationException,
 )
 
 
@@ -846,6 +847,21 @@ class ServiceCatalogBackend(BaseBackend):
                 product.to_product_view_detail_json()["ProductViewSummary"]
             )
 
+        if sort_by is not None:
+            # See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/servicecatalog/client/search_products.html
+            # SortBy requires "Title" but the field in the response (and object) is Name. Why? Am I missing a field?
+
+            if sort_by == "Title":
+                sort_by = "Name"
+            if sort_order is None:
+                sort_order = "ASCENDING"
+
+            product_view_summaries = sorted(
+                product_view_summaries,
+                key=lambda d: d[sort_by],
+                reverse=True if sort_order == "DESCENDING" else False,
+            )
+
         product_view_aggregations = {
             "Owner": list(),
             "ProductType": list(),
@@ -870,14 +886,24 @@ class ServiceCatalogBackend(BaseBackend):
         else:
             source_provisioned_products = self.provisioned_products.values()
 
-        # Access Filter
-        # User, Role, Account
-        # access_level_filter
-
         provisioned_products = [
             value.to_provisioned_product_detail_json(include_tags=True)
             for value in source_provisioned_products
         ]
+
+        if sort_by is not None:
+            # For some reason the SortBy is passed in as lowercase for search-provisioned-products but uppercase for
+            # search-products.
+            sort_by = sort_by.capitalize()
+
+            if sort_order is None:
+                sort_order = "ASCENDING"
+
+            provisioned_products = sorted(
+                provisioned_products,
+                key=lambda d: d[sort_by],
+                reverse=True if sort_order == "DESCENDING" else False,
+            )
 
         total_results_count = len(provisioned_products)
         next_page_token = None
@@ -932,14 +958,24 @@ class ServiceCatalogBackend(BaseBackend):
 
         outputs = []
 
+        if output_keys is not None:
+            existing_output_keys = [
+                output.key for output in provisioned_product.stack_outputs
+            ]
+            missing_keys = set(output_keys).difference(existing_output_keys)
+
+            if len(missing_keys) > 0:
+                raise InvalidParametersException(f"Invalid OutputKeys: {missing_keys}")
+
         for output in provisioned_product.stack_outputs:
-            outputs.append(
-                {
-                    "OutputKey": output.key,
-                    "OutputValue": output.value,
-                    "Description": output.description,
-                }
-            )
+            if output_keys is None or output.key in output_keys:
+                outputs.append(
+                    {
+                        "OutputKey": output.key,
+                        "OutputValue": output.value,
+                        "Description": output.description,
+                    }
+                )
 
         next_page_token = None
         return outputs, next_page_token

@@ -31,10 +31,13 @@ Outputs:
   WebsiteURL:
     Value: !GetAtt BucketWithSemiRandomName.WebsiteURL
     Description: URL for website hosted on S3
+  BucketArn:
+    Value: !GetAtt BucketWithSemiRandomName.Arn
+    Description: ARN for bucket
 """
 
 
-def _create_cf_template_in_s3(region_name: str):
+def _create_cf_template_in_s3(region_name: str, create_bucket: bool = True):
     """
     Creates a bucket and uploads a cloudformation template to be used in product provisioning
     """
@@ -42,12 +45,13 @@ def _create_cf_template_in_s3(region_name: str):
     cloud_s3_key = "sc-templates/test-product/stack.yaml"
     cloud_url = f"https://s3.amazonaws.com/{cloud_bucket}/{cloud_s3_key}"
     s3_client = boto3.client("s3", region_name=region_name)
-    s3_client.create_bucket(
-        Bucket=cloud_bucket,
-        CreateBucketConfiguration={
-            "LocationConstraint": region_name,
-        },
-    )
+    if create_bucket:
+        s3_client.create_bucket(
+            Bucket=cloud_bucket,
+            CreateBucketConfiguration={
+                "LocationConstraint": region_name,
+            },
+        )
     s3_client.put_object(Body=BASIC_CLOUD_STACK, Bucket=cloud_bucket, Key=cloud_s3_key)
     return cloud_url
 
@@ -62,8 +66,8 @@ def _create_portfolio(region_name: str, portfolio_name: str):
     return create_portfolio_response
 
 
-def _create_product(region_name: str, product_name: str):
-    cloud_url = _create_cf_template_in_s3(region_name)
+def _create_product(region_name: str, product_name: str, create_bucket=True):
+    cloud_url = _create_cf_template_in_s3(region_name, create_bucket)
     client = boto3.client("servicecatalog", region_name=region_name)
     # Create Product
     create_product_response = client.create_product(
@@ -697,20 +701,124 @@ def test_get_provisioned_product_outputs_by_id():
         ProvisionedProductId=provisioned_product_id
     )
 
-    assert len(resp["Outputs"]) == 1
+    assert len(resp["Outputs"]) == 2
     assert resp["Outputs"][0]["OutputKey"] == "WebsiteURL"
 
 
 @mock_servicecatalog
 @mock_s3
-def test_get_provisioned_product_outputs_filtered_output_by_name():
-    assert 1 == 2
+def test_get_provisioned_product_outputs_by_name():
+    region_name = "us-east-2"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    resp = client.get_provisioned_product_outputs(
+        ProvisionedProductName="My Provisioned Product"
+    )
+
+    assert len(resp["Outputs"]) == 2
+    assert resp["Outputs"][0]["OutputKey"] == "WebsiteURL"
 
 
 @mock_servicecatalog
 @mock_s3
 def test_get_provisioned_product_outputs_filtered_by_output_keys():
-    assert 1 == 2
+    region_name = "us-east-2"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    resp = client.get_provisioned_product_outputs(
+        ProvisionedProductName="My Provisioned Product", OutputKeys=["BucketArn"]
+    )
+
+    assert len(resp["Outputs"]) == 1
+    assert resp["Outputs"][0]["OutputKey"] == "BucketArn"
+
+
+#     aws servicecatalog get-provisioned-product-outputs --provisioned-product-id pp-r3t24eckqo6we --output-keys IamUserKeyArn WorkspaceBucketArn
+# {
+#     "Outputs": [
+#         {
+#             "OutputKey": "IamUserKeyArn",
+#             "OutputValue": "arn:aws:secretsmanager:eu-west-1:079312664296:secret:dconnor-workspace-5070d14ba5d547ae-keyid-3dzR2d",
+#             "Description": "The ARN of the Secret holding the IAM key ID"
+#         },
+#         {
+#             "OutputKey": "WorkspaceBucketArn",
+#             "OutputValue": "arn:aws:s3:::dconnor-workspace-5070d14ba5d547ae",
+#             "Description": "The ARN of the bucket created for this workspace"
+#         }
+#     ]
+# }
+
+
+@mock_servicecatalog
+@mock_s3
+def test_get_provisioned_product_outputs_missing_required():
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_provisioned_product_outputs()
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "ProvisionedProductId and ProvisionedProductName cannot both be null"
+    )
+
+
+@mock_servicecatalog
+@mock_s3
+def test_get_provisioned_product_outputs_filtered_by_output_keys_invalid():
+    region_name = "us-east-2"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="My Provisioned Product",
+    )
+    provisioned_product_id = provisioned_product["RecordDetail"]["ProvisionedProductId"]
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_provisioned_product_outputs(
+            ProvisionedProductId=provisioned_product_id, OutputKeys=["Not a key"]
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParametersException"
+    assert err["Message"] == "Invalid OutputKeys: {'Not a key'}"
 
 
 @mock_servicecatalog
@@ -779,14 +887,84 @@ def test_search_provisioned_products_filter_by():
 
 @mock_servicecatalog
 @mock_s3
-def test_search_provisioned_products_access_level():
-    assert 1 == 2
+def test_search_provisioned_products_sort():
+    # arn , id , name , and lastRecordId
+    # sort order -ASCENDING
+    # DESCENDING
+    region_name = "us-east-2"
+    (
+        constraint,
+        portfolio,
+        product,
+        provisioned_product,
+    ) = _create_portfolio_with_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        portfolio_name="Test Portfolio",
+        provisioned_product_name="Z - My Provisioned Product",
+    )
+    provisioned_product["RecordDetail"]["ProvisionedProductId"]
+    provisioning_artifact_id = product["ProvisioningArtifactDetail"]["Id"]
+    provisioned_product_2 = _create_provisioned_product(
+        region_name=region_name,
+        product_name="test product",
+        provisioning_artifact_id=provisioning_artifact_id,
+        provisioned_product_name="Y - Second Provisioned Product",
+    )
+    provisioned_product_2["RecordDetail"]["ProvisionedProductId"]
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    # Ascending Search
+    resp = client.search_provisioned_products(SortBy="name")
+
+    assert len(resp["ProvisionedProducts"]) == 2
+    assert resp["ProvisionedProducts"][0]["Name"] == "Y - Second Provisioned Product"
+    assert resp["ProvisionedProducts"][1]["Name"] == "Z - My Provisioned Product"
+
+    # Descending Search
+    resp = client.search_provisioned_products(SortBy="name", SortOrder="DESCENDING")
+
+    assert len(resp["ProvisionedProducts"]) == 2
+    assert resp["ProvisionedProducts"][0]["Name"] == "Z - My Provisioned Product"
+    assert resp["ProvisionedProducts"][1]["Name"] == "Y - Second Provisioned Product"
 
 
 @mock_servicecatalog
 @mock_s3
-def test_search_provisioned_products_with_sort():
-    assert 1 == 2
+def test_search_provisioned_products_sort_by_invalid_keys():
+    client = boto3.client("servicecatalog", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.search_provisioned_products(
+            Filters={"SearchQuery": ["name:My Provisioned Product"]},
+            SortBy="not_a_field",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "not_a_field is not a supported sort field. It must be ['arn', 'id', 'name', 'lastRecordId']"
+    )
+
+
+@mock_servicecatalog
+@mock_s3
+def test_search_provisioned_products_sort_order_invalid_keys():
+    client = boto3.client("servicecatalog", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.search_provisioned_products(
+            Filters={"SearchQuery": ["name:My Provisioned Product"]},
+            SortOrder="not_a_value",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'not_a_value' at 'sortOrder' failed to "
+        "satisfy constraint: Member must satisfy enum value set: ['ASCENDING', "
+        "'DESCENDING']"
+    )
 
 
 @mock_servicecatalog
@@ -899,7 +1077,34 @@ def test_search_products_by_filter_fulltext():
 @mock_servicecatalog
 @mock_s3
 def test_search_products_with_sort():
-    assert 1 == 2
+    region_name = "us-east-2"
+    _create_product_with_constraint(
+        region_name=region_name,
+        product_name="Z - test product",
+        portfolio_name="Test Portfolio",
+    )
+    _create_product(
+        region_name=region_name, product_name="Y - Another Product", create_bucket=False
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+
+    resp = client.search_products(SortBy="Title")
+    products = resp["ProductViewSummaries"]
+    assert len(products) == 2
+    assert products[0]["Name"] == "Y - Another Product"
+    assert products[1]["Name"] == "Z - test product"
+
+    resp = client.search_products(SortBy="Title", SortOrder="DESCENDING")
+    products = resp["ProductViewSummaries"]
+    assert len(products) == 2
+    assert products[0]["Name"] == "Z - test product"
+    assert products[1]["Name"] == "Y - Another Product"
+
+
+# aws servicecatalog search-products --sort-by asdf
+#
+# An error occurred (ValidationException) when calling the SearchProducts operation: 1 validation error detected: Value 'asdf' at 'sortBy' failed to satisfy constraint: Member must satisfy enum value set: [CreationDate, VersionCount, Title]
 
 
 @mock_servicecatalog
@@ -1018,6 +1223,10 @@ def test_describe_product_as_admin_by_name():
 @mock_s3
 def test_describe_product_as_admin_with_source_portfolio_id():
     assert 1 == 2
+
+
+# aws servicecatalog describe-product-as-admin --id prod-4sapxevj5x334 --source-portfolio-id port-bl325ushxntd6
+# I think provisioning artifact will be unique to the portfolio
 
 
 @mock_servicecatalog

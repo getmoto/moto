@@ -78,3 +78,8 @@ class DuplicateResourceException(ServiceCatalogClientError):
 
     def __init__(self, message: str):
         super().__init__(error_type="DuplicateResourceException", message=message)
+
+
+class ValidationException(ServiceCatalogClientError):
+    def __init__(self, message: str):
+        super().__init__("ValidationException", message)
