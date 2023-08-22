@@ -152,7 +152,7 @@ s3
          - Function aliases (count(*) as cnt)
          - Most functions (only count() is supported)
          - Result is always in JSON
-         - FieldDelimiters and RecordDelimiters are ignored
+         - FieldDelimiters are ignored
         
 
 - [X] upload_part
