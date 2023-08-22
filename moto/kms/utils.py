@@ -190,7 +190,7 @@ class RSAPrivateKey(AbstractPrivateKey):
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             )
-            algorithm = hashes.SHA256()
+            algorithm = hashes.SHA256()  # type: Any
         elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
@@ -212,7 +212,7 @@ class RSAPrivateKey(AbstractPrivateKey):
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             )
-            algorithm = hashes.SHA256()
+            algorithm = hashes.SHA256()  # type: Any
         elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
