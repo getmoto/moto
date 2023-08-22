@@ -49,6 +49,12 @@ PAGINATION_MODEL = {
         "limit_default": 60,
         "unique_attribute": "id",
     },
+    "list_resource_servers": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 60,
+        "unique_attribute": "identifier",
+    },
 }
 
 

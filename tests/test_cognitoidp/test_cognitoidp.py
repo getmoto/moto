@@ -3477,7 +3477,7 @@ def test_update_user_attributes_unknown_accesstoken():
 
 
 @mock_cognitoidp
-def test_resource_server():
+def test_create_resource_server():
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
     res = client.create_user_pool(PoolName=name)
@@ -3511,6 +3511,224 @@ def test_resource_server():
         == f"{identifier} already exists in user pool {user_pool_id}."
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_cognitoidp
+def test_describe_resource_server():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+
+    server_id = "my_server"
+    server_name = "new_remote_server"
+    scopes = [
+        {"ScopeName": "app:write", "ScopeDescription": "write scope"},
+        {"ScopeName": "app:read", "ScopeDescription": "read scope"},
+    ]
+
+    # Create a new resource server
+    new_resource_server = client.create_resource_server(
+        UserPoolId=user_pool_id, Identifier=server_id, Name=server_name, Scopes=scopes
+    )
+
+    assert new_resource_server["ResourceServer"]["UserPoolId"] == user_pool_id
+    assert new_resource_server["ResourceServer"]["Identifier"] == server_id
+    assert new_resource_server["ResourceServer"]["Name"] == server_name
+    assert new_resource_server["ResourceServer"]["Scopes"] == scopes
+
+    # Describe the newly created resource server
+    response = client.describe_resource_server(
+        UserPoolId=user_pool_id, Identifier=server_id
+    )
+
+    # Assert all the values we expect are seen in the description.
+    assert response["ResourceServer"]["UserPoolId"] == user_pool_id
+    assert response["ResourceServer"]["Identifier"] == server_id
+    assert response["ResourceServer"]["Name"] == server_name
+    assert response["ResourceServer"]["Scopes"] == scopes
+
+    # Make sure attempting to describe a non-existent server fails in
+    # the expected manner
+    fake_server_id = "non_existent_server"
+    negative_response = None
+    with pytest.raises(ClientError) as ex:
+        negative_response = client.describe_resource_server(
+            UserPoolId=user_pool_id, Identifier=fake_server_id
+        )
+
+    # Assert that error message content is what's expected for a failure.
+    assert negative_response is None
+    assert ex.value.operation_name == "DescribeResourceServer"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Resource server {fake_server_id} does not exist."
+    )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_cognitoidp
+def test_list_resource_servers_empty_set():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+
+    # Empty list, because we aren't creating any.
+    all_resource_svrs = []
+
+    max_return = 50
+    servers = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return
+    )
+
+    expected_keys = ["ResourceServers", "ResponseMetadata"]
+    assert all(key in servers for key in expected_keys)
+    assert servers["ResponseMetadata"].get("HTTPStatusCode")
+    assert servers["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert servers.get("NextToken", False) is False
+    assert len(servers["ResourceServers"]) == len(all_resource_svrs)
+    assert len(servers["ResourceServers"]) == 0
+
+
+@mock_cognitoidp
+def test_list_resource_servers_single_page():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+    create_num = 48
+
+    all_resource_svrs = []
+    for id_num in range(0, create_num, 1):
+        server_id = f"my_server{id_num}"
+        server_name = "new_remote_server{id_num}"
+        scopes = [
+            {
+                "ScopeName": f"app:write{id_num}",
+                "ScopeDescription": f"write scope{id_num}",
+            },
+            {
+                "ScopeName": f"app:read{id_num}",
+                "ScopeDescription": f"read scope{id_num}",
+            },
+        ]
+
+        # Create a new resource server
+        new_resource_server = client.create_resource_server(
+            UserPoolId=user_pool_id,
+            Identifier=server_id,
+            Name=server_name,
+            Scopes=scopes,
+        )
+
+        all_resource_svrs.append(new_resource_server)
+
+    max_return = 50
+    servers = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return
+    )
+
+    expected_keys = ["ResourceServers", "ResponseMetadata"]
+    assert all(key in servers for key in expected_keys)
+    assert servers["ResponseMetadata"].get("HTTPStatusCode")
+    assert servers["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert servers.get("NextToken", False) is False
+    assert len(servers["ResourceServers"]) == create_num
+    returned_servers = servers["ResourceServers"]
+
+    for idx in range(0, create_num - 1, 1):
+        for key in returned_servers[idx].keys():
+            assert (
+                returned_servers[idx][key]
+                == all_resource_svrs[idx]["ResourceServer"][key]
+            )
+
+
+@mock_cognitoidp
+def test_list_resource_servers_multi_page():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+    create_num = 65
+
+    all_resource_svrs = []
+    for id_num in range(0, create_num, 1):
+        server_id = f"my_server{id_num}"
+        server_name = "new_remote_server{id_num}"
+        scopes = [
+            {
+                "ScopeName": f"app:write{id_num}",
+                "ScopeDescription": f"write scope{id_num}",
+            },
+            {
+                "ScopeName": f"app:read{id_num}",
+                "ScopeDescription": f"read scope{id_num}",
+            },
+        ]
+
+        # Create a new resource server
+        new_resource_server = client.create_resource_server(
+            UserPoolId=user_pool_id,
+            Identifier=server_id,
+            Name=server_name,
+            Scopes=scopes,
+        )
+
+        all_resource_svrs.append(new_resource_server)
+
+    max_return = 50
+    servers = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return
+    )
+
+    expected_keys = ["ResourceServers", "NextToken", "ResponseMetadata"]
+    assert all(key in servers for key in expected_keys)
+    assert servers["ResponseMetadata"].get("HTTPStatusCode")
+    assert servers["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert servers.get("NextToken", False)
+    assert len(servers["ResourceServers"]) == max_return
+    returned_servers = servers["ResourceServers"]
+
+    for idx in range(0, max_return - 1, 1):
+        for key in returned_servers[idx].keys():
+            assert (
+                returned_servers[idx][key]
+                == all_resource_svrs[idx]["ResourceServer"][key]
+            )
+
+    next_page = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return, NextToken=servers["NextToken"]
+    )
+
+    expected_keys = ["ResourceServers", "ResponseMetadata"]
+    expected_returns = create_num - max_return
+    assert all(key in next_page for key in expected_keys)
+    assert next_page["ResponseMetadata"].get("HTTPStatusCode")
+    assert next_page["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert next_page.get("NextToken", False) is False
+    assert len(next_page["ResourceServers"]) == expected_returns
+    returned_servers = next_page["ResourceServers"]
+
+    # Check the second page of results
+    # Each entry in the second page should be the offset of 'max_return + idx' in all_resource_svrs
+    for idx in range(0, expected_returns, 1):
+        for key in returned_servers[idx].keys():
+            all_idx = idx + max_return
+            assert (
+                returned_servers[idx][key]
+                == all_resource_svrs[all_idx]["ResourceServer"][key]
+            )
 
 
 @mock_cognitoidp
