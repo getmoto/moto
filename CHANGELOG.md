@@ -3,7 +3,7 @@ Moto Changelog
 
 4.1.15
 ------
-Docker Digest for 4.1.15: <autopopulateddigest>
+Docker Digest for 4.1.15: _sha256:eb63b1e0cbbd757e4596844e6ac1865660cbf8e358203b79e5404d57de94dd69_
 
     New Services:
         * APIGateway Management API:
