@@ -777,6 +777,34 @@ def test_search_products_by_filter():
 
 @mock_servicecatalog
 @mock_s3
+def test_search_products_by_filter_fulltext():
+    """
+    Fulltext searches more than a single field
+    """
+    region_name = "us-east-2"
+    product_name = "test product"
+
+    constraint, portfolio, product = _create_product_with_constraint(
+        region_name=region_name,
+        product_name=product_name,
+        portfolio_name="Test Portfolio",
+    )
+
+    client = boto3.client("servicecatalog", region_name=region_name)
+    resp = client.search_products(Filters={"FullTextSearch": ["owner arn"]})
+
+    products = resp["ProductViewSummaries"]
+
+    assert len(products) == 1
+    assert products[0]["Id"] == product["ProductViewDetail"]["ProductViewSummary"]["Id"]
+    assert (
+        products[0]["ProductId"]
+        == product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    )
+
+
+@mock_servicecatalog
+@mock_s3
 def test_search_products_with_sort():
     assert 1 == 2
 

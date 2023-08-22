@@ -132,7 +132,9 @@ class ServiceCatalogResponse(BaseResponse):
 
                 if parts[0] not in new_filters:
                     new_filters[parts[0]] = []
-                new_filters[parts[0]].append(parts[1])
+                # Tack on wildcard pattern as search-provisioned-products matches as if it were startswith (need to double
+                #  check it's not contains)
+                new_filters[parts[0]].append(f"{parts[1]}*")
 
         (
             provisioned_products,

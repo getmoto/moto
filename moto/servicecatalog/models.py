@@ -172,8 +172,20 @@ class Product(BaseModel):
             return self.owner
         elif filter_name == "ProductType":
             return self.product_type
+        elif filter_name == "FullTextSearch":
+            return [
+                self.arn,
+                self.name,
+                self.description,
+                self.owner,
+                self.product_type,
+                self.product_id,
+                self.support_description,
+                self.support_url,
+                self.support_email,
+            ]
 
-        # Remaining fields: FullTextSearch | SourceProductId
+        # Remaining fields: SourceProductId
 
         raise FilterNotImplementedError(filter_name, method_name)
 
