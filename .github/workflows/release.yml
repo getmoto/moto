@@ -28,6 +28,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install wheel setuptools packaging twine build --upgrade
+        pip install -r requirements-dev.txt
     - name: Verify Tag does not exist
       run: |
         ! git rev-parse ${{ env.VERSION }} || { echo "Ensure that no tag exists for ${{ env.VERSION }}" ; exit 1; }
@@ -44,7 +45,6 @@ jobs:
     - name: Test Docker release
       run: |
         docker run -p 5000:5000 --name moto motoserver/moto &
-        pip install pytest
         TEST_SERVER_MODE=true pytest -sv tests/test_core tests/test_s3
         docker stop moto
     - name: Publish to PyPI
