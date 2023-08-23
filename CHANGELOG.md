@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.0
 ------
-Docker Digest for 4.2.0: <autopopulateddigest>
+Docker Digest for 4.2.0: _sha256:92e59875783037b2558067d2d3f9dd2502c140881ff5c44c44ddbce6658a89b7_
 
     General:
         The Docker image is now based on Python 3.11 (instead of 3.7)
