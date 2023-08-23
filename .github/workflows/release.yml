@@ -44,6 +44,7 @@ jobs:
     - name: Test Docker release
       run: |
         docker run -p 5000:5000 --name moto motoserver/moto &
+        pip install pytest
         TEST_SERVER_MODE=true pytest -sv tests/test_core tests/test_s3
         docker stop moto
     - name: Publish to PyPI
