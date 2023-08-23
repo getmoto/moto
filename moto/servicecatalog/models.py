@@ -20,7 +20,6 @@ from .exceptions import (
     ProvisionedProductNotFound,
     RecordNotFound,
     InvalidParametersException,
-    ValidationException,
 )
 
 
@@ -64,7 +63,7 @@ class Portfolio(BaseModel):
         return product_id in self.product_ids
 
     def to_json(self) -> Dict[str, Any]:
-        met = {
+        return {
             "ARN": self.arn,
             "CreatedTime": self.created_date,
             "Description": self.description,
@@ -72,7 +71,6 @@ class Portfolio(BaseModel):
             "Id": self.portfolio_id,
             "ProviderName": self.provider_name,
         }
-        return met
 
     @property
     def tags(self):
@@ -94,14 +92,14 @@ class ProvisioningArtifact(BaseModel):
         self.provisioning_artifact_id = "pa-" + "".join(
             random.choice(string.ascii_lowercase) for _ in range(12)
         )  # Id
-        self.region: str = region  # RegionName
+        self.region: str = region
 
-        self.active: bool = active  # Active
-        self.created_date: datetime = unix_time()  # CreatedTime
-        self.description = description  # Description - 8192
+        self.active: bool = active
+        self.created_date: datetime = unix_time()
+        self.description = description
         self.guidance = guidance  # DEFAULT | DEPRECATED
-        self.name = name  # 8192
-        self.source_revision = source_revision  # 512
+        self.name = name
+        self.source_revision = source_revision
         self.artifact_type = artifact_type  # CLOUD_FORMATION_TEMPLATE | MARKETPLACE_AMI | MARKETPLACE_CAR | TERRAFORM_OPEN_SOURCE
         self.template = template
 
@@ -126,6 +124,7 @@ class Product(BaseModel):
         description: str,
         owner: str,
         product_type: str,
+        idempotency_token: str,
         tags: Dict[str, str],
         backend: "ServiceCatalogBackend",
         distributor: str = "",
@@ -156,6 +155,7 @@ class Product(BaseModel):
         self.support_url = support_url
         self.support_description = support_description
         self.source_connection = source_connection
+        self.idempotency_token = idempotency_token
 
         self.provisioning_artifacts: OrderedDict[str, "ProvisioningArtifact"] = dict()
 
@@ -214,7 +214,6 @@ class Product(BaseModel):
         info,
         disable_template_validation: bool = False,
     ):
-
         # Load CloudFormation template from S3
         if "LoadTemplateFromURL" in info:
             template_url = info["LoadTemplateFromURL"]
@@ -255,6 +254,7 @@ class Product(BaseModel):
                 "SupportEmail": self.support_email,
                 "SupportUrl": self.support_url,
                 "SupportDescription": self.support_description,
+                # TODO: Improve path support
                 # "HasDefaultPath": false,
             },
             "Status": self.status,
@@ -270,6 +270,7 @@ class Constraint(BaseModel):
         constraint_type: str,
         product_id: str,
         portfolio_id: str,
+        idempotency_token: str,
         backend: "ServiceCatalogBackend",
         parameters: str = "",
         description: str = "",
@@ -295,6 +296,7 @@ class Constraint(BaseModel):
         self.product_id = product_id
         self.portfolio_id = portfolio_id
         self.parameters = parameters
+        self.idempotency_token = idempotency_token
 
         self.backend = backend
 
@@ -484,20 +486,27 @@ class ProvisionedProduct(BaseModel):
             return self.product_id
 
         # Remaining fields
-        # "idempotencyToken",
-        # "physicalId",
-        # "provisioningArtifactId",
-        # "type",
-        # "status",
-        # "tags",
-        # "userArn",
-        # "userArnSession",
-        # "lastProvisioningRecordId",
-        # "lastSuccessfulProvisioningRecordId",
-        # "productName",
-        # "provisioningArtifactName",
+        unimplemented_fields = [
+            "idempotencyToken",
+            "physicalId",
+            "provisioningArtifactId",
+            "type",
+            "status",
+            "tags",
+            "userArn",
+            "userArnSession",
+            "lastProvisioningRecordId",
+            "lastSuccessfulProvisioningRecordId",
+            "productName",
+            "provisioningArtifactName",
+        ]
+        if filter_name in unimplemented_fields:
+            raise FilterNotImplementedError(filter_name, method_name)
 
-        raise FilterNotImplementedError(filter_name, method_name)
+        # In AWS, this filter doesn't error on invalid key names. It just returns no matches since it's assuming that
+        #  there was no data because there was no right key.
+
+        return ""
 
     @property
     def tags(self):
@@ -642,6 +651,7 @@ class ServiceCatalogBackend(BaseBackend):
             support_url=support_url,
             support_description=support_description,
             source_connection=source_connection,
+            idempotency_token=idempotency_token,
             tags=tags,
             backend=self,
         )
@@ -692,6 +702,8 @@ class ServiceCatalogBackend(BaseBackend):
             portfolio_id=portfolio_id,
             constraint_type=constraint_type,
             parameters=parameters,
+            description=description,
+            idempotency_token=idempotency_token,
         )
         self.constraints[constraint.constraint_id] = constraint
 
@@ -822,13 +834,8 @@ class ServiceCatalogBackend(BaseBackend):
             provisioned_product.to_provisioned_product_detail_json()
         )
 
-        cloud_watch_dashboards = None
-        # TODO
-        #    "CloudWatchDashboards": [
-        #       {
-        #          "Name": "string"
-        #       }
-        #    ],
+        # TODO: Support cloudWatch dashboards
+        cloud_watch_dashboards = []
 
         return provisioned_product_detail, cloud_watch_dashboards
 
@@ -989,7 +996,6 @@ class ServiceCatalogBackend(BaseBackend):
         accept_language,
         retain_physical_resources,
     ):
-        # implement here
         provisioned_product = self.provisioned_products[provisioned_product_id]
 
         record = Record(
@@ -1024,7 +1030,6 @@ class ServiceCatalogBackend(BaseBackend):
     def describe_product_as_admin(
         self, accept_language, identifier, name, source_portfolio_id
     ):
-        # implement here
         product = self._get_product(identifier=identifier, name=name)
         product_view_detail = product.to_product_view_detail_json()
 
@@ -1081,10 +1086,12 @@ class ServiceCatalogBackend(BaseBackend):
         portfolio.description = description
         portfolio.provider_name = provider_name
 
-        # tags
+        # Process tags
+        self.tag_resource(portfolio.arn, add_tags)
+        self.untag_resource_using_names(portfolio.arn, remove_tags)
 
         portfolio_detail = portfolio.to_json()
-        tags = []
+        tags = portfolio.tags
 
         return portfolio_detail, tags
 
@@ -1106,9 +1113,20 @@ class ServiceCatalogBackend(BaseBackend):
         product = self._get_product(identifier=identifier)
 
         product.name = name
+        product.owner = owner
+        product.description = description
+        product.distributor = distributor
+        product.support_description = support_description
+        product.support_email = support_email
+        product.support_url = support_url
+
+        # Process tags
+        self.tag_resource(product.arn, add_tags)
+        self.untag_resource_using_names(product.arn, remove_tags)
 
         product_view_detail = product.to_product_view_detail_json()
-        tags = []
+        tags = product.tags
+
         return product_view_detail, tags
 
     def list_portfolios_for_product(self, accept_language, product_id, page_token):
@@ -1144,6 +1162,11 @@ class ServiceCatalogBackend(BaseBackend):
 
     def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource_using_names(
+        self, resource_arn: str, tag_names: list[str]
+    ) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_names)
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

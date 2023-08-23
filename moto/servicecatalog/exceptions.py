@@ -27,7 +27,7 @@ class ProductNotFound(ResourceNotFoundException):
 
     def __init__(self, product_id: str):
         super().__init__(
-            message="Product not found",
+            message=f"{product_id} does not exist or access was denied",
             resource_id=product_id,
             resource_type="AWS::ServiceCatalog::Product",
         )
@@ -38,7 +38,7 @@ class PortfolioNotFound(ResourceNotFoundException):
 
     def __init__(self, identifier: str, identifier_name: str):
         super().__init__(
-            message="Portfolio not found",
+            message=f"There are no local or default portfolios with id {identifier}",
             resource_id=f"{identifier_name}={identifier}",
             resource_type="AWS::ServiceCatalog::Portfolio",
         )
@@ -49,7 +49,7 @@ class ProvisionedProductNotFound(ResourceNotFoundException):
 
     def __init__(self, identifier: str, identifier_name: str):
         super().__init__(
-            message="Provisioned product not found",
+            message=f"No stack named {identifier} exists.",
             resource_id=f"{identifier_name}={identifier}",
             resource_type="AWS::ServiceCatalog::Product",
         )

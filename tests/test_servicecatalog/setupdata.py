@@ -58,9 +58,13 @@ def _create_portfolio(region_name: str, portfolio_name: str):
     return create_portfolio_response
 
 
-def _create_product(region_name: str, product_name: str, create_bucket=True):
+def _create_product(region_name: str, product_name: str, tags=None, create_bucket=True):
     cloud_url = _create_cf_template_in_s3(region_name, create_bucket)
     client = boto3.client("servicecatalog", region_name=region_name)
+
+    if tags is None:
+        tags = []
+
     # Create Product
     create_product_response = client.create_product(
         Name=product_name,
@@ -75,6 +79,7 @@ def _create_product(region_name: str, product_name: str, create_bucket=True):
             "Type": "CLOUD_FORMATION_TEMPLATE",
         },
         IdempotencyToken=str(uuid.uuid4()),
+        Tags=tags,
     )
     return create_product_response
 

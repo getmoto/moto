@@ -97,7 +97,10 @@ class TestPortfolio:
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Portfolio not found"
+        assert (
+            err["Message"]
+            == "There are no local or default portfolios with id not-found"
+        )
 
 
 @mock_servicecatalog
@@ -293,7 +296,10 @@ class TestAssociateProduct:
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Portfolio not found"
+        assert (
+            err["Message"]
+            == "There are no local or default portfolios with id invalid_portfolio"
+        )
 
         with pytest.raises(ClientError) as exc:
             client.associate_product_with_portfolio(
@@ -303,7 +309,7 @@ class TestAssociateProduct:
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Product not found"
+        assert err["Message"] == "invalid_product does not exist or access was denied"
 
 
 @mock_servicecatalog
@@ -461,7 +467,7 @@ class TestListAndDescribeProvisionedProduct:
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Provisioned product not found"
+        assert err["Message"] == "No stack named does not exist exists."
 
     def test_get_provisioned_product_outputs_by_id(self):
         client = boto3.client("servicecatalog", region_name=self.region_name)
@@ -480,6 +486,23 @@ class TestListAndDescribeProvisionedProduct:
 
         assert len(resp["Outputs"]) == 2
         assert resp["Outputs"][0]["OutputKey"] == "WebsiteURL"
+
+    def test_get_provisioned_product_outputs_not_found(self):
+        client = boto3.client("servicecatalog", region_name=self.region_name)
+
+        with pytest.raises(ClientError) as exc:
+            client.get_provisioned_product_outputs(ProvisionedProductName="not found")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == f"No stack named not found exists."
+
+        with pytest.raises(ClientError) as exc:
+            client.get_provisioned_product_outputs(ProvisionedProductId="id not found")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == f"No stack named id not found exists."
 
     def test_get_provisioned_product_outputs_filtered_by_output_keys(self):
         client = boto3.client("servicecatalog", region_name=self.region_name)
@@ -543,6 +566,14 @@ class TestListAndDescribeProvisionedProduct:
 
         assert len(resp["ProvisionedProducts"]) == 1
         assert resp["ProvisionedProducts"][0]["Id"] == self.provisioned_product_id
+
+    def test_search_provisioned_products_filter_by_invalid_key(self):
+        client = boto3.client("servicecatalog", region_name=self.region_name)
+        resp = client.search_provisioned_products(
+            Filters={"SearchQuery": ["not_a_key:My Provisioned Product"]}
+        )
+
+        assert len(resp["ProvisionedProducts"]) == 0
 
     def test_search_provisioned_products_sort(self):
         # arn , id , name , and lastRecordId
@@ -801,7 +832,7 @@ def test_list_provisioning_artifacts_product_not_found():
 
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "Product not found"
+    assert err["Message"] == "does_not_exist does not exist or access was denied"
 
 
 @mock_servicecatalog
@@ -841,12 +872,6 @@ class TestDescribeProduct:
         )
         assert len(resp["ProvisioningArtifactSummaries"]) == 1
 
-    def test_describe_product_as_admin_with_source_portfolio_id(self):
-        assert 1 == 2
-
-    # aws servicecatalog describe-product-as-admin --id prod-4sapxevj5x334 --source-portfolio-id port-bl325ushxntd6
-    # I think provisioning artifact will be unique to the portfolio
-
     def test_describe_product_by_id(self):
         client = boto3.client("servicecatalog", region_name=self.region_name)
         resp = client.describe_product_as_admin(Id=self.product_id)
@@ -874,74 +899,122 @@ class TestDescribeProduct:
 
         err = exc.value.response["Error"]
         assert err["Code"] == "ResourceNotFoundException"
-        assert err["Message"] == "Product not found"
+        assert err["Message"] == "does_not_exist does not exist or access was denied"
 
 
 @mock_servicecatalog
 @mock_s3
-def test_update_portfolio():
-    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+class TestUpdatePortfolio:
+    def setup_method(self, method):
+        self.region_name = "ap-southeast-1"
 
-    create_portfolio_response = client.create_portfolio(
-        DisplayName="Original Name", ProviderName="Test Provider"
-    )
+        client = boto3.client("servicecatalog", region_name=self.region_name)
 
-    portfolio_id = create_portfolio_response["PortfolioDetail"]["Id"]
-    new_portfolio_name = "New Portfolio Name"
-    resp = client.update_portfolio(
-        Id=portfolio_id,
-        DisplayName=new_portfolio_name,
-    )
+        self.portfolio = client.create_portfolio(
+            DisplayName="Original Name",
+            ProviderName="Test Provider",
+            Tags=[{"Key": "MyCustomTag", "Value": "A Value"}],
+        )
 
-    assert resp["PortfolioDetail"]["Id"] == portfolio_id
-    assert resp["PortfolioDetail"]["DisplayName"] == new_portfolio_name
+        self.portfolio_id = self.portfolio["PortfolioDetail"]["Id"]
+
+    def test_update_portfolio(self):
+        client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+        new_portfolio_name = "New Portfolio Name"
+        resp = client.update_portfolio(
+            Id=self.portfolio_id,
+            DisplayName=new_portfolio_name,
+            AddTags=[
+                {"Key": "NewTag", "Value": "A Value"},
+            ],
+            RemoveTags=["MyCustomTag"],
+        )
+
+        assert resp["PortfolioDetail"]["Id"] == self.portfolio_id
+        assert resp["PortfolioDetail"]["DisplayName"] == new_portfolio_name
+
+        assert "Tags" in resp
+        assert len(resp["Tags"]) == 1
+        assert resp["Tags"][0]["Key"] == "NewTag"
+        assert resp["Tags"][0]["Value"] == "A Value"
+
+    def test_update_portfolio_not_found(self):
+        client = boto3.client("servicecatalog", region_name="us-east-1")
+        with pytest.raises(ClientError) as exc:
+            client.update_portfolio(Id="does_not_exist", DisplayName="new value")
+
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert (
+            err["Message"]
+            == "There are no local or default portfolios with id does_not_exist"
+        )
+
+    def test_update_portfolio_invalid_tags(self):
+        """
+        Invalid tag doesn't remove any tags
+        """
+        client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+        resp = client.update_portfolio(Id=self.portfolio_id, RemoveTags=["not_a_tag"])
+
+        assert "Tags" in resp
+        assert len(resp["Tags"]) == 1
+        assert resp["Tags"][0]["Key"] == "MyCustomTag"
+        assert resp["Tags"][0]["Value"] == "A Value"
 
 
 @mock_servicecatalog
 @mock_s3
-def test_update_portfolio_not_found():
-    client = boto3.client("servicecatalog", region_name="us-east-1")
-    with pytest.raises(ClientError) as exc:
-        client.update_portfolio(Id="does_not_exist", DisplayName="new value")
+class TestUpdateProduct:
+    def setup_method(self, method):
+        self.region_name = "ap-southeast-1"
+        self.product = _create_product(
+            region_name=self.region_name,
+            product_name="Test Product",
+            tags=[{"Key": "MyCustomTag", "Value": "A Value"}],
+        )
+        self.product_id = self.product["ProductViewDetail"]["ProductViewSummary"][
+            "ProductId"
+        ]
 
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "Portfolio not found"
+    def test_update_product(self):
+        client = boto3.client("servicecatalog", region_name=self.region_name)
+        resp = client.update_product(
+            Id=self.product_id,
+            Name="New Product Name",
+            AddTags=[
+                {"Key": "NewTag", "Value": "A Value"},
+            ],
+            RemoveTags=["MyCustomTag"],
+        )
+        new_product = resp["ProductViewDetail"]["ProductViewSummary"]
+        assert new_product["Name"] == "New Product Name"
 
+        assert "Tags" in resp
+        assert len(resp["Tags"]) == 1
+        assert resp["Tags"][0]["Key"] == "NewTag"
+        assert resp["Tags"][0]["Value"] == "A Value"
 
-@mock_s3
-def test_update_portfolio_invalid_fields():
-    assert 1 == 2
+    def test_update_product_not_found(self):
+        client = boto3.client("servicecatalog", region_name=self.region_name)
+        with pytest.raises(ClientError) as exc:
+            client.update_product(Id="does_not_exist", Name="New Product Name")
 
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "does_not_exist does not exist or access was denied"
 
-@mock_servicecatalog
-@mock_s3
-def test_update_product():
-    product = _create_product(region_name="ap-southeast-1", product_name="Test Product")
-    product_id = product["ProductViewDetail"]["ProductViewSummary"]["ProductId"]
+    def test_update_product_invalid_tags(self):
+        """
+        Invalid tag doesn't remove any tags
+        """
+        client = boto3.client("servicecatalog", region_name="ap-southeast-1")
+        resp = client.update_product(Id=self.product_id, RemoveTags=["not_a_tag"])
 
-    client = boto3.client("servicecatalog", region_name="ap-southeast-1")
-    resp = client.update_product(Id=product_id, Name="New Product Name")
-    new_product = resp["ProductViewDetail"]["ProductViewSummary"]
-    assert new_product["Name"] == "New Product Name"
-
-
-@mock_servicecatalog
-@mock_s3
-def test_update_product_not_found():
-    client = boto3.client("servicecatalog", region_name="us-east-1")
-    with pytest.raises(ClientError) as exc:
-        client.update_product(Id="does_not_exist", Name="New Product Name")
-
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "Product not found"
-
-
-@mock_servicecatalog
-@mock_s3
-def test_update_product_invalid_fields():
-    assert 1 == 2
+        assert "Tags" in resp
+        assert len(resp["Tags"]) == 1
+        assert resp["Tags"][0]["Key"] == "MyCustomTag"
+        assert resp["Tags"][0]["Value"] == "A Value"
 
 
 @mock_servicecatalog

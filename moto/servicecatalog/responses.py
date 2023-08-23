@@ -375,6 +375,12 @@ class ServiceCatalogResponse(BaseResponse):
         product_id = self._get_param("ProductId")
         portfolio_id = self._get_param("PortfolioId")
         source_portfolio_id = self._get_param("SourcePortfolioId")
+
+        if source_portfolio_id is not None:
+            warnings.warn(
+                "source_portfolio_id is not yet implemented for associate_product_with_portfolio()"
+            )
+
         self.servicecatalog_backend.associate_product_with_portfolio(
             accept_language=accept_language,
             product_id=product_id,
@@ -441,6 +447,12 @@ class ServiceCatalogResponse(BaseResponse):
         identifier = self._get_param("Id")
         name = self._get_param("Name")
         source_portfolio_id = self._get_param("SourcePortfolioId")
+
+        if source_portfolio_id is not None:
+            warnings.warn(
+                "source_portfolio_id is not yet implemented for describe_product_as_admin()"
+            )
+
         (
             product_view_detail,
             provisioning_artifact_summaries,
