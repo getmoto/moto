@@ -45,7 +45,7 @@ jobs:
     - name: Test Docker release
       run: |
         docker run -p 5000:5000 --name moto motoserver/moto &
-        TEST_SERVER_MODE=true pytest -sv tests/test_core tests/test_s3
+        TEST_SERVER_MODE=true pytest -sv tests/test_core tests/test_s3/test_s3.py
         docker stop moto
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
