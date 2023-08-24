@@ -3273,3 +3273,37 @@ def test_fifo_dedupe_error_no_message_dedupe_id():
         "The queue should either have ContentBasedDeduplication enabled "
         "or MessageDeduplicationId provided explicitly"
     )
+
+
+@mock_sqs
+def test_fifo_dedupe_error_no_message_dedupe_id_batch():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = response["QueueUrl"]
+    with pytest.raises(ClientError) as exc:
+        client.send_message_batch(
+            QueueUrl=queue_url,
+            Entries=[
+                {
+                    "Id": "id_1",
+                    "MessageBody": "body_1",
+                    "DelaySeconds": 0,
+                    "MessageGroupId": "message_group_id_1",
+                    "MessageDeduplicationId": "message_deduplication_id_1",
+                },
+                {
+                    "Id": "id_2",
+                    "MessageBody": "body_2",
+                    "DelaySeconds": 0,
+                    "MessageGroupId": "message_group_id_2",
+                },
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert exc.value.response["Error"]["Message"] == (
+        "The queue should either have ContentBasedDeduplication enabled "
+        "or MessageDeduplicationId provided explicitly"
+    )
