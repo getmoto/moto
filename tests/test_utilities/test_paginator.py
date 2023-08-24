@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import unittest
 
 import pytest
@@ -36,6 +37,12 @@ def test_paginator__paginate_with_just_max_results():
     page, next_token = resp
     assert next_token is None
     assert page == results
+
+
+def test_paginator__ordered_dict():
+    p = Paginator(max_results=1, unique_attribute="id")
+    page, _ = p.paginate([OrderedDict(x) for x in results])
+    assert len(page) == 1
 
 
 def test_paginator__paginate_without_range_key__throws_error():
