@@ -1,6 +1,6 @@
-from moto.core import BaseBackend, BackendDict
-
 from typing import Any, Dict, List, Optional, Tuple
+
+from moto.core import BaseBackend, BackendDict
 
 
 class QueryResults:
@@ -66,7 +66,7 @@ class RDSDataServiceBackend(BaseBackend):
                 "http://motoapi.amazonaws.com:5000/moto-api/static/rds-data/statement-results",
                 json=expected_results,
             )
-            resp.status_code.should.equal(201)
+            assert resp.status_code == 201
 
             rdsdata = boto3.client("rds-data", region_name="us-east-1")
             resp = rdsdata.execute_statement(resourceArn="not applicable", secretArn="not applicable", sql="SELECT some FROM thing")

@@ -128,7 +128,9 @@ class _TemplateEnvironmentMixin(object):
 class ActionAuthenticatorMixin(object):
     request_count: ClassVar[int] = 0
 
-    def _authenticate_and_authorize_action(self, iam_request_cls: type) -> None:
+    def _authenticate_and_authorize_action(
+        self, iam_request_cls: type, resource: str = "*"
+    ) -> None:
         if (
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
@@ -145,7 +147,7 @@ class ActionAuthenticatorMixin(object):
                 headers=self.headers,  # type: ignore[attr-defined]
             )
             iam_request.check_signature()
-            iam_request.check_action_permitted()
+            iam_request.check_action_permitted(resource)
         else:
             ActionAuthenticatorMixin.request_count += 1
 
@@ -154,10 +156,15 @@ class ActionAuthenticatorMixin(object):
 
         self._authenticate_and_authorize_action(IAMRequest)
 
-    def _authenticate_and_authorize_s3_action(self) -> None:
+    def _authenticate_and_authorize_s3_action(
+        self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
+    ) -> None:
+        arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
+        resource = f"arn:aws:s3:::{arn}"
+
         from moto.iam.access_control import S3IAMRequest
 
-        self._authenticate_and_authorize_action(S3IAMRequest)
+        self._authenticate_and_authorize_action(S3IAMRequest, resource)
 
     @staticmethod
     def set_initial_no_auth_action_count(initial_no_auth_action_count: int) -> Callable[..., Callable[..., TYPE_RESPONSE]]:  # type: ignore[misc]
@@ -236,6 +243,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         use_raw_body: Use incoming bytes if True, encode to string otherwise
         """
+        self.is_werkzeug_request = "werkzeug" in str(type(request))
+        self.parsed_url = urlparse(full_url)
         querystring: Dict[str, Any] = OrderedDict()
         if hasattr(request, "body"):
             # Boto
@@ -257,9 +266,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self.body = self.body.decode("utf-8")
 
         if not querystring:
-            querystring.update(
-                parse_qs(urlparse(full_url).query, keep_blank_values=True)
-            )
+            querystring.update(parse_qs(self.parsed_url.query, keep_blank_values=True))
         if not querystring:
             if (
                 "json" in request.headers.get("content-type", [])
@@ -296,7 +303,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             pass  # ignore decoding errors, as the body may not contain a legitimate querystring
 
         self.uri = full_url
-        self.path = urlparse(full_url).path
+
+        self.path = self.parsed_url.path
         self.querystring = querystring
         self.data = querystring
         self.method = request.method
@@ -305,7 +313,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         self.headers = request.headers
         if "host" not in self.headers:
-            self.headers["host"] = urlparse(full_url).netloc
+            self.headers["host"] = self.parsed_url.netloc
         self.response_headers = {
             "server": "amazon.com",
             "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),

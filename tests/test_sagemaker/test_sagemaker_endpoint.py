@@ -1,9 +1,9 @@
 import datetime
+import re
 import uuid
 
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_sagemaker
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -55,18 +55,20 @@ def create_endpoint_config_helper(sagemaker_client, production_variants):
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
         ProductionVariants=production_variants,
     )
-    resp["EndpointConfigArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$",
+        resp["EndpointConfigArn"],
     )
 
     resp = sagemaker_client.describe_endpoint_config(
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME
     )
-    resp["EndpointConfigArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$",
+        resp["EndpointConfigArn"],
     )
-    resp["EndpointConfigName"].should.equal(TEST_ENDPOINT_CONFIG_NAME)
-    resp["ProductionVariants"].should.equal(production_variants)
+    assert resp["EndpointConfigName"] == TEST_ENDPOINT_CONFIG_NAME
+    assert resp["ProductionVariants"] == production_variants
 
 
 def test_create_endpoint_config(sagemaker_client):
@@ -99,15 +101,17 @@ def test_delete_endpoint_config(sagemaker_client):
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
         ProductionVariants=TEST_PRODUCTION_VARIANTS,
     )
-    resp["EndpointConfigArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$",
+        resp["EndpointConfigArn"],
     )
 
     resp = sagemaker_client.describe_endpoint_config(
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME
     )
-    resp["EndpointConfigArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$",
+        resp["EndpointConfigArn"],
     )
 
     sagemaker_client.delete_endpoint_config(
@@ -143,7 +147,10 @@ def test_create_endpoint_invalid_instance_type(sagemaker_client):
             ProductionVariants=production_variants,
         )
     assert e.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: ["
+    expected_message = (
+        f"Value '{instance_type}' at 'instanceType' failed to satisfy "
+        "constraint: Member must satisfy enum value set: ["
+    )
     assert expected_message in e.value.response["Error"]["Message"]
 
 
@@ -160,7 +167,10 @@ def test_create_endpoint_invalid_memory_size(sagemaker_client):
             ProductionVariants=production_variants,
         )
     assert e.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = f"Value '{memory_size}' at 'MemorySizeInMB' failed to satisfy constraint: Member must satisfy enum value set: ["
+    expected_message = (
+        f"Value '{memory_size}' at 'MemorySizeInMB' failed to satisfy "
+        "constraint: Member must satisfy enum value set: ["
+    )
     assert expected_message in e.value.response["Error"]["Message"]
 
 
@@ -185,20 +195,20 @@ def test_create_endpoint(sagemaker_client):
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
         Tags=GENERIC_TAGS_PARAM,
     )
-    resp["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$", resp["EndpointArn"]
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
-    resp["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$", resp["EndpointArn"]
     )
-    resp["EndpointName"].should.equal(TEST_ENDPOINT_NAME)
-    resp["EndpointConfigName"].should.equal(TEST_ENDPOINT_CONFIG_NAME)
-    resp["EndpointStatus"].should.equal("InService")
+    assert resp["EndpointName"] == TEST_ENDPOINT_NAME
+    assert resp["EndpointConfigName"] == TEST_ENDPOINT_CONFIG_NAME
+    assert resp["EndpointStatus"] == "InService"
     assert isinstance(resp["CreationTime"], datetime.datetime)
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
-    resp["ProductionVariants"][0]["VariantName"].should.equal(TEST_VARIANT_NAME)
+    assert resp["ProductionVariants"][0]["VariantName"] == TEST_VARIANT_NAME
 
     resp = sagemaker_client.list_tags(ResourceArn=resp["EndpointArn"])
     assert resp["Tags"] == GENERIC_TAGS_PARAM
@@ -224,7 +234,10 @@ def test_add_tags_endpoint(sagemaker_client):
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
-    resource_arn = f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:endpoint/{TEST_ENDPOINT_NAME}"
+    resource_arn = (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":endpoint/{TEST_ENDPOINT_NAME}"
+    )
     response = sagemaker_client.add_tags(
         ResourceArn=resource_arn, Tags=GENERIC_TAGS_PARAM
     )
@@ -239,7 +252,10 @@ def test_delete_tags_endpoint(sagemaker_client):
         sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
     )
 
-    resource_arn = f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:endpoint/{TEST_ENDPOINT_NAME}"
+    resource_arn = (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":endpoint/{TEST_ENDPOINT_NAME}"
+    )
     response = sagemaker_client.add_tags(
         ResourceArn=resource_arn, Tags=GENERIC_TAGS_PARAM
     )
@@ -262,7 +278,10 @@ def test_list_tags_endpoint(sagemaker_client):
     for _ in range(80):
         tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
 
-    resource_arn = f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:endpoint/{TEST_ENDPOINT_NAME}"
+    resource_arn = (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":endpoint/{TEST_ENDPOINT_NAME}"
+    )
     response = sagemaker_client.add_tags(ResourceArn=resource_arn, Tags=tags)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
@@ -295,29 +314,32 @@ def test_update_endpoint_weights_and_capacities_one_variant(sagemaker_client):
             },
         ],
     )
-    response["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$",
+        response["EndpointArn"],
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
-    resp["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$", resp["EndpointArn"]
     )
-    resp["EndpointName"].should.equal(TEST_ENDPOINT_NAME)
-    resp["EndpointConfigName"].should.equal(TEST_ENDPOINT_CONFIG_NAME)
-    resp["EndpointStatus"].should.equal("InService")
+    assert resp["EndpointName"] == TEST_ENDPOINT_NAME
+    assert resp["EndpointConfigName"] == TEST_ENDPOINT_CONFIG_NAME
+    assert resp["EndpointStatus"] == "InService"
     assert isinstance(resp["CreationTime"], datetime.datetime)
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
 
-    resp["ProductionVariants"][0]["VariantName"].should.equal(TEST_VARIANT_NAME)
-    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(
-        new_desired_instance_count
+    assert resp["ProductionVariants"][0]["VariantName"] == TEST_VARIANT_NAME
+    assert (
+        resp["ProductionVariants"][0]["DesiredInstanceCount"]
+        == new_desired_instance_count
     )
-    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(
-        new_desired_instance_count
+    assert (
+        resp["ProductionVariants"][0]["CurrentInstanceCount"]
+        == new_desired_instance_count
     )
-    resp["ProductionVariants"][0]["DesiredWeight"].should.equal(new_desired_weight)
-    resp["ProductionVariants"][0]["CurrentWeight"].should.equal(new_desired_weight)
+    assert resp["ProductionVariants"][0]["DesiredWeight"] == new_desired_weight
+    assert resp["ProductionVariants"][0]["CurrentWeight"] == new_desired_weight
 
 
 def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
@@ -364,39 +386,44 @@ def test_update_endpoint_weights_and_capacities_two_variants(sagemaker_client):
         EndpointName=TEST_ENDPOINT_NAME,
         DesiredWeightsAndCapacities=desired_weights_and_capacities,
     )
-    response["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$",
+        response["EndpointArn"],
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
-    resp["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{TEST_ENDPOINT_NAME}$", resp["EndpointArn"]
     )
-    resp["EndpointName"].should.equal(TEST_ENDPOINT_NAME)
-    resp["EndpointConfigName"].should.equal(TEST_ENDPOINT_CONFIG_NAME)
-    resp["EndpointStatus"].should.equal("InService")
+    assert resp["EndpointName"] == TEST_ENDPOINT_NAME
+    assert resp["EndpointConfigName"] == TEST_ENDPOINT_CONFIG_NAME
+    assert resp["EndpointStatus"] == "InService"
     assert isinstance(resp["CreationTime"], datetime.datetime)
     assert isinstance(resp["LastModifiedTime"], datetime.datetime)
 
-    resp["ProductionVariants"][0]["VariantName"].should.equal("MyProductionVariant1")
-    resp["ProductionVariants"][0]["DesiredInstanceCount"].should.equal(
-        new_desired_instance_count
+    assert resp["ProductionVariants"][0]["VariantName"] == "MyProductionVariant1"
+    assert (
+        resp["ProductionVariants"][0]["DesiredInstanceCount"]
+        == new_desired_instance_count
     )
-    resp["ProductionVariants"][0]["CurrentInstanceCount"].should.equal(
-        new_desired_instance_count
+    assert (
+        resp["ProductionVariants"][0]["CurrentInstanceCount"]
+        == new_desired_instance_count
     )
-    resp["ProductionVariants"][0]["DesiredWeight"].should.equal(new_desired_weight)
-    resp["ProductionVariants"][0]["CurrentWeight"].should.equal(new_desired_weight)
+    assert resp["ProductionVariants"][0]["DesiredWeight"] == new_desired_weight
+    assert resp["ProductionVariants"][0]["CurrentWeight"] == new_desired_weight
 
-    resp["ProductionVariants"][1]["VariantName"].should.equal("MyProductionVariant2")
-    resp["ProductionVariants"][1]["DesiredInstanceCount"].should.equal(
-        new_desired_instance_count
+    assert resp["ProductionVariants"][1]["VariantName"] == "MyProductionVariant2"
+    assert (
+        resp["ProductionVariants"][1]["DesiredInstanceCount"]
+        == new_desired_instance_count
     )
-    resp["ProductionVariants"][1]["CurrentInstanceCount"].should.equal(
-        new_desired_instance_count
+    assert (
+        resp["ProductionVariants"][1]["CurrentInstanceCount"]
+        == new_desired_instance_count
     )
-    resp["ProductionVariants"][1]["DesiredWeight"].should.equal(new_desired_weight)
-    resp["ProductionVariants"][1]["CurrentWeight"].should.equal(new_desired_weight)
+    assert resp["ProductionVariants"][1]["DesiredWeight"] == new_desired_weight
+    assert resp["ProductionVariants"][1]["CurrentWeight"] == new_desired_weight
 
 
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_variant(
@@ -426,13 +453,14 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_vari
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        f'The variant name(s) "{variant_name}" is/are not present within endpoint configuration "{TEST_ENDPOINT_CONFIG_NAME}".'
+    assert err["Message"] == (
+        f'The variant name(s) "{variant_name}" is/are not present within '
+        f'endpoint configuration "{TEST_ENDPOINT_CONFIG_NAME}".'
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
     del resp["ResponseMetadata"]
-    resp.should.equal(old_resp)
+    assert resp == old_resp
 
 
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endpoint(
@@ -463,13 +491,14 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_no_endp
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        f'Could not find endpoint "arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:endpoint/{endpoint_name}".'
+    assert err["Message"] == (
+        f'Could not find endpoint "arn:aws:sagemaker:us-east-1:'
+        f'{ACCOUNT_ID}:endpoint/{endpoint_name}".'
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
     del resp["ResponseMetadata"]
-    resp.should.equal(old_resp)
+    assert resp == old_resp
 
 
 def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonunique_variant(
@@ -502,13 +531,13 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonuniq
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
+    assert err["Message"] == (
         f'The variant name "{TEST_VARIANT_NAME}" was non-unique within the request.'
     )
 
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
     del resp["ResponseMetadata"]
-    resp.should.equal(old_resp)
+    assert resp == old_resp
 
 
 def _set_up_sagemaker_resources(
@@ -552,8 +581,9 @@ def _create_endpoint_config(
     resp = boto_client.create_endpoint_config(
         EndpointConfigName=endpoint_config_name, ProductionVariants=production_variants
     )
-    resp["EndpointConfigArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{endpoint_config_name}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{endpoint_config_name}$",
+        resp["EndpointConfigArn"],
     )
 
 
@@ -561,6 +591,6 @@ def _create_endpoint(boto_client, endpoint_name, endpoint_config_name):
     resp = boto_client.create_endpoint(
         EndpointName=endpoint_name, EndpointConfigName=endpoint_config_name
     )
-    resp["EndpointArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:endpoint/{endpoint_name}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:endpoint/{endpoint_name}$", resp["EndpointArn"]
     )

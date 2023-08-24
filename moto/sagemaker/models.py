@@ -3,6 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
+from dateutil.tz import tzutc
 from typing import Any, Dict, List, Optional, Iterable, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -994,7 +995,7 @@ class ModelPackage(BaseObject):
             _type="model-package",
             _id=model_package_name,
         )
-        datetime_now = datetime.utcnow()
+        datetime_now = datetime.now(tzutc())
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
@@ -2868,9 +2869,13 @@ class SageMakerModelBackend(BaseBackend):
         sort_order: Optional[str],
     ) -> List[ModelPackage]:
         if isinstance(creation_time_before, int):
-            creation_time_before_datetime = datetime.fromtimestamp(creation_time_before)
+            creation_time_before_datetime = datetime.fromtimestamp(
+                creation_time_before, tz=tzutc()
+            )
         if isinstance(creation_time_after, int):
-            creation_time_after_datetime = datetime.fromtimestamp(creation_time_after)
+            creation_time_after_datetime = datetime.fromtimestamp(
+                creation_time_after, tz=tzutc()
+            )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
         model_package_summary_list = list(

@@ -300,6 +300,38 @@
   "Location": "ap-southeast-3a"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "ap-southeast-3a"
  },
@@ -1000,6 +1032,38 @@
   "Location": "ap-southeast-3b"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "ap-southeast-3b"
  },
@@ -1681,6 +1745,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "ap-southeast-3c"
  },
  {

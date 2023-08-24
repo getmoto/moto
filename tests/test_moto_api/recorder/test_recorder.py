@@ -3,7 +3,6 @@ import boto3
 import json
 import requests
 import os
-import sure  # noqa # pylint: disable=unused-import
 from moto import (
     settings,
     mock_apigateway,
@@ -47,7 +46,7 @@ class TestRecorder(TestCase):
             resp = requests.get(
                 "http://localhost:5000/moto-api/recorder/download-recording"
             )
-            resp.status_code.should.equal(200)
+            assert resp.status_code == 200
             return resp.content
         else:
             return recorder.download_recording()
@@ -71,7 +70,8 @@ class TestRecorder(TestCase):
         )
         ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
-        self._download_recording().should.be.empty
+        # ServerMode returns bytes
+        assert self._download_recording() in ["", b""]
 
     def test_ec2_instance_creation_recording_on(self):
         self._start_recording()
@@ -87,8 +87,8 @@ class TestRecorder(TestCase):
         else:
             body = content["body"]
 
-        body.should.contain("Action=RunInstances")
-        body.should.contain(f"ImageId={EXAMPLE_AMI_ID}")
+        assert "Action=RunInstances" in body
+        assert f"ImageId={EXAMPLE_AMI_ID}" in body
 
     def test_multiple_services(self):
         self._start_recording()
@@ -123,9 +123,9 @@ class TestRecorder(TestCase):
         rows = [json.loads(x) for x in content.splitlines()]
 
         actions = [row["headers"].get("X-Amz-Target") for row in rows]
-        actions.should.contain("DynamoDB_20120810.CreateTable")
-        actions.should.contain("DynamoDB_20120810.PutItem")
-        actions.should.contain("Timestream_20181101.CreateDatabase")
+        assert "DynamoDB_20120810.CreateTable" in actions
+        assert "DynamoDB_20120810.PutItem" in actions
+        assert "Timestream_20181101.CreateDatabase" in actions
 
     def test_replay(self):
         self._start_recording()
@@ -149,13 +149,13 @@ class TestRecorder(TestCase):
 
         self._replay_recording()
 
-        ddb.list_tables()["TableNames"].should.equal(["test"])
+        assert ddb.list_tables()["TableNames"] == ["test"]
 
         apis = apigw.get_rest_apis()["items"]
-        apis.should.have.length_of(1)
+        assert len(apis) == 1
         # The ID is uniquely generated everytime, but the name is the same
-        apis[0]["id"].shouldnt.equal(api_id)
-        apis[0]["name"].should.equal("my_api")
+        assert apis[0]["id"] != api_id
+        assert apis[0]["name"] == "my_api"
 
     def test_replay__partial_delete(self):
         self._start_recording()
@@ -180,11 +180,11 @@ class TestRecorder(TestCase):
         self._replay_recording()
 
         # The replay will create, then delete this Table
-        ddb.list_tables()["TableNames"].should.equal([])
+        assert ddb.list_tables()["TableNames"] == []
 
         # The replay will create the RestAPI - the deletion was not recorded
         apis = apigw.get_rest_apis()["items"]
-        apis.should.have.length_of(1)
+        assert len(apis) == 1
 
     def test_s3_upload_data(self):
         self._start_recording()
@@ -201,7 +201,7 @@ class TestRecorder(TestCase):
         # Replaying should recreate the file as is
         self._replay_recording()
         resp = s3.get_object(Bucket="mybucket", Key="data")
-        resp["Body"].read().should.equal(b"ABCD")
+        assert resp["Body"].read() == b"ABCD"
 
     def test_s3_upload_file_using_requests(self):
         s3 = boto3.client(
@@ -225,7 +225,7 @@ class TestRecorder(TestCase):
         # Replay upload, and assert it succeeded
         self._replay_recording()
         resp = s3.get_object(Bucket="mybucket", Key="file_upload")
-        resp["Body"].read().should.equal(b"test")
+        assert resp["Body"].read() == b"test"
         # cleanup
         os.remove("text.txt")
 
@@ -302,5 +302,5 @@ class TestThreadedMotoServer(TestCase):
             aws_secret_access_key="sk",
         )
         resp = s3.get_object(Bucket="mybucket", Key="data")
-        resp["Body"].read().should.equal(b"ABCD")
+        assert resp["Body"].read() == b"ABCD"
         server.stop()

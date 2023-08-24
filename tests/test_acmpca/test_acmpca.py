@@ -61,6 +61,37 @@ def test_describe_certificate_authority():
         "SigningAlgorithm": "SHA512WITHRSA",
         "Subject": {"CommonName": "yscb41lw.test"},
     }
+    assert ca["KeyStorageSecurityStandard"] == "FIPS_140_2_LEVEL_3_OR_HIGHER"
+
+
+@mock_acmpca
+def test_describe_certificate_authority_with_security_standard():
+    client = boto3.client("acm-pca", region_name="ap-southeast-1")
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "yscb41lw.test"},
+        },
+        CertificateAuthorityType="SUBORDINATE",
+        KeyStorageSecurityStandard="FIPS_140_2_LEVEL_2_OR_HIGHER",
+        IdempotencyToken="terraform-20221125230308947400000001",
+    )["CertificateAuthorityArn"]
+    ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
+        "CertificateAuthority"
+    ]
+
+    assert ca["Arn"] == ca_arn
+    assert ca["OwnerAccount"] == DEFAULT_ACCOUNT_ID
+    assert "CreatedAt" in ca
+    assert ca["Type"] == "SUBORDINATE"
+    assert ca["Status"] == "PENDING_CERTIFICATE"
+    assert ca["CertificateAuthorityConfiguration"] == {
+        "KeyAlgorithm": "RSA_4096",
+        "SigningAlgorithm": "SHA512WITHRSA",
+        "Subject": {"CommonName": "yscb41lw.test"},
+    }
+    assert ca["KeyStorageSecurityStandard"] == "FIPS_140_2_LEVEL_2_OR_HIGHER"
 
 
 @mock_acmpca

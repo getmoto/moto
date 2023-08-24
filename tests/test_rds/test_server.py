@@ -1,6 +1,5 @@
 from urllib.parse import urlencode
 import moto.server as server
-import sure  # noqa # pylint: disable=unused-import
 
 
 def test_list_databases():
@@ -9,7 +8,7 @@ def test_list_databases():
 
     res = test_client.get("/?Action=DescribeDBInstances")
 
-    res.data.decode("utf-8").should.contain("<DescribeDBInstancesResult>")
+    assert "<DescribeDBInstancesResult>" in res.data.decode("utf-8")
 
 
 def test_create_db_instance():
@@ -28,10 +27,10 @@ def test_create_db_instance():
     resp = test_client.post(f"/?{qs}")
 
     response = resp.data.decode("utf-8")
-    response.shouldnt.contain("<DBClusterIdentifier>")
-    response.should.contain("<DBInstanceIdentifier>hi</DBInstanceIdentifier")
+    assert "<DBClusterIdentifier>" not in response
+    assert "<DBInstanceIdentifier>hi</DBInstanceIdentifier" in response
     # We do not pass these values - they should default to false
-    response.should.contain("<MultiAZ>false</MultiAZ>")
-    response.should.contain(
+    assert "<MultiAZ>false</MultiAZ>" in response
+    assert (
         "<IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>"
-    )
+    ) in response

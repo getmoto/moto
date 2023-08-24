@@ -1,5 +1,7 @@
+import re
+
 from freezegun import freeze_time
-import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import ActivityTask, ActivityType, Timeout
@@ -21,23 +23,23 @@ def test_activity_task_creation():
         workflow_execution=wfe,
         timeouts=ACTIVITY_TASK_TIMEOUTS,
     )
-    task.workflow_execution.should.equal(wfe)
-    task.state.should.equal("SCHEDULED")
-    task.task_token.should.match("[-a-z0-9]+")
-    task.started_event_id.should.equal(None)
+    assert task.workflow_execution == wfe
+    assert task.state == "SCHEDULED"
+    assert re.match("[-a-z0-9]+", task.task_token)
+    assert task.started_event_id is None
 
     task.start(123)
-    task.state.should.equal("STARTED")
-    task.started_event_id.should.equal(123)
+    assert task.state == "STARTED"
+    assert task.started_event_id == 123
 
     task.complete()
-    task.state.should.equal("COMPLETED")
+    assert task.state == "COMPLETED"
 
     # NB: this doesn't make any sense for SWF, a task shouldn't go from a
     # "COMPLETED" state to a "FAILED" one, but this is an internal state on our
     # side and we don't care about invalid state transitions for now.
     task.fail()
-    task.state.should.equal("FAILED")
+    assert task.state == "FAILED"
 
 
 def test_activity_task_full_dict_representation():
@@ -53,16 +55,16 @@ def test_activity_task_full_dict_representation():
     at.start(1234)
 
     fd = at.to_full_dict()
-    fd["activityId"].should.equal("my-activity-123")
-    fd["activityType"]["version"].should.equal("v1.0")
-    fd["input"].should.equal("optional")
-    fd["startedEventId"].should.equal(1234)
-    fd.should.contain("taskToken")
-    fd["workflowExecution"].should.equal(wfe.to_short_dict())
+    assert fd["activityId"] == "my-activity-123"
+    assert fd["activityType"]["version"] == "v1.0"
+    assert fd["input"] == "optional"
+    assert fd["startedEventId"] == 1234
+    assert "taskToken" in fd
+    assert fd["workflowExecution"] == wfe.to_short_dict()
 
     at.start(1234)
     fd = at.to_full_dict()
-    fd["startedEventId"].should.equal(1234)
+    assert fd["startedEventId"] == 1234
 
 
 def test_activity_task_reset_heartbeat_clock():
@@ -78,12 +80,12 @@ def test_activity_task_reset_heartbeat_clock():
             workflow_execution=wfe,
         )
 
-    task.last_heartbeat_timestamp.should.equal(1420113600.0)
+    assert task.last_heartbeat_timestamp == 1420113600.0
 
     with freeze_time("2015-01-01 13:00:00"):
         task.reset_heartbeat_clock()
 
-    task.last_heartbeat_timestamp.should.equal(1420117200.0)
+    assert task.last_heartbeat_timestamp == 1420117200.0
 
 
 def test_activity_task_first_timeout():
@@ -98,14 +100,14 @@ def test_activity_task_first_timeout():
             timeouts=ACTIVITY_TASK_TIMEOUTS,
             workflow_execution=wfe,
         )
-        task.first_timeout().should.be.none
+        assert task.first_timeout() is None
 
     # activity task timeout is 300s == 5mins
     with freeze_time("2015-01-01 12:06:00"):
-        task.first_timeout().should.be.a(Timeout)
+        assert isinstance(task.first_timeout(), Timeout)
         process_first_timeout(task)
-        task.state.should.equal("TIMED_OUT")
-        task.timeout_type.should.equal("HEARTBEAT")
+        assert task.state == "TIMED_OUT"
+        assert task.timeout_type == "HEARTBEAT"
 
 
 def test_activity_task_first_timeout_with_heartbeat_timeout_none():
@@ -123,7 +125,7 @@ def test_activity_task_first_timeout_with_heartbeat_timeout_none():
             timeouts=activity_task_timeouts,
             workflow_execution=wfe,
         )
-        task.first_timeout().should.be.none
+        assert task.first_timeout() is None
 
 
 def test_activity_task_cannot_timeout_on_closed_workflow_execution():
@@ -142,10 +144,10 @@ def test_activity_task_cannot_timeout_on_closed_workflow_execution():
         )
 
     with freeze_time("2015-01-01 14:10:00"):
-        task.first_timeout().should.be.a(Timeout)
-        wfe.first_timeout().should.be.a(Timeout)
+        assert isinstance(task.first_timeout(), Timeout)
+        assert isinstance(wfe.first_timeout(), Timeout)
         process_first_timeout(wfe)
-        task.first_timeout().should.be.none
+        assert task.first_timeout() is None
 
 
 def test_activity_task_cannot_change_state_on_closed_workflow_execution():
@@ -162,8 +164,9 @@ def test_activity_task_cannot_change_state_on_closed_workflow_execution():
     )
     wfe.complete(123)
 
-    task.timeout.when.called_with(Timeout(task, 0, "foo")).should.throw(
-        SWFWorkflowExecutionClosedError
-    )
-    task.complete.when.called_with().should.throw(SWFWorkflowExecutionClosedError)
-    task.fail.when.called_with().should.throw(SWFWorkflowExecutionClosedError)
+    with pytest.raises(SWFWorkflowExecutionClosedError):
+        task.timeout(Timeout(task, 0, "foo"))
+    with pytest.raises(SWFWorkflowExecutionClosedError):
+        task.complete()
+    with pytest.raises(SWFWorkflowExecutionClosedError):
+        task.fail()

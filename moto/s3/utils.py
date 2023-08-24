@@ -3,7 +3,7 @@ import base64
 import binascii
 import re
 import hashlib
-from urllib.parse import urlparse, unquote, quote
+from urllib.parse import urlparse
 from requests.structures import CaseInsensitiveDict
 from typing import Any, Dict, List, Iterator, Union, Tuple, Optional
 import sys
@@ -104,14 +104,6 @@ def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # ty
                     else headers[header]
                 )
     return metadata
-
-
-def clean_key_name(key_name: str) -> str:
-    return unquote(key_name)
-
-
-def undo_clean_key_name(key_name: str) -> str:
-    return quote(key_name)
 
 
 class _VersionedKeyStore(dict):  # type: ignore

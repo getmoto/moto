@@ -28,7 +28,7 @@ iot-data
 - [X] delete_thing_shadow
 - [ ] get_retained_message
 - [X] get_thing_shadow
-- [ ] list_named_shadows_for_thing
+- [X] list_named_shadows_for_thing
 - [ ] list_retained_messages
 - [X] publish
 - [X] update_thing_shadow

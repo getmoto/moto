@@ -594,6 +594,66 @@ def test_list_user_pools():
 
 
 @mock_cognitoidp
+def test_authorize_user_with_force_password_change_status():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    pool_id = conn.create_user_pool(PoolName="TestUserPool")["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=pool_id, ClientName="TestAppClient"
+    )["UserPoolClient"]["ClientId"]
+
+    username = "test@example.com"
+    temp_password = "Tempor@ryPassword123"
+    new_password = "NewP@ssword456"
+    conn.admin_create_user(
+        UserPoolId=pool_id,
+        Username=username,
+        TemporaryPassword=temp_password,
+    )
+
+    # Initiate USER_SRP_AUTH flow
+    key = bytes(str(temp_password).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": uuid.uuid4().hex,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    # Try to log in with user in status FORCE_CHANGE_PASSWORD
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+            "PASSWORD_CLAIM_SECRET_BLOCK": result["Session"],
+            "TIMESTAMP": str(uuid.uuid4()),
+            "USERNAME": username,
+        },
+    )
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
+    assert result["ChallengeParameters"]["USERNAME"] == username
+
+    # Sets a new password to the user and log it in
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        Session=result["Session"],
+        ChallengeResponses={
+            "USERNAME": username,
+            "NEW_PASSWORD": new_password,
+        },
+    )
+    assert result["AuthenticationResult"]["AccessToken"] is not None
+
+
+@mock_cognitoidp
 def test_set_user_pool_mfa_config():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2980,8 +3040,8 @@ def test_forgot_password():
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
     assert result["CodeDeliveryDetails"]["Destination"] is not None
-    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
-    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
 
 @mock_cognitoidp

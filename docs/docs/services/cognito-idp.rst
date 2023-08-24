@@ -97,6 +97,7 @@ cognito-idp
 - [ ] get_device
 - [X] get_group
 - [ ] get_identity_provider_by_identifier
+- [ ] get_log_delivery_configuration
 - [ ] get_signing_certificate
 - [ ] get_ui_customization
 - [X] get_user
@@ -117,6 +118,7 @@ cognito-idp
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
 - [ ] revoke_token
+- [ ] set_log_delivery_configuration
 - [ ] set_risk_configuration
 - [ ] set_ui_customization
 - [X] set_user_mfa_preference

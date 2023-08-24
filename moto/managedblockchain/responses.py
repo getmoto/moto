@@ -1,6 +1,6 @@
 import json
 from typing import Any, Dict, Optional
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -291,8 +291,7 @@ class ManagedBlockchainResponse(BaseResponse):
 
     def _node_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
-        parsed_url = urlparse(full_url)
-        querystring = parse_qs(parsed_url.query, keep_blank_values=True)
+        querystring = parse_qs(self.parsed_url.query, keep_blank_values=True)
         network_id = networkid_from_managedblockchain_url(full_url)
         member_id = memberid_from_managedblockchain_request(full_url, self.body)
         if method == "GET":

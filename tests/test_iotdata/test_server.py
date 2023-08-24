@@ -1,7 +1,6 @@
 from urllib.parse import quote
 
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_iotdata
@@ -19,7 +18,7 @@ def test_iotdata_list():
     # just making sure that server is up
     thing_name = "nothing"
     res = test_client.get(f"/things/{thing_name}/shadow")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
 
 @pytest.mark.parametrize(
@@ -38,4 +37,4 @@ def test_publish(url_encode_topic):
     topic_for_path = quote(topic, safe="") if url_encode_topic else topic
 
     result = test_client.post(f"/topics/{topic_for_path}")
-    result.status_code.should.equal(200)
+    assert result.status_code == 200

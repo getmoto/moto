@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_mq
@@ -24,7 +23,7 @@ def test_create_user():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Users").equals([{"Username": "admin"}])
+    assert resp["Users"] == [{"Username": "admin"}]
 
 
 @mock_mq
@@ -51,10 +50,10 @@ def test_describe_user():
 
     resp = client.describe_user(BrokerId=broker_id, Username="admin")
 
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("ConsoleAccess").equals(True)
-    resp.should.have.key("Groups").equals(["group1", "group2"])
-    resp.should.have.key("Username").equals("admin")
+    assert resp["BrokerId"] == broker_id
+    assert resp["ConsoleAccess"] is True
+    assert resp["Groups"] == ["group1", "group2"]
+    assert resp["Username"] == "admin"
 
 
 @mock_mq
@@ -74,9 +73,10 @@ def test_describe_user_unknown():
     with pytest.raises(ClientError) as exc:
         client.describe_user(BrokerId=broker_id, Username="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Can't find requested user [unknown]. Make sure your user exists."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Can't find requested user [unknown]. Make sure your user exists."
     )
 
 
@@ -96,8 +96,8 @@ def test_list_users_empty():
 
     resp = client.list_users(BrokerId=broker_id)
 
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("Users").equals([])
+    assert resp["BrokerId"] == broker_id
+    assert resp["Users"] == []
 
 
 @mock_mq
@@ -118,10 +118,10 @@ def test_list_users():
 
     resp = client.list_users(BrokerId=broker_id)
 
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("Users").length_of(2)
-    resp["Users"].should.contain({"Username": "admin"})
-    resp["Users"].should.contain({"Username": "user1"})
+    assert resp["BrokerId"] == broker_id
+    assert len(resp["Users"]) == 2
+    assert {"Username": "admin"} in resp["Users"]
+    assert {"Username": "user1"} in resp["Users"]
 
 
 @mock_mq
@@ -142,9 +142,9 @@ def test_update_user():
 
     resp = client.describe_user(BrokerId=broker_id, Username="admin")
 
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("Groups").equals(["administrators"])
-    resp.should.have.key("Username").equals("admin")
+    assert resp["BrokerId"] == broker_id
+    assert resp["Groups"] == ["administrators"]
+    assert resp["Username"] == "admin"
 
 
 @mock_mq
@@ -167,6 +167,6 @@ def test_delete_user():
 
     resp = client.list_users(BrokerId=broker_id)
 
-    resp.should.have.key("BrokerId").equals(broker_id)
-    resp.should.have.key("Users").length_of(1)
-    resp["Users"].should.contain({"Username": "user1"})
+    assert resp["BrokerId"] == broker_id
+    assert len(resp["Users"]) == 1
+    assert {"Username": "user1"} in resp["Users"]

@@ -1,7 +1,7 @@
 import boto3
+from botocore.exceptions import ClientError
 import pytest
 
-from botocore.exceptions import ClientError
 from moto import mock_rds
 
 
@@ -11,7 +11,7 @@ def test_add_instance_as_cluster_member():
     # the instance is included as a ClusterMember in the describe_db_clusters call
     client = boto3.client("rds", "us-east-1")
 
-    client.create_db_cluster(
+    _ = client.create_db_cluster(
         DBClusterIdentifier="dbci",
         Engine="mysql",
         MasterUsername="masterusername",
@@ -43,7 +43,7 @@ def test_remove_instance_from_cluster():
     # the instance is included as a ClusterMember in the describe_db_clusters call
     client = boto3.client("rds", "us-east-1")
 
-    client.create_db_cluster(
+    _ = client.create_db_cluster(
         DBClusterIdentifier="dbci",
         Engine="mysql",
         MasterUsername="masterusername",
@@ -72,7 +72,7 @@ def test_remove_instance_from_cluster():
 def test_add_instance_to_serverless_cluster():
     client = boto3.client("rds", "us-east-1")
 
-    client.create_db_cluster(
+    _ = client.create_db_cluster(
         DBClusterIdentifier="dbci",
         Engine="aurora",
         EngineMode="serverless",

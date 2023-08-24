@@ -13,6 +13,7 @@ class TimestreamTable(BaseModel):
         db_name: str,
         retention_properties: Dict[str, int],
         magnetic_store_write_properties: Dict[str, Any],
+        schema: Dict[str, Any],
     ):
         self.region_name = region_name
         self.name = table_name
@@ -22,6 +23,15 @@ class TimestreamTable(BaseModel):
             "MagneticStoreRetentionPeriodInDays": 123,
         }
         self.magnetic_store_write_properties = magnetic_store_write_properties or {}
+        self.schema = schema or {
+            "CompositePartitionKey": [
+                {
+                    "Type": "MEASURE",
+                    "Name": "",
+                    "EnforcementInRecord": "",
+                }
+            ]
+        }
         self.records: List[Dict[str, Any]] = []
         self.arn = f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.db_name}/table/{self.name}"
 
@@ -29,10 +39,13 @@ class TimestreamTable(BaseModel):
         self,
         retention_properties: Dict[str, int],
         magnetic_store_write_properties: Dict[str, Any],
+        schema: Dict[str, Any],
     ) -> None:
         self.retention_properties = retention_properties
         if magnetic_store_write_properties is not None:
             self.magnetic_store_write_properties = magnetic_store_write_properties
+        if schema is not None:
+            self.schema = schema
 
     def write_records(self, records: List[Dict[str, Any]]) -> None:
         self.records.extend(records)
@@ -45,6 +58,7 @@ class TimestreamTable(BaseModel):
             "TableStatus": "ACTIVE",
             "RetentionProperties": self.retention_properties,
             "MagneticStoreWriteProperties": self.magnetic_store_write_properties,
+            "Schema": self.schema,
         }
 
 
@@ -71,6 +85,7 @@ class TimestreamDatabase(BaseModel):
         table_name: str,
         retention_properties: Dict[str, int],
         magnetic_store_write_properties: Dict[str, Any],
+        schema: Dict[str, Any],
     ) -> TimestreamTable:
         table = TimestreamTable(
             account_id=self.account_id,
@@ -79,6 +94,7 @@ class TimestreamDatabase(BaseModel):
             db_name=self.name,
             retention_properties=retention_properties,
             magnetic_store_write_properties=magnetic_store_write_properties,
+            schema=schema,
         )
         self.tables[table_name] = table
         return table
@@ -88,11 +104,13 @@ class TimestreamDatabase(BaseModel):
         table_name: str,
         retention_properties: Dict[str, int],
         magnetic_store_write_properties: Dict[str, Any],
+        schema: Dict[str, Any],
     ) -> TimestreamTable:
         table = self.tables[table_name]
         table.update(
             retention_properties=retention_properties,
             magnetic_store_write_properties=magnetic_store_write_properties,
+            schema=schema,
         )
         return table
 
@@ -170,10 +188,14 @@ class TimestreamWriteBackend(BaseBackend):
         retention_properties: Dict[str, int],
         tags: List[Dict[str, str]],
         magnetic_store_write_properties: Dict[str, Any],
+        schema: Dict[str, Any],
     ) -> TimestreamTable:
         database = self.describe_database(database_name)
         table = database.create_table(
-            table_name, retention_properties, magnetic_store_write_properties
+            table_name,
+            retention_properties,
+            magnetic_store_write_properties,
+            schema,
         )
         self.tagging_service.tag_resource(table.arn, tags)
         return table
@@ -196,10 +218,14 @@ class TimestreamWriteBackend(BaseBackend):
         table_name: str,
         retention_properties: Dict[str, int],
         magnetic_store_write_properties: Dict[str, Any],
+        schema: Dict[str, Any],
     ) -> TimestreamTable:
         database = self.describe_database(database_name)
         return database.update_table(
-            table_name, retention_properties, magnetic_store_write_properties
+            table_name,
+            retention_properties,
+            magnetic_store_write_properties,
+            schema,
         )
 
     def write_records(

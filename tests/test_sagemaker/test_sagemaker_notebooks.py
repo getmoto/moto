@@ -1,11 +1,11 @@
 import datetime
+
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
+import pytest
 
 from moto import mock_sagemaker
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-import pytest
 
 TEST_REGION_NAME = "us-east-1"
 FAKE_SUBNET_ID = "subnet-012345678"
@@ -37,7 +37,10 @@ def _get_notebook_instance_arn(notebook_name):
 
 
 def _get_notebook_instance_lifecycle_arn(lifecycle_name):
-    return f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}:notebook-instance-lifecycle-configuration/{lifecycle_name}"
+    return (
+        f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
+        f":notebook-instance-lifecycle-configuration/{lifecycle_name}"
+    )
 
 
 def test_create_notebook_instance_minimal_params(sagemaker_client):
@@ -130,7 +133,10 @@ def test_create_notebook_instance_invalid_instance_type(sagemaker_client):
     with pytest.raises(ClientError) as ex:
         sagemaker_client.create_notebook_instance(**args)
     assert ex.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: ["
+    expected_message = (
+        f"Value '{instance_type}' at 'instanceType' failed to satisfy "
+        "constraint: Member must satisfy enum value set: ["
+    )
 
     assert expected_message in ex.value.response["Error"]["Message"]
 
@@ -153,7 +159,10 @@ def test_notebook_instance_lifecycle(sagemaker_client):
     with pytest.raises(ClientError) as ex:
         sagemaker_client.delete_notebook_instance(NotebookInstanceName=FAKE_NAME_PARAM)
     assert ex.value.response["Error"]["Code"] == "ValidationException"
-    expected_message = f"Status (InService) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({notebook_instance_arn})"
+    expected_message = (
+        f"Status (InService) not in ([Stopped, Failed]). Unable to "
+        f"transition to (Deleting) for Notebook Instance ({notebook_instance_arn})"
+    )
     assert expected_message in ex.value.response["Error"]["Message"]
 
     sagemaker_client.stop_notebook_instance(NotebookInstanceName=FAKE_NAME_PARAM)

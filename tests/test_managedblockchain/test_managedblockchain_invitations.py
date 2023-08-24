@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
@@ -24,20 +23,19 @@ def test_create_2_invitations():
     member_id = response["MemberId"]
 
     # Create proposal
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id,
         MemberId=member_id,
         Actions=helpers.multiple_policy_actions,
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Get proposal details
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
-    response["Proposal"]["NetworkId"].should.equal(network_id)
-    response["Proposal"]["Status"].should.equal("IN_PROGRESS")
+    assert response["Proposal"]["NetworkId"] == network_id
+    assert response["Proposal"]["Status"] == "IN_PROGRESS"
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -46,11 +44,11 @@ def test_create_2_invitations():
 
     # Get the invitation
     response = conn.list_invitations()
-    response["Invitations"].should.have.length_of(2)
-    response["Invitations"][0]["NetworkSummary"]["Id"].should.equal(network_id)
-    response["Invitations"][0]["Status"].should.equal("PENDING")
-    response["Invitations"][1]["NetworkSummary"]["Id"].should.equal(network_id)
-    response["Invitations"][1]["Status"].should.equal("PENDING")
+    assert len(response["Invitations"]) == 2
+    assert response["Invitations"][0]["NetworkSummary"]["Id"] == network_id
+    assert response["Invitations"][0]["Status"] == "PENDING"
+    assert response["Invitations"][1]["NetworkSummary"]["Id"] == network_id
+    assert response["Invitations"][1]["Status"] == "PENDING"
 
 
 @mock_managedblockchain
@@ -70,18 +68,17 @@ def test_reject_invitation():
     member_id = response["MemberId"]
 
     # Create proposal
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Get proposal details
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
-    response["Proposal"]["NetworkId"].should.equal(network_id)
-    response["Proposal"]["Status"].should.equal("IN_PROGRESS")
+    assert response["Proposal"]["NetworkId"] == network_id
+    assert response["Proposal"]["Status"] == "IN_PROGRESS"
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -90,17 +87,17 @@ def test_reject_invitation():
 
     # Get the invitation
     response = conn.list_invitations()
-    response["Invitations"][0]["NetworkSummary"]["Id"].should.equal(network_id)
-    response["Invitations"][0]["Status"].should.equal("PENDING")
+    assert response["Invitations"][0]["NetworkSummary"]["Id"] == network_id
+    assert response["Invitations"][0]["Status"] == "PENDING"
     invitation_id = response["Invitations"][0]["InvitationId"]
 
     # Reject - thanks but no thanks
-    response = conn.reject_invitation(InvitationId=invitation_id)
+    conn.reject_invitation(InvitationId=invitation_id)
 
     # Check the invitation status
     response = conn.list_invitations()
-    response["Invitations"][0]["InvitationId"].should.equal(invitation_id)
-    response["Invitations"][0]["Status"].should.equal("REJECTED")
+    assert response["Invitations"][0]["InvitationId"] == invitation_id
+    assert response["Invitations"][0]["Status"] == "REJECTED"
 
 
 @mock_managedblockchain
@@ -119,13 +116,11 @@ def test_reject_invitation_badinvitation():
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
 
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
+    )["ProposalId"]
 
-    proposal_id = response["ProposalId"]
-
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -135,7 +130,5 @@ def test_reject_invitation_badinvitation():
     with pytest.raises(ClientError) as ex:
         conn.reject_invitation(InvitationId="in-ABCDEFGHIJKLMNOP0123456789")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain(
-        "InvitationId in-ABCDEFGHIJKLMNOP0123456789 not found."
-    )
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "InvitationId in-ABCDEFGHIJKLMNOP0123456789 not found." in err["Message"]

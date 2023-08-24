@@ -1,6 +1,5 @@
 """Unit tests for pinpoint-supported APIs."""
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_pinpoint
 
@@ -12,7 +11,7 @@ def test_list_tags_for_resource_empty():
     app_arn = resp["ApplicationResponse"]["Arn"]
 
     resp = client.list_tags_for_resource(ResourceArn=app_arn)
-    resp.should.have.key("TagsModel").equals({"tags": {}})
+    assert resp["TagsModel"] == {"tags": {}}
 
 
 @mock_pinpoint
@@ -27,10 +26,8 @@ def test_list_tags_for_resource():
     app_arn = resp["ApplicationResponse"]["Arn"]
 
     resp = client.list_tags_for_resource(ResourceArn=app_arn)
-    resp.should.have.key("TagsModel")
-    resp["TagsModel"].should.have.key("tags").equals(
-        {"key1": "value1", "key2": "value2"}
-    )
+    assert "TagsModel" in resp
+    assert resp["TagsModel"]["tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_pinpoint
@@ -44,10 +41,8 @@ def test_tag_resource():
     )
 
     resp = client.list_tags_for_resource(ResourceArn=app_arn)
-    resp.should.have.key("TagsModel")
-    resp["TagsModel"].should.have.key("tags").equals(
-        {"key1": "value1", "key2": "value2"}
-    )
+    assert "TagsModel" in resp
+    assert resp["TagsModel"]["tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_pinpoint
@@ -65,7 +60,5 @@ def test_untag_resource():
     client.untag_resource(ResourceArn=app_arn, TagKeys=["key2"])
 
     resp = client.list_tags_for_resource(ResourceArn=app_arn)
-    resp.should.have.key("TagsModel")
-    resp["TagsModel"].should.have.key("tags").equals(
-        {"key1": "value1", "key3": "value3"}
-    )
+    assert "TagsModel" in resp
+    assert resp["TagsModel"]["tags"] == {"key1": "value1", "key3": "value3"}

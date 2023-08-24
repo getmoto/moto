@@ -100,6 +100,19 @@ lambda
 - [ ] publish_version
 - [ ] put_function_code_signing_config
 - [X] put_function_concurrency
+  Establish concurrency limit/reservations for a function
+
+        Actual lambda restricts concurrency to 1000 (default) per region/account
+        across all functions; we approximate that behavior by summing across all
+        functions (hopefully all in the same account and region) and allowing the
+        caller to simulate an increased quota.
+
+        By default, no quota is enforced in order to preserve compatibility with
+        existing code that assumes it can do as many things as it likes. To model
+        actual AWS behavior, define the MOTO_LAMBDA_CONCURRENCY_QUOTA environment
+        variable prior to testing.
+        
+
 - [ ] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config

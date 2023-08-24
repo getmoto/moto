@@ -194,6 +194,7 @@ sagemaker
 - [ ] get_lineage_group_policy
 - [ ] get_model_package_group_policy
 - [ ] get_sagemaker_servicecatalog_portfolio_status
+- [ ] get_scaling_configuration_recommendation
 - [ ] get_search_suggestions
 - [ ] import_hub_content
 - [ ] list_actions

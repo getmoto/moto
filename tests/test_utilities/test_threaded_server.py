@@ -1,10 +1,11 @@
-import boto3
-import sure  # noqa # pylint: disable=unused-import
-import requests
 import unittest
+from unittest import SkipTest
+
+import boto3
+import requests
+
 from moto import mock_s3, settings
 from moto.server import ThreadedMotoServer
-from unittest import SkipTest
 
 
 class TestThreadedMotoServer(unittest.TestCase):
@@ -27,8 +28,8 @@ class TestThreadedMotoServer(unittest.TestCase):
         )
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]
-        buckets.should.have.length_of(1)
-        [b["Name"] for b in buckets].should.equal(["test"])
+        assert len(buckets) == 1
+        assert [b["Name"] for b in buckets] == ["test"]
 
     def test_server_can_handle_multiple_services(self):
         s3_client = boto3.client(
@@ -49,9 +50,9 @@ class TestThreadedMotoServer(unittest.TestCase):
         )
 
         buckets = s3_client.list_buckets()["Buckets"]
-        [b["Name"] for b in buckets].should.equal(["test"])
+        assert [b["Name"] for b in buckets] == ["test"]
 
-        dynamodb_client.list_tables()["TableNames"].should.equal(["table1"])
+        assert dynamodb_client.list_tables()["TableNames"] == ["table1"]
 
     @mock_s3
     def test_load_data_from_inmemory_client(self):
@@ -65,7 +66,7 @@ class TestThreadedMotoServer(unittest.TestCase):
 
         in_mem_client = boto3.client("s3")
         buckets = in_mem_client.list_buckets()["Buckets"]
-        [b["Name"] for b in buckets].should.equal(["test"])
+        assert [b["Name"] for b in buckets] == ["test"]
 
 
 def test_threaded_moto_server__different_port():
@@ -83,7 +84,7 @@ def test_threaded_moto_server__different_port():
         )
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]
-        [b["Name"] for b in buckets].should.equal(["test"])
+        assert [b["Name"] for b in buckets] == ["test"]
     finally:
         server.stop()
 
@@ -96,8 +97,7 @@ def test_threaded_moto_server__using_requests():
     requests.post("http://localhost:5001/moto-api/reset")
     try:
         r = requests.get("http://localhost:5001/moto-api")
-        r.content.should.contain(b"<title>Moto</title>")
-        r.status_code.should.equal(200)
+        assert b"<title>Moto</title>" in r.content
+        assert r.status_code == 200
     finally:
         server.stop()
-        pass

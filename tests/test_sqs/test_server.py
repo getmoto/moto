@@ -1,14 +1,10 @@
+"""Test different server responses."""
 import datetime
 import re
-import sure  # noqa # pylint: disable=unused-import
 import threading
 import time
 
 import moto.server as server
-
-"""
-Test the different server responses
-"""
 
 
 def test_sqs_list_identities():
@@ -16,7 +12,7 @@ def test_sqs_list_identities():
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=ListQueues")
-    res.data.should.contain(b"ListQueuesResponse")
+    assert b"ListQueuesResponse" in res.data
 
     # Make sure that we can receive messages from queues whose name contains dots (".")
     # The AWS API mandates that the names of FIFO queues use the suffix ".fifo"
@@ -35,11 +31,11 @@ def test_sqs_list_identities():
         )
 
         message = re.search("<Body>(.*?)</Body>", res.data.decode("utf-8")).groups()[0]
-        message.should.equal("test-message")
+        assert message == "test-message"
 
     res = test_client.get("/?Action=ListQueues&QueueNamePrefix=other")
-    res.data.should.contain(b"otherqueue.fifo")
-    res.data.should_not.contain(b"testqueue")
+    assert b"otherqueue.fifo" in res.data
+    assert b"testqueue" not in res.data
 
 
 def test_messages_polling():
@@ -91,7 +87,8 @@ def test_no_messages_polling_timeout():
     wait_seconds = 5
     start = datetime.datetime.utcnow()
     test_client.get(
-        f"/123/{queue_name}?Action=ReceiveMessage&MaxNumberOfMessages=1&WaitTimeSeconds={wait_seconds}"
+        f"/123/{queue_name}?Action=ReceiveMessage&"
+        f"MaxNumberOfMessages=1&WaitTimeSeconds={wait_seconds}"
     )
     end = datetime.datetime.utcnow()
     duration = end - start

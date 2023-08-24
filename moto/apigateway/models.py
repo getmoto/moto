@@ -1,13 +1,14 @@
-import string
-import re
-import responses
-import requests
-import time
-from datetime import datetime
 from collections import defaultdict
-from openapi_spec_validator import validate_spec
+from datetime import datetime
+import re
+import string
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
+
+from openapi_spec_validator import validate_spec
+import requests
+import responses
 
 try:
     from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
@@ -1511,7 +1512,7 @@ class APIGatewayBackend(BaseBackend):
             integrationHttpMethod="GET"
         )
         deploy_url = f"https://{api_id}.execute-api.us-east-1.amazonaws.com/dev"
-        requests.get(deploy_url).content.should.equal(b"a fake response")
+        assert requests.get(deploy_url).content == b"a fake response"
 
     Limitations:
      - Integrations of type HTTP are supported

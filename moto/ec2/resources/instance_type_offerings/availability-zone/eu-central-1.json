@@ -524,6 +524,30 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "g2.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -1764,6 +1788,42 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "t2.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -2565,6 +2625,30 @@
  },
  {
   "InstanceType": "d3.xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -4849,6 +4933,30 @@
  },
  {
   "InstanceType": "d3.xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
   "Location": "eu-central-1c"
  },
  {

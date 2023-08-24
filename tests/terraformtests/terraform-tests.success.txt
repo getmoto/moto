@@ -122,7 +122,7 @@ comprehend:
   - TestAccComprehendEntityRecognizer_KMSKeys
 dax:
   - TestAccDAXCluster_basic
-  - TestAccDAXCluster_Encryption
+  - TestAccDAXCluster_Encryption_enabled
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
@@ -205,7 +205,9 @@ ecr:
   - TestAccECRRepositoryDataSource
   - TestAccECRRepositoryPolicy
 ecs:
- - TestAccECSCapacityProvider_
+ - TestAccECSCapacityProvider_basic
+ - TestAccECSCapacityProvider_disappears
+ - TestAccECSCapacityProvider_tags
  - TestAccECSCluster_
  - TestAccECSClusterCapacityProviders_basic
  - TestAccECSClusterCapacityProviders_defaults

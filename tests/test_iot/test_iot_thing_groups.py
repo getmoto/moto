@@ -38,8 +38,8 @@ def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
 
 
 class TestListThingGroup:
-    group_name_1a = "my-group-name-1a"
-    group_name_1b = "my-group-name-1b"
+    group_name_1a = "my-group:name-1a"
+    group_name_1b = "my-group:name-1b"
     group_name_2a = "my-group-name-2a"
     group_name_2b = "my-group-name-2b"
     group_name_3a = "my-group-name-3a"
@@ -112,7 +112,7 @@ class TestListThingGroup:
         client = boto3.client("iot", region_name="ap-northeast-1")
         generate_thing_group_tree(client, self.tree_dict)
         # test
-        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
+        resp = client.list_thing_groups(namePrefixFilter="my-group:name-1")
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 2
         resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
@@ -129,7 +129,7 @@ class TestListThingGroup:
         generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
-            namePrefixFilter="my-group-name-1", recursive=False
+            namePrefixFilter="my-group:name-1", recursive=False
         )
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 2
@@ -166,7 +166,7 @@ class TestListThingGroup:
 @mock_iot
 def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
-    group_name_1a = "my-group-name-1a"
+    group_name_1a = "my-group:name-1a"
     group_name_2a = "my-group-name-2a"
     tree_dict = {group_name_1a: {group_name_2a: {}}}
     generate_thing_group_tree(client, tree_dict)
@@ -199,8 +199,8 @@ def test_delete_thing_group():
 @mock_iot
 def test_describe_thing_group_metadata_hierarchy():
     client = boto3.client("iot", region_name="ap-northeast-1")
-    group_name_1a = "my-group-name-1a"
-    group_name_1b = "my-group-name-1b"
+    group_name_1a = "my-group:name-1a"
+    group_name_1b = "my-group:name-1b"
     group_name_2a = "my-group-name-2a"
     group_name_2b = "my-group-name-2b"
     group_name_3a = "my-group-name-3a"
@@ -313,7 +313,7 @@ def test_describe_thing_group_metadata_hierarchy():
 @mock_iot
 def test_thing_groups():
     client = boto3.client("iot", region_name="ap-northeast-1")
-    group_name = "my-group-name"
+    group_name = "my-group:name"
 
     # thing group
     thing_group = client.create_thing_group(thingGroupName=group_name)

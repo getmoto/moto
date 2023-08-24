@@ -145,6 +145,26 @@ def test_update_schedule(extra_kwargs):
 
 
 @mock_scheduler
+def test_create_duplicate_schedule():
+    client = boto3.client("scheduler", region_name="us-east-1")
+    params = {
+        "ScheduleExpression": "at(2022-12-12T00:00:00)",
+        "FlexibleTimeWindow": {
+            "MaximumWindowInMinutes": 4,
+            "Mode": "FLEXIBLE",
+        },
+        "Target": {"Arn": "arn1", "RoleArn": "arn2"},
+    }
+
+    client.create_schedule(Name="schedule1", **params)
+    with pytest.raises(ClientError) as exc:
+        client.create_schedule(Name="schedule1", **params)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == "Schedule schedule1 already exists."
+
+
+@mock_scheduler
 def test_get_schedule_for_unknown_group():
     client = boto3.client("scheduler", region_name="eu-west-1")
 

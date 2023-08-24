@@ -1,7 +1,8 @@
-import boto3
 import json
 import time
 import uuid
+
+import boto3
 
 from moto import mock_lambda, mock_sqs, mock_logs
 from tests.markers import requires_docker
@@ -132,8 +133,8 @@ def test_invoke_function_from_sqs_fifo_queue():
             try:
                 body = json.loads(event.get("message"))
                 atts = body["Records"][0]["attributes"]
-                atts.should.have.key("MessageGroupId").equals("mg1")
-                atts.should.have.key("MessageDeduplicationId")
+                assert atts["MessageGroupId"] == "mg1"
+                assert "MessageDeduplicationId" in atts
                 return
             except:  # noqa: E722 Do not use bare except
                 pass

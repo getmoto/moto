@@ -1,9 +1,8 @@
 """Unit tests for pinpoint-supported APIs."""
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_pinpoint
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -21,11 +20,11 @@ def test_put_event_stream():
         WriteEventStream={"DestinationStreamArn": "kinesis:arn", "RoleArn": "iam:arn"},
     )
 
-    resp.should.have.key("EventStream")
-    resp["EventStream"].should.have.key("ApplicationId").equals(app_id)
-    resp["EventStream"].should.have.key("DestinationStreamArn").equals("kinesis:arn")
-    resp["EventStream"].should.have.key("LastModifiedDate")
-    resp["EventStream"].should.have.key("RoleArn").equals("iam:arn")
+    assert "EventStream" in resp
+    assert resp["EventStream"]["ApplicationId"] == app_id
+    assert resp["EventStream"]["DestinationStreamArn"] == "kinesis:arn"
+    assert "LastModifiedDate" in resp["EventStream"]
+    assert resp["EventStream"]["RoleArn"] == "iam:arn"
 
 
 @mock_pinpoint
@@ -41,11 +40,11 @@ def test_get_event_stream():
 
     resp = client.get_event_stream(ApplicationId=app_id)
 
-    resp.should.have.key("EventStream")
-    resp["EventStream"].should.have.key("ApplicationId").equals(app_id)
-    resp["EventStream"].should.have.key("DestinationStreamArn").equals("kinesis:arn")
-    resp["EventStream"].should.have.key("LastModifiedDate")
-    resp["EventStream"].should.have.key("RoleArn").equals("iam:arn")
+    assert "EventStream" in resp
+    assert resp["EventStream"]["ApplicationId"] == app_id
+    assert resp["EventStream"]["DestinationStreamArn"] == "kinesis:arn"
+    assert "LastModifiedDate" in resp["EventStream"]
+    assert resp["EventStream"]["RoleArn"] == "iam:arn"
 
 
 @mock_pinpoint
@@ -61,14 +60,14 @@ def test_delete_event_stream():
 
     resp = client.delete_event_stream(ApplicationId=app_id)
 
-    resp.should.have.key("EventStream")
-    resp["EventStream"].should.have.key("ApplicationId").equals(app_id)
-    resp["EventStream"].should.have.key("DestinationStreamArn").equals("kinesis:arn")
-    resp["EventStream"].should.have.key("LastModifiedDate")
-    resp["EventStream"].should.have.key("RoleArn").equals("iam:arn")
+    assert "EventStream" in resp
+    assert resp["EventStream"]["ApplicationId"] == app_id
+    assert resp["EventStream"]["DestinationStreamArn"] == "kinesis:arn"
+    assert "LastModifiedDate" in resp["EventStream"]
+    assert resp["EventStream"]["RoleArn"] == "iam:arn"
 
     with pytest.raises(ClientError) as exc:
         client.get_event_stream(ApplicationId=app_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Resource not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Resource not found"

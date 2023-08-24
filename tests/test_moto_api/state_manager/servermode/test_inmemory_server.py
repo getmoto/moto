@@ -1,6 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
-
 
 from moto import server
 
@@ -17,13 +15,13 @@ def test_set_transition():
         "http://localhost:5000/moto-api/state-manager/set-transition",
         data=json.dumps(post_body),
     )
-    resp.status_code.should.equal(201)
+    assert resp.status_code == 201
 
     resp = test_client.get(
         "http://localhost:5000/moto-api/state-manager/get-transition?model_name=server::test1"
     )
-    resp.status_code.should.equal(200)
-    json.loads(resp.data).should.equal({"progression": "waiter", "wait_times": 3})
+    assert resp.status_code == 200
+    assert json.loads(resp.data) == {"progression": "waiter", "wait_times": 3}
 
 
 def test_unset_transition():
@@ -44,13 +42,13 @@ def test_unset_transition():
         "http://localhost:5000/moto-api/state-manager/unset-transition",
         data=json.dumps(post_body),
     )
-    resp.status_code.should.equal(201)
+    assert resp.status_code == 201
 
     resp = test_client.get(
         "http://localhost:5000/moto-api/state-manager/get-transition?model_name=server::test2"
     )
-    resp.status_code.should.equal(200)
-    json.loads(resp.data).should.equal({"progression": "immediate"})
+    assert resp.status_code == 200
+    assert json.loads(resp.data) == {"progression": "immediate"}
 
 
 def test_get_default_transition():
@@ -60,5 +58,5 @@ def test_get_default_transition():
     resp = test_client.get(
         "http://localhost:5000/moto-api/state-manager/get-transition?model_name=unknown"
     )
-    resp.status_code.should.equal(200)
-    json.loads(resp.data).should.equal({"progression": "immediate"})
+    assert resp.status_code == 200
+    assert json.loads(resp.data) == {"progression": "immediate"}

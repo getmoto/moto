@@ -1,7 +1,9 @@
 import unittest
-import boto3
-from moto import mock_sts, mock_sqs
 from uuid import uuid4
+
+import boto3
+
+from moto import mock_sts, mock_sqs
 
 
 class TestStsAssumeRole(unittest.TestCase):
@@ -14,7 +16,7 @@ class TestStsAssumeRole(unittest.TestCase):
 
         # verify function exists
         all_urls = sqs.list_queues()["QueueUrls"]
-        all_urls.should.contain(queue_url)
+        assert queue_url in all_urls
 
         # assume role to another aws account
         account_b = "111111111111"
@@ -33,4 +35,4 @@ class TestStsAssumeRole(unittest.TestCase):
         )
 
         # client2 belongs to another account, where there are no queues
-        client2.list_queues().shouldnt.have.key("QueueUrls")
+        assert "QueueUrls" not in client2.list_queues()

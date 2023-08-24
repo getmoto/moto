@@ -14,6 +14,14 @@ class CrossAccountNotAllowed(LambdaClientError):
         )
 
 
+class FunctionAlreadyExists(LambdaClientError):
+    code = 409
+
+    def __init__(self, function_name: str) -> None:
+        message = f"Function already exist: {function_name}"
+        super().__init__("ResourceConflictException", message)
+
+
 class InvalidParameterValueException(LambdaClientError):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValueException", message)

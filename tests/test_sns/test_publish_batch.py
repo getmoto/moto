@@ -1,9 +1,9 @@
-import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 
+import boto3
 from botocore.exceptions import ClientError
 import pytest
+
 from moto import mock_sns, mock_sqs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -17,8 +17,8 @@ def test_publish_batch_unknown_topic():
             PublishBatchRequestEntries=[{"Id": "id_1", "Message": "1"}],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFound")
-    err["Message"].should.equal("Topic does not exist")
+    assert err["Code"] == "NotFound"
+    assert err["Message"] == "Topic does not exist"
 
 
 @mock_sns
@@ -34,10 +34,8 @@ def test_publish_batch_too_many_items():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("TooManyEntriesInBatchRequest")
-    err["Message"].should.equal(
-        "The batch request contains more entries than permissible."
-    )
+    assert err["Code"] == "TooManyEntriesInBatchRequest"
+    assert err["Message"] == "The batch request contains more entries than permissible."
 
 
 @mock_sns
@@ -53,9 +51,9 @@ def test_publish_batch_non_unique_ids():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BatchEntryIdsNotDistinct")
-    err["Message"].should.equal(
-        "Two or more batch entries in the request have the same Id."
+    assert err["Code"] == "BatchEntryIdsNotDistinct"
+    assert (
+        err["Message"] == "Two or more batch entries in the request have the same Id."
     )
 
 
@@ -73,8 +71,8 @@ def test_publish_batch_fifo_without_message_group_id():
             PublishBatchRequestEntries=[{"Id": "id_2", "Message": "2"}],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameter")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidParameter"
+    assert err["Message"] == (
         "Invalid parameter: The MessageGroupId parameter is required for FIFO topics"
     )
 
@@ -90,20 +88,21 @@ def test_publish_batch_standard_with_message_group_id():
     ]
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
-    resp.should.have.key("Successful").length_of(2)
+    assert len(resp["Successful"]) == 2
     for message_status in resp["Successful"]:
-        message_status.should.have.key("MessageId")
-    [m["Id"] for m in resp["Successful"]].should.equal(["id_1", "id_3"])
+        assert "MessageId" in message_status
+    assert [m["Id"] for m in resp["Successful"]] == ["id_1", "id_3"]
 
-    resp.should.have.key("Failed").length_of(1)
-    resp["Failed"][0].should.equal(
-        {
-            "Id": "id_2",
-            "Code": "InvalidParameter",
-            "Message": "Invalid parameter: MessageGroupId Reason: The request includes MessageGroupId parameter that is not valid for this topic type",
-            "SenderFault": True,
-        }
-    )
+    assert len(resp["Failed"]) == 1
+    assert resp["Failed"][0] == {
+        "Id": "id_2",
+        "Code": "InvalidParameter",
+        "Message": (
+            "Invalid parameter: MessageGroupId Reason: The request includes "
+            "MessageGroupId parameter that is not valid for this topic type"
+        ),
+        "SenderFault": True,
+    }
 
 
 @mock_sns
@@ -129,22 +128,22 @@ def test_publish_batch_to_sqs():
 
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
-    resp.should.have.key("Successful").length_of(3)
+    assert len(resp["Successful"]) == 3
 
     messages = queue.receive_messages(MaxNumberOfMessages=3)
-    messages.should.have.length_of(3)
+    assert len(messages) == 3
 
     messages = [json.loads(m.body) for m in messages]
-    for m in messages:
-        for key in list(m.keys()):
+    for message in messages:
+        for key in list(message.keys()):
             if key not in ["Message", "Subject", "MessageAttributes"]:
-                del m[key]
+                del message[key]
 
-    messages.should.contain({"Message": "1"})
-    messages.should.contain({"Message": "2", "Subject": "subj2"})
-    messages.should.contain(
+    assert {"Message": "1"} in messages
+    assert {"Message": "2", "Subject": "subj2"} in messages
+    assert (
         {"Message": "3", "MessageAttributes": {"a": {"Type": "String", "Value": "v"}}}
-    )
+    ) in messages
 
 
 @mock_sqs
@@ -173,7 +172,7 @@ def test_publish_batch_to_sqs_raw():
     ]
     resp = client.publish_batch(TopicArn=topic_arn, PublishBatchRequestEntries=entries)
 
-    resp.should.have.key("Successful").length_of(2)
+    assert len(resp["Successful"]) == 2
 
     received = queue.receive_messages(
         MaxNumberOfMessages=10, MessageAttributeNames=["All"]
@@ -181,5 +180,5 @@ def test_publish_batch_to_sqs_raw():
 
     messages = [(message.body, message.message_attributes) for message in received]
 
-    messages.should.contain(("foo", None))
-    messages.should.contain(("bar", {"a": {"StringValue": "v", "DataType": "String"}}))
+    assert ("foo", None) in messages
+    assert ("bar", {"a": {"StringValue": "v", "DataType": "String"}}) in messages

@@ -6,6 +6,10 @@ backend_url_patterns = [
     ("acm-pca", re.compile("https?://acm-pca\\.(.+)\\.amazonaws\\.com")),
     ("amp", re.compile("https?://aps\\.(.+)\\.amazonaws\\.com")),
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
+    (
+        "apigatewaymanagementapi",
+        re.compile("https?://execute-api\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("appconfig", re.compile("https?://appconfig\\.(.+)\\.amazonaws\\.com")),
     (
         "applicationautoscaling",
@@ -110,12 +114,9 @@ backend_url_patterns = [
     ),
     (
         "meteringmarketplace",
-        re.compile("https?://metering.marketplace\\.(.+)\\.amazonaws.com"),
+        re.compile("https?://metering\\.marketplace.(.+).amazonaws.com"),
     ),
-    (
-        "meteringmarketplace",
-        re.compile("https?://aws-marketplace\\.(.+)\\.amazonaws.com"),
-    ),
+    ("meteringmarketplace", re.compile("https?://aws-marketplace.(.+).amazonaws.com")),
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),

@@ -1,8 +1,7 @@
 import boto3
 from botocore.client import ClientError
-
 import pytest
-import sure  # noqa # pylint: disable=unused-import
+
 from moto import mock_s3
 
 
@@ -14,7 +13,7 @@ def test_create_bucket_with_ownership():
     client.create_bucket(Bucket=bucket, ObjectOwnership=ownership)
 
     response = client.get_bucket_ownership_controls(Bucket=bucket)
-    response["OwnershipControls"]["Rules"][0]["ObjectOwnership"].should.equal(ownership)
+    assert response["OwnershipControls"]["Rules"][0]["ObjectOwnership"] == ownership
 
 
 @mock_s3
@@ -29,7 +28,7 @@ def test_put_ownership_to_bucket():
     )
 
     response = client.get_bucket_ownership_controls(Bucket=bucket)
-    response["OwnershipControls"]["Rules"][0]["ObjectOwnership"].should.equal(ownership)
+    assert response["OwnershipControls"]["Rules"][0]["ObjectOwnership"] == ownership
 
 
 @mock_s3
@@ -44,7 +43,7 @@ def test_delete_ownership_from_bucket():
     with pytest.raises(ClientError) as ex:
         client.get_bucket_ownership_controls(Bucket=bucket)
 
-    ex.value.response["Error"]["Code"].should.equal("OwnershipControlsNotFoundError")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "OwnershipControlsNotFoundError"
+    assert ex.value.response["Error"]["Message"] == (
         "The bucket ownership controls were not found"
     )

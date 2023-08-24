@@ -100,7 +100,14 @@ class DomainDispatcherApplication:
             try:
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
-                service = SIGNING_ALIASES.get(service.lower(), service)
+                path = environ.get("PATH_INFO", "")
+                if service.lower() == "execute-api" and path.startswith(
+                    "/@connections"
+                ):
+                    # APIGateway Management API
+                    pass
+                else:
+                    service = SIGNING_ALIASES.get(service.lower(), service)
                 service = service.lower()
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't

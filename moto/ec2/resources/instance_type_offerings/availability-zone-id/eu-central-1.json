@@ -520,6 +520,30 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "f1.2xlarge",
   "Location": "euc1-az1"
  },
@@ -2624,6 +2648,30 @@
   "Location": "euc1-az2"
  },
  {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
+  "Location": "euc1-az2"
+ },
+ {
   "InstanceType": "g2.2xlarge",
   "Location": "euc1-az2"
  },
@@ -3864,6 +3912,42 @@
   "Location": "euc1-az2"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "euc1-az2"
+ },
+ {
   "InstanceType": "t2.2xlarge",
   "Location": "euc1-az2"
  },
@@ -4665,6 +4749,30 @@
  },
  {
   "InstanceType": "d3.xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
   "Location": "euc1-az3"
  },
  {

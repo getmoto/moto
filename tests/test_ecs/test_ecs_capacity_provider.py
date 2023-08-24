@@ -188,7 +188,9 @@ def test_update_capacity_provider():
 
     resp = client.update_capacity_provider(
         name="my_provider",
-        autoScalingGroupProvider={"managedScaling": {"status": "ENABLED"}},
+        autoScalingGroupProvider={
+            "managedScaling": {"status": "ENABLED", "instanceWarmupPeriod": 0}
+        },
     )
     assert resp["capacityProvider"]["name"] == "my_provider"
 
@@ -199,7 +201,7 @@ def test_update_capacity_provider():
     assert provider["autoScalingGroupProvider"] == {
         "autoScalingGroupArn": "asg:arn",
         "managedScaling": {
-            "instanceWarmupPeriod": 300,
+            "instanceWarmupPeriod": 0,
             "maximumScalingStepSize": 10000,
             "minimumScalingStepSize": 1,
             "status": "ENABLED",

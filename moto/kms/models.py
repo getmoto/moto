@@ -3,9 +3,6 @@ import os
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 from typing import Any, Dict, List, Tuple, Optional, Iterable, Set
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
@@ -22,6 +19,8 @@ from .utils import (
     generate_key_id,
     generate_master_key,
     generate_private_key,
+    KeySpec,
+    SigningAlgorithm,
 )
 
 
@@ -80,10 +79,10 @@ class Key(CloudFormationModel):
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
         self.key_material = generate_master_key()
-        self.private_key = generate_private_key()
         self.origin = "AWS_KMS"
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
+        self.private_key = generate_private_key(self.key_spec)
         self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
 
         self.grants: Dict[str, Grant] = dict()
@@ -166,21 +165,20 @@ class Key(CloudFormationModel):
     def signing_algorithms(self) -> List[str]:
         if self.key_usage == "ENCRYPT_DECRYPT":
             return None  # type: ignore[return-value]
-        elif self.key_spec in ["ECC_NIST_P256", "ECC_SECG_P256K1"]:
-            return ["ECDSA_SHA_256"]
-        elif self.key_spec == "ECC_NIST_P384":
-            return ["ECDSA_SHA_384"]
-        elif self.key_spec == "ECC_NIST_P521":
-            return ["ECDSA_SHA_512"]
+        elif self.key_spec in KeySpec.ecc_key_specs():
+            if self.key_spec == KeySpec.ECC_NIST_P384:
+                return [SigningAlgorithm.ECDSA_SHA_384]
+            elif self.key_spec == KeySpec.ECC_NIST_P512:
+                return [SigningAlgorithm.ECDSA_SHA_512]
+            else:
+                # key_spec is 'ECC_NIST_P256' or 'ECC_SECG_P256K1'
+                return [SigningAlgorithm.ECDSA_SHA_256]
+        elif self.key_spec in KeySpec.rsa_key_specs():
+            return SigningAlgorithm.rsa_signing_algorithms()
+        elif self.key_spec == KeySpec.SM2:
+            return [SigningAlgorithm.SM2DSA.value]
         else:
-            return [
-                "RSASSA_PKCS1_V1_5_SHA_256",
-                "RSASSA_PKCS1_V1_5_SHA_384",
-                "RSASSA_PKCS1_V1_5_SHA_512",
-                "RSASSA_PSS_SHA_256",
-                "RSASSA_PSS_SHA_384",
-                "RSASSA_PSS_SHA_512",
-            ]
+            return []
 
     def to_dict(self) -> Dict[str, Any]:
         key_dict = {
@@ -301,6 +299,8 @@ class KmsBackend(BaseBackend):
          - The resource is set to "*"
          - The Action matches `describe_key`
         """
+        if key_spec:
+            self.__ensure_valid_key_spec(key_spec)
         key = Key(
             policy,
             key_usage,
@@ -599,7 +599,7 @@ class KmsBackend(BaseBackend):
                 ).format(key_id=key.id)
             )
 
-    def __ensure_valid_signing_augorithm(
+    def __ensure_valid_signing_algorithm(
         self, key: Key, signing_algorithm: str
     ) -> None:
         if signing_algorithm not in key.signing_algorithms:
@@ -614,6 +614,16 @@ class KmsBackend(BaseBackend):
                 )
             )
 
+    def __ensure_valid_key_spec(self, key_spec: str) -> None:
+        if key_spec not in KeySpec.key_specs():
+            raise ValidationException(
+                (
+                    "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_key_specs}"
+                ).format(key_spec=key_spec, valid_key_specs=KeySpec.key_specs())
+            )
+
     def sign(
         self, key_id: str, message: bytes, signing_algorithm: str
     ) -> Tuple[str, bytes, str]:
@@ -626,16 +636,9 @@ class KmsBackend(BaseBackend):
         key = self.describe_key(key_id)
 
         self.__ensure_valid_sign_and_verify_key(key)
-        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+        self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
-        # TODO: support more than one hardcoded algorithm based on KeySpec
-        signature = key.private_key.sign(
-            message,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256(),
-        )
+        signature = key.private_key.sign(message, signing_algorithm)
 
         return key.arn, signature, signing_algorithm
 
@@ -651,7 +654,7 @@ class KmsBackend(BaseBackend):
         key = self.describe_key(key_id)
 
         self.__ensure_valid_sign_and_verify_key(key)
-        self.__ensure_valid_signing_augorithm(key, signing_algorithm)
+        self.__ensure_valid_signing_algorithm(key, signing_algorithm)
 
         if signing_algorithm not in key.signing_algorithms:
             raise ValidationException(
@@ -665,31 +668,15 @@ class KmsBackend(BaseBackend):
                 )
             )
 
-        public_key = key.private_key.public_key()
-
-        try:
-            # TODO: support more than one hardcoded algorithm based on KeySpec
-            public_key.verify(
-                signature,
-                message,
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH,
-                ),
-                hashes.SHA256(),
-            )
-            return key.arn, True, signing_algorithm
-        except InvalidSignature:
-            return key.arn, False, signing_algorithm
+        return (
+            key.arn,
+            key.private_key.verify(message, signature, signing_algorithm),
+            signing_algorithm,
+        )
 
     def get_public_key(self, key_id: str) -> Tuple[Key, bytes]:
         key = self.describe_key(key_id)
-        public_key = key.private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.DER,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        )
-
-        return key, public_key
+        return key, key.private_key.public_key()
 
 
 kms_backends = BackendDict(KmsBackend, "kms")
