@@ -1,4 +1,5 @@
 import base64
+import copy
 import os
 import string
 from datetime import datetime
@@ -437,6 +438,12 @@ class ManagedPolicy(Policy, CloudFormationModel):
                 role_name=role_name, policy_arn=policy.arn
             )
         return policy
+
+    def __eq__(self, other: Any) -> bool:
+        return self.arn == other.arn
+
+    def __hash__(self) -> int:
+        return self.arn.__hash__()
 
     @property
     def physical_resource_id(self) -> str:
@@ -1791,8 +1798,8 @@ class IAMBackend(BaseBackend):
         self.initialize_service_roles()
 
     def _init_aws_policies(self) -> List[ManagedPolicy]:
-        # AWS defines some of its own managed policies and we periodically
-        # import them via `make aws_managed_policies`
+        # AWS defines some of its own managed policies
+        # we periodically import them via `make aws_managed_policies`
         aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
         return [
             AWSManagedPolicy.from_data(name, self.account_id, d)
@@ -1800,7 +1807,7 @@ class IAMBackend(BaseBackend):
         ]
 
     def _init_managed_policies(self) -> Dict[str, ManagedPolicy]:
-        return dict((p.arn, p) for p in self.aws_managed_policies)
+        return dict((p.arn, copy.deepcopy(p)) for p in self.aws_managed_policies)
 
     def reset(self) -> None:
         region_name = self.region_name
