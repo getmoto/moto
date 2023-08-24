@@ -269,14 +269,14 @@ class IdentityStoreBackend(BaseBackend):
                     if m.UserName == username:
                         user = m._asdict()
                         if user.get("Name"):
-                            user["Name"] = m.Name._asdict() # type: ignore
+                            user["Name"] = m.Name._asdict()  # type: ignore
                         users.append(user)
                 return users
 
         for m in identity_store.users.values():
             user = m._asdict()
             if user.get("Name"):
-                user["Name"] = m.Name._asdict() # type: ignore
+                user["Name"] = m.Name._asdict()  # type: ignore
             users.append(user)
         return users
 
