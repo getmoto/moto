@@ -190,12 +190,17 @@ class RSAPrivateKey(AbstractPrivateKey):
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             )
-            algorithm = hashes.SHA256()
+            algorithm = hashes.SHA256()  # type: Any
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
+            pad = padding.PSS(
+                mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
+            )
+            algorithm = hashes.SHA384()
         else:
             pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+                mgf=padding.MGF1(hashes.SHA512()), salt_length=padding.PSS.MAX_LENGTH
             )
-            algorithm = hashes.SHA256()
+            algorithm = hashes.SHA512()
         return self.private_key.sign(message, pad, algorithm)
 
     def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
@@ -207,12 +212,17 @@ class RSAPrivateKey(AbstractPrivateKey):
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
             )
-            algorithm = hashes.SHA256()
+            algorithm = hashes.SHA256()  # type: Any
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
+            pad = padding.PSS(
+                mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
+            )
+            algorithm = hashes.SHA384()
         else:
             pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+                mgf=padding.MGF1(hashes.SHA512()), salt_length=padding.PSS.MAX_LENGTH
             )
-            algorithm = hashes.SHA256()
+            algorithm = hashes.SHA512()
 
         public_key = self.private_key.public_key()
         try:
