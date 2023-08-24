@@ -898,7 +898,7 @@ class LogsBackend(BaseBackend):
     ) -> Tuple[List[Dict[str, Any]], Optional[str], Optional[str]]:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
-        if limit and limit > 1000:
+        if limit and limit > 10000:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 10000",
                 parameter="limit",
@@ -926,7 +926,7 @@ class LogsBackend(BaseBackend):
         """
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
-        if limit and limit > 1000:
+        if limit and limit > 10000:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 10000",
                 parameter="limit",
