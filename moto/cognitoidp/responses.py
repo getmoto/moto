@@ -546,8 +546,6 @@ class CognitoIdpResponse(BaseResponse):
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         user_pool_id = self._get_param("UserPoolId")
-        # import pytest
-        # pytest.set_trace()
         resource_servers, next_token = self.backend.list_resource_servers(
             user_pool_id, max_results=max_results, next_token=next_token
         )
