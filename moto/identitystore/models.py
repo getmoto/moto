@@ -260,21 +260,23 @@ class IdentityStoreBackend(BaseBackend):
     ) -> List[Dict[str, str]]:
         identity_store = self.__get_identity_store(identity_store_id)
 
-        users: list[dict] = []
+        users = []
         if filters:
             if filters[0].get("AttributePath") == "UserName":
                 username = filters[0].get("AttributeValue")
 
                 for m in identity_store.users.values():
                     if m.UserName == username:
-                        user: dict = m._asdict()
-                        user["Name"] = m.Name._asdict()
+                        user = m._asdict()
+                        if user.get("Name"):
+                            user["Name"] = m.Name._asdict() # type: ignore
                         users.append(user)
                 return users
 
         for m in identity_store.users.values():
-            user: dict = m._asdict()
-            user["Name"] = m.Name._asdict()
+            user = m._asdict()
+            if user.get("Name"):
+                user["Name"] = m.Name._asdict() # type: ignore
             users.append(user)
         return users
 
