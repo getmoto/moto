@@ -2,10 +2,12 @@ import json
 from datetime import datetime
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
+import itertools
 from unittest import mock
 from dateutil.tz import tzutc
 import base64
 import os
+
 
 import boto3
 import botocore.exceptions
@@ -1163,8 +1165,16 @@ def test_sign_and_verify_ignoring_grant_tokens():
 
 
 @mock_kms
-@pytest.mark.parametrize("key_spec", ["RSA_2048", "RSA_3072", "RSA_4096"])
-def test_sign_and_verify_digest_message_type_RSASSA_PSS_SHA_256(key_spec):
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm",
+    list(
+        itertools.product(
+            ["RSA_2048", "RSA_3072", "RSA_4096"],
+            ["RSASSA_PSS_SHA_256", "RSASSA_PSS_SHA_384", "RSASSA_PSS_SHA_512"],
+        )
+    ),
+)
+def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
     client = boto3.client("kms", region_name="us-west-2")
 
     key = client.create_key(
@@ -1176,7 +1186,6 @@ def test_sign_and_verify_digest_message_type_RSASSA_PSS_SHA_256(key_spec):
     digest.update(b"this works")
     digest.update(b"as well")
     message = digest.finalize()
-    signing_algorithm = "RSASSA_PSS_SHA_256"
 
     sign_response = client.sign(
         KeyId=key_id,
