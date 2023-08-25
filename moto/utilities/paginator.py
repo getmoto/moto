@@ -19,7 +19,6 @@ def paginate(pagination_model: Dict[str, Any]) -> Any:
     def pagination_decorator(func: Any) -> Any:
         @wraps(func)
         def pagination_wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore
-
             method = func.__name__
             model = pagination_model
             pagination_config = model.get(method)
@@ -137,8 +136,10 @@ class Paginator:
             return False
         unique_attributes = self._parsed_token["uniqueAttributes"]
         predicate_values = unique_attributes.split("|")
-        for (index, attr) in enumerate(self._unique_attributes):
-            curr_val = item[attr] if type(item) == dict else getattr(item, attr, None)
+        for index, attr in enumerate(self._unique_attributes):
+            curr_val = (
+                item[attr] if isinstance(item, dict) else getattr(item, attr, None)
+            )
             if not str(curr_val) == predicate_values[index]:
                 return False
         return True
