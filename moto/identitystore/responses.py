@@ -150,6 +150,20 @@ class IdentityStoreResponse(BaseResponse):
 
         return json.dumps(dict(Groups=groups, NextToken=next_token))
 
+    def list_users(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        filters = self._get_param("Filters")
+        (users, next_token,) = self.identitystore_backend.list_users(
+            identity_store_id=identity_store_id,
+            max_results=max_results,
+            next_token=next_token,
+            filters=filters,
+        )
+
+        return json.dumps(dict(Users=users, NextToken=next_token))
+
     def delete_group(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         group_id = self._get_param("GroupId")
