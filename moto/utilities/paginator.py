@@ -149,7 +149,7 @@ class Paginator:
             token_dict["parameterChecksum"] = self._param_checksum
         range_keys = []
         for attr in self._unique_attributes:
-            if type(next_item) == dict:
+            if isinstance(next_item, dict):
                 range_keys.append(str(next_item[attr]))
             else:
                 range_keys.append(str(getattr(next_item, attr)))
