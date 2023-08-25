@@ -62,7 +62,7 @@ def test_put_subscription_filter_update():
     sub_filter["filterPattern"] = ""
 
     # when
-    # to update an existing subscription filter the 'filerName' must be identical
+    # to update an existing subscription filter the 'filterName' must be identical
     client_logs.put_subscription_filter(
         logGroupName=log_group_name,
         filterName="test",
@@ -82,11 +82,17 @@ def test_put_subscription_filter_update():
     sub_filter["filterPattern"] = "[]"
 
     # when
-    # only one subscription filter can be associated with a log group
+    # only two subscription filters can be associated with a log group
+    client_logs.put_subscription_filter(
+        logGroupName=log_group_name,
+        filterName="test-2",
+        filterPattern="[]",
+        destinationArn=function_arn,
+    )
     with pytest.raises(ClientError) as e:
         client_logs.put_subscription_filter(
             logGroupName=log_group_name,
-            filterName="test-2",
+            filterName="test-3",
             filterPattern="",
             destinationArn=function_arn,
         )
