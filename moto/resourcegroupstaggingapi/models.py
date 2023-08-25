@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple
 from moto.core import BaseBackend, BackendDict
 from moto.core.exceptions import RESTError
 from moto.moto_api._internal import mock_random
+from moto.utilities.tagging_service import TaggingService
 
 from moto.s3.models import s3_backends, S3Backend
 from moto.ec2 import ec2_backends
@@ -370,71 +371,32 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
 
-        # RDS Cluster
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:cluster" in resource_type_filters
-        ):
-            for rds_cluster in self.rds_backend.clusters.values():
-                tags = rds_cluster.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": rds_cluster.db_cluster_arn,
-                    "Tags": tags,
-                }
-
-        # RDS Instance
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:db" in resource_type_filters
-        ):
-            for database in self.rds_backend.databases.values():
-                tags = database.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": database.db_instance_arn,
-                    "Tags": tags,
-                }
+        # RDS resources
+        resource_map: Dict[str, Dict[str, Any]] = {
+            "rds:cluster": self.rds_backend.clusters,
+            "rds:db": self.rds_backend.databases,
+            "rds:snapshot": self.rds_backend.database_snapshots,
+            "rds:cluster-snapshot": self.rds_backend.cluster_snapshots,
+        }
+        for resource_type, resource_source in resource_map.items():
+            if (
+                not resource_type_filters
+                or "rds" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resource_source.values():
+                    tags = resource.get_tags()
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": resource.arn,
+                        "Tags": tags,
+                    }
 
         # RDS Reserved Database Instance
         # RDS Option Group
         # RDS Parameter Group
         # RDS Security Group
-
-        # RDS Snapshot
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:snapshot" in resource_type_filters
-        ):
-            for snapshot in self.rds_backend.database_snapshots.values():
-                tags = snapshot.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": snapshot.snapshot_arn,
-                    "Tags": tags,
-                }
-
-        # RDS Cluster Snapshot
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:cluster-snapshot" in resource_type_filters
-        ):
-            for snapshot in self.rds_backend.cluster_snapshots.values():
-                tags = snapshot.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": snapshot.snapshot_arn,
-                    "Tags": tags,
-                }
-
         # RDS Subnet Group
         # RDS Event Subscription
 
@@ -767,14 +729,27 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         return new_token, result
 
-    # These methods will be called from responses.py.
-    # They should call a tag function inside of the moto module
-    # that governs the resource, that way if the target module
-    # changes how tags are delt with theres less to change
+    def tag_resources(
+        self, resource_arns: List[str], tags: Dict[str, str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Only RDS resources are currently supported
+        """
+        missing_resources = []
+        missing_error: Dict[str, Any] = {
+            "StatusCode": 404,
+            "ErrorCode": "InternalServiceException",
+            "ErrorMessage": "Service not yet supported",
+        }
+        for arn in resource_arns:
+            if arn.startswith("arn:aws:rds:"):
+                self.rds_backend.add_tags_to_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            else:
+                missing_resources.append(arn)
+        return {arn: missing_error for arn in missing_resources}
 
-    # def tag_resources(self, resource_arn_list, tags):
-    #     return failed_resources_map
-    #
     # def untag_resources(self, resource_arn_list, tag_keys):
     #     return failed_resources_map
 
