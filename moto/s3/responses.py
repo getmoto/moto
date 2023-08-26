@@ -158,6 +158,11 @@ def parse_key_name(pth: str) -> str:
 class S3Response(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="s3")
+        # Whatever format requests come in, we should never touch them
+        # There are some nuances here - this decision should be method-specific, instead of service-specific
+        # E.G.: we don't want to touch put_object(), but we might have to decompress put_object_configuration()
+        # Taking the naive approach to never decompress anything from S3 for now
+        self.allow_request_decompression = False
 
     def get_safe_path_from_url(self, url: ParseResult) -> str:
         return self.get_safe_path(url.path)

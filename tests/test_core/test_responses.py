@@ -2,11 +2,13 @@ import datetime
 from unittest import SkipTest, mock
 
 from collections import OrderedDict
+from gzip import compress as gzip_compress
 
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.core.responses import AWSServiceSpec, BaseResponse
 from moto.core.responses import flatten_json_request_body
+from moto.s3.responses import S3Response
 from moto import settings
 from freezegun import freeze_time
 
@@ -244,3 +246,38 @@ def test_response_metadata():
     assert "date" in bc.response_headers
     if not settings.TEST_SERVER_MODE:
         assert bc.response_headers["date"] == "Sat, 20 May 2023 10:20:30 GMT"
+
+
+def test_compression_gzip():
+    body = '{"key": "%D0"}, "C": "#0 = :0"}'
+    request = AWSPreparedRequest(
+        "GET",
+        url="http://request",
+        headers={"Content-Encoding": "gzip"},
+        body=_gzip_compress_body(body),
+        stream_output=False,
+    )
+    response = BaseResponse()
+    response.setup_class(request, request.url, request.headers)
+
+    assert body == response.body
+
+
+def test_compression_gzip_in_s3():
+    body = b"some random data"
+    request = AWSPreparedRequest(
+        "GET",
+        url="http://request",
+        headers={"Content-Encoding": "gzip"},
+        body=body,
+        stream_output=False,
+    )
+    response = S3Response()
+    response.setup_class(request, request.url, request.headers)
+
+    assert body == response.body.encode("utf-8")
+
+
+def _gzip_compress_body(body: str):
+    assert isinstance(body, str)
+    return gzip_compress(data=body.encode("utf-8"))

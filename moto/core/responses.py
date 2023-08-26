@@ -14,6 +14,7 @@ from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import (
     camelcase_to_underscores,
+    gzip_decompress,
     method_names_from_class,
     params_sort_function,
 )
@@ -232,6 +233,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def __init__(self, service_name: Optional[str] = None):
         super().__init__()
         self.service_name = service_name
+        self.allow_request_decompression = True
 
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
@@ -262,6 +264,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 querystring[key] = [value]
 
         raw_body = self.body
+
+        # https://github.com/getmoto/moto/issues/6692
+        # Content coming from SDK's can be GZipped for performance reasons
+        if (
+            headers.get("Content-Encoding", "") == "gzip"
+            and self.allow_request_decompression
+        ):
+            self.body = gzip_decompress(self.body)
+
         if isinstance(self.body, bytes) and not use_raw_body:
             self.body = self.body.decode("utf-8")
 
