@@ -1170,7 +1170,14 @@ def test_sign_and_verify_ignoring_grant_tokens():
     list(
         itertools.product(
             ["RSA_2048", "RSA_3072", "RSA_4096"],
-            ["RSASSA_PSS_SHA_256", "RSASSA_PSS_SHA_384", "RSASSA_PSS_SHA_512"],
+            [
+                "RSASSA_PSS_SHA_256",
+                "RSASSA_PSS_SHA_384",
+                "RSASSA_PSS_SHA_512",
+                "RSASSA_PKCS1_V1_5_SHA_256",
+                "RSASSA_PKCS1_V1_5_SHA_384",
+                "RSASSA_PKCS1_V1_5_SHA_512",
+            ],
         )
     ),
 )
