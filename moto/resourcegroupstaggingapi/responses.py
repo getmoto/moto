@@ -58,21 +58,15 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         return json.dumps(response)
 
-    # These methods are all thats left to be implemented
-    # the response is already set up, all thats needed is
-    # the respective model function to be implemented.
-    #
-    # def tag_resources(self):
-    #     resource_arn_list = self._get_list_prefix("ResourceARNList.member")
-    #     tags = self._get_param("Tags")
-    #     failed_resources_map = self.backend.tag_resources(
-    #         resource_arn_list=resource_arn_list,
-    #         tags=tags,
-    #     )
-    #
-    #     # failed_resources_map should be {'resource': {'ErrorCode': str, 'ErrorMessage': str, 'StatusCode': int}}
-    #     return json.dumps({'FailedResourcesMap': failed_resources_map})
-    #
+    def tag_resources(self) -> str:
+        resource_arns = self._get_param("ResourceARNList")
+        tags = self._get_param("Tags")
+        failed_resources = self.backend.tag_resources(
+            resource_arns=resource_arns, tags=tags
+        )
+
+        return json.dumps({"FailedResourcesMap": failed_resources})
+
     # def untag_resources(self):
     #     resource_arn_list = self._get_list_prefix("ResourceARNList.member")
     #     tag_keys = self._get_list_prefix("TagKeys.member")

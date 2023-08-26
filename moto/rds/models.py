@@ -221,6 +221,10 @@ class Cluster:
         )
 
     @property
+    def arn(self) -> str:
+        return self.db_cluster_arn
+
+    @property
     def db_cluster_arn(self) -> str:
         return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
 
@@ -462,6 +466,10 @@ class ClusterSnapshot(BaseModel):
         )
 
     @property
+    def arn(self) -> str:
+        return self.snapshot_arn
+
+    @property
     def snapshot_arn(self) -> str:
         return f"arn:aws:rds:{self.cluster.region_name}:{self.cluster.account_id}:cluster-snapshot:{self.snapshot_id}"
 
@@ -644,6 +652,10 @@ class Database(CloudFormationModel):
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
+
+    @property
+    def arn(self) -> str:
+        return self.db_instance_arn
 
     @property
     def db_instance_arn(self) -> str:
@@ -1090,6 +1102,10 @@ class DatabaseSnapshot(BaseModel):
         self.created_at = iso_8601_datetime_with_milliseconds(
             datetime.datetime.utcnow()
         )
+
+    @property
+    def arn(self) -> str:
+        return self.snapshot_arn
 
     @property
     def snapshot_arn(self) -> str:
