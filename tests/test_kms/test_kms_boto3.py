@@ -1205,6 +1205,47 @@ def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
 
 
 @mock_kms
+@pytest.mark.parametrize(
+    "signing_algorithm, another_signing_algorithm",
+    list(
+        itertools.combinations(
+            ["RSASSA_PSS_SHA_256", "RSASSA_PSS_SHA_384", "RSASSA_PSS_SHA_512"], 2
+        )
+    ),
+)
+def test_fail_verify_digest_message_type_RSA(
+    signing_algorithm, another_signing_algorithm
+):
+    client = boto3.client("kms", region_name="us-west-1")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    message = digest.finalize()
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=another_signing_algorithm,
+    )
+
+    assert verify_response["SignatureValid"] is False
+
+
+@mock_kms
 def test_sign_invalid_key_usage():
     client = boto3.client("kms", region_name="us-west-2")
 
