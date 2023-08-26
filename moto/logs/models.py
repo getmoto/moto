@@ -10,6 +10,7 @@ from moto.logs.exceptions import (
     InvalidParameterException,
     LimitExceededException,
 )
+from moto.logs.logs_query import execute_query
 from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.paginator import paginate
@@ -47,11 +48,43 @@ class Destination(BaseModel):
 
 
 class LogQuery(BaseModel):
-    def __init__(self, query_id: str, start_time: str, end_time: str, query: str):
+    def __init__(
+        self,
+        query_id: str,
+        start_time: int,
+        end_time: int,
+        query: str,
+        log_groups: List["LogGroup"],
+    ):
         self.query_id = query_id
         self.start_time = start_time
         self.end_time = end_time
         self.query = query
+        self.log_group_names = [lg.name for lg in log_groups]
+        self.create_time = unix_time_millis()
+        self.status = "Running"
+        self.results = execute_query(
+            log_groups=log_groups, query=query, start_time=start_time, end_time=end_time
+        )
+        self.status = "Complete"
+
+    def to_json(self, log_group_name: str) -> Dict[str, Any]:
+        return {
+            "queryId": self.query_id,
+            "queryString": self.query,
+            "status": self.status,
+            "createTime": self.create_time,
+            "logGroupName": log_group_name,
+        }
+
+    def to_result_json(self) -> Dict[str, Any]:
+        return {
+            "results": [
+                [{"field": key, "value": val} for key, val in result.items()]
+                for result in self.results
+            ],
+            "status": self.status,
+        }
 
 
 class LogEvent(BaseModel):
@@ -1136,18 +1169,41 @@ class LogsBackend(BaseBackend):
     def start_query(
         self,
         log_group_names: List[str],
-        start_time: str,
-        end_time: str,
+        start_time: int,
+        end_time: int,
         query_string: str,
     ) -> str:
 
         for log_group_name in log_group_names:
             if log_group_name not in self.groups:
                 raise ResourceNotFoundException()
+        log_groups = [self.groups[name] for name in log_group_names]
 
         query_id = str(mock_random.uuid1())
-        self.queries[query_id] = LogQuery(query_id, start_time, end_time, query_string)
+        self.queries[query_id] = LogQuery(
+            query_id, start_time, end_time, query_string, log_groups
+        )
         return query_id
+
+    def describe_queries(
+        self, log_stream_name: str, status: Optional[str]
+    ) -> List[LogQuery]:
+        """
+        Pagination is not yet implemented
+        """
+        queries: List[LogQuery] = []
+        for query in self.queries.values():
+            if log_stream_name in query.log_group_names and (
+                not status or status == query.status
+            ):
+                queries.append(query)
+        return queries
+
+    def get_query_results(self, query_id: str) -> LogQuery:
+        """
+        Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
+        """
+        return self.queries[query_id]
 
     def create_export_task(
         self, log_group_name: str, destination: Dict[str, Any]

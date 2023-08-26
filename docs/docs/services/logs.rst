@@ -48,7 +48,11 @@ logs
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
-- [ ] describe_queries
+- [X] describe_queries
+  
+        Pagination is not yet implemented
+        
+
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
   Return list of resource policies.
@@ -70,7 +74,11 @@ logs
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
-- [ ] get_query_results
+- [X] get_query_results
+  
+        Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
+        
+
 - [ ] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
