@@ -11,6 +11,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives._asymmetric import AsymmetricPadding
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 
 
@@ -181,52 +182,50 @@ class RSAPrivateKey(AbstractPrivateKey):
             public_exponent=65537, key_size=self.key_size
         )
 
-    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
-        validate_signing_algorithm(
-            signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
-        )
-
+    def __padding_and_hash_algorithm(
+        self, signing_algorithm: str
+    ) -> Tuple[AsymmetricPadding, hashes.HashAlgorithm]:
         if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            )
+            )  # type: AsymmetricPadding
             algorithm = hashes.SHA256()  # type: Any
         elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
             )
             algorithm = hashes.SHA384()
-        else:
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_512:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA512()), salt_length=padding.PSS.MAX_LENGTH
             )
             algorithm = hashes.SHA512()
-        return self.private_key.sign(message, pad, algorithm)
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_256:
+            pad = padding.PKCS1v15()
+            algorithm = hashes.SHA256()
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_384:
+            pad = padding.PKCS1v15()
+            algorithm = hashes.SHA384()
+        else:
+            pad = padding.PKCS1v15()
+            algorithm = hashes.SHA512()
+        return pad, algorithm
+
+    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+        validate_signing_algorithm(
+            signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
+        )
+        pad, hash_algorithm = self.__padding_and_hash_algorithm(signing_algorithm)
+        return self.private_key.sign(message, pad, hash_algorithm)
 
     def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
         validate_signing_algorithm(
             signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
         )
-
-        if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
-            pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            )
-            algorithm = hashes.SHA256()  # type: Any
-        elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
-            pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
-            )
-            algorithm = hashes.SHA384()
-        else:
-            pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA512()), salt_length=padding.PSS.MAX_LENGTH
-            )
-            algorithm = hashes.SHA512()
-
+        pad, hash_algorithm = self.__padding_and_hash_algorithm(signing_algorithm)
         public_key = self.private_key.public_key()
         try:
-            public_key.verify(signature, message, pad, algorithm)
+            public_key.verify(signature, message, pad, hash_algorithm)
             return True
         except InvalidSignature:
             return False
