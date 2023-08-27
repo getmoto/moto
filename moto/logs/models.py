@@ -14,6 +14,7 @@ from moto.logs.logs_query import execute_query
 from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 from .utils import PAGINATION_MODEL, EventMessageFilter
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -373,7 +374,6 @@ class LogGroup(CloudFormationModel):
         account_id: str,
         region: str,
         name: str,
-        tags: Optional[Dict[str, str]],
         **kwargs: Any,
     ):
         self.name = name
@@ -381,7 +381,6 @@ class LogGroup(CloudFormationModel):
         self.region = region
         self.arn = f"arn:aws:logs:{region}:{account_id}:log-group:{name}"
         self.creation_time = int(unix_time_millis())
-        self.tags = tags
         self.streams: Dict[str, LogStream] = dict()  # {name: LogStream}
         # AWS defaults to Never Expire for log group retention
         self.retention_in_days = kwargs.get("RetentionInDays")
@@ -607,21 +606,6 @@ class LogGroup(CloudFormationModel):
     def set_retention_policy(self, retention_in_days: Optional[str]) -> None:
         self.retention_in_days = retention_in_days
 
-    def list_tags(self) -> Dict[str, str]:
-        return self.tags if self.tags else {}
-
-    def tag(self, tags: Dict[str, str]) -> None:
-        if self.tags:
-            self.tags.update(tags)
-        else:
-            self.tags = tags
-
-    def untag(self, tags_to_remove: List[str]) -> None:
-        if self.tags:
-            self.tags = {
-                k: v for (k, v) in self.tags.items() if k not in tags_to_remove
-            }
-
     def describe_subscription_filters(self) -> Iterable[SubscriptionFilter]:
         return self.subscription_filters.values()
 
@@ -741,6 +725,7 @@ class LogsBackend(BaseBackend):
         self.queries: Dict[str, LogQuery] = dict()
         self.resource_policies: Dict[str, LogResourcePolicy] = dict()
         self.destinations: Dict[str, Destination] = dict()
+        self.tagger = TaggingService()
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -763,17 +748,18 @@ class LogsBackend(BaseBackend):
                 value=log_group_name,
             )
         self.groups[log_group_name] = LogGroup(
-            self.account_id, self.region_name, log_group_name, tags, **kwargs
+            self.account_id, self.region_name, log_group_name, **kwargs
         )
+        self.tag_resource(self.groups[log_group_name].arn, tags)
         return self.groups[log_group_name]
 
-    def ensure_log_group(
-        self, log_group_name: str, tags: Optional[Dict[str, str]]
-    ) -> None:
+    def ensure_log_group(self, log_group_name: str) -> None:
         if log_group_name in self.groups:
             return
         self.groups[log_group_name] = LogGroup(
-            self.account_id, self.region_name, log_group_name, tags
+            self.account_id,
+            self.region_name,
+            log_group_name,
         )
 
     def delete_log_group(self, log_group_name: str) -> None:
@@ -801,7 +787,11 @@ class LogsBackend(BaseBackend):
         raise ResourceNotFoundException()
 
     def put_destination(
-        self, destination_name: str, role_arn: str, target_arn: str
+        self,
+        destination_name: str,
+        role_arn: str,
+        target_arn: str,
+        tags: Dict[str, str],
     ) -> Destination:
         for _, destination in self.destinations.items():
             if destination.destination_name == destination_name:
@@ -814,6 +804,7 @@ class LogsBackend(BaseBackend):
             self.account_id, self.region_name, destination_name, role_arn, target_arn
         )
         self.destinations[destination.arn] = destination
+        self.tag_resource(destination.arn, tags)
         return destination
 
     def delete_destination(self, destination_name: str) -> None:
@@ -1010,7 +1001,8 @@ class LogsBackend(BaseBackend):
         self.groups[log_group_name].set_retention_policy(None)
 
     def describe_resource_policies(self) -> List[LogResourcePolicy]:
-        """Return list of resource policies.
+        """
+        Return list of resource policies.
 
         The next_token and limit arguments are ignored.  The maximum
         number of resource policies per region is a small number (less
@@ -1022,7 +1014,9 @@ class LogsBackend(BaseBackend):
     def put_resource_policy(
         self, policy_name: str, policy_doc: str
     ) -> LogResourcePolicy:
-        """Creates/updates resource policy and return policy object"""
+        """
+        Creates/updates resource policy and return policy object
+        """
         if policy_name in self.resource_policies:
             policy = self.resource_policies[policy_name]
             policy.update(policy_doc)
@@ -1034,7 +1028,9 @@ class LogsBackend(BaseBackend):
         return policy
 
     def delete_resource_policy(self, policy_name: str) -> None:
-        """Remove resource policy with a policy name matching given name."""
+        """
+        Remove resource policy with a policy name matching given name.
+        """
         if policy_name not in self.resource_policies:
             raise ResourceNotFoundException(
                 msg=f"Policy with name [{policy_name}] does not exist"
@@ -1045,19 +1041,19 @@ class LogsBackend(BaseBackend):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
-        return log_group.list_tags()
+        return self.list_tags_for_resource(log_group.arn)
 
     def tag_log_group(self, log_group_name: str, tags: Dict[str, str]) -> None:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
-        log_group.tag(tags)
+        self.tag_resource(log_group.arn, tags)
 
     def untag_log_group(self, log_group_name: str, tags: List[str]) -> None:
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         log_group = self.groups[log_group_name]
-        log_group.untag(tags)
+        self.untag_resource(log_group.arn, tags)
 
     def put_metric_filter(
         self,
@@ -1212,6 +1208,15 @@ class LogsBackend(BaseBackend):
         if log_group_name not in self.groups:
             raise ResourceNotFoundException()
         return str(mock_random.uuid4())
+
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
+        self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
+
+    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+        self.tagger.untag_resource_using_names(arn, tag_keys)
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

@@ -31,6 +31,10 @@ resourcegroupstaggingapi
 - [X] get_tag_keys
 - [X] get_tag_values
 - [ ] start_report_creation
-- [ ] tag_resources
+- [X] tag_resources
+  
+        Only Logs and RDS resources are currently supported
+        
+
 - [ ] untag_resources
 

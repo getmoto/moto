@@ -187,9 +187,13 @@ class LogsResponse(BaseResponse):
         destination_name = self._get_param("destinationName")
         role_arn = self._get_param("roleArn")
         target_arn = self._get_param("targetArn")
+        tags = self._get_param("tags")
 
         destination = self.logs_backend.put_destination(
-            destination_name, role_arn, target_arn
+            destination_name,
+            role_arn,
+            target_arn,
+            tags,
         )
         result = {"destination": destination.to_dict()}
         return json.dumps(result)
@@ -435,3 +439,20 @@ class LogsResponse(BaseResponse):
             log_group_name=log_group_name, destination=destination
         )
         return json.dumps(dict(taskId=str(task_id)))
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tags = self.logs_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"tags": tags})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tags = self._get_param("tags")
+        self.logs_backend.tag_resource(resource_arn, tags)
+        return "{}"
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys")
+        self.logs_backend.untag_resource(resource_arn, tag_keys)
+        return "{}"
