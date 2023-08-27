@@ -18893,6 +18893,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sts": {
                 "Value": "sts",
                 "endpoint": {
@@ -40115,6 +40124,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appmesh": {
+                "Value": "appmesh",
+                "endpoint": {
+                  "Value": "appmesh.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "arc-zonal-shift": {
                 "Value": "arc-zonal-shift",
                 "endpoint": {
@@ -40126,6 +40144,15 @@
               },
               "artifact": {
                 "Value": "artifact"
+              },
+              "athena": {
+                "Value": "athena",
+                "endpoint": {
+                  "Value": "athena.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -40152,6 +40179,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "backup": {
+                "Value": "backup",
+                "endpoint": {
+                  "Value": "backup.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "batch": {
+                "Value": "batch",
+                "endpoint": {
+                  "Value": "batch.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "cloudcontrolapi": {
@@ -40230,6 +40275,24 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datasync": {
+                "Value": "datasync",
+                "endpoint": {
+                  "Value": "datasync.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "detective": {
+                "Value": "detective",
+                "endpoint": {
+                  "Value": "api.detective.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40418,10 +40481,46 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx": {
+                "Value": "fsx",
+                "endpoint": {
+                  "Value": "fsx.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
                   "Value": "glue.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "guardduty": {
+                "Value": "guardduty",
+                "endpoint": {
+                  "Value": "guardduty.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40490,6 +40589,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
@@ -40520,6 +40628,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -40533,6 +40650,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "outposts": {
+                "Value": "outposts",
+                "endpoint": {
+                  "Value": "outposts.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40595,6 +40721,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rekognition": {
+                "Value": "rekognition",
+                "endpoint": {
+                  "Value": "rekognition.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -40638,6 +40773,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "s3outposts": {
+                "Value": "s3outposts",
+                "endpoint": {
+                  "Value": "s3-outposts.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sagemaker": {
@@ -40703,6 +40847,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "service-quotas": {
+                "Value": "service-quotas",
+                "endpoint": {
+                  "Value": "servicequotas.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "servicecatalog": {
                 "Value": "servicecatalog",
                 "endpoint": {
@@ -40721,6 +40874,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "shield": {
                 "Value": "shield",
                 "endpoint": {
@@ -40729,6 +40891,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "snowcone": {
+                "Value": "snowcone"
               },
               "sns": {
                 "Value": "sns",
@@ -40761,6 +40926,15 @@
                 "Value": "stepfunctions",
                 "endpoint": {
                   "Value": "states.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41617,6 +41791,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "outposts": {
+                "Value": "outposts",
+                "endpoint": {
+                  "Value": "outposts.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
