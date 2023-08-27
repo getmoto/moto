@@ -4368,7 +4368,7 @@
 
 ## logs
 <details>
-<summary>56% implemented</summary>
+<summary>60% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -4391,7 +4391,7 @@
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
-- [ ] describe_queries
+- [X] describe_queries
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
 - [X] describe_subscription_filters
@@ -4401,7 +4401,7 @@
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
-- [ ] get_query_results
+- [X] get_query_results
 - [ ] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy

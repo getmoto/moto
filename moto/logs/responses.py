@@ -399,8 +399,8 @@ class LogsResponse(BaseResponse):
     def start_query(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_group_names = self._get_param("logGroupNames")
-        start_time = self._get_param("startTime")
-        end_time = self._get_param("endTime")
+        start_time = self._get_int_param("startTime")
+        end_time = self._get_int_param("endTime")
         query_string = self._get_param("queryString")
 
         if log_group_name and log_group_names:
@@ -414,6 +414,19 @@ class LogsResponse(BaseResponse):
         )
 
         return json.dumps({"queryId": f"{query_id}"})
+
+    def describe_queries(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        status = self._get_param("status")
+        queries = self.logs_backend.describe_queries(log_group_name, status)
+        return json.dumps(
+            {"queries": [query.to_json(log_group_name) for query in queries]}
+        )
+
+    def get_query_results(self) -> str:
+        query_id = self._get_param("queryId")
+        query = self.logs_backend.get_query_results(query_id)
+        return json.dumps(query.to_result_json())
 
     def create_export_task(self) -> str:
         log_group_name = self._get_param("logGroupName")

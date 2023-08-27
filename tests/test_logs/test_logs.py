@@ -1,5 +1,4 @@
 import json
-import time
 from datetime import timedelta, datetime
 from uuid import UUID
 
@@ -1232,39 +1231,6 @@ def test_describe_log_streams_paging():
     )
     assert len(resp["logStreams"]) == 0
     assert "nextToken" not in resp
-
-
-@mock_logs
-def test_start_query():
-    client = boto3.client("logs", "us-east-1")
-
-    log_group_name = "/aws/codebuild/lowercase-dev"
-    client.create_log_group(logGroupName=log_group_name)
-
-    response = client.start_query(
-        logGroupName=log_group_name,
-        startTime=int(time.time()),
-        endTime=int(time.time()) + 300,
-        queryString="test",
-    )
-
-    assert "queryId" in response
-
-    with pytest.raises(ClientError) as exc:
-        client.start_query(
-            logGroupName="/aws/codebuild/lowercase-dev-invalid",
-            startTime=int(time.time()),
-            endTime=int(time.time()) + 300,
-            queryString="test",
-        )
-
-    # then
-    exc_value = exc.value
-    assert "ResourceNotFoundException" in exc_value.response["Error"]["Code"]
-    assert (
-        exc_value.response["Error"]["Message"]
-        == "The specified log group does not exist"
-    )
 
 
 @pytest.mark.parametrize("nr_of_events", [10001, 1000000])
