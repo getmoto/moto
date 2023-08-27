@@ -613,7 +613,7 @@ def test_get_resources_lambda():
     # create one lambda without tags
     client.create_function(
         FunctionName="lambda-no-tag",
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipfile},
@@ -626,7 +626,7 @@ def test_get_resources_lambda():
     # create second & third lambda with tags
     circle_arn = client.create_function(
         FunctionName="lambda-tag-value-1",
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipfile},
@@ -639,7 +639,7 @@ def test_get_resources_lambda():
 
     rectangle_arn = client.create_function(
         FunctionName="lambda-tag-value-2",
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipfile},

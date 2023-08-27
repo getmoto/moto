@@ -5,6 +5,8 @@ from moto import mock_lambda
 from uuid import uuid4
 from .utilities import get_test_zip_file1, get_role_name
 
+PYTHON_VERSION = "python3.11"
+
 
 @mock_lambda
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -13,7 +15,7 @@ def test_create_function_url_config(key):
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -39,7 +41,7 @@ def test_create_function_url_config_with_cors():
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -74,7 +76,7 @@ def test_update_function_url_config_with_cors():
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -107,7 +109,7 @@ def test_delete_function_url_config(key):
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},

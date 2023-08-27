@@ -199,7 +199,7 @@ def lambda_handler(event, context):
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
-                    "Runtime": "python2.7",
+                    "Runtime": "python3.11",
                     "Environment": {"Variables": {"TEST_ENV_KEY": "test-env-val"}},
                     "ReservedConcurrentExecutions": 10,
                 },
@@ -231,7 +231,7 @@ def lambda_handler(event, context):
     assert result["Functions"][0]["Description"] == "Test function"
     assert result["Functions"][0]["Handler"] == "index.lambda_handler"
     assert result["Functions"][0]["MemorySize"] == 128
-    assert result["Functions"][0]["Runtime"] == "python2.7"
+    assert result["Functions"][0]["Runtime"] == "python3.11"
     assert result["Functions"][0]["Environment"] == {
         "Variables": {"TEST_ENV_KEY": "test-env-val"}
     }

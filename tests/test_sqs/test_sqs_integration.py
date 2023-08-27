@@ -24,7 +24,7 @@ def test_invoke_function_from_sqs_queue():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=fn_name,
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -95,7 +95,7 @@ def test_invoke_function_from_sqs_fifo_queue():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=fn_name,
-        Runtime="python3.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_print_event()},

@@ -21,6 +21,7 @@ from .utilities import (
     _process_lambda,
 )
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -44,7 +45,7 @@ def test_list_functions():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -85,7 +86,7 @@ def test_create_based_on_s3_with_missing_bucket():
     with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,
-            Runtime="python2.7",
+            Runtime=PYTHON_VERSION,
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"S3Bucket": "this-bucket-does-not-exist", "S3Key": "test.zip"},
@@ -123,7 +124,7 @@ def test_create_function_from_aws_bucket():
 
     result = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -140,7 +141,7 @@ def test_create_function_from_aws_bucket():
         result["FunctionArn"]
         == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}"
     )
-    assert result["Runtime"] == "python2.7"
+    assert result["Runtime"] == PYTHON_VERSION
     assert result["Handler"] == "lambda_function.lambda_handler"
     assert result["CodeSha256"] == base64.b64encode(
         hashlib.sha256(zip_content).digest()
@@ -156,7 +157,7 @@ def test_create_function_from_zipfile():
     function_name = str(uuid4())[0:6]
     result = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -176,7 +177,7 @@ def test_create_function_from_zipfile():
         "EphemeralStorage": {"Size": 512},
         "FunctionName": function_name,
         "FunctionArn": f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}",
-        "Runtime": "python2.7",
+        "Runtime": PYTHON_VERSION,
         "Role": result["Role"],
         "Handler": "lambda_function.lambda_handler",
         "CodeSize": len(zip_content),
@@ -351,7 +352,7 @@ def test_create_function__with_tracingmode(tracing_mode):
     function_name = str(uuid4())[0:6]
     kwargs = dict(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -536,7 +537,7 @@ def test_get_function():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -570,7 +571,7 @@ def test_get_function():
     assert result["Configuration"]["Handler"] == "lambda_function.lambda_handler"
     assert result["Configuration"]["MemorySize"] == 128
     assert result["Configuration"]["Role"] == get_role_name()
-    assert result["Configuration"]["Runtime"] == "python2.7"
+    assert result["Configuration"]["Runtime"] == PYTHON_VERSION
     assert result["Configuration"]["Timeout"] == 3
     assert result["Configuration"]["Version"] == "$LATEST"
     assert "VpcConfig" in result["Configuration"]
@@ -612,7 +613,7 @@ def test_get_function_configuration(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -636,7 +637,7 @@ def test_get_function_configuration(key):
     assert result["Handler"] == "lambda_function.lambda_handler"
     assert result["MemorySize"] == 128
     assert result["Role"] == get_role_name()
-    assert result["Runtime"] == "python2.7"
+    assert result["Runtime"] == PYTHON_VERSION
     assert result["Timeout"] == 3
     assert result["Version"] == "$LATEST"
     assert "VpcConfig" in result
@@ -677,7 +678,7 @@ def test_get_function_code_signing_config(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -708,7 +709,7 @@ def test_get_function_by_arn():
 
     fnc = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -739,7 +740,7 @@ def test_delete_function():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -779,7 +780,7 @@ def test_delete_function_by_arn():
 
     fnc = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -842,7 +843,7 @@ def test_publish():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -903,7 +904,7 @@ def test_list_create_list_get_delete_list():
     function_name = function_name
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -928,7 +929,7 @@ def test_list_create_list_get_delete_list():
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
             "Role": get_role_name(),
-            "Runtime": "python2.7",
+            "Runtime": PYTHON_VERSION,
             "Timeout": 3,
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
@@ -1003,7 +1004,7 @@ def test_get_function_created_with_zipfile():
     zip_content = get_test_zip_file1()
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -1036,7 +1037,7 @@ def test_get_function_created_with_zipfile():
     assert config["Handler"] == "lambda_function.handler"
     assert config["MemorySize"] == 128
     assert config["Role"] == get_role_name()
-    assert config["Runtime"] == "python2.7"
+    assert config["Runtime"] == PYTHON_VERSION
     assert config["Timeout"] == 3
     assert config["Version"] == "$LATEST"
     assert config["State"] == "Active"
@@ -1061,7 +1062,7 @@ def test_list_versions_by_function():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1091,7 +1092,7 @@ def test_list_versions_by_function():
 
     conn.create_function(
         FunctionName="testFunction_2",
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1126,7 +1127,7 @@ def test_list_aliases():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1138,7 +1139,7 @@ def test_list_aliases():
 
     conn.create_function(
         FunctionName=function_name2,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1226,7 +1227,7 @@ def test_create_function_with_already_exists():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1239,7 +1240,7 @@ def test_create_function_with_already_exists():
     with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,
-            Runtime="python2.7",
+            Runtime=PYTHON_VERSION,
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1280,7 +1281,7 @@ def test_update_configuration(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1295,7 +1296,7 @@ def test_update_configuration(key):
     assert fxn["Description"] == "test lambda function"
     assert fxn["Handler"] == "lambda_function.lambda_handler"
     assert fxn["MemorySize"] == 128
-    assert fxn["Runtime"] == "python2.7"
+    assert fxn["Runtime"] == PYTHON_VERSION
     assert fxn["Timeout"] == 3
 
     updated_config = conn.update_function_configuration(
@@ -1334,7 +1335,7 @@ def test_update_function_zip(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content_one},
@@ -1416,7 +1417,7 @@ def test_update_function_s3():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1552,7 +1553,7 @@ def test_remove_unknown_permission_throws_error():
     function_name = str(uuid4())[0:6]
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -1574,7 +1575,7 @@ def test_multiple_qualifiers():
     fn_name = str(uuid4())[0:6]
     client.create_function(
         FunctionName=fn_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -1651,7 +1652,7 @@ def test_put_function_concurrency_success():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -1676,7 +1677,7 @@ def test_put_function_concurrency_not_enforced():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -1705,7 +1706,7 @@ def test_put_function_concurrency_failure():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -1740,7 +1741,7 @@ def test_put_function_concurrency_i_can_has_math():
     function_name_2 = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name_1,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -1751,7 +1752,7 @@ def test_put_function_concurrency_i_can_has_math():
     )
     conn.create_function(
         FunctionName=function_name_2,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},

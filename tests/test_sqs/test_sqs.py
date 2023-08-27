@@ -1932,7 +1932,7 @@ def test_delete_message_batch_with_invalid_receipt_id():
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    q_resp = conn.create_queue(QueueName="test-queue")
+    q_resp = conn.create_queue(QueueName=str(uuid4())[0:6])
     queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
@@ -3203,7 +3203,7 @@ def test_message_delay_is_more_than_15_minutes():
 @mock_sqs
 def test_receive_message_that_becomes_visible_while_long_polling():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(QueueName="test-queue")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
     msg_body = str(uuid4())
     queue.send_message(MessageBody=msg_body)
     messages = queue.receive_messages()

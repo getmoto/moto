@@ -94,8 +94,8 @@ def test_get_query_results():
     # Only find events from last 2 minutes
     query_id = client.start_query(
         logGroupName="test",
-        startTime=int(unix_time(datetime.utcnow() - timedelta(minutes=2))),
-        endTime=int(unix_time(datetime.utcnow())),
+        startTime=int(unix_time(datetime.utcnow() - timedelta(minutes=2, seconds=1))),
+        endTime=int(unix_time(datetime.utcnow() - timedelta(seconds=1))),
         queryString="fields @message",
     )["queryId"]
 

@@ -5,6 +5,7 @@ from moto import mock_lambda
 from uuid import uuid4
 from .utilities import get_role_name, get_test_zip_file1
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -18,7 +19,7 @@ def test_put_function_concurrency(key):
     conn = boto3.client("lambda", _lambda_region)
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -43,7 +44,7 @@ def test_delete_function_concurrency(key):
     conn = boto3.client("lambda", _lambda_region)
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -72,7 +73,7 @@ def test_get_function_concurrency(key):
     conn = boto3.client("lambda", _lambda_region)
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": get_test_zip_file1()},

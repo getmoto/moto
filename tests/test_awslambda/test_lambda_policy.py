@@ -8,6 +8,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
 from .utilities import get_role_name, get_test_zip_file1, get_test_zip_file2
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -23,7 +24,7 @@ def test_add_function_permission(key):
     function_name = str(uuid4())[0:6]
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -54,7 +55,7 @@ def test_add_permission_with_principalorgid():
     function_name = str(uuid4())[0:6]
     fn_arn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -85,7 +86,7 @@ def test_get_function_policy(key):
     function_name = str(uuid4())[0:6]
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -124,7 +125,7 @@ def test_get_policy_with_qualifier():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -169,7 +170,7 @@ def test_add_permission_with_unknown_qualifier():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -204,7 +205,7 @@ def test_remove_function_permission(key):
     function_name = str(uuid4())[0:6]
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -234,7 +235,7 @@ def test_remove_function_permission__with_qualifier(key):
     function_name = str(uuid4())[0:6]
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
