@@ -4368,7 +4368,7 @@
 
 ## logs
 <details>
-<summary>60% implemented</summary>
+<summary>66% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -4402,7 +4402,7 @@
 - [ ] get_log_group_fields
 - [ ] get_log_record
 - [X] get_query_results
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
@@ -4417,10 +4417,10 @@
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_metric_filter
 - [X] untag_log_group
-- [ ] untag_resource
+- [X] untag_resource
 </details>
 
 ## managedblockchain
@@ -5792,7 +5792,7 @@
 
 ## resourcegroupstaggingapi
 <details>
-<summary>37% implemented</summary>
+<summary>50% implemented</summary>
 
 - [ ] describe_report_creation
 - [ ] get_compliance_summary
@@ -5800,7 +5800,7 @@
 - [X] get_tag_keys
 - [X] get_tag_values
 - [ ] start_report_creation
-- [ ] tag_resources
+- [X] tag_resources
 - [ ] untag_resources
 </details>
 

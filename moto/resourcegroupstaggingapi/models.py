@@ -10,6 +10,7 @@ from moto.elb.models import elb_backends, ELBBackend
 from moto.elbv2.models import elbv2_backends, ELBv2Backend
 from moto.glue.models import glue_backends, GlueBackend
 from moto.kinesis.models import kinesis_backends, KinesisBackend
+from moto.logs.models import logs_backends, LogsBackend
 from moto.kms.models import kms_backends, KmsBackend
 from moto.rds.models import rds_backends, RDSBackend
 from moto.glacier.models import glacier_backends, GlacierBackend
@@ -31,7 +32,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Like 'someuuid': {'gen': <generator>, 'misc': None}
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
-        # theres not really any point to clean up
+        # there is really no point cleaning up
 
     @property
     def s3_backend(self) -> S3Backend:
@@ -60,6 +61,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def kms_backend(self) -> KmsBackend:
         return kms_backends[self.account_id][self.region_name]
+
+    @property
+    def logs_backend(self) -> LogsBackend:
+        return logs_backends[self.account_id][self.region_name]
 
     @property
     def rds_backend(self) -> RDSBackend:
@@ -101,7 +106,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 # Check key matches
                 filters.append(lambda t, v, key=tag_filter_dict["Key"]: t == key)
             elif len(values) == 1:
-                # Check its exactly the same as key, value
+                # Check it's exactly the same as key, value
                 filters.append(
                     lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
                     and v == value
@@ -370,6 +375,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
+
+        # LOGS
+        if (
+            not resource_type_filters
+            or "logs" in resource_type_filters
+            or "logs:loggroup" in resource_type_filters
+        ):
+            for group in self.logs_backend.groups.values():
+                log_tags = self.logs_backend.list_tags_for_resource(group.arn)
+                tags = format_tags(log_tags)
+
+                if not log_tags or not tag_filter(tags):
+                    # Skip if no tags, or invalid filter
+                    continue
+                yield {"ResourceARN": group.arn, "Tags": tags}
 
         # RDS resources
         resource_map: Dict[str, Dict[str, Any]] = {
@@ -733,7 +753,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only RDS resources are currently supported
+        Only Logs and RDS resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -746,6 +766,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            if arn.startswith("arn:aws:logs:"):
+                self.logs_backend.tag_resource(arn, tags)
             else:
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}
