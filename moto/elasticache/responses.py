@@ -1,4 +1,5 @@
 from moto.core.responses import BaseResponse
+
 from .exceptions import PasswordTooShort, PasswordRequired
 from .models import elasticache_backends, ElastiCacheBackend
 
@@ -52,6 +53,73 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(DESCRIBE_USERS_TEMPLATE)
         return template.render(users=users)
 
+    def create_cache_cluster(self):
+        params = self._get_params()
+        cache_cluster_id = params.get("CacheClusterId")
+        replication_group_id = params.get("ReplicationGroupId")
+        az_mode = params.get("AZMode")
+        preferred_availability_zone = params.get("PreferredAvailabilityZone")
+        preferred_availability_zones = params.get("PreferredAvailabilityZones")
+        num_cache_nodes = params.get("NumCacheNodes")
+        cache_node_type = params.get("CacheNodeType")
+        engine = params.get("Engine")
+        engine_version = params.get("EngineVersion")
+        cache_parameter_group_name = params.get("CacheParameterGroupName")
+        cache_subnet_group_name = params.get("CacheSubnetGroupName")
+        cache_security_group_names = params.get("CacheSecurityGroupNames")
+        security_group_ids = params.get("SecurityGroupIds")
+        tags = params.get("Tags")
+        snapshot_arns = params.get("SnapshotArns")
+        snapshot_name = params.get("SnapshotName")
+        preferred_maintenance_window = params.get("PreferredMaintenanceWindow")
+        port = params.get("Port")
+        notification_topic_arn = params.get("NotificationTopicArn")
+        auto_minor_version_upgrade = params.get("AutoMinorVersionUpgrade")
+        snapshot_retention_limit = params.get("SnapshotRetentionLimit")
+        snapshot_window = params.get("SnapshotWindow")
+        auth_token = params.get("AuthToken")
+        outpost_mode = params.get("OutpostMode")
+        preferred_outpost_arn = params.get("PreferredOutpostArn")
+        preferred_outpost_arns = params.get("PreferredOutpostArns")
+        log_delivery_configurations = params.get("LogDeliveryConfigurations")
+        transit_encryption_enabled = params.get("TransitEncryptionEnabled")
+        network_type = params.get("NetworkType")
+        ip_discovery = params.get("IpDiscovery")
+        cache_cluster = self.elasticache_backend.create_cache_cluster(
+            cache_cluster_id=cache_cluster_id,
+            replication_group_id=replication_group_id,
+            az_mode=az_mode,
+            preferred_availability_zone=preferred_availability_zone,
+            preferred_availability_zones=preferred_availability_zones,
+            num_cache_nodes=num_cache_nodes,
+            cache_node_type=cache_node_type,
+            engine=engine,
+            engine_version=engine_version,
+            cache_parameter_group_name=cache_parameter_group_name,
+            cache_subnet_group_name=cache_subnet_group_name,
+            cache_security_group_names=cache_security_group_names,
+            security_group_ids=security_group_ids,
+            tags=tags,
+            snapshot_arns=snapshot_arns,
+            snapshot_name=snapshot_name,
+            preferred_maintenance_window=preferred_maintenance_window,
+            port=port,
+            notification_topic_arn=notification_topic_arn,
+            auto_minor_version_upgrade=auto_minor_version_upgrade,
+            snapshot_retention_limit=snapshot_retention_limit,
+            snapshot_window=snapshot_window,
+            auth_token=auth_token,
+            outpost_mode=outpost_mode,
+            preferred_outpost_arn=preferred_outpost_arn,
+            preferred_outpost_arns=preferred_outpost_arns,
+            log_delivery_configurations=log_delivery_configurations,
+            transit_encryption_enabled=transit_encryption_enabled,
+            network_type=network_type,
+            ip_discovery=ip_discovery,
+        )
+        template = self.response_template(CREATE_CACHE_CLUSTER_TEMPLATE)
+        return template.render(cache_cluster=cache_cluster)
+
 
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     <UserName>{{ user.name }}</UserName>
@@ -74,14 +142,13 @@ USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     </Authentication>
     <ARN>{{ user.arn }}</ARN>"""
 
-
 CREATE_USER_TEMPLATE = (
     """<CreateUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <CreateUserResult>
-    """
+      <ResponseMetadata>
+        <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+      </ResponseMetadata>
+      <CreateUserResult>
+        """
     + USER_TEMPLATE
     + """
   </CreateUserResult>
@@ -90,11 +157,11 @@ CREATE_USER_TEMPLATE = (
 
 DELETE_USER_TEMPLATE = (
     """<DeleteUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <DeleteUserResult>
-    """
+      <ResponseMetadata>
+        <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+      </ResponseMetadata>
+      <DeleteUserResult>
+        """
     + USER_TEMPLATE
     + """
   </DeleteUserResult>
@@ -103,14 +170,14 @@ DELETE_USER_TEMPLATE = (
 
 DESCRIBE_USERS_TEMPLATE = (
     """<DescribeUsersResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <DescribeUsersResult>
-    <Users>
-{% for user in users %}
-      <member>
-        """
+      <ResponseMetadata>
+        <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+      </ResponseMetadata>
+      <DescribeUsersResult>
+        <Users>
+    {% for user in users %}
+          <member>
+            """
     + USER_TEMPLATE
     + """
       </member>
@@ -120,3 +187,12 @@ DESCRIBE_USERS_TEMPLATE = (
   </DescribeUsersResult>
 </DescribeUsersResponse>"""
 )
+
+CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <CreateCacheClusterResult>
+    <CacheCluster>{{ cache_cluster }}</CacheCluster>
+  </CreateCacheClusterResult>
+</CreateCacheClusterResponse>"""

@@ -1,4 +1,5 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+
 from moto.core import BaseBackend, BackendDict, BaseModel
 
 from .exceptions import UserAlreadyExists, UserNotFound
@@ -91,6 +92,74 @@ class ElastiCacheBackend(BaseBackend):
             else:
                 raise UserNotFound(user_id)
         return list(self.users.values())
+
+    def create_cache_cluster(
+        self,
+        cache_cluster_id: Dict[str, Any],
+        replication_group_id: Optional[str] = None,
+        az_mode: Optional[str] = None,
+        preferred_availability_zone: Optional[str] = None,
+        preferred_availability_zones: List[str] = None,
+        num_cache_nodes: Optional[int] = None,
+        cache_node_type: Optional[str] = None,
+        engine: Optional[str] = "Redis",
+        engine_version: Optional[str] = None,
+        cache_parameter_group_name: Optional[str] = None,
+        cache_subnet_group_name: Optional[str] = None,
+        cache_security_group_names: Optional[List[str]] = None,
+        security_group_ids: Optional[List[str]] = None,
+        tags: Optional[List[str]] = None,
+        snapshot_arns: Optional[List[str]] = None,
+        snapshot_name: Optional[str] = None,
+        preferred_maintenance_window: Optional[str] = None,
+        port: Optional[int] = None,
+        notification_topic_arn: Optional[str] = None,
+        auto_minor_version_upgrade: Optional[bool] = True,
+        snapshot_retention_limit: Optional[int] = None,
+        snapshot_window: Optional[str] = None,
+        auth_token: Optional[str] = None,
+        outpost_mode: Optional[str] = None,
+        preferred_outpost_arn: Optional[str] = None,
+        preferred_outpost_arns: Optional[List[str]] = None,
+        log_delivery_configurations: Optional[List[str]] = None,
+        transit_encryption_enabled: Optional[bool] = True,
+        network_type: Optional[str] = None,
+        ip_discovery: Optional[str] = None,
+    ):
+        cache_cluster = {
+            cache_cluster_id,
+            replication_group_id,
+            az_mode,
+            preferred_availability_zone,
+            preferred_availability_zones,
+            num_cache_nodes,
+            cache_node_type,
+            engine,
+            engine_version,
+            cache_parameter_group_name,
+            cache_subnet_group_name,
+            cache_security_group_names,
+            security_group_ids,
+            tags,
+            snapshot_arns,
+            snapshot_name,
+            preferred_maintenance_window,
+            port,
+            notification_topic_arn,
+            auto_minor_version_upgrade,
+            snapshot_retention_limit,
+            snapshot_window,
+            auth_token,
+            outpost_mode,
+            preferred_outpost_arn,
+            preferred_outpost_arns,
+            log_delivery_configurations,
+            transit_encryption_enabled,
+            network_type,
+            ip_discovery,
+        }
+
+        return cache_cluster
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

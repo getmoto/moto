@@ -1,9 +1,10 @@
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from moto import mock_elasticache
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
+from moto import mock_elasticache
+
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -208,3 +209,11 @@ def test_describe_users_unknown_userid():
     err = exc.value.response["Error"]
     assert err["Code"] == "UserNotFound"
     assert err["Message"] == "User unknown not found."
+
+
+@mock_elasticache
+def test_create_cache_cluster():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    resp = client.create_cache_cluster(CacheClusterId="test-cache-cluster")
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
