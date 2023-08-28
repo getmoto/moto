@@ -1253,6 +1253,133 @@ def test_fail_verify_digest_message_type_RSA(
 
 
 @mock_kms
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm",
+    [
+        ("ECC_NIST_P256", "ECDSA_SHA_256"),
+        ("ECC_SECG_P256K1", "ECDSA_SHA_256"),
+        ("ECC_NIST_P384", "ECDSA_SHA_384"),
+        ("ECC_NIST_P521", "ECDSA_SHA_512"),
+    ],
+)
+def test_sign_and_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    message = digest.finalize()
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    assert verify_response["SignatureValid"] is True
+
+
+@mock_kms
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm, valid_signing_algorithms",
+    [
+        ("ECC_NIST_P256", "ECDSA_SHA_384", ["ECDSA_SHA_256"]),
+        ("ECC_SECG_P256K1", "ECDSA_SHA_512", ["ECDSA_SHA_256"]),
+        ("ECC_NIST_P384", "ECDSA_SHA_256", ["ECDSA_SHA_384"]),
+        ("ECC_NIST_P521", "ECDSA_SHA_384", ["ECDSA_SHA_512"]),
+    ],
+)
+def test_invalid_signing_algorithm_for_key_spec_type_ECDSA(
+    key_spec, signing_algorithm, valid_signing_algorithms
+):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    message = digest.finalize()
+
+    with pytest.raises(ClientError) as ex:
+        _ = client.sign(
+            KeyId=key_id,
+            Message=message,
+            SigningAlgorithm=signing_algorithm,
+            MessageType="DIGEST",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+        "to satisfy constraint: Member must satisfy enum value set: "
+        "{valid_sign_algorithms}"
+    ).format(
+        signing_algorithm=signing_algorithm,
+        valid_sign_algorithms=valid_signing_algorithms,
+    )
+
+
+@mock_kms
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm",
+    [
+        ("ECC_NIST_P256", "ECDSA_SHA_256"),
+        ("ECC_SECG_P256K1", "ECDSA_SHA_256"),
+        ("ECC_NIST_P384", "ECDSA_SHA_384"),
+        ("ECC_NIST_P521", "ECDSA_SHA_512"),
+    ],
+)
+def test_fail_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    falsified_digest = digest.copy()
+    message = digest.finalize()
+    falsified_digest.update(b"This sentence has been falsified")
+    falsified_message = falsified_digest.finalize()
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=falsified_message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    assert verify_response["SignatureValid"] is False
+
+
+@mock_kms
 def test_sign_invalid_key_usage():
     client = boto3.client("kms", region_name="us-west-2")
 
