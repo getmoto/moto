@@ -219,6 +219,10 @@ def test_create_db_cluster_additional_parameters():
             "MinCapacity": 5,
             "AutoPause": True,
         },
+        ServerlessV2ScalingConfiguration={
+            "MinCapacity": 2,
+            "MaxCapacity": 4,
+        },
         VpcSecurityGroupIds=["sg1", "sg2"],
     )
 
@@ -236,6 +240,10 @@ def test_create_db_cluster_additional_parameters():
     assert cluster["NetworkType"] == "IPV4"
     assert cluster["DBSubnetGroup"] == "subnetgroupname"
     assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
+    assert cluster["ServerlessV2ScalingConfiguration"] == {
+        "MaxCapacity": 4.0,
+        "MinCapacity": 2.0,
+    }
 
     security_groups = cluster["VpcSecurityGroups"]
     assert len(security_groups) == 2

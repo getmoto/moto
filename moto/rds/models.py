@@ -208,6 +208,9 @@ class Cluster:
                 "timeout_action": "RollbackCapacityChange",
                 "seconds_before_timeout": 300,
             }
+        self.serverless_v2_scaling_configuration = kwargs.get(
+            "serverless_v2_scaling_configuration"
+        )
         self.cluster_members: List[str] = list()
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
@@ -377,6 +380,12 @@ class Cluster:
                 {% if "timeout_action" in cluster.scaling_configuration %}<TimeoutAction>{{ cluster.scaling_configuration["timeout_action"] }}</TimeoutAction>{% endif %}
                 {% if "seconds_before_timeout" in cluster.scaling_configuration %}<SecondsBeforeTimeout>{{ cluster.scaling_configuration["seconds_before_timeout"] }}</SecondsBeforeTimeout>{% endif %}
               </ScalingConfigurationInfo>
+              {% endif %}
+              {% if cluster.serverless_v2_scaling_configuration %}
+              <ServerlessV2ScalingConfiguration>
+                {% if "MinCapacity" in cluster.serverless_v2_scaling_configuration %}<MinCapacity>{{ cluster.serverless_v2_scaling_configuration["MinCapacity"] }}</MinCapacity>{% endif %}
+                {% if "MaxCapacity" in cluster.serverless_v2_scaling_configuration %}<MaxCapacity>{{ cluster.serverless_v2_scaling_configuration["MaxCapacity"] }}</MaxCapacity>{% endif %}
+              </ServerlessV2ScalingConfiguration>
               {% endif %}
               {%- if cluster.global_cluster_identifier -%}
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
