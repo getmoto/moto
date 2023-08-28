@@ -70,7 +70,7 @@ def test_KeySpec_Enum():
             KeySpec.ECC_NIST_P256,
             KeySpec.ECC_SECG_P256K1,
             KeySpec.ECC_NIST_P384,
-            KeySpec.ECC_NIST_P512,
+            KeySpec.ECC_NIST_P521,
         ]
     )
     assert KeySpec.hmac_key_specs() == sorted(
