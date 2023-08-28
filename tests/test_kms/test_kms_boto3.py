@@ -1233,7 +1233,10 @@ def test_fail_verify_digest_message_type_RSA(
     digest = hashes.Hash(hashes.SHA256())
     digest.update(b"this works")
     digest.update(b"as well")
+    falsified_digest = digest.copy()
     message = digest.finalize()
+    falsified_digest.update(b"This sentence has been falsified")
+    falsified_message = falsified_digest.finalize()
 
     sign_response = client.sign(
         KeyId=key_id,
@@ -1242,6 +1245,16 @@ def test_fail_verify_digest_message_type_RSA(
         MessageType="DIGEST",
     )
 
+    # Verification fails if a message has been falsified.
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=falsified_message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+    assert verify_response["SignatureValid"] is False
+
+    # Verification fails if a different signing algorithm is used than the one used in signature.
     verify_response = client.verify(
         KeyId=key_id,
         Message=message,
