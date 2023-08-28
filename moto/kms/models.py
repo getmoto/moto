@@ -167,12 +167,12 @@ class Key(CloudFormationModel):
             return None  # type: ignore[return-value]
         elif self.key_spec in KeySpec.ecc_key_specs():
             if self.key_spec == KeySpec.ECC_NIST_P384:
-                return [SigningAlgorithm.ECDSA_SHA_384]
-            elif self.key_spec == KeySpec.ECC_NIST_P512:
-                return [SigningAlgorithm.ECDSA_SHA_512]
+                return [SigningAlgorithm.ECDSA_SHA_384.value]
+            elif self.key_spec == KeySpec.ECC_NIST_P521:
+                return [SigningAlgorithm.ECDSA_SHA_512.value]
             else:
                 # key_spec is 'ECC_NIST_P256' or 'ECC_SECG_P256K1'
-                return [SigningAlgorithm.ECDSA_SHA_256]
+                return [SigningAlgorithm.ECDSA_SHA_256.value]
         elif self.key_spec in KeySpec.rsa_key_specs():
             return SigningAlgorithm.rsa_signing_algorithms()
         elif self.key_spec == KeySpec.SM2:
