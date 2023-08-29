@@ -60,7 +60,7 @@ class CacheCluster(BaseModel):
             preferred_availability_zones: Optional[List[str]],
             cache_security_group_names: Optional[List[str]],
             security_group_ids: Optional[List[str]],
-            tags: Optional[Dict[str, str]],
+            tags: Optional[List[Dict[str, str]]],
             snapshot_arns: Optional[List[str]],
             preferred_outpost_arns: Optional[List[str]],
             log_delivery_configurations: List[Dict[str, Any]],
