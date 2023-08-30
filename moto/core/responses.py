@@ -30,6 +30,7 @@ from typing import (
     Set,
     ClassVar,
     Callable,
+    TypeVar,
 )
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from werkzeug.exceptions import HTTPException
@@ -39,6 +40,9 @@ from xml.dom.minidom import parseString as parseXML
 log = logging.getLogger(__name__)
 
 JINJA_ENVS: Dict[type, Environment] = {}
+
+
+ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
 
 
 def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
@@ -238,6 +242,23 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         return cls()._dispatch(*args, **kwargs)
+
+    @classmethod
+    def method_dispatch(  # type: ignore[misc]
+        cls, to_call: Callable[[ResponseShape, Any, str, Any], TYPE_RESPONSE]
+    ) -> Callable[[Any, str, Any], TYPE_RESPONSE]:
+        """
+        Takes a given unbound function (part of a Response class) and executes it for a new instance of this
+        response class.
+        Can be used wherever we want to specify different methods for dispatching in urls.py
+        :param to_call: Unbound method residing in this Response class
+        :return: A wrapper executing the given method on a new instance of this class
+        """
+
+        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+            return getattr(cls(), to_call.__name__)(request, full_url, headers)
+
+        return _inner
 
     def setup_class(
         self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
