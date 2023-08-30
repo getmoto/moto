@@ -53,41 +53,42 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(DESCRIBE_USERS_TEMPLATE)
         return template.render(users=users)
 
-    def create_cache_cluster(self):
-        params = self._get_params()
-        cache_cluster_id = params.get("CacheClusterId")
-        replication_group_id = params.get("ReplicationGroupId")
-        az_mode = params.get("AZMode")
-        preferred_availability_zone = params.get("PreferredAvailabilityZone")
-        preferred_availability_zones = params.get("PreferredAvailabilityZones")
+    def create_cache_cluster(self) -> str:
+        cache_cluster_id = self._get_param("CacheClusterId")
+        replication_group_id = self._get_param("ReplicationGroupId")
+        az_mode = self._get_param("AZMode")
+        preferred_availability_zone = self._get_param("PreferredAvailabilityZone")
+        preferred_availability_zones = self._get_multi_param(
+            "PreferredAvailabilityZones.member"
+        )
         num_cache_nodes = self._get_int_param("NumCacheNodes")
-        cache_node_type = params.get("CacheNodeType")
-        engine = params.get("Engine")
-        engine_version = params.get("EngineVersion")
-        cache_parameter_group_name = params.get("CacheParameterGroupName")
-        cache_subnet_group_name = params.get("CacheSubnetGroupName")
-        cache_security_group_names = params.get("CacheSecurityGroupNames")
-        security_group_ids = params.get("SecurityGroupIds")
-        tags = params.get("Tags")
-        snapshot_arns = params.get("SnapshotArns")
-        snapshot_name = params.get("SnapshotName")
-        preferred_maintenance_window = params.get("PreferredMaintenanceWindow")
-        port = params.get("Port")
-        notification_topic_arn = params.get("NotificationTopicArn")
+        cache_node_type = self._get_param("CacheNodeType")
+        engine = self._get_param("Engine")
+        engine_version = self._get_param("EngineVersion")
+        cache_parameter_group_name = self._get_param("CacheParameterGroupName")
+        cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
+        cache_security_group_names = self._get_param("CacheSecurityGroupNames")
+        security_group_ids = self._get_param("SecurityGroupIds")
+        tags = self._get_param("Tags")
+        snapshot_arns = self._get_param("SnapshotArns")
+        snapshot_name = self._get_param("SnapshotName")
+        preferred_maintenance_window = self._get_param("PreferredMaintenanceWindow")
+        port = self._get_param("Port")
+        notification_topic_arn = self._get_param("NotificationTopicArn")
         auto_minor_version_upgrade = self._get_bool_param("AutoMinorVersionUpgrade")
         snapshot_retention_limit = self._get_int_param("SnapshotRetentionLimit")
-        snapshot_window = params.get("SnapshotWindow")
-        auth_token = params.get("AuthToken")
-        outpost_mode = params.get("OutpostMode")
-        preferred_outpost_arn = params.get("PreferredOutpostArn")
-        preferred_outpost_arns = params.get("PreferredOutpostArns")
-        log_delivery_configurations = params.get("LogDeliveryConfigurations")
+        snapshot_window = self._get_param("SnapshotWindow")
+        auth_token = self._get_param("AuthToken")
+        outpost_mode = self._get_param("OutpostMode")
+        preferred_outpost_arn = self._get_param("PreferredOutpostArn")
+        preferred_outpost_arns = self._get_param("PreferredOutpostArns")
+        log_delivery_configurations = self._get_param("LogDeliveryConfigurations")
         transit_encryption_enabled = self._get_bool_param("TransitEncryptionEnabled")
-        network_type = params.get("NetworkType")
-        ip_discovery = params.get("IpDiscovery")
+        network_type = self._get_param("NetworkType")
+        ip_discovery = self._get_param("IpDiscovery")
         # Define the following attributes as they're included in the response even during creation of a cache cluster
-        cache_node_ids_to_remove = []
-        cache_node_ids_to_reboot = []
+        cache_node_ids_to_remove = self._get_param("CacheNodeIdsToRemove", [])
+        cache_node_ids_to_reboot = self._get_param("CacheNodeIdsToReboot", [])
         cache_cluster = self.elasticache_backend.create_cache_cluster(
             cache_cluster_id=cache_cluster_id,
             replication_group_id=replication_group_id,
@@ -120,7 +121,7 @@ class ElastiCacheResponse(BaseResponse):
             network_type=network_type,
             ip_discovery=ip_discovery,
             cache_node_ids_to_remove=cache_node_ids_to_remove,
-            cache_node_ids_to_reboot=cache_node_ids_to_reboot
+            cache_node_ids_to_reboot=cache_node_ids_to_reboot,
         )
         template = self.response_template(CREATE_CACHE_CLUSTER_TEMPLATE)
         return template.render(cache_cluster=cache_cluster)
