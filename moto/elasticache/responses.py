@@ -147,43 +147,43 @@ USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     <ARN>{{ user.arn }}</ARN>"""
 
 CREATE_USER_TEMPLATE = (
-    """<CreateUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-      <ResponseMetadata>
-        <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-      </ResponseMetadata>
-      <CreateUserResult>
-        """
-    + USER_TEMPLATE
-    + """
+        """<CreateUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+          <ResponseMetadata>
+            <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+          </ResponseMetadata>
+          <CreateUserResult>
+            """
+        + USER_TEMPLATE
+        + """
   </CreateUserResult>
 </CreateUserResponse>"""
 )
 
 DELETE_USER_TEMPLATE = (
-    """<DeleteUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-      <ResponseMetadata>
-        <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-      </ResponseMetadata>
-      <DeleteUserResult>
-        """
-    + USER_TEMPLATE
-    + """
+        """<DeleteUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+          <ResponseMetadata>
+            <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+          </ResponseMetadata>
+          <DeleteUserResult>
+            """
+        + USER_TEMPLATE
+        + """
   </DeleteUserResult>
 </DeleteUserResponse>"""
 )
 
 DESCRIBE_USERS_TEMPLATE = (
-    """<DescribeUsersResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-      <ResponseMetadata>
-        <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-      </ResponseMetadata>
-      <DescribeUsersResult>
-        <Users>
-    {% for user in users %}
-          <member>
-            """
-    + USER_TEMPLATE
-    + """
+        """<DescribeUsersResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+          <ResponseMetadata>
+            <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+          </ResponseMetadata>
+          <DescribeUsersResult>
+            <Users>
+        {% for user in users %}
+              <member>
+                """
+        + USER_TEMPLATE
+        + """
       </member>
 {% endfor %}
     </Users>

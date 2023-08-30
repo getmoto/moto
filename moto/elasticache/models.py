@@ -9,15 +9,15 @@ from ..moto_api._internal import mock_random
 
 class User(BaseModel):
     def __init__(
-        self,
-        account_id: str,
-        region: str,
-        user_id: str,
-        user_name: str,
-        access_string: str,
-        engine: str,
-        no_password_required: bool,
-        passwords: Optional[List[str]] = None,
+            self,
+            account_id: str,
+            region: str,
+            user_id: str,
+            user_name: str,
+            access_string: str,
+            engine: str,
+            no_password_required: bool,
+            passwords: Optional[List[str]] = None,
     ):
         self.id = user_id
         self.name = user_name
@@ -132,13 +132,13 @@ class ElastiCacheBackend(BaseBackend):
         )
 
     def create_user(
-        self,
-        user_id: str,
-        user_name: str,
-        engine: str,
-        passwords: List[str],
-        access_string: str,
-        no_password_required: bool,
+            self,
+            user_id: str,
+            user_name: str,
+            engine: str,
+            passwords: List[str],
+            access_string: str,
+            no_password_required: bool,
     ) -> User:
         if user_id in self.users:
             raise UserAlreadyExists
