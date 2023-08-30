@@ -9,15 +9,15 @@ from ..moto_api._internal import mock_random
 
 class User(BaseModel):
     def __init__(
-            self,
-            account_id: str,
-            region: str,
-            user_id: str,
-            user_name: str,
-            access_string: str,
-            engine: str,
-            no_password_required: bool,
-            passwords: Optional[List[str]] = None,
+        self,
+        account_id: str,
+        region: str,
+        user_id: str,
+        user_name: str,
+        access_string: str,
+        engine: str,
+        no_password_required: bool,
+        passwords: Optional[List[str]] = None,
     ):
         self.id = user_id
         self.name = user_name
@@ -34,44 +34,44 @@ class User(BaseModel):
 
 class CacheCluster(BaseModel):
     def __init__(
-            self,
-            account_id: str,
-            region_name: str,
-            cache_cluster_id: str,
-            replication_group_id: Optional[str],
-            az_mode: Optional[str],
-            preferred_availability_zone: Optional[str],
-            num_cache_nodes: Optional[int],
-            cache_node_type: Optional[str],
-            engine: Optional[str],
-            engine_version: Optional[str],
-            cache_parameter_group_name: Optional[str],
-            cache_subnet_group_name: Optional[str],
-            transit_encryption_enabled: Optional[bool],
-            network_type: Optional[str],
-            ip_discovery: Optional[str],
-            snapshot_name: Optional[str],
-            preferred_maintenance_window: Optional[str],
-            port: Optional[int],
-            notification_topic_arn: Optional[str],
-            auto_minor_version_upgrade: Optional[bool],
-            snapshot_retention_limit: Optional[int],
-            snapshot_window: Optional[str],
-            auth_token: Optional[str],
-            outpost_mode: Optional[str],
-            preferred_outpost_arn: Optional[str],
-            preferred_availability_zones: Optional[List[str]],
-            cache_security_group_names: Optional[List[str]],
-            security_group_ids: Optional[List[str]],
-            tags: Optional[List[Dict[str, str]]],
-            snapshot_arns: Optional[List[str]],
-            preferred_outpost_arns: Optional[List[str]],
-            log_delivery_configurations: List[Dict[str, Any]],
-            cache_node_ids_to_remove: Optional[List[str]],
-            cache_node_ids_to_reboot: Optional[List[str]]
+        self,
+        account_id: str,
+        region_name: str,
+        cache_cluster_id: str,
+        replication_group_id: Optional[str],
+        az_mode: Optional[str],
+        preferred_availability_zone: Optional[str],
+        num_cache_nodes: Optional[int],
+        cache_node_type: Optional[str],
+        engine: Optional[str],
+        engine_version: Optional[str],
+        cache_parameter_group_name: Optional[str],
+        cache_subnet_group_name: Optional[str],
+        transit_encryption_enabled: Optional[bool],
+        network_type: Optional[str],
+        ip_discovery: Optional[str],
+        snapshot_name: Optional[str],
+        preferred_maintenance_window: Optional[str],
+        port: Optional[int],
+        notification_topic_arn: Optional[str],
+        auto_minor_version_upgrade: Optional[bool],
+        snapshot_retention_limit: Optional[int],
+        snapshot_window: Optional[str],
+        auth_token: Optional[str],
+        outpost_mode: Optional[str],
+        preferred_outpost_arn: Optional[str],
+        preferred_availability_zones: Optional[List[str]],
+        cache_security_group_names: Optional[List[str]],
+        security_group_ids: Optional[List[str]],
+        tags: Optional[List[Dict[str, str]]],
+        snapshot_arns: Optional[List[str]],
+        preferred_outpost_arns: Optional[List[str]],
+        log_delivery_configurations: List[Dict[str, Any]],
+        cache_node_ids_to_remove: Optional[List[str]],
+        cache_node_ids_to_reboot: Optional[List[str]],
     ):
         if tags is None:
-            tags = {}
+            tags = []
 
         self.cache_cluster_id = cache_cluster_id
         self.az_mode = az_mode
@@ -114,7 +114,7 @@ class CacheCluster(BaseModel):
 
         self.cache_cluster_create_time = datetime.utcnow()
         self.cache_cluster_status = "available"
-        self.arn = f'arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}'
+        self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}"
         self.cache_node_id = mock_random.uuid4()
 
 
@@ -174,13 +174,13 @@ class ElastiCacheBackend(BaseBackend):
         )
 
     def create_user(
-            self,
-            user_id: str,
-            user_name: str,
-            engine: str,
-            passwords: List[str],
-            access_string: str,
-            no_password_required: bool,
+        self,
+        user_id: str,
+        user_name: str,
+        engine: str,
+        passwords: List[str],
+        access_string: str,
+        no_password_required: bool,
     ) -> User:
         if user_id in self.users:
             raise UserAlreadyExists
@@ -221,39 +221,39 @@ class ElastiCacheBackend(BaseBackend):
         return list(self.users.values())
 
     def create_cache_cluster(
-            self,
-            cache_cluster_id: str,
-            replication_group_id: str,
-            az_mode: str,
-            preferred_availability_zone: str,
-            num_cache_nodes: int,
-            cache_node_type: str,
-            engine: str,
-            engine_version: str,
-            cache_parameter_group_name: str,
-            cache_subnet_group_name: str,
-            transit_encryption_enabled: bool,
-            network_type: str,
-            ip_discovery: str,
-            snapshot_name: str,
-            preferred_maintenance_window: str,
-            port: int,
-            notification_topic_arn: str,
-            auto_minor_version_upgrade: bool,
-            snapshot_retention_limit: int,
-            snapshot_window: str,
-            auth_token: str,
-            outpost_mode: str,
-            preferred_outpost_arn: str,
-            preferred_availability_zones: List[str],
-            cache_security_group_names: List[str],
-            security_group_ids: List[str],
-            tags: List[Dict[str, str]],
-            snapshot_arns: List[str],
-            preferred_outpost_arns: List[str],
-            log_delivery_configurations: List[Dict[str, Any]],
-            cache_node_ids_to_remove: List[str],
-            cache_node_ids_to_reboot: List[str]
+        self,
+        cache_cluster_id: str,
+        replication_group_id: str,
+        az_mode: str,
+        preferred_availability_zone: str,
+        num_cache_nodes: int,
+        cache_node_type: str,
+        engine: str,
+        engine_version: str,
+        cache_parameter_group_name: str,
+        cache_subnet_group_name: str,
+        transit_encryption_enabled: bool,
+        network_type: str,
+        ip_discovery: str,
+        snapshot_name: str,
+        preferred_maintenance_window: str,
+        port: int,
+        notification_topic_arn: str,
+        auto_minor_version_upgrade: bool,
+        snapshot_retention_limit: int,
+        snapshot_window: str,
+        auth_token: str,
+        outpost_mode: str,
+        preferred_outpost_arn: str,
+        preferred_availability_zones: List[str],
+        cache_security_group_names: List[str],
+        security_group_ids: List[str],
+        tags: List[Dict[str, str]],
+        snapshot_arns: List[str],
+        preferred_outpost_arns: List[str],
+        log_delivery_configurations: List[Dict[str, Any]],
+        cache_node_ids_to_remove: List[str],
+        cache_node_ids_to_reboot: List[str],
     ) -> CacheCluster:
         if cache_cluster_id in self.cache_clusters:
             raise CacheClusterAlreadyExists(cache_cluster_id)
@@ -291,7 +291,7 @@ class ElastiCacheBackend(BaseBackend):
             network_type=network_type,
             ip_discovery=ip_discovery,
             cache_node_ids_to_remove=cache_node_ids_to_remove,
-            cache_node_ids_to_reboot=cache_node_ids_to_reboot
+            cache_node_ids_to_reboot=cache_node_ids_to_reboot,
         )
         self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
