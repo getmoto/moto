@@ -213,6 +213,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
   <PreferredOutpostArn>{{ cache_cluster.preferred_outpost_arn }}</PreferredOutpostArn>
   <CacheClusterCreateTime>{{ cache_cluster.cache_cluster_create_time }}</CacheClusterCreateTime>
   <PreferredMaintenanceWindow>{{ cache_cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
+  {% if cache_cluster.cache_node_ids_to_remove != [] %}
   <PendingModifiedValues>
     <NumCacheNodes>{{ cache_cluster.num_cache_nodes }}</NumCacheNodes>
     {% for cache_node_id_to_remove in cache_cluster.cache_node_ids_to_remove %}
@@ -239,6 +240,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
     <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
     <TransitEncryptionMode>preferred</TransitEncryptionMode>
   </PendingModifiedValues>
+  {% endif %}
   <NotificationConfiguration>
     <TopicArn>{{ cache_cluster.notification_topic_arn }}</TopicArn>
     <TopicStatus>active</TopicStatus>
