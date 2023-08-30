@@ -85,6 +85,8 @@ class ElastiCacheResponse(BaseResponse):
         transit_encryption_enabled = params.get("TransitEncryptionEnabled")
         network_type = params.get("NetworkType")
         ip_discovery = params.get("IpDiscovery")
+        cache_node_ids_to_remove = []
+        cache_node_ids_to_reboot = []
         cache_cluster = self.elasticache_backend.create_cache_cluster(
             cache_cluster_id=cache_cluster_id,
             replication_group_id=replication_group_id,
@@ -116,6 +118,8 @@ class ElastiCacheResponse(BaseResponse):
             transit_encryption_enabled=transit_encryption_enabled,
             network_type=network_type,
             ip_discovery=ip_discovery,
+            cache_node_ids_to_remove=cache_node_ids_to_remove,
+            cache_node_ids_to_reboot=cache_node_ids_to_reboot
         )
         template = self.response_template(CREATE_CACHE_CLUSTER_TEMPLATE)
         return template.render(cache_cluster=cache_cluster)

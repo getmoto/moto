@@ -64,6 +64,8 @@ class CacheCluster(BaseModel):
             snapshot_arns: Optional[List[str]],
             preferred_outpost_arns: Optional[List[str]],
             log_delivery_configurations: List[Dict[str, Any]],
+            cache_node_ids_to_remove: Optional[List[str]],
+            cache_node_ids_to_reboot: Optional[List[str]]
     ):
         if tags is None:
             tags = dict()
@@ -101,8 +103,12 @@ class CacheCluster(BaseModel):
         self.transit_encryption_enabled = transit_encryption_enabled
         self.network_type = network_type
         self.ip_discovery = ip_discovery
+        self.cache_node_ids_to_remove = cache_node_ids_to_remove
+        self.cache_node_ids_to_reboot = cache_node_ids_to_reboot
+
         self.cache_cluster_create_time = datetime.utcnow()
         self.cache_cluster_status = "available"
+        self.cache_node_id = mock_random.uuid4()
 
 
 class ElastiCacheBackend(BaseBackend):
@@ -200,6 +206,8 @@ class ElastiCacheBackend(BaseBackend):
             snapshot_arns: List[str],
             preferred_outpost_arns: List[str],
             log_delivery_configurations: List[Dict[str, Any]],
+            cache_node_ids_to_remove: List[str],
+            cache_node_ids_to_reboot: List[str]
     ) -> CacheCluster:
         cache_cluster = CacheCluster(
             cache_cluster_id=cache_cluster_id,
@@ -231,7 +239,9 @@ class ElastiCacheBackend(BaseBackend):
             log_delivery_configurations=log_delivery_configurations,
             transit_encryption_enabled=transit_encryption_enabled,
             network_type=network_type,
-            ip_discovery=ip_discovery
+            ip_discovery=ip_discovery,
+            cache_node_ids_to_remove=cache_node_ids_to_remove,
+            cache_node_ids_to_reboot=cache_node_ids_to_reboot
         )
 
         return cache_cluster
