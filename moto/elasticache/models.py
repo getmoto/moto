@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 
-from .exceptions import UserAlreadyExists, UserNotFound
+from .exceptions import UserAlreadyExists, UserNotFound, CacheClusterAlreadyExists
 from ..moto_api._internal import mock_random
 
 
@@ -134,6 +134,45 @@ class ElastiCacheBackend(BaseBackend):
             no_password_required=True,
         )
 
+        # Define the cache_clusters dictionary to detect duplicates
+        self.cache_clusters = dict()
+        self.cache_clusters["default"] = CacheCluster(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            cache_cluster_id="default",
+            replication_group_id=None,
+            az_mode=None,
+            preferred_availability_zone=None,
+            num_cache_nodes=1,
+            cache_node_type=None,
+            engine="redis",
+            engine_version=None,
+            cache_parameter_group_name=None,
+            cache_subnet_group_name=None,
+            transit_encryption_enabled=True,
+            network_type=None,
+            ip_discovery=None,
+            snapshot_name=None,
+            preferred_maintenance_window=None,
+            port=6379,
+            notification_topic_arn=None,
+            auto_minor_version_upgrade=True,
+            snapshot_retention_limit=None,
+            snapshot_window=None,
+            auth_token=None,
+            outpost_mode=None,
+            preferred_outpost_arn=None,
+            preferred_availability_zones=[],
+            cache_security_group_names=[],
+            security_group_ids=[],
+            tags=[],
+            snapshot_arns=[],
+            preferred_outpost_arns=[],
+            log_delivery_configurations=[],
+            cache_node_ids_to_remove=[],
+            cache_node_ids_to_reboot=[],
+        )
+
     def create_user(
             self,
             user_id: str,
@@ -216,6 +255,8 @@ class ElastiCacheBackend(BaseBackend):
             cache_node_ids_to_remove: List[str],
             cache_node_ids_to_reboot: List[str]
     ) -> CacheCluster:
+        if cache_cluster_id in self.cache_clusters:
+            raise CacheClusterAlreadyExists(cache_cluster_id)
         cache_cluster = CacheCluster(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -252,7 +293,7 @@ class ElastiCacheBackend(BaseBackend):
             cache_node_ids_to_remove=cache_node_ids_to_remove,
             cache_node_ids_to_reboot=cache_node_ids_to_reboot
         )
-
+        self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
 
 
