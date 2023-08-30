@@ -77,10 +77,17 @@ class CacheCluster(BaseModel):
         self.preferred_availability_zones = preferred_availability_zones or []
         self.engine = engine or "redis"
         self.engine_version = engine_version
-        if self.engine == "redis":
+        if engine == "redis":
             self.num_cache_nodes = 1
-        else:
-            self.num_cache_nodes = num_cache_nodes or 1
+            self.replication_group_id = replication_group_id
+            self.snapshot_arns = snapshot_arns or []
+            self.snapshot_name = snapshot_name
+            self.snapshot_window = snapshot_window
+        if engine == "memcached":
+            if num_cache_nodes is None:
+                self.num_cache_nodes = 1
+            elif 1 <= num_cache_nodes <= 40:
+                self.num_cache_nodes = num_cache_nodes
         self.cache_node_type = cache_node_type
         self.cache_parameter_group_name = cache_parameter_group_name
         self.cache_subnet_group_name = cache_subnet_group_name
