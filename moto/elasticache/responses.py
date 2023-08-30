@@ -200,7 +200,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
     <CacheCluster>
   <CacheClusterId>{{ cache_cluster.cache_cluster_id }}</CacheClusterId>
   <ConfigurationEndpoint>
-    <Address>mem-3.9dvc4r.cfg.usw2.cache.amazonaws.com</Address>
+    <Address>example.cache.amazonaws.com</Address>
     <Port>{{ cache_cluster.port }}</Port>
   </ConfigurationEndpoint>
   <ClientDownloadLandingPage></ClientDownloadLandingPage>
