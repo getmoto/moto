@@ -293,9 +293,21 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
   <ARN>arn</ARN>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
   <LogDeliveryConfigurations>
-
-    <Status>active</Status>
-    <Message></Message>
+  {% for log_delivery_configuration in cache_cluster.log_delivery_configurations %}
+      <LogType>{{ log_delivery_configuration.LogType }}</LogType>
+      <DestinationType>{{ log_delivery_configuration.DestinationType }}</DestinationType>
+      <DestinationDetails>
+        <CloudWatchLogsDetails>
+          <LogGroup>{{ log_delivery_configuration.LogGroup }}</LogGroup>
+        </CloudWatchLogsDetails>
+        <KinesisFirehoseDetails>
+          <DeliveryStream>{{ log_delivery_configuration.DeliveryStream }}</DeliveryStream>
+        </KinesisFirehoseDetails>
+      </DestinationDetails>
+      <LogFormat>{{ log_delivery_configuration.LogFormat }}</LogFormat>
+      <Status>active</Status>
+      <Message></Message>
+  {% endfor %}
   </LogDeliveryConfigurations>
   <NetworkType>{{ cache_cluster.network_type }}</NetworkType>
   <IpDiscovery>{{ cache_cluster.ip_discovery }}</IpDiscovery>
