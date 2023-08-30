@@ -290,7 +290,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
   <AuthTokenLastModifiedDate>{{ cache_cluster.cache_cluster_create_time }}</AuthTokenLastModifiedDate>
   <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
   <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
-  <ARN>arn</ARN>
+  <ARN>{{ cache_cluster.arn }}</ARN>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
   <LogDeliveryConfigurations>
   {% for log_delivery_configuration in cache_cluster.log_delivery_configurations %}

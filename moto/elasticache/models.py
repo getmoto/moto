@@ -35,6 +35,8 @@ class User(BaseModel):
 class CacheCluster(BaseModel):
     def __init__(
             self,
+            account_id: str,
+            region_name: str,
             cache_cluster_id: str,
             replication_group_id: Optional[str],
             az_mode: Optional[str],
@@ -112,6 +114,7 @@ class CacheCluster(BaseModel):
 
         self.cache_cluster_create_time = datetime.utcnow()
         self.cache_cluster_status = "available"
+        self.arn = f'arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}'
         self.cache_node_id = mock_random.uuid4()
 
 
@@ -214,6 +217,8 @@ class ElastiCacheBackend(BaseBackend):
             cache_node_ids_to_reboot: List[str]
     ) -> CacheCluster:
         cache_cluster = CacheCluster(
+            account_id=self.account_id,
+            region_name=self.region_name,
             cache_cluster_id=cache_cluster_id,
             replication_group_id=replication_group_id,
             az_mode=az_mode,
