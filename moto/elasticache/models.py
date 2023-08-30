@@ -4,6 +4,7 @@ from typing import List, Optional, Dict, Any
 from moto.core import BaseBackend, BackendDict, BaseModel
 
 from .exceptions import UserAlreadyExists, UserNotFound
+from ..moto_api._internal import mock_random
 
 
 class User(BaseModel):
@@ -68,13 +69,12 @@ class CacheCluster(BaseModel):
             cache_node_ids_to_reboot: Optional[List[str]]
     ):
         if tags is None:
-            tags = dict()
+            tags = {}
 
         self.cache_cluster_id = cache_cluster_id
-        self.replication_group_id = replication_group_id
         self.az_mode = az_mode
         self.preferred_availability_zone = preferred_availability_zone
-        self.preferred_availability_zones = preferred_availability_zones
+        self.preferred_availability_zones = preferred_availability_zones or []
         self.engine = engine or "redis"
         self.engine_version = engine_version
         if self.engine == "redis":
@@ -84,22 +84,19 @@ class CacheCluster(BaseModel):
         self.cache_node_type = cache_node_type
         self.cache_parameter_group_name = cache_parameter_group_name
         self.cache_subnet_group_name = cache_subnet_group_name
-        self.cache_security_group_names = cache_security_group_names
-        self.security_group_ids = security_group_ids
+        self.cache_security_group_names = cache_security_group_names or []
+        self.security_group_ids = security_group_ids or []
         self.tags = tags
-        self.snapshot_arns = snapshot_arns
-        self.snapshot_name = snapshot_name
         self.preferred_maintenance_window = preferred_maintenance_window
         self.port = port or 6379
         self.notification_topic_arn = notification_topic_arn
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
-        self.snapshot_retention_limit = snapshot_retention_limit
-        self.snapshot_window = snapshot_window
+        self.snapshot_retention_limit = snapshot_retention_limit or 0
         self.auth_token = auth_token
         self.outpost_mode = outpost_mode
         self.preferred_outpost_arn = preferred_outpost_arn
-        self.preferred_outpost_arns = preferred_outpost_arns
-        self.log_delivery_configurations = log_delivery_configurations
+        self.preferred_outpost_arns = preferred_outpost_arns or []
+        self.log_delivery_configurations = log_delivery_configurations or []
         self.transit_encryption_enabled = transit_encryption_enabled
         self.network_type = network_type
         self.ip_discovery = ip_discovery
