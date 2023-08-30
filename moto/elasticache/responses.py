@@ -58,9 +58,7 @@ class ElastiCacheResponse(BaseResponse):
         replication_group_id = self._get_param("ReplicationGroupId")
         az_mode = self._get_param("AZMode")
         preferred_availability_zone = self._get_param("PreferredAvailabilityZone")
-        preferred_availability_zones = self._get_multi_param(
-            "PreferredAvailabilityZones.member"
-        )
+        preferred_availability_zones = self._get_param("PreferredAvailabilityZones")
         num_cache_nodes = self._get_int_param("NumCacheNodes")
         cache_node_type = self._get_param("CacheNodeType")
         engine = self._get_param("Engine")
