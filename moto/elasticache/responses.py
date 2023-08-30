@@ -85,6 +85,7 @@ class ElastiCacheResponse(BaseResponse):
         transit_encryption_enabled = self._get_bool_param("TransitEncryptionEnabled")
         network_type = params.get("NetworkType")
         ip_discovery = params.get("IpDiscovery")
+        # Define the following attributes as they're included in the response even during creation of a cache cluster
         cache_node_ids_to_remove = []
         cache_node_ids_to_reboot = []
         cache_cluster = self.elasticache_backend.create_cache_cluster(
