@@ -212,8 +212,77 @@ def test_describe_users_unknown_userid():
 
 
 @mock_elasticache
-def test_create_cache_cluster():
+def test_create_redis_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
-    resp = client.create_cache_cluster(CacheClusterId="test-cache-cluster")
+
+    test_redis_cache_cluster_exist = False
+
+    cache_cluster_id = "test-cache-cluster"
+    cache_cluster_engine = "redis"
+    cache_cluster_num_cache_nodes = 5
+
+    resp = client.create_cache_cluster(
+        CacheClusterId=cache_cluster_id,
+        Engine=cache_cluster_engine,
+        NumCacheNodes=cache_cluster_num_cache_nodes,
+    )
+    cache_cluster = resp["CacheCluster"]
+
+    if cache_cluster["CacheClusterId"] == cache_cluster_id:
+        if cache_cluster["Engine"] == cache_cluster_engine:
+            if cache_cluster["NumCacheNodes"] == 1:
+                test_redis_cache_cluster_exist = True
 
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert test_redis_cache_cluster_exist
+
+
+@mock_elasticache
+def test_create_memcached_cache_cluster():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    test_memcached_cache_cluster_exist = False
+
+    cache_cluster_id = "test-cache-cluster"
+    cache_cluster_engine = "memcached"
+    cache_cluster_num_cache_nodes = 5
+
+    resp = client.create_cache_cluster(
+        CacheClusterId=cache_cluster_id,
+        Engine=cache_cluster_engine,
+        NumCacheNodes=cache_cluster_num_cache_nodes,
+    )
+    cache_cluster = resp["CacheCluster"]
+
+    if cache_cluster["CacheClusterId"] == cache_cluster_id:
+        if cache_cluster["Engine"] == cache_cluster_engine:
+            if cache_cluster["NumCacheNodes"] == 5:
+                test_memcached_cache_cluster_exist = True
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert test_memcached_cache_cluster_exist
+
+
+@mock_elasticache
+def test_create_duplicate_cache_cluster():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    cache_cluster_id = "test-cache-cluster"
+    cache_cluster_engine = "memcached"
+    cache_cluster_num_cache_nodes = 5
+
+    client.create_cache_cluster(
+        CacheClusterId=cache_cluster_id,
+        Engine=cache_cluster_engine,
+        NumCacheNodes=cache_cluster_num_cache_nodes,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_cache_cluster(
+            CacheClusterId=cache_cluster_id,
+            Engine=cache_cluster_engine,
+            NumCacheNodes=cache_cluster_num_cache_nodes,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheClusterAlreadyExists"
+    assert err["Message"] == f"Cache cluster {cache_cluster_id} already exists."
