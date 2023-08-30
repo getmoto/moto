@@ -197,6 +197,107 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
   <CreateCacheClusterResult>
-    <CacheCluster>{{ cache_cluster }}</CacheCluster>
+    <CacheCluster>
+  <CacheClusterId>{{ cache_cluster.cache_cluster_id }}</CacheClusterId>
+  <ConfigurationEndpoint>
+    <Address>mem-3.9dvc4r.cfg.usw2.cache.amazonaws.com</Address>
+    <Port>{{ cache_cluster.port }}</Port>
+  </ConfigurationEndpoint>
+  <ClientDownloadLandingPage></ClientDownloadLandingPage>
+  <CacheNodeType>{{ cache_cluster.cache_node_type }}</CacheNodeType>
+  <Engine>{{ cache_cluster.engine }}</Engine>
+  <EngineVersion>{{ cache_cluster.engine_version }}</EngineVersion>
+  <CacheClusterStatus>available</CacheClusterStatus>
+  <NumCacheNodes>{{ cache_cluster.num_cache_nodes }}</NumCacheNodes>
+  <PreferredAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</PreferredAvailabilityZone>
+  <PreferredOutpostArn>{{ cache_cluster.preferred_outpost_arn }}</PreferredOutpostArn>
+  <CacheClusterCreateTime>{{ cache_cluster.cache_cluster_create_time }}</CacheClusterCreateTime>
+  <PreferredMaintenanceWindow>{{ cache_cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
+  <PendingModifiedValues>
+    <NumCacheNodes>{{ cache_cluster.num_cache_nodes }}</NumCacheNodes>
+    {% for cache_node_id_to_remove in cache_cluster.cache_node_ids_to_remove %}
+    <CacheNodeIdsToRemove>{{ cache_node_id_to_remove }}</CacheNodeIdsToRemove>
+    {% endfor %}
+    <EngineVersion>{{ cache_cluster.engine_version }}</EngineVersion>
+    <CacheNodeType>{{ cache_cluster.cache_node_type }}</CacheNodeType>
+    <AuthTokenStatus>SETTING</AuthTokenStatus>
+    <LogDeliveryConfigurations>
+    {% for log_delivery_configuration in cache_cluster.log_delivery_configurations %}
+      <LogType>{{ log_delivery_configuration.LogType }}</LogType>
+      <DestinationType>{{ log_delivery_configuration.DestinationType }}</DestinationType>
+      <DestinationDetails>
+        <CloudWatchLogsDetails>
+          <LogGroup>{{ log_delivery_configuration.LogGroup }}</LogGroup>
+        </CloudWatchLogsDetails>
+        <KinesisFirehoseDetails>
+          <DeliveryStream>{{ log_delivery_configuration.DeliveryStream }}</DeliveryStream>
+        </KinesisFirehoseDetails>
+      </DestinationDetails>
+      <LogFormat>{{ log_delivery_configuration.LogFormat }}</LogFormat>
+      {% endfor %}
+    </LogDeliveryConfigurations>
+    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+    <TransitEncryptionMode>preferred</TransitEncryptionMode>
+  </PendingModifiedValues>
+  <NotificationConfiguration>
+    <TopicArn>{{ cache_cluster.notification_topic_arn }}</TopicArn>
+    <TopicStatus>active</TopicStatus>
+  </NotificationConfiguration>
+  <CacheSecurityGroups>
+  {% for cache_security_group_name in cache_cluster.cache_security_group_names %}
+    <CacheSecurityGroupName>{{ cache_security_group_name }}</CacheSecurityGroupName>
+    {% endfor %}
+    <Status>active</Status>
+  </CacheSecurityGroups>
+  <CacheParameterGroup>
+    <CacheParameterGroupName>{{ cache_cluster.cache_parameter_group_name }}</CacheParameterGroupName>
+    <ParameterApplyStatus>active</ParameterApplyStatus>
+    {% for cache_node_id_to_reboot in cache_cluster.cache_node_ids_to_reboot %}
+    <CacheNodeIdsToReboot>
+    {{ cache_node_id_to_reboot }}
+    </CacheNodeIdsToReboot>
+    {% endfor %}
+  </CacheParameterGroup>
+  <CacheSubnetGroupName>{{ cache_cluster.cache_subnet_group_name }}</CacheSubnetGroupName>
+  <CacheNodes>
+    <CacheNodeId>{{ cache_cluster.cache_node_id }}</CacheNodeId>
+    <CacheNodeStatus>{{ cache_cluster.cache_node_status }}</CacheNodeStatus>
+    <CacheNodeCreateTime>{{ cache_cluster.cache_cluster_create_time }}</CacheNodeCreateTime>
+    <Endpoint>
+      <Address>{{ cache_cluster.address }}</Address>
+      <Port>{{ cache_cluster.port }}</Port>
+    </Endpoint>
+    <ParameterGroupStatus>active</ParameterGroupStatus>
+    <SourceCacheNodeId>{{ cache_cluster.cache_node_id }}</SourceCacheNodeId>
+    <CustomerAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</CustomerAvailabilityZone>
+    <CustomerOutpostArn>{{ cache_cluster.preferred_output_arn }}</CustomerOutpostArn>
+  </CacheNodes>
+  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+  <SecurityGroups>
+  {% for security_group_id in cache_cluster.security_group_ids %}
+    <SecurityGroupId>{{ security_group_id }}</SecurityGroupId>
+    <Status>active</Status>
+    {% endfor %}
+  </SecurityGroups>
+  {% if cache_cluster.engine == "redis" %}
+  <ReplicationGroupId>{{ cache_cluster.replication_group_id }}</ReplicationGroupId>
+  <SnapshotRetentionLimit>{{ cache_cluster.snapshot_retention_limit }}</SnapshotRetentionLimit>
+  <SnapshotWindow>{{ cache_cluster.snapshot_window }}</SnapshotWindow>
+  {% endif %}
+  <AuthTokenEnabled>true</AuthTokenEnabled>
+  <AuthTokenLastModifiedDate>{{ cache_cluster.cache_cluster_create_time }}</AuthTokenLastModifiedDate>
+  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+  <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
+  <ARN>arn</ARN>
+  <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
+  <LogDeliveryConfigurations>
+
+    <Status>active</Status>
+    <Message></Message>
+  </LogDeliveryConfigurations>
+  <NetworkType>{{ cache_cluster.network_type }}</NetworkType>
+  <IpDiscovery>{{ cache_cluster.ip_discovery }}</IpDiscovery>
+  <TransitEncryptionMode>preferred</TransitEncryptionMode>
+</CacheCluster>
   </CreateCacheClusterResult>
 </CreateCacheClusterResponse>"""
