@@ -153,7 +153,10 @@ class DomainDispatcherApplication:
                 else:
                     host = "dynamodb"
         elif service == "sagemaker":
-            host = f"api.{service}.{region}.amazonaws.com"
+            if environ["PATH_INFO"].endswith("invocations"):
+                host = f"runtime.{service}.{region}.amazonaws.com"
+            else:
+                host = f"api.{service}.{region}.amazonaws.com"
         elif service == "timestream":
             host = f"ingest.{service}.{region}.amazonaws.com"
         elif service == "s3" and (
