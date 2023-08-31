@@ -255,7 +255,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         :return: A wrapper executing the given method on a new instance of this class
         """
 
-        @functools.wraps(to_call)
+        @functools.wraps(to_call)  # type: ignore
         def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
             return getattr(cls(), to_call.__name__)(request, full_url, headers)
 
