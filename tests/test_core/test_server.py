@@ -43,4 +43,4 @@ def test_domain_dispatched_with_service():
     dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")
     backend_app = dispatcher.get_application({"HTTP_HOST": "s3.us-east1.amazonaws.com"})
     keys = set(backend_app.view_functions.keys())
-    assert "S3Response.key_response" in keys
+    assert "moto.s3.responses.key_response" in keys
