@@ -9,7 +9,7 @@ import boto3
 from moto import settings, mock_s3
 from moto.dynamodb.models import DynamoDBBackend
 from moto.s3 import models as s3model, s3_backends
-from moto.s3.responses import S3ResponseInstance
+from moto.s3.responses import S3Response
 
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -182,7 +182,7 @@ class TestS3FileHandleClosures(TestCase):
             f"<Part><ETag>{etag}</ETag><PartNumber>1</PartNumber></Part>"
             "</CompleteMultipartUpload>"
         )
-        body = S3ResponseInstance._complete_multipart_body(mp_body)
+        body = S3Response()._complete_multipart_body(mp_body)
         self.s3_client.complete_multipart_upload(
             bucket_name=TEST_BUCKET, multipart_id=multipart_id, body=body
         )

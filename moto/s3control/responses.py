@@ -155,9 +155,6 @@ class S3ControlResponse(BaseResponse):
         return account_id, name
 
 
-S3ControlResponseInstance = S3ControlResponse()
-
-
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
