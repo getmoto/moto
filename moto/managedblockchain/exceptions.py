@@ -6,8 +6,8 @@ from typing import Any, Callable, List, Tuple
 
 
 def exception_handler(
-    f: Callable[[Any, Any, Any, Any], TYPE_RESPONSE]
-) -> Callable[[Any], TYPE_RESPONSE]:
+    f: Callable[[Any, Any, str, Any], TYPE_RESPONSE]
+) -> Callable[[Any, Any, str, Any], TYPE_RESPONSE]:
     @wraps(f)
     def _wrapper(*args: Any, **kwargs: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         try:

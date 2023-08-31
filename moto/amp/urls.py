@@ -15,9 +15,9 @@ url_paths = {
     "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces/(?P<name>[^/]+)$": PrometheusServiceResponse.dispatch,
     "{0}/tags/(?P<resource_arn>[^/]+)$": PrometheusServiceResponse.dispatch,
     "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)$": PrometheusServiceResponse.method_dispatch(
-        PrometheusServiceResponse.tags
+        PrometheusServiceResponse.tags  # type: ignore
     ),
     "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)/(?P<ns_name>[^/]+)$": PrometheusServiceResponse.method_dispatch(
-        PrometheusServiceResponse.tags
+        PrometheusServiceResponse.tags  # type: ignore
     ),
 }
