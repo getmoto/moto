@@ -57,8 +57,15 @@ VALID_CONDITION_PREFIXES = ["ForAnyValue:", "ForAllValues:"]
 VALID_CONDITION_POSTFIXES = ["IfExists"]
 
 SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS = {
-    "iam": "IAM resource {resource} cannot contain region information.",
-    "s3": "Resource {resource} can not contain region information.",
+    "iam": {
+        "error_message": "IAM resource {resource} cannot contain region information."
+    },
+    "s3": {
+        "error_message": "Resource {resource} can not contain region information.",
+        "valid_starting_values": [
+            "accesspoint/"
+        ]
+    },
 }
 
 VALID_RESOURCE_PATH_STARTING_VALUES: Dict[str, Any] = {
@@ -380,15 +387,16 @@ class BaseIAMPolicyValidator:
                 service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys()
                 and not resource_partitions[2].startswith(":")
             ):
+                for valid_starting_value in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].get("valid_starting_values", []):
+                    if resource_partitions[2].startswith(valid_starting_value):
+                        break
+                
                 self._resource_error = (
-                    SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].format(
+                    SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].error_message.format(
                         resource=resource
                     )
                 )
                 return
-
-            resource_partitions = resource_partitions[2].partition(":")
-            resource_partitions = resource_partitions[2].partition(":")
 
             if service in VALID_RESOURCE_PATH_STARTING_VALUES.keys():
                 valid_start = False
