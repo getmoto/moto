@@ -774,7 +774,7 @@ def test_cancel_rotate_secret():
     )
     func = lambda_conn.create_function(
         FunctionName="testFunction",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_rotation_zip_file()},
@@ -1039,7 +1039,7 @@ if settings.TEST_SERVER_MODE:
         )
         func = lambda_conn.create_function(
             FunctionName="testFunction",
-            Runtime="python3.8",
+            Runtime="python3.11",
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"ZipFile": get_rotation_zip_file()},

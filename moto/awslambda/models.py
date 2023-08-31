@@ -1450,7 +1450,7 @@ class LambdaStorage(object):
     def all(self) -> Iterable[LambdaFunction]:
         result = []
 
-        for function_group in self._functions.values():
+        for function_group in list(self._functions.values()):
             latest = copy.deepcopy(function_group["latest"])
             latest.function_arn = f"{latest.function_arn}:$LATEST"
             result.append(latest)

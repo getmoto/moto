@@ -26,7 +26,7 @@ def test_creating_bucket__invokes_lambda():
 
     func = lambda_client.create_function(
         FunctionName="foobar",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=role["Arn"],
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -107,7 +107,7 @@ def test_create_disabled_rule():
 
     func = lambda_client.create_function(
         FunctionName="foobar",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=role["Arn"],
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -235,7 +235,7 @@ def test_creating_bucket__but_invoke_lambda_on_create_object():
 
     func = lambda_client.create_function(
         FunctionName="foobar",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=role["Arn"],
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},

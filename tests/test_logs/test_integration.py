@@ -31,7 +31,7 @@ def test_put_subscription_filter_update():
     )
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -122,7 +122,7 @@ def test_put_subscription_filter_with_lambda():
     )
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -204,7 +204,7 @@ def test_subscription_filter_applies_to_new_streams():
     client_logs.create_log_group(logGroupName=log_group_name)
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -420,7 +420,7 @@ def test_delete_subscription_filter():
     client_logs.create_log_group(logGroupName=log_group_name)
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -455,7 +455,7 @@ def test_delete_subscription_filter_errors():
     client_logs.create_log_group(logGroupName=log_group_name)
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -508,7 +508,7 @@ def test_put_subscription_filter_errors():
     client_lambda = boto3.client("lambda", "us-east-1")
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name("us-east-1"),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},

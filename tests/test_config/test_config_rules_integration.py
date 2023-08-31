@@ -65,7 +65,7 @@ def create_lambda_for_config_rule():
     lambda_client = boto3.client("lambda", region_name=TEST_REGION)
     lambda_client.create_function(
         FunctionName="test_config_rule",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=lambda_role,
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipped_lambda_function()},

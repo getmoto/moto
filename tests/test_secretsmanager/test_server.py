@@ -469,7 +469,7 @@ if not settings.TEST_SERVER_MODE:
             FunctionName="testFunction",
             Code={"ZipFile": get_test_zip_file1()},
             Handler="lambda_function.lambda_handler",
-            Runtime="python2.7",
+            Runtime="python3.11",
             Role=role["Role"]["Arn"],
         )
 

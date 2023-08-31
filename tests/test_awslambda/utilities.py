@@ -152,7 +152,7 @@ def create_invalid_lambda(role):
     with pytest.raises(ClientError) as err:
         conn.create_function(
             FunctionName=function_name,
-            Runtime="python2.7",
+            Runtime="python3.11",
             Role=role,
             Handler="lambda_function.handler",
             Code={"ZipFile": zip_content},
