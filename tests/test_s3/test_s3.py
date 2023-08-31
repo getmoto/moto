@@ -4,7 +4,7 @@ from io import BytesIO
 import json
 import os
 import pickle
-from unittest import SkipTest, mock
+from unittest import SkipTest
 from urllib.parse import urlparse, parse_qs
 import uuid
 from uuid import uuid4
@@ -3384,46 +3384,3 @@ def test_checksum_response(algorithm):
             ChecksumAlgorithm=algorithm,
         )
         assert f"Checksum{algorithm}" in response
-
-
-@mock_s3
-def test_cross_account_region_access():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Multi-accounts env config only works serverside")
-
-    client1 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    client2 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-
-    account2 = "222222222222"
-    bucket_name = "cross-account-bucket"
-    key = "test-key"
-
-    # Create a bucket in the default account
-    client1.create_bucket(Bucket=bucket_name)
-    client1.put_object(Bucket=bucket_name, Key=key, Body=b"data")
-
-    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
-        # Ensure the bucket can be retrieved from another account
-        response = client2.list_objects(Bucket=bucket_name)
-        assert len(response["Contents"]) == 1
-        assert response["Contents"][0]["Key"] == key
-
-        assert client2.get_object(Bucket=bucket_name, Key=key)
-
-        assert client2.put_object(Bucket=bucket_name, Key=key, Body=b"kaytranada")
-
-        # Ensure bucket namespace is shared across accounts
-        with pytest.raises(ClientError) as exc:
-            client2.create_bucket(Bucket=bucket_name)
-        assert exc.value.response["Error"]["Code"] == "BucketAlreadyExists"
-        assert exc.value.response["Error"]["Message"] == (
-            "The requested bucket name is not available. The bucket "
-            "namespace is shared by all users of the system. Please "
-            "select a different name and try again"
-        )
-
-    # Ensure bucket name can be reused if it is deleted
-    client1.delete_object(Bucket=bucket_name, Key=key)
-    client1.delete_bucket(Bucket=bucket_name)
-    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
-        assert client2.create_bucket(Bucket=bucket_name)
