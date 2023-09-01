@@ -124,7 +124,7 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(CREATE_CACHE_CLUSTER_TEMPLATE)
         return template.render(cache_cluster=cache_cluster)
 
-    def describe_cache_clusters(self):
+    def describe_cache_clusters(self) -> str:
         cache_cluster_id = self._get_param("CacheClusterId")
         max_records = self._get_int_param("MaxRecords")
         marker = self._get_param("Marker")
@@ -136,7 +136,7 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(DESCRIBE_CACHE_CLUSTERS_TEMPLATE)
         return template.render(marker=marker, cache_clusters=cache_clusters)
 
-    def delete_cache_cluster(self):
+    def delete_cache_cluster(self) -> str:
         cache_cluster_id = self._get_param("CacheClusterId")
         cache_cluster = self.elasticache_backend.delete_cache_cluster(
             cache_cluster_id=cache_cluster_id,
