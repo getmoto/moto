@@ -144,10 +144,8 @@ class ElastiCacheResponse(BaseResponse):
 
     def delete_cache_cluster(self):
         cache_cluster_id = self._get_param("CacheClusterId")
-        final_snapshot_identifier = self._get_param("FinalSnapshotIdentifier")
         cache_cluster = self.elasticache_backend.delete_cache_cluster(
             cache_cluster_id=cache_cluster_id,
-            final_snapshot_identifier=final_snapshot_identifier,
         )
         template = self.response_template(DELETE_CACHE_CLUSTER_TEMPLATE)
         return template.render(cache_cluster=cache_cluster)
