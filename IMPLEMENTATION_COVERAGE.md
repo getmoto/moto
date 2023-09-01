@@ -6437,6 +6437,14 @@
 - [ ] update_workteam
 </details>
 
+## sagemaker-runtime
+<details>
+<summary>50% implemented</summary>
+
+- [X] invoke_endpoint
+- [ ] invoke_endpoint_async
+</details>
+
 ## scheduler
 <details>
 <summary>100% implemented</summary>
@@ -7482,7 +7490,6 @@
 - sagemaker-featurestore-runtime
 - sagemaker-geospatial
 - sagemaker-metrics
-- sagemaker-runtime
 - savingsplans
 - schemas
 - securityhub
