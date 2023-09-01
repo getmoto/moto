@@ -322,7 +322,7 @@ class ElastiCacheBackend(BaseBackend):
 
         return marker, cache_clusters
 
-    def delete_cache_cluster(self, cache_cluster_id: str) -> List[CacheCluster]:
+    def delete_cache_cluster(self, cache_cluster_id: str) -> CacheCluster:
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
                 cache_cluster = self.cache_clusters[cache_cluster_id]
