@@ -57,6 +57,7 @@ from .utils import _VersionedKeyStore, CaseInsensitiveDict
 from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS
 from ..events.notifications import send_notification as events_send_notification
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
+from ..settings import s3_allow_crossdomain_access
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
@@ -1518,7 +1519,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     Note that this only works if the environment variable is set **before** the mock is initialized.
 
-    ------------------------------------
+    _-_-_-_
 
     When using the MultiPart-API manually, the minimum part size is 5MB, just as with AWS. Use the following environment variable to lower this:
 
@@ -1526,7 +1527,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         S3_UPLOAD_PART_MIN_SIZE=256
 
-    ------------------------------------
+    _-_-_-_
+
+    CrossAccount access is allowed by default. If you want Moto to throw an AccessDenied-error when accessing a bucket in another account, use this environment variable:
+
+    .. sourcecode:: bash
+
+        MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS=false
+
+    _-_-_-_
 
     Install `moto[s3crc32c]` if you use the CRC32C algorithm, and absolutely need the correct value. Alternatively, you can install the `crc32c` dependency manually.
 
@@ -1711,6 +1720,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             return self.buckets[bucket_name]
 
         if bucket_name in s3_backends.bucket_accounts:
+            if not s3_allow_crossdomain_access():
+                raise AccessDeniedByLock
             account_id = s3_backends.bucket_accounts[bucket_name]
             return s3_backends[account_id]["global"].get_bucket(bucket_name)
 

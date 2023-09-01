@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple
 from moto.core import BaseBackend, BackendDict
 from moto.core.exceptions import RESTError
 from moto.moto_api._internal import mock_random
+from moto.utilities.tagging_service import TaggingService
 
 from moto.s3.models import s3_backends, S3Backend
 from moto.ec2 import ec2_backends
@@ -9,6 +10,7 @@ from moto.elb.models import elb_backends, ELBBackend
 from moto.elbv2.models import elbv2_backends, ELBv2Backend
 from moto.glue.models import glue_backends, GlueBackend
 from moto.kinesis.models import kinesis_backends, KinesisBackend
+from moto.logs.models import logs_backends, LogsBackend
 from moto.kms.models import kms_backends, KmsBackend
 from moto.rds.models import rds_backends, RDSBackend
 from moto.glacier.models import glacier_backends, GlacierBackend
@@ -30,7 +32,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Like 'someuuid': {'gen': <generator>, 'misc': None}
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
-        # theres not really any point to clean up
+        # there is really no point cleaning up
 
     @property
     def s3_backend(self) -> S3Backend:
@@ -59,6 +61,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def kms_backend(self) -> KmsBackend:
         return kms_backends[self.account_id][self.region_name]
+
+    @property
+    def logs_backend(self) -> LogsBackend:
+        return logs_backends[self.account_id][self.region_name]
 
     @property
     def rds_backend(self) -> RDSBackend:
@@ -100,7 +106,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 # Check key matches
                 filters.append(lambda t, v, key=tag_filter_dict["Key"]: t == key)
             elif len(values) == 1:
-                # Check its exactly the same as key, value
+                # Check it's exactly the same as key, value
                 filters.append(
                     lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
                     and v == value
@@ -370,71 +376,47 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
 
-        # RDS Cluster
+        # LOGS
         if (
             not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:cluster" in resource_type_filters
+            or "logs" in resource_type_filters
+            or "logs:loggroup" in resource_type_filters
         ):
-            for rds_cluster in self.rds_backend.clusters.values():
-                tags = rds_cluster.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": rds_cluster.db_cluster_arn,
-                    "Tags": tags,
-                }
+            for group in self.logs_backend.groups.values():
+                log_tags = self.logs_backend.list_tags_for_resource(group.arn)
+                tags = format_tags(log_tags)
 
-        # RDS Instance
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:db" in resource_type_filters
-        ):
-            for database in self.rds_backend.databases.values():
-                tags = database.get_tags()
-                if not tags or not tag_filter(tags):
+                if not log_tags or not tag_filter(tags):
+                    # Skip if no tags, or invalid filter
                     continue
-                yield {
-                    "ResourceARN": database.db_instance_arn,
-                    "Tags": tags,
-                }
+                yield {"ResourceARN": group.arn, "Tags": tags}
+
+        # RDS resources
+        resource_map: Dict[str, Dict[str, Any]] = {
+            "rds:cluster": self.rds_backend.clusters,
+            "rds:db": self.rds_backend.databases,
+            "rds:snapshot": self.rds_backend.database_snapshots,
+            "rds:cluster-snapshot": self.rds_backend.cluster_snapshots,
+        }
+        for resource_type, resource_source in resource_map.items():
+            if (
+                not resource_type_filters
+                or "rds" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resource_source.values():
+                    tags = resource.get_tags()
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": resource.arn,
+                        "Tags": tags,
+                    }
 
         # RDS Reserved Database Instance
         # RDS Option Group
         # RDS Parameter Group
         # RDS Security Group
-
-        # RDS Snapshot
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:snapshot" in resource_type_filters
-        ):
-            for snapshot in self.rds_backend.database_snapshots.values():
-                tags = snapshot.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": snapshot.snapshot_arn,
-                    "Tags": tags,
-                }
-
-        # RDS Cluster Snapshot
-        if (
-            not resource_type_filters
-            or "rds" in resource_type_filters
-            or "rds:cluster-snapshot" in resource_type_filters
-        ):
-            for snapshot in self.rds_backend.cluster_snapshots.values():
-                tags = snapshot.get_tags()
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": snapshot.snapshot_arn,
-                    "Tags": tags,
-                }
-
         # RDS Subnet Group
         # RDS Event Subscription
 
@@ -767,14 +749,29 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         return new_token, result
 
-    # These methods will be called from responses.py.
-    # They should call a tag function inside of the moto module
-    # that governs the resource, that way if the target module
-    # changes how tags are delt with theres less to change
+    def tag_resources(
+        self, resource_arns: List[str], tags: Dict[str, str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Only Logs and RDS resources are currently supported
+        """
+        missing_resources = []
+        missing_error: Dict[str, Any] = {
+            "StatusCode": 404,
+            "ErrorCode": "InternalServiceException",
+            "ErrorMessage": "Service not yet supported",
+        }
+        for arn in resource_arns:
+            if arn.startswith("arn:aws:rds:"):
+                self.rds_backend.add_tags_to_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            if arn.startswith("arn:aws:logs:"):
+                self.logs_backend.tag_resource(arn, tags)
+            else:
+                missing_resources.append(arn)
+        return {arn: missing_error for arn in missing_resources}
 
-    # def tag_resources(self, resource_arn_list, tags):
-    #     return failed_resources_map
-    #
     # def untag_resources(self, resource_arn_list, tag_keys):
     #     return failed_resources_map
 

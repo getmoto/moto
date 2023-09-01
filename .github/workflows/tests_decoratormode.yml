@@ -34,6 +34,13 @@ jobs:
         pip install -r requirements-dev.txt
         pip install pytest-cov
         pip install pytest-github-actions-annotate-failures
+    - name: Download Docker dependencies
+      # This happens automatically during test execution
+      # However, our tests can run concurrently
+      # Which means that our tests can pull this image concurrently
+      # Pulling it once is more efficient
+      run: |
+        docker pull mlupin/docker-lambda:python3.11
     - name: Test with pytest
       run: |
         make test-only

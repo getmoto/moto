@@ -62,6 +62,7 @@ class GlacierResponse(BaseResponse):
     def vault_archive_response(
         self, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
+        self.setup_class(request, full_url, headers, use_raw_body=True)
         return self._vault_archive_response(request, full_url, headers)
 
     def _vault_archive_response(

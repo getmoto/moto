@@ -11,7 +11,8 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives._asymmetric import AsymmetricPadding
+from cryptography.hazmat.primitives.asymmetric import rsa, padding, ec
 
 
 from .exceptions import (
@@ -61,7 +62,7 @@ class KeySpec(str, Enum):
     ECC_NIST_P256 = "ECC_NIST_P256"
     ECC_SECG_P256K1 = "ECC_SECG_P256K1"
     ECC_NIST_P384 = "ECC_NIST_P384"
-    ECC_NIST_P512 = "ECC_NIST_P521"
+    ECC_NIST_P521 = "ECC_NIST_P521"
     SM2 = "SM2"  # China Regions only
     # Symmetric key specs
     SYMMETRIC_DEFAULT = "SYMMETRIC_DEFAULT"
@@ -164,6 +165,16 @@ def validate_signing_algorithm(
         )
 
 
+def validate_key_spec(target_key_spec: str, valid_key_specs: List[str]) -> None:
+    if target_key_spec not in valid_key_specs:
+        raise ValidationException(
+            (
+                "1 validation error detected: Value at 'key_spec' failed "
+                "to satisfy constraint: Member must satisfy enum value set: {valid_key_specs}"
+            ).format(valid_key_specs=valid_key_specs)
+        )
+
+
 class RSAPrivateKey(AbstractPrivateKey):
     # See https://docs.aws.amazon.com/kms/latest/cryptographic-details/crypto-primitives.html
     __supported_key_sizes = [2048, 3072, 4096]
@@ -181,52 +192,101 @@ class RSAPrivateKey(AbstractPrivateKey):
             public_exponent=65537, key_size=self.key_size
         )
 
-    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
-        validate_signing_algorithm(
-            signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
-        )
-
+    def __padding_and_hash_algorithm(
+        self, signing_algorithm: str
+    ) -> Tuple[AsymmetricPadding, hashes.HashAlgorithm]:
         if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            )
+            )  # type: AsymmetricPadding
             algorithm = hashes.SHA256()  # type: Any
         elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
             )
             algorithm = hashes.SHA384()
-        else:
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_512:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA512()), salt_length=padding.PSS.MAX_LENGTH
             )
             algorithm = hashes.SHA512()
-        return self.private_key.sign(message, pad, algorithm)
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_256:
+            pad = padding.PKCS1v15()
+            algorithm = hashes.SHA256()
+        elif signing_algorithm == SigningAlgorithm.RSASSA_PKCS1_V1_5_SHA_384:
+            pad = padding.PKCS1v15()
+            algorithm = hashes.SHA384()
+        else:
+            pad = padding.PKCS1v15()
+            algorithm = hashes.SHA512()
+        return pad, algorithm
+
+    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+        validate_signing_algorithm(
+            signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
+        )
+        pad, hash_algorithm = self.__padding_and_hash_algorithm(signing_algorithm)
+        return self.private_key.sign(message, pad, hash_algorithm)
 
     def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
         validate_signing_algorithm(
             signing_algorithm, SigningAlgorithm.rsa_signing_algorithms()
         )
-
-        if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
-            pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            )
-            algorithm = hashes.SHA256()  # type: Any
-        elif signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_384:
-            pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA384()), salt_length=padding.PSS.MAX_LENGTH
-            )
-            algorithm = hashes.SHA384()
-        else:
-            pad = padding.PSS(
-                mgf=padding.MGF1(hashes.SHA512()), salt_length=padding.PSS.MAX_LENGTH
-            )
-            algorithm = hashes.SHA512()
-
+        pad, hash_algorithm = self.__padding_and_hash_algorithm(signing_algorithm)
         public_key = self.private_key.public_key()
         try:
-            public_key.verify(signature, message, pad, algorithm)
+            public_key.verify(signature, message, pad, hash_algorithm)
+            return True
+        except InvalidSignature:
+            return False
+
+    def public_key(self) -> bytes:
+        return self.private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+
+class ECDSAPrivateKey(AbstractPrivateKey):
+    def __init__(self, key_spec: str):
+        validate_key_spec(key_spec, KeySpec.ecc_key_specs())
+
+        if key_spec == KeySpec.ECC_NIST_P256:
+            curve = ec.SECP256R1()  # type: ec.EllipticCurve
+            valid_signing_algorithms = ["ECDSA_SHA_256"]  # type: List[str]
+        elif key_spec == KeySpec.ECC_SECG_P256K1:
+            curve = ec.SECP256K1()
+            valid_signing_algorithms = ["ECDSA_SHA_256"]
+        elif key_spec == KeySpec.ECC_NIST_P384:
+            curve = ec.SECP384R1()
+            valid_signing_algorithms = ["ECDSA_SHA_384"]
+        else:
+            curve = ec.SECP521R1()
+            valid_signing_algorithms = ["ECDSA_SHA_512"]
+
+        self.private_key = ec.generate_private_key(curve)
+        self.valid_signing_algorithms = valid_signing_algorithms
+
+    def __hash_algorithm(self, signing_algorithm: str) -> hashes.HashAlgorithm:
+        if signing_algorithm == SigningAlgorithm.ECDSA_SHA_256:
+            algorithm = hashes.SHA256()  # type: Any
+        elif signing_algorithm == SigningAlgorithm.ECDSA_SHA_384:
+            algorithm = hashes.SHA384()
+        else:
+            algorithm = hashes.SHA512()
+        return algorithm
+
+    def sign(self, message: bytes, signing_algorithm: str) -> bytes:
+        validate_signing_algorithm(signing_algorithm, self.valid_signing_algorithms)
+        hash_algorithm = self.__hash_algorithm(signing_algorithm)
+        return self.private_key.sign(message, ec.ECDSA(hash_algorithm))
+
+    def verify(self, message: bytes, signature: bytes, signing_algorithm: str) -> bool:
+        validate_signing_algorithm(signing_algorithm, self.valid_signing_algorithms)
+        hash_algorithm = self.__hash_algorithm(signing_algorithm)
+        public_key = self.private_key.public_key()
+        try:
+            public_key.verify(signature, message, ec.ECDSA(hash_algorithm))
             return True
         except InvalidSignature:
             return False
@@ -246,6 +306,8 @@ def generate_private_key(key_spec: str) -> AbstractPrivateKey:
         return RSAPrivateKey(key_size=3072)
     elif key_spec == KeySpec.RSA_4096:
         return RSAPrivateKey(key_size=4096)
+    elif key_spec in KeySpec.ecc_key_specs():
+        return ECDSAPrivateKey(key_spec)
     else:
         return RSAPrivateKey(key_size=2048)
 

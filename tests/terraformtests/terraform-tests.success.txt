@@ -367,6 +367,13 @@ lambda:
   - TestAccLambdaFunctionURL_Alias
   - TestAccLambdaFunctionURL_basic
   - TestAccLambdaFunctionURL_TwoURLs
+logs:
+  - TestAccLogsDestination_
+  - TestAccLogsGroupDataSource_basic
+  - TestAccLogsGroupsDataSource_basic
+  - TestAccLogsGroup_basic
+  - TestAccLogsGroup_tags
+  - TestAccLogsStream
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:

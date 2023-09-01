@@ -208,6 +208,9 @@ class Cluster:
                 "timeout_action": "RollbackCapacityChange",
                 "seconds_before_timeout": 300,
             }
+        self.serverless_v2_scaling_configuration = kwargs.get(
+            "serverless_v2_scaling_configuration"
+        )
         self.cluster_members: List[str] = list()
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
@@ -219,6 +222,10 @@ class Cluster:
             len(self.read_replica_identifiers) > 0
             or self.replication_source_identifier is not None
         )
+
+    @property
+    def arn(self) -> str:
+        return self.db_cluster_arn
 
     @property
     def db_cluster_arn(self) -> str:
@@ -374,6 +381,12 @@ class Cluster:
                 {% if "seconds_before_timeout" in cluster.scaling_configuration %}<SecondsBeforeTimeout>{{ cluster.scaling_configuration["seconds_before_timeout"] }}</SecondsBeforeTimeout>{% endif %}
               </ScalingConfigurationInfo>
               {% endif %}
+              {% if cluster.serverless_v2_scaling_configuration %}
+              <ServerlessV2ScalingConfiguration>
+                {% if "MinCapacity" in cluster.serverless_v2_scaling_configuration %}<MinCapacity>{{ cluster.serverless_v2_scaling_configuration["MinCapacity"] }}</MinCapacity>{% endif %}
+                {% if "MaxCapacity" in cluster.serverless_v2_scaling_configuration %}<MaxCapacity>{{ cluster.serverless_v2_scaling_configuration["MaxCapacity"] }}</MaxCapacity>{% endif %}
+              </ServerlessV2ScalingConfiguration>
+              {% endif %}
               {%- if cluster.global_cluster_identifier -%}
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
               {%- endif -%}
@@ -460,6 +473,10 @@ class ClusterSnapshot(BaseModel):
         self.created_at = iso_8601_datetime_with_milliseconds(
             datetime.datetime.utcnow()
         )
+
+    @property
+    def arn(self) -> str:
+        return self.snapshot_arn
 
     @property
     def snapshot_arn(self) -> str:
@@ -644,6 +661,10 @@ class Database(CloudFormationModel):
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
+
+    @property
+    def arn(self) -> str:
+        return self.db_instance_arn
 
     @property
     def db_instance_arn(self) -> str:
@@ -1090,6 +1111,10 @@ class DatabaseSnapshot(BaseModel):
         self.created_at = iso_8601_datetime_with_milliseconds(
             datetime.datetime.utcnow()
         )
+
+    @property
+    def arn(self) -> str:
+        return self.snapshot_arn
 
     @property
     def snapshot_arn(self) -> str:

@@ -1705,6 +1705,25 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.resource_servers[identifier] = resource_server
         return resource_server
 
+    def describe_resource_server(
+        self, user_pool_id: str, identifier: str
+    ) -> CognitoResourceServer:
+        user_pool = self.user_pools.get(user_pool_id)
+        if not user_pool:
+            raise ResourceNotFoundError(f"User pool {user_pool_id} does not exist.")
+
+        resource_server = user_pool.resource_servers.get(identifier)
+        if not resource_server:
+            raise ResourceNotFoundError(f"Resource server {identifier} does not exist.")
+
+        return resource_server
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_resource_servers(self, user_pool_id: str) -> List[CognitoResourceServer]:
+        user_pool = self.user_pools[user_pool_id]
+        resource_servers = list(user_pool.resource_servers.values())
+        return resource_servers
+
     def sign_up(
         self,
         client_id: str,

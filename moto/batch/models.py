@@ -858,7 +858,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
                     # Send to cloudwatch
                     self.log_stream_name = self._stream_name
-                    self._log_backend.ensure_log_group(self._log_group, None)
+                    self._log_backend.ensure_log_group(self._log_group)
                     self._log_backend.ensure_log_stream(
                         self._log_group, self.log_stream_name
                     )

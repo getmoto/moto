@@ -4,13 +4,18 @@ from .responses import EBSResponse
 url_bases = [r"https?://ebs\.(.+)\.amazonaws\.com"]
 
 
-response = EBSResponse()
-
-
 url_paths = {
-    "{0}/snapshots$": response.snapshots,
-    "{0}/snapshots/completion/(?P<snapshot_id>[^/]+)$": response.complete_snapshot,
-    "{0}/snapshots/(?P<snapshot_id>[^/]+)/changedblocks$": response.snapshot_changed_blocks,
-    "{0}/snapshots/(?P<snapshot_id>[^/]+)/blocks$": response.snapshot_blocks,
-    "{0}/snapshots/(?P<snapshot_id>[^/]+)/blocks/(?P<block_idx>[^/]+)$": response.snapshot_block,
+    "{0}/snapshots$": EBSResponse.method_dispatch(EBSResponse.snapshots),
+    "{0}/snapshots/completion/(?P<snapshot_id>[^/]+)$": EBSResponse.method_dispatch(
+        EBSResponse.complete_snapshot
+    ),
+    "{0}/snapshots/(?P<snapshot_id>[^/]+)/changedblocks$": EBSResponse.method_dispatch(
+        EBSResponse.snapshot_changed_blocks
+    ),
+    "{0}/snapshots/(?P<snapshot_id>[^/]+)/blocks$": EBSResponse.method_dispatch(
+        EBSResponse.snapshot_blocks
+    ),
+    "{0}/snapshots/(?P<snapshot_id>[^/]+)/blocks/(?P<block_idx>[^/]+)$": EBSResponse.method_dispatch(
+        EBSResponse.snapshot_block
+    ),
 }

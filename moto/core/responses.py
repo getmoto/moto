@@ -14,6 +14,7 @@ from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import (
     camelcase_to_underscores,
+    gzip_decompress,
     method_names_from_class,
     params_sort_function,
 )
@@ -29,6 +30,7 @@ from typing import (
     Set,
     ClassVar,
     Callable,
+    TypeVar,
 )
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from werkzeug.exceptions import HTTPException
@@ -38,6 +40,9 @@ from xml.dom.minidom import parseString as parseXML
 log = logging.getLogger(__name__)
 
 JINJA_ENVS: Dict[type, Environment] = {}
+
+
+ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
 
 
 def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
@@ -232,10 +237,29 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def __init__(self, service_name: Optional[str] = None):
         super().__init__()
         self.service_name = service_name
+        self.allow_request_decompression = True
 
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         return cls()._dispatch(*args, **kwargs)
+
+    @classmethod
+    def method_dispatch(  # type: ignore[misc]
+        cls, to_call: Callable[[ResponseShape, Any, str, Any], TYPE_RESPONSE]
+    ) -> Callable[[Any, str, Any], TYPE_RESPONSE]:
+        """
+        Takes a given unbound function (part of a Response class) and executes it for a new instance of this
+        response class.
+        Can be used wherever we want to specify different methods for dispatching in urls.py
+        :param to_call: Unbound method residing in this Response class
+        :return: A wrapper executing the given method on a new instance of this class
+        """
+
+        @functools.wraps(to_call)  # type: ignore
+        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+            return getattr(cls(), to_call.__name__)(request, full_url, headers)
+
+        return _inner
 
     def setup_class(
         self, request: Any, full_url: str, headers: Any, use_raw_body: bool = False
@@ -262,6 +286,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 querystring[key] = [value]
 
         raw_body = self.body
+
+        # https://github.com/getmoto/moto/issues/6692
+        # Content coming from SDK's can be GZipped for performance reasons
+        if (
+            headers.get("Content-Encoding", "") == "gzip"
+            and self.allow_request_decompression
+        ):
+            self.body = gzip_decompress(self.body)
+
         if isinstance(self.body, bytes) and not use_raw_body:
             self.body = self.body.decode("utf-8")
 

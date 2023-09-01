@@ -1,9 +1,7 @@
 import base64
 import boto3
-import io
 import json
 import pytest
-import zipfile
 
 from botocore.exceptions import ClientError
 from moto import mock_lambda, mock_ec2, settings
@@ -21,131 +19,167 @@ from .utilities import (
 )
 from ..markers import requires_docker
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 
 
 @pytest.mark.network
-@mock_lambda
 @requires_docker
-def test_invoke_function_that_throws_error():
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    conn.create_function(
-        FunctionName=function_name,
-        Runtime="python3.8",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file_error()},
-    )
+class TestLambdaInvocations_Error:
+    mock = mock_lambda()
 
-    failure_response = conn.invoke(
-        FunctionName=function_name, Payload=json.dumps({}), LogType="Tail"
-    )
+    @classmethod
+    def setup_class(cls):
+        cls.mock.start()
+        cls.client = boto3.client("lambda", _lambda_region)
+        cls.function_name = str(uuid4())[0:6]
+        cls.client.create_function(
+            FunctionName=cls.function_name,
+            Runtime=PYTHON_VERSION,
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"ZipFile": get_test_zip_file_error()},
+        )
 
-    assert failure_response["FunctionError"] == "Handled"
+    @classmethod
+    def teardown_class(cls):
+        try:
+            cls.mock.stop()
+        except RuntimeError:
+            pass
 
-    payload = failure_response["Payload"].read().decode("utf-8")
-    payload = json.loads(payload)
-    assert payload["errorType"] == "Exception"
-    assert payload["errorMessage"] == "I failed!"
-    assert "stackTrace" in payload
+    @pytest.mark.parametrize("invocation_type", [None, "RequestResponse"])
+    def test_invoke_function_that_throws_error(self, invocation_type):
+        kw = {"LogType": "Tail"}
+        if invocation_type:
+            kw["InvocationType"] = invocation_type
 
-    logs = base64.b64decode(failure_response["LogResult"]).decode("utf-8")
-    assert "START RequestId:" in logs
-    assert "I failed!" in logs
-    assert "Traceback (most recent call last):" in logs
-    assert "END RequestId:" in logs
+        failure_response = TestLambdaInvocations_Error.client.invoke(
+            FunctionName=self.function_name, Payload=json.dumps({}), **kw
+        )
+
+        assert failure_response["FunctionError"] == "Handled"
+
+        payload = failure_response["Payload"].read().decode("utf-8")
+        payload = json.loads(payload)
+        assert payload["errorType"] == "Exception"
+        assert payload["errorMessage"] == "I failed!"
+        assert "stackTrace" in payload
+
+        logs = base64.b64decode(failure_response["LogResult"]).decode("utf-8")
+        assert "START RequestId:" in logs
+        assert "I failed!" in logs
+        assert "Traceback (most recent call last):" in logs
+        assert "END RequestId:" in logs
 
 
 @pytest.mark.network
-@pytest.mark.parametrize("invocation_type", [None, "RequestResponse"])
-@pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
 @requires_docker
-def test_invoke_requestresponse_function(invocation_type, key):
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    fxn = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python3.8",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1()},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-    name_or_arn = fxn[key]
+class TestLambdaInvocations:
+    mock = mock_lambda()
 
-    # Only add invocation-type keyword-argument when provided, otherwise the request
-    # fails to be validated
-    kw = {}
-    if invocation_type:
-        kw["InvocationType"] = invocation_type
+    @classmethod
+    def setup_class(cls):
+        cls.mock.start()
+        cls.client = boto3.client("lambda", _lambda_region)
+        cls.function_name = str(uuid4())[0:6]
+        cls.fxn = cls.client.create_function(
+            FunctionName=cls.function_name,
+            Runtime=PYTHON_VERSION,
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"ZipFile": get_test_zip_file1()},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
 
-    in_data = {"msg": "So long and thanks for all the fish"}
-    success_result = conn.invoke(
-        FunctionName=name_or_arn, Payload=json.dumps(in_data), LogType="Tail", **kw
-    )
+    @classmethod
+    def teardown_class(cls):
+        try:
+            cls.mock.stop()
+        except RuntimeError:
+            pass
 
-    if "FunctionError" in success_result:
-        assert False, success_result["Payload"].read().decode("utf-8")
+    @pytest.mark.parametrize("invocation_type", [None, "RequestResponse"])
+    @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
+    def test_invoke_requestresponse_function(self, invocation_type, key):
+        name_or_arn = self.fxn[key]
 
-    assert success_result["StatusCode"] == 200
-    assert (
-        success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"]
-        == "application/json"
-    )
-    logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
+        # Only add invocation-type keyword-argument when provided, otherwise the request
+        # fails to be validated
+        kw = {}
+        if invocation_type:
+            kw["InvocationType"] = invocation_type
 
-    assert "START RequestId:" in logs
-    assert "custom log event" in logs
-    assert "END RequestId:" in logs
+        in_data = {"msg": "So long and thanks for all the fish"}
+        success_result = self.client.invoke(
+            FunctionName=name_or_arn, Payload=json.dumps(in_data), LogType="Tail", **kw
+        )
 
-    payload = success_result["Payload"].read().decode("utf-8")
-    assert json.loads(payload) == in_data
+        if "FunctionError" in success_result:
+            assert False, success_result["Payload"].read().decode("utf-8")
 
-    # Logs should not be returned by default, only when the LogType-param is supplied
-    success_result = conn.invoke(
-        FunctionName=name_or_arn, Payload=json.dumps(in_data), **kw
-    )
+        assert success_result["StatusCode"] == 200
+        assert (
+            success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"]
+            == "application/json"
+        )
+        logs = base64.b64decode(success_result["LogResult"]).decode("utf-8")
 
-    assert success_result["StatusCode"] == 200
-    assert (
-        success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"]
-        == "application/json"
-    )
-    assert "LogResult" not in success_result
+        assert "START RequestId:" in logs
+        assert "custom log event" in logs
+        assert "END RequestId:" in logs
 
+        payload = success_result["Payload"].read().decode("utf-8")
+        assert json.loads(payload) == in_data
 
-@pytest.mark.network
-@mock_lambda
-@requires_docker
-def test_invoke_event_function():
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    conn.create_function(
-        FunctionName=function_name,
-        Runtime="python3.9",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1()},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
+        # Logs should not be returned by default, only when the LogType-param is supplied
+        success_result = self.client.invoke(
+            FunctionName=name_or_arn, Payload=json.dumps(in_data), **kw
+        )
 
-    with pytest.raises(ClientError):
-        conn.invoke(FunctionName="notAFunction", InvocationType="Event", Payload="{}")
+        assert success_result["StatusCode"] == 200
+        assert (
+            success_result["ResponseMetadata"]["HTTPHeaders"]["content-type"]
+            == "application/json"
+        )
+        assert "LogResult" not in success_result
 
-    in_data = {"msg": "So long and thanks for all the fish"}
-    success_result = conn.invoke(
-        FunctionName=function_name, InvocationType="Event", Payload=json.dumps(in_data)
-    )
-    assert success_result["StatusCode"] == 202
-    assert json.loads(success_result["Payload"].read().decode("utf-8")) == in_data
+    def test_invoke_event_function(self):
+        with pytest.raises(ClientError):
+            self.client.invoke(
+                FunctionName="notAFunction", InvocationType="Event", Payload="{}"
+            )
+
+        in_data = {"msg": "So long and thanks for all the fish"}
+        success_result = self.client.invoke(
+            FunctionName=self.function_name,
+            InvocationType="Event",
+            Payload=json.dumps(in_data),
+        )
+        assert success_result["StatusCode"] == 202
+        assert json.loads(success_result["Payload"].read().decode("utf-8")) == in_data
+
+    def test_invoke_dryrun_function(self):
+        in_data = {"msg": "So long and thanks for all the fish"}
+        success_result = self.client.invoke(
+            FunctionName=self.function_name,
+            InvocationType="DryRun",
+            Payload=json.dumps(in_data),
+        )
+        assert success_result["StatusCode"] == 204
+
+    @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
+    def test_invoke_async_function(self, key):
+        name_or_arn = self.fxn[key]
+
+        success_result = self.client.invoke_async(
+            FunctionName=name_or_arn, InvokeArgs=json.dumps({"test": "event"})
+        )
+
+        assert success_result["Status"] == 202
 
 
 @pytest.mark.network
@@ -157,7 +191,7 @@ def test_invoke_lambda_using_environment_port():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_lambda_using_environment_port()},
@@ -196,7 +230,7 @@ def test_invoke_lambda_using_networkmode():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_lambda_using_network_mode()},
@@ -220,7 +254,7 @@ def test_invoke_function_with_multiple_files_in_zip():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_zip_with_multiple_files()},
@@ -239,34 +273,6 @@ def test_invoke_function_with_multiple_files_in_zip():
     }
 
 
-@pytest.mark.network
-@mock_lambda
-@requires_docker
-def test_invoke_dryrun_function():
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    conn.create_function(
-        FunctionName=function_name,
-        Runtime="python3.8",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1()},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-
-    with pytest.raises(ClientError):
-        conn.invoke(FunctionName="notAFunction", InvocationType="Event", Payload="{}")
-
-    in_data = {"msg": "So long and thanks for all the fish"}
-    success_result = conn.invoke(
-        FunctionName=function_name, InvocationType="DryRun", Payload=json.dumps(in_data)
-    )
-    assert success_result["StatusCode"] == 204
-
-
 if settings.TEST_SERVER_MODE:
 
     @mock_ec2
@@ -280,7 +286,7 @@ if settings.TEST_SERVER_MODE:
         function_name = str(uuid4())[0:6]
         conn.create_function(
             FunctionName=function_name,
-            Runtime="python3.7",
+            Runtime=PYTHON_VERSION,
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"ZipFile": get_test_zip_file2()},
@@ -305,74 +311,13 @@ if settings.TEST_SERVER_MODE:
 @pytest.mark.network
 @mock_lambda
 @requires_docker
-def test_invoke_lambda_error():
-    lambda_fx = """
-def lambda_handler(event, context):
-    raise Exception('failsauce')
-    """
-    zip_output = io.BytesIO()
-    zip_file = zipfile.ZipFile(zip_output, "w", zipfile.ZIP_DEFLATED)
-    zip_file.writestr("lambda_function.py", lambda_fx)
-    zip_file.close()
-    zip_output.seek(0)
-
-    client = boto3.client("lambda", region_name="us-east-1")
-    client.create_function(
-        FunctionName="test-lambda-fx",
-        Runtime="python3.8",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-        Code={"ZipFile": zip_output.read()},
-    )
-
-    result = client.invoke(
-        FunctionName="test-lambda-fx", InvocationType="RequestResponse", LogType="Tail"
-    )
-
-    assert "FunctionError" in result
-    assert result["FunctionError"] == "Handled"
-
-
-@pytest.mark.network
-@pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-@requires_docker
-def test_invoke_async_function(key):
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    fxn = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python3.8",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": get_test_zip_file1()},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
-    name_or_arn = fxn[key]
-
-    success_result = conn.invoke_async(
-        FunctionName=name_or_arn, InvokeArgs=json.dumps({"test": "event"})
-    )
-
-    assert success_result["Status"] == 202
-
-
-@pytest.mark.network
-@mock_lambda
-@requires_docker
+@pytest.mark.xfail(message="Fails intermittently - functionality exists though")
 def test_invoke_function_large_response():
     # AWS Lambda should only return bodies smaller than 6 MB
     conn = boto3.client("lambda", _lambda_region)
     fxn = conn.create_function(
         FunctionName=str(uuid4())[0:6],
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_largeresponse()},

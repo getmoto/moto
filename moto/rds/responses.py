@@ -178,13 +178,12 @@ class RDSResponse(BaseResponse):
         }
 
     def _get_db_cluster_kwargs(self) -> Dict[str, Any]:
+        params = self._get_params()
         return {
             "availability_zones": self._get_multi_param(
                 "AvailabilityZones.AvailabilityZone"
             ),
-            "enable_cloudwatch_logs_exports": self._get_params().get(
-                "EnableCloudwatchLogsExports"
-            ),
+            "enable_cloudwatch_logs_exports": params.get("EnableCloudwatchLogsExports"),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
@@ -208,6 +207,9 @@ class RDSResponse(BaseResponse):
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "tags": self.unpack_list_params("Tags", "Tag"),
             "scaling_configuration": self._get_dict_param("ScalingConfiguration."),
+            "serverless_v2_scaling_configuration": params.get(
+                "ServerlessV2ScalingConfiguration"
+            ),
             "replication_source_identifier": self._get_param(
                 "ReplicationSourceIdentifier"
             ),

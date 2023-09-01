@@ -56,10 +56,16 @@ VALID_CONDITION_PREFIXES = ["ForAnyValue:", "ForAllValues:"]
 
 VALID_CONDITION_POSTFIXES = ["IfExists"]
 
-SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS = {
-    "iam": "IAM resource {resource} cannot contain region information.",
-    "s3": "Resource {resource} can not contain region information.",
+SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS: Dict[str, Any] = {
+    "iam": {
+        "error_message": "IAM resource {resource} cannot contain region information."
+    },
+    "s3": {
+        "error_message": "Resource {resource} can not contain region information.",
+        "valid_starting_values": ["accesspoint/"],
+    },
 }
+
 
 VALID_RESOURCE_PATH_STARTING_VALUES: Dict[str, Any] = {
     "iam": {
@@ -375,20 +381,34 @@ class BaseIAMPolicyValidator:
             resource_partitions = resource_partitions[2].partition(":")
 
             service = resource_partitions[0]
+            region = resource_partitions[2]
+            resource_partitions = resource_partitions[2].partition(":")
+
+            resource_partitions = resource_partitions[2].partition(":")
+            resource_id = resource_partitions[2]
 
             if (
                 service in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS.keys()
-                and not resource_partitions[2].startswith(":")
+                and not region.startswith(":")
             ):
-                self._resource_error = (
-                    SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].format(
-                        resource=resource
-                    )
-                )
-                return
+                valid_start = False
 
-            resource_partitions = resource_partitions[2].partition(":")
-            resource_partitions = resource_partitions[2].partition(":")
+                for (
+                    valid_starting_value
+                ) in SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service].get(
+                    "valid_starting_values", []
+                ):
+                    if resource_id.startswith(valid_starting_value):
+                        valid_start = True
+                        break
+
+                if not valid_start:
+                    self._resource_error = (
+                        SERVICE_TYPE_REGION_INFORMATION_ERROR_ASSOCIATIONS[service][
+                            "error_message"
+                        ].format(resource=resource)
+                    )
+                    return
 
             if service in VALID_RESOURCE_PATH_STARTING_VALUES.keys():
                 valid_start = False

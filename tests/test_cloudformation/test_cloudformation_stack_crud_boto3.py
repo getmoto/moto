@@ -2209,7 +2209,7 @@ def test_create_stack_lambda_and_dynamodb():
                     "FunctionName": "func1",
                     "Handler": "handler.handler",
                     "Role": get_role_name(),
-                    "Runtime": "python2.7",
+                    "Runtime": "python3.11",
                     "Description": "descr",
                     "MemorySize": 12345,
                 },

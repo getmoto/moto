@@ -1170,7 +1170,14 @@ def test_sign_and_verify_ignoring_grant_tokens():
     list(
         itertools.product(
             ["RSA_2048", "RSA_3072", "RSA_4096"],
-            ["RSASSA_PSS_SHA_256", "RSASSA_PSS_SHA_384", "RSASSA_PSS_SHA_512"],
+            [
+                "RSASSA_PSS_SHA_256",
+                "RSASSA_PSS_SHA_384",
+                "RSASSA_PSS_SHA_512",
+                "RSASSA_PKCS1_V1_5_SHA_256",
+                "RSASSA_PKCS1_V1_5_SHA_384",
+                "RSASSA_PKCS1_V1_5_SHA_512",
+            ],
         )
     ),
 )
@@ -1202,6 +1209,187 @@ def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
     )
 
     assert verify_response["SignatureValid"] is True
+
+
+@mock_kms
+@pytest.mark.parametrize(
+    "signing_algorithm, another_signing_algorithm",
+    list(
+        itertools.combinations(
+            ["RSASSA_PSS_SHA_256", "RSASSA_PSS_SHA_384", "RSASSA_PSS_SHA_512"], 2
+        )
+    ),
+)
+def test_fail_verify_digest_message_type_RSA(
+    signing_algorithm, another_signing_algorithm
+):
+    client = boto3.client("kms", region_name="us-west-1")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    falsified_digest = digest.copy()
+    message = digest.finalize()
+    falsified_digest.update(b"This sentence has been falsified")
+    falsified_message = falsified_digest.finalize()
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    # Verification fails if a message has been falsified.
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=falsified_message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+    assert verify_response["SignatureValid"] is False
+
+    # Verification fails if a different signing algorithm is used than the one used in signature.
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=another_signing_algorithm,
+    )
+
+    assert verify_response["SignatureValid"] is False
+
+
+@mock_kms
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm",
+    [
+        ("ECC_NIST_P256", "ECDSA_SHA_256"),
+        ("ECC_SECG_P256K1", "ECDSA_SHA_256"),
+        ("ECC_NIST_P384", "ECDSA_SHA_384"),
+        ("ECC_NIST_P521", "ECDSA_SHA_512"),
+    ],
+)
+def test_sign_and_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    message = digest.finalize()
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    assert verify_response["SignatureValid"] is True
+
+
+@mock_kms
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm, valid_signing_algorithms",
+    [
+        ("ECC_NIST_P256", "ECDSA_SHA_384", ["ECDSA_SHA_256"]),
+        ("ECC_SECG_P256K1", "ECDSA_SHA_512", ["ECDSA_SHA_256"]),
+        ("ECC_NIST_P384", "ECDSA_SHA_256", ["ECDSA_SHA_384"]),
+        ("ECC_NIST_P521", "ECDSA_SHA_384", ["ECDSA_SHA_512"]),
+    ],
+)
+def test_invalid_signing_algorithm_for_key_spec_type_ECDSA(
+    key_spec, signing_algorithm, valid_signing_algorithms
+):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    message = digest.finalize()
+
+    with pytest.raises(ClientError) as ex:
+        _ = client.sign(
+            KeyId=key_id,
+            Message=message,
+            SigningAlgorithm=signing_algorithm,
+            MessageType="DIGEST",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+        "to satisfy constraint: Member must satisfy enum value set: "
+        "{valid_sign_algorithms}"
+    ).format(
+        signing_algorithm=signing_algorithm,
+        valid_sign_algorithms=valid_signing_algorithms,
+    )
+
+
+@mock_kms
+@pytest.mark.parametrize(
+    "key_spec, signing_algorithm",
+    [
+        ("ECC_NIST_P256", "ECDSA_SHA_256"),
+        ("ECC_SECG_P256K1", "ECDSA_SHA_256"),
+        ("ECC_NIST_P384", "ECDSA_SHA_384"),
+        ("ECC_NIST_P521", "ECDSA_SHA_512"),
+    ],
+)
+def test_fail_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sign-key", KeyUsage="SIGN_VERIFY", KeySpec=key_spec
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(b"this works")
+    digest.update(b"as well")
+    falsified_digest = digest.copy()
+    message = digest.finalize()
+    falsified_digest.update(b"This sentence has been falsified")
+    falsified_message = falsified_digest.finalize()
+
+    sign_response = client.sign(
+        KeyId=key_id,
+        Message=message,
+        SigningAlgorithm=signing_algorithm,
+        MessageType="DIGEST",
+    )
+
+    verify_response = client.verify(
+        KeyId=key_id,
+        Message=falsified_message,
+        Signature=sign_response["Signature"],
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    assert verify_response["SignatureValid"] is False
 
 
 @mock_kms

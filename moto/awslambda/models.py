@@ -761,7 +761,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def _invoke_lambda(self, event: Optional[str] = None) -> Tuple[str, bool, str]:
         # Create the LogGroup if necessary, to write the result to
-        self.logs_backend.ensure_log_group(self.logs_group_name, [])
+        self.logs_backend.ensure_log_group(self.logs_group_name)
         # TODO: context not yet implemented
         if event is None:
             event = dict()  # type: ignore[assignment]
@@ -1450,7 +1450,7 @@ class LambdaStorage(object):
     def all(self) -> Iterable[LambdaFunction]:
         result = []
 
-        for function_group in self._functions.values():
+        for function_group in list(self._functions.values()):
             latest = copy.deepcopy(function_group["latest"])
             latest.function_arn = f"{latest.function_arn}:$LATEST"
             result.append(latest)

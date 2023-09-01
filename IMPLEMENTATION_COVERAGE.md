@@ -4368,7 +4368,7 @@
 
 ## logs
 <details>
-<summary>56% implemented</summary>
+<summary>66% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
@@ -4391,7 +4391,7 @@
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
-- [ ] describe_queries
+- [X] describe_queries
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
 - [X] describe_subscription_filters
@@ -4401,8 +4401,8 @@
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
-- [ ] get_query_results
-- [ ] list_tags_for_resource
+- [X] get_query_results
+- [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
@@ -4417,10 +4417,10 @@
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_metric_filter
 - [X] untag_log_group
-- [ ] untag_resource
+- [X] untag_resource
 </details>
 
 ## managedblockchain
@@ -5792,7 +5792,7 @@
 
 ## resourcegroupstaggingapi
 <details>
-<summary>37% implemented</summary>
+<summary>50% implemented</summary>
 
 - [ ] describe_report_creation
 - [ ] get_compliance_summary
@@ -5800,7 +5800,7 @@
 - [X] get_tag_keys
 - [X] get_tag_values
 - [ ] start_report_creation
-- [ ] tag_resources
+- [X] tag_resources
 - [ ] untag_resources
 </details>
 
@@ -6435,6 +6435,14 @@
 - [ ] update_user_profile
 - [ ] update_workforce
 - [ ] update_workteam
+</details>
+
+## sagemaker-runtime
+<details>
+<summary>50% implemented</summary>
+
+- [X] invoke_endpoint
+- [ ] invoke_endpoint_async
 </details>
 
 ## scheduler
@@ -7482,7 +7490,6 @@
 - sagemaker-featurestore-runtime
 - sagemaker-geospatial
 - sagemaker-metrics
-- sagemaker-runtime
 - savingsplans
 - schemas
 - securityhub

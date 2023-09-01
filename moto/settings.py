@@ -65,6 +65,10 @@ def get_s3_default_key_buffer_size() -> int:
     )
 
 
+def s3_allow_crossdomain_access() -> bool:
+    return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
+
+
 def ecs_new_arn_format() -> bool:
     # True by default - only the value 'false' will return false
     return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"

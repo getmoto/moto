@@ -7524,6 +7524,14 @@
   "Location": "us-east-2c"
  },
  {
+  "InstanceType": "trn1.2xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "us-east-2c"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "us-east-2c"
  },

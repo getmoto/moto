@@ -1932,7 +1932,7 @@ def test_delete_message_batch_with_invalid_receipt_id():
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    q_resp = conn.create_queue(QueueName="test-queue")
+    q_resp = conn.create_queue(QueueName=str(uuid4())[0:6])
     queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
@@ -3203,7 +3203,7 @@ def test_message_delay_is_more_than_15_minutes():
 @mock_sqs
 def test_receive_message_that_becomes_visible_while_long_polling():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(QueueName="test-queue")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
     msg_body = str(uuid4())
     queue.send_message(MessageBody=msg_body)
     messages = queue.receive_messages()
@@ -3266,6 +3266,40 @@ def test_fifo_dedupe_error_no_message_dedupe_id():
         queue.send_message(
             MessageBody="test",
             MessageGroupId="1",
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert exc.value.response["Error"]["Message"] == (
+        "The queue should either have ContentBasedDeduplication enabled "
+        "or MessageDeduplicationId provided explicitly"
+    )
+
+
+@mock_sqs
+def test_fifo_dedupe_error_no_message_dedupe_id_batch():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = response["QueueUrl"]
+    with pytest.raises(ClientError) as exc:
+        client.send_message_batch(
+            QueueUrl=queue_url,
+            Entries=[
+                {
+                    "Id": "id_1",
+                    "MessageBody": "body_1",
+                    "DelaySeconds": 0,
+                    "MessageGroupId": "message_group_id_1",
+                    "MessageDeduplicationId": "message_deduplication_id_1",
+                },
+                {
+                    "Id": "id_2",
+                    "MessageBody": "body_2",
+                    "DelaySeconds": 0,
+                    "MessageGroupId": "message_group_id_2",
+                },
+            ],
         )
 
     assert exc.value.response["Error"]["Code"] == "InvalidParameterValue"

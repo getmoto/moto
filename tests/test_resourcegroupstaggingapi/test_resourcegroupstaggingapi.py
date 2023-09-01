@@ -6,7 +6,6 @@ from botocore.client import ClientError
 from moto import mock_ec2
 from moto import mock_elbv2
 from moto import mock_kms
-from moto import mock_rds
 from moto import mock_resourcegroupstaggingapi
 from moto import mock_s3
 from moto import mock_lambda
@@ -223,7 +222,6 @@ def test_get_resources_ecs():
     assert task_two not in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
-@mock_rds
 @mock_ec2
 @mock_resourcegroupstaggingapi
 def test_get_resources_ec2():
@@ -588,49 +586,6 @@ def test_multiple_tag_filters():
     assert instance_2_id not in results[0]["ResourceARN"]
 
 
-@mock_rds
-@mock_resourcegroupstaggingapi
-def test_get_resources_rds():
-    client = boto3.client("rds", region_name="us-west-2")
-    resources_tagged = []
-    resources_untagged = []
-    for i in range(3):
-        database = client.create_db_instance(
-            DBInstanceIdentifier=f"db-instance-{i}",
-            Engine="postgres",
-            DBInstanceClass="db.m1.small",
-            CopyTagsToSnapshot=bool(i),
-            Tags=[{"Key": "test", "Value": f"value-{i}"}] if i else [],
-        ).get("DBInstance")
-        snapshot = client.create_db_snapshot(
-            DBInstanceIdentifier=database["DBInstanceIdentifier"],
-            DBSnapshotIdentifier=f"snapshot-{i}",
-        ).get("DBSnapshot")
-        group = resources_tagged if i else resources_untagged
-        group.append(database["DBInstanceArn"])
-        group.append(snapshot["DBSnapshotArn"])
-
-    def assert_response(response, expected_count, resource_type=None):
-        results = response.get("ResourceTagMappingList", [])
-        assert len(results) == expected_count
-        for item in results:
-            arn = item["ResourceARN"]
-            assert arn in resources_tagged
-            assert arn not in resources_untagged
-            if resource_type:
-                assert f":{resource_type}:" in arn
-
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
-    resp = rtapi.get_resources(ResourceTypeFilters=["rds"])
-    assert_response(resp, 4)
-    resp = rtapi.get_resources(ResourceTypeFilters=["rds:db"])
-    assert_response(resp, 2, resource_type="db")
-    resp = rtapi.get_resources(ResourceTypeFilters=["rds:snapshot"])
-    assert_response(resp, 2, resource_type="snapshot")
-    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["value-1"]}])
-    assert_response(resp, 2)
-
-
 @mock_lambda
 @mock_resourcegroupstaggingapi
 @mock_iam
@@ -658,7 +613,7 @@ def test_get_resources_lambda():
     # create one lambda without tags
     client.create_function(
         FunctionName="lambda-no-tag",
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipfile},
@@ -671,7 +626,7 @@ def test_get_resources_lambda():
     # create second & third lambda with tags
     circle_arn = client.create_function(
         FunctionName="lambda-tag-value-1",
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipfile},
@@ -684,7 +639,7 @@ def test_get_resources_lambda():
 
     rectangle_arn = client.create_function(
         FunctionName="lambda-tag-value-2",
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zipfile},
@@ -717,3 +672,17 @@ def test_get_resources_lambda():
 
     resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
     assert_response(resp, [rectangle_arn])
+
+
+@mock_resourcegroupstaggingapi
+def test_tag_resources_for_unknown_service():
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    missing_resources = rtapi.tag_resources(
+        ResourceARNList=["arn:aws:service_x"], Tags={"key1": "k", "key2": "v"}
+    )["FailedResourcesMap"]
+
+    assert "arn:aws:service_x" in missing_resources
+    assert (
+        missing_resources["arn:aws:service_x"]["ErrorCode"]
+        == "InternalServiceException"
+    )

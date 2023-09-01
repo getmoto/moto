@@ -43,7 +43,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     function_name = str(uuid4())[0:6]
     fn_arn = lambda_client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_print_event()},

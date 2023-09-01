@@ -6,14 +6,15 @@ url_bases = [
 ]
 
 
-response = EventBridgeSchedulerResponse()
-
-
 url_paths = {
-    "{0}/schedules$": response.dispatch,
-    "{0}/schedules/(?P<name>[^/]+)$": response.dispatch,
-    "{0}/schedule-groups$": response.dispatch,
-    "{0}/schedule-groups/(?P<name>[^/]+)$": response.dispatch,
-    "{0}/tags/(?P<ResourceArn>.+)$": response.tags,
-    "{0}/tags/arn:aws:scheduler:(?P<region_name>[^/]+):(?P<account_id>[^/]+):schedule/(?P<group_name>[^/]+)/(?P<schedule_name>[^/]+)/?$": response.tags,
+    "{0}/schedules$": EventBridgeSchedulerResponse.dispatch,
+    "{0}/schedules/(?P<name>[^/]+)$": EventBridgeSchedulerResponse.dispatch,
+    "{0}/schedule-groups$": EventBridgeSchedulerResponse.dispatch,
+    "{0}/schedule-groups/(?P<name>[^/]+)$": EventBridgeSchedulerResponse.dispatch,
+    "{0}/tags/(?P<ResourceArn>.+)$": EventBridgeSchedulerResponse.method_dispatch(
+        EventBridgeSchedulerResponse.tags
+    ),
+    "{0}/tags/arn:aws:scheduler:(?P<region_name>[^/]+):(?P<account_id>[^/]+):schedule/(?P<group_name>[^/]+)/(?P<schedule_name>[^/]+)/?$": EventBridgeSchedulerResponse.method_dispatch(
+        EventBridgeSchedulerResponse.tags
+    ),
 }

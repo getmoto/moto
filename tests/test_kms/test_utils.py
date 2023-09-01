@@ -20,6 +20,7 @@ from moto.kms.utils import (
     KeySpec,
     SigningAlgorithm,
     RSAPrivateKey,
+    ECDSAPrivateKey,
 )
 
 ENCRYPTION_CONTEXT_VECTORS = [
@@ -69,7 +70,7 @@ def test_KeySpec_Enum():
             KeySpec.ECC_NIST_P256,
             KeySpec.ECC_SECG_P256K1,
             KeySpec.ECC_NIST_P384,
-            KeySpec.ECC_NIST_P512,
+            KeySpec.ECC_NIST_P521,
         ]
     )
     assert KeySpec.hmac_key_specs() == sorted(
@@ -103,6 +104,15 @@ def test_RSAPrivateKey_invalid_key_size():
     assert (
         ex.value.message
         == "1 validation error detected: Value at 'key_size' failed to satisfy constraint: Member must satisfy enum value set: [2048, 3072, 4096]"
+    )
+
+
+def test_ECDSAPrivateKey_invalid_key_spec():
+    with pytest.raises(ValidationException) as ex:
+        _ = ECDSAPrivateKey(key_spec="InvalidKeySpec")
+    assert (
+        ex.value.message
+        == "1 validation error detected: Value at 'key_spec' failed to satisfy constraint: Member must satisfy enum value set: ['ECC_NIST_P256', 'ECC_NIST_P384', 'ECC_NIST_P521', 'ECC_SECG_P256K1']"
     )
 
 

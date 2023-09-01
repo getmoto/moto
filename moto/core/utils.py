@@ -3,6 +3,7 @@ import inspect
 import re
 import unicodedata
 from botocore.exceptions import ClientError
+from gzip import decompress
 from typing import Any, Optional, List, Callable, Dict, Tuple
 from urllib.parse import urlparse, unquote
 from .common_types import TYPE_RESPONSE
@@ -416,3 +417,7 @@ def _unquote_hex_characters(path: str) -> str:
         )
         char_offset += (combo_end - combo_start) + len(character) - 1
     return path
+
+
+def gzip_decompress(body: bytes) -> bytes:
+    return decompress(body)
