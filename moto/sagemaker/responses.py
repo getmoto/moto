@@ -73,33 +73,12 @@ class SageMakerResponse(BaseResponse):
         return 200, {}, json.dumps({"NotebookInstanceArn": sagemaker_notebook.arn})
 
     @amzn_request_id
-    def describe_notebook_instance(self) -> TYPE_RESPONSE:
+    def describe_notebook_instance(self) -> str:
         notebook_instance_name = self._get_param("NotebookInstanceName")
         notebook_instance = self.sagemaker_backend.get_notebook_instance(
             notebook_instance_name
         )
-        response = {
-            "NotebookInstanceArn": notebook_instance.arn,
-            "NotebookInstanceName": notebook_instance.notebook_instance_name,
-            "NotebookInstanceStatus": notebook_instance.status,
-            "Url": notebook_instance.url,
-            "InstanceType": notebook_instance.instance_type,
-            "SubnetId": notebook_instance.subnet_id,
-            "SecurityGroups": notebook_instance.security_group_ids,
-            "RoleArn": notebook_instance.role_arn,
-            "KmsKeyId": notebook_instance.kms_key_id,
-            # ToDo: NetworkInterfaceId
-            "LastModifiedTime": str(notebook_instance.last_modified_time),
-            "CreationTime": str(notebook_instance.creation_time),
-            "NotebookInstanceLifecycleConfigName": notebook_instance.lifecycle_config_name,
-            "DirectInternetAccess": notebook_instance.direct_internet_access,
-            "VolumeSizeInGB": notebook_instance.volume_size_in_gb,
-            "AcceleratorTypes": notebook_instance.accelerator_types,
-            "DefaultCodeRepository": notebook_instance.default_code_repository,
-            "AdditionalCodeRepositories": notebook_instance.additional_code_repositories,
-            "RootAccess": notebook_instance.root_access,
-        }
-        return 200, {}, json.dumps(response)
+        return json.dumps(notebook_instance.to_dict())
 
     @amzn_request_id
     def start_notebook_instance(self) -> TYPE_RESPONSE:
@@ -118,6 +97,29 @@ class SageMakerResponse(BaseResponse):
         notebook_instance_name = self._get_param("NotebookInstanceName")
         self.sagemaker_backend.delete_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
+
+    @amzn_request_id
+    def list_notebook_instances(self) -> str:
+        sort_by = self._get_param("SortBy", "Name")
+        sort_order = self._get_param("SortOrder", "Ascending")
+        name_contains = self._get_param("NameContains")
+        status = self._get_param("StatusEquals")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        instances, next_token = self.sagemaker_backend.list_notebook_instances(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            name_contains=name_contains,
+            status=status,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "NotebookInstances": [i.to_dict() for i in instances],
+                "NextToken": next_token,
+            }
+        )
 
     @amzn_request_id
     def list_tags(self) -> TYPE_RESPONSE:
