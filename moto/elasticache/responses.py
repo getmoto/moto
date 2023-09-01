@@ -128,16 +128,10 @@ class ElastiCacheResponse(BaseResponse):
         cache_cluster_id = self._get_param("CacheClusterId")
         max_records = self._get_int_param("MaxRecords")
         marker = self._get_param("Marker")
-        show_cache_node_info = self._get_param("ShowCacheNodeInfo")
-        show_cache_clusters_not_in_replication_groups = self._get_param(
-            "ShowCacheClustersNotInReplicationGroups"
-        )
         marker, cache_clusters = self.elasticache_backend.describe_cache_clusters(
             cache_cluster_id=cache_cluster_id,
             marker=marker,
             max_records=max_records,
-            show_cache_node_info=show_cache_node_info,
-            show_cache_clusters_not_in_replication_groups=show_cache_clusters_not_in_replication_groups,
         )
         template = self.response_template(DESCRIBE_CACHE_CLUSTERS_TEMPLATE)
         return template.render(marker=marker, cache_clusters=cache_clusters)

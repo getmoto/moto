@@ -271,8 +271,6 @@ class ElastiCacheBackend(BaseBackend):
         cache_cluster_id: str,
         max_records: int,
         marker: Optional[str] = None,
-        show_cache_node_info: Optional[bool] = False,
-        show_cache_clusters_not_in_replication_groups: Optional[bool] = False,
     ) -> Tuple[Optional[str], List[CacheCluster]]:
         if marker is None:
             marker = mock_random.uuid4()
