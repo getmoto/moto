@@ -1472,6 +1472,22 @@ def test_set_identity_mail_from_domain():
     assert actual_attributes["BehaviorOnMXFailure"] == behaviour_on_mx_failure
     assert actual_attributes["MailFromDomainStatus"] == "Success"
 
+    # Can use email address as an identity
+    behaviour_on_mx_failure = "RejectMessage"
+    mail_from_domain = "lorem.foo.com"
+
+    conn.set_identity_mail_from_domain(
+        Identity="test@foo.com",
+        MailFromDomain=mail_from_domain,
+        BehaviorOnMXFailure=behaviour_on_mx_failure,
+    )
+
+    attributes = conn.get_identity_mail_from_domain_attributes(Identities=["foo.com"])
+    actual_attributes = attributes["MailFromDomainAttributes"]["foo.com"]
+    assert actual_attributes["MailFromDomain"] == mail_from_domain
+    assert actual_attributes["BehaviorOnMXFailure"] == behaviour_on_mx_failure
+    assert actual_attributes["MailFromDomainStatus"] == "Success"
+
     # Must unset config when MailFromDomain is null
     conn.set_identity_mail_from_domain(Identity="foo.com")
 

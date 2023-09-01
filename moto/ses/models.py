@@ -165,7 +165,7 @@ class SESBackend(BaseBackend):
             return True
         if address in self.email_addresses:
             return True
-        _, host = address.split("@", 1)
+        host = address.split("@", 1)[-1]
         return host in self.domains
 
     def verify_email_identity(self, address: str) -> None:
@@ -572,17 +572,17 @@ class SESBackend(BaseBackend):
         mail_from_domain: Optional[str] = None,
         behavior_on_mx_failure: Optional[str] = None,
     ) -> None:
-        if identity not in (self.domains + self.addresses):
+        if not self._is_verified_address(identity):
             raise InvalidParameterValue(f"Identity '{identity}' does not exist.")
 
         if mail_from_domain is None:
             self.identity_mail_from_domains.pop(identity)
             return
 
-        if not mail_from_domain.endswith(identity):
+        if not mail_from_domain.endswith(identity.split("@")[-1]):
             raise InvalidParameterValue(
                 f"Provided MAIL-FROM domain '{mail_from_domain}' is not subdomain of "
-                f"the domain of the identity '{identity}'."
+                f"the domain of the identity '{identity.split('@')[-1]}'."
             )
 
         if behavior_on_mx_failure not in (None, "RejectMessage", "UseDefaultValue"):
