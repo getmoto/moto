@@ -1,21 +1,6 @@
 import json
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.exceptions import JsonRESTError
-from functools import wraps
-from typing import Any, Callable, List, Tuple
-
-
-def exception_handler(
-    f: Callable[[Any, Any, str, Any], TYPE_RESPONSE]
-) -> Callable[[Any, Any, str, Any], TYPE_RESPONSE]:
-    @wraps(f)
-    def _wrapper(*args: Any, **kwargs: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
-        try:
-            return f(*args, **kwargs)
-        except ManagedBlockchainClientError as err:
-            return err.code, err.get_headers(), err.description  # type: ignore
-
-    return _wrapper
+from typing import Any, List, Tuple
 
 
 class ManagedBlockchainClientError(JsonRESTError):

@@ -392,7 +392,10 @@ class ServerModeMockAWS(BaseMockAWS):
             region = self._get_region(*args, **kwargs)
             if region:
                 if "config" in kwargs:
-                    kwargs["config"].__dict__["user_agent_extra"] += " region/" + region
+                    user_agent = kwargs["config"].__dict__.get("user_agent_extra") or ""
+                    kwargs["config"].__dict__[
+                        "user_agent_extra"
+                    ] = f"{user_agent} region/{region}"
                 else:
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config

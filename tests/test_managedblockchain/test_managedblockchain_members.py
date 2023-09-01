@@ -1,6 +1,7 @@
 import boto3
 import pytest
 
+from botocore.config import Config
 from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_managedblockchain
 from . import helpers
@@ -280,7 +281,11 @@ def test_invite_and_remove_member():
 
 @mock_managedblockchain
 def test_create_too_many_members():
-    conn = boto3.client("managedblockchain", region_name="us-east-1")
+    # This test throws a ResourceLimitException, with HTTP status code 429
+    # Boto3 automatically retries a request with that status code up to 5 times
+    # Retrying is not going to make a difference to the output though...
+    config = Config(retries={"max_attempts": 1, "mode": "standard"})
+    conn = boto3.client("managedblockchain", region_name="us-east-1", config=config)
 
     # Create network
     response = conn.create_network(

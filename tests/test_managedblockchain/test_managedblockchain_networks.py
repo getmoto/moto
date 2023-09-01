@@ -36,7 +36,7 @@ def test_create_network():
 
 
 @mock_managedblockchain
-def test_create_network_withopts():
+def test_create_network_with_description():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     response = conn.create_network(
@@ -49,11 +49,6 @@ def test_create_network_withopts():
         MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
-    member_id = response["MemberId"]
-    assert network_id.startswith("n-")
-    assert len(network_id) == 28
-    assert member_id.startswith("m-")
-    assert len(member_id) == 28
 
     # Find in full list
     mbcnetworks = conn.list_networks()["Networks"]
