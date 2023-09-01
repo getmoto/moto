@@ -64,6 +64,7 @@ CREATE_TRANSIT_GATEWAY_RESPONSE = """<CreateTransitGatewayResponse xmlns="http:/
     <requestId>151283df-f7dc-4317-89b4-01c9888b1d45</requestId>
     <transitGateway>
         <transitGatewayId>{{ transit_gateway.id }}</transitGatewayId>
+        <transitGatewayArn>arn:aws:ec2:us-east-1:{{ transit_gateway.owner_id }}:transit-gateway/{{ transit_gateway.id }}</transitGatewayArn>
         <ownerId>{{ transit_gateway.owner_id }}</ownerId>
         <description>{{ transit_gateway.description or '' }}</description>
         <createTime>{{ transit_gateway.create_time }}</createTime>

@@ -23,6 +23,10 @@ def test_create_transit_gateway():
     )
     gateway = response["TransitGateway"]
     assert gateway["TransitGatewayId"].startswith("tgw-")
+    assert (
+        gateway["TransitGatewayArn"]
+        == f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
+    )
     assert gateway["State"] == "available"
     assert gateway["OwnerId"] == ACCOUNT_ID
     assert gateway["Description"] == "my first gateway"
