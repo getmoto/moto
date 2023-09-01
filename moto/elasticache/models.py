@@ -121,7 +121,7 @@ class CacheCluster(BaseModel):
         self.auth_token_last_modified_date = datetime.utcnow()
         self.cache_cluster_status = "available"
         self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}"
-        self.cache_node_id = mock_random.uuid4()
+        self.cache_node_id = str(mock_random.uuid4())
 
 
 class ElastiCacheBackend(BaseBackend):
