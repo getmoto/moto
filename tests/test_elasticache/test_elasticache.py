@@ -372,3 +372,49 @@ def test_describe_unknown_cache_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "CacheClusterNotFound"
     assert err["Message"] == f"Cache cluster {cache_cluster_id_unknown} not found."
+
+
+@mock_elasticache
+def test_delete_cache_cluster():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    cache_cluster_id = "test-cache-cluster"
+    cache_cluster_engine = "memcached"
+    cache_cluster_num_cache_nodes = 5
+
+    client.create_cache_cluster(
+        CacheClusterId=cache_cluster_id,
+        Engine=cache_cluster_engine,
+        NumCacheNodes=cache_cluster_num_cache_nodes,
+    )
+
+    client.delete_cache_cluster(CacheClusterId=cache_cluster_id)
+
+    resp = client.describe_cache_clusters(CacheClusterId=cache_cluster_id)
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp["CacheClusters"][0]["CacheClusterStatus"] == "deleting"
+
+
+@mock_elasticache
+def test_delete_unknown_cache_cluster():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    cache_cluster_id = "test-cache-cluster"
+    cache_cluster_id_unknown = "unknown-cache-cluster"
+    cache_cluster_engine = "memcached"
+    cache_cluster_num_cache_nodes = 5
+
+    client.create_cache_cluster(
+        CacheClusterId=cache_cluster_id,
+        Engine=cache_cluster_engine,
+        NumCacheNodes=cache_cluster_num_cache_nodes,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_cache_cluster(
+            CacheClusterId=cache_cluster_id_unknown,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheClusterNotFound"
+    assert err["Message"] == f"Cache cluster {cache_cluster_id_unknown} not found."

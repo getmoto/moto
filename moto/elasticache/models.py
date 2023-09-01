@@ -288,5 +288,15 @@ class ElastiCacheBackend(BaseBackend):
 
         return marker, cache_clusters
 
+    def delete_cache_cluster(
+        self, cache_cluster_id: str, final_snapshot_identifier: str
+    ) -> List[CacheCluster]:
+        if cache_cluster_id:
+            if cache_cluster_id in self.cache_clusters:
+                cache_cluster = self.cache_clusters[cache_cluster_id]
+                cache_cluster.cache_cluster_status = "deleting"
+                return cache_cluster
+        raise CacheClusterNotFound(cache_cluster_id)
+
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")
