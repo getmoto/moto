@@ -270,19 +270,19 @@ class ElastiCacheBackend(BaseBackend):
         self,
         cache_cluster_id: str,
         max_records: int,
-        marker: Optional[str] = None,
-    ) -> Tuple[Optional[str], List[CacheCluster]]:
+        marker: str,
+    ) -> Tuple[str, List[CacheCluster]]:
         if marker is None:
-            marker = mock_random.uuid4()
+            marker = str(mock_random.uuid4())
         if max_records is None:
             max_records = 100
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
-                cache_clusters = [self.cache_clusters.get(cache_cluster_id)]
+                cache_cluster = self.cache_clusters[cache_cluster_id]
+                return marker, [cache_cluster]
             else:
                 raise CacheClusterNotFound(cache_cluster_id)
-        else:
-            cache_clusters = list(self.cache_clusters.values())[:max_records]
+        cache_clusters = list(self.cache_clusters.values())[:max_records]
 
         return marker, cache_clusters
 
