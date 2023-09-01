@@ -70,3 +70,14 @@ class CacheClusterAlreadyExists(ElastiCacheException):
             "CacheClusterAlreadyExists",
             message=f"Cache cluster {cache_cluster_id} already exists.",
         ),
+
+
+class CacheClusterNotFound(ElastiCacheException):
+
+    code = 404
+
+    def __init__(self, cache_cluster_id: str):
+        super().__init__(
+            "CacheClusterNotFound",
+            message=f"Cache cluster {cache_cluster_id} not found.",
+        )
