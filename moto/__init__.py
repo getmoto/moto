@@ -1,9 +1,9 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
-from moto.core.models import BaseMockAWS
 from typing import Any, Callable, List, Optional, TypeVar
 
+from moto.core.models import BaseMockAWS
 
 TEST_METHOD = TypeVar("TEST_METHOD", bound=Callable[..., Any])
 
@@ -189,6 +189,9 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_textract = lazy_load(".textract", "mock_textract")
+mock_elasticache = lazy_load(
+    ".elasticache", "mock_elasticache", boto3_name="elasticache"
+)
 
 
 class MockAll(ContextDecorator):
