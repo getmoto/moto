@@ -29,6 +29,8 @@ lint:
 	pylint -j 0 moto tests
 	@echo "Running MyPy..."
 	mypy --install-types --non-interactive
+	@echo "Running ruff..."
+	ruff check moto tests
 
 format:
 	black moto/ tests/
