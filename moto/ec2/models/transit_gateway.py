@@ -66,7 +66,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "TransitGateway":
         from ..models import ec2_backends
 
