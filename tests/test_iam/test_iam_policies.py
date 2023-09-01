@@ -1607,6 +1607,20 @@ valid_policy_documents = [
             },
         ],
     },
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "",
+                "Effect": "Allow",
+                "Action": ["s3:*"],
+                "Resource": [
+                    "arn:aws:s3:us-west-2:123456789012:accesspoint/my-access-point",
+                    "arn:aws:s3:us-west-2:123456789012:accesspoint/my-access-point/object/*",
+                ],
+            },
+        ],
+    },
 ]
 
 
