@@ -25,7 +25,7 @@ def test_create_transit_gateway():
     assert gateway["TransitGatewayId"].startswith("tgw-")
     assert (
         gateway["TransitGatewayArn"]
-        == f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
+        == f"arn:aws:ec2:us-west-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
     )
     assert gateway["State"] == "available"
     assert gateway["OwnerId"] == ACCOUNT_ID
@@ -54,7 +54,7 @@ def test_create_transit_gateway():
     assert "CreationTime" in gateways[0]
     assert (
         gateways[0]["TransitGatewayArn"]
-        == f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
+        == f"arn:aws:ec2:us-west-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
     )
     assert (
         gateways[0]["Options"]["AssociationDefaultRouteTableId"]
