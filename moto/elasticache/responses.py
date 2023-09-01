@@ -124,6 +124,24 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(CREATE_CACHE_CLUSTER_TEMPLATE)
         return template.render(cache_cluster=cache_cluster)
 
+    def describe_cache_clusters(self):
+        cache_cluster_id = self._get_param("CacheClusterId")
+        max_records = self._get_int_param("MaxRecords")
+        marker = self._get_param("Marker")
+        show_cache_node_info = self._get_param("ShowCacheNodeInfo")
+        show_cache_clusters_not_in_replication_groups = self._get_param(
+            "ShowCacheClustersNotInReplicationGroups"
+        )
+        marker, cache_clusters = self.elasticache_backend.describe_cache_clusters(
+            cache_cluster_id=cache_cluster_id,
+            marker=marker,
+            max_records=max_records,
+            show_cache_node_info=show_cache_node_info,
+            show_cache_clusters_not_in_replication_groups=show_cache_clusters_not_in_replication_groups,
+        )
+        template = self.response_template(DESCRIBE_CACHE_CLUSTERS_TEMPLATE)
+        return template.render(marker=marker, cache_clusters=cache_clusters)
+
 
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     <UserName>{{ user.name }}</UserName>
@@ -315,3 +333,89 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
 </CacheCluster>
   </CreateCacheClusterResult>
 </CreateCacheClusterResponse>"""
+
+DESCRIBE_CACHE_CLUSTERS_TEMPLATE = """<DescribeCacheClustersResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeCacheClustersResult>
+    <Marker>{{ marker }}</Marker>
+    <CacheClusters>
+{% for cache_cluster in cache_clusters %}
+      <member>
+        <CacheClusterId>{{ cache_cluster.cache_cluster_id }}</CacheClusterId>
+        <ConfigurationEndpoint>{{ cache_cluster.configuration_endpoint }}</ConfigurationEndpoint>
+        <ClientDownloadLandingPage>{{ cache_cluster.client_download_landing_page }}</ClientDownloadLandingPage>
+        <CacheNodeType>{{ cache_cluster.cache_node_type }}</CacheNodeType>
+        <Engine>{{ cache_cluster.engine }}</Engine>
+        <EngineVersion>{{ cache_cluster.engine_version }}</EngineVersion>
+        <CacheClusterStatus>{{ cache_cluster.cache_cluster_status }}</CacheClusterStatus>
+        <NumCacheNodes>{{ cache_cluster.num_cache_nodes }}</NumCacheNodes>
+        <PreferredAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</PreferredAvailabilityZone>
+        <PreferredOutpostArn>{{ cache_cluster.preferred_outpost_arn }}</PreferredOutpostArn>
+        <CacheClusterCreateTime>{{ cache_cluster.cache_cluster_create_time }}</CacheClusterCreateTime>
+        <PreferredMaintenanceWindow>{{ cache_cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
+        <PendingModifiedValues>{{ cache_cluster.pending_modified_values }}</PendingModifiedValues>
+        <NotificationConfiguration>{{ cache_cluster.notification_configuration }}</NotificationConfiguration>
+        <CacheSecurityGroups>
+{% for cache_security_group in cache_cluster.cache_security_groups %}
+          <member>
+            <CacheSecurityGroupName>{{ cache_security_group.cache_security_group_name }}</CacheSecurityGroupName>
+            <Status>{{ cache_security_group.status }}</Status>
+          </member>
+{% endfor %}
+        </CacheSecurityGroups>
+        <CacheParameterGroup>{{ cache_cluster.cache_parameter_group }}</CacheParameterGroup>
+        <CacheSubnetGroupName>{{ cache_cluster.cache_subnet_group_name }}</CacheSubnetGroupName>
+        <CacheNodes>
+{% for cache_node in cache_cluster.cache_nodes %}
+          <member>
+            <CacheNodeId>{{ cache_node.cache_node_id }}</CacheNodeId>
+            <CacheNodeStatus>{{ cache_node.cache_node_status }}</CacheNodeStatus>
+            <CacheNodeCreateTime>{{ cache_node.cache_node_create_time }}</CacheNodeCreateTime>
+            <Endpoint>{{ cache_node.endpoint }}</Endpoint>
+            <ParameterGroupStatus>{{ cache_node.parameter_group_status }}</ParameterGroupStatus>
+            <SourceCacheNodeId>{{ cache_node.source_cache_node_id }}</SourceCacheNodeId>
+            <CustomerAvailabilityZone>{{ cache_node.customer_availability_zone }}</CustomerAvailabilityZone>
+            <CustomerOutpostArn>{{ cache_node.customer_outpost_arn }}</CustomerOutpostArn>
+          </member>
+{% endfor %}
+        </CacheNodes>
+        <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+        <SecurityGroups>
+{% for security_group in cache_cluster.security_groups %}
+          <member>
+            <SecurityGroupId>{{ security_group.security_group_id }}</SecurityGroupId>
+            <Status>{{ security_group.status }}</Status>
+          </member>
+{% endfor %}
+        </SecurityGroups>
+        <ReplicationGroupId>{{ cache_cluster.replication_group_id }}</ReplicationGroupId>
+        <SnapshotRetentionLimit>{{ cache_cluster.snapshot_retention_limit }}</SnapshotRetentionLimit>
+        <SnapshotWindow>{{ cache_cluster.snapshot_window }}</SnapshotWindow>
+        <AuthTokenEnabled>{{ cache_cluster.auth_token_enabled }}</AuthTokenEnabled>
+        <AuthTokenLastModifiedDate>{{ cache_cluster.auth_token_last_modified_date }}</AuthTokenLastModifiedDate>
+        <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+        <AtRestEncryptionEnabled>{{ cache_cluster.at_rest_encryption_enabled }}</AtRestEncryptionEnabled>
+        <ARN>{{ cache_cluster.arn }}</ARN>
+        <ReplicationGroupLogDeliveryEnabled>{{ cache_cluster.replication_group_log_delivery_enabled }}</ReplicationGroupLogDeliveryEnabled>
+        <LogDeliveryConfigurations>
+{% for log_delivery_configuration in cache_cluster.log_delivery_configurations %}
+          <member>
+            <LogType>{{ log_delivery_configuration.log_type }}</LogType>
+            <DestinationType>{{ log_delivery_configuration.destination_type }}</DestinationType>
+            <DestinationDetails>{{ log_delivery_configuration.destination_details }}</DestinationDetails>
+            <LogFormat>{{ log_delivery_configuration.log_format }}</LogFormat>
+            <Status>{{ log_delivery_configuration.status }}</Status>
+            <Message>{{ log_delivery_configuration.message }}</Message>
+          </member>
+{% endfor %}
+        </LogDeliveryConfigurations>
+        <NetworkType>{{ cache_cluster.network_type }}</NetworkType>
+        <IpDiscovery>{{ cache_cluster.ip_discovery }}</IpDiscovery>
+        <TransitEncryptionMode>{{ cache_cluster.transit_encryption_mode }}</TransitEncryptionMode>
+      </member>
+{% endfor %}
+    </CacheClusters>
+  </DescribeCacheClustersResult>
+</DescribeCacheClustersResponse>"""

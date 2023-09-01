@@ -1,9 +1,14 @@
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 
-from .exceptions import UserAlreadyExists, UserNotFound, CacheClusterAlreadyExists
+from .exceptions import (
+    UserAlreadyExists,
+    UserNotFound,
+    CacheClusterAlreadyExists,
+    CacheClusterNotFound,
+)
 from ..moto_api._internal import mock_random
 
 
@@ -113,6 +118,7 @@ class CacheCluster(BaseModel):
         self.cache_node_ids_to_reboot = cache_node_ids_to_reboot
 
         self.cache_cluster_create_time = datetime.utcnow()
+        self.auth_token_last_modified_date = datetime.utcnow()
         self.cache_cluster_status = "available"
         self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}"
         self.cache_node_id = mock_random.uuid4()
@@ -295,6 +301,28 @@ class ElastiCacheBackend(BaseBackend):
         )
         self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
+
+    def describe_cache_clusters(
+        self,
+        cache_cluster_id: str,
+        max_records: int,
+        marker: Optional[str] = None,
+        show_cache_node_info: Optional[bool] = False,
+        show_cache_clusters_not_in_replication_groups: Optional[bool] = False,
+    ) -> Tuple[Optional[str], List[CacheCluster]]:
+        if marker is None:
+            marker = mock_random.uuid4()
+        if max_records is None:
+            max_records = 100
+        if cache_cluster_id:
+            if cache_cluster_id in self.cache_clusters:
+                cache_clusters = [self.cache_clusters.get(cache_cluster_id)]
+            else:
+                raise CacheClusterNotFound(cache_cluster_id)
+        else:
+            cache_clusters = list(self.cache_clusters.values())[:max_records]
+
+        return marker, cache_clusters
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")
