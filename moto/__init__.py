@@ -83,9 +83,7 @@ mock_ecr = lazy_load(".ecr", "mock_ecr")
 mock_ecs = lazy_load(".ecs", "mock_ecs")
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_eks = lazy_load(".eks", "mock_eks")
-mock_elasticache = lazy_load(
-    ".elasticache", "mock_elasticache", boto3_name="elasticache"
-)
+mock_elasticache = lazy_load(".elasticache", "mock_elasticache")
 mock_elastictranscoder = lazy_load(".elastictranscoder", "mock_elastictranscoder")
 mock_elb = lazy_load(".elb", "mock_elb")
 mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
@@ -180,6 +178,7 @@ mock_stepfunctions = lazy_load(
 mock_sts = lazy_load(".sts", "mock_sts")
 mock_support = lazy_load(".support", "mock_support")
 mock_swf = lazy_load(".swf", "mock_swf")
+mock_textract = lazy_load(".textract", "mock_textract")
 mock_timestreamwrite = lazy_load(
     ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
 )
@@ -188,10 +187,6 @@ XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
-mock_textract = lazy_load(".textract", "mock_textract")
-mock_elasticache = lazy_load(
-    ".elasticache", "mock_elasticache", boto3_name="elasticache"
-)
 
 
 class MockAll(ContextDecorator):
