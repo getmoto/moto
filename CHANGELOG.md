@@ -1,6 +1,11 @@
 Moto Changelog
 ==============
 
+4.2.2
+------
+Docker Digest for 4.2.2: <autopopulateddigest>
+
+    See 4.2.1 - no functional changes.
 
 4.2.1
 ------

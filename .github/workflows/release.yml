@@ -60,6 +60,8 @@ jobs:
     - name: Create GitHub release
       uses: softprops/action-gh-release@v1
       with:
+        name: ${{ env.VERSION }}
+        tag_name: ${{ env.VERSION }}
         files: dist/*
     # Required to get the correct Digest
     # See https://github.com/docker/build-push-action/issues/461
