@@ -1166,7 +1166,7 @@
 
 ## cognito-idp
 <details>
-<summary>57% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -1216,7 +1216,7 @@
 - [X] delete_user_pool_client
 - [X] delete_user_pool_domain
 - [X] describe_identity_provider
-- [ ] describe_resource_server
+- [X] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_user_import_job
 - [X] describe_user_pool
@@ -1239,7 +1239,7 @@
 - [ ] list_devices
 - [X] list_groups
 - [X] list_identity_providers
-- [ ] list_resource_servers
+- [X] list_resource_servers
 - [ ] list_tags_for_resource
 - [ ] list_user_import_jobs
 - [X] list_user_pool_clients
@@ -2691,7 +2691,7 @@
 
 ## elasticache
 <details>
-<summary>4% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
@@ -2699,7 +2699,7 @@
 - [ ] batch_stop_update_action
 - [ ] complete_migration
 - [ ] copy_snapshot
-- [ ] create_cache_cluster
+- [X] create_cache_cluster
 - [ ] create_cache_parameter_group
 - [ ] create_cache_security_group
 - [ ] create_cache_subnet_group
@@ -2710,7 +2710,7 @@
 - [ ] create_user_group
 - [ ] decrease_node_groups_in_global_replication_group
 - [ ] decrease_replica_count
-- [ ] delete_cache_cluster
+- [X] delete_cache_cluster
 - [ ] delete_cache_parameter_group
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
@@ -2719,7 +2719,7 @@
 - [ ] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
-- [ ] describe_cache_clusters
+- [X] describe_cache_clusters
 - [ ] describe_cache_engine_versions
 - [ ] describe_cache_parameter_groups
 - [ ] describe_cache_parameters
@@ -3810,7 +3810,7 @@
 
 ## identitystore
 <details>
-<summary>52% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -3828,7 +3828,7 @@
 - [X] list_group_memberships
 - [ ] list_group_memberships_for_member
 - [X] list_groups
-- [ ] list_users
+- [X] list_users
 - [ ] update_group
 - [ ] update_user
 </details>
@@ -6354,7 +6354,7 @@
 - [ ] list_monitoring_executions
 - [ ] list_monitoring_schedules
 - [ ] list_notebook_instance_lifecycle_configs
-- [ ] list_notebook_instances
+- [X] list_notebook_instances
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
@@ -6439,10 +6439,11 @@
 
 ## sagemaker-runtime
 <details>
-<summary>50% implemented</summary>
+<summary>33% implemented</summary>
 
 - [X] invoke_endpoint
 - [ ] invoke_endpoint_async
+- [ ] invoke_endpoint_with_response_stream
 </details>
 
 ## scheduler
@@ -6643,9 +6644,10 @@
 
 ## sesv2
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_get_metric_data
+- [ ] cancel_export_job
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
 - [X] create_contact
@@ -6656,6 +6658,7 @@
 - [ ] create_email_identity
 - [ ] create_email_identity_policy
 - [ ] create_email_template
+- [ ] create_export_job
 - [ ] create_import_job
 - [ ] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
@@ -6684,7 +6687,9 @@
 - [ ] get_email_identity
 - [ ] get_email_identity_policies
 - [ ] get_email_template
+- [ ] get_export_job
 - [ ] get_import_job
+- [ ] get_message_insights
 - [ ] get_suppressed_destination
 - [ ] list_configuration_sets
 - [X] list_contact_lists
@@ -6695,6 +6700,7 @@
 - [ ] list_domain_deliverability_campaigns
 - [ ] list_email_identities
 - [ ] list_email_templates
+- [ ] list_export_jobs
 - [ ] list_import_jobs
 - [ ] list_recommendations
 - [ ] list_suppressed_destinations
@@ -7449,6 +7455,7 @@
 - mobile
 - mturk
 - mwaa
+- neptunedata
 - network-firewall
 - networkmanager
 - nimble
@@ -7461,6 +7468,7 @@
 - panorama
 - payment-cryptography
 - payment-cryptography-data
+- pca-connector-ad
 - personalize-events
 - personalize-runtime
 - pi

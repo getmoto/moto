@@ -11,6 +11,8 @@ jobs:
   release-moto-job:
     runs-on: ubuntu-latest
     name: Release Moto
+    permissions:
+      contents: write
     env:
       VERSION: 0.0.0
     steps:
@@ -55,6 +57,10 @@ jobs:
       run: |
         git tag ${{ env.VERSION }}
         git push origin ${{ env.VERSION }}
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
     # Required to get the correct Digest
     # See https://github.com/docker/build-push-action/issues/461
     - name: Set up QEMU
