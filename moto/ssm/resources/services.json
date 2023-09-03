@@ -7997,6 +7997,9 @@
               "eu-west-3": {
                 "Value": "eu-west-3"
               },
+              "il-central-1": {
+                "Value": "il-central-1"
+              },
               "sa-east-1": {
                 "Value": "sa-east-1"
               },
@@ -8109,6 +8112,15 @@
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "meetings-chime.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "meetings-chime.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11536,6 +11548,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "codecommit.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "me-central-1": {
                 "Value": "me-central-1",
                 "endpoint": {
@@ -12839,6 +12860,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-south-1": {
                 "Value": "ap-south-1",
                 "endpoint": {
@@ -12938,6 +12968,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "cognito-identity.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
@@ -13022,6 +13061,15 @@
                 "Value": "ap-northeast-2",
                 "endpoint": {
                   "Value": "cognito-idp.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13112,6 +13160,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "cognito-idp.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "cognito-idp.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14613,6 +14670,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "controltower.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "controltower.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27933,6 +27999,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "sso.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
@@ -28947,7 +29022,7 @@
               "af-south-1": {
                 "Value": "af-south-1",
                 "endpoint": {
-                  "Value": "internetmonitor.af-south-1.api.aws"
+                  "Value": "internetmonitor.af-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28956,7 +29031,7 @@
               "ap-east-1": {
                 "Value": "ap-east-1",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-east-1.api.aws"
+                  "Value": "internetmonitor.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28965,7 +29040,7 @@
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-northeast-1.api.aws"
+                  "Value": "internetmonitor.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28974,7 +29049,7 @@
               "ap-northeast-2": {
                 "Value": "ap-northeast-2",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-northeast-2.api.aws"
+                  "Value": "internetmonitor.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28983,7 +29058,7 @@
               "ap-northeast-3": {
                 "Value": "ap-northeast-3",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-northeast-3.api.aws"
+                  "Value": "internetmonitor.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28992,7 +29067,7 @@
               "ap-south-1": {
                 "Value": "ap-south-1",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-south-1.api.aws"
+                  "Value": "internetmonitor.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29001,7 +29076,7 @@
               "ap-south-2": {
                 "Value": "ap-south-2",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-south-2.api.aws"
+                  "Value": "internetmonitor.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29010,7 +29085,7 @@
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-southeast-1.api.aws"
+                  "Value": "internetmonitor.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29019,7 +29094,7 @@
               "ap-southeast-2": {
                 "Value": "ap-southeast-2",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-southeast-2.api.aws"
+                  "Value": "internetmonitor.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29028,7 +29103,7 @@
               "ap-southeast-3": {
                 "Value": "ap-southeast-3",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-southeast-3.api.aws"
+                  "Value": "internetmonitor.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29037,7 +29112,7 @@
               "ap-southeast-4": {
                 "Value": "ap-southeast-4",
                 "endpoint": {
-                  "Value": "internetmonitor.ap-southeast-4.api.aws"
+                  "Value": "internetmonitor.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29046,7 +29121,7 @@
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
-                  "Value": "internetmonitor.ca-central-1.api.aws"
+                  "Value": "internetmonitor.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29055,7 +29130,7 @@
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-central-1.api.aws"
+                  "Value": "internetmonitor.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29064,7 +29139,7 @@
               "eu-central-2": {
                 "Value": "eu-central-2",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-central-2.api.aws"
+                  "Value": "internetmonitor.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29073,7 +29148,7 @@
               "eu-north-1": {
                 "Value": "eu-north-1",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-north-1.api.aws"
+                  "Value": "internetmonitor.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29082,7 +29157,7 @@
               "eu-south-1": {
                 "Value": "eu-south-1",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-south-1.api.aws"
+                  "Value": "internetmonitor.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29091,7 +29166,7 @@
               "eu-south-2": {
                 "Value": "eu-south-2",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-south-2.api.aws"
+                  "Value": "internetmonitor.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29100,7 +29175,7 @@
               "eu-west-1": {
                 "Value": "eu-west-1",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-west-1.api.aws"
+                  "Value": "internetmonitor.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29109,7 +29184,7 @@
               "eu-west-2": {
                 "Value": "eu-west-2",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-west-2.api.aws"
+                  "Value": "internetmonitor.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29118,7 +29193,7 @@
               "eu-west-3": {
                 "Value": "eu-west-3",
                 "endpoint": {
-                  "Value": "internetmonitor.eu-west-3.api.aws"
+                  "Value": "internetmonitor.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29127,7 +29202,7 @@
               "me-central-1": {
                 "Value": "me-central-1",
                 "endpoint": {
-                  "Value": "internetmonitor.me-central-1.api.aws"
+                  "Value": "internetmonitor.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29136,7 +29211,7 @@
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
-                  "Value": "internetmonitor.me-south-1.api.aws"
+                  "Value": "internetmonitor.me-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29145,7 +29220,7 @@
               "sa-east-1": {
                 "Value": "sa-east-1",
                 "endpoint": {
-                  "Value": "internetmonitor.sa-east-1.api.aws"
+                  "Value": "internetmonitor.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29154,7 +29229,7 @@
               "us-east-1": {
                 "Value": "us-east-1",
                 "endpoint": {
-                  "Value": "internetmonitor.us-east-1.api.aws"
+                  "Value": "internetmonitor.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29163,7 +29238,7 @@
               "us-east-2": {
                 "Value": "us-east-2",
                 "endpoint": {
-                  "Value": "internetmonitor.us-east-2.api.aws"
+                  "Value": "internetmonitor.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29172,7 +29247,7 @@
               "us-west-1": {
                 "Value": "us-west-1",
                 "endpoint": {
-                  "Value": "internetmonitor.us-west-1.api.aws"
+                  "Value": "internetmonitor.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29181,7 +29256,7 @@
               "us-west-2": {
                 "Value": "us-west-2",
                 "endpoint": {
-                  "Value": "internetmonitor.us-west-2.api.aws"
+                  "Value": "internetmonitor.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34917,6 +34992,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-3": {
+                "Value": "ap-southeast-3",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -34975,6 +35059,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "license-manager-user-subscriptions.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36049,6 +36142,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "macie2.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "macie2.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49101,15 +49203,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "il-central-1": {
-                "Value": "il-central-1",
-                "endpoint": {
-                  "Value": "featurestore-runtime.sagemaker.il-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
@@ -55585,6 +55678,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "oidc.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
@@ -58221,6 +58323,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "transfer.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "me-central-1": {
                 "Value": "me-central-1",
                 "endpoint": {
@@ -60658,6 +60769,15 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "api.messaging.wickr.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-west-2": {
+                "Value": "eu-west-2",
+                "endpoint": {
+                  "Value": "api.messaging.wickr.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
