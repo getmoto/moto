@@ -19,8 +19,8 @@ init:
 	@pip install -r requirements-dev.txt
 
 lint:
-	@echo "Running flake8..."
-	flake8 moto tests
+	@echo "Running ruff..."
+	ruff check moto tests
 	@echo "Running black... "
 	$(eval black_version := $(shell grep "^black==" requirements-dev.txt | sed "s/black==//"))
 	@echo "(Make sure you have black-$(black_version) installed, as other versions will produce different results)"
@@ -29,8 +29,6 @@ lint:
 	pylint -j 0 moto tests
 	@echo "Running MyPy..."
 	mypy --install-types --non-interactive
-	@echo "Running ruff..."
-	ruff check moto tests
 
 format:
 	black moto/ tests/
