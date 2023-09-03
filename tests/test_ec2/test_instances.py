@@ -1,6 +1,7 @@
 import base64
 import ipaddress
 import json
+import os
 import warnings
 from unittest import SkipTest, mock
 from uuid import uuid4
@@ -2339,6 +2340,9 @@ def test_instance_lifecycle():
     assert instance.instance_lifecycle is None
 
 
+# The default AMIs are not loaded for our test case, to speed things up
+# But we do need it for this specific test
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 @pytest.mark.parametrize(
     "launch_template_kind", ("LaunchTemplateId", "LaunchTemplateName")
@@ -2346,6 +2350,8 @@ def test_instance_lifecycle():
 def test_create_instance_with_launch_template_id_produces_no_warning(
     launch_template_kind,
 ):
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     client, resource = (
         boto3.client("ec2", region_name="us-west-1"),
         boto3.resource("ec2", region_name="us-west-1"),

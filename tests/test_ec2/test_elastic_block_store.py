@@ -1,12 +1,13 @@
 import boto3
-
+import os
 import pytest
 from botocore.exceptions import ClientError
-from moto import mock_ec2
+from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.ec2.models.elastic_block_store import IOPS_REQUIRED_VOLUME_TYPES
 from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
+from unittest import mock, SkipTest
 from uuid import uuid4
 
 
@@ -1067,8 +1068,13 @@ def test_create_snapshots_multiple_volumes():
     assert snapshot2["VolumeSize"] == 100
 
 
+# The default AMIs are not loaded for our test case, to speed things up
+# But we do need it for this specific test
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 def test_create_snapshots_multiple_volumes_without_boot():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
