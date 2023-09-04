@@ -209,7 +209,7 @@ def test_volume_filters():
     def verify_filter(name, value, expected=None, not_expected=None):
         multiple_results = not_expected is not None
         expected = expected or block_volume
-        expected = expected if type(expected) == list else [expected]
+        expected = expected if isinstance(expected, list) else [expected]
         volumes = client.describe_volumes(Filters=[{"Name": name, "Values": [value]}])[
             "Volumes"
         ]
@@ -482,7 +482,7 @@ def test_snapshot_filters():
     )
 
     def verify_filter(name, value, expected, others=False):
-        expected = expected if type(expected) == list else [expected]
+        expected = expected if isinstance(expected, list) else [expected]
         snapshots = client.describe_snapshots(
             Filters=[{"Name": name, "Values": [value]}]
         )["Snapshots"]

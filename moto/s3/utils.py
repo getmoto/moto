@@ -100,7 +100,7 @@ def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # ty
             if meta_key:
                 metadata[meta_key] = (
                     headers[header][0]
-                    if type(headers[header]) == list
+                    if isinstance(headers[header], list)
                     else headers[header]
                 )
     return metadata
