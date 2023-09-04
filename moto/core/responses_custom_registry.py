@@ -26,9 +26,11 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         self._registered.clear()
 
     def find(self, request: Any) -> Tuple[Optional[responses.BaseResponse], List[str]]:
-        all_possibles = responses._default_mock._registry.registered
         # We don't have to search through all possible methods - only the ones registered for this particular method
-        all_possibles.extend(self._registered[request.method])
+        all_possibles = (
+            responses._default_mock._registry.registered
+            + self._registered[request.method]
+        )
         found = []
         match_failed_reasons = []
         for response in all_possibles:
