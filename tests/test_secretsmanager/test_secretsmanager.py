@@ -337,6 +337,27 @@ def test_update_secret_without_value():
 
 
 @mock_secretsmanager
+def test_create_secret_without_value_and_put_value():
+    conn = boto3.client("secretsmanager", region_name="us-east-2")
+    secret_name = f"secret-{str(uuid4())[0:6]}"
+
+    create = conn.create_secret(Name=secret_name)
+    assert set(create.keys()) == {"ARN", "Name", "ResponseMetadata"}
+
+    put_secret_value = conn.put_secret_value(
+        SecretId=secret_name, SecretString="example-string-to-protect"
+    )
+    assert set(put_secret_value.keys()) == {
+        "ARN",
+        "Name",
+        "VersionId",
+        "VersionStages",
+        "ResponseMetadata",
+    }
+    assert put_secret_value["VersionStages"] == ["AWSCURRENT"]
+
+
+@mock_secretsmanager
 def test_delete_secret():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 

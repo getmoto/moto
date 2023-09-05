@@ -126,9 +126,10 @@ class FakeSecret:
             if "AWSPREVIOUS" in old_version["version_stages"]:
                 old_version["version_stages"].remove("AWSPREVIOUS")
 
-        # set old AWSCURRENT secret to AWSPREVIOUS
-        previous_current_version_id = self.default_version_id
-        self.versions[previous_current_version_id]["version_stages"] = ["AWSPREVIOUS"]  # type: ignore
+        # set old AWSCURRENT secret to AWSPREVIOUS if there is one
+        if self.default_version_id in self.versions:
+            previous_current_version_id = self.default_version_id
+            self.versions[previous_current_version_id]["version_stages"] = ["AWSPREVIOUS"]  # type: ignore
 
         self.versions[version_id] = secret_version
         self.default_version_id = version_id
