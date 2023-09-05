@@ -3,10 +3,12 @@ import json
 import boto3
 import pytest
 from botocore.client import ClientError
+from unittest import SkipTest
 from unittest.mock import patch
 
 
 from moto import mock_s3
+from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.s3 import s3_backends
 from moto.s3.models import FakeBucket
@@ -272,6 +274,9 @@ def test_log_file_is_created():
 
 @mock_s3
 def test_invalid_bucket_logging_when_permissions_are_false():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't patch permission logic in ServerMode")
+
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     log_bucket = "logbucket"
@@ -295,6 +300,9 @@ def test_invalid_bucket_logging_when_permissions_are_false():
 
 @mock_s3
 def test_valid_bucket_logging_when_permissions_are_true():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't patch permission logic in ServerMode")
+
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
     log_bucket = "logbucket"
