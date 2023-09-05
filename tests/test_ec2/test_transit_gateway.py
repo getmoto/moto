@@ -111,9 +111,12 @@ def test_describe_transit_gateway_by_id():
     g2_id = g2["TransitGatewayId"]
     ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
 
-    my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g2_id])[
+    gateways = ec2.describe_transit_gateways(TransitGatewayIds=[g2_id])[
         "TransitGateways"
-    ][0]
+    ]
+    assert len(gateways) == 1
+
+    my_gateway = gateways[0]
     assert my_gateway["TransitGatewayId"] == g2_id
     assert my_gateway["Description"] == "my second gatway"
 
@@ -149,9 +152,13 @@ def test_describe_transit_gateway_by_tags():
     g2_id = g2["TransitGatewayId"]
     ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
 
-    my_gateway = ec2.describe_transit_gateways(
+    gateways = ec2.describe_transit_gateways(
         Filters=[{"Name": "tag:the-tag", "Values": ["the-value"]}]
-    )["TransitGateways"][0]
+    )["TransitGateways"]
+
+    assert len(gateways) == 1
+
+    my_gateway = gateways[0]
     assert my_gateway["TransitGatewayId"] == g2_id
     assert my_gateway["Description"] == "my second gatway"
 
