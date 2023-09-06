@@ -2,7 +2,7 @@ import base64
 import time
 from collections import defaultdict
 import copy
-import datetime
+from datetime import datetime
 from gzip import GzipFile
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from sys import platform
@@ -20,6 +20,7 @@ import tarfile
 import calendar
 import threading
 import weakref
+import warnings
 import requests.exceptions
 
 from moto.awslambda.policy import Policy
@@ -58,33 +59,27 @@ from moto.sqs import sqs_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.utilities.docker_utilities import DockerModel
-from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
 
-def zip2tar(zip_bytes: bytes) -> bytes:
-    with TemporaryDirectory() as td:
-        tarname = os.path.join(td, "data.tar")
-        timeshift = int(
-            (datetime.datetime.now() - datetime.datetime.utcnow()).total_seconds()
-        )
-        with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zipf, tarfile.TarFile(
-            tarname, "w"
-        ) as tarf:
-            for zipinfo in zipf.infolist():
-                if zipinfo.filename[-1] == "/":  # is_dir() is py3.6+
-                    continue
+def zip2tar(zip_bytes: bytes) -> io.BytesIO:
+    tarstream = io.BytesIO()
+    timeshift = int((datetime.now() - datetime.utcnow()).total_seconds())
+    tarf = tarfile.TarFile(fileobj=tarstream, mode="w")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zipf:
+        for zipinfo in zipf.infolist():
+            if zipinfo.is_dir():
+                continue
 
-                tarinfo = tarfile.TarInfo(name=zipinfo.filename)
-                tarinfo.size = zipinfo.file_size
-                tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
-                infile = zipf.open(zipinfo.filename)
-                tarf.addfile(tarinfo, infile)
+            tarinfo = tarfile.TarInfo(name=zipinfo.filename)
+            tarinfo.size = zipinfo.file_size
+            tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
+            infile = zipf.open(zipinfo.filename)
+            tarf.addfile(tarinfo, infile)
 
-        with open(tarname, "rb") as f:
-            tar_data = f.read()
-            return tar_data
+    tarstream.seek(0)
+    return tarstream
 
 
 class _VolumeRefCount:
@@ -135,8 +130,91 @@ class _DockerDataVolumeContext:
                 "busybox", "sleep 100", volumes=volumes, detach=True
             )
             try:
-                tar_bytes = zip2tar(self._lambda_func.code_bytes)
-                container.put_archive(settings.LAMBDA_DATA_DIR, tar_bytes)
+                with zip2tar(self._lambda_func.code_bytes) as stream:
+                    container.put_archive(settings.LAMBDA_DATA_DIR, stream)
+            finally:
+                container.remove(force=True)
+
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        with self.__class__._lock:
+            self._vol_ref.refcount -= 1  # type: ignore[union-attr]
+            if self._vol_ref.refcount == 0:  # type: ignore[union-attr]
+                try:
+                    self._vol_ref.volume.remove()  # type: ignore[union-attr]
+                except docker.errors.APIError as e:
+                    if e.status_code != 409:
+                        raise
+
+                    raise  # multiple processes trying to use same volume?
+
+
+class _DockerDataVolumeLayerContext:
+    _data_vol_map: Dict[str, _VolumeRefCount] = defaultdict(
+        lambda: _VolumeRefCount(0, None)
+    )
+    _lock = threading.Lock()
+
+    def __init__(self, lambda_func: "LambdaFunction"):
+        self._lambda_func = lambda_func
+        self._layers: List[Dict[str, str]] = self._lambda_func.layers
+        self._vol_ref: Optional[_VolumeRefCount] = None
+
+    @property
+    def name(self) -> str:
+        return self._vol_ref.volume.name  # type: ignore[union-attr]
+
+    @property
+    def hash(self) -> str:
+        return "-".join(
+            [
+                layer["Arn"].split("layer:")[-1].replace(":", "_")
+                for layer in self._layers
+            ]
+        )
+
+    def __enter__(self) -> "_DockerDataVolumeLayerContext":
+        # See if volume is already known
+        with self.__class__._lock:
+            self._vol_ref = self.__class__._data_vol_map[self.hash]
+            self._vol_ref.refcount += 1
+            if self._vol_ref.refcount > 1:
+                return self
+
+            # See if the volume already exists
+            for vol in self._lambda_func.docker_client.volumes.list():
+                if vol.name == self.hash:
+                    self._vol_ref.volume = vol
+                    return self
+
+            # It doesn't exist so we need to create it
+            self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(
+                self.hash
+            )
+            # If we don't have any layers to apply, just return at this point
+            # When invoking the function, we will bind this empty volume
+            if len(self._layers) == 0:
+                return self
+            volumes = {self.name: {"bind": "/opt", "mode": "rw"}}
+
+            self._lambda_func.ensure_image_exists("busybox")
+            container = self._lambda_func.docker_client.containers.run(
+                "busybox", "sleep 100", volumes=volumes, detach=True
+            )
+            backend: "LambdaBackend" = lambda_backends[self._lambda_func.account_id][
+                self._lambda_func.region
+            ]
+            try:
+                for layer in self._layers:
+                    try:
+                        layer_zip = backend.layers_versions_by_arn(  # type: ignore[union-attr]
+                            layer["Arn"]
+                        ).code_bytes
+                        layer_tar = zip2tar(layer_zip)
+                        container.put_archive("/opt", layer_tar)
+                    except zipfile.BadZipfile as e:
+                        warnings.warn(f"Error extracting layer to Lambda: {e}")
             finally:
                 container.remove(force=True)
 
@@ -256,7 +334,7 @@ class LayerVersion(CloudFormationModel):
         self.license_info = spec.get("LicenseInfo", "")
 
         # auto-generated
-        self.created_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.created_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         self.version: Optional[int] = None
         self._attached = False
         self._layer: Optional["Layer"] = None
@@ -453,7 +531,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.package_type = spec.get("PackageType", None)
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
-        self.layers = self._get_layers_data(spec.get("Layers", []))
+        self.layers: List[Dict[str, str]] = self._get_layers_data(
+            spec.get("Layers", [])
+        )
         self.signing_profile_version_arn = spec.get("SigningProfileVersionArn")
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
@@ -475,9 +555,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # auto-generated
         self.version = version
-        self.last_modified = iso_8601_datetime_with_nanoseconds(
-            datetime.datetime.utcnow()
-        )
+        self.last_modified = iso_8601_datetime_with_nanoseconds(datetime.utcnow())
 
         self._set_function_code(self.code)
 
@@ -499,9 +577,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = iso_8601_datetime_with_nanoseconds(
-            datetime.datetime.utcnow()
-        )
+        self.last_modified = iso_8601_datetime_with_nanoseconds(datetime.utcnow())
 
     @property
     def architectures(self) -> List[str]:
@@ -794,7 +870,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
 
-            with _DockerDataVolumeContext(self) as data_vol:
+            with _DockerDataVolumeContext(
+                self
+            ) as data_vol, _DockerDataVolumeLayerContext(self) as layer_context:
                 try:
                     run_kwargs: Dict[str, Any] = dict()
                     network_name = settings.moto_network_name()
@@ -836,12 +914,16 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             break
                         except docker.errors.NotFound:
                             pass
+                    volumes = {
+                        data_vol.name: {"bind": "/var/task", "mode": "rw"},
+                        layer_context.name: {"bind": "/opt", "mode": "rw"},
+                    }
                     container = self.docker_client.containers.run(
                         image_ref,
                         [self.handler, json.dumps(event)],
                         remove=False,
                         mem_limit=f"{self.memory_size}m",
-                        volumes=[f"{data_vol.name}:/var/task"],
+                        volumes=volumes,
                         environment=env_vars,
                         detach=True,
                         log_config=log_config,
@@ -882,7 +964,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def save_logs(self, output: str) -> None:
         # Send output to "logs" backend
         invoke_id = random.uuid4().hex
-        date = datetime.datetime.utcnow()
+        date = datetime.utcnow()
         log_stream_name = (
             f"{date.year}/{date.month:02d}/{date.day:02d}/[{self.version}]{invoke_id}"
         )
@@ -1036,7 +1118,7 @@ class FunctionUrlConfig:
         self.function = function
         self.config = config
         self.url = f"https://{random.uuid4().hex}.lambda-url.{function.region}.on.aws"
-        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+        self.created = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
         self.last_modified = self.created
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1055,7 +1137,7 @@ class FunctionUrlConfig:
             self.config["Cors"] = new_config["Cors"]
         if new_config.get("AuthType"):
             self.config["AuthType"] = new_config["AuthType"]
-        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        self.last_modified = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 class EventSourceMapping(CloudFormationModel):
@@ -1072,7 +1154,7 @@ class EventSourceMapping(CloudFormationModel):
 
         self.function_arn = spec["FunctionArn"]
         self.uuid = str(random.uuid4())
-        self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        self.last_modified = time.mktime(datetime.utcnow().timetuple())
 
     def _get_service_source_from_arn(self, event_source_arn: str) -> str:
         return event_source_arn.split(":")[2].lower()
@@ -1805,7 +1887,7 @@ class LambdaBackend(BaseBackend):
             elif key == "Enabled":
                 esm.enabled = spec[key]
 
-        esm.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        esm.last_modified = time.mktime(datetime.utcnow().timetuple())
         return esm
 
     def list_event_source_mappings(
