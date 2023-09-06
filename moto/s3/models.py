@@ -1761,7 +1761,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         requested_versions: List[FakeKey] = []
         delete_markers: List[FakeDeleteMarker] = []
         all_versions = list(
-            itertools.chain(*(copy.deepcopy(version_key) for key, version_key in bucket.keys.iterlists()))
+            itertools.chain(
+                *(
+                    copy.deepcopy(version_key)
+                    for key, version_key in bucket.keys.iterlists()
+                )
+            )
         )
         # sort by name, revert last-modified-date
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
