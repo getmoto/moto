@@ -1004,6 +1004,51 @@ def test_ranged_get():
 
     assert key.content_length == 100
 
+    assert key.get(Range="bytes=0-0")["Body"].read() == b"0"
+    assert key.get(Range="bytes=1-1")["Body"].read() == b"1"
+
+    range_req = key.get(Range="bytes=1-0")
+    assert range_req["Body"].read() == rep * 10
+    # assert that the request was not treated as a range request
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "ContentRange" not in range_req
+
+    range_req = key.get(Range="bytes=-1-")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    range_req = key.get(Range="bytes=0--1")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    range_req = key.get(Range="bytes=0-1,3-4,7-9")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    range_req = key.get(Range="bytes=-")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    with pytest.raises(ClientError) as ex:
+        key.get(Range="bytes=-0")
+    assert ex.value.response["Error"]["Code"] == "InvalidRange"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The requested range is not satisfiable"
+    )
+    assert ex.value.response["Error"]["ActualObjectSize"] == "100"
+    assert ex.value.response["Error"]["RangeRequested"] == "bytes=-0"
+
+    with pytest.raises(ClientError) as ex:
+        key.get(Range="bytes=101-200")
+    assert ex.value.response["Error"]["Code"] == "InvalidRange"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The requested range is not satisfiable"
+    )
+    assert ex.value.response["Error"]["ActualObjectSize"] == "100"
+    assert ex.value.response["Error"]["RangeRequested"] == "bytes=101-200"
+
 
 @mock_s3
 def test_policy():
