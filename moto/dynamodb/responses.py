@@ -505,9 +505,9 @@ class DynamoHandler(BaseResponse):
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
 
-        for (table_name, item) in put_requests:
+        for table_name, item in put_requests:
             self.dynamodb_backend.put_item(table_name, item)
-        for (table_name, keys) in delete_requests:
+        for table_name, keys in delete_requests:
             self.dynamodb_backend.delete_item(table_name, keys)
 
         response = {
@@ -920,7 +920,7 @@ class DynamoHandler(BaseResponse):
         if type(changed) != type(original):
             return changed
         else:
-            if type(changed) is dict:
+            if isinstance(changed, dict):
                 return {
                     key: self._build_updated_new_attributes(
                         original.get(key, None), changed[key]
@@ -994,7 +994,6 @@ class DynamoHandler(BaseResponse):
         consumed_capacity: Dict[str, Any] = dict()
 
         for transact_item in transact_items:
-
             table_name = transact_item["Get"]["TableName"]
             key = transact_item["Get"]["Key"]
             item = self.dynamodb_backend.get_item(table_name, key)

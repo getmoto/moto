@@ -187,7 +187,7 @@ class DynamoType(object):
             value_size = sum(
                 [bytesize(k) + DynamoType(v).size() for k, v in self.value.items()]
             )
-        elif type(self.value) == bool:
+        elif isinstance(self.value, bool):
             value_size = 1
         else:
             value_size = bytesize(self.value)

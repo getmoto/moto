@@ -248,7 +248,7 @@ def test_default_network_acl_default_entries():
         assert entry["Protocol"] == "-1"
         assert entry["RuleNumber"] in [100, 32767]
         assert entry["RuleAction"] in ["allow", "deny"]
-        assert type(entry["Egress"]) is bool
+        assert isinstance(entry["Egress"], bool)
         if entry["RuleAction"] == "allow":
             assert entry["RuleNumber"] == 100
         else:
