@@ -1,6 +1,7 @@
 import copy
 import os
 import re
+import requests
 import json
 import sys
 import warnings
@@ -11,6 +12,8 @@ from operator import lt, le, eq, ge, gt
 from typing import Any, Dict, List, Optional, Tuple
 
 from collections import OrderedDict
+
+from moto import settings
 from moto.core.exceptions import JsonRESTError
 from moto.core import BaseBackend, BackendDict, CloudFormationModel, BaseModel
 from moto.core.utils import (
@@ -142,6 +145,23 @@ class Rule(CloudFormationModel):
                     "EventBusName": arn.resource_id,
                 }
                 cross_account_backend.put_events([new_event])
+            elif arn.service == "events" and arn.resource_type == "api-destination":
+                if settings.events_invoke_http():
+                    api_destination = self._find_api_destination(arn.resource_id)
+                    request_parameters = target.get("HttpParameters", {})
+                    headers = request_parameters.get("HeaderParameters", {})
+                    qs_params = request_parameters.get("QueryStringParameters", {})
+                    query_string = "&".join(
+                        [f"{key}={val}" for key, val in qs_params.items()]
+                    )
+                    url = api_destination.invocation_endpoint + (
+                        f"?{query_string}" if query_string else ""
+                    )
+                    requests.request(
+                        method=api_destination.http_method,
+                        url=url,
+                        headers=headers,
+                    )
             else:
                 raise NotImplementedError(f"Expr not defined for {type(self)}")
 
@@ -169,6 +189,11 @@ class Rule(CloudFormationModel):
         )
         if archive.uuid == archive_uuid:
             archive.events.append(event)
+
+    def _find_api_destination(self, resource_id: str) -> "Destination":
+        backend: "EventsBackend" = events_backends[self.account_id][self.region_name]
+        destination_name = resource_id.split("/")[0]
+        return backend.destinations[destination_name]
 
     def _send_to_sqs_queue(
         self, resource_id: str, event: Dict[str, Any], group_id: Optional[str] = None
@@ -1245,6 +1270,7 @@ class EventsBackend(BaseBackend):
          - EventBridge Archive
          - SQS Queue + FIFO Queue
          - Cross-region/account EventBus
+         - HTTP requests (only enabled when MOTO_EVENTS_INVOKE_HTTP=true)
         """
         num_events = len(events)
 

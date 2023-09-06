@@ -79,6 +79,10 @@ def ecs_new_arn_format() -> bool:
     return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"
 
 
+def events_invoke_http() -> bool:
+    return os.environ.get("MOTO_EVENTS_INVOKE_HTTP", "false").lower() == "true"
+
+
 def allow_unknown_region() -> bool:
     return os.environ.get("MOTO_ALLOW_NONEXISTENT_REGION", "false").lower() == "true"
 
