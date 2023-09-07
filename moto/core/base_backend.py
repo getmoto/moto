@@ -1,10 +1,13 @@
 from boto3 import Session
 import re
+import shelve
 import string
 from functools import lru_cache
 from threading import RLock
 from typing import Any, List, Dict, Optional, ClassVar, TypeVar, Iterator
 from uuid import uuid4
+# Used to access PERSISTENCE_FILEPATH in a way that can be monkeypatched for testing
+import moto.settings
 from moto.settings import allow_unknown_region, enable_iso_regions
 from .model_instances import model_data
 from .utils import convert_regex_to_flask_path
@@ -23,7 +26,36 @@ class InstanceTrackerMeta(type):
         return cls
 
 
-class BaseBackend:
+class BaseBackendMeta(type):
+    def __new__(cls, name, bases, dct):
+        def persistence_decorator(name: str, func):
+            def wrapper(self, *args, **kwargs):
+                filepath = moto.settings.PERSISTENCE_FILEPATH
+                if not filepath:
+                    return func(self, *args, **kwargs)
+
+                if func.__name__ == '__init__':
+                    result = func(self, *args, **kwargs)
+                    with shelve.open(filepath) as db:
+                        if name in db:
+                            self.__dict__.update(db[name])
+                    return
+
+                result = func(self, *args, **kwargs)
+                with shelve.open(filepath) as db:
+                    db[name] = self.__dict__
+                return result
+
+            return wrapper
+
+        for attr_name, attr_value in dct.items():
+            if callable(attr_value) and (not attr_name.startswith("__") or attr_name == "__init__"):
+                dct[attr_name] = persistence_decorator(name, attr_value)
+
+        return super().__new__(cls, name, bases, dct)
+
+
+class BaseBackend(metaclass=BaseBackendMeta):
     def __init__(self, region_name: str, account_id: str):
         self.region_name = region_name
         self.account_id = account_id
