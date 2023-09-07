@@ -31,21 +31,6 @@ class TestHashKey:
             )
         assert exc.value.message == "Query condition missed key schema element: job_id"
 
-    def test_unknown_hash_value(self):
-        # TODO: is this correct? I'd assume that this should throw an error instead
-        # Revisit after test in exceptions.py passes
-        kce = "job_id = :unknown"
-        eav = {":id": {"S": "asdasdasd"}}
-        desired_hash_key, comparison, range_values = parse_expression(
-            expression_attribute_values=eav,
-            key_condition_expression=kce,
-            schema=self.schema,
-            expression_attribute_names=dict(),
-        )
-        assert desired_hash_key == {"S": ":unknown"}
-        assert comparison is None
-        assert range_values == []
-
 
 class TestHashAndRangeKey:
     schema = [
@@ -185,9 +170,8 @@ class TestHashAndRangeKey:
         ],
     )
     def test_brackets(self, expr):
-        eav = {":id": "pk", ":sk1": "19", ":sk2": "21"}
         desired_hash_key, comparison, range_values = parse_expression(
-            expression_attribute_values=eav,
+            expression_attribute_values={":id": "pk", ":sk": "19"},
             key_condition_expression=expr,
             schema=self.schema,
             expression_attribute_names=dict(),
