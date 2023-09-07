@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 
 import pytest
 
-from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_elbv2, mock_rds
+from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_ssm, mock_elbv2, mock_rds
 from moto.core import set_initial_no_auth_action_count
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
@@ -831,3 +831,30 @@ def test_allow_key_access_using_resource_arn() -> None:
     s3_client.put_object(Bucket="my_bucket", Key="keyname", Body=b"test")
     with pytest.raises(ClientError):
         s3_client.put_object(Bucket="my_bucket", Key="unknown", Body=b"test")
+
+
+@set_initial_no_auth_action_count(3)
+@mock_ssm
+@mock_iam
+def test_ssm_service():
+    user_name = "test-user"
+    policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": ["ssm:*"],
+                "Effect": "Allow",
+                "Resource": ["*"],
+            },
+        ],
+    }
+    access_key = create_user_with_access_key_and_inline_policy(user_name, policy_doc)
+
+    ssmc = boto3.client(
+        "ssm",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+
+    ssmc.put_parameter(Name="test", Value="value", Type="String")
