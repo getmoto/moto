@@ -148,6 +148,7 @@ mock_resourcegroups = lazy_load(
 mock_resourcegroupstaggingapi = lazy_load(
     ".resourcegroupstaggingapi", "mock_resourcegroupstaggingapi"
 )
+mock_robomaker = lazy_load(".robomaker", "mock_robomaker")
 mock_route53 = lazy_load(".route53", "mock_route53")
 mock_route53resolver = lazy_load(
     ".route53resolver", "mock_route53resolver", boto3_name="route53resolver"
