@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from moto.core import BaseBackend, BackendDict
+from moto.core import BackendModelMeta, BaseBackend, BackendDict
 from ..exceptions import (
     EC2ClientError,
     InvalidID,
@@ -115,6 +115,7 @@ class EC2Backend(
     FleetsBackend,
     WindowsBackend,
     HostsBackend,
+    metaclass=BackendModelMeta,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.

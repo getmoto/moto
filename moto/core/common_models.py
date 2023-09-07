@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
-from .base_backend import InstanceTrackerMeta
+from .base_backend import BaseBackendMeta, InstanceTrackerMeta
 
 
 class BaseModel(metaclass=InstanceTrackerMeta):
@@ -10,6 +10,10 @@ class BaseModel(metaclass=InstanceTrackerMeta):
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)  # type: ignore[attr-defined]
         return instance
+
+
+class BackendModelMeta(BaseBackendMeta, InstanceTrackerMeta):
+    pass
 
 
 # Parent class for every Model that can be instantiated by CloudFormation
