@@ -1169,25 +1169,35 @@ class S3Response(BaseResponse):
     ) -> TYPE_RESPONSE:
         length = len(response_content)
         last = length - 1
+
         _, rspec = request.headers.get("range").split("=")
         if "," in rspec:
-            raise NotImplementedError("Multiple range specifiers not supported")
+            return 200, response_headers, response_content
 
-        def toint(i: Any) -> Optional[int]:
-            return int(i) if i else None
+        try:
+            begin, end = [int(i) if i else None for i in rspec.split("-")]
+        except ValueError:
+            # if we can't parse the Range header, S3 just treat the request as a non-range request
+            return 200, response_headers, response_content
 
-        begin, end = map(toint, rspec.split("-"))
+        if (begin is None and end == 0) or (begin is not None and begin > last):
+            raise InvalidRange(
+                actual_size=str(length), range_requested=request.headers.get("range")
+            )
+
         if begin is not None:  # byte range
             end = last if end is None else min(end, last)
         elif end is not None:  # suffix byte range
             begin = length - min(end, length)
             end = last
         else:
-            return 400, response_headers, ""
-        if begin < 0 or end > last or begin > min(end, last):
-            raise InvalidRange(
-                actual_size=str(length), range_requested=request.headers.get("range")
-            )
+            # Treat as non-range request
+            return 200, response_headers, response_content
+
+        if begin > min(end, last):
+            # Treat as non-range request if after the logic is applied, the start of the range is greater than the end
+            return 200, response_headers, response_content
+
         response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
         content = response_content[begin : end + 1]
         response_headers["content-length"] = len(content)
