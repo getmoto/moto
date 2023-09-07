@@ -6,6 +6,7 @@ from functools import lru_cache
 from threading import RLock
 from typing import Any, List, Dict, Optional, ClassVar, TypeVar, Iterator
 from uuid import uuid4
+
 # Used to access PERSISTENCE_FILEPATH in a way that can be monkeypatched for testing
 import moto.settings
 from moto.settings import allow_unknown_region, enable_iso_regions
@@ -34,7 +35,7 @@ class BaseBackendMeta(type):
                 if not filepath:
                     return func(self, *args, **kwargs)
 
-                if func.__name__ == '__init__':
+                if func.__name__ == "__init__":
                     result = func(self, *args, **kwargs)
                     with shelve.open(filepath) as db:
                         if name in db:
@@ -49,7 +50,9 @@ class BaseBackendMeta(type):
             return wrapper
 
         for attr_name, attr_value in dct.items():
-            if callable(attr_value) and (not attr_name.startswith("__") or attr_name == "__init__"):
+            if callable(attr_value) and (
+                not attr_name.startswith("__") or attr_name == "__init__"
+            ):
                 dct[attr_name] = persistence_decorator(name, attr_value)
 
         return super().__new__(cls, name, bases, dct)
