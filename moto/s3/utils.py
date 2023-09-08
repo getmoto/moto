@@ -36,6 +36,7 @@ STORAGE_CLASS = [
     "ONEZONE_IA",
     "INTELLIGENT_TIERING",
 ] + ARCHIVE_STORAGE_CLASSES
+LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 
 
 def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
