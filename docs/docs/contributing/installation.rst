@@ -40,7 +40,7 @@ To verify all tests pass for a specific service, for example for `s3`, run these
 
 .. code-block:: bash
 
-  flake8 moto/s3
+  ruff moto/s3
   black --check moto/s3 tests/test_s3
   pylint tests/test_s3
   pytest -sv tests/test_s3
@@ -76,7 +76,7 @@ Then standard development on Moto can proceed, for example:
 
 .. code-block:: bash
 
-  flake8 moto/s3
+  ruff moto/s3
   black --check moto/s3 tests/test_s3
   pylint tests/test_s3
   pytest -sv tests/test_s3
