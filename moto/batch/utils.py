@@ -1,4 +1,7 @@
-from typing import Any, Dict
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+from .exceptions import ValidationError
 
 
 def make_arn_for_compute_env(account_id: str, name: str, region_name: str) -> str:
@@ -34,3 +37,55 @@ def lowercase_first_key(some_dict: Dict[str, Any]) -> Dict[str, Any]:
             new_dict[new_key] = value
 
     return new_dict
+
+
+def validate_job_status(target_job_status: str, valid_job_statuses: List[str]) -> None:
+    if target_job_status not in valid_job_statuses:
+        raise ValidationError(
+            (
+                "1 validation error detected: Value at 'current_status' failed "
+                "to satisfy constraint: Member must satisfy enum value set: {valid_statues}"
+            ).format(valid_statues=valid_job_statuses)
+        )
+
+
+class JobStatus(str, Enum):
+    SUBMITTED = "SUBMITTED"
+    PENDING = "PENDING"
+    RUNNABLE = "RUNNABLE"
+    STARTING = "STARTING"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+
+    @classmethod
+    def job_statuses(self) -> List[str]:
+        return sorted([item.value for item in JobStatus])
+
+    @classmethod
+    def is_job_already_started(self, current_status: str) -> bool:
+        validate_job_status(current_status, JobStatus.job_statuses())
+        return current_status not in [
+            JobStatus.SUBMITTED,
+            JobStatus.PENDING,
+            JobStatus.RUNNABLE,
+            JobStatus.STARTING,
+        ]
+
+    @classmethod
+    def is_job_before_starting(self, current_status: str) -> bool:
+        validate_job_status(current_status, JobStatus.job_statuses())
+        return current_status in [
+            JobStatus.SUBMITTED,
+            JobStatus.PENDING,
+            JobStatus.RUNNABLE,
+        ]
+
+    @classmethod
+    def status_transitions(self) -> List[Tuple[Optional[str], str]]:
+        return [
+            (JobStatus.SUBMITTED.value, JobStatus.PENDING.value),
+            (JobStatus.PENDING.value, JobStatus.RUNNABLE.value),
+            (JobStatus.RUNNABLE.value, JobStatus.STARTING),
+            (JobStatus.STARTING.value, JobStatus.RUNNING.value),
+        ]
