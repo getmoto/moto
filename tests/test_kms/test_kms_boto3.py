@@ -171,11 +171,15 @@ def test_replicate_key():
         to_region_client.describe_key(KeyId=key_id)
 
     with mock.patch.object(rsa, "generate_private_key", return_value=""):
-        from_region_client.replicate_key(
+        replica_response = from_region_client.replicate_key(
             KeyId=key_id, ReplicaRegion=region_to_replicate_to
         )
     to_region_client.describe_key(KeyId=key_id)
     from_region_client.describe_key(KeyId=key_id)
+
+    assert "ReplicaKeyMetadata" in replica_response
+    assert region_to_replicate_to in replica_response["ReplicaKeyMetadata"]["Arn"]
+    assert "ReplicaPolicy" in replica_response
 
 
 @mock_kms

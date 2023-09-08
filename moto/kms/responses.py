@@ -128,11 +128,17 @@ class KmsResponse(BaseResponse):
         )
         return json.dumps(key.to_dict())
 
-    def replicate_key(self) -> None:
+    def replicate_key(self) -> str:
         key_id = self._get_param("KeyId")
         self._validate_key_id(key_id)
         replica_region = self._get_param("ReplicaRegion")
-        self.kms_backend.replicate_key(key_id, replica_region)
+        replica_key = self.kms_backend.replicate_key(key_id, replica_region)
+        return json.dumps(
+            {
+                "ReplicaKeyMetadata": replica_key.to_dict()["KeyMetadata"],
+                "ReplicaPolicy": replica_key.generate_default_policy(),
+            }
+        )
 
     def update_key_description(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateKeyDescription.html"""
