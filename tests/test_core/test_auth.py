@@ -632,6 +632,35 @@ def test_access_denied_with_temporary_credentials():
         == f"User: arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name} is not authorized to perform: rds:CreateDBInstance"
     )
 
+@set_initial_no_auth_action_count(3)
+@mock_sts
+def test_access_denied_for_non_existing_role():
+    user_name = "new-test-user"
+    role_name = "test-role"
+    session_name = "test-session"
+    attached_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {"Effect": "Allow", "Action": ["sts:AssumeRole"], "Resource": "*"}
+        ],
+    }
+    access_key = create_user_with_access_key_and_inline_policy(
+        user_name, attached_policy_document
+    )
+    sts_client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],)
+    role_arn = f"arn:aws:sts::{ACCOUNT_ID}:role/{role_name}"
+    with pytest.raises(ClientError) as ex:
+        sts_client.assume_role(RoleArn=role_arn, RoleSessionName=session_name)
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"] == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: sts:AssumeRole on resource: {role_arn}"
+    )
+
 
 @set_initial_no_auth_action_count(3)
 @mock_iam

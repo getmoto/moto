@@ -43,6 +43,7 @@ class TokenResponse(BaseResponse):
         policy = self.querystring.get("Policy", [None])[0]
         duration = int(self.querystring.get("DurationSeconds", [3600])[0])
         external_id = self.querystring.get("ExternalId", [None])[0]
+        access_key_id = self.get_access_key()
 
         role = self.backend.assume_role(
             role_session_name=role_session_name,
@@ -50,6 +51,7 @@ class TokenResponse(BaseResponse):
             policy=policy,
             duration=duration,
             external_id=external_id,
+            access_key_id=access_key_id
         )
         template = self.response_template(ASSUME_ROLE_RESPONSE)
         return template.render(role=role)

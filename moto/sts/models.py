@@ -5,6 +5,7 @@ import re
 import xmltodict
 
 from moto.core import BaseBackend, BaseModel, BackendDict
+from moto.core.exceptions import AccessDeniedOnResourceError
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.iam.models import iam_backends, AccessKey
 from moto.sts.utils import (
@@ -94,10 +95,19 @@ class STSBackend(BaseBackend):
         policy: str,
         duration: int,
         external_id: str,
+        access_key_id: str
     ) -> AssumedRole:
         """
         Assume an IAM Role. Note that the role does not need to exist. The ARN can point to another account, providing an opportunity to switch accounts.
         """
+        caller = self.get_caller_identity(access_key_id)
+        backend = iam_backends[self.account_id]["global"]
+        role_exists = False
+        for role in backend.roles.values():
+            if role.arn == role_arn:
+                role_exists = True
+        if not role_exists:
+            raise AccessDeniedOnResourceError(user_arn=caller[1], action="sts:AssumeRole", resource=role_arn)
         account_id, access_key = self._create_access_key(role=role_arn)
         role = AssumedRole(
             account_id,

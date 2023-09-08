@@ -148,6 +148,14 @@ class AccessDeniedError(RESTError):
             "AccessDenied", f"User: {user_arn} is not authorized to perform: {action}"
         )
 
+class AccessDeniedOnResourceError(RESTError):
+    code = 403
+
+    def __init__(self, user_arn: str, action: str, resource: str):
+        super().__init__(
+            "AccessDenied", f"User: {user_arn} is not authorized to perform: {action} on resource: {resource}"
+        )
+
 
 class AuthFailureError(RESTError):
     code = 401
