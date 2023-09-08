@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, ec
 import itertools
 from unittest import mock
 from dateutil.tz import tzutc
@@ -1598,3 +1598,30 @@ def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
         if policy:
             params["Policy"] = policy
         return client.create_key(**params)["KeyMetadata"][id_or_arn]
+
+
+@mock_kms
+def test_ensure_key_can_be_verified_manually():
+    signing_algorithm: str = "ECDSA_SHA_256"
+    kms_client = boto3.client("kms", region_name="us-east-1")
+    response = kms_client.create_key(
+        Description="example",
+        KeyUsage="SIGN_VERIFY",
+        CustomerMasterKeySpec="ECC_NIST_P256",
+    )
+    key_id = response["KeyMetadata"]["KeyId"]
+    public_key_data = kms_client.get_public_key(KeyId=key_id)["PublicKey"]
+
+    message = b"example message"
+    response = kms_client.sign(
+        KeyId=key_id,
+        Message=message,
+        MessageType="RAW",
+        SigningAlgorithm=signing_algorithm,
+    )
+
+    raw_signature = response["Signature"]
+    sign_kwargs = dict(signature_algorithm=ec.ECDSA(hashes.SHA256()))
+
+    public_key = serialization.load_der_public_key(public_key_data)
+    public_key.verify(signature=raw_signature, data=message, **sign_kwargs)

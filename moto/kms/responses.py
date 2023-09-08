@@ -24,7 +24,7 @@ class KmsResponse(BaseResponse):
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         params = json.loads(self.body)
 
-        for key in ("Plaintext", "CiphertextBlob"):
+        for key in ("Plaintext", "CiphertextBlob", "Message"):
             if key in params:
                 params[key] = base64.b64decode(params[key].encode("utf-8"))
 
@@ -634,11 +634,6 @@ class KmsResponse(BaseResponse):
                 "The GrantTokens-parameter is not yet implemented for client.sign()"
             )
 
-        if signing_algorithm != "RSASSA_PSS_SHA_256":
-            warnings.warn(
-                "The SigningAlgorithm-parameter is ignored hardcoded to RSASSA_PSS_SHA_256 for client.sign()"
-            )
-
         if isinstance(message, str):
             message = message.encode("utf-8")
 
@@ -685,11 +680,6 @@ class KmsResponse(BaseResponse):
         if message_type == "DIGEST":
             warnings.warn(
                 "The MessageType-parameter DIGEST is not yet implemented for client.verify()"
-            )
-
-        if signing_algorithm != "RSASSA_PSS_SHA_256":
-            warnings.warn(
-                "The SigningAlgorithm-parameter is ignored hardcoded to RSASSA_PSS_SHA_256 for client.verify()"
             )
 
         if not message_type:
