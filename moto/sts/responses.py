@@ -13,6 +13,11 @@ class TokenResponse(BaseResponse):
     def backend(self) -> STSBackend:
         return sts_backends[self.current_account]["global"]
 
+    def _determine_resource(self) -> str:
+        if "AssumeRole" in self.querystring.get("Action", []):
+            return self.querystring.get("RoleArn")[0]  # type: ignore[index]
+        return "*"
+
     def get_session_token(self) -> str:
         duration = int(self.querystring.get("DurationSeconds", [43200])[0])
         token = self.backend.get_session_token(duration=duration)
