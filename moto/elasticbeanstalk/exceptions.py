@@ -1,4 +1,26 @@
+from typing import Any
+
 from moto.core.exceptions import RESTError
+
+EXCEPTION_RESPONSE = """<?xml version="1.0"?>
+<ErrorResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <Error>
+    <Type>Sender</Type>
+    <Code>{{ error_type }}</Code>
+    <Message>{{ message }}</Message>
+  </Error>
+  <{{ request_id_tag }}>30c0dedb-92b1-4e2b-9be4-1188e3ed86ab</{{ request_id_tag }}>
+</ErrorResponse>"""
+
+
+class ElasticBeanstalkException(RESTError):
+
+    code = 400
+
+    def __init__(self, code: str, message: str, **kwargs: Any):
+        kwargs.setdefault("template", "ecerror")
+        self.templates["ecerror"] = EXCEPTION_RESPONSE
+        super().__init__(code, message)
 
 
 class InvalidParameterValueError(RESTError):
