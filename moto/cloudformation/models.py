@@ -11,6 +11,7 @@ from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
+    utcnow,
 )
 from moto.moto_api._internal import mock_random
 from moto.sns.models import sns_backends
@@ -407,7 +408,7 @@ class FakeStack(CloudFormationModel):
         self.custom_resources: Dict[str, CustomModel] = dict()
 
         self.output_map = self._create_output_map()
-        self.creation_time = datetime.utcnow()
+        self.creation_time = utcnow()
         self.status = "CREATE_PENDING"
 
     def has_template(self, other_template: str) -> bool:
@@ -637,7 +638,7 @@ class FakeChangeSet(BaseModel):
         self.parameters = parameters
         self._parse_template()
 
-        self.creation_time = datetime.utcnow()
+        self.creation_time = utcnow()
         self.changes = self.diff()
 
         self.status: Optional[str] = None
@@ -695,7 +696,7 @@ class FakeEvent(BaseModel):
         self.resource_status = resource_status
         self.resource_status_reason = resource_status_reason
         self.resource_properties = resource_properties
-        self.timestamp = datetime.utcnow()
+        self.timestamp = utcnow()
         self.event_id = mock_random.uuid4()
         self.client_request_token = None
 

@@ -5,6 +5,7 @@ import datetime
 from typing import Any, Dict, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from .exceptions import (
     SecretNotFoundException,
@@ -783,7 +784,7 @@ class SecretsManagerBackend(BaseBackend):
             else:
                 arn = secret_arn(self.account_id, self.region_name, secret_id=secret_id)
                 name = secret_id
-                deletion_date = datetime.datetime.utcnow()
+                deletion_date = utcnow()
                 return arn, name, self._unix_time_secs(deletion_date)
         else:
             if self.secrets[secret_id].is_deleted():
@@ -792,7 +793,7 @@ class SecretsManagerBackend(BaseBackend):
                     perform the operation on a secret that's currently marked deleted."
                 )
 
-            deletion_date = datetime.datetime.utcnow()
+            deletion_date = utcnow()
 
             if force_delete_without_recovery:
                 secret = self.secrets.pop(secret_id)

@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 
 from .exceptions import (
     BadRequestException,
@@ -62,7 +63,7 @@ class ManagedBlockchainNetwork(BaseModel):
         region: str,
         description: Optional[str] = None,
     ):
-        self.creationdate = datetime.datetime.utcnow()
+        self.creationdate = utcnow()
         self.id = network_id
         self.name = name
         self.description = description
@@ -179,7 +180,7 @@ class ManagedBlockchainProposal(BaseModel):
         self.network_threshold_comp = network_threshold_comp
         self.description = description
 
-        self.creationdate = datetime.datetime.utcnow()
+        self.creationdate = utcnow()
         self.expirationdate = self.creationdate + datetime.timedelta(
             hours=network_expiration
         )
@@ -211,7 +212,7 @@ class ManagedBlockchainProposal(BaseModel):
         return []
 
     def check_to_expire_proposal(self) -> None:
-        if datetime.datetime.utcnow() > self.expirationdate:
+        if utcnow() > self.expirationdate:
             self.status = "EXPIRED"
 
     def to_dict(self) -> Dict[str, Any]:
@@ -303,7 +304,7 @@ class ManagedBlockchainInvitation(BaseModel):
         self.status = "PENDING"
         self.region = region
 
-        self.creationdate = datetime.datetime.utcnow()
+        self.creationdate = utcnow()
         self.expirationdate = self.creationdate + datetime.timedelta(days=7)
 
     @property
@@ -351,7 +352,7 @@ class ManagedBlockchainMember(BaseModel):
         member_configuration: Dict[str, Any],
         region: str,
     ):
-        self.creationdate = datetime.datetime.utcnow()
+        self.creationdate = utcnow()
         self.id = member_id
         self.networkid = networkid
         self.member_configuration = member_configuration
@@ -430,7 +431,7 @@ class ManagedBlockchainNode(BaseModel):
         logpublishingconfiguration: Dict[str, Any],
         region: str,
     ):
-        self.creationdate = datetime.datetime.utcnow()
+        self.creationdate = utcnow()
         self.id = node_id
         self.instancetype = instancetype
         self.networkid = networkid

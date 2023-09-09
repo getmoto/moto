@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.exceptions import SecretsManagerClientError
@@ -589,7 +590,7 @@ class Document(BaseModel):
         self.status = "Active"
         self.document_version = document_version
         self.owner = account_id
-        self.created_date = datetime.datetime.utcnow()
+        self.created_date = utcnow()
 
         if document_format == "JSON":
             try:

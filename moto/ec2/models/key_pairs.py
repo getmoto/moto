@@ -1,5 +1,4 @@
 from typing import Any, Dict, List
-from datetime import datetime
 
 from moto.core import BaseModel
 from ..exceptions import (
@@ -15,7 +14,7 @@ from ..utils import (
     generic_filter,
     random_key_pair_id,
 )
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
 
 class KeyPair(BaseModel):
@@ -24,7 +23,7 @@ class KeyPair(BaseModel):
         self.name = name
         self.fingerprint = fingerprint
         self.material = material
-        self.create_time = datetime.utcnow()
+        self.create_time = utcnow()
 
     @property
     def created_iso_8601(self) -> str:

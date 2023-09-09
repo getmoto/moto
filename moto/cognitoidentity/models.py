@@ -5,7 +5,7 @@ import re
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
@@ -29,7 +29,7 @@ class CognitoIdentityPool(BaseModel):
         self.saml_provider_arns = kwargs.get("saml_provider_arns", [])
 
         self.identity_pool_id = get_random_identity_id(region)
-        self.creation_time = datetime.datetime.utcnow()
+        self.creation_time = utcnow()
 
         self.tags = kwargs.get("tags") or {}
 
@@ -137,7 +137,7 @@ class CognitoIdentityBackend(BaseBackend):
 
     def get_credentials_for_identity(self, identity_id: str) -> str:
         duration = 90
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
         expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
         return json.dumps(

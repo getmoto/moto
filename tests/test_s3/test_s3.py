@@ -20,6 +20,7 @@ import requests
 
 from moto import settings, mock_s3, mock_config
 from moto.moto_api import state_manager
+from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
 
@@ -1766,7 +1767,7 @@ def test_get_object_if_modified_since():
         s3_client.get_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            IfModifiedSince=utcnow() + datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
@@ -1786,7 +1787,7 @@ def test_get_object_if_unmodified_since():
         s3_client.get_object(
             Bucket=bucket_name,
             Key=key,
-            IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
+            IfUnmodifiedSince=utcnow() - datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"]["Code"] == "PreconditionFailed"
@@ -1840,7 +1841,7 @@ def test_head_object_if_modified_since():
         s3_client.head_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            IfModifiedSince=utcnow() + datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
@@ -1882,7 +1883,7 @@ def test_head_object_if_unmodified_since():
         s3_client.head_object(
             Bucket=bucket_name,
             Key=key,
-            IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
+            IfUnmodifiedSince=utcnow() - datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"] == {

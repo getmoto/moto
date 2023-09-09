@@ -1,6 +1,5 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources
 from .core import TaggedEC2Resource
 from ..utils import random_transit_gateway_route_table_id
@@ -19,7 +18,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.id = random_transit_gateway_route_table_id()
         self.transit_gateway_id = transit_gateway_id
 
-        self._created_at = datetime.utcnow()
+        self._created_at = utcnow()
 
         self.default_association_route_table = default_association_route_table
         self.default_propagation_route_table = default_propagation_route_table

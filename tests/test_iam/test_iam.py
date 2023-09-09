@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_config, mock_iam, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.backends import get_backend
 from tests import DEFAULT_ACCOUNT_ID
@@ -1530,11 +1531,7 @@ def test_create_access_key():
         conn.create_access_key(UserName="my-user")
     conn.create_user(UserName="my-user")
     access_key = conn.create_access_key(UserName="my-user")["AccessKey"]
-    assert (
-        0
-        <= (datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds
-        < 10
-    )
+    assert 0 <= (utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds < 10
     assert len(access_key["AccessKeyId"]) == 20
     assert len(access_key["SecretAccessKey"]) == 40
     assert access_key["AccessKeyId"].startswith("AKIA")
@@ -1545,11 +1542,7 @@ def test_create_access_key():
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
     access_key = conn.create_access_key()["AccessKey"]
-    assert (
-        0
-        <= (datetime.utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds
-        < 10
-    )
+    assert 0 <= (utcnow() - access_key["CreateDate"].replace(tzinfo=None)).seconds < 10
     assert len(access_key["AccessKeyId"]) == 20
     assert len(access_key["SecretAccessKey"]) == 40
     assert access_key["AccessKeyId"].startswith("AKIA")
@@ -1904,7 +1897,7 @@ def test_get_credential_report_content():
         UserName=username, AccessKeyId=key1["AccessKeyId"], Status="Inactive"
     )
     key1 = conn.create_access_key(UserName=username)["AccessKey"]
-    timestamp = datetime.utcnow()
+    timestamp = utcnow()
     if not settings.TEST_SERVER_MODE:
         iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
         iam_backend.users[username].access_keys[1].last_used = timestamp
@@ -2275,11 +2268,7 @@ def test_upload_ssh_public_key():
     assert pubkey["SSHPublicKeyId"].startswith("APKA")
     assert "Fingerprint" in pubkey
     assert pubkey["Status"] == "Active"
-    assert (
-        0
-        <= ((datetime.utcnow() - pubkey["UploadDate"].replace(tzinfo=None)).seconds)
-        < 10
-    )
+    assert 0 <= ((utcnow() - pubkey["UploadDate"].replace(tzinfo=None)).seconds) < 10
 
 
 @mock_iam

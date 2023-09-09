@@ -1,8 +1,8 @@
 import boto3
-from datetime import datetime
 from moto import mock_iam, settings
 from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 from unittest import SkipTest
 
 
@@ -31,7 +31,7 @@ def test_password_last_used():
     assert not as_new_user.CurrentUser().password_last_used
 
     iam_backend = get_backend("iam")[ACCOUNT_ID]["global"]
-    iam_backend.users[username].password_last_used = datetime.utcnow()
+    iam_backend.users[username].password_last_used = utcnow()
 
     # Password is returned now
     assert as_new_user.CurrentUser().password_last_used

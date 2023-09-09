@@ -1,6 +1,5 @@
 import string
 
-from datetime import datetime
 from typing import Any, Dict, Iterable, List, Tuple, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -252,7 +251,7 @@ class Invalidation(BaseModel):
         self, distribution: Distribution, paths: Dict[str, Any], caller_ref: str
     ):
         self.invalidation_id = Invalidation.random_id()
-        self.create_time = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.create_time = iso_8601_datetime_with_milliseconds()
         self.distribution = distribution
         self.status = "COMPLETED"
 

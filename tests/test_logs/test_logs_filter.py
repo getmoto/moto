@@ -1,9 +1,9 @@
 import boto3
 from unittest import TestCase
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from moto import mock_logs
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, utcnow
 
 TEST_REGION = "eu-west-1"
 
@@ -47,8 +47,8 @@ class TestLogFilterParameters(TestLogFilter):
 
     def test_put_log_events_now(self):
         ts_1 = int(unix_time_millis())
-        ts_2 = int(unix_time_millis(datetime.utcnow() + timedelta(minutes=5)))
-        ts_3 = int(unix_time_millis(datetime.utcnow() + timedelta(days=1)))
+        ts_2 = int(unix_time_millis(utcnow() + timedelta(minutes=5)))
+        ts_3 = int(unix_time_millis(utcnow() + timedelta(days=1)))
 
         messages = [
             {"message": f"Message {idx}", "timestamp": ts}
@@ -76,7 +76,7 @@ class TestLogFilterParameters(TestLogFilter):
         assert "Message 2" not in messages
 
     def test_filter_logs_paging(self):
-        timestamp = int(unix_time_millis(datetime.utcnow()))
+        timestamp = int(unix_time_millis())
         messages = []
         for i in range(25):
             messages.append({"message": f"Message number {i}", "timestamp": timestamp})
@@ -135,7 +135,7 @@ class TestLogFilterParameters(TestLogFilter):
 class TestLogsFilterPattern(TestLogFilter):
     def setUp(self) -> None:
         super().setUp()
-        now = int(unix_time_millis(datetime.utcnow()))
+        now = int(unix_time_millis())
         messages = [
             {"timestamp": now, "message": "hello"},
             {"timestamp": now, "message": "world"},

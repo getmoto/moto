@@ -1,5 +1,4 @@
 import copy
-import datetime
 import os
 import re
 import string
@@ -136,9 +135,7 @@ class Cluster:
         self.status = "active"
         self.account_id = kwargs.get("account_id")
         self.region_name = kwargs.get("region")
-        self.cluster_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.cluster_create_time = iso_8601_datetime_with_milliseconds()
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
             self.copy_tags_to_snapshot = True
@@ -194,9 +191,7 @@ class Cluster:
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
         self.enable_http_endpoint = kwargs.get("enable_http_endpoint")  # type: ignore
-        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds()
         self.scaling_configuration = kwargs.get("scaling_configuration")
         if not self.scaling_configuration and self.engine_mode == "serverless":
             # In AWS, this default configuration only shows up when the Cluster is in a ready state, so a few minutes after creation
@@ -470,9 +465,7 @@ class ClusterSnapshot(BaseModel):
         self.snapshot_type = snapshot_type
         self.tags = tags
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
 
     @property
     def arn(self) -> str:
@@ -592,9 +585,7 @@ class Database(CloudFormationModel):
             self.port = Database.default_port(self.engine)  # type: ignore
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
-        self.instance_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.instance_create_time = iso_8601_datetime_with_milliseconds()
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
@@ -1108,9 +1099,7 @@ class DatabaseSnapshot(BaseModel):
         self.snapshot_type = snapshot_type
         self.tags = tags
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
 
     @property
     def arn(self) -> str:
@@ -1191,9 +1180,7 @@ class ExportTask(BaseModel):
         self.export_only = kwargs.get("export_only", [])
 
         self.status = "complete"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
         self.source_type = (
             "SNAPSHOT" if type(snapshot) is DatabaseSnapshot else "CLUSTER"
         )
@@ -1241,9 +1228,7 @@ class EventSubscription(BaseModel):
         self.region_name = ""
         self.customer_aws_id = kwargs["account_id"]
         self.status = "active"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
 
     @property
     def es_arn(self) -> str:

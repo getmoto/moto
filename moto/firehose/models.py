@@ -23,6 +23,7 @@ import warnings
 import requests
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
     InvalidArgumentException,
@@ -442,7 +443,7 @@ class FirehoseBackend(BaseBackend):
         # Object name pattern:
         # DeliveryStreamName-DeliveryStreamVersion-YYYY-MM-DD-HH-MM-SS-RandomString
         prefix = f"{prefix}{'' if prefix.endswith('/') else '/'}"
-        now = datetime.utcnow()
+        now = utcnow()
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
             f"{delivery_stream_name}-{version_id}-"

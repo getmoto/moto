@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Iterable, Optional
 import re
 
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.moto_api._internal import mock_random
 from .exceptions import (
     GreengrassClientError,
@@ -24,7 +24,7 @@ class FakeCoreDefinition(BaseModel):
         self.name = name
         self.id = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/cores/{self.id}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
 
@@ -57,7 +57,7 @@ class FakeCoreDefinitionVersion(BaseModel):
         self.definition = definition
         self.version = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/cores/{self.core_definition_id}/versions/{self.version}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
 
     def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
         obj: Dict[str, Any] = {
@@ -86,8 +86,8 @@ class FakeDeviceDefinition(BaseModel):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/devices/{self.id}"
-        self.created_at_datetime = datetime.utcnow()
-        self.update_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
         self.name = name
@@ -124,7 +124,7 @@ class FakeDeviceDefinitionVersion(BaseModel):
         self.devices = devices
         self.version = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/devices/{self.device_definition_id}/versions/{self.version}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
 
     def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
         obj: Dict[str, Any] = {
@@ -153,8 +153,8 @@ class FakeResourceDefinition(BaseModel):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/resources/{self.id}"
-        self.created_at_datetime = datetime.utcnow()
-        self.update_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
         self.name = name
@@ -189,7 +189,7 @@ class FakeResourceDefinitionVersion(BaseModel):
         self.resources = resources
         self.version = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{region_name}:{account_id}:greengrass/definition/resources/{self.resource_definition_id}/versions/{self.version}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -214,8 +214,8 @@ class FakeFunctionDefinition(BaseModel):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/functions/{self.id}"
-        self.created_at_datetime = datetime.utcnow()
-        self.update_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
         self.name = name
@@ -254,7 +254,7 @@ class FakeFunctionDefinitionVersion(BaseModel):
         self.default_config = default_config
         self.version = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/functions/{self.function_definition_id}/versions/{self.version}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -279,8 +279,8 @@ class FakeSubscriptionDefinition(BaseModel):
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/subscriptions/{self.id}"
-        self.created_at_datetime = datetime.utcnow()
-        self.update_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
         self.name = name
@@ -315,7 +315,7 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
         self.subscriptions = subscriptions
         self.version = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/definition/subscriptions/{self.subscription_definition_id}/versions/{self.version}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -335,8 +335,8 @@ class FakeGroup(BaseModel):
         self.group_id = str(mock_random.uuid4())
         self.name = name
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/groups/{self.group_id}"
-        self.created_at_datetime = datetime.utcnow()
-        self.last_updated_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
+        self.last_updated_datetime = utcnow()
         self.latest_version = ""
         self.latest_version_arn = ""
 
@@ -373,7 +373,7 @@ class FakeGroupVersion(BaseModel):
         self.group_id = group_id
         self.version = str(mock_random.uuid4())
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:greengrass/groups/{self.group_id}/versions/{self.version}"
-        self.created_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
         self.core_definition_version_arn = core_definition_version_arn
         self.device_definition_version_arn = device_definition_version_arn
         self.function_definition_version_arn = function_definition_version_arn
@@ -434,8 +434,8 @@ class FakeDeployment(BaseModel):
         self.id = str(mock_random.uuid4())
         self.group_id = group_id
         self.group_arn = group_arn
-        self.created_at_datetime = datetime.utcnow()
-        self.update_at_datetime = datetime.utcnow()
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
         self.deployment_status = "InProgress"
         self.deployment_type = deployment_type
         self.arn = f"arn:aws:greengrass:{self.region_name}:{account_id}:/greengrass/groups/{self.group_id}/deployments/{self.id}"
@@ -456,7 +456,7 @@ class FakeDeployment(BaseModel):
 class FakeAssociatedRole(BaseModel):
     def __init__(self, role_arn: str):
         self.role_arn = role_arn
-        self.associated_at = datetime.utcnow()
+        self.associated_at = utcnow()
 
     def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
 

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal.managed_state_model import ManagedState
 from .exceptions import (
     JsonRESTError,
@@ -1044,7 +1044,7 @@ class FakeDatabase(BaseModel):
     def __init__(self, database_name: str, database_input: Dict[str, Any]):
         self.name = database_name
         self.input = database_input
-        self.created_time = datetime.utcnow()
+        self.created_time = utcnow()
         self.tables: Dict[str, FakeTable] = OrderedDict()
 
     def as_dict(self) -> Dict[str, Any]:
@@ -1069,7 +1069,7 @@ class FakeTable(BaseModel):
         self.database_name = database_name
         self.name = table_name
         self.partitions: Dict[str, FakePartition] = OrderedDict()
-        self.created_time = datetime.utcnow()
+        self.created_time = utcnow()
         self.updated_time: Optional[datetime] = None
         self._current_version = 1
         self.versions: Dict[str, Dict[str, Any]] = {
@@ -1079,7 +1079,7 @@ class FakeTable(BaseModel):
     def update(self, table_input: Dict[str, Any]) -> None:
         self.versions[str(self._current_version + 1)] = table_input
         self._current_version += 1
-        self.updated_time = datetime.utcnow()
+        self.updated_time = utcnow()
 
     def get_version(self, ver: str) -> Dict[str, Any]:
         try:
@@ -1202,7 +1202,7 @@ class FakeCrawler(BaseModel):
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
         self.state = "READY"
-        self.creation_time = datetime.utcnow()
+        self.creation_time = utcnow()
         self.last_updated = self.creation_time
         self.version = 1
         self.crawl_elapsed_time = 0
@@ -1339,8 +1339,8 @@ class FakeJob:
         self.code_gen_configuration_nodes = code_gen_configuration_nodes
         self.execution_class = execution_class or "STANDARD"
         self.source_control_details = source_control_details
-        self.created_on = datetime.utcnow()
-        self.last_modified_on = datetime.utcnow()
+        self.created_on = utcnow()
+        self.last_modified_on = utcnow()
         self.arn = (
             f"arn:aws:glue:{backend.region_name}:{backend.account_id}:job/{self.name}"
         )
@@ -1420,9 +1420,9 @@ class FakeJobRun(ManagedState):
         self.allocated_capacity = allocated_capacity
         self.timeout = timeout
         self.worker_type = worker_type
-        self.started_on = datetime.utcnow()
-        self.modified_on = datetime.utcnow()
-        self.completed_on = datetime.utcnow()
+        self.started_on = utcnow()
+        self.modified_on = utcnow()
+        self.completed_on = utcnow()
 
     def get_name(self) -> str:
         return self.job_name
@@ -1467,8 +1467,8 @@ class FakeRegistry(BaseModel):
         self.name = registry_name
         self.description = description
         self.tags = tags
-        self.created_time = datetime.utcnow()
-        self.updated_time = datetime.utcnow()
+        self.created_time = utcnow()
+        self.updated_time = utcnow()
         self.status = "AVAILABLE"
         self.registry_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:registry/{self.name}"
         self.schemas: Dict[str, FakeSchema] = OrderedDict()
@@ -1506,8 +1506,8 @@ class FakeSchema(BaseModel):
         self.schema_status = AVAILABLE_STATUS
         self.schema_version_id = schema_version_id
         self.schema_version_status = AVAILABLE_STATUS
-        self.created_time = datetime.utcnow()
-        self.updated_time = datetime.utcnow()
+        self.created_time = utcnow()
+        self.updated_time = utcnow()
         self.schema_versions: Dict[str, FakeSchemaVersion] = OrderedDict()
 
     def update_next_schema_version(self) -> None:
@@ -1553,8 +1553,8 @@ class FakeSchemaVersion(BaseModel):
         self.schema_version_status = AVAILABLE_STATUS
         self.version_number = version_number
         self.schema_version_id = str(mock_random.uuid4())
-        self.created_time = datetime.utcnow()
-        self.updated_time = datetime.utcnow()
+        self.created_time = utcnow()
+        self.updated_time = utcnow()
         self.metadata: Dict[str, Any] = {}
 
     def get_schema_version_id(self) -> str:
@@ -1623,7 +1623,7 @@ class FakeSession(BaseModel):
         self.glue_version = glue_version
         self.tags = tags
         self.request_origin = request_origin
-        self.creation_time = datetime.utcnow()
+        self.creation_time = utcnow()
         self.last_updated = self.creation_time
         self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:session/{self.session_id}"
         self.backend = backend

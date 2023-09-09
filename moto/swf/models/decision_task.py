@@ -1,8 +1,7 @@
-from datetime import datetime
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from moto.core import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from ..exceptions import SWFWorkflowExecutionClosedError
 
@@ -29,7 +28,7 @@ class DecisionTask(BaseModel):
         self.state = "SCHEDULED"
         # this is *not* necessarily coherent with workflow execution history,
         # but that shouldn't be a problem for tests
-        self.scheduled_at = datetime.utcnow()
+        self.scheduled_at = utcnow()
         self.timeout_type: Optional[str] = None
 
     @property
