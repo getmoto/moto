@@ -31,3 +31,14 @@ class InvalidParameterValueError(RESTError):
 class ResourceNotFoundException(RESTError):
     def __init__(self, message: str):
         super().__init__("ResourceNotFoundException", message)
+
+
+class ApplicationNotFound(ElasticBeanstalkException):
+
+    code = 404
+
+    def __init__(self, application_name: str):
+        super().__init__(
+            "ApplicationNotFound",
+            message=f"Elastic Beanstalk application {application_name} not found.",
+        )
