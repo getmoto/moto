@@ -141,6 +141,7 @@ class StepFunctionResponse(BaseResponse):
                 "executionArn": execution.execution_arn,
                 "name": execution.name,
                 "startDate": execution.start_date,
+                "stopDate": execution.stop_date,
                 "stateMachineArn": state_machine.arn,
                 "status": execution.status,
             }
