@@ -73,6 +73,16 @@ class EBResponse(BaseResponse):
         template = self.response_template(EB_LIST_TAGS_FOR_RESOURCE)
         return template.render(tags=tags, arn=resource_arn)
 
+    def delete_application(self) -> str:
+        application_name = self._get_param("ApplicationName")
+        terminate_env_by_force = self._get_param("TerminateEnvByForce")
+        application = self.elasticbeanstalk_backend.delete_application(
+            application_name=application_name,
+            terminate_env_by_force=terminate_env_by_force,
+        )
+        template = self.response_template(DELETE_APPLICATION_TEMPLATE)
+        return template.render(application=application)
+
 
 EB_CREATE_APPLICATION = """
 <CreateApplicationResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
@@ -141,6 +151,13 @@ EB_DESCRIBE_APPLICATIONS = """
 </DescribeApplicationsResponse>
 """
 
+DELETE_APPLICATION_TEMPLATE = """
+<DeleteApplicationResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
+  <ResponseMetadata>
+    <RequestId>015a05eb-282e-4b76-bd18-663fdfaf42e4</RequestId>
+  </ResponseMetadata>
+</DeleteApplicationResponse>
+"""
 
 EB_CREATE_ENVIRONMENT = """
 <CreateEnvironmentResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">

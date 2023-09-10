@@ -35,6 +35,19 @@ def test_describe_applications():
 
 
 @mock_elasticbeanstalk
+def test_delete_application():
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+
+    application_name = "myapp1"
+
+    conn.create_application(ApplicationName=application_name)
+
+    resp = conn.delete_application(ApplicationName=application_name)
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_elasticbeanstalk
 def test_create_environment():
     # Create Elastic Beanstalk Environment
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
