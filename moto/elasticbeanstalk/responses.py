@@ -1,7 +1,8 @@
 from moto.core.responses import BaseResponse
 from moto.core.utils import tags_from_query_string
-from .models import eb_backends, EBBackend
+
 from .exceptions import InvalidParameterValueError
+from .models import eb_backends, EBBackend
 
 
 class EBResponse(BaseResponse):
@@ -9,35 +10,39 @@ class EBResponse(BaseResponse):
         super().__init__(service_name="elasticbeanstalk")
 
     @property
-    def backend(self) -> EBBackend:
+    def elasticbeanstalk_backend(self) -> EBBackend:
         """
         :rtype: EBBackend
         """
         return eb_backends[self.current_account][self.region]
 
     def create_application(self) -> str:
-        app = self.backend.create_application(
+        app = self.elasticbeanstalk_backend.create_application(
             application_name=self._get_param("ApplicationName")
         )
 
         template = self.response_template(EB_CREATE_APPLICATION)
-        return template.render(region_name=self.backend.region_name, application=app)
+        return template.render(
+            region_name=self.elasticbeanstalk_backend.region_name, application=app
+        )
 
     def describe_applications(self) -> str:
         template = self.response_template(EB_DESCRIBE_APPLICATIONS)
-        return template.render(applications=self.backend.applications.values())
+        return template.render(
+            applications=self.elasticbeanstalk_backend.applications.values()
+        )
 
     def create_environment(self) -> str:
         application_name = self._get_param("ApplicationName")
         try:
-            app = self.backend.applications[application_name]
+            app = self.elasticbeanstalk_backend.applications[application_name]
         except KeyError:
             raise InvalidParameterValueError(
                 f"No Application named '{application_name}' found."
             )
 
         tags = tags_from_query_string(self.querystring, prefix="Tags.member")
-        env = self.backend.create_environment(
+        env = self.elasticbeanstalk_backend.create_environment(
             app,
             environment_name=self._get_param("EnvironmentName"),
             stack_name=self._get_param("SolutionStackName"),
@@ -45,10 +50,12 @@ class EBResponse(BaseResponse):
         )
 
         template = self.response_template(EB_CREATE_ENVIRONMENT)
-        return template.render(environment=env, region=self.backend.region_name)
+        return template.render(
+            environment=env, region=self.elasticbeanstalk_backend.region_name
+        )
 
     def describe_environments(self) -> str:
-        envs = self.backend.describe_environments()
+        envs = self.elasticbeanstalk_backend.describe_environments()
 
         template = self.response_template(EB_DESCRIBE_ENVIRONMENTS)
         return template.render(environments=envs)
@@ -62,13 +69,15 @@ class EBResponse(BaseResponse):
             self.querystring, prefix="TagsToAdd.member"
         )
         tags_to_remove = self._get_multi_param("TagsToRemove.member")
-        self.backend.update_tags_for_resource(resource_arn, tags_to_add, tags_to_remove)
+        self.elasticbeanstalk_backend.update_tags_for_resource(
+            resource_arn, tags_to_add, tags_to_remove
+        )
 
         return EB_UPDATE_TAGS_FOR_RESOURCE
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        tags = self.backend.list_tags_for_resource(resource_arn)
+        tags = self.elasticbeanstalk_backend.list_tags_for_resource(resource_arn)
 
         template = self.response_template(EB_LIST_TAGS_FOR_RESOURCE)
         return template.render(tags=tags, arn=resource_arn)
@@ -114,7 +123,6 @@ EB_CREATE_APPLICATION = """
   </ResponseMetadata>
 </CreateApplicationResponse>
 """
-
 
 EB_DESCRIBE_APPLICATIONS = """
 <DescribeApplicationsResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
@@ -184,7 +192,6 @@ EB_CREATE_ENVIRONMENT = """
 </CreateEnvironmentResponse>
 """
 
-
 EB_DESCRIBE_ENVIRONMENTS = """
 <DescribeEnvironmentsResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
   <DescribeEnvironmentsResult>
@@ -223,7 +230,6 @@ EB_DESCRIBE_ENVIRONMENTS = """
   </ResponseMetadata>
 </DescribeEnvironmentsResponse>
 """
-
 
 # Current list as of 2019-09-04
 EB_LIST_AVAILABLE_SOLUTION_STACKS = """
@@ -1376,7 +1382,6 @@ EB_LIST_AVAILABLE_SOLUTION_STACKS = """
 </ListAvailableSolutionStacksResponse>
 """
 
-
 EB_UPDATE_TAGS_FOR_RESOURCE = """
 <UpdateTagsForResourceResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
   <ResponseMetadata>
@@ -1384,7 +1389,6 @@ EB_UPDATE_TAGS_FOR_RESOURCE = """
   </ResponseMetadata>
 </UpdateTagsForResourceResponse>
 """
-
 
 EB_LIST_TAGS_FOR_RESOURCE = """
 <ListTagsForResourceResponse xmlns="http://elasticbeanstalk.amazonaws.com/docs/2010-12-01/">
