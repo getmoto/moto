@@ -38,7 +38,7 @@ def test_describe_applications():
 def test_delete_application():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
 
-    application_name = "myapp1"
+    application_name = "myapp"
 
     conn.create_application(ApplicationName=application_name)
 
