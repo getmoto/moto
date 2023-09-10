@@ -57,7 +57,6 @@ class FakeApplication(BaseModel):
         self.environments: Dict[str, FakeEnvironment] = dict()
         self.account_id = self.backend.account_id
         self.region = self.backend.region_name
-        self.status = ""
         self.terminate_env_by_force = False
         self.arn = make_arn(
             self.region, self.account_id, "application", self.application_name
@@ -165,7 +164,6 @@ class EBBackend(BaseBackend):
         if application_name:
             if application_name in self.applications:
                 application = self.applications[application_name]
-                application.status = "deleting"
                 if terminate_env_by_force:
                     application.terminate_env_by_force = terminate_env_by_force
                 else:
