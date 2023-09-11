@@ -35,6 +35,37 @@ def test_describe_applications():
 
 
 @mock_elasticbeanstalk
+def test_delete_application():
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+
+    application_name = "myapp"
+
+    conn.create_application(ApplicationName=application_name)
+
+    resp = conn.delete_application(ApplicationName=application_name)
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_elasticbeanstalk
+def test_delete_unknown_application():
+    conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
+
+    application_name = "myapp"
+    unknown_application_name = "myapp1"
+
+    conn.create_application(ApplicationName=application_name)
+    with pytest.raises(ClientError) as exc:
+        conn.delete_application(ApplicationName=unknown_application_name)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ApplicationNotFound"
+    assert (
+        err["Message"]
+        == f"Elastic Beanstalk application {unknown_application_name} not found."
+    )
+
+
+@mock_elasticbeanstalk
 def test_create_environment():
     # Create Elastic Beanstalk Environment
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
