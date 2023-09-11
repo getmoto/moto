@@ -1,5 +1,4 @@
 import copy
-import datetime
 import re
 import string
 from typing import Any, List, Dict, Tuple, Iterator
@@ -242,7 +241,7 @@ class EmrManagedSecurityGroup:
 
     @classmethod
     def description(cls) -> str:
-        created = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        created = iso_8601_datetime_with_milliseconds()
         return cls.desc_fmt.format(short_name=cls.short_name, created=created)
 
 

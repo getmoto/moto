@@ -1,10 +1,10 @@
 """Test different server responses."""
-import datetime
 import re
 import threading
 import time
 
 import moto.server as server
+from moto.core.utils import utcnow
 
 
 def test_sqs_list_identities():
@@ -85,12 +85,12 @@ def test_no_messages_polling_timeout():
     test_client = backend.test_client()
     test_client.put(f"/?Action=CreateQueue&QueueName={queue_name}")
     wait_seconds = 5
-    start = datetime.datetime.utcnow()
+    start = utcnow()
     test_client.get(
         f"/123/{queue_name}?Action=ReceiveMessage&"
         f"MaxNumberOfMessages=1&WaitTimeSeconds={wait_seconds}"
     )
-    end = datetime.datetime.utcnow()
+    end = utcnow()
     duration = end - start
     assert duration.seconds >= wait_seconds
     assert duration.seconds <= wait_seconds + (wait_seconds / 2)

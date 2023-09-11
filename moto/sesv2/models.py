@@ -1,6 +1,5 @@
 """SESV2Backend class with methods for supported APIs."""
 
-from datetime import datetime as dt
 from moto.core import BackendDict, BaseBackend, BaseModel
 from ..ses.models import ses_backends, Message, RawMessage
 from typing import Dict, List, Any
@@ -21,8 +20,8 @@ class Contact(BaseModel):
         self.topic_default_preferences: List[Dict[str, str]] = []
         self.topic_preferences = topic_preferences
         self.unsubscribe_all = unsubscribe_all
-        self.created_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
-        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
+        self.created_timestamp = iso_8601_datetime_with_milliseconds()
+        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -47,8 +46,8 @@ class ContactList(BaseModel):
         self.contact_list_name = contact_list_name
         self.description = description
         self.topics = topics
-        self.created_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
-        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds(dt.utcnow())
+        self.created_timestamp = iso_8601_datetime_with_milliseconds()
+        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
         self.contacts: Dict[str, Contact] = {}
 
     def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:

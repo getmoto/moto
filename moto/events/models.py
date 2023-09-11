@@ -552,7 +552,7 @@ class Archive(CloudFormationModel):
         self.retention = retention if retention else 0
 
         self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
-        self.creation_time = unix_time(datetime.utcnow())
+        self.creation_time = unix_time()
         self.state = "ENABLED"
         self.uuid = str(random.uuid4())
 
@@ -701,7 +701,7 @@ class Replay(BaseModel):
 
         self.arn = f"arn:aws:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
-        self.start_time = unix_time(datetime.utcnow())
+        self.start_time = unix_time()
         self.end_time: Optional[float] = None
 
     def describe_short(self) -> Dict[str, Any]:
@@ -740,7 +740,7 @@ class Replay(BaseModel):
                 )
 
         self.state = ReplayState.COMPLETED
-        self.end_time = unix_time(datetime.utcnow())
+        self.end_time = unix_time()
 
 
 class Connection(BaseModel):
@@ -759,7 +759,7 @@ class Connection(BaseModel):
         self.description = description
         self.authorization_type = authorization_type
         self.auth_parameters = auth_parameters
-        self.creation_time = unix_time(datetime.utcnow())
+        self.creation_time = unix_time()
         self.state = "AUTHORIZED"
 
         self.arn = f"arn:aws:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
@@ -836,7 +836,7 @@ class Destination(BaseModel):
         self.connection_arn = connection_arn
         self.invocation_endpoint = invocation_endpoint
         self.invocation_rate_limit_per_second = invocation_rate_limit_per_second
-        self.creation_time = unix_time(datetime.utcnow())
+        self.creation_time = unix_time()
         self.http_method = http_method
         self.state = "ACTIVE"
         self.arn = f"arn:aws:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
@@ -1354,7 +1354,7 @@ class EventsBackend(BaseBackend):
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
                             "account": self.account_id,
-                            "time": event.get("Time", unix_time(datetime.utcnow())),
+                            "time": event.get("Time", unix_time()),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),
                             "detail": json.loads(event["Detail"]),

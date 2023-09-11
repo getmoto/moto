@@ -9,6 +9,7 @@ from dateutil.tz import tzlocal
 
 from moto import mock_kinesis
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 
 
 @mock_kinesis
@@ -406,7 +407,7 @@ def test_get_records_at_timestamp():
     # To test around this limitation we wait until we well into the next second
     # before capturing the time and storing the records we expect to retrieve.
     time.sleep(1.0)
-    timestamp = datetime.datetime.utcnow()
+    timestamp = utcnow()
 
     keys = [str(i) for i in range(5, 10)]
     for k in keys:
@@ -523,7 +524,7 @@ def test_get_records_at_very_new_timestamp():
     for k in keys:
         conn.put_record(StreamName=stream_name, Data=k, PartitionKey=k)
 
-    timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=1)
+    timestamp = utcnow() + datetime.timedelta(seconds=1)
 
     # Get a shard iterator
     response = conn.describe_stream(StreamName=stream_name)
@@ -548,7 +549,7 @@ def test_get_records_from_empty_stream_at_timestamp():
     stream_name = "my_stream"
     conn.create_stream(StreamName=stream_name, ShardCount=1)
 
-    timestamp = datetime.datetime.utcnow()
+    timestamp = utcnow()
 
     # Get a shard iterator
     response = conn.describe_stream(StreamName=stream_name)

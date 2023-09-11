@@ -1,7 +1,8 @@
 import boto3
 from moto import mock_kinesisvideoarchivedmedia
 from moto import mock_kinesisvideo
-from datetime import datetime, timedelta
+from moto.core.utils import utcnow
+from datetime import timedelta
 
 
 @mock_kinesisvideo
@@ -67,7 +68,7 @@ def test_get_clip():
         region_name=region_name,
         endpoint_url=data_endpoint,
     )
-    end_timestamp = datetime.utcnow() - timedelta(hours=1)
+    end_timestamp = utcnow() - timedelta(hours=1)
     start_timestamp = end_timestamp - timedelta(minutes=5)
     res = client.get_clip(
         StreamName=stream_name,

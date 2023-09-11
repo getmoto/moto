@@ -2,12 +2,11 @@ import contextlib
 import copy
 import warnings
 from collections import OrderedDict
-from datetime import datetime
 from typing import Any, Dict, ItemsView, List, Tuple, Optional, Set
 from moto import settings
 
 from moto.core import CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.launch_templates import LaunchTemplateVersion
@@ -381,9 +380,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.name = "stopped"
         self._state.code = 80
 
-        self._reason = (
-            f"User initiated ({datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        )
+        self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
         self._state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
@@ -433,9 +430,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.name = "terminated"
         self._state.code = 48
 
-        self._reason = (
-            f"User initiated ({datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        )
+        self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
         self._state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",

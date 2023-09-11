@@ -9,6 +9,7 @@ from jose import jws
 from collections import OrderedDict
 from typing import Any, Dict, List, Tuple, Optional, Set
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from .exceptions import (
     AliasExistsException,
@@ -415,8 +416,8 @@ class CognitoIdpUserPool(BaseModel):
                 "EmailMessage"
             )
 
-        self.creation_date = datetime.datetime.utcnow()
-        self.last_modified_date = datetime.datetime.utcnow()
+        self.creation_date = utcnow()
+        self.last_modified_date = utcnow()
 
         self.mfa_config = "OFF"
         self.sms_mfa_config: Optional[Dict[str, Any]] = None
@@ -711,8 +712,8 @@ class CognitoIdpIdentityProvider(BaseModel):
     def __init__(self, name: str, extended_config: Optional[Dict[str, Any]]):
         self.name = name
         self.extended_config = extended_config or {}
-        self.creation_date = datetime.datetime.utcnow()
-        self.last_modified_date = datetime.datetime.utcnow()
+        self.creation_date = utcnow()
+        self.last_modified_date = utcnow()
 
         if "AttributeMapping" not in self.extended_config:
             self.extended_config["AttributeMapping"] = {"username": "sub"}
@@ -799,8 +800,8 @@ class CognitoIdpUser(BaseModel):
         self.enabled = True
         self.attributes = attributes
         self.attribute_lookup = flatten_attrs(attributes)
-        self.create_date = datetime.datetime.utcnow()
-        self.last_modified_date = datetime.datetime.utcnow()
+        self.create_date = utcnow()
+        self.last_modified_date = utcnow()
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
         self.token_verified = False

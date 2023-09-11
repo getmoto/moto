@@ -53,6 +53,7 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.common_models import ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
+from moto.core.utils import utcnow
 from moto.iam.config import role_config_query, policy_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
@@ -238,13 +239,13 @@ class ConfigRecorderStatus(ConfigEmptyDictable):
     def start(self) -> None:
         self.recording = True
         self.last_status = "PENDING"
-        self.last_start_time = datetime2int(datetime.utcnow())
-        self.last_status_change_time = datetime2int(datetime.utcnow())
+        self.last_start_time = datetime2int(utcnow())
+        self.last_status_change_time = datetime2int(utcnow())
 
     def stop(self) -> None:
         self.recording = False
-        self.last_stop_time = datetime2int(datetime.utcnow())
-        self.last_status_change_time = datetime2int(datetime.utcnow())
+        self.last_stop_time = datetime2int(utcnow())
+        self.last_status_change_time = datetime2int(utcnow())
 
 
 class ConfigDeliverySnapshotProperties(ConfigEmptyDictable):
@@ -404,8 +405,8 @@ class ConfigAggregator(ConfigEmptyDictable):
         self.configuration_aggregator_arn = f"arn:aws:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
         self.account_aggregation_sources = account_sources
         self.organization_aggregation_source = org_source
-        self.creation_time = datetime2int(datetime.utcnow())
-        self.last_updated_time = datetime2int(datetime.utcnow())
+        self.creation_time = datetime2int(utcnow())
+        self.last_updated_time = datetime2int(utcnow())
 
         # Tags are listed in the list_tags_for_resource API call.
         self.tags = tags or {}
@@ -442,7 +443,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
         self.aggregation_authorization_arn = f"arn:aws:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
         self.authorized_account_id = authorized_account_id
         self.authorized_aws_region = authorized_aws_region
-        self.creation_time = datetime2int(datetime.utcnow())
+        self.creation_time = datetime2int(utcnow())
 
         # Tags are listed in the list_tags_for_resource API call.
         self.tags = tags or {}
@@ -468,7 +469,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_bucket = delivery_s3_bucket
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
-        self.last_update_time = datetime2int(datetime.utcnow())
+        self.last_update_time = datetime2int(utcnow())
         self.organization_conformance_pack_arn = f"arn:aws:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
         self.organization_conformance_pack_name = name
 
@@ -485,7 +486,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_bucket = delivery_s3_bucket
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts
-        self.last_update_time = datetime2int(datetime.utcnow())
+        self.last_update_time = datetime2int(utcnow())
 
 
 class Scope(ConfigEmptyDictable):
@@ -839,7 +840,7 @@ class ConfigRule(ConfigEmptyDictable):
                 "CreatedBy field"
             )
 
-        self.last_updated_time = datetime2int(datetime.utcnow())
+        self.last_updated_time = datetime2int(utcnow())
         self.tags = tags
 
     def validate_managed_rule(self) -> None:
@@ -1046,7 +1047,7 @@ class ConfigBackend(BaseBackend):
             aggregator.tags = tags
             aggregator.account_aggregation_sources = account_sources
             aggregator.organization_aggregation_source = org_source
-            aggregator.last_updated_time = datetime2int(datetime.utcnow())
+            aggregator.last_updated_time = datetime2int(utcnow())
 
         return aggregator.to_dict()
 
@@ -1922,7 +1923,7 @@ class ConfigBackend(BaseBackend):
                 "AccountId": self.account_id,
                 "ConformancePackName": f"OrgConformsPack-{pack._unique_pack_name}",
                 "Status": pack._status,
-                "LastUpdateTime": datetime2int(datetime.utcnow()),
+                "LastUpdateTime": datetime2int(utcnow()),
             }
         ]
 

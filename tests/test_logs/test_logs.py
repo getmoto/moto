@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta, datetime
+from datetime import timedelta
 from uuid import UUID
 
 import boto3
@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_logs, mock_s3, settings
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
@@ -518,8 +518,8 @@ def test_put_log_events_in_wrong_order():
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    ts_1 = int(unix_time_millis(datetime.utcnow() - timedelta(days=2)))
-    ts_2 = int(unix_time_millis(datetime.utcnow() - timedelta(days=5)))
+    ts_1 = int(unix_time_millis(utcnow() - timedelta(days=2)))
+    ts_2 = int(unix_time_millis(utcnow() - timedelta(days=5)))
 
     messages = [
         {"message": f"Message {idx}", "timestamp": ts}
@@ -550,7 +550,7 @@ def test_put_log_events_in_the_past(days_ago):
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    timestamp = int(unix_time_millis(datetime.utcnow() - timedelta(days=days_ago)))
+    timestamp = int(unix_time_millis(utcnow() - timedelta(days=days_ago)))
 
     messages = [{"message": "Message number {}", "timestamp": timestamp}]
 
@@ -569,7 +569,7 @@ def test_put_log_events_in_the_future(minutes):
     conn.create_log_group(logGroupName=log_group_name)
     conn.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
-    timestamp = int(unix_time_millis(datetime.utcnow() + timedelta(minutes=minutes)))
+    timestamp = int(unix_time_millis(utcnow() + timedelta(minutes=minutes)))
 
     messages = [{"message": "Message number {}", "timestamp": timestamp}]
 
@@ -769,7 +769,7 @@ def test_get_log_events():
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
     data = [
-        (int(unix_time_millis(datetime.utcnow() + timedelta(milliseconds=x))), str(x))
+        (int(unix_time_millis(utcnow() + timedelta(milliseconds=x))), str(x))
         for x in range(20)
     ]
     events = [{"timestamp": x, "message": y} for x, y in data]
@@ -862,7 +862,7 @@ def test_get_log_events_with_start_from_head():
     client.create_log_stream(logGroupName=log_group_name, logStreamName=log_stream_name)
 
     data = [
-        (int(unix_time_millis(datetime.utcnow() + timedelta(milliseconds=x))), str(x))
+        (int(unix_time_millis(utcnow() + timedelta(milliseconds=x))), str(x))
         for x in range(20)
     ]
     events = [{"timestamp": x, "message": y} for x, y in data]

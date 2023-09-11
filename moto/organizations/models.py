@@ -1,11 +1,10 @@
-import datetime
 import re
 import json
 from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.organizations import utils
 from moto.organizations.exceptions import (
     InvalidInputException,
@@ -70,7 +69,7 @@ class FakeAccount(BaseModel):
         self.id = utils.make_random_account_id()
         self.name = kwargs["AccountName"]
         self.email = kwargs["Email"]
-        self.create_time = datetime.datetime.utcnow()
+        self.create_time = utcnow()
         self.status = "ACTIVE"
         self.joined_method = "CREATED"
         self.parent_id = organization.root_id
@@ -290,7 +289,7 @@ class FakeServiceAccess(BaseModel):
             )
 
         self.service_principal = kwargs["ServicePrincipal"]
-        self.date_enabled = datetime.datetime.utcnow()
+        self.date_enabled = utcnow()
 
     def describe(self) -> Dict[str, Any]:
         return {
@@ -317,7 +316,7 @@ class FakeDelegatedAdministrator(BaseModel):
 
     def __init__(self, account: FakeAccount):
         self.account = account
-        self.enabled_date = datetime.datetime.utcnow()
+        self.enabled_date = utcnow()
         self.services: Dict[str, Any] = {}
 
     def add_service_principal(self, service_principal: str) -> None:
@@ -331,7 +330,7 @@ class FakeDelegatedAdministrator(BaseModel):
 
         self.services[service_principal] = {
             "ServicePrincipal": service_principal,
-            "DelegationEnabledDate": unix_time(datetime.datetime.utcnow()),
+            "DelegationEnabledDate": unix_time(),
         }
 
     def remove_service_principal(self, service_principal: str) -> None:

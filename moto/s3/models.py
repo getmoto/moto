@@ -21,6 +21,7 @@ from moto.core.utils import (
     rfc_1123_datetime,
     unix_time,
     unix_time_millis,
+    utcnow,
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.moto_api import state_manager
@@ -70,7 +71,7 @@ class FakeDeleteMarker(BaseModel):
     def __init__(self, key: "FakeKey"):
         self.key = key
         self.name = key.name
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = utcnow()
         self._version_id = str(random.uuid4())
 
     @property
@@ -113,7 +114,7 @@ class FakeKey(BaseModel, ManagedState):
         )
         self.name = name
         self.account_id = account_id
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.website_redirect_location: Optional[str] = None
         self.checksum_algorithm = None
@@ -197,7 +198,7 @@ class FakeKey(BaseModel, ManagedState):
         self.acl = acl
 
     def restore(self, days: int) -> None:
-        self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
+        self._expiry = utcnow() + datetime.timedelta(days)
 
     @property
     def etag(self) -> str:
@@ -324,7 +325,7 @@ class FakeKey(BaseModel, ManagedState):
             return True
 
         if self.lock_mode == "COMPLIANCE":
-            now = datetime.datetime.utcnow()
+            now = utcnow()
             try:
                 until = datetime.datetime.strptime(
                     self.lock_until, "%Y-%m-%dT%H:%M:%SZ"  # type: ignore
@@ -1532,7 +1533,7 @@ class FakeBucket(CloudFormationModel):
         return False
 
     def default_retention(self) -> str:
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         now += datetime.timedelta(self.default_lock_days)  # type: ignore
         now += datetime.timedelta(self.default_lock_years * 365)  # type: ignore
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")

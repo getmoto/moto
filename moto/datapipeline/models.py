@@ -2,6 +2,7 @@ import datetime
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core.utils import utcnow
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
 from typing import Any, Dict, Iterable, List
 
@@ -22,7 +23,7 @@ class Pipeline(CloudFormationModel):
         self.unique_id = unique_id
         self.description = kwargs.get("description", "")
         self.pipeline_id = get_random_pipeline_id()
-        self.creation_time = datetime.datetime.utcnow()
+        self.creation_time = utcnow()
         self.objects: List[Any] = []
         self.status = "PENDING"
         self.tags = kwargs.get("tags", [])

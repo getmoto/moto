@@ -1,4 +1,3 @@
-import datetime
 import json
 
 from boto3 import Session
@@ -6,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.exceptions import InvalidNextTokenException
 from moto.core.common_models import ConfigQueryModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.s3control import s3control_backends
 
 
@@ -130,7 +129,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
             return None
 
         # Format the PAB to the AWS Config format:
-        creation_time = datetime.datetime.utcnow()
+        creation_time = utcnow()
         config_data = {
             "version": "1.3",
             "accountId": account_id,

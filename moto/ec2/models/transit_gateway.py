@@ -1,7 +1,6 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 from moto.core import CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
 from .core import TaggedEC2Resource
 from ..utils import (
@@ -35,7 +34,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         self.description = description
         self.state = "available"
         self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
-        self._created_at = datetime.utcnow()
+        self._created_at = utcnow()
 
     @property
     def physical_resource_id(self) -> str:

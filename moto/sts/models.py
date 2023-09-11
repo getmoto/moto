@@ -5,7 +5,7 @@ import re
 import xmltodict
 
 from moto.core import BaseBackend, BaseModel, BackendDict
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.iam.models import iam_backends, AccessKey
 from moto.sts.utils import (
     random_session_token,
@@ -16,7 +16,7 @@ from moto.sts.utils import (
 
 class Token(BaseModel):
     def __init__(self, duration: int, name: Optional[str] = None):
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
         self.policy = None
@@ -41,7 +41,7 @@ class AssumedRole(BaseModel):
         self.session_name = role_session_name
         self.role_arn = role_arn
         self.policy = policy
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.external_id = external_id
         self.access_key = access_key

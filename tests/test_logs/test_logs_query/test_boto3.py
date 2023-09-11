@@ -1,12 +1,12 @@
 import time
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_logs
-from moto.core.utils import unix_time, unix_time_millis
+from moto.core.utils import unix_time, unix_time_millis, utcnow
 
 
 @mock_logs
@@ -52,7 +52,7 @@ def test_get_query_results():
 
     data = [
         (
-            int(unix_time_millis(datetime.utcnow() - timedelta(minutes=x))),
+            int(unix_time_millis(utcnow() - timedelta(minutes=x))),
             f"event nr {x}",
         )
         for x in range(5)
@@ -65,8 +65,8 @@ def test_get_query_results():
 
     query_id = client.start_query(
         logGroupName="test",
-        startTime=int(unix_time(datetime.utcnow() - timedelta(minutes=10))),
-        endTime=int(unix_time(datetime.utcnow() + timedelta(minutes=10))),
+        startTime=int(unix_time(utcnow() - timedelta(minutes=10))),
+        endTime=int(unix_time(utcnow() + timedelta(minutes=10))),
         queryString="fields @message",
     )["queryId"]
 
@@ -94,8 +94,8 @@ def test_get_query_results():
     # Only find events from last 2 minutes
     query_id = client.start_query(
         logGroupName="test",
-        startTime=int(unix_time(datetime.utcnow() - timedelta(minutes=2, seconds=1))),
-        endTime=int(unix_time(datetime.utcnow() - timedelta(seconds=1))),
+        startTime=int(unix_time(utcnow() - timedelta(minutes=2, seconds=1))),
+        endTime=int(unix_time(utcnow() - timedelta(seconds=1))),
         queryString="fields @message",
     )["queryId"]
 
@@ -119,8 +119,8 @@ def test_describe_completed_query():
 
     query_id = client.start_query(
         logGroupName="test",
-        startTime=int(unix_time(datetime.utcnow() + timedelta(minutes=10))),
-        endTime=int(unix_time(datetime.utcnow() + timedelta(minutes=10))),
+        startTime=int(unix_time(utcnow() + timedelta(minutes=10))),
+        endTime=int(unix_time(utcnow() + timedelta(minutes=10))),
         queryString="fields @message",
     )["queryId"]
 
