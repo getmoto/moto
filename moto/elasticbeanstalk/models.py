@@ -57,7 +57,6 @@ class FakeApplication(BaseModel):
         self.environments: Dict[str, FakeEnvironment] = dict()
         self.account_id = self.backend.account_id
         self.region = self.backend.region_name
-        self.terminate_env_by_force = False
         self.arn = make_arn(
             self.region, self.account_id, "application", self.application_name
         )
@@ -159,17 +158,14 @@ class EBBackend(BaseBackend):
         raise KeyError()
 
     def delete_application(
-        self, application_name: str, terminate_env_by_force: bool
-    ) -> FakeApplication:
+        self,
+        application_name: str,
+    ) -> None:
         if application_name:
             if application_name in self.applications:
-                application = self.applications[application_name]
-                if terminate_env_by_force:
-                    application.terminate_env_by_force = terminate_env_by_force
-                else:
-                    application.terminate_env_by_force = False
-                return application
-        raise ApplicationNotFound(application_name)
+                self.applications.pop(application_name)
+            else:
+                raise ApplicationNotFound(application_name)
 
 
 eb_backends = BackendDict(EBBackend, "elasticbeanstalk")

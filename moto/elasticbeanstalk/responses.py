@@ -84,13 +84,10 @@ class EBResponse(BaseResponse):
 
     def delete_application(self) -> str:
         application_name = self._get_param("ApplicationName")
-        terminate_env_by_force = self._get_param("TerminateEnvByForce")
-        application = self.elasticbeanstalk_backend.delete_application(
+        self.elasticbeanstalk_backend.delete_application(
             application_name=application_name,
-            terminate_env_by_force=terminate_env_by_force,
         )
-        template = self.response_template(DELETE_APPLICATION_TEMPLATE)
-        return template.render(application=application)
+        return DELETE_APPLICATION_TEMPLATE
 
 
 EB_CREATE_APPLICATION = """
