@@ -18,7 +18,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         self._registered: Dict[str, List[responses.BaseResponse]] = defaultdict(list)
 
     @property
-    def registered(self) -> dict[str, list[BaseResponse]]:
+    def registered(self) -> dict[str, list[responses.BaseResponse]]:
         return self._registered
 
     def add(self, response: responses.BaseResponse) -> responses.BaseResponse:
