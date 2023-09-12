@@ -1,5 +1,4 @@
 """Handles Route53 API requests, invokes method and returns response."""
-import datetime
 import re
 from urllib.parse import parse_qs
 
@@ -357,9 +356,7 @@ class Route53(BaseResponse):
                 200,
                 headers,
                 template.render(
-                    timestamp=iso_8601_datetime_with_milliseconds(
-                        datetime.datetime.utcnow()
-                    ),
+                    timestamp=iso_8601_datetime_with_milliseconds(),
                 ),
             )
 

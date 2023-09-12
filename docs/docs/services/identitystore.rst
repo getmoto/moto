@@ -43,7 +43,7 @@ identitystore
 - [X] list_group_memberships
 - [ ] list_group_memberships_for_member
 - [X] list_groups
-- [ ] list_users
+- [X] list_users
 - [ ] update_group
 - [ ] update_user
 

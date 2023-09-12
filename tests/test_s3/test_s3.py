@@ -20,6 +20,7 @@ import requests
 
 from moto import settings, mock_s3, mock_config
 from moto.moto_api import state_manager
+from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
 
@@ -1004,6 +1005,51 @@ def test_ranged_get():
 
     assert key.content_length == 100
 
+    assert key.get(Range="bytes=0-0")["Body"].read() == b"0"
+    assert key.get(Range="bytes=1-1")["Body"].read() == b"1"
+
+    range_req = key.get(Range="bytes=1-0")
+    assert range_req["Body"].read() == rep * 10
+    # assert that the request was not treated as a range request
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "ContentRange" not in range_req
+
+    range_req = key.get(Range="bytes=-1-")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    range_req = key.get(Range="bytes=0--1")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    range_req = key.get(Range="bytes=0-1,3-4,7-9")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    range_req = key.get(Range="bytes=-")
+    assert range_req["Body"].read() == rep * 10
+    assert range_req["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    with pytest.raises(ClientError) as ex:
+        key.get(Range="bytes=-0")
+    assert ex.value.response["Error"]["Code"] == "InvalidRange"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The requested range is not satisfiable"
+    )
+    assert ex.value.response["Error"]["ActualObjectSize"] == "100"
+    assert ex.value.response["Error"]["RangeRequested"] == "bytes=-0"
+
+    with pytest.raises(ClientError) as ex:
+        key.get(Range="bytes=101-200")
+    assert ex.value.response["Error"]["Code"] == "InvalidRange"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The requested range is not satisfiable"
+    )
+    assert ex.value.response["Error"]["ActualObjectSize"] == "100"
+    assert ex.value.response["Error"]["RangeRequested"] == "bytes=101-200"
+
 
 @mock_s3
 def test_policy():
@@ -1721,7 +1767,7 @@ def test_get_object_if_modified_since():
         s3_client.get_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            IfModifiedSince=utcnow() + datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
@@ -1741,7 +1787,7 @@ def test_get_object_if_unmodified_since():
         s3_client.get_object(
             Bucket=bucket_name,
             Key=key,
-            IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
+            IfUnmodifiedSince=utcnow() - datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"]["Code"] == "PreconditionFailed"
@@ -1795,7 +1841,7 @@ def test_head_object_if_modified_since():
         s3_client.head_object(
             Bucket=bucket_name,
             Key=key,
-            IfModifiedSince=datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            IfModifiedSince=utcnow() + datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
@@ -1837,7 +1883,7 @@ def test_head_object_if_unmodified_since():
         s3_client.head_object(
             Bucket=bucket_name,
             Key=key,
-            IfUnmodifiedSince=datetime.datetime.utcnow() - datetime.timedelta(hours=1),
+            IfUnmodifiedSince=utcnow() - datetime.timedelta(hours=1),
         )
     err_value = err.value
     assert err_value.response["Error"] == {

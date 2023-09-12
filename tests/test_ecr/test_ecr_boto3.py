@@ -450,7 +450,7 @@ def test_put_image_with_push_date():
 
     describe_response = client.describe_images(repositoryName="test_repository")
 
-    assert type(describe_response["imageDetails"]) == list
+    assert isinstance(describe_response["imageDetails"], list)
     assert len(describe_response["imageDetails"]) == 2
 
     assert {
@@ -487,7 +487,7 @@ def test_put_image_with_multiple_tags():
     assert response1["image"]["registryId"] == ACCOUNT_ID
 
     response2 = client.describe_images(repositoryName="test_repository")
-    assert type(response2["imageDetails"]) == list
+    assert isinstance(response2["imageDetails"], list)
     assert len(response2["imageDetails"]) == 1
 
     assert "sha" in response2["imageDetails"][0]["imageDigest"]
@@ -659,7 +659,7 @@ def test_list_images():
     )
 
     response = client.list_images(repositoryName="test_repository_1")
-    assert type(response["imageIds"]) == list
+    assert isinstance(response["imageIds"], list)
     assert len(response["imageIds"]) == 3
 
     for image in response["imageIds"]:
@@ -673,7 +673,7 @@ def test_list_images():
     } == set(image_tags)
 
     response = client.list_images(repositoryName="test_repository_2")
-    assert type(response["imageIds"]) == list
+    assert isinstance(response["imageIds"], list)
     assert len(response["imageIds"]) == 1
     assert response["imageIds"][0]["imageTag"] == "oldest"
     assert "sha" in response["imageIds"][0]["imageDigest"]
@@ -739,7 +739,7 @@ def test_describe_images():
     )
 
     response = client.describe_images(repositoryName="test_repository")
-    assert type(response["imageDetails"]) == list
+    assert isinstance(response["imageDetails"], list)
     assert len(response["imageDetails"]) == 7
 
     for detail in response["imageDetails"][0:5]:
@@ -1037,7 +1037,7 @@ def test_batch_get_image():
         repositoryName="test_repository", imageIds=[{"imageTag": "v2"}]
     )
 
-    assert type(response["images"]) == list
+    assert isinstance(response["images"], list)
     assert len(response["images"]) == 1
 
     assert (
@@ -1050,7 +1050,7 @@ def test_batch_get_image():
     assert response["images"][0]["imageId"]["imageTag"] == "v2"
     assert "sha" in response["images"][0]["imageId"]["imageDigest"]
 
-    assert type(response["failures"]) == list
+    assert isinstance(response["failures"], list)
     assert len(response["failures"]) == 0
 
 
@@ -1081,10 +1081,10 @@ def test_batch_get_image_that_doesnt_exist():
         repositoryName="test_repository", imageIds=[{"imageTag": "v5"}]
     )
 
-    assert type(response["images"]) == list
+    assert isinstance(response["images"], list)
     assert len(response["images"]) == 0
 
-    assert type(response["failures"]) == list
+    assert isinstance(response["failures"], list)
     assert len(response["failures"]) == 1
     assert response["failures"][0]["failureReason"] == "Requested image not found"
     assert response["failures"][0]["failureCode"] == "ImageNotFound"
@@ -1148,18 +1148,18 @@ def test_batch_delete_image_by_tag():
 
     describe_response2 = client.describe_images(repositoryName="test_repository")
 
-    assert type(describe_response1["imageDetails"][0]["imageTags"]) == list
+    assert isinstance(describe_response1["imageDetails"][0]["imageTags"], list)
     assert len(describe_response1["imageDetails"][0]["imageTags"]) == 3
 
-    assert type(describe_response2["imageDetails"][0]["imageTags"]) == list
+    assert isinstance(describe_response2["imageDetails"][0]["imageTags"], list)
     assert len(describe_response2["imageDetails"][0]["imageTags"]) == 2
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 1
 
     assert batch_delete_response["imageIds"][0]["imageTag"] == "latest"
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 0
 
 
@@ -1184,18 +1184,18 @@ def test_batch_delete_image_delete_last_tag():
 
     describe_response2 = client.describe_images(repositoryName="test_repository")
 
-    assert type(describe_response1["imageDetails"][0]["imageTags"]) == list
+    assert isinstance(describe_response1["imageDetails"][0]["imageTags"], list)
     assert len(describe_response1["imageDetails"][0]["imageTags"]) == 1
 
-    assert type(describe_response2["imageDetails"]) == list
+    assert isinstance(describe_response2["imageDetails"], list)
     assert len(describe_response2["imageDetails"]) == 0
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 1
 
     assert batch_delete_response["imageIds"][0]["imageTag"] == "v1"
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 0
 
 
@@ -1223,10 +1223,10 @@ def test_batch_delete_image_with_nonexistent_tag():
         imageIds=[{"imageTag": missing_tag}],
     )
 
-    assert type(describe_response["imageDetails"][0]["imageTags"]) == list
+    assert isinstance(describe_response["imageDetails"][0]["imageTags"], list)
     assert len(describe_response["imageDetails"][0]["imageTags"]) == 3
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 0
 
     assert batch_delete_response["failures"][0]["imageId"]["imageTag"] == missing_tag
@@ -1236,7 +1236,7 @@ def test_batch_delete_image_with_nonexistent_tag():
         == "Requested image not found"
     )
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 1
 
 
@@ -1266,10 +1266,10 @@ def test_batch_delete_image_by_digest():
 
     describe_response = client.describe_images(repositoryName="test_repository")
 
-    assert type(describe_response["imageDetails"]) == list
+    assert isinstance(describe_response["imageDetails"], list)
     assert len(describe_response["imageDetails"]) == 0
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 3
 
     assert batch_delete_response["imageIds"][0]["imageDigest"] == image_digest
@@ -1282,7 +1282,7 @@ def test_batch_delete_image_by_digest():
         batch_delete_response["imageIds"][2]["imageTag"],
     } == set(tags)
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 0
 
 
@@ -1309,10 +1309,10 @@ def test_batch_delete_image_with_invalid_digest():
         imageIds=[{"imageDigest": invalid_image_digest}],
     )
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 0
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 1
 
     assert (
@@ -1335,10 +1335,10 @@ def test_batch_delete_image_with_missing_parameters():
         registryId="012345678910", repositoryName="test_repository", imageIds=[{}]
     )
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 0
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 1
 
     assert batch_delete_response["failures"][0]["failureCode"] == "MissingDigestAndTag"
@@ -1374,10 +1374,10 @@ def test_batch_delete_image_with_matching_digest_and_tag():
 
     describe_response = client.describe_images(repositoryName="test_repository")
 
-    assert type(describe_response["imageDetails"]) == list
+    assert isinstance(describe_response["imageDetails"], list)
     assert len(describe_response["imageDetails"]) == 0
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 3
 
     assert batch_delete_response["imageIds"][0]["imageDigest"] == image_digest
@@ -1390,7 +1390,7 @@ def test_batch_delete_image_with_matching_digest_and_tag():
         batch_delete_response["imageIds"][2]["imageTag"],
     } == set(tags)
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 0
 
 
@@ -1418,10 +1418,10 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
         imageIds=[{"imageDigest": image_digest, "imageTag": "v2"}],
     )
 
-    assert type(batch_delete_response["imageIds"]) == list
+    assert isinstance(batch_delete_response["imageIds"], list)
     assert len(batch_delete_response["imageIds"]) == 0
 
-    assert type(batch_delete_response["failures"]) == list
+    assert isinstance(batch_delete_response["failures"], list)
     assert len(batch_delete_response["failures"]) == 1
 
     assert (

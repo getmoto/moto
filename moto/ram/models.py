@@ -1,10 +1,9 @@
 import re
 import string
-from datetime import datetime
 from typing import Any, Dict, List
 
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.organizations.models import organizations_backends, OrganizationsBackend
 from moto.ram.exceptions import (
@@ -46,9 +45,9 @@ class ResourceShare(BaseModel):
         self.arn = (
             f"arn:aws:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
         )
-        self.creation_time = datetime.utcnow()
+        self.creation_time = utcnow()
         self.feature_set = "STANDARD"
-        self.last_updated_time = datetime.utcnow()
+        self.last_updated_time = utcnow()
         self.name = kwargs["name"]
         self.owning_account_id = account_id
         self.principals: List[str] = []
@@ -128,7 +127,7 @@ class ResourceShare(BaseModel):
             self.resource_arns.append(resource)
 
     def delete(self) -> None:
-        self.last_updated_time = datetime.utcnow()
+        self.last_updated_time = utcnow()
         self.status = "DELETED"
 
     def describe(self) -> Dict[str, Any]:
@@ -147,7 +146,7 @@ class ResourceShare(BaseModel):
         self.allow_external_principals = kwargs.get(
             "allowExternalPrincipals", self.allow_external_principals
         )
-        self.last_updated_time = datetime.utcnow()
+        self.last_updated_time = utcnow()
         self.name = kwargs.get("name", self.name)
 
 

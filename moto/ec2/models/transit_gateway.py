@@ -1,10 +1,12 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 from moto.core import CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
 from .core import TaggedEC2Resource
-from ..utils import random_transit_gateway_id
+from ..utils import (
+    random_transit_gateway_id,
+    describe_tag_filter,
+)
 
 
 class TransitGateway(TaggedEC2Resource, CloudFormationModel):
@@ -32,7 +34,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         self.description = description
         self.state = "available"
         self.options = merge_multiple_dicts(self.DEFAULT_OPTIONS, options or {})
-        self._created_at = datetime.utcnow()
+        self._created_at = utcnow()
 
     @property
     def physical_resource_id(self) -> str:
@@ -45,6 +47,10 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
     @property
     def owner_id(self) -> str:
         return self.ec2_backend.account_id
+
+    @property
+    def arn(self) -> str:
+        return f"arn:aws:ec2:{self.ec2_backend.region_name}:{self.ec2_backend.account_id}:transit-gateway/{self.id}"
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -62,7 +68,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "TransitGateway":
         from ..models import ec2_backends
 
@@ -119,6 +125,8 @@ class TransitGatewayBackend:
         result = transit_gateways
         if filters:
             result = filter_resources(transit_gateways, filters, attr_pairs)
+            result = describe_tag_filter(filters, result)
+
         return result
 
     def delete_transit_gateway(self, transit_gateway_id: str) -> TransitGateway:

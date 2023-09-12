@@ -1977,15 +1977,6 @@ def test_query_missing_expr_names():
     assert resp["Count"] == 1
     assert resp["Items"][0]["client"]["S"] == "test1"
 
-    resp = client.query(
-        TableName="test1",
-        KeyConditionExpression=":name=test2",
-        ExpressionAttributeNames={":name": "client"},
-    )
-
-    assert resp["Count"] == 1
-    assert resp["Items"][0]["client"]["S"] == "test2"
-
 
 # https://github.com/getmoto/moto/issues/2328
 @mock_dynamodb

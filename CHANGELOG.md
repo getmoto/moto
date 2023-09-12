@@ -1,6 +1,55 @@
 Moto Changelog
 ==============
 
+4.2.2
+------
+Docker Digest for 4.2.2: <autopopulateddigest>
+
+    See 4.2.1 - no functional changes.
+
+4.2.1
+------
+Docker Digest for 4.2.1: <autopopulateddigest>
+
+    New Services:
+        * Sagemaker Runtime:
+            * invoke_endpoint()
+
+    New Methods:
+        * CognitoIDP:
+            * describe_resource_server()
+            * list_resource_servers()
+
+        * CognitoIDP:
+            * create_cache_cluster()
+            * delete_cache_cluster()
+            * describe_cache_clusters()
+
+        * IdentityStore:
+            * list_users()
+
+        * Logs:
+            * describe_query_results()
+            * get_query_results()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * Sagemaker:
+            * list_notebook_instances()
+
+    Miscellaneous:
+        * EC2: describe_transit_gateways() now returns the ARN
+        * IAM policies now allow S3 accesspoint arns
+        * KMS: sign() now supports RSASSA_PSS_SHA_384, RSASSA_PSS_SHA_512 and RSASSA_PKCS1_* algorithms
+        * Logs: Now supports two subscription filters
+        * RDS: Clusters now support the ServerlessV2ScalingConfiguration parameter
+        * ResourceGroupsTaggingAPI: tag_resource() now supports RDS resources
+        * S3: CrossAccount access can now be disabled, using MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS=false
+        * SecretsManager: Allow creation/update of secrets without values
+        * SES: set_identity_mail_from_domain() - the Identity can now also be an email
+
+
 4.2.0
 ------
 Docker Digest for 4.2.0: _sha256:92e59875783037b2558067d2d3f9dd2502c140881ff5c44c44ddbce6658a89b7_

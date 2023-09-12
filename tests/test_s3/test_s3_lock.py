@@ -7,6 +7,7 @@ from botocore.client import ClientError
 import pytest
 
 from moto import mock_s3
+from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
@@ -20,7 +21,7 @@ def test_locked_object():
 
     s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
-    until = datetime.datetime.utcnow() + datetime.timedelta(0, seconds_lock)
+    until = utcnow() + datetime.timedelta(0, seconds_lock)
     s3_client.put_object(
         Bucket=bucket_name,
         Body=b"test",
@@ -56,7 +57,7 @@ def test_fail_locked_object():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
     s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=False)
-    until = datetime.datetime.utcnow() + datetime.timedelta(0, seconds_lock)
+    until = utcnow() + datetime.timedelta(0, seconds_lock)
     failed = False
     try:
         s3_client.put_object(
@@ -88,7 +89,7 @@ def test_put_object_lock():
 
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
     version_id = versions_response["Versions"][0]["VersionId"]
-    until = datetime.datetime.utcnow() + datetime.timedelta(0, seconds_lock)
+    until = utcnow() + datetime.timedelta(0, seconds_lock)
 
     s3_client.put_object_retention(
         Bucket=bucket_name,
@@ -275,7 +276,7 @@ def test_put_object_lock_with_versions():
     put_obj_2 = s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
     version_id_2 = put_obj_2["VersionId"]
 
-    until = datetime.datetime.utcnow() + datetime.timedelta(seconds=seconds_lock)
+    until = utcnow() + datetime.timedelta(seconds=seconds_lock)
 
     s3_client.put_object_retention(
         Bucket=bucket_name,

@@ -140,7 +140,7 @@ def test_get_query_execution():
     #
     assert details["QueryExecutionId"] == exex_id
     assert details["Query"] == query
-    assert details["StatementType"] == "DDL"
+    assert details["StatementType"] == "DML"
     assert details["ResultConfiguration"]["OutputLocation"] == location
     assert details["QueryExecutionContext"]["Database"] == database
     assert details["Status"]["State"] == "SUCCEEDED"

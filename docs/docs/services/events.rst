@@ -34,7 +34,7 @@ events
 - [X] create_connection
 - [ ] create_endpoint
 - [X] create_event_bus
-- [ ] create_partner_event_source
+- [X] create_partner_event_source
 - [ ] deactivate_event_source
 - [ ] deauthorize_connection
 - [X] delete_api_destination
@@ -42,15 +42,15 @@ events
 - [X] delete_connection
 - [ ] delete_endpoint
 - [X] delete_event_bus
-- [ ] delete_partner_event_source
+- [X] delete_partner_event_source
 - [X] delete_rule
 - [X] describe_api_destination
 - [X] describe_archive
 - [X] describe_connection
 - [ ] describe_endpoint
 - [X] describe_event_bus
-- [ ] describe_event_source
-- [ ] describe_partner_event_source
+- [X] describe_event_source
+- [X] describe_partner_event_source
 - [X] describe_replay
 - [X] describe_rule
 - [X] disable_rule
@@ -76,9 +76,14 @@ events
          - EventBridge Archive
          - SQS Queue + FIFO Queue
          - Cross-region/account EventBus
+         - HTTP requests (only enabled when MOTO_EVENTS_INVOKE_HTTP=true)
         
 
-- [ ] put_partner_events
+- [X] put_partner_events
+  
+        Validation of the entries is not yet implemented.
+        
+
 - [X] put_permission
 - [X] put_rule
 - [X] put_targets

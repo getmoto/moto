@@ -21,6 +21,7 @@ from moto.core.utils import (
     rfc_1123_datetime,
     unix_time,
     unix_time_millis,
+    utcnow,
 )
 from moto.cloudwatch.models import MetricDatum
 from moto.moto_api import state_manager
@@ -54,7 +55,7 @@ from .cloud_formation import cfn_to_api_encryption, is_replacement_update
 from . import notifications
 from .select_object_content import parse_query
 from .utils import _VersionedKeyStore, CaseInsensitiveDict
-from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS
+from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS, LOGGING_SERVICE_PRINCIPAL
 from ..events.notifications import send_notification as events_send_notification
 from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
 from ..settings import s3_allow_crossdomain_access
@@ -70,7 +71,7 @@ class FakeDeleteMarker(BaseModel):
     def __init__(self, key: "FakeKey"):
         self.key = key
         self.name = key.name
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = utcnow()
         self._version_id = str(random.uuid4())
 
     @property
@@ -113,7 +114,7 @@ class FakeKey(BaseModel, ManagedState):
         )
         self.name = name
         self.account_id = account_id
-        self.last_modified = datetime.datetime.utcnow()
+        self.last_modified = utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.website_redirect_location: Optional[str] = None
         self.checksum_algorithm = None
@@ -197,7 +198,7 @@ class FakeKey(BaseModel, ManagedState):
         self.acl = acl
 
     def restore(self, days: int) -> None:
-        self._expiry = datetime.datetime.utcnow() + datetime.timedelta(days)
+        self._expiry = utcnow() + datetime.timedelta(days)
 
     @property
     def etag(self) -> str:
@@ -324,7 +325,7 @@ class FakeKey(BaseModel, ManagedState):
             return True
 
         if self.lock_mode == "COMPLIANCE":
-            now = datetime.datetime.utcnow()
+            now = utcnow()
             try:
                 until = datetime.datetime.strptime(
                     self.lock_until, "%Y-%m-%dT%H:%M:%SZ"  # type: ignore
@@ -1196,22 +1197,38 @@ class FakeBucket(CloudFormationModel):
     def delete_cors(self) -> None:
         self.cors = []
 
-    def set_logging(
-        self, logging_config: Optional[Dict[str, Any]], bucket_backend: "S3Backend"
-    ) -> None:
-        if not logging_config:
-            self.logging = {}
-            return
+    @staticmethod
+    def _log_permissions_enabled_policy(
+        target_bucket: "FakeBucket", target_prefix: Optional[str]
+    ) -> bool:
+        target_bucket_policy = target_bucket.policy
+        if target_bucket_policy:
+            target_bucket_policy_json = json.loads(target_bucket_policy.decode())
+            for stmt in target_bucket_policy_json["Statement"]:
+                if (
+                    stmt.get("Principal", {}).get("Service")
+                    != LOGGING_SERVICE_PRINCIPAL
+                ):
+                    continue
+                if stmt.get("Effect", "") != "Allow":
+                    continue
+                if "s3:PutObject" not in stmt.get("Action", []):
+                    continue
+                if (
+                    stmt.get("Resource")
+                    != f"arn:aws:s3:::{target_bucket.name}/{target_prefix if target_prefix else ''}*"
+                    and stmt.get("Resource") != f"arn:aws:s3:::{target_bucket.name}/*"
+                    and stmt.get("Resource") != f"arn:aws:s3:::{target_bucket.name}"
+                ):
+                    continue
+                return True
 
-        # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
-        if not bucket_backend.buckets.get(logging_config["TargetBucket"]):
-            raise InvalidTargetBucketForLogging(
-                "The target bucket for logging does not exist."
-            )
+        return False
 
-        # Does the target bucket have the log-delivery WRITE and READ_ACP permissions?
+    @staticmethod
+    def _log_permissions_enabled_acl(target_bucket: "FakeBucket") -> bool:
         write = read_acp = False
-        for grant in bucket_backend.buckets[logging_config["TargetBucket"]].acl.grants:  # type: ignore
+        for grant in target_bucket.acl.grants:  # type: ignore
             # Must be granted to: http://acs.amazonaws.com/groups/s3/LogDelivery
             for grantee in grant.grantees:
                 if grantee.uri == "http://acs.amazonaws.com/groups/s3/LogDelivery":
@@ -1226,20 +1243,39 @@ class FakeBucket(CloudFormationModel):
                         or "FULL_CONTROL" in grant.permissions
                     ):
                         read_acp = True
-
                     break
 
-        if not write or not read_acp:
+        return write and read_acp
+
+    def set_logging(
+        self, logging_config: Optional[Dict[str, Any]], bucket_backend: "S3Backend"
+    ) -> None:
+        if not logging_config:
+            self.logging = {}
+            return
+
+        # Target bucket must exist in the same account (assuming all moto buckets are in the same account):
+        target_bucket = bucket_backend.buckets.get(logging_config["TargetBucket"])
+        if not target_bucket:
             raise InvalidTargetBucketForLogging(
-                "You must give the log-delivery group WRITE and READ_ACP"
-                " permissions to the target bucket"
+                "The target bucket for logging does not exist."
+            )
+
+        target_prefix = self.logging.get("TargetPrefix", None)
+        has_policy_permissions = self._log_permissions_enabled_policy(
+            target_bucket=target_bucket, target_prefix=target_prefix
+        )
+        has_acl_permissions = self._log_permissions_enabled_acl(
+            target_bucket=target_bucket
+        )
+        if not (has_policy_permissions or has_acl_permissions):
+            raise InvalidTargetBucketForLogging(
+                "You must either provide the necessary permissions to the logging service using a bucket "
+                "policy or give the log-delivery group WRITE and READ_ACP permissions to the target bucket"
             )
 
         # Buckets must also exist within the same region:
-        if (
-            bucket_backend.buckets[logging_config["TargetBucket"]].region_name
-            != self.region_name
-        ):
+        if target_bucket.region_name != self.region_name:
             raise CrossLocationLoggingProhibitted()
 
         # Checks pass -- set the logging config:
@@ -1497,7 +1533,7 @@ class FakeBucket(CloudFormationModel):
         return False
 
     def default_retention(self) -> str:
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         now += datetime.timedelta(self.default_lock_days)  # type: ignore
         now += datetime.timedelta(self.default_lock_years * 365)  # type: ignore
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1761,7 +1797,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         requested_versions: List[FakeKey] = []
         delete_markers: List[FakeDeleteMarker] = []
         all_versions = list(
-            itertools.chain(*(copy.deepcopy(l) for key, l in bucket.keys.iterlists()))
+            itertools.chain(
+                *(
+                    copy.deepcopy(version_key)
+                    for key, version_key in bucket.keys.iterlists()
+                )
+            )
         )
         # sort by name, revert last-modified-date
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))

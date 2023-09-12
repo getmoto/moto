@@ -1,7 +1,6 @@
 import json
-from datetime import datetime
 from typing import Any, Dict, List, Tuple
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.iam.exceptions import IAMNotFoundException
 from moto.iam.models import iam_backends, IAMBackend
 
@@ -24,8 +23,8 @@ class CodePipeline(BaseModel):
         self.tags: Dict[str, str] = {}
 
         self._arn = f"arn:aws:codepipeline:{region}:{account_id}:{pipeline['name']}"
-        self._created = datetime.utcnow()
-        self._updated = datetime.utcnow()
+        self._created = utcnow()
+        self._updated = utcnow()
 
     @property
     def metadata(self) -> Dict[str, str]:
@@ -143,7 +142,7 @@ class CodePipelineBackend(BaseBackend):
 
         # version number is auto incremented
         pipeline["version"] = codepipeline.pipeline["version"] + 1
-        codepipeline._updated = datetime.utcnow()
+        codepipeline._updated = utcnow()
         codepipeline.pipeline = codepipeline.add_default_values(pipeline)
 
         return codepipeline.pipeline

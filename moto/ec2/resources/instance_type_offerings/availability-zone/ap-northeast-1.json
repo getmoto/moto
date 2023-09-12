@@ -668,30 +668,6 @@
   "Location": "ap-northeast-1a"
  },
  {
-  "InstanceType": "g5g.16xlarge",
-  "Location": "ap-northeast-1a"
- },
- {
-  "InstanceType": "g5g.2xlarge",
-  "Location": "ap-northeast-1a"
- },
- {
-  "InstanceType": "g5g.4xlarge",
-  "Location": "ap-northeast-1a"
- },
- {
-  "InstanceType": "g5g.8xlarge",
-  "Location": "ap-northeast-1a"
- },
- {
-  "InstanceType": "g5g.metal",
-  "Location": "ap-northeast-1a"
- },
- {
-  "InstanceType": "g5g.xlarge",
-  "Location": "ap-northeast-1a"
- },
- {
   "InstanceType": "i2.2xlarge",
   "Location": "ap-northeast-1a"
  },

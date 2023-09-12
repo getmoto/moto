@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.core.utils import utcnow
 
 
 class InstanceMetadataResponse(BaseResponse):
@@ -27,7 +28,7 @@ class InstanceMetadataResponse(BaseResponse):
         """
 
         parsed_url = urlparse(full_url)
-        tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        tomorrow = utcnow() + datetime.timedelta(days=1)
         credentials = dict(
             AccessKeyId="test-key",
             SecretAccessKey="test-secret-key",

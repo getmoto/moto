@@ -23,6 +23,10 @@ def test_create_transit_gateway():
     )
     gateway = response["TransitGateway"]
     assert gateway["TransitGatewayId"].startswith("tgw-")
+    assert (
+        gateway["TransitGatewayArn"]
+        == f"arn:aws:ec2:us-west-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
+    )
     assert gateway["State"] == "available"
     assert gateway["OwnerId"] == ACCOUNT_ID
     assert gateway["Description"] == "my first gateway"
@@ -50,14 +54,13 @@ def test_create_transit_gateway():
     assert "CreationTime" in gateways[0]
     assert (
         gateways[0]["TransitGatewayArn"]
-        == f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
+        == f"arn:aws:ec2:us-west-1:{ACCOUNT_ID}:transit-gateway/{gateway['TransitGatewayId']}"
     )
     assert (
         gateways[0]["Options"]["AssociationDefaultRouteTableId"]
         == gateways[0]["Options"]["PropagationDefaultRouteTableId"]
     )
     del gateways[0]["CreationTime"]
-    del gateways[0]["TransitGatewayArn"]
     del gateways[0]["Options"]["AssociationDefaultRouteTableId"]
     assert gateway == gateways[0]
 
@@ -108,9 +111,54 @@ def test_describe_transit_gateway_by_id():
     g2_id = g2["TransitGatewayId"]
     ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
 
-    my_gateway = ec2.describe_transit_gateways(TransitGatewayIds=[g2_id])[
+    gateways = ec2.describe_transit_gateways(TransitGatewayIds=[g2_id])[
         "TransitGateways"
-    ][0]
+    ]
+    assert len(gateways) == 1
+
+    my_gateway = gateways[0]
+    assert my_gateway["TransitGatewayId"] == g2_id
+    assert my_gateway["Description"] == "my second gatway"
+
+
+@mock_ec2
+def test_describe_transit_gateway_by_tags():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    ec2.create_transit_gateway(
+        Description="my first gatway",
+        TagSpecifications=[
+            {
+                "ResourceType": "transit-gateway-route-table",
+                "Tags": [
+                    {"Key": "tag1", "Value": "val1"},
+                    {"Key": "tag2", "Value": "val2"},
+                ],
+            }
+        ],
+    )["TransitGateway"]
+    g2 = ec2.create_transit_gateway(Description="my second gatway")["TransitGateway"]
+    g2 = ec2.create_transit_gateway(
+        Description="my second gatway",
+        TagSpecifications=[
+            {
+                "ResourceType": "transit-gateway-route-table",
+                "Tags": [
+                    {"Key": "the-tag", "Value": "the-value"},
+                    {"Key": "tag2", "Value": "val2"},
+                ],
+            }
+        ],
+    )["TransitGateway"]
+    g2_id = g2["TransitGatewayId"]
+    ec2.create_transit_gateway(Description="my third gatway")["TransitGateway"]
+
+    gateways = ec2.describe_transit_gateways(
+        Filters=[{"Name": "tag:the-tag", "Values": ["the-value"]}]
+    )["TransitGateways"]
+
+    assert len(gateways) == 1
+
+    my_gateway = gateways[0]
     assert my_gateway["TransitGatewayId"] == g2_id
     assert my_gateway["Description"] == "my second gatway"
 

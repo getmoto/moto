@@ -149,6 +149,7 @@ class ActionAuthenticatorMixin(object):
                 method=self.method,  # type: ignore[attr-defined]
                 path=path,
                 data=self.data,  # type: ignore[attr-defined]
+                body=self.body,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
             )
             iam_request.check_signature()

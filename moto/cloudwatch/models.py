@@ -4,6 +4,7 @@ from moto.core import BaseBackend, BackendDict, BaseModel, CloudWatchMetricProvi
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_nanoseconds,
+    utcnow,
 )
 from moto.moto_api._internal import mock_random
 from datetime import datetime, timedelta
@@ -158,9 +159,7 @@ class FakeAlarm(BaseModel):
         self.ok_actions = ok_actions
         self.insufficient_data_actions = insufficient_data_actions
         self.unit = unit
-        self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds(
-            datetime.now(tz=tzutc())
-        )
+        self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds()
         self.treat_missing_data = treat_missing_data
         self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
         self.threshold_metric_id = threshold_metric_id
@@ -170,9 +169,7 @@ class FakeAlarm(BaseModel):
         self.state_reason = "Unchecked: Initial alarm creation"
         self.state_reason_data = "{}"
         self.state_value = "OK"
-        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds(
-            datetime.now(tz=tzutc())
-        )
+        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds()
 
         # only used for composite alarms
         self.rule = rule
@@ -192,9 +189,7 @@ class FakeAlarm(BaseModel):
         self.state_reason = reason
         self.state_reason_data = reason_data
         self.state_value = state_value
-        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds(
-            datetime.now(tz=tzutc())
-        )
+        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds()
 
 
 def are_dimensions_same(
@@ -227,7 +222,7 @@ class MetricDatumBase(BaseModel):
     ):
         self.namespace = namespace
         self.name = name
-        self.timestamp = timestamp or datetime.utcnow().replace(tzinfo=tzutc())
+        self.timestamp = timestamp or utcnow().replace(tzinfo=tzutc())
         self.dimensions = [
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
@@ -335,9 +330,7 @@ class Statistics:
     """
 
     def __init__(self, stats: List[str], dt: datetime, unit: Optional[str] = None):
-        self.timestamp: str = (
-            iso_8601_datetime_without_milliseconds(dt) or self.timestamp_iso_8601_now()
-        )
+        self.timestamp: str = iso_8601_datetime_without_milliseconds(dt or utcnow())
         self.metric_data: List[MetricDatumBase] = []
         self.stats = stats
         self.unit = unit
@@ -436,9 +429,6 @@ class Statistics:
         return sum(self.metric_single_values_list) + sum(
             [s.sum for s in self.metric_aggregated_list]
         )
-
-    def timestamp_iso_8601_now(self) -> str:
-        return iso_8601_datetime_without_milliseconds(datetime.now())  # type: ignore[return-value]
 
 
 class CloudWatchBackend(BaseBackend):

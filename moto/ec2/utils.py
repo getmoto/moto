@@ -3,12 +3,12 @@ import fnmatch
 import re
 import ipaddress
 
-from datetime import datetime
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
 
+from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
@@ -305,7 +305,7 @@ def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> Dict[str, str
 
 
 def utc_date_and_time() -> str:
-    x = datetime.utcnow()
+    x = utcnow()
     # Better performing alternative to x.strftime("%Y-%m-%dT%H:%M:%S.000Z")
     return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 

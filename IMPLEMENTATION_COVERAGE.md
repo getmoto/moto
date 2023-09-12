@@ -1166,7 +1166,7 @@
 
 ## cognito-idp
 <details>
-<summary>57% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -1216,7 +1216,7 @@
 - [X] delete_user_pool_client
 - [X] delete_user_pool_domain
 - [X] describe_identity_provider
-- [ ] describe_resource_server
+- [X] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_user_import_job
 - [X] describe_user_pool
@@ -1239,7 +1239,7 @@
 - [ ] list_devices
 - [X] list_groups
 - [X] list_identity_providers
-- [ ] list_resource_servers
+- [X] list_resource_servers
 - [ ] list_tags_for_resource
 - [ ] list_user_import_jobs
 - [X] list_user_pool_clients
@@ -2691,7 +2691,7 @@
 
 ## elasticache
 <details>
-<summary>4% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
@@ -2699,7 +2699,7 @@
 - [ ] batch_stop_update_action
 - [ ] complete_migration
 - [ ] copy_snapshot
-- [ ] create_cache_cluster
+- [X] create_cache_cluster
 - [ ] create_cache_parameter_group
 - [ ] create_cache_security_group
 - [ ] create_cache_subnet_group
@@ -2710,7 +2710,7 @@
 - [ ] create_user_group
 - [ ] decrease_node_groups_in_global_replication_group
 - [ ] decrease_replica_count
-- [ ] delete_cache_cluster
+- [X] delete_cache_cluster
 - [ ] delete_cache_parameter_group
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
@@ -2719,7 +2719,7 @@
 - [ ] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
-- [ ] describe_cache_clusters
+- [X] describe_cache_clusters
 - [ ] describe_cache_engine_versions
 - [ ] describe_cache_parameter_groups
 - [ ] describe_cache_parameters
@@ -3077,7 +3077,7 @@
 
 ## events
 <details>
-<summary>71% implemented</summary>
+<summary>80% implemented</summary>
 
 - [ ] activate_event_source
 - [X] cancel_replay
@@ -3086,7 +3086,7 @@
 - [X] create_connection
 - [ ] create_endpoint
 - [X] create_event_bus
-- [ ] create_partner_event_source
+- [X] create_partner_event_source
 - [ ] deactivate_event_source
 - [ ] deauthorize_connection
 - [X] delete_api_destination
@@ -3094,15 +3094,15 @@
 - [X] delete_connection
 - [ ] delete_endpoint
 - [X] delete_event_bus
-- [ ] delete_partner_event_source
+- [X] delete_partner_event_source
 - [X] delete_rule
 - [X] describe_api_destination
 - [X] describe_archive
 - [X] describe_connection
 - [ ] describe_endpoint
 - [X] describe_event_bus
-- [ ] describe_event_source
-- [ ] describe_partner_event_source
+- [X] describe_event_source
+- [X] describe_partner_event_source
 - [X] describe_replay
 - [X] describe_rule
 - [X] disable_rule
@@ -3121,7 +3121,7 @@
 - [X] list_tags_for_resource
 - [X] list_targets_by_rule
 - [X] put_events
-- [ ] put_partner_events
+- [X] put_partner_events
 - [X] put_permission
 - [X] put_rule
 - [X] put_targets
@@ -3810,7 +3810,7 @@
 
 ## identitystore
 <details>
-<summary>52% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -3828,7 +3828,7 @@
 - [X] list_group_memberships
 - [ ] list_group_memberships_for_member
 - [X] list_groups
-- [ ] list_users
+- [X] list_users
 - [ ] update_group
 - [ ] update_user
 </details>
@@ -5804,6 +5804,69 @@
 - [ ] untag_resources
 </details>
 
+## robomaker
+<details>
+<summary>7% implemented</summary>
+
+- [ ] batch_delete_worlds
+- [ ] batch_describe_simulation_job
+- [ ] cancel_deployment_job
+- [ ] cancel_simulation_job
+- [ ] cancel_simulation_job_batch
+- [ ] cancel_world_export_job
+- [ ] cancel_world_generation_job
+- [ ] create_deployment_job
+- [ ] create_fleet
+- [ ] create_robot
+- [X] create_robot_application
+- [ ] create_robot_application_version
+- [ ] create_simulation_application
+- [ ] create_simulation_application_version
+- [ ] create_simulation_job
+- [ ] create_world_export_job
+- [ ] create_world_generation_job
+- [ ] create_world_template
+- [ ] delete_fleet
+- [ ] delete_robot
+- [X] delete_robot_application
+- [ ] delete_simulation_application
+- [ ] delete_world_template
+- [ ] deregister_robot
+- [ ] describe_deployment_job
+- [ ] describe_fleet
+- [ ] describe_robot
+- [X] describe_robot_application
+- [ ] describe_simulation_application
+- [ ] describe_simulation_job
+- [ ] describe_simulation_job_batch
+- [ ] describe_world
+- [ ] describe_world_export_job
+- [ ] describe_world_generation_job
+- [ ] describe_world_template
+- [ ] get_world_template_body
+- [ ] list_deployment_jobs
+- [ ] list_fleets
+- [X] list_robot_applications
+- [ ] list_robots
+- [ ] list_simulation_applications
+- [ ] list_simulation_job_batches
+- [ ] list_simulation_jobs
+- [ ] list_tags_for_resource
+- [ ] list_world_export_jobs
+- [ ] list_world_generation_jobs
+- [ ] list_world_templates
+- [ ] list_worlds
+- [ ] register_robot
+- [ ] restart_simulation_job
+- [ ] start_simulation_job_batch
+- [ ] sync_deployment_job
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_robot_application
+- [ ] update_simulation_application
+- [ ] update_world_template
+</details>
+
 ## route53
 <details>
 <summary>41% implemented</summary>
@@ -6354,7 +6417,7 @@
 - [ ] list_monitoring_executions
 - [ ] list_monitoring_schedules
 - [ ] list_notebook_instance_lifecycle_configs
-- [ ] list_notebook_instances
+- [X] list_notebook_instances
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
@@ -6439,10 +6502,11 @@
 
 ## sagemaker-runtime
 <details>
-<summary>50% implemented</summary>
+<summary>33% implemented</summary>
 
 - [X] invoke_endpoint
 - [ ] invoke_endpoint_async
+- [ ] invoke_endpoint_with_response_stream
 </details>
 
 ## scheduler
@@ -6643,9 +6707,10 @@
 
 ## sesv2
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_get_metric_data
+- [ ] cancel_export_job
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
 - [X] create_contact
@@ -6656,6 +6721,7 @@
 - [ ] create_email_identity
 - [ ] create_email_identity_policy
 - [ ] create_email_template
+- [ ] create_export_job
 - [ ] create_import_job
 - [ ] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
@@ -6684,7 +6750,9 @@
 - [ ] get_email_identity
 - [ ] get_email_identity_policies
 - [ ] get_email_template
+- [ ] get_export_job
 - [ ] get_import_job
+- [ ] get_message_insights
 - [ ] get_suppressed_destination
 - [ ] list_configuration_sets
 - [X] list_contact_lists
@@ -6695,6 +6763,7 @@
 - [ ] list_domain_deliverability_campaigns
 - [ ] list_email_identities
 - [ ] list_email_templates
+- [ ] list_export_jobs
 - [ ] list_import_jobs
 - [ ] list_recommendations
 - [ ] list_suppressed_destinations
@@ -7449,6 +7518,7 @@
 - mobile
 - mturk
 - mwaa
+- neptunedata
 - network-firewall
 - networkmanager
 - nimble
@@ -7461,6 +7531,7 @@
 - panorama
 - payment-cryptography
 - payment-cryptography-data
+- pca-connector-ad
 - personalize-events
 - personalize-runtime
 - pi
@@ -7477,7 +7548,6 @@
 - redshift-serverless
 - resiliencehub
 - resource-explorer-2
-- robomaker
 - rolesanywhere
 - route53-recovery-cluster
 - route53-recovery-control-config

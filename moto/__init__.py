@@ -1,9 +1,9 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
-from moto.core.models import BaseMockAWS
 from typing import Any, Callable, List, Optional, TypeVar
 
+from moto.core.models import BaseMockAWS
 
 TEST_METHOD = TypeVar("TEST_METHOD", bound=Callable[..., Any])
 
@@ -83,9 +83,7 @@ mock_ecr = lazy_load(".ecr", "mock_ecr")
 mock_ecs = lazy_load(".ecs", "mock_ecs")
 mock_efs = lazy_load(".efs", "mock_efs")
 mock_eks = lazy_load(".eks", "mock_eks")
-mock_elasticache = lazy_load(
-    ".elasticache", "mock_elasticache", boto3_name="elasticache"
-)
+mock_elasticache = lazy_load(".elasticache", "mock_elasticache")
 mock_elastictranscoder = lazy_load(".elastictranscoder", "mock_elastictranscoder")
 mock_elb = lazy_load(".elb", "mock_elb")
 mock_elbv2 = lazy_load(".elbv2", "mock_elbv2")
@@ -150,6 +148,7 @@ mock_resourcegroups = lazy_load(
 mock_resourcegroupstaggingapi = lazy_load(
     ".resourcegroupstaggingapi", "mock_resourcegroupstaggingapi"
 )
+mock_robomaker = lazy_load(".robomaker", "mock_robomaker")
 mock_route53 = lazy_load(".route53", "mock_route53")
 mock_route53resolver = lazy_load(
     ".route53resolver", "mock_route53resolver", boto3_name="route53resolver"
@@ -180,6 +179,7 @@ mock_stepfunctions = lazy_load(
 mock_sts = lazy_load(".sts", "mock_sts")
 mock_support = lazy_load(".support", "mock_support")
 mock_swf = lazy_load(".swf", "mock_swf")
+mock_textract = lazy_load(".textract", "mock_textract")
 mock_timestreamwrite = lazy_load(
     ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
 )
@@ -188,7 +188,6 @@ XRaySegment = lazy_load(".xray", "XRaySegment")
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
-mock_textract = lazy_load(".textract", "mock_textract")
 
 
 class MockAll(ContextDecorator):
@@ -213,7 +212,7 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "4.2.1.dev"
+__version__ = "4.2.3.dev"
 
 
 try:

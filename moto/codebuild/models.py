@@ -18,7 +18,7 @@ class CodeBuildProjectMetadata(BaseModel):
         build_id: str,
         service_role: str,
     ):
-        current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
+        current_date = iso_8601_datetime_with_milliseconds()
         self.build_metadata: Dict[str, Any] = dict()
 
         self.build_metadata["id"] = build_id
@@ -99,7 +99,7 @@ class CodeBuild(BaseModel):
         environment: Dict[str, Any],
         serviceRole: str = "some_role",
     ):
-        current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
+        current_date = iso_8601_datetime_with_milliseconds()
         self.project_metadata: Dict[str, Any] = dict()
 
         self.project_metadata["name"] = project_name
@@ -201,7 +201,7 @@ class CodeBuildBackend(BaseBackend):
         return self.build_metadata[project_name].build_metadata
 
     def _set_phases(self, phases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        current_date = iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow())
+        current_date = iso_8601_datetime_with_milliseconds()
         # No phaseStatus for QUEUED on first start
         for existing_phase in phases:
             if existing_phase["phaseType"] == "QUEUED":

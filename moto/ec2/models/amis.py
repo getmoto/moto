@@ -1,7 +1,9 @@
 import json
+import os
 import re
 from os import environ
 from typing import Any, Dict, List, Optional, Set, cast
+from moto import settings
 from moto.utilities.utils import load_resource
 from ..exceptions import (
     InvalidAMIIdError,
@@ -156,6 +158,8 @@ class AmiBackend:
         self._load_amis()
 
     def _load_amis(self) -> None:
+        if "MOTO_AMIS_PATH" not in os.environ and not settings.ec2_load_default_amis():
+            return
         for ami in AMIS:
             ami_id = ami["ami_id"]
             # we are assuming the default loaded amis are owned by amazon

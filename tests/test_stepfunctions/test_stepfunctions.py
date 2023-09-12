@@ -758,14 +758,21 @@ def test_state_machine_throws_error_when_describing_unknown_execution():
 def test_state_machine_stop_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
-    sm = client.create_state_machine(
+    sm_arn = client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
-    )
-    start = client.start_execution(stateMachineArn=sm["stateMachineArn"])
+    )["stateMachineArn"]
+    start = client.start_execution(stateMachineArn=sm_arn)
     stop = client.stop_execution(executionArn=start["executionArn"])
     #
     assert stop["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert isinstance(stop["stopDate"], datetime)
+
+    description = client.describe_execution(executionArn=start["executionArn"])
+    assert description["status"] == "ABORTED"
+    assert isinstance(description["stopDate"], datetime)
+
+    execution = client.list_executions(stateMachineArn=sm_arn)["executions"][0]
+    assert isinstance(execution["stopDate"], datetime)
 
 
 @mock_stepfunctions
@@ -784,22 +791,6 @@ def test_state_machine_stop_raises_error_when_unknown_execution():
         client.stop_execution(executionArn=unknown_execution)
     assert ex.value.response["Error"]["Code"] == "ExecutionDoesNotExist"
     assert "Execution Does Not Exist:" in ex.value.response["Error"]["Message"]
-
-
-@mock_stepfunctions
-@mock_sts
-def test_state_machine_describe_execution_after_stoppage():
-    client = boto3.client("stepfunctions", region_name=region)
-    sm = client.create_state_machine(
-        name="name", definition=str(simple_definition), roleArn=_get_default_role()
-    )
-    execution = client.start_execution(stateMachineArn=sm["stateMachineArn"])
-    client.stop_execution(executionArn=execution["executionArn"])
-    description = client.describe_execution(executionArn=execution["executionArn"])
-    #
-    assert description["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert description["status"] == "ABORTED"
-    assert isinstance(description["stopDate"], datetime)
 
 
 @mock_stepfunctions

@@ -293,6 +293,22 @@ def test_create_secret_without_value():
 
 
 @mock_secretsmanager
+def test_create_secret_that_has_no_value_and_then_update():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="secret-no-value")
+
+    conn.update_secret(
+        SecretId="secret-no-value",
+        SecretString="barsecret",
+        Description="desc",
+    )
+
+    secret = conn.get_secret_value(SecretId="secret-no-value")
+    assert secret["SecretString"] == "barsecret"
+
+
+@mock_secretsmanager
 def test_update_secret_without_value():
     conn = boto3.client("secretsmanager", region_name="us-east-2")
     secret_name = f"secret-{str(uuid4())[0:6]}"

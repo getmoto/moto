@@ -5,6 +5,7 @@ import datetime
 from typing import Any, Dict, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 from .exceptions import (
     SecretNotFoundException,
@@ -126,9 +127,12 @@ class FakeSecret:
             if "AWSPREVIOUS" in old_version["version_stages"]:
                 old_version["version_stages"].remove("AWSPREVIOUS")
 
-        # set old AWSCURRENT secret to AWSPREVIOUS
-        previous_current_version_id = self.default_version_id
-        self.versions[previous_current_version_id]["version_stages"] = ["AWSPREVIOUS"]  # type: ignore
+        if self.default_version_id:
+            # set old AWSCURRENT secret to AWSPREVIOUS
+            previous_current_version_id = self.default_version_id
+            self.versions[previous_current_version_id]["version_stages"] = [
+                "AWSPREVIOUS"
+            ]
 
         self.versions[version_id] = secret_version
         self.default_version_id = version_id
@@ -780,7 +784,7 @@ class SecretsManagerBackend(BaseBackend):
             else:
                 arn = secret_arn(self.account_id, self.region_name, secret_id=secret_id)
                 name = secret_id
-                deletion_date = datetime.datetime.utcnow()
+                deletion_date = utcnow()
                 return arn, name, self._unix_time_secs(deletion_date)
         else:
             if self.secrets[secret_id].is_deleted():
@@ -789,7 +793,7 @@ class SecretsManagerBackend(BaseBackend):
                     perform the operation on a secret that's currently marked deleted."
                 )
 
-            deletion_date = datetime.datetime.utcnow()
+            deletion_date = utcnow()
 
             if force_delete_without_recovery:
                 secret = self.secrets.pop(secret_id)

@@ -4892,30 +4892,6 @@
   "Location": "apne1-az4"
  },
  {
-  "InstanceType": "g5g.16xlarge",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "g5g.2xlarge",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "g5g.4xlarge",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "g5g.8xlarge",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "g5g.metal",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "g5g.xlarge",
-  "Location": "apne1-az4"
- },
- {
   "InstanceType": "i2.2xlarge",
   "Location": "apne1-az4"
  },

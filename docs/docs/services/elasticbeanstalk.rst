@@ -36,7 +36,7 @@ elasticbeanstalk
 - [X] create_environment
 - [ ] create_platform_version
 - [ ] create_storage_location
-- [ ] delete_application
+- [x] delete_application
 - [ ] delete_application_version
 - [ ] delete_configuration_template
 - [ ] delete_environment_configuration

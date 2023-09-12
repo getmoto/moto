@@ -29,35 +29,36 @@ PAGINATION_MODEL = {
         "limit_key": "MaxResults",
         "limit_default": 100,
         "unique_attribute": "experiment_arn",
-        "fail_on_invalid_token": True,
     },
     "list_trials": {
         "input_token": "NextToken",
         "limit_key": "MaxResults",
         "limit_default": 100,
         "unique_attribute": "trial_arn",
-        "fail_on_invalid_token": True,
     },
     "list_trial_components": {
         "input_token": "NextToken",
         "limit_key": "MaxResults",
         "limit_default": 100,
         "unique_attribute": "trial_component_arn",
-        "fail_on_invalid_token": True,
     },
     "list_tags": {
         "input_token": "NextToken",
         "limit_key": "MaxResults",
         "limit_default": 50,
         "unique_attribute": "Key",
-        "fail_on_invalid_token": True,
     },
     "list_model_packages": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "ModelPackageArn",
-        "fail_on_invalid_token": True,
+    },
+    "list_notebook_instances": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
     },
 }
 
@@ -1132,7 +1133,7 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         self.default_code_repository = default_code_repository
         self.additional_code_repositories = additional_code_repositories
         self.root_access = root_access
-        self.status: Optional[str] = None
+        self.status = "Pending"
         self.creation_time = self.last_modified_time = datetime.now()
         self.arn = arn_formatter(
             "notebook-instance", notebook_instance_name, account_id, region_name
@@ -1288,6 +1289,29 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         backend = sagemaker_backends[account_id][region_name]
         backend.stop_notebook_instance(notebook_instance_name)
         backend.delete_notebook_instance(notebook_instance_name)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "NotebookInstanceArn": self.arn,
+            "NotebookInstanceName": self.notebook_instance_name,
+            "NotebookInstanceStatus": self.status,
+            "Url": self.url,
+            "InstanceType": self.instance_type,
+            "SubnetId": self.subnet_id,
+            "SecurityGroups": self.security_group_ids,
+            "RoleArn": self.role_arn,
+            "KmsKeyId": self.kms_key_id,
+            # ToDo: NetworkInterfaceId
+            "LastModifiedTime": str(self.last_modified_time),
+            "CreationTime": str(self.creation_time),
+            "NotebookInstanceLifecycleConfigName": self.lifecycle_config_name,
+            "DirectInternetAccess": self.direct_internet_access,
+            "VolumeSizeInGB": self.volume_size_in_gb,
+            "AcceleratorTypes": self.accelerator_types,
+            "DefaultCodeRepository": self.default_code_repository,
+            "AdditionalCodeRepositories": self.additional_code_repositories,
+            "RootAccess": self.root_access,
+        }
 
 
 class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationModel):
@@ -1941,6 +1965,38 @@ class SageMakerModelBackend(BaseBackend):
             message = f"Status ({notebook_instance.status}) not in ([Stopped, Failed]). Unable to transition to (Deleting) for Notebook Instance ({notebook_instance.arn})"
             raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_notebook_instances(
+        self,
+        sort_by: str,
+        sort_order: str,
+        name_contains: Optional[str],
+        status: Optional[str],
+    ) -> Iterable[FakeSagemakerNotebookInstance]:
+        """
+        The following parameters are not yet implemented:
+        CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
+        """
+        instances = list(self.notebook_instances.values())
+        if name_contains:
+            instances = [
+                i for i in instances if name_contains in i.notebook_instance_name
+            ]
+        if status:
+            instances = [i for i in instances if i.status == status]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            instances = sorted(
+                instances, key=lambda x: x.notebook_instance_name, reverse=reverse
+            )
+        if sort_by == "CreationTime":
+            instances = sorted(
+                instances, key=lambda x: x.creation_time, reverse=reverse
+            )
+        if sort_by == "Status":
+            instances = sorted(instances, key=lambda x: x.status, reverse=reverse)
+        return instances
 
     def create_notebook_instance_lifecycle_config(
         self,

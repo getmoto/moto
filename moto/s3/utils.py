@@ -36,6 +36,7 @@ STORAGE_CLASS = [
     "ONEZONE_IA",
     "INTELLIGENT_TIERING",
 ] + ARCHIVE_STORAGE_CLASSES
+LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 
 
 def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
@@ -100,7 +101,7 @@ def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # ty
             if meta_key:
                 metadata[meta_key] = (
                     headers[header][0]
-                    if type(headers[header]) == list
+                    if isinstance(headers[header], list)
                     else headers[header]
                 )
     return metadata

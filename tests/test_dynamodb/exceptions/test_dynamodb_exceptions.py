@@ -1094,3 +1094,22 @@ def test_query_with_empty_filter_expression():
     assert (
         err["Message"] == "Invalid FilterExpression: The expression can not be empty;"
     )
+
+
+@mock_dynamodb
+def test_query_with_missing_expression_attribute():
+    ddb = boto3.resource("dynamodb", region_name="us-west-2")
+    ddb.create_table(TableName="test", BillingMode="PAY_PER_REQUEST", **table_schema)
+    client = boto3.client("dynamodb", region_name="us-west-2")
+    with pytest.raises(ClientError) as exc:
+        client.query(
+            TableName="test",
+            KeyConditionExpression="#part_key=some_value",
+            ExpressionAttributeNames={"#part_key": "partitionKey"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid condition in KeyConditionExpression: Multiple attribute names used in one condition"
+    )

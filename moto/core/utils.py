@@ -7,7 +7,7 @@ from gzip import decompress
 from typing import Any, Optional, List, Callable, Dict, Tuple
 from urllib.parse import urlparse, unquote
 from .common_types import TYPE_RESPONSE
-from .versions import is_werkzeug_2_3_x
+from .versions import is_werkzeug_2_3_x, PYTHON_311
 
 
 def camelcase_to_underscores(argument: str) -> str:
@@ -148,19 +148,17 @@ class convert_flask_to_responses_response(object):
 def iso_8601_datetime_with_milliseconds(
     value: Optional[datetime.datetime] = None,
 ) -> str:
-    date_to_use = value or datetime.datetime.now()
+    date_to_use = value or utcnow()
     return date_to_use.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 # Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
-def iso_8601_datetime_with_nanoseconds(value: datetime.datetime) -> str:
-    return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+def iso_8601_datetime_with_nanoseconds() -> str:
+    return utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds(
-    value: Optional[datetime.datetime],
-) -> Optional[str]:
-    return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else None
+def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def iso_8601_datetime_without_milliseconds_s3(
@@ -181,7 +179,7 @@ def str_to_rfc_1123_datetime(value: str) -> datetime.datetime:
 
 
 def unix_time(dt: Optional[datetime.datetime] = None) -> float:
-    dt = dt or datetime.datetime.utcnow()
+    dt = dt or utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
@@ -189,6 +187,21 @@ def unix_time(dt: Optional[datetime.datetime] = None) -> float:
 
 def unix_time_millis(dt: Optional[datetime.datetime] = None) -> float:
     return unix_time(dt) * 1000.0
+
+
+def utcnow() -> datetime.datetime:
+    # Python 3.12 starts throwing deprecation warnings for utcnow()
+    # The docs recommend to use now(UTC) instead
+    #
+    # now(UTC) creates an aware datetime - but utcnow() creates a naive datetime
+    # That's why we have to `replace(tzinfo=None)` to make now(UTC) naive.
+    if PYTHON_311:
+        # Only available in 3.11
+        from datetime import UTC  # type: ignore
+
+        return datetime.datetime.now(UTC).replace(tzinfo=None)
+    else:
+        return datetime.datetime.utcnow()
 
 
 def path_url(url: str) -> str:

@@ -1,11 +1,10 @@
 from collections import defaultdict
 from typing import Any, Dict, Optional, List, Union, Tuple, Iterable
-import datetime
 import json
 
 from collections import OrderedDict
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from .comparisons import get_comparison_func
 
 
@@ -114,7 +113,7 @@ class Table(BaseModel):
         self.range_key_type = range_key_type
         self.read_capacity = read_capacity
         self.write_capacity = write_capacity
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
         self.items: Dict[DynamoType, Union[Item, Dict[DynamoType, Item]]] = defaultdict(
             dict
         )

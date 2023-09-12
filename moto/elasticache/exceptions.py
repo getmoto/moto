@@ -1,4 +1,5 @@
 from typing import Any
+
 from moto.core.exceptions import RESTError
 
 EXCEPTION_RESPONSE = """<?xml version="1.0"?>
@@ -58,3 +59,25 @@ class UserNotFound(ElastiCacheException):
 
     def __init__(self, user_id: str):
         super().__init__("UserNotFound", message=f"User {user_id} not found.")
+
+
+class CacheClusterAlreadyExists(ElastiCacheException):
+
+    code = 404
+
+    def __init__(self, cache_cluster_id: str):
+        super().__init__(
+            "CacheClusterAlreadyExists",
+            message=f"Cache cluster {cache_cluster_id} already exists.",
+        ),
+
+
+class CacheClusterNotFound(ElastiCacheException):
+
+    code = 404
+
+    def __init__(self, cache_cluster_id: str):
+        super().__init__(
+            "CacheClusterNotFound",
+            message=f"Cache cluster {cache_cluster_id} not found.",
+        )

@@ -322,14 +322,16 @@ class KmsBackend(BaseBackend):
     #
     # In our implementation with just create a copy of all the properties once without any protection from change,
     # as the exact implementation is currently infeasible.
-    def replicate_key(self, key_id: str, replica_region: str) -> None:
+    def replicate_key(self, key_id: str, replica_region: str) -> Key:
         # Using copy() instead of deepcopy(), as the latter results in exception:
         #    TypeError: cannot pickle '_cffi_backend.FFI' object
         # Since we only update top level properties, copy() should suffice.
         replica_key = copy(self.keys[key_id])
         replica_key.region = replica_region
+        replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
+        return replica_key
 
     def update_key_description(self, key_id: str, description: str) -> None:
         key = self.keys[self.get_key_id(key_id)]
@@ -627,9 +629,8 @@ class KmsBackend(BaseBackend):
     def sign(
         self, key_id: str, message: bytes, signing_algorithm: str
     ) -> Tuple[str, bytes, str]:
-        """Sign message using generated private key.
-
-        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+        """
+        Sign message using generated private key.
 
         - grant_tokens are not implemented
         """
@@ -645,9 +646,8 @@ class KmsBackend(BaseBackend):
     def verify(
         self, key_id: str, message: bytes, signature: bytes, signing_algorithm: str
     ) -> Tuple[str, bool, str]:
-        """Verify message using public key from generated private key.
-
-        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+        """
+        Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
         """
