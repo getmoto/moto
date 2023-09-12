@@ -15,7 +15,7 @@ def test_http_integration():
     responses_mock.add(
         responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
     )
-
+    assert responses_mock.registered()
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
     response = client.create_rest_api(name="my_api", description="this is my api")
