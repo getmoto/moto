@@ -1,7 +1,7 @@
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
-import datetime
 from typing import Any, Dict, List, Optional
 
 from .exceptions import ResourceNotFoundException, ValidationException
@@ -79,7 +79,7 @@ class OpsworkInstance(BaseModel):
         self.platform = "linux (fixed)"
 
         self.id = str(random.uuid4())
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
 
     def start(self) -> None:
         """
@@ -257,7 +257,7 @@ class Layer(BaseModel):
         self.use_ebs_optimized_instances = use_ebs_optimized_instances
 
         self.id = str(random.uuid4())
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
 
     def __eq__(self, other: Any) -> bool:
         return self.id == other.id
@@ -351,7 +351,7 @@ class Stack(BaseModel):
         self.layers: List[Layer] = []
         self.apps: List[App] = []
         self.account_number = account_id
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
 
     def __eq__(self, other: Any) -> bool:
         return self.id == other.id
@@ -432,7 +432,7 @@ class App(BaseModel):
         self.environment = environment or {}
 
         self.id = str(random.uuid4())
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
 
     def __eq__(self, other: Any) -> bool:
         return self.id == other.id

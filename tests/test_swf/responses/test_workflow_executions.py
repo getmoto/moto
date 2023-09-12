@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import boto3
 from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_swf
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 
 
 def setup_swf_environment_boto3():
@@ -244,7 +244,7 @@ def test_list_open_workflow_executions_boto3():
         runId=run_id,
     )
 
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = utcnow() - timedelta(days=1)
     oldest_date = unix_time(yesterday)
     response = client.list_open_workflow_executions(
         domain="test-domain",
@@ -286,7 +286,7 @@ def test_list_closed_workflow_executions_boto3():
         runId=run_id,
     )
 
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = utcnow() - timedelta(days=1)
     oldest_date = unix_time(yesterday)
     response = client.list_closed_workflow_executions(
         domain="test-domain",

@@ -552,7 +552,7 @@ class Archive(CloudFormationModel):
         self.retention = retention if retention else 0
 
         self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
-        self.creation_time = unix_time(datetime.utcnow())
+        self.creation_time = unix_time()
         self.state = "ENABLED"
         self.uuid = str(random.uuid4())
 
@@ -701,7 +701,7 @@ class Replay(BaseModel):
 
         self.arn = f"arn:aws:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
-        self.start_time = unix_time(datetime.utcnow())
+        self.start_time = unix_time()
         self.end_time: Optional[float] = None
 
     def describe_short(self) -> Dict[str, Any]:
@@ -740,7 +740,7 @@ class Replay(BaseModel):
                 )
 
         self.state = ReplayState.COMPLETED
-        self.end_time = unix_time(datetime.utcnow())
+        self.end_time = unix_time()
 
 
 class Connection(BaseModel):
@@ -759,7 +759,7 @@ class Connection(BaseModel):
         self.description = description
         self.authorization_type = authorization_type
         self.auth_parameters = auth_parameters
-        self.creation_time = unix_time(datetime.utcnow())
+        self.creation_time = unix_time()
         self.state = "AUTHORIZED"
 
         self.arn = f"arn:aws:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
@@ -836,7 +836,7 @@ class Destination(BaseModel):
         self.connection_arn = connection_arn
         self.invocation_endpoint = invocation_endpoint
         self.invocation_rate_limit_per_second = invocation_rate_limit_per_second
-        self.creation_time = unix_time(datetime.utcnow())
+        self.creation_time = unix_time()
         self.http_method = http_method
         self.state = "ACTIVE"
         self.arn = f"arn:aws:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
@@ -966,6 +966,24 @@ class EventPatternParser:
             raise InvalidEventPatternException(reason="Invalid JSON")
 
 
+class PartnerEventSource(BaseModel):
+    def __init__(self, region: str, name: str):
+        self.name = name
+        self.arn = f"arn:aws:events:{region}::event-source/aws.partner/{name}"
+        self.created_on = unix_time()
+        self.accounts: List[str] = []
+        self.state = "ACTIVE"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "CreatedBy": self.name.split("/")[0],
+            "CreatedOn": self.created_on,
+            "Name": self.name,
+            "State": self.state,
+        }
+
+
 class EventsBackend(BaseBackend):
     """
     Some Moto services are configured to generate events and send them to EventBridge. See the AWS documentation here:
@@ -991,7 +1009,7 @@ class EventsBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.next_tokens: Dict[str, int] = {}
         self.event_buses: Dict[str, EventBus] = {}
-        self.event_sources: Dict[str, str] = {}
+        self.event_sources: Dict[str, PartnerEventSource] = {}
         self.archives: Dict[str, Archive] = {}
         self.replays: Dict[str, Replay] = {}
         self.tagger = TaggingService()
@@ -999,6 +1017,8 @@ class EventsBackend(BaseBackend):
         self._add_default_event_bus()
         self.connections: Dict[str, Connection] = {}
         self.destinations: Dict[str, Destination] = {}
+        self.partner_event_sources: Dict[str, PartnerEventSource] = {}
+        self.approved_parent_event_bus_names: List[str] = []
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1041,7 +1061,7 @@ class EventsBackend(BaseBackend):
         return start_index, end_index, new_next_token
 
     def _get_event_bus(self, name: str) -> EventBus:
-        event_bus_name = name.split("/")[-1]
+        event_bus_name = name.split(f"{self.account_id}:event-bus/")[-1]
 
         event_bus = self.event_buses.get(event_bus_name)
         if not event_bus:
@@ -1334,7 +1354,7 @@ class EventsBackend(BaseBackend):
                             "detail-type": event["DetailType"],
                             "source": event["Source"],
                             "account": self.account_id,
-                            "time": event.get("Time", unix_time(datetime.utcnow())),
+                            "time": event.get("Time", unix_time()),
                             "region": self.region_name,
                             "resources": event.get("Resources", []),
                             "detail": json.loads(event["Detail"]),
@@ -1900,6 +1920,37 @@ class EventsBackend(BaseBackend):
             raise ResourceNotFoundException(
                 f"An api-destination '{name}' does not exist."
             )
+
+    def create_partner_event_source(self, name: str, account_id: str) -> None:
+        # https://docs.aws.amazon.com/eventbridge/latest/onboarding/amazon_eventbridge_partner_onboarding_guide.html
+        if name not in self.partner_event_sources:
+            self.partner_event_sources[name] = PartnerEventSource(
+                region=self.region_name, name=name
+            )
+        self.partner_event_sources[name].accounts.append(account_id)
+        client_backend = events_backends[account_id][self.region_name]
+        client_backend.event_sources[name] = self.partner_event_sources[name]
+
+    def describe_event_source(self, name: str) -> PartnerEventSource:
+        return self.event_sources[name]
+
+    def describe_partner_event_source(self, name: str) -> PartnerEventSource:
+        return self.partner_event_sources[name]
+
+    def delete_partner_event_source(self, name: str, account_id: str) -> None:
+        client_backend = events_backends[account_id][self.region_name]
+        client_backend.event_sources[name].state = "DELETED"
+
+    def put_partner_events(self, entries: List[Dict[str, Any]]) -> None:
+        """
+        Validation of the entries is not yet implemented.
+        """
+        # This implementation is very basic currently, just to verify the behaviour
+        # In the future we could create a batch of events, grouped by source, and send them all at once
+        for entry in entries:
+            source = entry["Source"]
+            for account_id in self.partner_event_sources[source].accounts:
+                events_backends[account_id][self.region_name].put_events([entry])
 
 
 events_backends = BackendDict(EventsBackend, "events")

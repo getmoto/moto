@@ -11,7 +11,7 @@ from operator import attrgetter
 from typing import Any, Dict, List, Optional, Tuple, Iterable
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
@@ -73,7 +73,7 @@ class Record(BaseModel):
         self.data = data
         self.sequence_number = sequence_number
         self.explicit_hash_key = explicit_hash_key
-        self.created_at_datetime = datetime.datetime.utcnow()
+        self.created_at_datetime = utcnow()
         self.created_at = unix_time(self.created_at_datetime)
 
     def to_json(self) -> Dict[str, Any]:

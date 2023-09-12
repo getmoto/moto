@@ -512,3 +512,33 @@ class EventsHandler(BaseResponse):
         name = self._get_param("Name")
         self.events_backend.delete_api_destination(name)
         return self._create_response({})
+
+    def create_partner_event_source(self) -> str:
+        name = self._get_param("Name")
+        account_id = self._get_param("Account")
+        self.events_backend.create_partner_event_source(
+            name=name,
+            account_id=account_id,
+        )
+        return "{}"
+
+    def describe_event_source(self) -> str:
+        name = self._get_param("Name")
+        event_source = self.events_backend.describe_event_source(name)
+        return json.dumps(event_source.to_dict())
+
+    def describe_partner_event_source(self) -> str:
+        name = self._get_param("Name")
+        event_source = self.events_backend.describe_partner_event_source(name)
+        return json.dumps({"Arn": event_source.arn, "Name": event_source.name})
+
+    def delete_partner_event_source(self) -> str:
+        name = self._get_param("Name")
+        account_id = self._get_param("Account")
+        self.events_backend.delete_partner_event_source(name, account_id)
+        return "{}"
+
+    def put_partner_events(self) -> str:
+        entries = self._get_param("Entries")
+        self.events_backend.put_partner_events(entries)
+        return json.dumps({"Entries": [], "FailedEntryCount": 0})

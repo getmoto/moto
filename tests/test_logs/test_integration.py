@@ -7,7 +7,6 @@ import zlib
 
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime
 from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
 from moto import mock_kinesis
 from moto.core.utils import unix_time_millis
@@ -152,8 +151,8 @@ def test_put_subscription_filter_with_lambda():
     sub_filter["filterPattern"] = ""
 
     # when
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis()) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
@@ -224,8 +223,8 @@ def test_subscription_filter_applies_to_new_streams():
     client_logs.create_log_stream(  # create log stream after subscription filter applied
         logGroupName=log_group_name, logStreamName=log_stream_name
     )
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis()) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
@@ -318,8 +317,8 @@ def test_put_subscription_filter_with_firehose():
     _filter["filterPattern"] = ""
 
     # when
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow()))
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis())
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
@@ -383,8 +382,8 @@ def test_put_subscription_filter_with_kinesis():
     )
 
     # Create new log events
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow()))
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis())
     logs.put_log_events(
         logGroupName="lg1",
         logStreamName="ls1",

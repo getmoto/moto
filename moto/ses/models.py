@@ -8,6 +8,7 @@ from email.encoders import encode_7or8bit
 from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
 from .exceptions import (
     MessageRejectedError,
@@ -431,7 +432,7 @@ class SESBackend(BaseBackend):
             "Rejects": self.rejected_messages_count,
             "Complaints": 0,
             "Bounces": 0,
-            "Timestamp": datetime.datetime.utcnow(),
+            "Timestamp": utcnow(),
         }
 
     def add_template(self, template_info: Dict[str, str]) -> None:

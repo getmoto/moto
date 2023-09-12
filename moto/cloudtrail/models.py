@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Iterable, Tuple
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     S3BucketDoesNotExistException,
@@ -32,21 +32,19 @@ class TrailStatus:
 
     def start_logging(self) -> None:
         self.is_logging = True
-        self.started = datetime.utcnow()
-        self.latest_delivery_time = datetime2int(datetime.utcnow())
-        self.latest_delivery_attempt = iso_8601_datetime_without_milliseconds(
-            datetime.utcnow()
-        )
+        self.started = utcnow()
+        self.latest_delivery_time = datetime2int(utcnow())
+        self.latest_delivery_attempt = iso_8601_datetime_without_milliseconds(utcnow())
 
     def stop_logging(self) -> None:
         self.is_logging = False
-        self.stopped = datetime.utcnow()
+        self.stopped = utcnow()
 
     def description(self) -> Dict[str, Any]:
         if self.is_logging:
-            self.latest_delivery_time = datetime2int(datetime.utcnow())
+            self.latest_delivery_time = datetime2int(utcnow())
             self.latest_delivery_attempt = iso_8601_datetime_without_milliseconds(
-                datetime.utcnow()
+                utcnow()
             )
         desc: Dict[str, Any] = {
             "IsLogging": self.is_logging,

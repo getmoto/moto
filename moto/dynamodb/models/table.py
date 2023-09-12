@@ -1,10 +1,9 @@
 from collections import defaultdict
 import copy
-import datetime
 
 from typing import Any, Dict, Optional, List, Tuple, Iterator, Sequence
 from moto.core import BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis
+from moto.core.utils import unix_time, unix_time_millis, utcnow
 from moto.dynamodb.comparisons import get_filter_expression, get_expected
 from moto.dynamodb.exceptions import (
     InvalidIndexNameError,
@@ -153,7 +152,7 @@ class StreamRecord(BaseModel):
             "awsRegion": "us-east-1",
             "dynamodb": {
                 "StreamViewType": stream_type,
-                "ApproximateCreationDateTime": datetime.datetime.utcnow().isoformat(),
+                "ApproximateCreationDateTime": utcnow().isoformat(),
                 "SequenceNumber": str(seq),
                 "SizeBytes": 1,
                 "Keys": keys,
@@ -181,7 +180,7 @@ class StreamShard(BaseModel):
         self.id = "shardId-00000001541626099285-f35f62ef"
         self.starting_sequence_number = 1100000000017454423009
         self.items: List[StreamRecord] = []
-        self.created_on = datetime.datetime.utcnow()
+        self.created_on = utcnow()
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -277,7 +276,7 @@ class Table(CloudFormationModel):
             GlobalSecondaryIndex.create(i, self.table_key_attrs)
             for i in (global_indexes if global_indexes else [])
         ]
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
         self.items = defaultdict(dict)  # type: ignore  # [hash: DynamoType] or [hash: [range: DynamoType]]
         self.table_arn = self._generate_arn(table_name)
         self.tags = tags or []
@@ -416,7 +415,7 @@ class Table(CloudFormationModel):
             and (streams.get("StreamEnabled") or streams.get("StreamViewType"))
         ):
             self.stream_specification["StreamEnabled"] = True
-            self.latest_stream_label = datetime.datetime.utcnow().isoformat()
+            self.latest_stream_label = utcnow().isoformat()
             self.stream_shard = StreamShard(self.account_id, self)
         else:
             self.stream_specification = {"StreamEnabled": False}
@@ -928,7 +927,7 @@ class Backup:
         self.table = copy.deepcopy(table)
         self.status = status or "AVAILABLE"
         self.type = type_ or "USER"
-        self.creation_date_time = datetime.datetime.utcnow()
+        self.creation_date_time = utcnow()
         self.identifier = self._make_identifier()
 
     def _make_identifier(self) -> str:

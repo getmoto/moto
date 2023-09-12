@@ -26,7 +26,7 @@ import requests.exceptions
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
+from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds, utcnow
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.ecr.exceptions import ImageNotFoundException
@@ -65,7 +65,7 @@ logger = logging.getLogger(__name__)
 
 def zip2tar(zip_bytes: bytes) -> io.BytesIO:
     tarstream = io.BytesIO()
-    timeshift = int((datetime.now() - datetime.utcnow()).total_seconds())
+    timeshift = int((datetime.now() - utcnow()).total_seconds())
     tarf = tarfile.TarFile(fileobj=tarstream, mode="w")
     with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zipf:
         for zipinfo in zipf.infolist():
@@ -334,7 +334,7 @@ class LayerVersion(CloudFormationModel):
         self.license_info = spec.get("LicenseInfo", "")
 
         # auto-generated
-        self.created_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.created_date = utcnow().strftime("%Y-%m-%d %H:%M:%S")
         self.version: Optional[int] = None
         self._attached = False
         self._layer: Optional["Layer"] = None
@@ -555,7 +555,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # auto-generated
         self.version = version
-        self.last_modified = iso_8601_datetime_with_nanoseconds(datetime.utcnow())
+        self.last_modified = iso_8601_datetime_with_nanoseconds()
 
         self._set_function_code(self.code)
 
@@ -577,7 +577,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = iso_8601_datetime_with_nanoseconds(datetime.utcnow())
+        self.last_modified = iso_8601_datetime_with_nanoseconds()
 
     @property
     def architectures(self) -> List[str]:
@@ -964,7 +964,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def save_logs(self, output: str) -> None:
         # Send output to "logs" backend
         invoke_id = random.uuid4().hex
-        date = datetime.utcnow()
+        date = utcnow()
         log_stream_name = (
             f"{date.year}/{date.month:02d}/{date.day:02d}/[{self.version}]{invoke_id}"
         )
@@ -1118,7 +1118,7 @@ class FunctionUrlConfig:
         self.function = function
         self.config = config
         self.url = f"https://{random.uuid4().hex}.lambda-url.{function.region}.on.aws"
-        self.created = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+        self.created = utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
         self.last_modified = self.created
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1137,7 +1137,7 @@ class FunctionUrlConfig:
             self.config["Cors"] = new_config["Cors"]
         if new_config.get("AuthType"):
             self.config["AuthType"] = new_config["AuthType"]
-        self.last_modified = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        self.last_modified = utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 class EventSourceMapping(CloudFormationModel):
@@ -1154,7 +1154,7 @@ class EventSourceMapping(CloudFormationModel):
 
         self.function_arn = spec["FunctionArn"]
         self.uuid = str(random.uuid4())
-        self.last_modified = time.mktime(datetime.utcnow().timetuple())
+        self.last_modified = time.mktime(utcnow().timetuple())
 
     def _get_service_source_from_arn(self, event_source_arn: str) -> str:
         return event_source_arn.split(":")[2].lower()
@@ -1887,7 +1887,7 @@ class LambdaBackend(BaseBackend):
             elif key == "Enabled":
                 esm.enabled = spec[key]
 
-        esm.last_modified = time.mktime(datetime.utcnow().timetuple())
+        esm.last_modified = time.mktime(utcnow().timetuple())
         return esm
 
     def list_event_source_mappings(

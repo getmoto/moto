@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Tuple, Optional, Pattern, Iterable, TYPE_CHE
 from .utils import PAGINATION_MODEL
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .exceptions import (
@@ -80,7 +81,7 @@ class FakeThing(BaseModel):
         if include_connectivity:
             obj["connectivity"] = {
                 "connected": True,
-                "timestamp": time.mktime(datetime.utcnow().timetuple()),
+                "timestamp": time.mktime(utcnow().timetuple()),
             }
         return obj
 
@@ -673,8 +674,8 @@ class IoTBackend(BaseBackend):
             .issuer_name(issuer)
             .public_key(key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.utcnow())
-            .not_valid_after(datetime.utcnow() + timedelta(days=365))
+            .not_valid_before(utcnow())
+            .not_valid_after(utcnow() + timedelta(days=365))
             .add_extension(x509.SubjectAlternativeName(sans), critical=False)
             .sign(key, hashes.SHA512(), default_backend())
         )

@@ -4,6 +4,7 @@ import pytest
 from botocore.exceptions import ClientError
 from moto import mock_acmpca
 from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.utils import utcnow
 
 import datetime
 import cryptography.x509
@@ -377,8 +378,8 @@ def create_cert():
         .issuer_name(issuer)
         .public_key(key.public_key())
         .serial_number(serial_number)
-        .not_valid_before(datetime.datetime.utcnow() - datetime.timedelta(days=10))
-        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=10))
+        .not_valid_before(utcnow() - datetime.timedelta(days=10))
+        .not_valid_after(utcnow() + datetime.timedelta(days=10))
         .sign(key, hashes.SHA512(), default_backend())
     )
 

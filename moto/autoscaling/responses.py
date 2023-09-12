@@ -1,5 +1,3 @@
-import datetime
-
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
@@ -399,7 +397,7 @@ class AutoScalingResponse(BaseResponse):
             should_decrement=should_decrement,
             original_size=original_size,
             desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+            timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
     @amz_crc32
@@ -417,7 +415,7 @@ class AutoScalingResponse(BaseResponse):
             standby_instances=standby_instances,
             original_size=original_size,
             desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+            timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
     def suspend_processes(self) -> str:
@@ -468,7 +466,7 @@ class AutoScalingResponse(BaseResponse):
             should_decrement=should_decrement,
             original_size=original_size,
             desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+            timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
     def describe_tags(self) -> str:

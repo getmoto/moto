@@ -1,7 +1,7 @@
-from datetime import datetime
 from typing import List, Optional, Dict, Any, Tuple
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 
 from .exceptions import (
     UserAlreadyExists,
@@ -117,8 +117,8 @@ class CacheCluster(BaseModel):
         self.cache_node_ids_to_remove = cache_node_ids_to_remove
         self.cache_node_ids_to_reboot = cache_node_ids_to_reboot
 
-        self.cache_cluster_create_time = datetime.utcnow()
-        self.auth_token_last_modified_date = datetime.utcnow()
+        self.cache_cluster_create_time = utcnow()
+        self.auth_token_last_modified_date = utcnow()
         self.cache_cluster_status = "available"
         self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}"
         self.cache_node_id = str(mock_random.uuid4())

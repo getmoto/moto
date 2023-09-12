@@ -31,7 +31,7 @@ class StateMachine(CloudFormationModel):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
-        self.creation_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.creation_date = iso_8601_datetime_with_milliseconds()
         self.update_date = self.creation_date
         self.arn = arn
         self.name = name
@@ -92,7 +92,7 @@ class StateMachine(CloudFormationModel):
         for key, value in kwargs.items():
             if value is not None:
                 setattr(self, key, value)
-        self.update_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.update_date = iso_8601_datetime_with_milliseconds()
 
     def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         merged_tags = []
@@ -253,7 +253,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.start_date = iso_8601_datetime_with_milliseconds()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -364,7 +364,7 @@ class Execution:
 
     def stop(self) -> None:
         self.status = "ABORTED"
-        self.stop_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.stop_date = iso_8601_datetime_with_milliseconds()
 
 
 class StepFunctionBackend(BaseBackend):

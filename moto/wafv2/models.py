@@ -1,4 +1,3 @@
-import datetime
 import re
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -38,7 +37,7 @@ class FakeWebACL(BaseModel):
         rules: List[Dict[str, Any]],
     ):
         self.name = name
-        self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.created_time = iso_8601_datetime_with_milliseconds()
         self.id = wacl_id
         self.arn = arn
         self.description = description or ""

@@ -7,7 +7,7 @@ import os
 
 from moto import mock_events, mock_sqs, mock_logs, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 
 
 @mock_events
@@ -35,7 +35,7 @@ def test_send_to_cw_log_group():
     )
 
     # when
-    event_time = datetime.utcnow()
+    event_time = utcnow()
     client_events.put_events(
         Entries=[
             {

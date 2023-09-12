@@ -2,8 +2,8 @@ import base64
 from typing import Any, Dict, List
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import utcnow
 from .models import ses_backends, SESBackend
-from datetime import datetime
 
 
 class EmailResponse(BaseResponse):
@@ -247,7 +247,7 @@ class EmailResponse(BaseResponse):
         template_info["html_part"] = template_data.get("._html_part", "")
         template_info["template_name"] = template_data.get("._name", "")
         template_info["subject_part"] = template_data.get("._subject_part", "")
-        template_info["Timestamp"] = datetime.utcnow()
+        template_info["Timestamp"] = utcnow()
         self.backend.add_template(template_info=template_info)
         template = self.response_template(CREATE_TEMPLATE)
         return template.render()
@@ -259,7 +259,7 @@ class EmailResponse(BaseResponse):
         template_info["html_part"] = template_data.get("._html_part", "")
         template_info["template_name"] = template_data.get("._name", "")
         template_info["subject_part"] = template_data.get("._subject_part", "")
-        template_info["Timestamp"] = datetime.utcnow()
+        template_info["Timestamp"] = utcnow()
         self.backend.update_template(template_info=template_info)
         template = self.response_template(UPDATE_TEMPLATE)
         return template.render()

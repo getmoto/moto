@@ -99,9 +99,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         super().__init__(redshift_backend.account_id, region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
-        self.create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now(tzutc())
-        )
+        self.create_time = iso_8601_datetime_with_milliseconds()
         self.status = "available"
         self.node_type = node_type
         self.master_username = master_username
@@ -532,9 +530,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = snapshot_type
         self.status = "available"
-        self.create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.now(tzutc())
-        )
+        self.create_time = iso_8601_datetime_with_milliseconds()
         self.iam_roles_arn = iam_roles_arn or []
 
     @property
