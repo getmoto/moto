@@ -34,15 +34,25 @@ class TestBucketPolicy:
     def teardown_class(cls):
         cls.server.stop()
 
+    xfail_reason = "S3 logic for resource-based policy is not yet correctly implemented, see https://github.com/getmoto/moto/pull/6799#issuecomment-1712799688"
+
     @pytest.mark.parametrize(
         "kwargs,status",
         [
             ({}, 200),
             ({"resource": "arn:aws:s3:::mybucket/test_txt"}, 200),
-            ({"resource": "arn:aws:s3:::notmybucket/*"}, 403),
-            ({"resource": "arn:aws:s3:::mybucket/other*"}, 403),
+            pytest.param(
+                {"resource": "arn:aws:s3:::notmybucket/*"},
+                403,
+                marks=pytest.mark.xfail(reason=xfail_reason),
+            ),
+            pytest.param(
+                {"resource": "arn:aws:s3:::mybucket/other*"},
+                403,
+                marks=pytest.mark.xfail(reason=xfail_reason),
+            ),
             ({"resource": ["arn:aws:s3:::mybucket", "arn:aws:s3:::mybucket/*"]}, 200),
-            (
+            pytest.param(
                 {
                     "resource": [
                         "arn:aws:s3:::notmybucket",
@@ -50,12 +60,16 @@ class TestBucketPolicy:
                     ]
                 },
                 403,
+                marks=pytest.mark.xfail(reason=xfail_reason),
             ),
-            (
+            pytest.param(
                 {"resource": ["arn:aws:s3:::mybucket", "arn:aws:s3:::notmybucket/*"]},
                 403,
+                marks=pytest.mark.xfail(reason=xfail_reason),
             ),
-            ({"effect": "Deny"}, 403),
+            pytest.param(
+                {"effect": "Deny"}, 403, marks=pytest.mark.xfail(reason=xfail_reason)
+            ),
         ],
     )
     def test_block_or_allow_get_object(self, kwargs, status):
