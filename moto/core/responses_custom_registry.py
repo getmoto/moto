@@ -17,6 +17,13 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
     def __init__(self) -> None:
         self._registered: Dict[str, List[responses.BaseResponse]] = defaultdict(list)
 
+    @property
+    def registered(self) -> List[responses.BaseResponse]:
+        res = []
+        for resps in self._registered.values():
+            res += resps
+        return res
+
     def add(self, response: responses.BaseResponse) -> responses.BaseResponse:
         if response not in self._registered[response.method]:
             self._registered[response.method].append(response)
