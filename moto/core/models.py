@@ -56,8 +56,8 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
         self.backends_for_urls.extend(default_backends)
 
         self.FAKE_KEYS = {
-            "AWS_ACCESS_KEY_ID": "foobar_key",
-            "AWS_SECRET_ACCESS_KEY": "foobar_secret",
+            "AWS_ACCESS_KEY_ID": "FOOBARKEY",
+            "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
         self.ORIG_KEYS: Dict[str, Optional[str]] = {}
         self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
