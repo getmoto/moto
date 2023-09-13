@@ -1099,7 +1099,9 @@ Member must satisfy regular expression pattern: {expression}"
             try:
                 self.ec2_backend.get_vpc(kwargs.get("vpc_id"))
             except InvalidVPCIdError:
-                raise ValidationError(f"The VPC ID '{kwargs.get('vpc_id')}' is not found")
+                raise ValidationError(
+                    f"The VPC ID '{kwargs.get('vpc_id')}' is not found"
+                )
 
         kwargs_patch = {}
 
