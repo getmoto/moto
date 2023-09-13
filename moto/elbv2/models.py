@@ -1158,10 +1158,10 @@ Member must satisfy regular expression pattern: {expression}"
         kwargs.update(kwargs_patch)
 
         healthcheck_timeout_seconds = int(
-            str(kwargs.get("healthcheck_timeout_seconds"))
+            str(kwargs.get("healthcheck_timeout_seconds") or "10")
         )
         healthcheck_interval_seconds = int(
-            str(kwargs.get("healthcheck_interval_seconds"))
+            str(kwargs.get("healthcheck_interval_seconds") or "30")
         )
 
         if (
