@@ -105,7 +105,6 @@ class FakeTargetGroup(CloudFormationModel):
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or "30"
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or "10"
         self.ip_address_type = ip_address_type or "ipv4"
-        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds
         self.healthcheck_enabled = (
             healthcheck_enabled.lower() == "true"
             if healthcheck_enabled in ["true", "false"]
@@ -1158,12 +1157,18 @@ Member must satisfy regular expression pattern: {expression}"
 
         kwargs.update(kwargs_patch)
 
-        healthcheck_timeout_seconds = int(kwargs.get("healthcheck_timeout_seconds"))
-        healthcheck_interval_seconds = int(kwargs.get("healthcheck_interval_seconds"))
+        healthcheck_timeout_seconds = int(
+            str(kwargs.get("healthcheck_timeout_seconds"))
+        )
+        healthcheck_interval_seconds = int(
+            str(kwargs.get("healthcheck_interval_seconds"))
+        )
+
         if (
-            healthcheck_interval_seconds is not None
-            and healthcheck_timeout_seconds is not None
+            healthcheck_timeout_seconds is not None
+            and healthcheck_interval_seconds is not None
         ):
+
             if healthcheck_interval_seconds < healthcheck_timeout_seconds:
                 raise ValidationError(
                     "Health check interval must be greater than the timeout."
@@ -1617,11 +1622,11 @@ Member must satisfy regular expression pattern: {expression}"
         health_check_port: Optional[str] = None,
         health_check_path: Optional[str] = None,
         health_check_interval: Optional[str] = None,
-        health_check_timeout: Optional[int] = None,
+        health_check_timeout: Optional[str] = None,
         healthy_threshold_count: Optional[str] = None,
         unhealthy_threshold_count: Optional[str] = None,
         http_codes: Optional[str] = None,
-        health_check_enabled: Optional[str] = None,
+        health_check_enabled: Optional[bool] = None,
     ) -> FakeTargetGroup:
         target_group = self.target_groups.get(arn)
         if target_group is None:
