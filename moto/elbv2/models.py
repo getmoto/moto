@@ -1093,13 +1093,13 @@ Member must satisfy regular expression pattern: {expression}"
                     param = "VPC ID" if param == "vpc_id" else param.lower()
                     raise ValidationError(f"A {param} must be specified")
 
-        if vpc_id := kwargs.get("vpc_id"):
+        if kwargs.get("vpc_id"):
             from moto.ec2.exceptions import InvalidVPCIdError
 
             try:
-                self.ec2_backend.get_vpc(vpc_id)
+                self.ec2_backend.get_vpc(kwargs.get("vpc_id"))
             except InvalidVPCIdError:
-                raise ValidationError(f"The VPC ID '{vpc_id}' is not found")
+                raise ValidationError(f"The VPC ID '{kwargs.get('vpc_id')}' is not found")
 
         kwargs_patch = {}
 
