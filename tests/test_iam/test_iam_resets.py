@@ -6,8 +6,8 @@ from moto import mock_iam
 
 # Test IAM User Inline Policy
 def test_policies_are_not_kept_after_mock_ends():
-    iam_client = boto3.client("iam", "us-east-1")
     with mock_iam():
+        iam_client = boto3.client("iam", "us-east-1")
         role_name = "test"
         assume_role_policy_document = {
             "Version": "2012-10-17",

@@ -84,9 +84,17 @@ def mark_account_as_visited(
 ) -> None:
     account = iam_backends[account_id]
     if access_key in account["global"].access_keys:
-        account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(
+        key = account["global"].access_keys[access_key]
+        key.last_used = AccessKeyLastUsed(
             timestamp=utcnow(), service=service, region=region
         )
+        if key.role_arn:
+            try:
+                role = account["global"].get_role_by_arn(key.role_arn)
+                role.last_used = utcnow()
+            except IAMNotFoundException:
+                # User assumes a non-existing role
+                pass
     else:
         # User provided access credentials unknown to us
         pass
@@ -1082,6 +1090,7 @@ class AccessKey(CloudFormationModel):
         self.status = status
         self.create_date = utcnow()
         self.last_used: Optional[datetime] = None
+        self.role_arn: Optional[str] = None
 
     @property
     def created_iso_8601(self) -> str:

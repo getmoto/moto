@@ -108,6 +108,7 @@ class STSBackend(BaseBackend):
             duration,
             external_id,
         )
+        access_key.role_arn = role_arn
         account_backend = sts_backends[account_id]["global"]
         account_backend.assumed_roles.append(role)
         return role
