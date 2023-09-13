@@ -35,6 +35,7 @@ from .exceptions import (
     InvalidModifyRuleArgumentsError,
     InvalidStatusCodeActionTypeError,
     InvalidLoadBalancerActionException,
+    ValidationError,
 )
 
 ALLOWED_ACTIONS = [
@@ -79,42 +80,45 @@ class FakeTargetGroup(CloudFormationModel):
         healthcheck_port: Optional[str] = None,
         healthcheck_path: Optional[str] = None,
         healthcheck_interval_seconds: Optional[str] = None,
-        healthcheck_timeout_seconds: Optional[int] = None,
+        healthcheck_timeout_seconds: Optional[str] = None,
         healthcheck_enabled: Optional[str] = None,
         healthy_threshold_count: Optional[str] = None,
         unhealthy_threshold_count: Optional[str] = None,
         matcher: Optional[Dict[str, Any]] = None,
         target_type: Optional[str] = None,
+        ip_address_type: Optional[str] = None,
     ):
         # TODO: default values differs when you add Network Load balancer
         self.name = name
         self.arn = arn
         self.vpc_id = vpc_id
-        self.protocol = protocol
-        self.protocol_version = protocol_version or "HTTP1"
+        if target_type == "lambda":
+            self.protocol = None
+            self.protocol_version = None
+        else:
+            self.protocol = protocol
+            self.protocol_version = protocol_version or "HTTP1"
         self.port = port
         self.healthcheck_protocol = healthcheck_protocol or self.protocol
-        self.healthcheck_port = healthcheck_port
-        self.healthcheck_path = healthcheck_path
-        self.healthcheck_interval_seconds = healthcheck_interval_seconds or 30
+        self.healthcheck_port = healthcheck_port or "traffic-port"
+        self.healthcheck_path = healthcheck_path or "/"
+        self.healthcheck_interval_seconds = healthcheck_interval_seconds or "30"
+        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or "10"
+        self.ip_address_type = ip_address_type or "ipv4"
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds
-        if not healthcheck_timeout_seconds:
-            # Default depends on protocol
-            if protocol in ["TCP", "TLS"]:
-                self.healthcheck_timeout_seconds = 6
-            elif protocol in ["HTTP", "HTTPS", "GENEVE"]:
-                self.healthcheck_timeout_seconds = 5
-            else:
-                self.healthcheck_timeout_seconds = 30
-        self.healthcheck_enabled = healthcheck_enabled
-        self.healthy_threshold_count = healthy_threshold_count or 5
-        self.unhealthy_threshold_count = unhealthy_threshold_count or 2
+        self.healthcheck_enabled = (
+            healthcheck_enabled.lower() == "true"
+            if healthcheck_enabled in ["true", "false"]
+            else True
+        )
+        self.healthy_threshold_count = healthy_threshold_count or "5"
+        self.unhealthy_threshold_count = unhealthy_threshold_count or "2"
         self.load_balancer_arns: List[str] = []
         if self.healthcheck_protocol != "TCP":
             self.matcher: Dict[str, Any] = matcher or {"HttpCode": "200"}
-            self.healthcheck_path = self.healthcheck_path or "/"
+            self.healthcheck_path = self.healthcheck_path
             self.healthcheck_port = self.healthcheck_port or str(self.port)
-        self.target_type = target_type
+        self.target_type = target_type or "instance"
 
         self.attributes = {
             "deregistration_delay.timeout_seconds": 300,
@@ -1030,6 +1034,9 @@ Member must satisfy regular expression pattern: {expression}"
             )
 
     def create_target_group(self, name: str, **kwargs: Any) -> FakeTargetGroup:
+        protocol = kwargs.get("protocol")
+        target_type = kwargs.get("target_type")
+
         if len(name) > 32:
             raise InvalidTargetGroupNameError(
                 f"Target group name '{name}' cannot be longer than '32' characters"
@@ -1079,6 +1086,90 @@ Member must satisfy regular expression pattern: {expression}"
                 "InvalidParameterValue",
                 "HttpCode must be like 200 | 200-399 | 200,201 ...",
             )
+
+        if target_type in ("instance", "ip", "alb"):
+            for param in ("protocol", "port", "vpc_id"):
+                if not kwargs.get(param):
+                    param = "VPC ID" if param == "vpc_id" else param.lower()
+                    raise ValidationError(f"A {param} must be specified")
+
+        if vpc_id := kwargs.get("vpc_id"):
+            from moto.ec2.exceptions import InvalidVPCIdError
+
+            try:
+                self.ec2_backend.get_vpc(vpc_id)
+            except InvalidVPCIdError:
+                raise ValidationError(f"The VPC ID '{vpc_id}' is not found")
+
+        kwargs_patch = {}
+
+        if target_type == "lambda":
+            patch = {
+                "healthcheck_interval_seconds": kwargs.get(
+                    "healthcheck_interval_seconds"
+                )
+                or "35",
+                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
+                or "30",
+                "unhealthy_threshold_count": kwargs.get("unhealthy_threshold_count")
+                or "2",
+                "healthcheck_enabled": kwargs.get("healthcheck_enabled") or "false",
+            }
+            kwargs_patch.update(patch)
+
+        if protocol == "GENEVE":
+            patch = {
+                "healthcheck_interval_seconds": kwargs.get(
+                    "healthcheck_interval_seconds"
+                )
+                or "10",
+                "healthcheck_port": kwargs.get("healthcheck_port") or "80",
+                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
+                or "5",
+            }
+            kwargs_patch.update(patch)
+
+        if protocol == "HTTP":
+            patch = {
+                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
+                or "5",
+            }
+            kwargs_patch.update(patch)
+
+        if protocol in ("TCP", "TLS", "HTTPS"):
+            patch = {
+                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
+                or "10",
+            }
+            kwargs_patch.update(patch)
+
+        if protocol in ("TCP", "TCP_UDP", "UDP", "TLS", "HTTP", "HTTPS"):
+            patch = {
+                "unhealthy_threshold_count": kwargs.get("unhealthy_threshold_count")
+                or "2",
+                "healthcheck_interval_seconds": kwargs.get(
+                    "healthcheck_interval_seconds"
+                )
+                or "30",
+            }
+            kwargs_patch.update(patch)
+
+        kwargs.update(kwargs_patch)
+
+        healthcheck_timeout_seconds = int(kwargs.get("healthcheck_timeout_seconds"))
+        healthcheck_interval_seconds = int(kwargs.get("healthcheck_interval_seconds"))
+        if (
+            healthcheck_interval_seconds is not None
+            and healthcheck_timeout_seconds is not None
+        ):
+            if healthcheck_interval_seconds < healthcheck_timeout_seconds:
+                raise ValidationError(
+                    "Health check interval must be greater than the timeout."
+                )
+            if healthcheck_interval_seconds == healthcheck_timeout_seconds:
+                raise ValidationError(
+                    f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than the interval '{healthcheck_interval_seconds}'"
+                )
 
         arn = make_arn_for_target_group(
             account_id=self.account_id, name=name, region_name=self.region_name

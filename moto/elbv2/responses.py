@@ -197,6 +197,7 @@ class ELBV2Response(BaseResponse):
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
         matcher = params.get("Matcher")
         target_type = params.get("TargetType")
+        ip_address_type = params.get("IpAddressType")
         tags = params.get("Tags")
 
         target_group = self.elbv2_backend.create_target_group(
@@ -214,6 +215,7 @@ class ELBV2Response(BaseResponse):
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
+            ip_address_type=ip_address_type,
             target_type=target_type,
             tags=tags,
         )
@@ -797,6 +799,7 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
         {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        <ProtocolVersion>{{ target_group.protocol_version }}</ProtocolVersion>
         {% endif %}
         {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
@@ -804,14 +807,16 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
         {% endif %}
-        <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
-        {% if target_group.healthcheck_port %}<HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>{% endif %}
+        {% if target_group.healthcheck_enabled %}
+            {% if target_group.healthcheck_port %}<HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>{% endif %}
+            <HealthCheckProtocol>{{ target_group.healthcheck_protocol or "None" }}</HealthCheckProtocol>
+        {% endif %}
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
         <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
-        <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         {% if target_group.matcher %}
         <Matcher>
           <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
@@ -820,6 +825,7 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         {% if target_group.target_type %}
         <TargetType>{{ target_group.target_type }}</TargetType>
         {% endif %}
+        <IpAddressType>{{ target_group.ip_address_type }}</IpAddressType>
       </member>
     </TargetGroups>
   </CreateTargetGroupResult>
