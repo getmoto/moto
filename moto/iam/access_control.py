@@ -380,7 +380,7 @@ class IAMPolicy:
                     permitted = True
         else:  # dict
             iam_policy_statement = IAMPolicyStatement(self._policy_json["Statement"])
-            return iam_policy_statement.is_action_permitted(action)
+            return iam_policy_statement.is_action_permitted(action, resource)
 
         if permitted:
             return PermissionResult.PERMITTED
