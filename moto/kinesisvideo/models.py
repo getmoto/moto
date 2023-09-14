@@ -1,6 +1,6 @@
-from datetime import datetime
 from typing import Any, Dict, List
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from .exceptions import ResourceNotFoundException, ResourceInUseException
 from moto.moto_api._internal import mock_random as random
 
@@ -26,7 +26,7 @@ class Stream(BaseModel):
         self.tags = tags
         self.status = "ACTIVE"
         self.version = random.get_random_string(include_digits=False, lower_case=True)
-        self.creation_time = datetime.utcnow()
+        self.creation_time = utcnow()
         stream_arn = f"arn:aws:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
         self.data_endpoint_number = random.get_random_hex()
         self.arn = stream_arn

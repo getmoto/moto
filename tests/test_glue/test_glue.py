@@ -4,7 +4,6 @@ from uuid import uuid4
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ParamValidationError
 from botocore.client import ClientError
 
@@ -42,9 +41,7 @@ def test_create_job_default_argument_not_provided():
     with pytest.raises(ParamValidationError) as exc:
         client.create_job(Role="test_role", Command=dict(Name="test_command"))
 
-    exc.value.kwargs["report"].should.equal(
-        'Missing required parameter in input: "Name"'
-    )
+    assert exc.value.kwargs["report"] == 'Missing required parameter in input: "Name"'
 
 
 @mock_glue
@@ -53,8 +50,8 @@ def test_list_jobs():
     expected_jobs = randint(1, 15)
     create_test_jobs(client, expected_jobs)
     response = client.list_jobs()
-    response["JobNames"].should.have.length_of(expected_jobs)
-    response.shouldnt.have.key("NextToken")
+    assert len(response["JobNames"]) == expected_jobs
+    assert "NextToken" not in response
 
 
 @mock_glue
@@ -65,8 +62,8 @@ def test_get_job_not_exists():
     with pytest.raises(ClientError) as exc:
         client.get_job(JobName=name)
 
-    exc.value.response["Error"]["Code"].should.equal("EntityNotFoundException")
-    exc.value.response["Error"]["Message"].should.match("Job my_job_name not found")
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+    assert exc.value.response["Error"]["Message"] == "Job my_job_name not found."
 
 
 @mock_glue
@@ -135,8 +132,8 @@ def test_get_jobs_job_name_exists():
     client = create_glue_client()
     test_job_name = create_test_job(client)
     response = client.get_jobs()
-    response["Jobs"].should.have.length_of(1)
-    response["Jobs"][0].should.have.key("Name").equals(test_job_name)
+    assert len(response["Jobs"]) == 1
+    assert response["Jobs"][0]["Name"] == test_job_name
 
 
 @mock_glue
@@ -144,8 +141,8 @@ def test_get_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
     response = client.get_jobs(MaxResults=2)
-    response["Jobs"].should.have.length_of(2)
-    response.should.have.key("NextToken")
+    assert len(response["Jobs"]) == 2
+    assert "NextToken" in response
 
 
 @mock_glue
@@ -154,7 +151,7 @@ def test_get_jobs_from_next_token():
     create_test_jobs(client, 10)
     first_response = client.get_jobs(MaxResults=3)
     response = client.get_jobs(NextToken=first_response["NextToken"])
-    response["Jobs"].should.have.length_of(7)
+    assert len(response["Jobs"]) == 7
 
 
 @mock_glue
@@ -162,7 +159,7 @@ def test_get_jobs_with_max_results_greater_than_actual_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
     response = client.get_jobs(MaxResults=10)
-    response["Jobs"].should.have.length_of(4)
+    assert len(response["Jobs"]) == 4
 
 
 @mock_glue
@@ -182,8 +179,8 @@ def test_list_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
     response = client.list_jobs(MaxResults=2)
-    response["JobNames"].should.have.length_of(2)
-    response.should.have.key("NextToken")
+    assert len(response["JobNames"]) == 2
+    assert "NextToken" in response
 
 
 @mock_glue
@@ -192,7 +189,7 @@ def test_list_jobs_from_next_token():
     create_test_jobs(client, 10)
     first_response = client.list_jobs(MaxResults=3)
     response = client.list_jobs(NextToken=first_response["NextToken"])
-    response["JobNames"].should.have.length_of(7)
+    assert len(response["JobNames"]) == 7
 
 
 @mock_glue
@@ -200,7 +197,7 @@ def test_list_jobs_with_max_results_greater_than_actual_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
     response = client.list_jobs(MaxResults=10)
-    response["JobNames"].should.have.length_of(4)
+    assert len(response["JobNames"]) == 4
 
 
 @mock_glue
@@ -209,7 +206,7 @@ def test_list_jobs_with_tags():
     create_test_job(client)
     create_test_job(client, {"string": "string"})
     response = client.list_jobs(Tags={"string": "string"})
-    response["JobNames"].should.have.length_of(1)
+    assert len(response["JobNames"]) == 1
 
 
 @mock_glue
@@ -221,7 +218,7 @@ def test_list_jobs_after_tagging():
     client.tag_resource(ResourceArn=resource_arn, TagsToAdd={"key1": "value1"})
 
     response = client.list_jobs(Tags={"key1": "value1"})
-    response["JobNames"].should.have.length_of(1)
+    assert len(response["JobNames"]) == 1
 
 
 @mock_glue
@@ -233,7 +230,7 @@ def test_list_jobs_after_removing_tag():
     client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key1"])
 
     response = client.list_jobs(Tags={"key1": "value1"})
-    response["JobNames"].should.have.length_of(0)
+    assert len(response["JobNames"]) == 0
 
 
 @mock_glue
@@ -306,8 +303,8 @@ def test_list_crawlers_with_max_results():
     client = create_glue_client()
     create_test_crawlers(client, 4)
     response = client.list_crawlers(MaxResults=2)
-    response["CrawlerNames"].should.have.length_of(2)
-    response.should.have.key("NextToken")
+    assert len(response["CrawlerNames"]) == 2
+    assert "NextToken" in response
 
 
 @mock_glue
@@ -316,7 +313,7 @@ def test_list_crawlers_from_next_token():
     create_test_crawlers(client, 10)
     first_response = client.list_crawlers(MaxResults=3)
     response = client.list_crawlers(NextToken=first_response["NextToken"])
-    response["CrawlerNames"].should.have.length_of(7)
+    assert len(response["CrawlerNames"]) == 7
 
 
 @mock_glue
@@ -324,7 +321,7 @@ def test_list_crawlers_with_max_results_greater_than_actual_results():
     client = create_glue_client()
     create_test_crawlers(client, 4)
     response = client.list_crawlers(MaxResults=10)
-    response["CrawlerNames"].should.have.length_of(4)
+    assert len(response["CrawlerNames"]) == 4
 
 
 @mock_glue
@@ -333,7 +330,7 @@ def test_list_crawlers_with_tags():
     create_test_crawler(client)
     create_test_crawler(client, {"string": "string"})
     response = client.list_crawlers(Tags={"string": "string"})
-    response["CrawlerNames"].should.have.length_of(1)
+    assert len(response["CrawlerNames"]) == 1
 
 
 @mock_glue
@@ -345,7 +342,7 @@ def test_list_crawlers_after_tagging():
     client.tag_resource(ResourceArn=resource_arn, TagsToAdd={"key1": "value1"})
 
     response = client.list_crawlers(Tags={"key1": "value1"})
-    response["CrawlerNames"].should.have.length_of(1)
+    assert len(response["CrawlerNames"]) == 1
 
 
 @mock_glue
@@ -357,7 +354,7 @@ def test_list_crawlers_after_removing_tag():
     client.untag_resource(ResourceArn=resource_arn, TagsToRemove=["key1"])
 
     response = client.list_crawlers(Tags={"key1": "value1"})
-    response["CrawlerNames"].should.have.length_of(0)
+    assert len(response["CrawlerNames"]) == 0
 
 
 @mock_glue
@@ -380,7 +377,7 @@ def test_get_tags_job():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_glue
@@ -391,7 +388,7 @@ def test_get_tags_jobs_no_tags():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({})
+    assert resp["Tags"] == {}
 
 
 @mock_glue
@@ -406,7 +403,7 @@ def test_tag_glue_job():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_glue
@@ -424,7 +421,7 @@ def test_untag_glue_job():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+    assert resp["Tags"] == {"key1": "value1", "key3": "value3"}
 
 
 @mock_glue
@@ -435,7 +432,7 @@ def test_get_tags_crawler():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_glue
@@ -446,7 +443,7 @@ def test_get_tags_crawler_no_tags():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({})
+    assert resp["Tags"] == {}
 
 
 @mock_glue
@@ -461,7 +458,7 @@ def test_tag_glue_crawler():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key2": "value2"})
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_glue
@@ -479,7 +476,7 @@ def test_untag_glue_crawler():
 
     resp = client.get_tags(ResourceArn=resource_arn)
 
-    resp.should.have.key("Tags").equals({"key1": "value1", "key3": "value3"})
+    assert resp["Tags"] == {"key1": "value1", "key3": "value3"}
 
 
 @mock_glue
@@ -491,8 +488,8 @@ def test_batch_get_crawlers():
         CrawlerNames=[crawler_name, "crawler-not-found"]
     )
 
-    response["Crawlers"].should.have.length_of(1)
-    response["CrawlersNotFound"].should.have.length_of(1)
+    assert len(response["Crawlers"]) == 1
+    assert len(response["CrawlersNotFound"]) == 1
 
 
 @mock_glue

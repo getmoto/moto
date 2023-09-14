@@ -1,7 +1,7 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
+from botocore.config import Config
 from botocore.exceptions import ClientError, ParamValidationError
 from moto import mock_managedblockchain
 from . import helpers
@@ -25,18 +25,17 @@ def test_create_another_member():
     member_id = response["MemberId"]
 
     # Create proposal
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Get proposal details
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
-    response["Proposal"]["NetworkId"].should.equal(network_id)
-    response["Proposal"]["Status"].should.equal("IN_PROGRESS")
+    assert response["Proposal"]["NetworkId"] == network_id
+    assert response["Proposal"]["Status"] == "IN_PROGRESS"
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -45,34 +44,32 @@ def test_create_another_member():
 
     # Get the invitation
     response = conn.list_invitations()
-    response["Invitations"][0]["NetworkSummary"]["Id"].should.equal(network_id)
-    response["Invitations"][0]["Status"].should.equal("PENDING")
+    assert response["Invitations"][0]["NetworkSummary"]["Id"] == network_id
+    assert response["Invitations"][0]["Status"] == "PENDING"
     invitation_id = response["Invitations"][0]["InvitationId"]
 
     # Create the member
-    response = conn.create_member(
+    member_id2 = conn.create_member(
         InvitationId=invitation_id,
         NetworkId=network_id,
         MemberConfiguration=helpers.create_member_configuration(
             "testmember2", "admin", "Admin12345", False
         ),
-    )
-    member_id2 = response["MemberId"]
+    )["MemberId"]
 
     # Check the invitation status
     response = conn.list_invitations()
-    response["Invitations"][0]["InvitationId"].should.equal(invitation_id)
-    response["Invitations"][0]["Status"].should.equal("ACCEPTED")
+    assert response["Invitations"][0]["InvitationId"] == invitation_id
+    assert response["Invitations"][0]["Status"] == "ACCEPTED"
 
     # Find member in full list
-    response = conn.list_members(NetworkId=network_id)
-    members = response["Members"]
-    members.should.have.length_of(2)
-    helpers.member_id_exist_in_list(members, member_id2).should.equal(True)
+    members = conn.list_members(NetworkId=network_id)["Members"]
+    assert len(members) == 2
+    assert helpers.member_id_exist_in_list(members, member_id2) is True
 
     # Get member 2 details
     response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    response["Member"]["Name"].should.equal("testmember2")
+    assert response["Member"]["Name"] == "testmember2"
 
     # Update member
     logconfignewenabled = not helpers.default_memberconfiguration[
@@ -89,9 +86,10 @@ def test_create_another_member():
 
     # Get member 2 details
     response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    response["Member"]["LogPublishingConfiguration"]["Fabric"]["CaLogs"]["Cloudwatch"][
-        "Enabled"
-    ].should.equal(logconfignewenabled)
+    cloudwatch = response["Member"]["LogPublishingConfiguration"]["Fabric"]["CaLogs"][
+        "Cloudwatch"
+    ]
+    assert cloudwatch["Enabled"] == logconfignewenabled
 
 
 @mock_managedblockchain
@@ -111,18 +109,17 @@ def test_create_another_member_withopts():
     member_id = response["MemberId"]
 
     # Create proposal
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Get proposal details
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
-    response["Proposal"]["NetworkId"].should.equal(network_id)
-    response["Proposal"]["Status"].should.equal("IN_PROGRESS")
+    assert response["Proposal"]["NetworkId"] == network_id
+    assert response["Proposal"]["Status"] == "IN_PROGRESS"
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -131,34 +128,32 @@ def test_create_another_member_withopts():
 
     # Get the invitation
     response = conn.list_invitations()
-    response["Invitations"][0]["NetworkSummary"]["Id"].should.equal(network_id)
-    response["Invitations"][0]["Status"].should.equal("PENDING")
+    assert response["Invitations"][0]["NetworkSummary"]["Id"] == network_id
+    assert response["Invitations"][0]["Status"] == "PENDING"
     invitation_id = response["Invitations"][0]["InvitationId"]
 
     # Create the member
-    response = conn.create_member(
+    member_id2 = conn.create_member(
         InvitationId=invitation_id,
         NetworkId=network_id,
         MemberConfiguration=helpers.create_member_configuration(
             "testmember2", "admin", "Admin12345", False, "Test Member 2"
         ),
-    )
-    member_id2 = response["MemberId"]
+    )["MemberId"]
 
     # Check the invitation status
     response = conn.list_invitations()
-    response["Invitations"][0]["InvitationId"].should.equal(invitation_id)
-    response["Invitations"][0]["Status"].should.equal("ACCEPTED")
+    assert response["Invitations"][0]["InvitationId"] == invitation_id
+    assert response["Invitations"][0]["Status"] == "ACCEPTED"
 
     # Find member in full list
-    response = conn.list_members(NetworkId=network_id)
-    members = response["Members"]
-    members.should.have.length_of(2)
-    helpers.member_id_exist_in_list(members, member_id2).should.equal(True)
+    members = conn.list_members(NetworkId=network_id)["Members"]
+    assert len(members) == 2
+    assert helpers.member_id_exist_in_list(members, member_id2) is True
 
     # Get member 2 details
     response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    response["Member"]["Description"].should.equal("Test Member 2")
+    assert response["Member"]["Description"] == "Test Member 2"
 
     # Try to create member with already used invitation
     with pytest.raises(ClientError) as ex:
@@ -170,38 +165,36 @@ def test_create_another_member_withopts():
             ),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidRequestException")
-    err["Message"].should.contain(f"Invitation {invitation_id} not valid")
+    assert err["Code"] == "InvalidRequestException"
+    assert f"Invitation {invitation_id} not valid" in err["Message"]
 
     # Delete member 2
     conn.delete_member(NetworkId=network_id, MemberId=member_id2)
 
     # Member is still in the list
-    response = conn.list_members(NetworkId=network_id)
-    members = response["Members"]
-    members.should.have.length_of(2)
+    members = conn.list_members(NetworkId=network_id)["Members"]
+    assert len(members) == 2
 
     # But cannot get
     with pytest.raises(ClientError) as ex:
         conn.get_member(NetworkId=network_id, MemberId=member_id2)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain(f"Member {member_id2} not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert f"Member {member_id2} not found" in err["Message"]
 
     # Delete member 1
     conn.delete_member(NetworkId=network_id, MemberId=member_id)
 
     # Network should be gone
-    response = conn.list_networks()
-    mbcnetworks = response["Networks"]
-    mbcnetworks.should.have.length_of(0)
+    mbcnetworks = conn.list_networks()["Networks"]
+    assert len(mbcnetworks) == 0
 
     # Verify the invitation network status is DELETED
     # Get the invitation
     response = conn.list_invitations()
-    response["Invitations"].should.have.length_of(1)
-    response["Invitations"][0]["NetworkSummary"]["Id"].should.equal(network_id)
-    response["Invitations"][0]["NetworkSummary"]["Status"].should.equal("DELETED")
+    assert len(response["Invitations"]) == 1
+    assert response["Invitations"][0]["NetworkSummary"]["Id"] == network_id
+    assert response["Invitations"][0]["NetworkSummary"]["Status"] == "DELETED"
 
 
 @mock_managedblockchain
@@ -221,13 +214,12 @@ def test_invite_and_remove_member():
     member_id = response["MemberId"]
 
     # Create proposal (create additional member)
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -239,14 +231,13 @@ def test_invite_and_remove_member():
     invitation_id = response["Invitations"][0]["InvitationId"]
 
     # Create the member
-    response = conn.create_member(
+    member_id2 = conn.create_member(
         InvitationId=invitation_id,
         NetworkId=network_id,
         MemberConfiguration=helpers.create_member_configuration(
             "testmember2", "admin", "Admin12345", False, "Test Member 2"
         ),
-    )
-    member_id2 = response["MemberId"]
+    )["MemberId"]
 
     both_policy_actions = {
         "Invitations": [{"Principal": "123456789012"}],
@@ -254,18 +245,17 @@ def test_invite_and_remove_member():
     }
 
     # Create proposal (invite and remove member)
-    response = conn.create_proposal(
+    proposal_id2 = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=both_policy_actions
-    )
-    proposal_id2 = response["ProposalId"]
+    )["ProposalId"]
 
     # Get proposal details
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id2)
-    response["Proposal"]["NetworkId"].should.equal(network_id)
-    response["Proposal"]["Status"].should.equal("IN_PROGRESS")
+    assert response["Proposal"]["NetworkId"] == network_id
+    assert response["Proposal"]["Status"] == "IN_PROGRESS"
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id2,
         VoterMemberId=member_id,
@@ -277,22 +267,25 @@ def test_invite_and_remove_member():
     invitations = helpers.select_invitation_id_for_network(
         response["Invitations"], network_id, "PENDING"
     )
-    invitations.should.have.length_of(1)
+    assert len(invitations) == 1
 
     # Member is still in the list
-    response = conn.list_members(NetworkId=network_id)
-    members = response["Members"]
-    members.should.have.length_of(2)
+    members = conn.list_members(NetworkId=network_id)["Members"]
+    assert len(members) == 2
     foundmember2 = False
     for member in members:
         if member["Id"] == member_id2 and member["Status"] == "DELETED":
             foundmember2 = True
-    foundmember2.should.equal(True)
+    assert foundmember2 is True
 
 
 @mock_managedblockchain
 def test_create_too_many_members():
-    conn = boto3.client("managedblockchain", region_name="us-east-1")
+    # This test throws a ResourceLimitException, with HTTP status code 429
+    # Boto3 automatically retries a request with that status code up to 5 times
+    # Retrying is not going to make a difference to the output though...
+    config = Config(retries={"max_attempts": 1, "mode": "standard"})
+    conn = boto3.client("managedblockchain", region_name="us-east-1", config=config)
 
     # Create network
     response = conn.create_network(
@@ -309,15 +302,14 @@ def test_create_too_many_members():
     # Create 4 more members - create invitations for 5
     for counter in range(2, 7):
         # Create proposal
-        response = conn.create_proposal(
+        proposal_id = conn.create_proposal(
             NetworkId=network_id,
             MemberId=member_id,
             Actions=helpers.default_policy_actions,
-        )
-        proposal_id = response["ProposalId"]
+        )["ProposalId"]
 
         # Vote yes
-        response = conn.vote_on_proposal(
+        conn.vote_on_proposal(
             NetworkId=network_id,
             ProposalId=proposal_id,
             VoterMemberId=member_id,
@@ -346,14 +338,13 @@ def test_create_too_many_members():
         member_id = response["MemberId"]
 
         # Find member in full list
-        response = conn.list_members(NetworkId=network_id)
-        members = response["Members"]
-        members.should.have.length_of(counter)
-        helpers.member_id_exist_in_list(members, member_id).should.equal(True)
+        members = conn.list_members(NetworkId=network_id)["Members"]
+        assert len(members) == counter
+        assert helpers.member_id_exist_in_list(members, member_id) is True
 
         # Get member details
         response = conn.get_member(NetworkId=network_id, MemberId=member_id)
-        response["Member"]["Description"].should.equal("Test Member " + str(counter))
+        assert response["Member"]["Description"] == "Test Member " + str(counter)
 
     # Try to create the sixth
     response = conn.list_invitations()
@@ -371,8 +362,8 @@ def test_create_too_many_members():
             ),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceLimitExceededException")
-    err["Message"].should.contain("is the maximum number of members allowed in a")
+    assert err["Code"] == "ResourceLimitExceededException"
+    assert "is the maximum number of members allowed in a" in err["Message"]
 
 
 @mock_managedblockchain
@@ -393,13 +384,12 @@ def test_create_another_member_alreadyhave():
     member_id = response["MemberId"]
 
     # Create proposal
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -420,9 +410,10 @@ def test_create_another_member_alreadyhave():
             ),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidRequestException")
-    err["Message"].should.contain(
+    assert err["Code"] == "InvalidRequestException"
+    assert (
         f"Member name testmember1 already exists in network {network_id}"
+        in err["Message"]
     )
 
 
@@ -439,8 +430,8 @@ def test_create_another_member_badnetwork():
             ),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -448,15 +439,14 @@ def test_create_another_member_badinvitation():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     # Create network - need a good network
-    response = conn.create_network(
+    network_id = conn.create_network(
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
         FrameworkConfiguration=helpers.default_frameworkconfiguration,
         VotingPolicy=helpers.default_votingpolicy,
         MemberConfiguration=helpers.default_memberconfiguration,
-    )
-    network_id = response["NetworkId"]
+    )["NetworkId"]
 
     with pytest.raises(ClientError) as ex:
         conn.create_member(
@@ -467,8 +457,8 @@ def test_create_another_member_badinvitation():
             ),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidRequestException")
-    err["Message"].should.contain("Invitation in-ABCDEFGHIJKLMNOP0123456789 not valid")
+    assert err["Code"] == "InvalidRequestException"
+    assert "Invitation in-ABCDEFGHIJKLMNOP0123456789 not valid" in err["Message"]
 
 
 @mock_managedblockchain
@@ -488,18 +478,17 @@ def test_create_another_member_adminpassword():
     member_id = response["MemberId"]
 
     # Create proposal
-    response = conn.create_proposal(
+    proposal_id = conn.create_proposal(
         NetworkId=network_id, MemberId=member_id, Actions=helpers.default_policy_actions
-    )
-    proposal_id = response["ProposalId"]
+    )["ProposalId"]
 
     # Get proposal details
     response = conn.get_proposal(NetworkId=network_id, ProposalId=proposal_id)
-    response["Proposal"]["NetworkId"].should.equal(network_id)
-    response["Proposal"]["Status"].should.equal("IN_PROGRESS")
+    assert response["Proposal"]["NetworkId"] == network_id
+    assert response["Proposal"]["Status"] == "IN_PROGRESS"
 
     # Vote yes
-    response = conn.vote_on_proposal(
+    conn.vote_on_proposal(
         NetworkId=network_id,
         ProposalId=proposal_id,
         VoterMemberId=member_id,
@@ -525,8 +514,9 @@ def test_create_another_member_adminpassword():
             MemberConfiguration=badadminpassmemberconf,
         )
     err = ex.value
-    str(err).should.contain(
+    assert (
         "Invalid length for parameter MemberConfiguration.FrameworkConfiguration.Fabric.AdminPassword"
+        in str(err)
     )
 
     # No uppercase or numbers
@@ -540,8 +530,8 @@ def test_create_another_member_adminpassword():
             MemberConfiguration=badadminpassmemberconf,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain("Invalid request body")
+    assert err["Code"] == "BadRequestException"
+    assert "Invalid request body" in err["Message"]
 
     # No lowercase or numbers
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
@@ -554,8 +544,8 @@ def test_create_another_member_adminpassword():
             MemberConfiguration=badadminpassmemberconf,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain("Invalid request body")
+    assert err["Code"] == "BadRequestException"
+    assert "Invalid request body" in err["Message"]
 
     # No numbers
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
@@ -568,8 +558,8 @@ def test_create_another_member_adminpassword():
             MemberConfiguration=badadminpassmemberconf,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain("Invalid request body")
+    assert err["Code"] == "BadRequestException"
+    assert "Invalid request body" in err["Message"]
 
     # Invalid character
     badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
@@ -582,8 +572,8 @@ def test_create_another_member_adminpassword():
             MemberConfiguration=badadminpassmemberconf,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain("Invalid request body")
+    assert err["Code"] == "BadRequestException"
+    assert "Invalid request body" in err["Message"]
 
 
 @mock_managedblockchain
@@ -593,8 +583,8 @@ def test_list_members_badnetwork():
     with pytest.raises(ClientError) as ex:
         conn.list_members(NetworkId="n-ABCDEFGHIJKLMNOP0123456789")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -607,8 +597,8 @@ def test_get_member_badnetwork():
             MemberId="m-ABCDEFGHIJKLMNOP0123456789",
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -616,21 +606,20 @@ def test_get_member_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     # Create network - need a good network
-    response = conn.create_network(
+    network_id = conn.create_network(
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
         FrameworkConfiguration=helpers.default_frameworkconfiguration,
         VotingPolicy=helpers.default_votingpolicy,
         MemberConfiguration=helpers.default_memberconfiguration,
-    )
-    network_id = response["NetworkId"]
+    )["NetworkId"]
 
     with pytest.raises(ClientError) as ex:
         conn.get_member(NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -643,8 +632,8 @@ def test_delete_member_badnetwork():
             MemberId="m-ABCDEFGHIJKLMNOP0123456789",
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -652,23 +641,22 @@ def test_delete_member_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     # Create network - need a good network
-    response = conn.create_network(
+    network_id = conn.create_network(
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
         FrameworkConfiguration=helpers.default_frameworkconfiguration,
         VotingPolicy=helpers.default_votingpolicy,
         MemberConfiguration=helpers.default_memberconfiguration,
-    )
-    network_id = response["NetworkId"]
+    )["NetworkId"]
 
     with pytest.raises(ClientError) as ex:
         conn.delete_member(
             NetworkId=network_id, MemberId="m-ABCDEFGHIJKLMNOP0123456789"
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -684,8 +672,8 @@ def test_update_member_badnetwork():
             ],
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
 @mock_managedblockchain
@@ -693,15 +681,14 @@ def test_update_member_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     # Create network - need a good network
-    response = conn.create_network(
+    network_id = conn.create_network(
         Name="testnetwork1",
         Framework="HYPERLEDGER_FABRIC",
         FrameworkVersion="1.2",
         FrameworkConfiguration=helpers.default_frameworkconfiguration,
         VotingPolicy=helpers.default_votingpolicy,
         MemberConfiguration=helpers.default_memberconfiguration,
-    )
-    network_id = response["NetworkId"]
+    )["NetworkId"]
 
     with pytest.raises(ClientError) as ex:
         conn.update_member(
@@ -712,5 +699,5 @@ def test_update_member_badmember():
             ],
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Member m-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]

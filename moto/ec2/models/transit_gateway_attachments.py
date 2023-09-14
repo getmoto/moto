@@ -1,6 +1,5 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import merge_multiple_dicts, filter_resources
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
@@ -28,7 +27,7 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         self.state = "available"
         self.add_tags(tags or {})
 
-        self._created_at = datetime.utcnow()
+        self._created_at = utcnow()
         self.resource_owner_id = backend.account_id
         self.transit_gateway_owner_id = backend.account_id
         self.owner_id = backend.account_id

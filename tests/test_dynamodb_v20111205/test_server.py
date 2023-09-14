@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 import moto.server as server
@@ -27,64 +26,59 @@ def fixture_test_client():
 
 
 def test_404(test_client):
-
     res = test_client.get("/")
-    res.status_code.should.equal(404)
+    assert res.status_code == 404
 
 
 def test_table_list(test_client):
     headers = {"X-Amz-Target": "TestTable.ListTables"}
     res = test_client.get("/", headers=headers)
-    json.loads(res.data).should.equal({"TableNames": []})
+    assert json.loads(res.data) == {"TableNames": []}
 
 
 def test_create_table(test_client):
     res = create_table(test_client)
     res = json.loads(res.data)["Table"]
-    res.should.have.key("CreationDateTime")
+    assert "CreationDateTime" in res
     del res["CreationDateTime"]
-    res.should.equal(
-        {
-            "KeySchema": {
-                "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"},
-                "RangeKeyElement": {"AttributeName": "rkey", "AttributeType": "N"},
-            },
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
-            "TableName": TABLE_WITH_RANGE_NAME,
-            "TableStatus": "ACTIVE",
-            "ItemCount": 0,
-            "TableSizeBytes": 0,
-        }
-    )
+    assert res == {
+        "KeySchema": {
+            "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"},
+            "RangeKeyElement": {"AttributeName": "rkey", "AttributeType": "N"},
+        },
+        "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
+        "TableName": TABLE_WITH_RANGE_NAME,
+        "TableStatus": "ACTIVE",
+        "ItemCount": 0,
+        "TableSizeBytes": 0,
+    }
 
     headers = {"X-Amz-Target": "TestTable.ListTables"}
     res = test_client.get("/", headers=headers)
     res = json.loads(res.data)
-    res.should.equal({"TableNames": [TABLE_WITH_RANGE_NAME]})
+    assert res == {"TableNames": [TABLE_WITH_RANGE_NAME]}
 
 
 def test_create_table_without_range_key(test_client):
     res = create_table(test_client, use_range_key=False)
     res = json.loads(res.data)["Table"]
-    res.should.have.key("CreationDateTime")
+    assert "CreationDateTime" in res
     del res["CreationDateTime"]
-    res.should.equal(
-        {
-            "KeySchema": {
-                "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"}
-            },
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
-            "TableName": TABLE_NAME,
-            "TableStatus": "ACTIVE",
-            "ItemCount": 0,
-            "TableSizeBytes": 0,
-        }
-    )
+    assert res == {
+        "KeySchema": {
+            "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"}
+        },
+        "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
+        "TableName": TABLE_NAME,
+        "TableStatus": "ACTIVE",
+        "ItemCount": 0,
+        "TableSizeBytes": 0,
+    }
 
     headers = {"X-Amz-Target": "TestTable.ListTables"}
     res = test_client.get("/", headers=headers)
     res = json.loads(res.data)
-    res.should.equal({"TableNames": [TABLE_NAME]})
+    assert res == {"TableNames": [TABLE_NAME]}
 
 
 # This test is pointless, as we treat DynamoDB as a global resource
@@ -95,11 +89,10 @@ def test_create_table_in_different_regions(test_client):
     headers = {"X-Amz-Target": "TestTable.ListTables"}
     res = test_client.get("/", headers=headers)
     res = json.loads(res.data)
-    res.should.equal({"TableNames": [TABLE_WITH_RANGE_NAME, "Table2"]})
+    assert res == {"TableNames": [TABLE_WITH_RANGE_NAME, "Table2"]}
 
 
 def test_update_item(test_client):
-
     create_table(test_client)
 
     headers, res = put_item(test_client)
@@ -129,16 +122,14 @@ def test_update_item(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res["ConsumedCapacityUnits"].should.equal(0.5)
-    res["Attributes"].should.equal(
-        {
-            "hkey": "customer",
-            "name": "myname",
-            "rkey": "12341234",
-            "new_att": ["val"],
-            "new_n": "42",
-        }
-    )
+    assert res["ConsumedCapacityUnits"] == 0.5
+    assert res["Attributes"] == {
+        "hkey": "customer",
+        "name": "myname",
+        "rkey": "12341234",
+        "new_att": ["val"],
+        "new_n": "42",
+    }
 
     # UpdateItem - multiples
     headers["X-Amz-Target"] = "DynamoDB_20111205.UpdateItem"
@@ -157,15 +148,13 @@ def test_update_item(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res["ConsumedCapacityUnits"].should.equal(0.5)
-    res["Attributes"].should.equal(
-        {
-            "hkey": "customer",
-            "rkey": "12341234",
-            "new_att": ["val", "val2"],
-            "new_n": "49",
-        }
-    )
+    assert res["ConsumedCapacityUnits"] == 0.5
+    assert res["Attributes"] == {
+        "hkey": "customer",
+        "rkey": "12341234",
+        "new_att": ["val", "val2"],
+        "new_n": "49",
+    }
 
     # GetItem
     headers["X-Amz-Target"] = "DynamoDB_20111205.GetItem"
@@ -178,9 +167,9 @@ def test_update_item(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res["Item"].should.have.key("new_att").equal({"SS": ["val", "val2"]})
-    res["Item"].should.have.key("new_n").equal({"N": "49"})
-    res["Item"].shouldnt.have.key("name")
+    assert res["Item"]["new_att"] == {"SS": ["val", "val2"]}
+    assert res["Item"]["new_n"] == {"N": "49"}
+    assert "name" not in res["Item"]
 
 
 @pytest.mark.parametrize(
@@ -196,17 +185,17 @@ def test_delete_table(use_range_key, test_client):
     headers = {"X-Amz-Target": "DynamoDB_20111205.ListTables"}
     res = test_client.post("/", headers=headers)
     res = json.loads(res.data)
-    res.should.equal({"TableNames": []})
+    assert res == {"TableNames": []}
 
 
 def test_delete_unknown_table(test_client):
     headers = {"X-Amz-Target": "DynamoDB_20111205.DeleteTable"}
     res = test_client.post("/", headers=headers, json={"TableName": "unknown_table"})
-    res.status_code.should.equal(400)
+    assert res.status_code == 400
 
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_describe_table(test_client):
@@ -220,21 +209,19 @@ def test_describe_table(test_client):
         "/", headers=headers, json={"TableName": TABLE_WITH_RANGE_NAME}
     )
     res = json.loads(res.data)["Table"]
-    res.should.have.key("CreationDateTime")
+    assert "CreationDateTime" in res
     del res["CreationDateTime"]
-    res.should.equal(
-        {
-            "KeySchema": {
-                "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"},
-                "RangeKeyElement": {"AttributeName": "rkey", "AttributeType": "N"},
-            },
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
-            "TableName": TABLE_WITH_RANGE_NAME,
-            "TableStatus": "ACTIVE",
-            "ItemCount": 0,
-            "TableSizeBytes": 0,
-        }
-    )
+    assert res == {
+        "KeySchema": {
+            "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"},
+            "RangeKeyElement": {"AttributeName": "rkey", "AttributeType": "N"},
+        },
+        "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
+        "TableName": TABLE_WITH_RANGE_NAME,
+        "TableStatus": "ACTIVE",
+        "ItemCount": 0,
+        "TableSizeBytes": 0,
+    }
 
 
 def test_describe_missing_table(test_client):
@@ -243,10 +230,10 @@ def test_describe_missing_table(test_client):
         "Content-Type": "application/x-amz-json-1.0",
     }
     res = test_client.post("/", headers=headers, json={"TableName": "unknown_table"})
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 @pytest.mark.parametrize(
@@ -274,7 +261,7 @@ def test_update_table(test_client, use_range_key):
     res = test_client.post("/", headers=headers, json={"TableName": table_name})
     throughput = json.loads(res.data)["Table"]["ProvisionedThroughput"]
 
-    throughput.should.equal({"ReadCapacityUnits": 5, "WriteCapacityUnits": 15})
+    assert throughput == {"ReadCapacityUnits": 5, "WriteCapacityUnits": 15}
 
 
 def test_put_return_none(test_client):
@@ -296,9 +283,11 @@ def test_put_return_none(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
     # This seems wrong - it should return nothing, considering return_values is set to none
-    res["Attributes"].should.equal(
-        {"hkey": "customer", "name": "myname", "rkey": "12341234"}
-    )
+    assert res["Attributes"] == {
+        "hkey": "customer",
+        "name": "myname",
+        "rkey": "12341234",
+    }
 
 
 def test_put_return_none_without_range_key(test_client):
@@ -316,7 +305,7 @@ def test_put_return_none_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
     # This seems wrong - it should return nothing, considering return_values is set to none
-    res["Attributes"].should.equal({"hkey": "customer", "name": "myname"})
+    assert res["Attributes"] == {"hkey": "customer", "name": "myname"}
 
 
 def test_put_item_from_unknown_table(test_client):
@@ -335,10 +324,10 @@ def test_put_item_from_unknown_table(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
 
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_get_item_from_unknown_table(test_client):
@@ -355,10 +344,10 @@ def test_get_item_from_unknown_table(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
 
-    res.status_code.should.equal(404)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 404
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 @pytest.mark.parametrize(
@@ -380,10 +369,10 @@ def test_get_unknown_item_from_table(use_range_key, test_client):
         request_body["Key"]["RangeKeyElement"] = {"N": "12341234"}
     res = test_client.post("/", headers=headers, json=request_body)
 
-    res.status_code.should.equal(404)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 404
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_get_item_without_range_key(test_client):
@@ -399,10 +388,10 @@ def test_get_item_without_range_key(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
 
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazon.coral.validate#ValidationException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazon.coral.validate#ValidationException"
+    }
 
 
 def test_put_and_get_item(test_client):
@@ -410,10 +399,12 @@ def test_put_and_get_item(test_client):
 
     headers, res = put_item(test_client)
 
-    res["ConsumedCapacityUnits"].should.equal(1)
-    res["Attributes"].should.equal(
-        {"hkey": "customer", "name": "myname", "rkey": "12341234"}
-    )
+    assert res["ConsumedCapacityUnits"] == 1
+    assert res["Attributes"] == {
+        "hkey": "customer",
+        "name": "myname",
+        "rkey": "12341234",
+    }
 
     # GetItem
     headers["X-Amz-Target"] = "DynamoDB_20111205.GetItem"
@@ -426,10 +417,12 @@ def test_put_and_get_item(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res["ConsumedCapacityUnits"].should.equal(0.5)
-    res["Item"].should.equal(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341234"}}
-    )
+    assert res["ConsumedCapacityUnits"] == 0.5
+    assert res["Item"] == {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341234"},
+    }
 
     # GetItem - return single attribute
     headers["X-Amz-Target"] = "DynamoDB_20111205.GetItem"
@@ -443,8 +436,8 @@ def test_put_and_get_item(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res["ConsumedCapacityUnits"].should.equal(0.5)
-    res["Item"].should.equal({"name": {"S": "myname"}})
+    assert res["ConsumedCapacityUnits"] == 0.5
+    assert res["Item"] == {"name": {"S": "myname"}}
 
 
 def test_put_and_get_item_without_range_key(test_client):
@@ -452,8 +445,8 @@ def test_put_and_get_item_without_range_key(test_client):
 
     headers, res = put_item(test_client, use_range_key=False)
 
-    res["ConsumedCapacityUnits"].should.equal(1)
-    res["Attributes"].should.equal({"hkey": "customer", "name": "myname"})
+    assert res["ConsumedCapacityUnits"] == 1
+    assert res["Attributes"] == {"hkey": "customer", "name": "myname"}
 
     # GetItem
     headers["X-Amz-Target"] = "DynamoDB_20111205.GetItem"
@@ -463,8 +456,8 @@ def test_put_and_get_item_without_range_key(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res["ConsumedCapacityUnits"].should.equal(0.5)
-    res["Item"].should.equal({"hkey": {"S": "customer"}, "name": {"S": "myname"}})
+    assert res["ConsumedCapacityUnits"] == 0.5
+    assert res["Item"] == {"hkey": {"S": "customer"}, "name": {"S": "myname"}}
 
     # GetItem - return single attribute
     headers["X-Amz-Target"] = "DynamoDB_20111205.GetItem"
@@ -475,8 +468,8 @@ def test_put_and_get_item_without_range_key(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res["ConsumedCapacityUnits"].should.equal(0.5)
-    res["Item"].should.equal({"name": {"S": "myname"}})
+    assert res["ConsumedCapacityUnits"] == 0.5
+    assert res["Item"] == {"name": {"S": "myname"}}
 
 
 def test_scan_simple(test_client):
@@ -494,21 +487,27 @@ def test_scan_simple(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(3)
-    res.should.have.key("ScannedCount").equal(3)
-    res.should.have.key("ConsumedCapacityUnits").equal(1)
-    res.should.have.key("Items").length_of(3)
+    assert res["Count"] == 3
+    assert res["ScannedCount"] == 3
+    assert res["ConsumedCapacityUnits"] == 1
+    assert len(res["Items"]) == 3
 
     items = res["Items"]
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341234"}}
-    )
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341235"}}
-    )
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341236"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341234"},
+    } in items
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341235"},
+    } in items
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341236"},
+    } in items
 
 
 def test_scan_with_filter(test_client):
@@ -532,13 +531,13 @@ def test_scan_with_filter(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(1)
-    res.should.have.key("ScannedCount").equal(3)
-    res.should.have.key("ConsumedCapacityUnits").equal(1)
-    res.should.have.key("Items").length_of(1)
+    assert res["Count"] == 1
+    assert res["ScannedCount"] == 3
+    assert res["ConsumedCapacityUnits"] == 1
+    assert len(res["Items"]) == 1
 
     items = res["Items"]
-    items.should.contain({"hkey": {"S": "customer"}, "rkey": {"N": "1234"}})
+    assert {"hkey": {"S": "customer"}, "rkey": {"N": "1234"}} in items
 
     # SCAN begins_with
     headers = {
@@ -557,9 +556,11 @@ def test_scan_with_filter(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1246"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "1246"},
+    } in items
 
     # SCAN contains
     headers = {
@@ -578,9 +579,11 @@ def test_scan_with_filter(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "somename"}, "rkey": {"N": "1230"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "somename"},
+        "rkey": {"N": "1230"},
+    } in items
 
     # SCAN null
     headers = {
@@ -594,7 +597,7 @@ def test_scan_with_filter(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.contain({"hkey": {"S": "customer"}, "rkey": {"N": "1234"}})
+    assert {"hkey": {"S": "customer"}, "rkey": {"N": "1234"}} in items
 
     # SCAN NOT NULL
     headers = {
@@ -608,16 +611,14 @@ def test_scan_with_filter(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.equal(
-        [
-            {
-                "hkey": {"S": "customer"},
-                "name": {"S": "somename"},
-                "rkey": {"N": "1230"},
-            },
-            {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1246"}},
-        ]
-    )
+    assert items == [
+        {
+            "hkey": {"S": "customer"},
+            "name": {"S": "somename"},
+            "rkey": {"N": "1230"},
+        },
+        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1246"}},
+    ]
 
     # SCAN between
     headers = {
@@ -636,9 +637,11 @@ def test_scan_with_filter(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "somename"}, "rkey": {"N": "1230"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "somename"},
+        "rkey": {"N": "1230"},
+    } in items
 
 
 def test_scan_with_filter_in_table_without_range_key(test_client):
@@ -665,13 +668,13 @@ def test_scan_with_filter_in_table_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(1)
-    res.should.have.key("ScannedCount").equal(3)
-    res.should.have.key("ConsumedCapacityUnits").equal(1)
-    res.should.have.key("Items").length_of(1)
+    assert res["Count"] == 1
+    assert res["ScannedCount"] == 3
+    assert res["ConsumedCapacityUnits"] == 1
+    assert len(res["Items"]) == 1
 
     items = res["Items"]
-    items.should.contain({"hkey": {"S": "customer3"}, "name": {"S": "special"}})
+    assert {"hkey": {"S": "customer3"}, "name": {"S": "special"}} in items
 
     # SCAN begins_with
     headers = {
@@ -690,7 +693,7 @@ def test_scan_with_filter_in_table_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.have.length_of(3)  # all customers start with cust
+    assert len(items) == 3  # all customers start with cust
 
     # SCAN contains
     headers = {
@@ -709,7 +712,7 @@ def test_scan_with_filter_in_table_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.have.equal([{"hkey": {"S": "customer2"}, "name": {"S": "myname"}}])
+    assert items == [{"hkey": {"S": "customer2"}, "name": {"S": "myname"}}]
 
     # SCAN null
     headers = {
@@ -723,7 +726,7 @@ def test_scan_with_filter_in_table_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.equal([{"hkey": {"S": "customer1"}}])
+    assert items == [{"hkey": {"S": "customer1"}}]
 
     # SCAN NOT NULL
     headers = {
@@ -737,9 +740,9 @@ def test_scan_with_filter_in_table_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.have.length_of(2)
-    items.should.contain({"hkey": {"S": "customer2"}, "name": {"S": "myname"}})
-    items.should.contain({"hkey": {"S": "customer3"}, "name": {"S": "special"}})
+    assert len(items) == 2
+    assert {"hkey": {"S": "customer2"}, "name": {"S": "myname"}} in items
+    assert {"hkey": {"S": "customer3"}, "name": {"S": "special"}} in items
 
 
 def test_scan_with_undeclared_table(test_client):
@@ -749,10 +752,10 @@ def test_scan_with_undeclared_table(test_client):
     }
     request_body = {"TableName": "unknown_table"}
     res = test_client.post("/", headers=headers, json=request_body)
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_query_in_table_without_range_key(test_client):
@@ -768,12 +771,12 @@ def test_query_in_table_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(1)
-    res.should.have.key("ConsumedCapacityUnits").equal(1)
-    res.should.have.key("Items").length_of(1)
+    assert res["Count"] == 1
+    assert res["ConsumedCapacityUnits"] == 1
+    assert len(res["Items"]) == 1
 
     items = res["Items"]
-    items.should.contain({"hkey": {"S": "customer"}, "name": {"S": "myname"}})
+    assert {"hkey": {"S": "customer"}, "name": {"S": "myname"}} in items
 
     # QUERY for unknown value
     headers = {
@@ -785,8 +788,8 @@ def test_query_in_table_without_range_key(test_client):
     res = json.loads(res.data)
 
     # TODO: We should not get any results here
-    # res.should.have.key("Count").equal(0)
-    # res.should.have.key("Items").length_of(0)
+    # assert res["Count"] == 0
+    # assert len(res["Items"]) == 0
 
 
 def test_query_item_by_hash_only(test_client):
@@ -807,20 +810,26 @@ def test_query_item_by_hash_only(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(3)
-    res.should.have.key("ConsumedCapacityUnits").equal(1)
-    res.should.have.key("Items").length_of(3)
+    assert res["Count"] == 3
+    assert res["ConsumedCapacityUnits"] == 1
+    assert len(res["Items"]) == 3
 
     items = res["Items"]
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341234"}}
-    )
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341235"}}
-    )
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341236"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341234"},
+    } in items
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341235"},
+    } in items
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341236"},
+    } in items
 
 
 def test_query_item_by_range_key(test_client):
@@ -846,14 +855,16 @@ def test_query_item_by_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(1)
-    res.should.have.key("ConsumedCapacityUnits").equal(1)
-    res.should.have.key("Items").length_of(1)
+    assert res["Count"] == 1
+    assert res["ConsumedCapacityUnits"] == 1
+    assert len(res["Items"]) == 1
 
     items = res["Items"]
-    items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1247"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "1247"},
+    } in items
 
     # GT all
     headers = {
@@ -871,8 +882,8 @@ def test_query_item_by_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(3)
-    res.should.have.key("Items").length_of(3)
+    assert res["Count"] == 3
+    assert len(res["Items"]) == 3
 
     # GT none
     headers = {
@@ -890,9 +901,9 @@ def test_query_item_by_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res["ConsumedCapacityUnits"].should.equal(1)
-    res["Items"].should.equal([])
-    res["Count"].should.equal(0)
+    assert res["ConsumedCapacityUnits"] == 1
+    assert res["Items"] == []
+    assert res["Count"] == 0
 
     # CONTAINS some
     headers = {
@@ -910,9 +921,9 @@ def test_query_item_by_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.equal(
-        [{"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1247"}}]
-    )
+    assert items == [
+        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1247"}}
+    ]
 
     # BEGINS_WITH
     headers = {
@@ -930,12 +941,10 @@ def test_query_item_by_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.equal(
-        [
-            {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1234"}},
-            {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1235"}},
-        ]
-    )
+    assert items == [
+        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1234"}},
+        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1235"}},
+    ]
 
     # CONTAINS
     headers = {
@@ -953,12 +962,10 @@ def test_query_item_by_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     items = json.loads(res.data)["Items"]
 
-    items.should.equal(
-        [
-            {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1234"}},
-            {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1235"}},
-        ]
-    )
+    assert items == [
+        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1234"}},
+        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "1235"}},
+    ]
 
 
 def test_query_item_with_undeclared_table(test_client):
@@ -975,10 +982,10 @@ def test_query_item_with_undeclared_table(test_client):
         },
     }
     res = test_client.post("/", headers=headers, json=request_body)
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_delete_item(test_client):
@@ -1001,7 +1008,7 @@ def test_delete_item(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res.should.equal({"Attributes": [], "ConsumedCapacityUnits": 0.5})
+    assert res == {"Attributes": [], "ConsumedCapacityUnits": 0.5}
 
     # GetItem
     headers["X-Amz-Target"] = "DynamoDB_20111205.GetItem"
@@ -1015,9 +1022,9 @@ def test_delete_item(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res["Item"].should.have.key("hkey").equal({"S": "customer"})
-    res["Item"].should.have.key("rkey").equal({"N": "12341234"})
-    res["Item"].should.have.key("name").equal({"S": "myname"})
+    assert res["Item"]["hkey"] == {"S": "customer"}
+    assert res["Item"]["rkey"] == {"N": "12341234"}
+    assert res["Item"]["name"] == {"S": "myname"}
 
 
 def test_update_item_that_doesnt_exist(test_client):
@@ -1035,9 +1042,9 @@ def test_update_item_that_doesnt_exist(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res.should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_delete_item_without_range_key(test_client):
@@ -1055,7 +1062,7 @@ def test_delete_item_without_range_key(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res.should.equal({"Attributes": [], "ConsumedCapacityUnits": 0.5})
+    assert res == {"Attributes": [], "ConsumedCapacityUnits": 0.5}
 
 
 def test_delete_item_with_return_values(test_client):
@@ -1079,12 +1086,10 @@ def test_delete_item_with_return_values(test_client):
     }
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
-    res.should.equal(
-        {
-            "Attributes": {"hkey": "customer", "name": "myname", "rkey": "12341236"},
-            "ConsumedCapacityUnits": 0.5,
-        }
-    )
+    assert res == {
+        "Attributes": {"hkey": "customer", "name": "myname", "rkey": "12341236"},
+        "ConsumedCapacityUnits": 0.5,
+    }
 
 
 def test_delete_unknown_item(test_client):
@@ -1103,10 +1108,10 @@ def test_delete_unknown_item(test_client):
         "ReturnValues": "ALL_OLD",
     }
     res = test_client.post("/", headers=headers, json=request_body)
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_update_item_in_nonexisting_table(test_client):
@@ -1121,10 +1126,10 @@ def test_update_item_in_nonexisting_table(test_client):
         "AttributeUpdates": {"new_att": {"Value": {"SS": ["val"]}, "Action": "PUT"}},
     }
     res = test_client.post("/", headers=headers, json=request_body)
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_delete_from_unknown_table(test_client):
@@ -1141,10 +1146,10 @@ def test_delete_from_unknown_table(test_client):
         "ReturnValues": "ALL_OLD",
     }
     res = test_client.post("/", headers=headers, json=request_body)
-    res.status_code.should.equal(400)
-    json.loads(res.data).should.equal(
-        {"__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"}
-    )
+    assert res.status_code == 400
+    assert json.loads(res.data) == {
+        "__type": "com.amazonaws.dynamodb.v20111205#ResourceNotFoundException"
+    }
 
 
 def test_batch_get_item(test_client):
@@ -1177,16 +1182,20 @@ def test_batch_get_item(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)["Responses"]
 
-    res.should.have.key("UnprocessedKeys").equal({})
+    assert res["UnprocessedKeys"] == {}
     table_items = [i["Item"] for i in res[TABLE_WITH_RANGE_NAME]["Items"]]
-    table_items.should.have.length_of(2)
+    assert len(table_items) == 2
 
-    table_items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341235"}}
-    )
-    table_items.should.contain(
-        {"hkey": {"S": "customer"}, "name": {"S": "myname"}, "rkey": {"N": "12341236"}}
-    )
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341235"},
+    } in table_items
+    assert {
+        "hkey": {"S": "customer"},
+        "name": {"S": "myname"},
+        "rkey": {"N": "12341236"},
+    } in table_items
 
 
 def test_batch_get_item_without_range_key(test_client):
@@ -1213,12 +1222,12 @@ def test_batch_get_item_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)["Responses"]
 
-    res.should.have.key("UnprocessedKeys").equal({})
+    assert res["UnprocessedKeys"] == {}
     table_items = [i["Item"] for i in res[TABLE_NAME]["Items"]]
-    table_items.should.have.length_of(2)
+    assert len(table_items) == 2
 
-    table_items.should.contain({"hkey": {"S": "customer1"}, "name": {"S": "myname"}})
-    table_items.should.contain({"hkey": {"S": "customer3"}, "name": {"S": "myname"}})
+    assert {"hkey": {"S": "customer1"}, "name": {"S": "myname"}} in table_items
+    assert {"hkey": {"S": "customer3"}, "name": {"S": "myname"}} in table_items
 
 
 def test_batch_write_item(test_client):
@@ -1256,7 +1265,7 @@ def test_batch_write_item(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(2)
+    assert res["Count"] == 2
 
 
 def test_batch_write_item_without_range_key(test_client):
@@ -1286,7 +1295,7 @@ def test_batch_write_item_without_range_key(test_client):
     res = test_client.post("/", headers=headers, json=request_body)
     res = json.loads(res.data)
 
-    res.should.have.key("Count").equal(2)
+    assert res["Count"] == 2
 
 
 def put_item(

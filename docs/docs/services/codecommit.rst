@@ -70,6 +70,7 @@ codecommit
 - [ ] list_approval_rule_templates
 - [ ] list_associated_approval_rule_templates_for_repository
 - [ ] list_branches
+- [ ] list_file_commit_history
 - [ ] list_pull_requests
 - [ ] list_repositories
 - [ ] list_repositories_for_approval_rule_template

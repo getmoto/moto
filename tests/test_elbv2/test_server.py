@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 
 """
@@ -13,4 +11,4 @@ def test_elbv2_describe_load_balancers():
 
     res = test_client.get("/?Action=DescribeLoadBalancers&Version=2015-12-01")
 
-    res.data.should.contain(b"DescribeLoadBalancersResponse")
+    assert b"DescribeLoadBalancersResponse" in res.data

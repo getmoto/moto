@@ -4,7 +4,7 @@ jobs:
   prepare_list:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: set-matrix
         run: echo "matrix=$(python tests/terraformtests/get_tf_services.py --names)" >> $GITHUB_OUTPUT
     outputs:
@@ -16,11 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         service: ${{ fromJson(needs.prepare_list.outputs.matrix) }}
-        go-version: [1.18.x]
+        go-version: [1.21.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
     - uses: actions/setup-go@v4

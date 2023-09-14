@@ -187,7 +187,7 @@ class DynamoType(object):
             value_size = sum(
                 [bytesize(k) + DynamoType(v).size() for k, v in self.value.items()]
             )
-        elif type(self.value) == bool:
+        elif isinstance(self.value, bool):
             value_size = 1
         else:
             value_size = bytesize(self.value)
@@ -302,7 +302,14 @@ class Item(BaseModel):
     def to_json(self) -> Dict[str, Any]:
         attributes = {}
         for attribute_key, attribute in self.attrs.items():
-            attributes[attribute_key] = {attribute.type: attribute.value}
+            if isinstance(attribute.value, dict):
+                attr_value = {
+                    key: value.to_regular_json()
+                    for key, value in attribute.value.items()
+                }
+                attributes[attribute_key] = {attribute.type: attr_value}
+            else:
+                attributes[attribute_key] = {attribute.type: attribute.value}
 
         return {"Attributes": attributes}
 
@@ -411,13 +418,12 @@ class Item(BaseModel):
                     f"{action} action not support for update_with_attribute_updates"
                 )
 
-    def project(self, projection_expression: str) -> "Item":
+    def project(self, projection_expressions: List[List[str]]) -> "Item":
         # Returns a new Item with only the dictionary-keys that match the provided projection_expression
         # Will return an empty Item if the expression does not match anything
         result: Dict[str, Any] = dict()
-        expressions = [x.strip() for x in projection_expression.split(",")]
-        for expr in expressions:
-            x = find_nested_key(expr.split("."), self.to_regular_json())
+        for expr in projection_expressions:
+            x = find_nested_key(expr, self.to_regular_json())
             merge_dicts(result, x)
 
         return Item(

@@ -8,11 +8,12 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization, hashes
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple, Optional, Pattern, Iterable
+from typing import Any, Dict, List, Tuple, Optional, Pattern, Iterable, TYPE_CHECKING
 
 from .utils import PAGINATION_MODEL
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from .exceptions import (
@@ -26,6 +27,9 @@ from .exceptions import (
     VersionsLimitExceededException,
     ThingStillAttached,
 )
+
+if TYPE_CHECKING:
+    from moto.iotdata.models import FakeShadow
 
 
 class FakeThing(BaseModel):
@@ -46,7 +50,7 @@ class FakeThing(BaseModel):
         # TODO: we need to handle "version"?
 
         # for iot-data
-        self.thing_shadow: Any = None
+        self.thing_shadows: Dict[Optional[str], FakeShadow] = {}
 
     def matches(self, query_string: str) -> bool:
         if query_string == "*":
@@ -59,7 +63,11 @@ class FakeThing(BaseModel):
             return self.attributes.get(k) == v
         return query_string in self.thing_name
 
-    def to_dict(self, include_default_client_id: bool = False) -> Dict[str, Any]:
+    def to_dict(
+        self,
+        include_default_client_id: bool = False,
+        include_connectivity: bool = False,
+    ) -> Dict[str, Any]:
         obj = {
             "thingName": self.thing_name,
             "thingArn": self.arn,
@@ -70,6 +78,11 @@ class FakeThing(BaseModel):
             obj["thingTypeName"] = self.thing_type.thing_type_name
         if include_default_client_id:
             obj["defaultClientId"] = self.thing_name
+        if include_connectivity:
+            obj["connectivity"] = {
+                "connected": True,
+                "timestamp": time.mktime(utcnow().timetuple()),
+            }
         return obj
 
 
@@ -661,8 +674,8 @@ class IoTBackend(BaseBackend):
             .issuer_name(issuer)
             .public_key(key.public_key())
             .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.utcnow())
-            .not_valid_after(datetime.utcnow() + timedelta(days=365))
+            .not_valid_before(utcnow())
+            .not_valid_after(utcnow() + timedelta(days=365))
             .add_extension(x509.SubjectAlternativeName(sans), critical=False)
             .sign(key, hashes.SHA512(), default_backend())
         )
@@ -1164,7 +1177,7 @@ class IoTBackend(BaseBackend):
             if version.version_id == version_id:
                 version.is_default = True
                 policy.default_version_id = version.version_id
-                policy.document = version.document  # type: ignore
+                policy.document = version.document
             else:
                 version.is_default = False
 
@@ -1720,7 +1733,9 @@ class IoTBackend(BaseBackend):
         return job_executions, next_token
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_job_executions_for_thing(self, thing_name: str, status: Optional[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def list_job_executions_for_thing(
+        self, thing_name: str, status: Optional[str]
+    ) -> List[Dict[str, Any]]:
         job_executions = [
             self.job_executions[je].to_dict()
             for je in self.job_executions
@@ -1855,7 +1870,7 @@ class IoTBackend(BaseBackend):
         things = [
             thing for thing in self.things.values() if thing.matches(query_string)
         ]
-        return [t.to_dict() for t in things]
+        return [t.to_dict(include_connectivity=True) for t in things]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

@@ -1,5 +1,4 @@
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.client import ClientError
 from unittest import SkipTest
 
@@ -42,9 +41,10 @@ def test_start_job_run__multiple_runs_allowed():
     # The 6th should fail
     with pytest.raises(ClientError) as exc:
         glue.start_job_run(JobName="somejobname")
-    exc.value.response["Error"]["Code"].should.equal("ConcurrentRunsExceededException")
-    exc.value.response["Error"]["Message"].should.match(
-        "Job with name somejobname already running"
+    assert exc.value.response["Error"]["Code"] == "ConcurrentRunsExceededException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Job with name somejobname already running"
     )
 
 
@@ -62,9 +62,10 @@ def test_start_job_run__single_run_allowed():
     client.start_job_run(JobName=job_name)
     with pytest.raises(ClientError) as exc:
         client.start_job_run(JobName=job_name)
-    exc.value.response["Error"]["Code"].should.equal("ConcurrentRunsExceededException")
-    exc.value.response["Error"]["Message"].should.match(
-        f"Job with name {job_name} already running"
+    assert exc.value.response["Error"]["Code"] == "ConcurrentRunsExceededException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"Job with name {job_name} already running"
     )
 
 
@@ -76,14 +77,14 @@ def test_get_job_run():
     job_run_id = client.start_job_run(JobName=job_name)["JobRunId"]
 
     response = client.get_job_run(JobName=job_name, RunId=job_run_id)
-    response["JobRun"].should.have.key("Id").equals(job_run_id)
+    assert response["JobRun"]["Id"] == job_run_id
     assert response["JobRun"]["Attempt"]
     assert response["JobRun"]["PreviousRunId"]
     assert response["JobRun"]["TriggerName"]
     assert response["JobRun"]["StartedOn"]
     assert response["JobRun"]["LastModifiedOn"]
     assert response["JobRun"]["CompletedOn"]
-    response["JobRun"].should.have.key("JobRunState").equals("SUCCEEDED")
+    assert response["JobRun"]["JobRunState"] == "SUCCEEDED"
     assert response["JobRun"]["Arguments"]
     assert response["JobRun"]["ErrorMessage"] == ""
     assert response["JobRun"]["PredecessorRuns"]
@@ -106,7 +107,7 @@ def test_get_job_run_that_doesnt_exist():
     with pytest.raises(ClientError) as exc:
         client.get_job_run(JobName=job_name, RunId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("EntityNotFoundException")
+    assert err["Code"] == "EntityNotFoundException"
 
 
 @mock_glue
@@ -135,6 +136,7 @@ def test_job_run_transition():
 
 
 def expect_job_state(client, job_name, run_id, expected_state):
-    client.get_job_run(JobName=job_name, RunId=run_id)["JobRun"][
-        "JobRunState"
-    ].should.equal(expected_state)
+    assert (
+        client.get_job_run(JobName=job_name, RunId=run_id)["JobRun"]["JobRunState"]
+        == expected_state
+    )

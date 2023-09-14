@@ -3,7 +3,7 @@ import base64
 import binascii
 import re
 import hashlib
-from urllib.parse import urlparse, unquote, quote
+from urllib.parse import urlparse
 from requests.structures import CaseInsensitiveDict
 from typing import Any, Dict, List, Iterator, Union, Tuple, Optional
 import sys
@@ -36,6 +36,7 @@ STORAGE_CLASS = [
     "ONEZONE_IA",
     "INTELLIGENT_TIERING",
 ] + ARCHIVE_STORAGE_CLASSES
+LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 
 
 def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
@@ -100,18 +101,10 @@ def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # ty
             if meta_key:
                 metadata[meta_key] = (
                     headers[header][0]
-                    if type(headers[header]) == list
+                    if isinstance(headers[header], list)
                     else headers[header]
                 )
     return metadata
-
-
-def clean_key_name(key_name: str) -> str:
-    return unquote(key_name)
-
-
-def undo_clean_key_name(key_name: str) -> str:
-    return quote(key_name)
 
 
 class _VersionedKeyStore(dict):  # type: ignore
@@ -199,7 +192,15 @@ class _VersionedKeyStore(dict):  # type: ignore
 def compute_checksum(body: bytes, algorithm: str) -> bytes:
     if algorithm == "SHA1":
         hashed_body = _hash(hashlib.sha1, (body,))
-    elif algorithm == "CRC32" or algorithm == "CRC32C":
+    elif algorithm == "CRC32C":
+        try:
+            import crc32c
+
+            hashed_body = crc32c.crc32c(body).to_bytes(4, "big")
+        except:  # noqa: E722 Do not use bare except
+            # Optional library Can't be found - just revert to CRC32
+            hashed_body = binascii.crc32(body).to_bytes(4, "big")
+    elif algorithm == "CRC32":
         hashed_body = binascii.crc32(body).to_bytes(4, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))

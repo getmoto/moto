@@ -71,6 +71,18 @@ class IdentityStoreBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "MembershipId",
         },
+        "list_groups": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "GroupId",
+        },
+        "list_users": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "UserId",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:
@@ -215,10 +227,8 @@ class IdentityStoreBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_group_memberships(
-        self,
-        identity_store_id: str,
-        group_id: str,
-    ) -> List[Any]:  # type: ignore
+        self, identity_store_id: str, group_id: str
+    ) -> List[Any]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         return [
@@ -226,6 +236,49 @@ class IdentityStoreBackend(BaseBackend):
             for m in identity_store.group_memberships.values()
             if m["GroupId"] == group_id
         ]
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_groups(
+        self, identity_store_id: str, filters: List[Dict[str, str]]
+    ) -> List[Dict[str, str]]:
+        identity_store = self.__get_identity_store(identity_store_id)
+
+        if filters:
+            if filters[0].get("AttributePath") == "DisplayName":
+                displayname = filters[0].get("AttributeValue")
+                return [
+                    m
+                    for m in identity_store.groups.values()
+                    if m["DisplayName"] == displayname
+                ]
+
+        return [m for m in identity_store.groups.values()]
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_users(
+        self, identity_store_id: str, filters: List[Dict[str, str]]
+    ) -> List[Dict[str, str]]:
+        identity_store = self.__get_identity_store(identity_store_id)
+
+        users = []
+        if filters:
+            if filters[0].get("AttributePath") == "UserName":
+                username = filters[0].get("AttributeValue")
+
+                for m in identity_store.users.values():
+                    if m.UserName == username:
+                        user = m._asdict()
+                        if user.get("Name"):
+                            user["Name"] = m.Name._asdict()  # type: ignore
+                        users.append(user)
+                return users
+
+        for m in identity_store.users.values():
+            user = m._asdict()
+            if user.get("Name"):
+                user["Name"] = m.Name._asdict()  # type: ignore
+            users.append(user)
+        return users
 
     def delete_group_membership(
         self, identity_store_id: str, membership_id: str

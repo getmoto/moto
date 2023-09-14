@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 from moto.moto_api._internal import mock_random
 
 
@@ -9,15 +8,15 @@ def test_semi_random_uuids():
     # Seed our generator - the next generation should be predetermined
     mock_random.seed(42)
     fixed_uuid = str(mock_random.uuid4())
-    fixed_uuid.should.equal("bdd640fb-0667-4ad1-9c80-317fa3b1799d")
+    assert fixed_uuid == "bdd640fb-0667-4ad1-9c80-317fa3b1799d"
 
     # Ensure they are different
-    fixed_uuid.shouldnt.equal(random_uuid)
+    assert fixed_uuid != random_uuid
 
     # Retrieving another 'fixed' UUID should not return a known UUID
     second_fixed = str(mock_random.uuid4())
-    second_fixed.shouldnt.equal(random_uuid)
-    second_fixed.shouldnt.equal(fixed_uuid)
+    assert second_fixed != random_uuid
+    assert second_fixed != fixed_uuid
 
 
 def test_semi_random_hex_strings():
@@ -27,12 +26,12 @@ def test_semi_random_hex_strings():
     # Seed our generator - the next generation should be predetermined
     mock_random.seed(42)
     fixed_hex = mock_random.get_random_hex()
-    fixed_hex.should.equal("30877432")
+    assert fixed_hex == "30877432"
 
     # Ensure they are different
-    fixed_hex.shouldnt.equal(random_hex)
+    assert fixed_hex != random_hex
 
     # Retrieving another 'fixed' UUID should not return a known UUID
     second_hex = mock_random.uuid4()
-    second_hex.shouldnt.equal(random_hex)
-    second_hex.shouldnt.equal(fixed_hex)
+    assert second_hex != random_hex
+    assert second_hex != fixed_hex

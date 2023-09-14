@@ -1,9 +1,9 @@
 import boto3
 from botocore.exceptions import ClientError
-from moto import mock_sns
-import sure  # noqa # pylint: disable=unused-import
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import pytest
+
+from moto import mock_sns
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_sns
@@ -18,7 +18,7 @@ def test_create_platform_application():
         },
     )
     application_arn = response["PlatformApplicationArn"]
-    application_arn.should.equal(
+    assert application_arn == (
         f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:app/APNS/my-application"
     )
 
@@ -38,20 +38,17 @@ def test_get_platform_application_attributes():
     attributes = conn.get_platform_application_attributes(PlatformApplicationArn=arn)[
         "Attributes"
     ]
-    attributes.should.equal(
-        {
-            "PlatformCredential": "platform_credential",
-            "PlatformPrincipal": "platform_principal",
-        }
-    )
+    assert attributes == {
+        "PlatformCredential": "platform_credential",
+        "PlatformPrincipal": "platform_principal",
+    }
 
 
 @mock_sns
 def test_get_missing_platform_application_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.get_platform_application_attributes.when.called_with(
-        PlatformApplicationArn="a-fake-arn"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.get_platform_application_attributes(PlatformApplicationArn="a-fake-arn")
 
 
 @mock_sns
@@ -72,7 +69,7 @@ def test_set_platform_application_attributes():
     attributes = conn.get_platform_application_attributes(PlatformApplicationArn=arn)[
         "Attributes"
     ]
-    attributes.should.equal(
+    assert attributes == (
         {"PlatformCredential": "platform_credential", "PlatformPrincipal": "other"}
     )
 
@@ -89,7 +86,7 @@ def test_list_platform_applications():
 
     applications_response = conn.list_platform_applications()
     applications = applications_response["PlatformApplications"]
-    applications.should.have.length_of(2)
+    assert len(applications) == 2
 
 
 @mock_sns
@@ -104,14 +101,14 @@ def test_delete_platform_application():
 
     applications_response = conn.list_platform_applications()
     applications = applications_response["PlatformApplications"]
-    applications.should.have.length_of(2)
+    assert len(applications) == 2
 
     application_arn = applications[0]["PlatformApplicationArn"]
     conn.delete_platform_application(PlatformApplicationArn=application_arn)
 
     applications_response = conn.list_platform_applications()
     applications = applications_response["PlatformApplications"]
-    applications.should.have.length_of(1)
+    assert len(applications) == 1
 
 
 @mock_sns
@@ -130,8 +127,9 @@ def test_create_platform_endpoint():
     )
 
     endpoint_arn = endpoint["EndpointArn"]
-    endpoint_arn.should.contain(
+    assert (
         f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:endpoint/APNS/my-application/"
+        in endpoint_arn
     )
 
 
@@ -150,12 +148,13 @@ def test_create_duplicate_platform_endpoint():
         Attributes={"Enabled": "false"},
     )
 
-    conn.create_platform_endpoint.when.called_with(
-        PlatformApplicationArn=application_arn,
-        Token="some_unique_id",
-        CustomUserData="some user data",
-        Attributes={"Enabled": "true"},
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.create_platform_endpoint(
+            PlatformApplicationArn=application_arn,
+            Token="some_unique_id",
+            CustomUserData="some user data",
+            Attributes={"Enabled": "true"},
+        )
 
 
 @mock_sns
@@ -182,7 +181,7 @@ def test_create_duplicate_platform_endpoint_with_same_attributes():
     )
     endpoint_arn = endpoint["EndpointArn"]
 
-    endpoint_arn.should.equal(created_endpoint_arn)
+    assert endpoint_arn == created_endpoint_arn
 
 
 @mock_sns
@@ -205,9 +204,9 @@ def test_get_list_endpoints_by_platform_application():
         PlatformApplicationArn=application_arn
     )["Endpoints"]
 
-    endpoint_list.should.have.length_of(1)
-    endpoint_list[0]["Attributes"]["CustomUserData"].should.equal("some data")
-    endpoint_list[0]["EndpointArn"].should.equal(endpoint_arn)
+    assert len(endpoint_list) == 1
+    assert endpoint_list[0]["Attributes"]["CustomUserData"] == "some data"
+    assert endpoint_list[0]["EndpointArn"] == endpoint_arn
 
 
 @mock_sns
@@ -227,7 +226,7 @@ def test_get_endpoint_attributes():
     endpoint_arn = endpoint["EndpointArn"]
 
     attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)["Attributes"]
-    attributes.should.equal(
+    assert attributes == (
         {"Token": "some_unique_id", "Enabled": "false", "CustomUserData": "some data"}
     )
 
@@ -235,21 +234,23 @@ def test_get_endpoint_attributes():
 @mock_sns
 def test_get_non_existent_endpoint_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
-    endpoint_arn = "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application/c1f76c42-192a-4e75-b04f-a9268ce2abf3"
+    endpoint_arn = (
+        "arn:aws:sns:us-east-1:123456789012:endpoint/APNS/my-application"
+        "/c1f76c42-192a-4e75-b04f-a9268ce2abf3"
+    )
     with pytest.raises(conn.exceptions.NotFoundException) as excinfo:
         conn.get_endpoint_attributes(EndpointArn=endpoint_arn)
     error = excinfo.value.response["Error"]
-    error["Type"].should.equal("Sender")
-    error["Code"].should.equal("NotFound")
-    error["Message"].should.equal("Endpoint does not exist")
+    assert error["Type"] == "Sender"
+    assert error["Code"] == "NotFound"
+    assert error["Message"] == "Endpoint does not exist"
 
 
 @mock_sns
 def test_get_missing_endpoint_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.get_endpoint_attributes.when.called_with(
-        EndpointArn="a-fake-arn"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.get_endpoint_attributes(EndpointArn="a-fake-arn")
 
 
 @mock_sns
@@ -272,7 +273,7 @@ def test_set_endpoint_attributes():
         EndpointArn=endpoint_arn, Attributes={"CustomUserData": "other data"}
     )
     attributes = conn.get_endpoint_attributes(EndpointArn=endpoint_arn)["Attributes"]
-    attributes.should.equal(
+    assert attributes == (
         {"Token": "some_unique_id", "Enabled": "false", "CustomUserData": "other data"}
     )
 
@@ -291,15 +292,25 @@ def test_delete_endpoint():
         Attributes={"Enabled": "true"},
     )
 
-    conn.list_endpoints_by_platform_application(PlatformApplicationArn=application_arn)[
-        "Endpoints"
-    ].should.have.length_of(1)
+    assert (
+        len(
+            conn.list_endpoints_by_platform_application(
+                PlatformApplicationArn=application_arn
+            )["Endpoints"]
+        )
+        == 1
+    )
 
     conn.delete_endpoint(EndpointArn=endpoint["EndpointArn"])
 
-    conn.list_endpoints_by_platform_application(PlatformApplicationArn=application_arn)[
-        "Endpoints"
-    ].should.have.length_of(0)
+    assert (
+        len(
+            conn.list_endpoints_by_platform_application(
+                PlatformApplicationArn=application_arn
+            )["Endpoints"]
+        )
+        == 0
+    )
 
 
 @mock_sns
@@ -341,9 +352,10 @@ def test_publish_to_disabled_platform_endpoint():
 
     endpoint_arn = endpoint["EndpointArn"]
 
-    conn.publish.when.called_with(
-        Message="some message", MessageStructure="json", TargetArn=endpoint_arn
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.publish(
+            Message="some message", MessageStructure="json", TargetArn=endpoint_arn
+        )
 
 
 @mock_sns
@@ -355,11 +367,11 @@ def test_set_sms_attributes():
     )
 
     response = conn.get_sms_attributes()
-    response.should.contain("attributes")
-    response["attributes"].should.contain("DefaultSMSType")
-    response["attributes"].should.contain("test")
-    response["attributes"]["DefaultSMSType"].should.equal("Transactional")
-    response["attributes"]["test"].should.equal("test")
+    assert "attributes" in response
+    assert "DefaultSMSType" in response["attributes"]
+    assert "test" in response["attributes"]
+    assert response["attributes"]["DefaultSMSType"] == "Transactional"
+    assert response["attributes"]["test"] == "test"
 
 
 @mock_sns
@@ -371,10 +383,10 @@ def test_get_sms_attributes_filtered():
     )
 
     response = conn.get_sms_attributes(attributes=["DefaultSMSType"])
-    response.should.contain("attributes")
-    response["attributes"].should.contain("DefaultSMSType")
-    response["attributes"].should_not.contain("test")
-    response["attributes"]["DefaultSMSType"].should.equal("Transactional")
+    assert "attributes" in response
+    assert "DefaultSMSType" in response["attributes"]
+    assert "test" not in response["attributes"]
+    assert response["attributes"]["DefaultSMSType"] == "Transactional"
 
 
 @mock_sns
@@ -395,6 +407,6 @@ def test_delete_endpoints_of_delete_app():
     with pytest.raises(conn.exceptions.NotFoundException) as excinfo:
         conn.get_endpoint_attributes(EndpointArn=endpoint_arn)
     error = excinfo.value.response["Error"]
-    error["Type"].should.equal("Sender")
-    error["Code"].should.equal("NotFound")
-    error["Message"].should.equal("Endpoint does not exist")
+    assert error["Type"] == "Sender"
+    assert error["Code"] == "NotFound"
+    assert error["Message"] == "Endpoint does not exist"

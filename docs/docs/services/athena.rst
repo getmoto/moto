@@ -92,7 +92,7 @@ athena
                 "http://motoapi.amazonaws.com:5000/moto-api/static/athena/query-results",
                 json=expected_results,
             )
-            resp.status_code.should.equal(201)
+            assert resp.status_code == 201
 
             client = boto3.client("athena", region_name="us-east-1")
             details = client.get_query_execution(QueryExecutionId="any_id")["QueryExecution"]

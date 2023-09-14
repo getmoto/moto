@@ -1,12 +1,12 @@
-import boto3
 import json
+from unittest import SkipTest
+
+import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_iam, mock_s3, mock_sts, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID, set_initial_no_auth_action_count
-from unittest import SkipTest
 
 
 @mock_s3
@@ -15,15 +15,15 @@ def test_load_unexisting_object_without_auth_should_return_403():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
 
-    """Head an S3 object we should have no access to."""
+    # Head an S3 object we should have no access to.
     resource = boto3.resource("s3", region_name="us-east-1")
 
     obj = resource.Object("myfakebucket", "myfakekey")
     with pytest.raises(ClientError) as ex:
         obj.load()
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidAccessKeyId")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidAccessKeyId"
+    assert err["Message"] == (
         "The AWS Access Key Id you provided does not exist in our records."
     )
 
@@ -38,12 +38,12 @@ def test_head_bucket_with_correct_credentials():
     iam_keys = create_user_with_access_key_and_policy()
 
     # This S3-client has correct credentials
-    s3 = boto3.client(
+    s3_client = boto3.client(
         "s3",
         aws_access_key_id=iam_keys["AccessKeyId"],
         aws_secret_access_key=iam_keys["SecretAccessKey"],
     )
-    s3.create_bucket(Bucket="mock_bucket")
+    s3_client.create_bucket(Bucket="mock_bucket")
 
     # Calling head_bucket with the correct credentials works
     my_head_bucket(
@@ -52,10 +52,11 @@ def test_head_bucket_with_correct_credentials():
         aws_secret_access_key=iam_keys["SecretAccessKey"],
     )
 
-    # Verify we can make calls that contain a querystring
-    # Specifically, verify that we are able to build/match the AWS signature for a URL with a querystring
-    s3.get_bucket_location(Bucket="mock_bucket")
-    s3.list_objects_v2(Bucket="mock_bucket")
+    # Verify we can make calls that contain a querystring.  Specifically,
+    # verify that we are able to build/match the AWS signature for a URL
+    # with a querystring.
+    s3_client.get_bucket_location(Bucket="mock_bucket")
+    s3_client.list_objects_v2(Bucket="mock_bucket")
 
 
 @set_initial_no_auth_action_count(4)
@@ -68,12 +69,12 @@ def test_head_bucket_with_incorrect_credentials():
     iam_keys = create_user_with_access_key_and_policy()
 
     # Create the bucket with correct credentials
-    s3 = boto3.client(
+    s3_client = boto3.client(
         "s3",
         aws_access_key_id=iam_keys["AccessKeyId"],
         aws_secret_access_key=iam_keys["SecretAccessKey"],
     )
-    s3.create_bucket(Bucket="mock_bucket")
+    s3_client.create_bucket(Bucket="mock_bucket")
 
     # Call head_bucket with incorrect credentials
     with pytest.raises(ClientError) as ex:
@@ -83,8 +84,8 @@ def test_head_bucket_with_incorrect_credentials():
             aws_secret_access_key="invalid",
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("SignatureDoesNotMatch")
-    err["Message"].should.equal(
+    assert err["Code"] == "SignatureDoesNotMatch"
+    assert err["Message"] == (
         "The request signature we calculated does not match the signature you provided. "
         "Check your key and signing method."
     )
@@ -200,12 +201,13 @@ def test_delete_objects_without_access_throws_custom_error():
     )
     bucket = s3_resource.Bucket(bucket_name)
 
-    # This action is not allowed
-    # It should return a 200-response, with the body indicating that we do not have access
+    # This action is not allowed.
+    # It should return a 200-response, with the body indicating that we
+    # do not have access.
     response = bucket.objects.filter(Prefix="some/prefix").delete()[0]
-    response.should.have.key("Errors").length_of(1)
+    assert len(response["Errors"]) == 1
 
     error = response["Errors"][0]
-    error.should.have.key("Key").equals("some/prefix/test_file.txt")
-    error.should.have.key("Code").equals("AccessDenied")
-    error.should.have.key("Message").equals("Access Denied")
+    assert error["Key"] == "some/prefix/test_file.txt"
+    assert error["Code"] == "AccessDenied"
+    assert error["Message"] == "Access Denied"

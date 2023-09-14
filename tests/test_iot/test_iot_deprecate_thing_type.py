@@ -14,16 +14,16 @@ def test_deprecate_undeprecate_thing_type():
     )
 
     res = client.describe_thing_type(thingTypeName=thing_type_name)
-    res["thingTypeMetadata"]["deprecated"].should.equal(False)
+    assert res["thingTypeMetadata"]["deprecated"] is False
     client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=False)
 
     res = client.describe_thing_type(thingTypeName=thing_type_name)
-    res["thingTypeMetadata"]["deprecated"].should.equal(True)
+    assert res["thingTypeMetadata"]["deprecated"] is True
 
     client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=True)
 
     res = client.describe_thing_type(thingTypeName=thing_type_name)
-    res["thingTypeMetadata"]["deprecated"].should.equal(False)
+    assert res["thingTypeMetadata"]["deprecated"] is False
 
 
 @mock_iot

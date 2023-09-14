@@ -58,6 +58,7 @@ ce
 - [ ] get_reservation_purchase_recommendation
 - [ ] get_reservation_utilization
 - [ ] get_rightsizing_recommendation
+- [ ] get_savings_plan_purchase_recommendation_details
 - [ ] get_savings_plans_coverage
 - [ ] get_savings_plans_purchase_recommendation
 - [ ] get_savings_plans_utilization

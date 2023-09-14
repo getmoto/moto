@@ -13,7 +13,7 @@ from .models import (
     Dimension,
     FakeAlarm,
 )
-from .exceptions import InvalidParameterCombination
+from .exceptions import InvalidParameterCombination, ValidationError
 
 
 ERROR_RESPONSE = Tuple[str, Dict[str, int]]
@@ -176,11 +176,18 @@ class CloudWatchResponse(BaseResponse):
 
     @amzn_request_id
     def get_metric_data(self) -> str:
-        start = dtparse(self._get_param("StartTime"))
-        end = dtparse(self._get_param("EndTime"))
-        scan_by = self._get_param("ScanBy")
+        params = self._get_params()
+        start = dtparse(params["StartTime"])
+        end = dtparse(params["EndTime"])
+        scan_by = params.get("ScanBy") or "TimestampDescending"
 
-        queries = self._get_list_prefix("MetricDataQueries.member")
+        queries = params.get("MetricDataQueries", [])
+        for query in queries:
+            if "MetricStat" not in query and "Expression" not in query:
+                # AWS also returns the empty line
+                raise ValidationError(
+                    "The parameter MetricDataQueries.member.1.MetricStat is required.\n"
+                )
         results = self.cloudwatch_backend.get_metric_data(
             start_time=start, end_time=end, queries=queries, scan_by=scan_by
         )

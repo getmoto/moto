@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_kinesis, mock_cloudformation
 
@@ -17,8 +16,8 @@ def test_kinesis_cloudformation_create_stream():
     provisioned_resource = cf_conn.list_stack_resources(StackName=stack_name)[
         "StackResourceSummaries"
     ][0]
-    provisioned_resource["LogicalResourceId"].should.equal("MyStream")
-    len(provisioned_resource["PhysicalResourceId"]).should.be.greater_than(0)
+    assert provisioned_resource["LogicalResourceId"] == "MyStream"
+    assert len(provisioned_resource["PhysicalResourceId"]) > 0
 
 
 @mock_cloudformation
@@ -56,7 +55,7 @@ Outputs:
     stream_description = kinesis_conn.describe_stream(StreamName=output_stream_name)[
         "StreamDescription"
     ]
-    output_stream_arn.should.equal(stream_description["StreamARN"])
+    assert output_stream_arn == stream_description["StreamARN"]
 
 
 @mock_cloudformation
@@ -83,19 +82,19 @@ Resources:
 
     cf_conn.create_stack(StackName=stack_name, TemplateBody=template)
     stack_description = cf_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack_description["StackName"].should.equal(stack_name)
+    assert stack_description["StackName"] == stack_name
 
     kinesis_conn = boto3.client("kinesis", region_name="us-east-1")
     stream_description = kinesis_conn.describe_stream(StreamName="MyStream")[
         "StreamDescription"
     ]
-    stream_description["RetentionPeriodHours"].should.equal(48)
+    assert stream_description["RetentionPeriodHours"] == 48
 
     tags = kinesis_conn.list_tags_for_stream(StreamName="MyStream")["Tags"]
     tag1_value = [tag for tag in tags if tag["Key"] == "TagKey1"][0]["Value"]
     tag2_value = [tag for tag in tags if tag["Key"] == "TagKey2"][0]["Value"]
-    tag1_value.should.equal("TagValue1")
-    tag2_value.should.equal("TagValue2")
+    assert tag1_value == "TagValue1"
+    assert tag2_value == "TagValue2"
 
     shards_provisioned = len(
         [
@@ -104,7 +103,7 @@ Resources:
             if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
         ]
     )
-    shards_provisioned.should.equal(4)
+    assert shards_provisioned == 4
 
     template = """
     Resources:
@@ -125,13 +124,13 @@ Resources:
     stream_description = kinesis_conn.describe_stream(StreamName="MyStream")[
         "StreamDescription"
     ]
-    stream_description["RetentionPeriodHours"].should.equal(24)
+    assert stream_description["RetentionPeriodHours"] == 24
 
     tags = kinesis_conn.list_tags_for_stream(StreamName="MyStream")["Tags"]
     tag1_value = [tag for tag in tags if tag["Key"] == "TagKey1"][0]["Value"]
     tag2_value = [tag for tag in tags if tag["Key"] == "TagKey2"][0]["Value"]
-    tag1_value.should.equal("TagValue1a")
-    tag2_value.should.equal("TagValue2a")
+    assert tag1_value == "TagValue1a"
+    assert tag2_value == "TagValue2a"
 
     shards_provisioned = len(
         [
@@ -140,7 +139,7 @@ Resources:
             if "EndingSequenceNumber" not in shard["SequenceNumberRange"]
         ]
     )
-    shards_provisioned.should.equal(6)
+    assert shards_provisioned == 6
 
 
 @mock_cloudformation
@@ -160,14 +159,14 @@ Resources:
 
     cf_conn.create_stack(StackName=stack_name, TemplateBody=template)
     stack_description = cf_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack_description["StackName"].should.equal(stack_name)
+    assert stack_description["StackName"] == stack_name
 
     kinesis_conn = boto3.client("kinesis", region_name="us-east-1")
     stream_description = kinesis_conn.describe_stream(StreamName="MyStream")[
         "StreamDescription"
     ]
-    stream_description["StreamName"].should.equal("MyStream")
+    assert stream_description["StreamName"] == "MyStream"
 
     cf_conn.delete_stack(StackName=stack_name)
     streams = kinesis_conn.list_streams()["StreamNames"]
-    len(streams).should.equal(0)
+    assert len(streams) == 0

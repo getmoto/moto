@@ -60,6 +60,8 @@ class MQResponse(BaseResponse):
             return self.create_tags()
         if request.method == "DELETE":
             return self.delete_tags()
+        if request.method == "GET":
+            return self.list_tags()
 
     def user(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
@@ -258,6 +260,11 @@ class MQResponse(BaseResponse):
         tag_keys = self._get_param("tagKeys")
         self.mq_backend.delete_tags(resource_arn, tag_keys)
         return 200, {}, "{}"
+
+    def list_tags(self) -> TYPE_RESPONSE:
+        resource_arn = unquote(self.path.split("/")[-1])
+        tags = self.mq_backend.list_tags(resource_arn)
+        return 200, {}, json.dumps({"tags": tags})
 
     def reboot(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)

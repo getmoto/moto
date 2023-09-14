@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Iterable, Optional
 from botocore.exceptions import ParamValidationError
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
     ImageNotFoundException,
     RepositoryNotFoundException,
@@ -81,7 +81,7 @@ class Repository(BaseObject, CloudFormationModel):
             f"arn:aws:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
         )
         self.name = repository_name
-        self.created_at = datetime.utcnow()
+        self.created_at = utcnow()
         self.uri = (
             f"{self.registry_id}.dkr.ecr.{region_name}.amazonaws.com/{repository_name}"
         )
@@ -920,9 +920,7 @@ class ECRBackend(BaseBackend):
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "lifecyclePolicyText": repo.lifecycle_policy,
-            "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(
-                datetime.utcnow()
-            ),
+            "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(utcnow()),
         }
 
     def delete_lifecycle_policy(
@@ -940,9 +938,7 @@ class ECRBackend(BaseBackend):
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "lifecyclePolicyText": policy,
-            "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(
-                datetime.utcnow()
-            ),
+            "lastEvaluatedAt": iso_8601_datetime_without_milliseconds(utcnow()),
         }
 
     def _validate_registry_policy_action(self, policy_text: str) -> None:
@@ -1053,7 +1049,7 @@ class ECRBackend(BaseBackend):
                     image.last_scan
                 ),
                 "vulnerabilitySourceUpdatedAt": iso_8601_datetime_without_milliseconds(
-                    datetime.utcnow()
+                    utcnow()
                 ),
                 "findings": [
                     {

@@ -89,7 +89,7 @@ class Op:
         self.lhs = lhs
         self.rhs = rhs
 
-    def expr(self, item: Optional[Item]) -> bool:  # type: ignore
+    def expr(self, item: Optional[Item]) -> bool:
         raise NotImplementedError(f"Expr not defined for {type(self)}")
 
     def __repr__(self) -> str:
@@ -862,10 +862,10 @@ class ConditionExpressionParser:
 
 
 class Operand:
-    def expr(self, item: Optional[Item]) -> Any:  # type: ignore
+    def expr(self, item: Optional[Item]) -> Any:
         raise NotImplementedError
 
-    def get_type(self, item: Optional[Item]) -> Optional[str]:  # type: ignore
+    def get_type(self, item: Optional[Item]) -> Optional[str]:
         raise NotImplementedError
 
 

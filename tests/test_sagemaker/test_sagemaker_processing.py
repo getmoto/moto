@@ -1,6 +1,8 @@
+import datetime
+import re
+
 import boto3
 from botocore.exceptions import ClientError
-import datetime
 import pytest
 
 from moto import mock_sagemaker
@@ -18,7 +20,7 @@ def fixture_sagemaker_client():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-class MyProcessingJobModel(object):
+class MyProcessingJobModel:
     def __init__(
         self,
         processing_job_name,
@@ -129,16 +131,18 @@ def test_create_processing_job(sagemaker_client):
         stopping_condition=stopping_condition,
     )
     resp = job.save(sagemaker_client)
-    resp["ProcessingJobArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$",
+        resp["ProcessingJobArn"],
     )
 
     resp = sagemaker_client.describe_processing_job(
         ProcessingJobName=FAKE_PROCESSING_JOB_NAME
     )
-    resp["ProcessingJobName"].should.equal(FAKE_PROCESSING_JOB_NAME)
-    resp["ProcessingJobArn"].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$"
+    assert resp["ProcessingJobName"] == FAKE_PROCESSING_JOB_NAME
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$",
+        resp["ProcessingJobArn"],
     )
     assert "python3" in resp["AppSpecification"]["ContainerEntrypoint"]
     assert "app.py" in resp["AppSpecification"]["ContainerEntrypoint"]
@@ -154,15 +158,15 @@ def test_list_processing_jobs(sagemaker_client):
     )
     test_processing_job.save(sagemaker_client)
     processing_jobs = sagemaker_client.list_processing_jobs()
-    assert len(processing_jobs["ProcessingJobSummaries"]).should.equal(1)
-    assert processing_jobs["ProcessingJobSummaries"][0][
-        "ProcessingJobName"
-    ].should.equal(FAKE_PROCESSING_JOB_NAME)
+    assert len(processing_jobs["ProcessingJobSummaries"]) == 1
+    assert (
+        processing_jobs["ProcessingJobSummaries"][0]["ProcessingJobName"]
+        == FAKE_PROCESSING_JOB_NAME
+    )
 
-    assert processing_jobs["ProcessingJobSummaries"][0][
-        "ProcessingJobArn"
-    ].should.match(
-        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$"
+    assert re.match(
+        rf"^arn:aws:sagemaker:.*:.*:processing-job/{FAKE_PROCESSING_JOB_NAME}$",
+        processing_jobs["ProcessingJobSummaries"][0]["ProcessingJobArn"],
     )
     assert processing_jobs.get("NextToken") is None
 
@@ -182,23 +186,28 @@ def test_list_processing_jobs_multiple(sagemaker_client):
     )
     test_processing_job_2.save(sagemaker_client)
     processing_jobs_limit = sagemaker_client.list_processing_jobs(MaxResults=1)
-    assert len(processing_jobs_limit["ProcessingJobSummaries"]).should.equal(1)
+    assert len(processing_jobs_limit["ProcessingJobSummaries"]) == 1
 
     processing_jobs = sagemaker_client.list_processing_jobs()
-    assert len(processing_jobs["ProcessingJobSummaries"]).should.equal(2)
-    assert processing_jobs.get("NextToken").should.be.none
+    assert len(processing_jobs["ProcessingJobSummaries"]) == 2
+    assert processing_jobs.get("NextToken") is None
 
 
 def test_list_processing_jobs_none(sagemaker_client):
     processing_jobs = sagemaker_client.list_processing_jobs()
-    assert len(processing_jobs["ProcessingJobSummaries"]).should.equal(0)
+    assert len(processing_jobs["ProcessingJobSummaries"]) == 0
 
 
 def test_list_processing_jobs_should_validate_input(sagemaker_client):
     junk_status_equals = "blah"
     with pytest.raises(ClientError) as ex:
         sagemaker_client.list_processing_jobs(StatusEquals=junk_status_equals)
-    expected_error = f"1 validation errors detected: Value '{junk_status_equals}' at 'statusEquals' failed to satisfy constraint: Member must satisfy enum value set: ['Completed', 'Stopped', 'InProgress', 'Stopping', 'Failed']"
+    expected_error = (
+        f"1 validation errors detected: Value '{junk_status_equals}' at "
+        "'statusEquals' failed to satisfy constraint: Member must satisfy "
+        "enum value set: ['Completed', 'Stopped', 'InProgress', 'Stopping', "
+        "'Failed']"
+    )
     assert ex.value.response["Error"]["Code"] == "ValidationException"
     assert ex.value.response["Error"]["Message"] == expected_error
 
@@ -230,10 +239,10 @@ def test_list_processing_jobs_with_name_filters(sagemaker_client):
     xgboost_processing_jobs = sagemaker_client.list_processing_jobs(
         NameContains="xgboost"
     )
-    assert len(xgboost_processing_jobs["ProcessingJobSummaries"]).should.equal(5)
+    assert len(xgboost_processing_jobs["ProcessingJobSummaries"]) == 5
 
     processing_jobs_with_2 = sagemaker_client.list_processing_jobs(NameContains="2")
-    assert len(processing_jobs_with_2["ProcessingJobSummaries"]).should.equal(2)
+    assert len(processing_jobs_with_2["ProcessingJobSummaries"]) == 2
 
 
 def test_list_processing_jobs_paginated(sagemaker_client):
@@ -247,22 +256,24 @@ def test_list_processing_jobs_paginated(sagemaker_client):
     xgboost_processing_job_1 = sagemaker_client.list_processing_jobs(
         NameContains="xgboost", MaxResults=1
     )
-    assert len(xgboost_processing_job_1["ProcessingJobSummaries"]).should.equal(1)
-    assert xgboost_processing_job_1["ProcessingJobSummaries"][0][
-        "ProcessingJobName"
-    ].should.equal("xgboost-0")
-    assert xgboost_processing_job_1.get("NextToken").should_not.be.none
+    assert len(xgboost_processing_job_1["ProcessingJobSummaries"]) == 1
+    assert (
+        xgboost_processing_job_1["ProcessingJobSummaries"][0]["ProcessingJobName"]
+        == "xgboost-0"
+    )
+    assert xgboost_processing_job_1.get("NextToken") is not None
 
     xgboost_processing_job_next = sagemaker_client.list_processing_jobs(
         NameContains="xgboost",
         MaxResults=1,
         NextToken=xgboost_processing_job_1.get("NextToken"),
     )
-    assert len(xgboost_processing_job_next["ProcessingJobSummaries"]).should.equal(1)
-    assert xgboost_processing_job_next["ProcessingJobSummaries"][0][
-        "ProcessingJobName"
-    ].should.equal("xgboost-1")
-    assert xgboost_processing_job_next.get("NextToken").should_not.be.none
+    assert len(xgboost_processing_job_next["ProcessingJobSummaries"]) == 1
+    assert (
+        xgboost_processing_job_next["ProcessingJobSummaries"][0]["ProcessingJobName"]
+        == "xgboost-1"
+    )
+    assert xgboost_processing_job_next.get("NextToken") is not None
 
 
 def test_list_processing_jobs_paginated_with_target_in_middle(sagemaker_client):
@@ -283,28 +294,30 @@ def test_list_processing_jobs_paginated_with_target_in_middle(sagemaker_client):
     vgg_processing_job_1 = sagemaker_client.list_processing_jobs(
         NameContains="vgg", MaxResults=1
     )
-    assert len(vgg_processing_job_1["ProcessingJobSummaries"]).should.equal(0)
-    assert vgg_processing_job_1.get("NextToken").should_not.be.none
+    assert len(vgg_processing_job_1["ProcessingJobSummaries"]) == 0
+    assert vgg_processing_job_1.get("NextToken") is not None
 
     vgg_processing_job_6 = sagemaker_client.list_processing_jobs(
         NameContains="vgg", MaxResults=6
     )
 
-    assert len(vgg_processing_job_6["ProcessingJobSummaries"]).should.equal(1)
-    assert vgg_processing_job_6["ProcessingJobSummaries"][0][
-        "ProcessingJobName"
-    ].should.equal("vgg-0")
-    assert vgg_processing_job_6.get("NextToken").should_not.be.none
+    assert len(vgg_processing_job_6["ProcessingJobSummaries"]) == 1
+    assert (
+        vgg_processing_job_6["ProcessingJobSummaries"][0]["ProcessingJobName"]
+        == "vgg-0"
+    )
+    assert vgg_processing_job_6.get("NextToken") is not None
 
     vgg_processing_job_10 = sagemaker_client.list_processing_jobs(
         NameContains="vgg", MaxResults=10
     )
 
-    assert len(vgg_processing_job_10["ProcessingJobSummaries"]).should.equal(5)
-    assert vgg_processing_job_10["ProcessingJobSummaries"][-1][
-        "ProcessingJobName"
-    ].should.equal("vgg-4")
-    assert vgg_processing_job_10.get("NextToken").should.be.none
+    assert len(vgg_processing_job_10["ProcessingJobSummaries"]) == 5
+    assert (
+        vgg_processing_job_10["ProcessingJobSummaries"][-1]["ProcessingJobName"]
+        == "vgg-4"
+    )
+    assert vgg_processing_job_10.get("NextToken") is None
 
 
 def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client):
@@ -325,26 +338,24 @@ def test_list_processing_jobs_paginated_with_fragmented_targets(sagemaker_client
     processing_jobs_with_2 = sagemaker_client.list_processing_jobs(
         NameContains="2", MaxResults=8
     )
-    assert len(processing_jobs_with_2["ProcessingJobSummaries"]).should.equal(2)
-    assert processing_jobs_with_2.get("NextToken").should_not.be.none
+    assert len(processing_jobs_with_2["ProcessingJobSummaries"]) == 2
+    assert processing_jobs_with_2.get("NextToken") is not None
 
     processing_jobs_with_2_next = sagemaker_client.list_processing_jobs(
         NameContains="2",
         MaxResults=1,
         NextToken=processing_jobs_with_2.get("NextToken"),
     )
-    assert len(processing_jobs_with_2_next["ProcessingJobSummaries"]).should.equal(0)
-    assert processing_jobs_with_2_next.get("NextToken").should_not.be.none
+    assert len(processing_jobs_with_2_next["ProcessingJobSummaries"]) == 0
+    assert processing_jobs_with_2_next.get("NextToken") is not None
 
     processing_jobs_with_2_next_next = sagemaker_client.list_processing_jobs(
         NameContains="2",
         MaxResults=1,
         NextToken=processing_jobs_with_2_next.get("NextToken"),
     )
-    assert len(processing_jobs_with_2_next_next["ProcessingJobSummaries"]).should.equal(
-        0
-    )
-    assert processing_jobs_with_2_next_next.get("NextToken").should.be.none
+    assert len(processing_jobs_with_2_next_next["ProcessingJobSummaries"]) == 0
+    assert processing_jobs_with_2_next_next.get("NextToken") is None
 
 
 def test_add_and_delete_tags_in_training_job(sagemaker_client):

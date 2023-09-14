@@ -1,10 +1,8 @@
-import boto3
+import datetime
 import json
-import sure  # noqa # pylint: disable=unused-import
+import boto3
 
 from moto import mock_xray
-
-import datetime
 
 
 @mock_xray
@@ -119,8 +117,8 @@ def test_batch_get_trace():
             "1-581cf772-b006649127e371903a2de979",
         ]
     )
-    len(resp["UnprocessedTraceIds"]).should.equal(1)
-    len(resp["Traces"]).should.equal(1)
+    assert len(resp["UnprocessedTraceIds"]) == 1
+    assert len(resp["Traces"]) == 1
 
 
 # Following are not implemented, just testing it returns what boto expects

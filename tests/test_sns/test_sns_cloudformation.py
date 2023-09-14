@@ -1,6 +1,6 @@
-import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
+
+import boto3
 import pytest
 
 from moto import mock_cloudformation, mock_sns
@@ -16,25 +16,25 @@ def test_sns_topic():
 
     sns = boto3.client("sns", region_name="us-west-1")
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(1)
+    assert len(topics) == 1
     topic_arn = topics[0]["TopicArn"]
-    topic_arn.should.contain("my_topics")
+    assert "my_topics" in topic_arn
 
     subscriptions = sns.list_subscriptions()["Subscriptions"]
-    subscriptions.should.have.length_of(1)
+    assert len(subscriptions) == 1
     subscription = subscriptions[0]
-    subscription["TopicArn"].should.equal(topic_arn)
-    subscription["Protocol"].should.equal("https")
-    subscription["SubscriptionArn"].should.contain(topic_arn)
-    subscription["Endpoint"].should.equal("https://example.com")
+    assert subscription["TopicArn"] == topic_arn
+    assert subscription["Protocol"] == "https"
+    assert topic_arn in subscription["SubscriptionArn"]
+    assert subscription["Endpoint"] == "https://example.com"
 
     stack = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
     topic_name_output = [x for x in stack["Outputs"] if x["OutputKey"] == "topic_name"][
         0
     ]
-    topic_name_output["OutputValue"].should.equal("my_topics")
+    assert topic_name_output["OutputValue"] == "my_topics"
     topic_arn_output = [x for x in stack["Outputs"] if x["OutputKey"] == "topic_arn"][0]
-    topic_arn_output["OutputValue"].should.equal(topic_arn)
+    assert topic_arn_output["OutputValue"] == topic_arn
 
 
 @mock_cloudformation
@@ -47,7 +47,7 @@ def test_sns_update_topic():
 
     sns = boto3.client("sns", region_name="us-west-1")
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(1)
+    assert len(topics) == 1
 
     dummy_template["Resources"]["MySNSTopic"]["Properties"]["Subscription"][0][
         "Endpoint"
@@ -56,17 +56,17 @@ def test_sns_update_topic():
     cf.update_stack(StackName="test_stack", TemplateBody=sns_template_json)
 
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(1)
+    assert len(topics) == 1
     topic_arn = topics[0]["TopicArn"]
-    topic_arn.should.contain("my_topics")
+    assert "my_topics" in topic_arn
 
     subscriptions = sns.list_subscriptions()["Subscriptions"]
-    subscriptions.should.have.length_of(1)
+    assert len(subscriptions) == 1
     subscription = subscriptions[0]
-    subscription["TopicArn"].should.equal(topic_arn)
-    subscription["Protocol"].should.equal("https")
-    subscription["SubscriptionArn"].should.contain(topic_arn)
-    subscription["Endpoint"].should.equal("https://example-updated.com")
+    assert subscription["TopicArn"] == topic_arn
+    assert subscription["Protocol"] == "https"
+    assert topic_arn in subscription["SubscriptionArn"]
+    assert subscription["Endpoint"] == "https://example-updated.com"
 
 
 @mock_cloudformation
@@ -80,7 +80,7 @@ def test_sns_update_remove_topic(with_properties):
 
     sns = boto3.client("sns", region_name="us-west-1")
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(1)
+    assert len(topics) == 1
 
     dummy_template["Resources"].pop("MySNSTopic")
     dummy_template.pop("Outputs")
@@ -88,7 +88,7 @@ def test_sns_update_remove_topic(with_properties):
     cf.update_stack(StackName="test_stack", TemplateBody=sns_template_json)
 
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(0)
+    assert len(topics) == 0
 
 
 @mock_cloudformation
@@ -101,12 +101,12 @@ def test_sns_delete_topic(with_properties):
 
     sns = boto3.client("sns", region_name="us-west-1")
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(1)
+    assert len(topics) == 1
 
     cf.delete_stack(StackName="test_stack")
 
     topics = sns.list_topics()["Topics"]
-    topics.should.have.length_of(0)
+    assert len(topics) == 0
 
 
 def get_template(with_properties):

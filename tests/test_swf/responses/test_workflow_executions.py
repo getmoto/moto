@@ -1,12 +1,11 @@
+from datetime import timedelta
+
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta
-
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_swf
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 
 
 def setup_swf_environment_boto3():
@@ -41,7 +40,7 @@ def test_start_workflow_execution_boto3():
         workflowId="uid-abcd1234",
         workflowType={"name": "test-workflow", "version": "v1.0"},
     )
-    wf.should.have.key("runId")
+    assert "runId" in wf
 
 
 @mock_swf
@@ -66,7 +65,7 @@ def test_signal_workflow_execution_boto3():
         domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
     )
 
-    wfe["openCounts"]["openDecisionTasks"].should.equal(2)
+    assert wfe["openCounts"]["openDecisionTasks"] == 2
 
 
 @mock_swf
@@ -91,7 +90,7 @@ def test_signal_workflow_execution_without_runId():
     )
 
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.contain("WorkflowExecutionSignaled")
+    assert "WorkflowExecutionSignaled" in types
 
 
 @mock_swf
@@ -109,11 +108,9 @@ def test_start_already_started_workflow_execution_boto3():
             workflowId="uid-abcd1234",
             workflowType={"name": "test-workflow", "version": "v1.0"},
         )
-    ex.value.response["Error"]["Code"].should.equal(
-        "WorkflowExecutionAlreadyStartedFault"
-    )
-    ex.value.response["Error"]["Message"].should.equal("Already Started")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "WorkflowExecutionAlreadyStartedFault"
+    assert ex.value.response["Error"]["Message"] == "Already Started"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -129,11 +126,11 @@ def test_start_workflow_execution_on_deprecated_type_boto3():
             workflowId="uid-abcd1234",
             workflowType={"name": "test-workflow", "version": "v1.0"},
         )
-    ex.value.response["Error"]["Code"].should.equal("TypeDeprecatedFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "TypeDeprecatedFault"
+    assert ex.value.response["Error"]["Message"] == (
         "WorkflowType=[name=test-workflow, version=v1.0]"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # DescribeWorkflowExecution endpoint
@@ -150,8 +147,8 @@ def test_describe_workflow_execution_boto3():
     wfe = client.describe_workflow_execution(
         domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
     )
-    wfe["executionInfo"]["execution"]["workflowId"].should.equal("uid-abcd1234")
-    wfe["executionInfo"]["executionStatus"].should.equal("OPEN")
+    assert wfe["executionInfo"]["execution"]["workflowId"] == "uid-abcd1234"
+    assert wfe["executionInfo"]["executionStatus"] == "OPEN"
 
 
 @mock_swf
@@ -163,11 +160,11 @@ def test_describe_non_existent_workflow_execution_boto3():
             domain="test-domain",
             execution={"runId": "wrong-run-id", "workflowId": "uid-abcd1234"},
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId=wrong-run-id]"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # GetWorkflowExecutionHistory endpoint
@@ -185,7 +182,7 @@ def test_get_workflow_execution_history_boto3():
         domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(["WorkflowExecutionStarted", "DecisionTaskScheduled"])
+    assert types == ["WorkflowExecutionStarted", "DecisionTaskScheduled"]
 
 
 @mock_swf
@@ -204,7 +201,7 @@ def test_get_workflow_execution_history_with_reverse_order_boto3():
         reverseOrder=True,
     )
     types = [evt["eventType"] for evt in resp["events"]]
-    types.should.equal(["DecisionTaskScheduled", "WorkflowExecutionStarted"])
+    assert types == ["DecisionTaskScheduled", "WorkflowExecutionStarted"]
 
 
 @mock_swf
@@ -216,11 +213,11 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution_boto3
             domain="test-domain",
             execution={"runId": "wrong-run-id", "workflowId": "wrong-workflow-id"},
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown execution: WorkflowExecution=[workflowId=wrong-workflow-id, runId=wrong-run-id]"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # ListOpenWorkflowExecutions endpoint
@@ -247,7 +244,7 @@ def test_list_open_workflow_executions_boto3():
         runId=run_id,
     )
 
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = utcnow() - timedelta(days=1)
     oldest_date = unix_time(yesterday)
     response = client.list_open_workflow_executions(
         domain="test-domain",
@@ -255,16 +252,14 @@ def test_list_open_workflow_executions_boto3():
         executionFilter={"workflowId": "test-workflow"},
     )
     execution_infos = response["executionInfos"]
-    len(execution_infos).should.equal(1)
+    assert len(execution_infos) == 1
     open_workflow = execution_infos[0]
-    open_workflow["workflowType"].should.equal(
-        {"version": "v1.0", "name": "test-workflow"}
-    )
-    open_workflow.should.contain("startTimestamp")
-    open_workflow["execution"]["workflowId"].should.equal("uid-abcd1234")
-    open_workflow["execution"].should.contain("runId")
-    open_workflow["cancelRequested"].should.be(False)
-    open_workflow["executionStatus"].should.equal("OPEN")
+    assert open_workflow["workflowType"] == {"version": "v1.0", "name": "test-workflow"}
+    assert "startTimestamp" in open_workflow
+    assert open_workflow["execution"]["workflowId"] == "uid-abcd1234"
+    assert "runId" in open_workflow["execution"]
+    assert open_workflow["cancelRequested"] is False
+    assert open_workflow["executionStatus"] == "OPEN"
 
 
 # ListClosedWorkflowExecutions endpoint
@@ -291,7 +286,7 @@ def test_list_closed_workflow_executions_boto3():
         runId=run_id,
     )
 
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = utcnow() - timedelta(days=1)
     oldest_date = unix_time(yesterday)
     response = client.list_closed_workflow_executions(
         domain="test-domain",
@@ -299,16 +294,14 @@ def test_list_closed_workflow_executions_boto3():
         executionFilter={"workflowId": "test-workflow"},
     )
     execution_infos = response["executionInfos"]
-    len(execution_infos).should.equal(1)
+    assert len(execution_infos) == 1
     open_workflow = execution_infos[0]
-    open_workflow["workflowType"].should.equal(
-        {"version": "v1.0", "name": "test-workflow"}
-    )
-    open_workflow.should.contain("startTimestamp")
-    open_workflow["execution"]["workflowId"].should.equal("uid-abcd12345")
-    open_workflow["execution"].should.contain("runId")
-    open_workflow["cancelRequested"].should.be(False)
-    open_workflow["executionStatus"].should.equal("CLOSED")
+    assert open_workflow["workflowType"] == {"version": "v1.0", "name": "test-workflow"}
+    assert "startTimestamp" in open_workflow
+    assert open_workflow["execution"]["workflowId"] == "uid-abcd12345"
+    assert "runId" in open_workflow["execution"]
+    assert open_workflow["cancelRequested"] is False
+    assert open_workflow["executionStatus"] == "CLOSED"
 
 
 # TerminateWorkflowExecution endpoint
@@ -333,11 +326,11 @@ def test_terminate_workflow_execution_boto3():
         domain="test-domain", execution={"runId": run_id, "workflowId": "uid-abcd1234"}
     )
     evt = resp["events"][-1]
-    evt["eventType"].should.equal("WorkflowExecutionTerminated")
+    assert evt["eventType"] == "WorkflowExecutionTerminated"
     attrs = evt["workflowExecutionTerminatedEventAttributes"]
-    attrs["details"].should.equal("some details")
-    attrs["reason"].should.equal("a more complete reason")
-    attrs["cause"].should.equal("OPERATOR_INITIATED")
+    assert attrs["details"] == "some details"
+    assert attrs["reason"] == "a more complete reason"
+    assert attrs["cause"] == "OPERATOR_INITIATED"
 
 
 @mock_swf
@@ -357,8 +350,8 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
         client.terminate_workflow_execution(
             domain="test-domain", workflowId="uid-abcd1234", runId=run_id
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         f"Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={run_id}]"
     )
 
@@ -367,8 +360,8 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
         client.terminate_workflow_execution(
             domain="test-domain", workflowId="uid-abcd1234"
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown execution, workflowId = uid-abcd1234"
     )
 
@@ -377,8 +370,8 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
         client.terminate_workflow_execution(
             domain="test-domain", workflowId="uid-non-existent"
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown execution, workflowId = uid-non-existent"
     )
 
@@ -387,7 +380,7 @@ def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
         client.terminate_workflow_execution(
             domain="test-domain", workflowId="uid-abcd1234", runId="foo"
         )
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId=foo]"
     )

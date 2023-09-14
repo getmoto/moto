@@ -351,6 +351,22 @@ class DynamoHandler(BaseResponse):
                     + dump_list(actual_attrs)
                 )
 
+    def _get_filter_expression(self) -> Optional[str]:
+        filter_expression = self.body.get("FilterExpression")
+        if filter_expression == "":
+            raise MockValidationException(
+                "Invalid FilterExpression: The expression can not be empty;"
+            )
+        return filter_expression
+
+    def _get_projection_expression(self) -> Optional[str]:
+        expression = self.body.get("ProjectionExpression")
+        if expression == "":
+            raise MockValidationException(
+                "Invalid ProjectionExpression: The expression can not be empty;"
+            )
+        return expression
+
     def delete_table(self) -> str:
         name = self.body["TableName"]
         table = self.dynamodb_backend.delete_table(name)
@@ -489,9 +505,9 @@ class DynamoHandler(BaseResponse):
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
 
-        for (table_name, item) in put_requests:
+        for table_name, item in put_requests:
             self.dynamodb_backend.put_item(table_name, item)
-        for (table_name, keys) in delete_requests:
+        for table_name, keys in delete_requests:
             self.dynamodb_backend.delete_item(table_name, keys)
 
         response = {
@@ -521,7 +537,7 @@ class DynamoHandler(BaseResponse):
                 f"empty string value. Key: {empty_keys[0]}"
             )
 
-        projection_expression = self.body.get("ProjectionExpression")
+        projection_expression = self._get_projection_expression()
         attributes_to_get = self.body.get("AttributesToGet")
         if projection_expression and attributes_to_get:
             raise MockValidationException(
@@ -540,11 +556,11 @@ class DynamoHandler(BaseResponse):
                 )
 
         expression_attribute_names = expression_attribute_names or {}
-        projection_expression = self._adjust_projection_expression(
+        projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
 
-        item = self.dynamodb_backend.get_item(name, key, projection_expression)
+        item = self.dynamodb_backend.get_item(name, key, projection_expressions)
         if item:
             item_dict = item.describe_attrs(attributes=None)
             return dynamo_json_dump(item_dict)
@@ -592,14 +608,14 @@ class DynamoHandler(BaseResponse):
                 "ExpressionAttributeNames", {}
             )
 
-            projection_expression = self._adjust_projection_expression(
+            projection_expressions = self._adjust_projection_expression(
                 projection_expression, expression_attribute_names
             )
 
             results["Responses"][table_name] = []
             for key in keys:
                 item = self.dynamodb_backend.get_item(
-                    table_name, key, projection_expression
+                    table_name, key, projection_expressions
                 )
                 if item:
                     # A single operation can retrieve up to 16 MB of data [and] returns a partial result if the response size limit is exceeded
@@ -631,12 +647,12 @@ class DynamoHandler(BaseResponse):
     def query(self) -> str:
         name = self.body["TableName"]
         key_condition_expression = self.body.get("KeyConditionExpression")
-        projection_expression = self.body.get("ProjectionExpression")
+        projection_expression = self._get_projection_expression()
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
-        filter_expression = self.body.get("FilterExpression")
+        filter_expression = self._get_filter_expression()
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
 
-        projection_expression = self._adjust_projection_expression(
+        projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
 
@@ -704,7 +720,7 @@ class DynamoHandler(BaseResponse):
             limit,
             exclusive_start_key,
             scan_index_forward,
-            projection_expression,
+            projection_expressions,
             index_name=index_name,
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
@@ -726,28 +742,25 @@ class DynamoHandler(BaseResponse):
         return dynamo_json_dump(result)
 
     def _adjust_projection_expression(
-        self, projection_expression: str, expr_attr_names: Dict[str, str]
-    ) -> str:
+        self, projection_expression: Optional[str], expr_attr_names: Dict[str, str]
+    ) -> List[List[str]]:
+        """
+        lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
+        """
+
         def _adjust(expression: str) -> str:
-            return (
-                expr_attr_names[expression]
-                if expression in expr_attr_names
-                else expression
-            )
+            return (expr_attr_names or {}).get(expression, expression)
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
             for expression in expressions:
                 check_projection_expression(expression)
-            if expr_attr_names:
-                return ",".join(
-                    [
-                        ".".join([_adjust(expr) for expr in nested_expr.split(".")])
-                        for nested_expr in expressions
-                    ]
-                )
+            return [
+                [_adjust(expr) for expr in nested_expr.split(".")]
+                for nested_expr in expressions
+            ]
 
-        return projection_expression
+        return []
 
     @include_consumed_capacity()
     def scan(self) -> str:
@@ -762,15 +775,15 @@ class DynamoHandler(BaseResponse):
             comparison_values = scan_filter.get("AttributeValueList", [])
             filters[attribute_name] = (comparison_operator, comparison_values)
 
-        filter_expression = self.body.get("FilterExpression")
+        filter_expression = self._get_filter_expression()
         expression_attribute_values = self.body.get("ExpressionAttributeValues", {})
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
-        projection_expression = self.body.get("ProjectionExpression", "")
+        projection_expression = self._get_projection_expression()
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
 
-        projection_expression = self._adjust_projection_expression(
+        projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
         )
 
@@ -784,7 +797,7 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_names,
                 expression_attribute_values,
                 index_name,
-                projection_expression,
+                projection_expressions,
             )
         except ValueError as err:
             raise MockValidationException(f"Bad Filter Expression: {err}")
@@ -907,7 +920,7 @@ class DynamoHandler(BaseResponse):
         if type(changed) != type(original):
             return changed
         else:
-            if type(changed) is dict:
+            if isinstance(changed, dict):
                 return {
                     key: self._build_updated_new_attributes(
                         original.get(key, None), changed[key]
@@ -981,7 +994,6 @@ class DynamoHandler(BaseResponse):
         consumed_capacity: Dict[str, Any] = dict()
 
         for transact_item in transact_items:
-
             table_name = transact_item["Get"]["TableName"]
             key = transact_item["Get"]["Key"]
             item = self.dynamodb_backend.get_item(table_name, key)

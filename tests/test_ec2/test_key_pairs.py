@@ -1,10 +1,8 @@
-import pytest
-from datetime import datetime
-
-import sure  # noqa # pylint: disable=unused-import
 import boto3
+import pytest
 
 from botocore.exceptions import ClientError
+from datetime import datetime
 from moto import mock_ec2, settings
 from uuid import uuid4
 from unittest import SkipTest
@@ -50,7 +48,7 @@ def test_key_pairs_empty_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", "us-west-1")
-    client.describe_key_pairs()["KeyPairs"].should.be.empty
+    assert client.describe_key_pairs()["KeyPairs"] == []
 
 
 @mock_ec2
@@ -59,9 +57,9 @@ def test_key_pairs_invalid_id_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.describe_key_pairs(KeyNames=[str(uuid4())])
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidKeyPair.NotFound"
 
 
 @mock_ec2
@@ -70,10 +68,11 @@ def test_key_pairs_create_dryrun_boto3():
 
     with pytest.raises(ClientError) as ex:
         ec2.create_key_pair(KeyName="foo", DryRun=True)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
 
@@ -90,19 +89,19 @@ def test_key_pairs_create_boto3():
     kp2 = client.create_key_pair(KeyName=key_name2)
     rsa_check_private_key(kp2["KeyMaterial"])
 
-    kp.key_material.shouldnt.equal(kp2["KeyMaterial"])
+    assert kp.key_material != kp2["KeyMaterial"]
 
     kps = client.describe_key_pairs()["KeyPairs"]
     all_names = set([k["KeyName"] for k in kps])
-    all_names.should.contain(key_name)
-    all_names.should.contain(key_name2)
+    assert key_name in all_names
+    assert key_name2 in all_names
 
     kps = client.describe_key_pairs(KeyNames=[key_name])["KeyPairs"]
-    kps.should.have.length_of(1)
-    kps[0].should.have.key("KeyPairId")
-    kps[0].should.have.key("KeyName").equal(key_name)
-    kps[0].should.have.key("KeyFingerprint")
-    kps[0].should.have.key("CreateTime").should.be.a(datetime)
+    assert len(kps) == 1
+    assert "KeyPairId" in kps[0]
+    assert kps[0]["KeyName"] == key_name
+    assert "KeyFingerprint" in kps[0]
+    assert isinstance(kps[0]["CreateTime"], datetime)
 
 
 @mock_ec2
@@ -113,9 +112,9 @@ def test_key_pairs_create_exist_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.create_key_pair(KeyName=key_name)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.Duplicate")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidKeyPair.Duplicate"
 
 
 @mock_ec2
@@ -132,16 +131,17 @@ def test_key_pairs_delete_exist_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.delete_key_pair(KeyName=key_name, DryRun=True)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
     client.delete_key_pair(KeyName=key_name)
-    [kp.get("Name") for kp in client.describe_key_pairs()["KeyPairs"]].shouldnt.contain(
-        key_name
-    )
+    assert key_name not in [
+        kp.get("Name") for kp in client.describe_key_pairs()["KeyPairs"]
+    ]
 
 
 @mock_ec2
@@ -153,32 +153,33 @@ def test_key_pairs_import_boto3():
         client.import_key_pair(
             KeyName=key_name, PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH, DryRun=True
         )
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
     kp1 = client.import_key_pair(
         KeyName=key_name, PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH
     )
 
-    kp1.should.have.key("KeyPairId")
-    kp1.should.have.key("KeyName").equal(key_name)
-    kp1.should.have.key("KeyFingerprint").equal(RSA_PUBLIC_KEY_FINGERPRINT)
+    assert "KeyPairId" in kp1
+    assert kp1["KeyName"] == key_name
+    assert kp1["KeyFingerprint"] == RSA_PUBLIC_KEY_FINGERPRINT
 
     key_name2 = str(uuid4())
     kp2 = client.import_key_pair(
         KeyName=key_name2, PublicKeyMaterial=RSA_PUBLIC_KEY_RFC4716
     )
-    kp2.should.have.key("KeyPairId")
-    kp2.should.have.key("KeyName").equal(key_name2)
-    kp2.should.have.key("KeyFingerprint").equal(RSA_PUBLIC_KEY_FINGERPRINT)
+    assert "KeyPairId" in kp2
+    assert kp2["KeyName"] == key_name2
+    assert kp2["KeyFingerprint"] == RSA_PUBLIC_KEY_FINGERPRINT
 
     all_kps = client.describe_key_pairs()["KeyPairs"]
     all_names = [kp["KeyName"] for kp in all_kps]
-    all_names.should.contain(kp1["KeyName"])
-    all_names.should.contain(kp2["KeyName"])
+    assert kp1["KeyName"] in all_names
+    assert kp2["KeyName"] in all_names
 
 
 @mock_ec2
@@ -189,15 +190,15 @@ def test_key_pairs_import_exist_boto3():
     kp = client.import_key_pair(
         KeyName=key_name, PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH
     )
-    kp["KeyName"].should.equal(key_name)
+    assert kp["KeyName"] == key_name
 
-    client.describe_key_pairs(KeyNames=[key_name])["KeyPairs"].should.have.length_of(1)
+    assert len(client.describe_key_pairs(KeyNames=[key_name])["KeyPairs"]) == 1
 
     with pytest.raises(ClientError) as ex:
         client.create_key_pair(KeyName=key_name)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidKeyPair.Duplicate")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidKeyPair.Duplicate"
 
 
 @mock_ec2
@@ -206,24 +207,24 @@ def test_key_pairs_invalid_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.import_key_pair(KeyName="foo", PublicKeyMaterial=b"")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidKeyPair.Format")
-    err["Message"].should.equal("Key is not in valid OpenSSH public key format")
+    assert err["Code"] == "InvalidKeyPair.Format"
+    assert err["Message"] == "Key is not in valid OpenSSH public key format"
 
     with pytest.raises(ClientError) as ex:
         client.import_key_pair(KeyName="foo", PublicKeyMaterial=b"garbage")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidKeyPair.Format")
-    err["Message"].should.equal("Key is not in valid OpenSSH public key format")
+    assert err["Code"] == "InvalidKeyPair.Format"
+    assert err["Message"] == "Key is not in valid OpenSSH public key format"
 
     with pytest.raises(ClientError) as ex:
         client.import_key_pair(KeyName="foo", PublicKeyMaterial=DSA_PUBLIC_KEY_OPENSSH)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidKeyPair.Format")
-    err["Message"].should.equal("Key is not in valid OpenSSH public key format")
+    assert err["Code"] == "InvalidKeyPair.Format"
+    assert err["Message"] == "Key is not in valid OpenSSH public key format"
 
 
 @mock_ec2
@@ -241,9 +242,9 @@ def test_key_pair_filters_boto3():
     kp_by_name = client.describe_key_pairs(
         Filters=[{"Name": "key-name", "Values": [key_name_2]}]
     )["KeyPairs"]
-    set([kp["KeyName"] for kp in kp_by_name]).should.equal(set([kp2.name]))
+    assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp2.name])
 
     kp_by_name = client.describe_key_pairs(
         Filters=[{"Name": "fingerprint", "Values": [kp3.key_fingerprint]}]
     )["KeyPairs"]
-    set([kp["KeyName"] for kp in kp_by_name]).should.equal(set([kp3.name]))
+    assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp3.name])

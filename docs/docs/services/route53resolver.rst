@@ -34,6 +34,7 @@ route53resolver
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
+- [ ] create_outpost_resolver
 - [X] create_resolver_endpoint
   
         Return description for a newly created resolver endpoint.
@@ -49,6 +50,7 @@ route53resolver
 - [ ] delete_firewall_domain_list
 - [ ] delete_firewall_rule
 - [ ] delete_firewall_rule_group
+- [ ] delete_outpost_resolver
 - [X] delete_resolver_endpoint
 - [ ] delete_resolver_query_log_config
 - [X] delete_resolver_rule
@@ -61,6 +63,7 @@ route53resolver
 - [ ] get_firewall_rule_group
 - [ ] get_firewall_rule_group_association
 - [ ] get_firewall_rule_group_policy
+- [ ] get_outpost_resolver
 - [ ] get_resolver_config
 - [ ] get_resolver_dnssec_config
 - [X] get_resolver_endpoint
@@ -79,6 +82,7 @@ route53resolver
 - [ ] list_firewall_rule_group_associations
 - [ ] list_firewall_rule_groups
 - [ ] list_firewall_rules
+- [ ] list_outpost_resolvers
 - [ ] list_resolver_configs
 - [ ] list_resolver_dnssec_configs
 - [X] list_resolver_endpoint_ip_addresses
@@ -97,6 +101,7 @@ route53resolver
 - [ ] update_firewall_domains
 - [ ] update_firewall_rule
 - [ ] update_firewall_rule_group_association
+- [ ] update_outpost_resolver
 - [ ] update_resolver_config
 - [ ] update_resolver_dnssec_config
 - [X] update_resolver_endpoint

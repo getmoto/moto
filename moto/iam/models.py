@@ -1,4 +1,5 @@
 import base64
+import copy
 import os
 import string
 from datetime import datetime
@@ -24,6 +25,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
     unix_time,
+    utcnow,
 )
 from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
@@ -83,7 +85,7 @@ def mark_account_as_visited(
     account = iam_backends[account_id]
     if access_key in account["global"].access_keys:
         account["global"].access_keys[access_key].last_used = AccessKeyLastUsed(
-            timestamp=datetime.utcnow(), service=service, region=region
+            timestamp=utcnow(), service=service, region=region
         )
     else:
         # User provided access credentials unknown to us
@@ -99,7 +101,7 @@ class MFADevice:
     def __init__(
         self, serial_number: str, authentication_code_1: str, authentication_code_2: str
     ):
-        self.enable_date = datetime.utcnow()
+        self.enable_date = utcnow()
         self.serial_number = serial_number
         self.authentication_code_1 = authentication_code_1
         self.authentication_code_2 = authentication_code_2
@@ -129,7 +131,9 @@ class VirtualMfaDevice:
 
     @property
     def enabled_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.enable_date)  # type: ignore[return-value]
+        if self.enable_date:
+            return iso_8601_datetime_without_milliseconds(self.enable_date)
+        return ""
 
 
 class Policy(CloudFormationModel):
@@ -171,8 +175,8 @@ class Policy(CloudFormationModel):
             )
         ]
 
-        self.create_date = create_date or datetime.utcnow()
-        self.update_date = update_date or datetime.utcnow()
+        self.create_date = create_date or utcnow()
+        self.update_date = update_date or utcnow()
 
     def update_default_version(self, new_default_version_id: str) -> None:
         for version in self.versions:
@@ -224,7 +228,7 @@ class OpenIDConnectProvider(BaseModel):
         self.url = parsed_url.netloc + parsed_url.path
         self.thumbprint_list = thumbprint_list
         self.client_id_list = client_id_list
-        self.create_date = datetime.utcnow()
+        self.create_date = utcnow()
         self.tags = tags or {}
 
     @property
@@ -315,7 +319,7 @@ class PolicyVersion:
         self.is_default = is_default
         self.version_id = version_id
 
-        self.create_date = create_date or datetime.utcnow()
+        self.create_date = create_date or utcnow()
 
     @property
     def created_iso_8601(self) -> str:
@@ -437,6 +441,12 @@ class ManagedPolicy(Policy, CloudFormationModel):
                 role_name=role_name, policy_arn=policy.arn
             )
         return policy
+
+    def __eq__(self, other: Any) -> bool:
+        return self.arn == other.arn
+
+    def __hash__(self) -> int:
+        return self.arn.__hash__()
 
     @property
     def physical_resource_id(self) -> str:
@@ -655,7 +665,7 @@ class Role(CloudFormationModel):
         self.path = path or "/"
         self.policies: Dict[str, str] = {}
         self.managed_policies: Dict[str, ManagedPolicy] = {}
-        self.create_date = datetime.utcnow()
+        self.create_date = utcnow()
         self.tags = tags
         self.last_used = None
         self.last_used_region = None
@@ -900,7 +910,7 @@ class InstanceProfile(CloudFormationModel):
         self.name = name
         self.path = path or "/"
         self.roles = roles if roles else []
-        self.create_date = datetime.utcnow()
+        self.create_date = utcnow()
         self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
 
     @property
@@ -1037,7 +1047,7 @@ class SigningCertificate(BaseModel):
         self.id = certificate_id
         self.user_name = user_name
         self.body = body
-        self.upload_date = datetime.utcnow()
+        self.upload_date = utcnow()
         self.status = "Active"
 
     @property
@@ -1070,7 +1080,7 @@ class AccessKey(CloudFormationModel):
         )
         self.secret_access_key = random_alphanumeric(40)
         self.status = status
-        self.create_date = datetime.utcnow()
+        self.create_date = utcnow()
         self.last_used: Optional[datetime] = None
 
     @property
@@ -1175,7 +1185,7 @@ class SshPublicKey(BaseModel):
         self.ssh_public_key_id = "APKA" + random_access_key()
         self.fingerprint = md5_hash(ssh_public_key_body.encode()).hexdigest()
         self.status = "Active"
-        self.upload_date = datetime.utcnow()
+        self.upload_date = utcnow()
 
     @property
     def uploaded_iso_8601(self) -> str:
@@ -1188,7 +1198,7 @@ class Group(BaseModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path
-        self.create_date = datetime.utcnow()
+        self.create_date = utcnow()
 
         self.users: List[User] = []
         self.managed_policies: Dict[str, str] = {}
@@ -1248,7 +1258,7 @@ class User(CloudFormationModel):
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
-        self.create_date = datetime.utcnow()
+        self.create_date = utcnow()
         self.mfa_devices: Dict[str, MFADevice] = {}
         self.policies: Dict[str, str] = {}
         self.managed_policies: Dict[str, Dict[str, str]] = {}
@@ -1791,8 +1801,8 @@ class IAMBackend(BaseBackend):
         self.initialize_service_roles()
 
     def _init_aws_policies(self) -> List[ManagedPolicy]:
-        # AWS defines some of its own managed policies and we periodically
-        # import them via `make aws_managed_policies`
+        # AWS defines some of its own managed policies
+        # we periodically import them via `make aws_managed_policies`
         aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
         return [
             AWSManagedPolicy.from_data(name, self.account_id, d)
@@ -1800,7 +1810,7 @@ class IAMBackend(BaseBackend):
         ]
 
     def _init_managed_policies(self) -> Dict[str, ManagedPolicy]:
-        return dict((p.arn, p) for p in self.aws_managed_policies)
+        return dict((p.arn, copy.deepcopy(p)) for p in self.aws_managed_policies)
 
     def reset(self) -> None:
         region_name = self.region_name
@@ -2268,7 +2278,7 @@ class IAMBackend(BaseBackend):
             ref_key = key.lower()
             self._validate_tag_key(key, exception_param="tagKeys")
 
-            policy.tags.pop(ref_key, None)  # type: ignore[union-attr]
+            policy.tags.pop(ref_key, None)
 
     def create_policy_version(
         self, policy_arn: str, policy_document: str, set_as_default: str
@@ -2844,7 +2854,7 @@ class IAMBackend(BaseBackend):
 
         device = self.virtual_mfa_devices.get(serial_number, None)
         if device:
-            device.enable_date = datetime.utcnow()
+            device.enable_date = utcnow()
             device.user = user
             device.user_attribute = {
                 "Path": user.path,

@@ -1,5 +1,3 @@
-import datetime
-
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
@@ -399,7 +397,7 @@ class AutoScalingResponse(BaseResponse):
             should_decrement=should_decrement,
             original_size=original_size,
             desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+            timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
     @amz_crc32
@@ -417,7 +415,7 @@ class AutoScalingResponse(BaseResponse):
             standby_instances=standby_instances,
             original_size=original_size,
             desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+            timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
     def suspend_processes(self) -> str:
@@ -468,7 +466,7 @@ class AutoScalingResponse(BaseResponse):
             should_decrement=should_decrement,
             original_size=original_size,
             desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(datetime.datetime.utcnow()),
+            timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
     def describe_tags(self) -> str:
@@ -482,6 +480,35 @@ class AutoScalingResponse(BaseResponse):
         metrics = self._get_params().get("Metrics")
         self.autoscaling_backend.enable_metrics_collection(group_name, metrics)  # type: ignore[arg-type]
         template = self.response_template(ENABLE_METRICS_COLLECTION_TEMPLATE)
+        return template.render()
+
+    def put_warm_pool(self) -> str:
+        params = self._get_params()
+        group_name = params.get("AutoScalingGroupName")
+        max_capacity = params.get("MaxGroupPreparedCapacity")
+        min_size = params.get("MinSize")
+        pool_state = params.get("PoolState")
+        instance_reuse_policy = params.get("InstanceReusePolicy")
+        self.autoscaling_backend.put_warm_pool(
+            group_name=group_name,  # type: ignore[arg-type]
+            max_capacity=max_capacity,
+            min_size=min_size,
+            pool_state=pool_state,
+            instance_reuse_policy=instance_reuse_policy,
+        )
+        template = self.response_template(PUT_WARM_POOL_TEMPLATE)
+        return template.render()
+
+    def describe_warm_pool(self) -> str:
+        group_name = self._get_param("AutoScalingGroupName")
+        warm_pool = self.autoscaling_backend.describe_warm_pool(group_name=group_name)
+        template = self.response_template(DESCRIBE_WARM_POOL_TEMPLATE)
+        return template.render(pool=warm_pool)
+
+    def delete_warm_pool(self) -> str:
+        group_name = self._get_param("AutoScalingGroupName")
+        self.autoscaling_backend.delete_warm_pool(group_name=group_name)
+        template = self.response_template(DELETE_WARM_POOL_TEMPLATE)
         return template.render()
 
 
@@ -774,6 +801,28 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
             </Overrides>
             {% endif %}
           </LaunchTemplate>
+          {% if group.mixed_instance_policy.get("InstancesDistribution") %}
+          <InstancesDistribution>
+            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") %}
+            <OnDemandAllocationStrategy>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") }}</OnDemandAllocationStrategy>
+            {% endif %}
+            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") %}
+            <OnDemandBaseCapacity>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") }}</OnDemandBaseCapacity>
+            {% endif %}
+            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") %}
+            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") }}</OnDemandPercentageAboveBaseCapacity>
+            {% endif %}
+            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotAllocationStrategy") %}
+            <SpotAllocationStrategy>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotAllocationStrategy") }}</SpotAllocationStrategy>
+            {% endif %}
+            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotInstancePools") %}
+            <SpotInstancePools>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotInstancePools") }}</SpotInstancePools>
+            {% endif %}
+            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotMaxPrice") %}
+            <SpotMaxPrice>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotMaxPrice") }}</SpotMaxPrice>
+            {% endif %}
+          </InstancesDistribution>
+          {% endif %}
         </MixedInstancesPolicy>
         {% elif group.launch_template %}
         <LaunchTemplate>
@@ -864,6 +913,18 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         </EnabledMetrics>
         {% endif %}
         <ServiceLinkedRoleARN>{{ group.service_linked_role }}</ServiceLinkedRoleARN>
+        {% if group.warm_pool %}
+        <WarmPoolConfiguration>
+          <MaxGroupPreparedCapacity>{{ group.warm_pool.max_capacity }}</MaxGroupPreparedCapacity>
+          <MinSize>{{ group.warm_pool.min_size or 0 }}</MinSize>
+          {% if group.warm_pool.pool_state %}
+          <PoolState>{{ group.warm_pool.pool_state }}</PoolState>
+          {% endif %}
+          <InstanceReusePolicy>
+            <ReuseOnScaleIn>{{ 'true' if group.warm_pool.instance_reuse_policy["ReuseOnScaleIn"] else 'false' }}</ReuseOnScaleIn>
+          </InstanceReusePolicy>
+        </WarmPoolConfiguration>
+        {% endif %}
       </member>
       {% endfor %}
     </AutoScalingGroups>
@@ -1386,3 +1447,46 @@ ENABLE_METRICS_COLLECTION_TEMPLATE = """<EnableMetricsCollectionResponse xmlns="
    <RequestId></RequestId>
 </ResponseMetadata>
 </EnableMetricsCollectionResponse>"""
+
+
+PUT_WARM_POOL_TEMPLATE = """<PutWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId></RequestId>
+</ResponseMetadata>
+<PutWarmPoolResult></PutWarmPoolResult>
+</PutWarmPoolResponse>"""
+
+
+DESCRIBE_WARM_POOL_TEMPLATE = """<DescribeWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId></RequestId>
+</ResponseMetadata>
+<DescribeWarmPoolResult>
+  {% if pool %}
+  <WarmPoolConfiguration>
+    {% if pool.max_capacity %}
+    <MaxGroupPreparedCapacity>{{ pool.max_capacity }}</MaxGroupPreparedCapacity>
+    {% endif %}
+    <MinSize>{{ pool.min_size }}</MinSize>
+    {% if pool.pool_state %}
+    <PoolState>{{ pool.pool_state }}</PoolState>
+    {% endif %}
+    {% if pool.instance_reuse_policy %}
+    <InstanceReusePolicy>
+      <ReuseOnScaleIn>{{ 'true' if pool.instance_reuse_policy["ReuseOnScaleIn"] else 'false' }}</ReuseOnScaleIn>
+    </InstanceReusePolicy>
+    {% endif %}
+  </WarmPoolConfiguration>
+  {% endif %}
+  <Instances>
+  </Instances>
+</DescribeWarmPoolResult>
+</DescribeWarmPoolResponse>"""
+
+
+DELETE_WARM_POOL_TEMPLATE = """<DeleteWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+<ResponseMetadata>
+   <RequestId></RequestId>
+</ResponseMetadata>
+<DeleteWarmPoolResult></DeleteWarmPoolResult>
+</DeleteWarmPoolResponse>"""

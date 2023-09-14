@@ -24,6 +24,7 @@ from .utils import (
     make_arn_for_job,
     make_arn_for_task_def,
     lowercase_first_key,
+    JobStatus,
 )
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
@@ -250,10 +251,33 @@ class JobDefinition(CloudFormationModel):
         self.propagate_tags = propagate_tags
 
         if self.container_properties is not None:
-            if "resourceRequirements" not in self.container_properties:
-                self.container_properties["resourceRequirements"] = []
-            if "secrets" not in self.container_properties:
-                self.container_properties["secrets"] = []
+            # Set some default values
+            default_values: Dict[str, List[Any]] = {
+                "command": [],
+                "resourceRequirements": [],
+                "secrets": [],
+                "environment": [],
+                "mountPoints": [],
+                "ulimits": [],
+                "volumes": [],
+            }
+            for key, val in default_values.items():
+                if key not in self.container_properties:
+                    self.container_properties[key] = val
+
+            # Set default FARGATE configuration
+            if "FARGATE" in (self.platform_capabilities or []):
+                if "fargatePlatformConfiguration" not in self.container_properties:
+                    self.container_properties["fargatePlatformConfiguration"] = {
+                        "platformVersion": "LATEST"
+                    }
+
+            # Remove any empty environment variables
+            self.container_properties["environment"] = [
+                env_var
+                for env_var in self.container_properties["environment"]
+                if env_var.get("value") != ""
+            ]
 
         self._validate()
         self.revision += 1
@@ -464,12 +488,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         ManagedState.__init__(
             self,
             "batch::job",
-            [
-                ("SUBMITTED", "PENDING"),
-                ("PENDING", "RUNNABLE"),
-                ("RUNNABLE", "STARTING"),
-                ("STARTING", "RUNNING"),
-            ],
+            JobStatus.status_transitions(),
         )
 
         self.job_name = name
@@ -516,8 +535,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         }
         if self.job_stopped_reason is not None:
             result["statusReason"] = self.job_stopped_reason
-        if result["status"] not in ["SUBMITTED", "PENDING", "RUNNABLE", "STARTING"]:
-            result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
+        if self.status is not None:
+            if JobStatus.is_job_already_started(self.status):
+                result["startedAt"] = datetime2int_milliseconds(self.job_started_at)
         if self.job_stopped:
             result["stoppedAt"] = datetime2int_milliseconds(self.job_stopped_at)
             if self.exit_code is not None:
@@ -615,7 +635,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             containers: List[docker.models.containers.Container] = []
 
             self.advance()
-            while self.status == "SUBMITTED":
+            while self.status == JobStatus.SUBMITTED:
                 # Wait until we've moved onto state 'PENDING'
                 sleep(0.5)
 
@@ -707,7 +727,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                     )
 
             self.advance()
-            while self.status == "PENDING":
+            while self.status == JobStatus.PENDING:
                 # Wait until the state is no longer pending, but 'RUNNABLE'
                 sleep(0.5)
             # TODO setup ecs container instance
@@ -742,12 +762,12 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
             self.advance()
-            while self.status == "RUNNABLE":
+            while self.status == JobStatus.RUNNABLE:
                 # Wait until the state is no longer runnable, but 'STARTING'
                 sleep(0.5)
 
             self.advance()
-            while self.status == "STARTING":
+            while self.status == JobStatus.STARTING:
                 # Wait until the state is no longer runnable, but 'RUNNING'
                 sleep(0.5)
 
@@ -835,7 +855,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
                     # Send to cloudwatch
                     self.log_stream_name = self._stream_name
-                    self._log_backend.ensure_log_group(self._log_group, None)
+                    self._log_backend.ensure_log_group(self._log_group)
                     self._log_backend.ensure_log_stream(
                         self._log_group, self.log_stream_name
                     )
@@ -875,7 +895,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         # The describe-method needs them immediately when status is set
         self.job_stopped = True
         self.job_stopped_at = datetime.datetime.now()
-        self.status = "SUCCEEDED" if success else "FAILED"
+        self.status = JobStatus.SUCCEEDED if success else JobStatus.FAILED
         self._stop_attempt()
 
     def _start_attempt(self) -> None:
@@ -911,9 +931,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             for dependent_id in dependent_ids:
                 if dependent_id in self.all_jobs:
                     dependent_job = self.all_jobs[dependent_id]
-                    if dependent_job.status == "SUCCEEDED":
+                    if dependent_job.status == JobStatus.SUCCEEDED:
                         successful_dependencies.add(dependent_id)
-                    if dependent_job.status == "FAILED":
+                    if dependent_job.status == JobStatus.FAILED:
                         logger.error(
                             f"Terminating job {self.name} due to failed dependency {dependent_job.name}"
                         )
@@ -1015,7 +1035,7 @@ class BatchBackend(BaseBackend):
 
     def reset(self) -> None:
         for job in self._jobs.values():
-            if job.status not in ("FAILED", "SUCCEEDED"):
+            if job.status not in (JobStatus.FAILED, JobStatus.SUCCEEDED):
                 job.stop = True
                 # Try to join
                 job.join(0.2)
@@ -1753,15 +1773,7 @@ class BatchBackend(BaseBackend):
         if job_queue is None:
             raise ClientException(f"Job queue {job_queue_name} does not exist")
 
-        if job_status is not None and job_status not in (
-            "SUBMITTED",
-            "PENDING",
-            "RUNNABLE",
-            "STARTING",
-            "RUNNING",
-            "SUCCEEDED",
-            "FAILED",
-        ):
+        if job_status is not None and job_status not in JobStatus.job_statuses():
             raise ClientException(
                 "Job status is not one of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED"
             )
@@ -1798,7 +1810,9 @@ class BatchBackend(BaseBackend):
 
         job = self.get_job_by_id(job_id)
         if job is not None:
-            if job.status in ["SUBMITTED", "PENDING", "RUNNABLE"]:
+            if job.status is None:
+                return
+            if JobStatus.is_job_before_starting(job.status):
                 job.terminate(reason)
             # No-Op for jobs that have already started - user has to explicitly terminate those
 

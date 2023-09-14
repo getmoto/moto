@@ -1,5 +1,4 @@
 import contextlib
-import datetime
 import json
 import requests
 import re
@@ -113,7 +112,7 @@ class Topic(CloudFormationModel):
         return json.dumps(self._policy_json, separators=(",", ":"))
 
     @policy.setter
-    def policy(self, policy: Any) -> None:  # type: ignore[misc]
+    def policy(self, policy: Any) -> None:
         self._policy_json = json.loads(policy)
 
     @staticmethod
@@ -299,9 +298,7 @@ class Subscription(BaseModel):
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
             "Message": message,
-            "Timestamp": iso_8601_datetime_with_milliseconds(
-                datetime.datetime.utcnow()
-            ),
+            "Timestamp": iso_8601_datetime_with_milliseconds(),
             "SignatureVersion": "1",
             "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
             "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
@@ -1043,6 +1040,7 @@ class SNSBackend(BaseBackend):
                     subject=entry.get("Subject"),
                     message_attributes=entry.get("MessageAttributes", {}),
                     group_id=entry.get("MessageGroupId"),
+                    deduplication_id=entry.get("MessageDeduplicationId"),
                 )
                 successful.append({"MessageId": message_id, "Id": entry["Id"]})
             except Exception as e:

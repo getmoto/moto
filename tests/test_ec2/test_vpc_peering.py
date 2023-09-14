@@ -1,8 +1,7 @@
-import pytest
-from botocore.exceptions import ClientError
-
 import boto3
-import sure  # noqa # pylint: disable=unused-import
+import pytest
+
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2
 
@@ -22,8 +21,8 @@ def test_vpc_peering_connections_boto3():
 
     vpc_pcx = create_vpx_pcx(ec2, client)
 
-    vpc_pcx.should.have.key("VpcPeeringConnectionId")
-    vpc_pcx["Status"]["Code"].should.equal("initiating-request")
+    assert "VpcPeeringConnectionId" in vpc_pcx
+    assert vpc_pcx["Status"]["Code"] == "initiating-request"
 
 
 @mock_ec2
@@ -34,15 +33,13 @@ def test_vpc_peering_connections_get_all_boto3():
     vpc_pcx_id = vpc_pcx["VpcPeeringConnectionId"]
 
     all_vpc_pcxs = retrieve_all(client)
-    [vpc_pcx["VpcPeeringConnectionId"] for vpc_pcx in all_vpc_pcxs].should.contain(
-        vpc_pcx_id
-    )
+    assert vpc_pcx_id in [vpc_pcx["VpcPeeringConnectionId"] for vpc_pcx in all_vpc_pcxs]
     my_vpc_pcx = [
         vpc_pcx
         for vpc_pcx in all_vpc_pcxs
         if vpc_pcx["VpcPeeringConnectionId"] == vpc_pcx_id
     ][0]
-    my_vpc_pcx["Status"]["Code"].should.equal("pending-acceptance")
+    assert my_vpc_pcx["Status"]["Code"] == "pending-acceptance"
 
 
 @mock_ec2
@@ -54,19 +51,19 @@ def test_vpc_peering_connections_accept_boto3():
 
     vpc_pcx = client.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
     vpc_pcx = vpc_pcx["VpcPeeringConnection"]
-    vpc_pcx["Status"]["Code"].should.equal("active")
+    assert vpc_pcx["Status"]["Code"] == "active"
 
     with pytest.raises(ClientError) as ex:
         client.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidStateTransition")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidStateTransition"
 
     my_vpc_pcxs = client.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_id]
     )["VpcPeeringConnections"]
-    my_vpc_pcxs.should.have.length_of(1)
-    my_vpc_pcxs[0]["Status"]["Code"].should.equal("active")
+    assert len(my_vpc_pcxs) == 1
+    assert my_vpc_pcxs[0]["Status"]["Code"] == "active"
 
 
 @mock_ec2
@@ -80,15 +77,15 @@ def test_vpc_peering_connections_reject_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidStateTransition")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidStateTransition"
 
     my_pcxs = client.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_id]
     )["VpcPeeringConnections"]
-    my_pcxs.should.have.length_of(1)
-    my_pcxs[0]["Status"]["Code"].should.equal("rejected")
+    assert len(my_pcxs) == 1
+    assert my_pcxs[0]["Status"]["Code"] == "rejected"
 
 
 @mock_ec2
@@ -101,19 +98,19 @@ def test_vpc_peering_connections_delete_boto3():
     client.delete_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_id)
 
     all_vpc_pcxs = retrieve_all(client)
-    [vpcx["VpcPeeringConnectionId"] for vpcx in all_vpc_pcxs].should.contain(vpc_pcx_id)
+    assert vpc_pcx_id in [vpcx["VpcPeeringConnectionId"] for vpcx in all_vpc_pcxs]
 
     my_vpcx = [
         vpcx for vpcx in all_vpc_pcxs if vpcx["VpcPeeringConnectionId"] == vpc_pcx_id
     ][0]
-    my_vpcx["Status"]["Code"].should.equal("deleted")
+    assert my_vpcx["Status"]["Code"] == "deleted"
 
     with pytest.raises(ClientError) as ex:
         client.delete_vpc_peering_connection(VpcPeeringConnectionId="pcx-1234abcd")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidVpcPeeringConnectionId.NotFound"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert (
+        ex.value.response["Error"]["Code"] == "InvalidVpcPeeringConnectionId.NotFound"
     )
 
 
@@ -128,23 +125,23 @@ def test_vpc_peering_connections_cross_region():
     vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
         VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1"
     )
-    vpc_pcx_usw1.status["Code"].should.equal("initiating-request")
-    vpc_pcx_usw1.requester_vpc.id.should.equal(vpc_usw1.id)
-    vpc_pcx_usw1.accepter_vpc.id.should.equal(vpc_apn1.id)
+    assert vpc_pcx_usw1.status["Code"] == "initiating-request"
+    assert vpc_pcx_usw1.requester_vpc.id == vpc_usw1.id
+    assert vpc_pcx_usw1.accepter_vpc.id == vpc_apn1.id
     # test cross region vpc peering connection exist
     vpc_pcx_apn1 = ec2_apn1.VpcPeeringConnection(vpc_pcx_usw1.id)
-    vpc_pcx_apn1.id.should.equal(vpc_pcx_usw1.id)
-    vpc_pcx_apn1.requester_vpc.id.should.equal(vpc_usw1.id)
-    vpc_pcx_apn1.accepter_vpc.id.should.equal(vpc_apn1.id)
+    assert vpc_pcx_apn1.id == vpc_pcx_usw1.id
+    assert vpc_pcx_apn1.requester_vpc.id == vpc_usw1.id
+    assert vpc_pcx_apn1.accepter_vpc.id == vpc_apn1.id
     # Quick check to verify the options have a default value
     accepter_options = vpc_pcx_apn1.accepter_vpc_info["PeeringOptions"]
-    accepter_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
-    accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
-    accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    assert accepter_options["AllowDnsResolutionFromRemoteVpc"] is False
+    assert accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"] is False
+    assert accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
     requester_options = vpc_pcx_apn1.requester_vpc_info["PeeringOptions"]
-    requester_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
-    requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
-    requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    assert requester_options["AllowDnsResolutionFromRemoteVpc"] is False
+    assert requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"] is False
+    assert requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
 
 
 @mock_ec2
@@ -167,14 +164,14 @@ def test_modify_vpc_peering_connections_accepter_only():
     # Accepter options are different
     vpc_pcx_usw1.reload()
     accepter_options = vpc_pcx_usw1.accepter_vpc_info["PeeringOptions"]
-    accepter_options["AllowDnsResolutionFromRemoteVpc"].should.equal(True)
-    accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
-    accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    assert accepter_options["AllowDnsResolutionFromRemoteVpc"] is True
+    assert accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"] is False
+    assert accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
     # Requester options are untouched
     requester_options = vpc_pcx_usw1.requester_vpc_info["PeeringOptions"]
-    requester_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
-    requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
-    requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    assert requester_options["AllowDnsResolutionFromRemoteVpc"] is False
+    assert requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"] is False
+    assert requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
 
 
 @mock_ec2
@@ -199,14 +196,14 @@ def test_modify_vpc_peering_connections_requester_only():
     # Requester options are different
     vpc_pcx_usw1.reload()
     requester_options = vpc_pcx_usw1.requester_vpc_info["PeeringOptions"]
-    requester_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
-    requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
-    requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(True)
+    assert requester_options["AllowDnsResolutionFromRemoteVpc"] is False
+    assert requester_options["AllowEgressFromLocalClassicLinkToRemoteVpc"] is False
+    assert requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is True
     # Accepter options are untouched
     accepter_options = vpc_pcx_usw1.accepter_vpc_info["PeeringOptions"]
-    accepter_options["AllowDnsResolutionFromRemoteVpc"].should.equal(False)
-    accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"].should.equal(False)
-    accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"].should.equal(False)
+    assert accepter_options["AllowDnsResolutionFromRemoteVpc"] is False
+    assert accepter_options["AllowEgressFromLocalClassicLinkToRemoteVpc"] is False
+    assert accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
 
 
 @mock_ec2
@@ -227,8 +224,8 @@ def test_modify_vpc_peering_connections_unknown_vpc():
             VpcPeeringConnectionId="vpx-unknown", RequesterPeeringConnectionOptions={}
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidVpcPeeringConnectionId.NotFound")
-    err["Message"].should.equal("VpcPeeringConnectionID vpx-unknown does not exist.")
+    assert err["Code"] == "InvalidVpcPeeringConnectionId.NotFound"
+    assert err["Message"] == "VpcPeeringConnectionID vpx-unknown does not exist."
 
 
 @mock_ec2
@@ -243,7 +240,7 @@ def test_vpc_peering_connections_cross_region_fail():
         ec2_usw1.create_vpc_peering_connection(
             VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-2"
         )
-    cm.value.response["Error"]["Code"].should.equal("InvalidVpcID.NotFound")
+    assert cm.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
 @mock_ec2
@@ -263,19 +260,19 @@ def test_describe_vpc_peering_connections_only_returns_requested_id():
     # describe peering
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
     our_vpcx = [vpcx["VpcPeeringConnectionId"] for vpcx in retrieve_all(ec2_usw1)]
-    our_vpcx.should.contain(vpc_pcx_usw1.id)
-    our_vpcx.should.contain(vpc_pcx_usw2.id)
-    our_vpcx.shouldnt.contain(vpc_apn1.id)
+    assert vpc_pcx_usw1.id in our_vpcx
+    assert vpc_pcx_usw2.id in our_vpcx
+    assert vpc_apn1.id not in our_vpcx
 
     both_pcx = ec2_usw1.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id, vpc_pcx_usw2.id]
     )["VpcPeeringConnections"]
-    both_pcx.should.have.length_of(2)
+    assert len(both_pcx) == 2
 
     one_pcx = ec2_usw1.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id]
     )["VpcPeeringConnections"]
-    one_pcx.should.have.length_of(1)
+    assert len(one_pcx) == 1
 
 
 @mock_ec2
@@ -301,26 +298,32 @@ def test_vpc_peering_connections_cross_region_accept():
     des_pcx_usw1 = ec2_usw1.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id]
     )
-    acp_pcx_apn1["VpcPeeringConnection"]["Status"]["Code"].should.equal("active")
-    acp_pcx_apn1["VpcPeeringConnection"]["AccepterVpcInfo"]["Region"].should.equal(
-        "ap-northeast-1"
+    assert acp_pcx_apn1["VpcPeeringConnection"]["Status"]["Code"] == "active"
+    assert (
+        acp_pcx_apn1["VpcPeeringConnection"]["AccepterVpcInfo"]["Region"]
+        == "ap-northeast-1"
     )
-    acp_pcx_apn1["VpcPeeringConnection"]["RequesterVpcInfo"]["Region"].should.equal(
-        "us-west-1"
+    assert (
+        acp_pcx_apn1["VpcPeeringConnection"]["RequesterVpcInfo"]["Region"]
+        == "us-west-1"
     )
-    des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("active")
-    des_pcx_apn1["VpcPeeringConnections"][0]["AccepterVpcInfo"]["Region"].should.equal(
-        "ap-northeast-1"
+    assert des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"] == "active"
+    assert (
+        des_pcx_apn1["VpcPeeringConnections"][0]["AccepterVpcInfo"]["Region"]
+        == "ap-northeast-1"
     )
-    des_pcx_apn1["VpcPeeringConnections"][0]["RequesterVpcInfo"]["Region"].should.equal(
-        "us-west-1"
+    assert (
+        des_pcx_apn1["VpcPeeringConnections"][0]["RequesterVpcInfo"]["Region"]
+        == "us-west-1"
     )
-    des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("active")
-    des_pcx_usw1["VpcPeeringConnections"][0]["AccepterVpcInfo"]["Region"].should.equal(
-        "ap-northeast-1"
+    assert des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"] == "active"
+    assert (
+        des_pcx_usw1["VpcPeeringConnections"][0]["AccepterVpcInfo"]["Region"]
+        == "ap-northeast-1"
     )
-    des_pcx_usw1["VpcPeeringConnections"][0]["RequesterVpcInfo"]["Region"].should.equal(
-        "us-west-1"
+    assert (
+        des_pcx_usw1["VpcPeeringConnections"][0]["RequesterVpcInfo"]["Region"]
+        == "us-west-1"
     )
 
 
@@ -347,9 +350,9 @@ def test_vpc_peering_connections_cross_region_reject():
     des_pcx_usw1 = ec2_usw1.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id]
     )
-    rej_pcx_apn1["Return"].should.equal(True)
-    des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("rejected")
-    des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("rejected")
+    assert rej_pcx_apn1["Return"] is True
+    assert des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"] == "rejected"
+    assert des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"] == "rejected"
 
 
 @mock_ec2
@@ -375,9 +378,9 @@ def test_vpc_peering_connections_cross_region_delete():
     des_pcx_usw1 = ec2_usw1.describe_vpc_peering_connections(
         VpcPeeringConnectionIds=[vpc_pcx_usw1.id]
     )
-    del_pcx_apn1["Return"].should.equal(True)
-    des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("deleted")
-    des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"].should.equal("deleted")
+    assert del_pcx_apn1["Return"] is True
+    assert des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"] == "deleted"
+    assert des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"] == "deleted"
 
 
 @mock_ec2
@@ -397,13 +400,9 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region():
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as cm:
         ec2_usw1.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
-    cm.value.response["Error"]["Code"].should.equal("OperationNotPermitted")
-    exp_msg = (
-        "Incorrect region (us-west-1) specified for this request.VPC "
-        f"peering connection {vpc_pcx_usw1.id} must be "
-        "accepted in region ap-northeast-1"
-    )
-    cm.value.response["Error"]["Message"].should.equal(exp_msg)
+    assert cm.value.response["Error"]["Code"] == "OperationNotPermitted"
+    exp_msg = f"Incorrect region (us-west-1) specified for this request.VPC peering connection {vpc_pcx_usw1.id} must be accepted in region ap-northeast-1"
+    assert cm.value.response["Error"]["Message"] == exp_msg
 
 
 @mock_ec2
@@ -422,13 +421,9 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region():
     ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as cm:
         ec2_usw1.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
-    cm.value.response["Error"]["Code"].should.equal("OperationNotPermitted")
-    exp_msg = (
-        "Incorrect region (us-west-1) specified for this request.VPC "
-        f"peering connection {vpc_pcx_usw1.id} must be accepted or "
-        "rejected in region ap-northeast-1"
-    )
-    cm.value.response["Error"]["Message"].should.equal(exp_msg)
+    assert cm.value.response["Error"]["Code"] == "OperationNotPermitted"
+    exp_msg = f"Incorrect region (us-west-1) specified for this request.VPC peering connection {vpc_pcx_usw1.id} must be accepted or rejected in region ap-northeast-1"
+    assert cm.value.response["Error"]["Message"] == exp_msg
 
 
 def retrieve_all(client):

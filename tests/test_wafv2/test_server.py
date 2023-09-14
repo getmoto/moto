@@ -1,9 +1,7 @@
-import sure  # noqa # pylint: disable=unused-import
-
-import moto.server as server
 from moto import mock_wafv2
-from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+import moto.server as server
+from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 
 CREATE_WEB_ACL_HEADERS = {
     "X-Amz-Target": "AWSWAF_20190729.CreateWebACL",
@@ -43,9 +41,9 @@ def test_create_web_acl():
     )
     assert res.status_code == 400
     assert (
-        b"AWS WAF could not perform the operation because some resource in your request is a duplicate of an existing one."
-        in res.data
-    )
+        b"AWS WAF could not perform the operation because some resource "
+        b"in your request is a duplicate of an existing one."
+    ) in res.data
     assert b"WafV2DuplicateItem" in res.data
 
     res = test_client.post(

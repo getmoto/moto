@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Iterable, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 
 from .exceptions import (
     InvalidResourceStateFault,
@@ -126,7 +127,7 @@ class FakeReplicationTask(BaseModel):
         self.arn = f"arn:aws:dms:{region_name}:{account_id}:task:{self.id}"
         self.status = "creating"
 
-        self.creation_date = datetime.utcnow()
+        self.creation_date = utcnow()
         self.start_date: Optional[datetime] = None
         self.stop_date: Optional[datetime] = None
 
@@ -167,7 +168,7 @@ class FakeReplicationTask(BaseModel):
 
     def start(self) -> "FakeReplicationTask":
         self.status = "starting"
-        self.start_date = datetime.utcnow()
+        self.start_date = utcnow()
         self.run()
         return self
 
@@ -176,7 +177,7 @@ class FakeReplicationTask(BaseModel):
             raise InvalidResourceStateFault("Replication task is not running")
 
         self.status = "stopped"
-        self.stop_date = datetime.utcnow()
+        self.stop_date = utcnow()
         return self
 
     def delete(self) -> "FakeReplicationTask":

@@ -183,6 +183,45 @@ class LogsResponse(BaseResponse):
             result["nextToken"] = next_token
         return json.dumps(result)
 
+    def put_destination(self) -> str:
+        destination_name = self._get_param("destinationName")
+        role_arn = self._get_param("roleArn")
+        target_arn = self._get_param("targetArn")
+        tags = self._get_param("tags")
+
+        destination = self.logs_backend.put_destination(
+            destination_name,
+            role_arn,
+            target_arn,
+            tags,
+        )
+        result = {"destination": destination.to_dict()}
+        return json.dumps(result)
+
+    def delete_destination(self) -> str:
+        destination_name = self._get_param("destinationName")
+        self.logs_backend.delete_destination(destination_name)
+        return ""
+
+    def describe_destinations(self) -> str:
+        destination_name_prefix = self._get_param("DestinationNamePrefix")
+        limit = self._get_param("limit", 50)
+        next_token = self._get_param("nextToken")
+
+        destinations, next_token = self.logs_backend.describe_destinations(
+            destination_name_prefix, int(limit), next_token
+        )
+
+        result = {"destinations": destinations, "nextToken": next_token}
+        return json.dumps(result)
+
+    def put_destination_policy(self) -> str:
+        access_policy = self._get_param("accessPolicy")
+        destination_name = self._get_param("destinationName")
+
+        self.logs_backend.put_destination_policy(destination_name, access_policy)
+        return ""
+
     def create_log_stream(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_stream_name = self._get_param("logStreamName")
@@ -336,11 +375,9 @@ class LogsResponse(BaseResponse):
     def describe_subscription_filters(self) -> str:
         log_group_name = self._get_param("logGroupName")
 
-        subscription_filters = self.logs_backend.describe_subscription_filters(
-            log_group_name
-        )
+        _filters = self.logs_backend.describe_subscription_filters(log_group_name)
 
-        return json.dumps({"subscriptionFilters": subscription_filters})
+        return json.dumps({"subscriptionFilters": [f.to_json() for f in _filters]})
 
     def put_subscription_filter(self) -> str:
         log_group_name = self._get_param("logGroupName")
@@ -366,8 +403,8 @@ class LogsResponse(BaseResponse):
     def start_query(self) -> str:
         log_group_name = self._get_param("logGroupName")
         log_group_names = self._get_param("logGroupNames")
-        start_time = self._get_param("startTime")
-        end_time = self._get_param("endTime")
+        start_time = self._get_int_param("startTime")
+        end_time = self._get_int_param("endTime")
         query_string = self._get_param("queryString")
 
         if log_group_name and log_group_names:
@@ -382,6 +419,19 @@ class LogsResponse(BaseResponse):
 
         return json.dumps({"queryId": f"{query_id}"})
 
+    def describe_queries(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        status = self._get_param("status")
+        queries = self.logs_backend.describe_queries(log_group_name, status)
+        return json.dumps(
+            {"queries": [query.to_json(log_group_name) for query in queries]}
+        )
+
+    def get_query_results(self) -> str:
+        query_id = self._get_param("queryId")
+        query = self.logs_backend.get_query_results(query_id)
+        return json.dumps(query.to_result_json())
+
     def create_export_task(self) -> str:
         log_group_name = self._get_param("logGroupName")
         destination = self._get_param("destination")
@@ -389,3 +439,20 @@ class LogsResponse(BaseResponse):
             log_group_name=log_group_name, destination=destination
         )
         return json.dumps(dict(taskId=str(task_id)))
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tags = self.logs_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"tags": tags})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tags = self._get_param("tags")
+        self.logs_backend.tag_resource(resource_arn, tags)
+        return "{}"
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys")
+        self.logs_backend.untag_resource(resource_arn, tag_keys)
+        return "{}"

@@ -14,8 +14,8 @@ def test_register_ca_certificate_simple():
         verificationCertificate="verification_certificate",
     )
 
-    resp.should.have.key("certificateArn")
-    resp.should.have.key("certificateId")
+    assert "certificateArn" in resp
+    assert "certificateId" in resp
 
 
 @mock_iot
@@ -25,7 +25,7 @@ def test_describe_ca_certificate_unknown():
     with pytest.raises(ClientError) as exc:
         client.describe_ca_certificate(certificateId="a" * 70)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_iot
@@ -39,12 +39,12 @@ def test_describe_ca_certificate_simple():
 
     describe = client.describe_ca_certificate(certificateId=resp["certificateId"])
 
-    describe.should.have.key("certificateDescription")
+    assert "certificateDescription" in describe
     description = describe["certificateDescription"]
-    description.should.have.key("certificateArn").equals(resp["certificateArn"])
-    description.should.have.key("certificateId").equals(resp["certificateId"])
-    description.should.have.key("status").equals("INACTIVE")
-    description.should.have.key("certificatePem").equals("ca_certificate")
+    assert description["certificateArn"] == resp["certificateArn"]
+    assert description["certificateId"] == resp["certificateId"]
+    assert description["status"] == "INACTIVE"
+    assert description["certificatePem"] == "ca_certificate"
 
 
 @mock_iot
@@ -63,17 +63,15 @@ def test_describe_ca_certificate_advanced():
 
     describe = client.describe_ca_certificate(certificateId=resp["certificateId"])
 
-    describe.should.have.key("certificateDescription")
     description = describe["certificateDescription"]
-    description.should.have.key("certificateArn").equals(resp["certificateArn"])
-    description.should.have.key("certificateId").equals(resp["certificateId"])
-    description.should.have.key("status").equals("ACTIVE")
-    description.should.have.key("certificatePem").equals("ca_certificate")
+    assert description["certificateArn"] == resp["certificateArn"]
+    assert description["certificateId"] == resp["certificateId"]
+    assert description["status"] == "ACTIVE"
+    assert description["certificatePem"] == "ca_certificate"
 
-    describe.should.have.key("registrationConfig")
     config = describe["registrationConfig"]
-    config.should.have.key("templateBody").equals("template_b0dy")
-    config.should.have.key("roleArn").equals("aws:iot:arn:role/asdfqwerwe")
+    assert config["templateBody"] == "template_b0dy"
+    assert config["roleArn"] == "aws:iot:arn:role/asdfqwerwe"
 
 
 @mock_iot
@@ -89,7 +87,7 @@ def test_list_certificates_by_ca():
 
     # list certificates should be empty at first
     certs = client.list_certificates_by_ca(caCertificateId=ca_cert_id)
-    certs.should.have.key("certificates").equals([])
+    assert certs["certificates"] == []
 
     # create one certificate
     cert1 = client.register_certificate(
@@ -98,8 +96,8 @@ def test_list_certificates_by_ca():
 
     # list certificates should return this
     certs = client.list_certificates_by_ca(caCertificateId=ca_cert_id)
-    certs.should.have.key("certificates").length_of(1)
-    certs["certificates"][0]["certificateId"].should.equal(cert1["certificateId"])
+    assert len(certs["certificates"]) == 1
+    assert certs["certificates"][0]["certificateId"] == cert1["certificateId"]
 
     # create another certificate, without ca
     client.register_certificate(
@@ -110,7 +108,7 @@ def test_list_certificates_by_ca():
 
     # list certificate should still only return the first certificate
     certs = client.list_certificates_by_ca(caCertificateId=ca_cert_id)
-    certs.should.have.key("certificates").length_of(1)
+    assert len(certs["certificates"]) == 1
 
 
 @mock_iot
@@ -127,7 +125,7 @@ def test_delete_ca_certificate():
     with pytest.raises(ClientError) as exc:
         client.describe_ca_certificate(certificateId=cert_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_iot
@@ -142,10 +140,11 @@ def test_update_ca_certificate__status():
     client.update_ca_certificate(certificateId=cert_id, newStatus="DISABLE")
     cert = client.describe_ca_certificate(certificateId=cert_id)
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("DISABLE")
-    cert.should.have.key("registrationConfig").equals(
-        {"roleArn": "my:old_and_busted:arn", "templateBody": "tb"}
-    )
+    assert cert_desc["status"] == "DISABLE"
+    assert cert["registrationConfig"] == {
+        "roleArn": "my:old_and_busted:arn",
+        "templateBody": "tb",
+    }
 
 
 @mock_iot
@@ -162,10 +161,11 @@ def test_update_ca_certificate__config():
     )
     cert = client.describe_ca_certificate(certificateId=cert_id)
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("INACTIVE")
-    cert.should.have.key("registrationConfig").equals(
-        {"roleArn": "my:new_and_fancy:arn", "templateBody": "tb"}
-    )
+    assert cert_desc["status"] == "INACTIVE"
+    assert cert["registrationConfig"] == {
+        "roleArn": "my:new_and_fancy:arn",
+        "templateBody": "tb",
+    }
 
 
 @mock_iot
@@ -173,4 +173,4 @@ def test_get_registration_code():
     client = boto3.client("iot", region_name="us-west-1")
 
     resp = client.get_registration_code()
-    resp.should.have.key("registrationCode")
+    assert "registrationCode" in resp

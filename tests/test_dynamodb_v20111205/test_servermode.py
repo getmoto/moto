@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 import requests
 
 from moto import settings
@@ -22,8 +21,8 @@ def test_table_list():
     }
     requests.post(settings.test_server_mode_endpoint() + "/moto-api/reset")
     res = requests.get(settings.test_server_mode_endpoint(), headers=headers)
-    res.status_code.should.equal(200)
-    json.loads(res.content).should.equal({"TableNames": []})
+    assert res.status_code == 200
+    assert json.loads(res.content) == {"TableNames": []}
 
 
 def test_create_table():
@@ -49,22 +48,20 @@ def test_create_table():
     )
 
     res = json.loads(res.content)["Table"]
-    res.should.have.key("CreationDateTime")
+    assert "CreationDateTime" in res
     del res["CreationDateTime"]
-    res.should.equal(
-        {
-            "KeySchema": {
-                "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"}
-            },
-            "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
-            "TableName": table_name,
-            "TableStatus": "ACTIVE",
-            "ItemCount": 0,
-            "TableSizeBytes": 0,
-        }
-    )
+    assert res == {
+        "KeySchema": {
+            "HashKeyElement": {"AttributeName": "hkey", "AttributeType": "S"}
+        },
+        "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 10},
+        "TableName": table_name,
+        "TableStatus": "ACTIVE",
+        "ItemCount": 0,
+        "TableSizeBytes": 0,
+    }
 
     headers["X-Amz-Target"] = "DynamoDB_20111205.ListTables"
     res = requests.get(settings.test_server_mode_endpoint(), headers=headers)
     res = json.loads(res.content)
-    table_name.should.be.within(res["TableNames"])
+    assert table_name in res["TableNames"]

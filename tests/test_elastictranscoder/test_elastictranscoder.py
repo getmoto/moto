@@ -1,6 +1,5 @@
 from botocore.exceptions import ClientError
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 from moto import mock_elastictranscoder
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -18,29 +17,30 @@ def test_create_simple_pipeline():
         OutputBucket="outputtest",
         Role=role,
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     pipeline = response["Pipeline"]
-    pipeline.should.have.key("Id")
-    pipeline.should.have.key("Name").being.equal("testpipeline")
-    pipeline.should.have.key("Arn").being.equal(
-        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
+    assert pipeline["Name"] == "testpipeline"
+    assert (
+        pipeline["Arn"]
+        == f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
-    pipeline.should.have.key("Status").being.equal("Active")
-    pipeline.should.have.key("InputBucket").being.equal("inputtest")
-    pipeline.should.have.key("OutputBucket").being.equal("outputtest")
-    pipeline.should.have.key("Role").being.equal(role)
-    pipeline.should.have.key("Notifications").being.equal(
-        {"Progressing": "", "Completed": "", "Warning": "", "Error": ""}
-    )
-    pipeline.should.have.key("ContentConfig")
-    pipeline["ContentConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ContentConfig"].should.have.key("Permissions").being.equal([])
-    pipeline.should.have.key("ThumbnailConfig")
-    pipeline["ThumbnailConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ThumbnailConfig"].should.have.key("Permissions").being.equal([])
+    assert pipeline["Status"] == "Active"
+    assert pipeline["InputBucket"] == "inputtest"
+    assert pipeline["OutputBucket"] == "outputtest"
+    assert pipeline["Role"] == role
+    assert pipeline["Notifications"] == {
+        "Progressing": "",
+        "Completed": "",
+        "Warning": "",
+        "Error": "",
+    }
+    assert pipeline["ContentConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ContentConfig"]["Permissions"] == []
+    assert pipeline["ThumbnailConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
-    response.should.have.key("Warnings").being.equal([])
+    assert response["Warnings"] == []
 
 
 @mock_elastictranscoder
@@ -56,27 +56,28 @@ def test_create_pipeline_with_content_config():
         ThumbnailConfig={"Bucket": "outputtest"},
         Role=role,
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
 
     pipeline = response["Pipeline"]
-    pipeline.should.have.key("Id")
-    pipeline.should.have.key("Name").being.equal("testpipeline")
-    pipeline.should.have.key("Arn").being.equal(
-        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
+    assert pipeline["Name"] == "testpipeline"
+    assert (
+        pipeline["Arn"]
+        == f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
-    pipeline.should.have.key("Status").being.equal("Active")
-    pipeline.should.have.key("InputBucket").being.equal("inputtest")
-    pipeline.should.have.key("OutputBucket").being.equal("outputtest")
-    pipeline.should.have.key("Role").being.equal(role)
-    pipeline.should.have.key("Notifications").being.equal(
-        {"Progressing": "", "Completed": "", "Warning": "", "Error": ""}
-    )
-    pipeline.should.have.key("ContentConfig")
-    pipeline["ContentConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ContentConfig"].should.have.key("Permissions").being.equal([])
-    pipeline.should.have.key("ThumbnailConfig")
-    pipeline["ThumbnailConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ThumbnailConfig"].should.have.key("Permissions").being.equal([])
+    assert pipeline["Status"] == "Active"
+    assert pipeline["InputBucket"] == "inputtest"
+    assert pipeline["OutputBucket"] == "outputtest"
+    assert pipeline["Role"] == role
+    assert pipeline["Notifications"] == {
+        "Progressing": "",
+        "Completed": "",
+        "Warning": "",
+        "Error": "",
+    }
+    assert pipeline["ContentConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ContentConfig"]["Permissions"] == []
+    assert pipeline["ThumbnailConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
 @mock_elastictranscoder
@@ -94,10 +95,8 @@ def test_create_pipeline_with_outputbucket_and_content_config():
             Role=role,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "[OutputBucket and ContentConfig are mutually exclusive.]"
-    )
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "[OutputBucket and ContentConfig are mutually exclusive.]"
 
 
 @mock_elastictranscoder
@@ -114,9 +113,10 @@ def test_create_pipeline_without_thumbnail_config():
             Role=role,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "[ThumbnailConfig:Bucket is not allowed to be null if ContentConfig is specified.]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "[ThumbnailConfig:Bucket is not allowed to be null if ContentConfig is specified.]"
     )
 
 
@@ -127,8 +127,8 @@ def test_create_pipeline_without_role():
     with pytest.raises(ClientError) as ex:
         client.create_pipeline(Name="testpipeline", InputBucket="inputtest", Role="")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("Role cannot be blank")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Role cannot be blank"
 
 
 @mock_elastictranscoder
@@ -140,8 +140,8 @@ def test_create_pipeline_with_invalid_role():
             Name="testpipeline", InputBucket="inputtest", Role="asdf"
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("Role ARN is invalid: asdf")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Role ARN is invalid: asdf"
 
 
 @mock_elastictranscoder
@@ -155,9 +155,10 @@ def test_create_pipeline_without_output():
             Role=create_role_name("nonexistingrole"),
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "[OutputBucket and ContentConfig:Bucket are not allowed to both be null.]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "[OutputBucket and ContentConfig:Bucket are not allowed to both be null.]"
     )
 
 
@@ -175,28 +176,29 @@ def test_list_pipelines():
     )
 
     response = client.list_pipelines()
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response.should.have.key("Pipelines").being.length_of(1)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(response["Pipelines"]) == 1
 
     pipeline = response["Pipelines"][0]
-    pipeline.should.have.key("Id")
-    pipeline.should.have.key("Name").being.equal("testpipeline")
-    pipeline.should.have.key("Arn").being.equal(
-        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
+    assert pipeline["Name"] == "testpipeline"
+    assert (
+        pipeline["Arn"]
+        == f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
-    pipeline.should.have.key("Status").being.equal("Active")
-    pipeline.should.have.key("InputBucket").being.equal("inputtest")
-    pipeline.should.have.key("OutputBucket").being.equal("outputtest")
-    pipeline.should.have.key("Role").being.equal(role)
-    pipeline.should.have.key("Notifications").being.equal(
-        {"Progressing": "", "Completed": "", "Warning": "", "Error": ""}
-    )
-    pipeline.should.have.key("ContentConfig")
-    pipeline["ContentConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ContentConfig"].should.have.key("Permissions").being.equal([])
-    pipeline.should.have.key("ThumbnailConfig")
-    pipeline["ThumbnailConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ThumbnailConfig"].should.have.key("Permissions").being.equal([])
+    assert pipeline["Status"] == "Active"
+    assert pipeline["InputBucket"] == "inputtest"
+    assert pipeline["OutputBucket"] == "outputtest"
+    assert pipeline["Role"] == role
+    assert pipeline["Notifications"] == {
+        "Progressing": "",
+        "Completed": "",
+        "Warning": "",
+        "Error": "",
+    }
+    assert pipeline["ContentConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ContentConfig"]["Permissions"] == []
+    assert pipeline["ThumbnailConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
 @mock_elastictranscoder
@@ -214,28 +216,28 @@ def test_read_pipeline():
 
     response = client.read_pipeline(Id=pipeline["Id"])
 
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response.should.have.key("Pipeline")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     pipeline = response["Pipeline"]
-    pipeline.should.have.key("Id")
-    pipeline.should.have.key("Name").being.equal("testpipeline")
-    pipeline.should.have.key("Arn").being.equal(
-        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
+    assert pipeline["Name"] == "testpipeline"
+    assert (
+        pipeline["Arn"]
+        == f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
-    pipeline.should.have.key("Status").being.equal("Active")
-    pipeline.should.have.key("InputBucket").being.equal("inputtest")
-    pipeline.should.have.key("OutputBucket").being.equal("outputtest")
-    pipeline.should.have.key("Role").being.equal(role)
-    pipeline.should.have.key("Notifications").being.equal(
-        {"Progressing": "", "Completed": "", "Warning": "", "Error": ""}
-    )
-    pipeline.should.have.key("ContentConfig")
-    pipeline["ContentConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ContentConfig"].should.have.key("Permissions").being.equal([])
-    pipeline.should.have.key("ThumbnailConfig")
-    pipeline["ThumbnailConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ThumbnailConfig"].should.have.key("Permissions").being.equal([])
+    assert pipeline["Status"] == "Active"
+    assert pipeline["InputBucket"] == "inputtest"
+    assert pipeline["OutputBucket"] == "outputtest"
+    assert pipeline["Role"] == role
+    assert pipeline["Notifications"] == {
+        "Progressing": "",
+        "Completed": "",
+        "Warning": "",
+        "Error": "",
+    }
+    assert pipeline["ContentConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ContentConfig"]["Permissions"] == []
+    assert pipeline["ThumbnailConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
 @mock_elastictranscoder
@@ -246,9 +248,10 @@ def test_read_unknown_pipeline_format():
     with pytest.raises(ClientError) as ex:
         client.read_pipeline(Id="unknown-pipeline")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'unknown-pipeline' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: ^\\d{13}-\\w{6}$"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'unknown-pipeline' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: ^\\d{13}-\\w{6}$"
     )
 
 
@@ -261,9 +264,10 @@ def test_read_nonexisting_pipeline_format():
     with pytest.raises(ClientError) as ex:
         client.read_pipeline(Id=pipeline_id)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        f"The specified pipeline was not found: account={ACCOUNT_ID}, pipelineId={pipeline_id}."
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"The specified pipeline was not found: account={ACCOUNT_ID}, pipelineId={pipeline_id}."
     )
 
 
@@ -281,28 +285,28 @@ def test_update_pipeline_name():
     )["Pipeline"]
     response = client.update_pipeline(Id=pipeline["Id"], Name="newtestpipeline")
 
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response.should.have.key("Pipeline")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     pipeline = response["Pipeline"]
-    pipeline.should.have.key("Id")
-    pipeline.should.have.key("Name").being.equal("newtestpipeline")
-    pipeline.should.have.key("Arn").being.equal(
-        f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
+    assert pipeline["Name"] == "newtestpipeline"
+    assert (
+        pipeline["Arn"]
+        == f"arn:aws:elastictranscoder:{region}:{ACCOUNT_ID}:pipeline/{pipeline['Id']}"
     )
-    pipeline.should.have.key("Status").being.equal("Active")
-    pipeline.should.have.key("InputBucket").being.equal("inputtest")
-    pipeline.should.have.key("OutputBucket").being.equal("outputtest")
-    pipeline.should.have.key("Role").being.equal(role)
-    pipeline.should.have.key("Notifications").being.equal(
-        {"Progressing": "", "Completed": "", "Warning": "", "Error": ""}
-    )
-    pipeline.should.have.key("ContentConfig")
-    pipeline["ContentConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ContentConfig"].should.have.key("Permissions").being.equal([])
-    pipeline.should.have.key("ThumbnailConfig")
-    pipeline["ThumbnailConfig"].should.have.key("Bucket").being.equal("outputtest")
-    pipeline["ThumbnailConfig"].should.have.key("Permissions").being.equal([])
+    assert pipeline["Status"] == "Active"
+    assert pipeline["InputBucket"] == "inputtest"
+    assert pipeline["OutputBucket"] == "outputtest"
+    assert pipeline["Role"] == role
+    assert pipeline["Notifications"] == {
+        "Progressing": "",
+        "Completed": "",
+        "Warning": "",
+        "Error": "",
+    }
+    assert pipeline["ContentConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ContentConfig"]["Permissions"] == []
+    assert pipeline["ThumbnailConfig"]["Bucket"] == "outputtest"
+    assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
 @mock_elastictranscoder
@@ -322,14 +326,13 @@ def test_update_pipeline_input_and_role():
         Id=pipeline["Id"], InputBucket="inputtest2", Role=newrole
     )
 
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response.should.have.key("Pipeline")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     pipeline = response["Pipeline"]
-    pipeline.should.have.key("Id")
-    pipeline.should.have.key("Name").being.equal("testpipeline")
-    pipeline.should.have.key("InputBucket").being.equal("inputtest2")
-    pipeline.should.have.key("Role").being.equal(newrole)
+    assert "Id" in pipeline
+    assert pipeline["Name"] == "testpipeline"
+    assert pipeline["InputBucket"] == "inputtest2"
+    assert pipeline["Role"] == newrole
 
 
 @mock_elastictranscoder
@@ -340,9 +343,10 @@ def test_update_pipeline_with_invalid_id():
     with pytest.raises(ClientError) as ex:
         client.update_pipeline(Id="unknown-pipeline")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value 'unknown-pipeline' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: ^\\d{13}-\\w{6}$"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'unknown-pipeline' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: ^\\d{13}-\\w{6}$"
     )
 
 
@@ -355,9 +359,10 @@ def test_update_nonexisting_pipeline():
     with pytest.raises(ClientError) as ex:
         client.read_pipeline(Id=pipeline_id)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal(
-        f"The specified pipeline was not found: account={ACCOUNT_ID}, pipelineId={pipeline_id}."
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == f"The specified pipeline was not found: account={ACCOUNT_ID}, pipelineId={pipeline_id}."
     )
 
 
@@ -376,8 +381,8 @@ def test_delete_pipeline():
     client.delete_pipeline(Id=pipeline["Id"])
 
     response = client.list_pipelines()
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    response.should.have.key("Pipelines").being.length_of(0)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(response["Pipelines"]) == 0
 
 
 def create_role_name(name):

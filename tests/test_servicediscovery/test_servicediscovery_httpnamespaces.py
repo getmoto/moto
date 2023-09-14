@@ -1,9 +1,10 @@
 """Unit tests for servicediscovery-supported APIs."""
-import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
+import re
 
+import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_servicediscovery
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -17,21 +18,22 @@ def test_create_http_namespace():
     client.create_http_namespace(Name="mynamespace")
 
     resp = client.list_namespaces()
-    resp.should.have.key("Namespaces").length_of(1)
+    assert len(resp["Namespaces"]) == 1
 
     namespace = resp["Namespaces"][0]
-    namespace.should.have.key("Id").match("ns-[a-z0-9]{16}")
-    namespace.should.have.key("Arn").match(
-        f"arn:aws:servicediscovery:eu-west-1:{ACCOUNT_ID}:namespace/{namespace['Id']}"
+    assert re.match("ns-[a-z0-9]{16}", namespace["Id"])
+    assert re.match(
+        f"arn:aws:servicediscovery:eu-west-1:{ACCOUNT_ID}:namespace/{namespace['Id']}",
+        namespace["Arn"],
     )
-    namespace.should.have.key("Name").equals("mynamespace")
-    namespace.should.have.key("Type").equals("HTTP")
-    namespace.should.have.key("CreateDate")
+    assert namespace["Name"] == "mynamespace"
+    assert namespace["Type"] == "HTTP"
+    assert "CreateDate" in namespace
 
-    namespace.should.have.key("Properties")
+    assert "Properties" in namespace
     props = namespace["Properties"]
-    props.should.have.key("DnsProperties").equals({"SOA": {}})
-    props.should.have.key("HttpProperties").equals({"HttpName": "mynamespace"})
+    assert props["DnsProperties"] == {"SOA": {}}
+    assert props["HttpProperties"] == {"HttpName": "mynamespace"}
 
 
 @mock_servicediscovery
@@ -42,24 +44,25 @@ def test_get_http_namespace_minimal():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.get_namespace(Id=ns_id)
-    resp.should.have.key("Namespace")
+    assert "Namespace" in resp
 
     namespace = resp["Namespace"]
-    namespace.should.have.key("Id").match(ns_id)
-    namespace.should.have.key("Arn").match(
-        f"arn:aws:servicediscovery:eu-west-1:{ACCOUNT_ID}:namespace/{namespace['Id']}"
+    assert re.match(ns_id, namespace["Id"])
+    assert re.match(
+        f"arn:aws:servicediscovery:eu-west-1:{ACCOUNT_ID}:namespace/{namespace['Id']}",
+        namespace["Arn"],
     )
-    namespace.should.have.key("Name").equals("mynamespace")
-    namespace.should.have.key("Type").equals("HTTP")
-    namespace.should.have.key("CreateDate")
-    namespace.should.have.key("CreatorRequestId")
+    assert namespace["Name"] == "mynamespace"
+    assert namespace["Type"] == "HTTP"
+    assert "CreateDate" in namespace
+    assert "CreatorRequestId" in namespace
 
-    namespace.should.have.key("Properties")
+    assert "Properties" in namespace
     props = namespace["Properties"]
-    props.should.have.key("DnsProperties").equals({"SOA": {}})
-    props.should.have.key("HttpProperties").equals({"HttpName": "mynamespace"})
+    assert props["DnsProperties"] == {"SOA": {}}
+    assert props["HttpProperties"] == {"HttpName": "mynamespace"}
 
-    namespace.shouldnt.have.key("Description")
+    assert "Description" not in namespace
 
 
 @mock_servicediscovery
@@ -72,23 +75,24 @@ def test_get_http_namespace():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.get_namespace(Id=ns_id)
-    resp.should.have.key("Namespace")
+    assert "Namespace" in resp
 
     namespace = resp["Namespace"]
-    namespace.should.have.key("Id").match(ns_id)
-    namespace.should.have.key("Arn").match(
-        f"arn:aws:servicediscovery:eu-west-1:{ACCOUNT_ID}:namespace/{namespace['Id']}"
+    assert re.match(ns_id, namespace["Id"])
+    assert re.match(
+        f"arn:aws:servicediscovery:eu-west-1:{ACCOUNT_ID}:namespace/{namespace['Id']}",
+        namespace["Arn"],
     )
-    namespace.should.have.key("Name").equals("mynamespace")
-    namespace.should.have.key("Type").equals("HTTP")
-    namespace.should.have.key("CreateDate")
-    namespace.should.have.key("CreatorRequestId").equals("crid")
-    namespace.should.have.key("Description").equals("mu fancy namespace")
+    assert namespace["Name"] == "mynamespace"
+    assert namespace["Type"] == "HTTP"
+    assert "CreateDate" in namespace
+    assert namespace["CreatorRequestId"] == "crid"
+    assert namespace["Description"] == "mu fancy namespace"
 
-    namespace.should.have.key("Properties")
+    assert "Properties" in namespace
     props = namespace["Properties"]
-    props.should.have.key("DnsProperties").equals({"SOA": {}})
-    props.should.have.key("HttpProperties").equals({"HttpName": "mynamespace"})
+    assert props["DnsProperties"] == {"SOA": {}}
+    assert props["HttpProperties"] == {"HttpName": "mynamespace"}
 
 
 @mock_servicediscovery
@@ -98,15 +102,17 @@ def test_delete_namespace():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.delete_namespace(Id=ns_id)
-    resp.should.have.key("OperationId")
+    assert "OperationId" in resp
 
     # Calling delete again while this is in progress results in an error:
-    #    Another operation of type DeleteNamespace and id dlmpkcn33aovnztwdpsdplgtheuhgcap-k6x64euq is in progress
-    # list_operations is empty after successfull deletion - old operations from this namespace should be deleted
+    #    Another operation of type DeleteNamespace and id
+    #    dlmpkcn33aovnztwdpsdplgtheuhgcap-k6x64euq is in progress
+    # list_operations is empty after successfull deletion - old operations
+    #    from this namespace should be deleted
     # list_namespaces is also empty (obvs)
 
-    client.list_namespaces()["Namespaces"].should.equal([])
-    client.list_operations()["Operations"].should.equal([])
+    assert client.list_namespaces()["Namespaces"] == []
+    assert client.list_operations()["Operations"] == []
 
 
 @mock_servicediscovery
@@ -115,8 +121,8 @@ def test_delete_unknown_namespace():
     with pytest.raises(ClientError) as exc:
         client.delete_namespace(Id="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NamespaceNotFound")
-    err["Message"].should.equal("unknown")
+    assert err["Code"] == "NamespaceNotFound"
+    assert err["Message"] == "unknown"
 
 
 @mock_servicediscovery
@@ -125,8 +131,8 @@ def test_get_unknown_namespace():
     with pytest.raises(ClientError) as exc:
         client.get_namespace(Id="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NamespaceNotFound")
-    err["Message"].should.equal("unknown")
+    assert err["Code"] == "NamespaceNotFound"
+    assert err["Message"] == "unknown"
 
 
 @mock_servicediscovery
@@ -137,18 +143,18 @@ def test_create_private_dns_namespace_minimal():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.get_namespace(Id=ns_id)
-    resp.should.have.key("Namespace")
+    assert "Namespace" in resp
 
     namespace = resp["Namespace"]
-    namespace.should.have.key("Id").match(ns_id)
-    namespace.should.have.key("Name").equals("dns_ns")
-    namespace.should.have.key("Type").equals("DNS_PRIVATE")
+    assert re.match(ns_id, namespace["Id"])
+    assert namespace["Name"] == "dns_ns"
+    assert namespace["Type"] == "DNS_PRIVATE"
 
-    namespace.should.have.key("Properties")
+    assert "Properties" in namespace
     props = namespace["Properties"]
-    props.should.have.key("DnsProperties")
-    props["DnsProperties"].should.have.key("HostedZoneId")
-    props["DnsProperties"].shouldnt.have.key("SOA")
+    assert "DnsProperties" in props
+    assert "HostedZoneId" in props["DnsProperties"]
+    assert "SOA" not in props["DnsProperties"]
 
 
 @mock_servicediscovery
@@ -164,19 +170,46 @@ def test_create_private_dns_namespace():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.get_namespace(Id=ns_id)
-    resp.should.have.key("Namespace")
+    assert "Namespace" in resp
 
     namespace = resp["Namespace"]
-    namespace.should.have.key("Id").match(ns_id)
-    namespace.should.have.key("Name").equals("dns_ns")
-    namespace.should.have.key("Type").equals("DNS_PRIVATE")
-    namespace.should.have.key("Description").equals("my private dns")
+    assert re.match(ns_id, namespace["Id"])
+    assert namespace["Name"] == "dns_ns"
+    assert namespace["Type"] == "DNS_PRIVATE"
+    assert namespace["Description"] == "my private dns"
 
-    namespace.should.have.key("Properties")
+    assert "Properties" in namespace
     props = namespace["Properties"]
-    props.should.have.key("DnsProperties")
-    props["DnsProperties"].should.have.key("HostedZoneId")
-    props["DnsProperties"].should.have.key("SOA").equals({"TTL": 123})
+    assert "DnsProperties" in props
+    assert "HostedZoneId" in props["DnsProperties"]
+    assert props["DnsProperties"]["SOA"] == {"TTL": 123}
+
+
+@mock_servicediscovery
+def test_update_private_dns_namespace():
+    client = boto3.client("servicediscovery", region_name="eu-west-1")
+    client.create_private_dns_namespace(
+        Name="dns_ns",
+        Vpc="vpc_id",
+        Description="my private dns",
+        Properties={"DnsProperties": {"SOA": {"TTL": 123}}},
+    )
+
+    ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
+
+    client.update_private_dns_namespace(
+        Id=ns_id,
+        Namespace={
+            "Description": "updated dns",
+            "Properties": {"DnsProperties": {"SOA": {"TTL": 654}}},
+        },
+    )
+
+    namespace = client.get_namespace(Id=ns_id)["Namespace"]
+    assert namespace["Description"] == "updated dns"
+
+    props = namespace["Properties"]
+    assert props["DnsProperties"]["SOA"] == {"TTL": 654}
 
 
 @mock_servicediscovery
@@ -187,7 +220,7 @@ def test_create_private_dns_namespace_with_duplicate_vpc():
     with pytest.raises(ClientError) as exc:
         client.create_private_dns_namespace(Name="sth else", Vpc="vpc_id")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConflictingDomainExists")
+    assert err["Code"] == "ConflictingDomainExists"
 
 
 @mock_servicediscovery
@@ -198,12 +231,12 @@ def test_create_public_dns_namespace_minimal():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.get_namespace(Id=ns_id)
-    resp.should.have.key("Namespace")
+    assert "Namespace" in resp
 
     namespace = resp["Namespace"]
-    namespace.should.have.key("Id").match(ns_id)
-    namespace.should.have.key("Name").equals("public_dns_ns")
-    namespace.should.have.key("Type").equals("DNS_PUBLIC")
+    assert re.match(ns_id, namespace["Id"])
+    assert namespace["Name"] == "public_dns_ns"
+    assert namespace["Type"] == "DNS_PUBLIC"
 
 
 @mock_servicediscovery
@@ -219,15 +252,42 @@ def test_create_public_dns_namespace():
     ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
 
     resp = client.get_namespace(Id=ns_id)
-    resp.should.have.key("Namespace")
+    assert "Namespace" in resp
 
     namespace = resp["Namespace"]
-    namespace.should.have.key("Id").match(ns_id)
-    namespace.should.have.key("Name").equals("public_dns_ns")
-    namespace.should.have.key("Type").equals("DNS_PUBLIC")
-    namespace.should.have.key("Description").equals("my public dns")
-    namespace.should.have.key("CreatorRequestId").equals("cri")
+    assert re.match(ns_id, namespace["Id"])
+    assert namespace["Name"] == "public_dns_ns"
+    assert namespace["Type"] == "DNS_PUBLIC"
+    assert namespace["Description"] == "my public dns"
+    assert namespace["CreatorRequestId"] == "cri"
 
-    namespace.should.have.key("Properties").should.have.key("DnsProperties")
+    assert "DnsProperties" in namespace["Properties"]
     dns_props = namespace["Properties"]["DnsProperties"]
-    dns_props.should.equal({"HostedZoneId": "hzi", "SOA": {"TTL": 124}})
+    assert dns_props == {"HostedZoneId": "hzi", "SOA": {"TTL": 124}}
+
+
+@mock_servicediscovery
+def test_update_public_dns_namespace():
+    client = boto3.client("servicediscovery", region_name="us-east-2")
+    client.create_public_dns_namespace(
+        Name="public_dns_ns",
+        CreatorRequestId="cri",
+        Description="my public dns",
+        Properties={"DnsProperties": {"SOA": {"TTL": 124}}},
+    )
+
+    ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
+
+    client.update_public_dns_namespace(
+        Id=ns_id,
+        Namespace={
+            "Description": "updated dns",
+            "Properties": {"DnsProperties": {"SOA": {"TTL": 987}}},
+        },
+    )
+
+    namespace = client.get_namespace(Id=ns_id)["Namespace"]
+    assert namespace["Description"] == "updated dns"
+
+    dns_props = namespace["Properties"]["DnsProperties"]
+    assert dns_props == {"SOA": {"TTL": 987}}

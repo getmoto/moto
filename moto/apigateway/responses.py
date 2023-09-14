@@ -429,7 +429,9 @@ class APIGatewayResponse(BaseResponse):
             self.backend.delete_stage(function_id, stage_name)
             return 202, {}, "{}"
 
-    def export(self, request: Any, full_url: str, headers: Dict[str, str]) -> TYPE_RESPONSE:  # type: ignore[return]
+    def export(
+        self, request: Any, full_url: str, headers: Dict[str, str]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         rest_api_id = url_path_parts[-5]

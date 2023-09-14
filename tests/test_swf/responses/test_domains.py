@@ -1,6 +1,5 @@
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from moto import mock_swf
@@ -18,15 +17,13 @@ def test_register_domain_boto3():
     )
 
     all_domains = client.list_domains(registrationStatus="REGISTERED")
-    all_domains.should.have.key("domainInfos").being.length_of(1)
+    assert len(all_domains["domainInfos"]) == 1
     domain = all_domains["domainInfos"][0]
 
-    domain["name"].should.equal("test-domain")
-    domain["status"].should.equal("REGISTERED")
-    domain["description"].should.equal("A test domain")
-    domain["arn"].should.equal(
-        f"arn:aws:swf:us-west-1:{ACCOUNT_ID}:/domain/test-domain"
-    )
+    assert domain["name"] == "test-domain"
+    assert domain["status"] == "REGISTERED"
+    assert domain["description"] == "A test domain"
+    assert domain["arn"] == f"arn:aws:swf:us-west-1:{ACCOUNT_ID}:/domain/test-domain"
 
 
 @mock_swf
@@ -44,9 +41,9 @@ def test_register_already_existing_domain_boto3():
             workflowExecutionRetentionPeriodInDays="60",
             description="A test domain",
         )
-    ex.value.response["Error"]["Code"].should.equal("DomainAlreadyExistsFault")
-    ex.value.response["Error"]["Message"].should.equal("test-domain")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "DomainAlreadyExistsFault"
+    assert ex.value.response["Error"]["Message"] == "test-domain"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # ListDomains endpoint
@@ -64,10 +61,10 @@ def test_list_domains_order_boto3():
     )
 
     all_domains = client.list_domains(registrationStatus="REGISTERED")
-    all_domains.should.have.key("domainInfos").being.length_of(3)
+    assert len(all_domains["domainInfos"]) == 3
 
     names = [domain["name"] for domain in all_domains["domainInfos"]]
-    names.should.equal(["a-test-domain", "b-test-domain", "c-test-domain"])
+    assert names == ["a-test-domain", "b-test-domain", "c-test-domain"]
 
 
 @mock_swf
@@ -86,10 +83,10 @@ def test_list_domains_reverse_order_boto3():
     all_domains = client.list_domains(
         registrationStatus="REGISTERED", reverseOrder=True
     )
-    all_domains.should.have.key("domainInfos").being.length_of(3)
+    assert len(all_domains["domainInfos"]) == 3
 
     names = [domain["name"] for domain in all_domains["domainInfos"]]
-    names.should.equal(["c-test-domain", "b-test-domain", "a-test-domain"])
+    assert names == ["c-test-domain", "b-test-domain", "a-test-domain"]
 
 
 # DeprecateDomain endpoint
@@ -102,13 +99,13 @@ def test_deprecate_domain_boto3():
     client.deprecate_domain(name="test-domain")
 
     all_domains = client.list_domains(registrationStatus="REGISTERED")
-    all_domains.should.have.key("domainInfos").being.length_of(0)
+    assert len(all_domains["domainInfos"]) == 0
 
     all_domains = client.list_domains(registrationStatus="DEPRECATED")
-    all_domains.should.have.key("domainInfos").being.length_of(1)
+    assert len(all_domains["domainInfos"]) == 1
 
     domain = all_domains["domainInfos"][0]
-    domain["name"].should.equal("test-domain")
+    assert domain["name"] == "test-domain"
 
 
 @mock_swf
@@ -121,9 +118,9 @@ def test_deprecate_already_deprecated_domain_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.deprecate_domain(name="test-domain")
-    ex.value.response["Error"]["Code"].should.equal("DomainDeprecatedFault")
-    ex.value.response["Error"]["Message"].should.equal("test-domain")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "DomainDeprecatedFault"
+    assert ex.value.response["Error"]["Message"] == "test-domain"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -132,9 +129,9 @@ def test_deprecate_non_existent_domain_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.deprecate_domain(name="non-existent")
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal("Unknown domain: non-existent")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == "Unknown domain: non-existent"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # UndeprecateDomain endpoint
@@ -149,7 +146,7 @@ def test_undeprecate_domain():
 
     resp = client.describe_domain(name="test-domain")
 
-    resp["domainInfo"]["status"].should.equal("REGISTERED")
+    assert resp["domainInfo"]["status"] == "REGISTERED"
 
 
 @mock_swf
@@ -161,9 +158,8 @@ def test_undeprecate_already_undeprecated_domain():
     client.deprecate_domain(name="test-domain")
     client.undeprecate_domain(name="test-domain")
 
-    client.undeprecate_domain.when.called_with(name="test-domain").should.throw(
-        ClientError
-    )
+    with pytest.raises(ClientError):
+        client.undeprecate_domain(name="test-domain")
 
 
 @mock_swf
@@ -173,18 +169,16 @@ def test_undeprecate_never_deprecated_domain():
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
     )
 
-    client.undeprecate_domain.when.called_with(name="test-domain").should.throw(
-        ClientError
-    )
+    with pytest.raises(ClientError):
+        client.undeprecate_domain(name="test-domain")
 
 
 @mock_swf
 def test_undeprecate_non_existent_domain():
     client = boto3.client("swf", region_name="us-east-1")
 
-    client.undeprecate_domain.when.called_with(name="non-existent").should.throw(
-        ClientError
-    )
+    with pytest.raises(ClientError):
+        client.undeprecate_domain(name="non-existent")
 
 
 # DescribeDomain endpoint
@@ -198,10 +192,10 @@ def test_describe_domain_boto3():
     )
 
     domain = client.describe_domain(name="test-domain")
-    domain["configuration"]["workflowExecutionRetentionPeriodInDays"].should.equal("60")
-    domain["domainInfo"]["description"].should.equal("A test domain")
-    domain["domainInfo"]["name"].should.equal("test-domain")
-    domain["domainInfo"]["status"].should.equal("REGISTERED")
+    assert domain["configuration"]["workflowExecutionRetentionPeriodInDays"] == "60"
+    assert domain["domainInfo"]["description"] == "A test domain"
+    assert domain["domainInfo"]["name"] == "test-domain"
+    assert domain["domainInfo"]["status"] == "REGISTERED"
 
 
 @mock_swf
@@ -210,6 +204,6 @@ def test_describe_non_existent_domain_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.describe_domain(name="non-existent")
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal("Unknown domain: non-existent")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == "Unknown domain: non-existent"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400

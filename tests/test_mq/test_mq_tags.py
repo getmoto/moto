@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_mq
 
@@ -21,7 +20,7 @@ def test_create_broker_with_tags():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Tags").equals({"key1": "val2", "key2": "val2"})
+    assert resp["Tags"] == {"key1": "val2", "key2": "val2"}
 
 
 @mock_mq
@@ -45,7 +44,10 @@ def test_create_tags():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Tags").equals({"key1": "val2", "key2": "val2"})
+    assert resp["Tags"] == {"key1": "val2", "key2": "val2"}
+
+    tags = client.list_tags(ResourceArn=broker_arn)["Tags"]
+    assert tags == {"key1": "val2", "key2": "val2"}
 
 
 @mock_mq
@@ -71,7 +73,7 @@ def test_delete_tags():
 
     resp = client.describe_broker(BrokerId=broker_id)
 
-    resp.should.have.key("Tags").equals({"key2": "val2"})
+    assert resp["Tags"] == {"key2": "val2"}
 
 
 @mock_mq
@@ -85,11 +87,11 @@ def test_create_configuration_with_tags():
     )
 
     # The CreateConfiguration call does not return tags
-    resp.shouldnt.have.key("Tags")
+    assert "Tags" not in resp
 
     # Only when describing will they be returned
     resp = client.describe_configuration(ConfigurationId=resp["Id"])
-    resp.should.have.key("Tags").equals({"key1": "val1", "key2": "val2"})
+    assert resp["Tags"] == {"key1": "val1", "key2": "val2"}
 
 
 @mock_mq
@@ -106,4 +108,4 @@ def test_add_tags_to_configuration():
 
     # Only when describing will they be returned
     resp = client.describe_configuration(ConfigurationId=resp["Id"])
-    resp.should.have.key("Tags").equals({"key1": "val1", "key2": "val2"})
+    assert resp["Tags"] == {"key1": "val1", "key2": "val2"}

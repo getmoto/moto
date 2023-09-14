@@ -240,7 +240,7 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         super().__setitem__(key, value)
 
     @lru_cache()
-    def __getitem__(self, region_name: str) -> SERVICE_BACKEND:  # type: ignore[override]
+    def __getitem__(self, region_name: str) -> SERVICE_BACKEND:
         if region_name in self.keys():
             return super().__getitem__(region_name)
         # Create the backend for a specific region

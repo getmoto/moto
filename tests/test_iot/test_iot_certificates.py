@@ -15,7 +15,7 @@ def test_certificate_id_generation_deterministic():
     cert2 = client.register_certificate(
         certificatePem=cert1["certificatePem"], setAsActive=False
     )
-    cert2.should.have.key("certificateId").which.should.equal(cert1["certificateId"])
+    assert cert2["certificateId"] == cert1["certificateId"]
     client.delete_certificate(certificateId=cert2["certificateId"])
 
 
@@ -25,32 +25,25 @@ def test_create_certificate_from_csr():
     client = boto3.client("iot", region_name="us-east-2")
 
     resp = client.create_certificate_from_csr(certificateSigningRequest=csr)
-    resp.should.have.key("certificateArn")
-    resp.should.have.key("certificateId")
-    resp.should.have.key("certificatePem")
+    assert "certificateArn" in resp
+    assert "certificateId" in resp
+    assert "certificatePem" in resp
 
     # Can create certificate a second time
     client.create_certificate_from_csr(certificateSigningRequest=csr)
 
-    client.list_certificates().should.have.key("certificates").length_of(2)
+    assert len(client.list_certificates()["certificates"]) == 2
 
 
 @mock_iot
 def test_create_key_and_certificate():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
-    cert.should.have.key("certificateArn").which.should_not.be.none
-    cert.should.have.key("certificateId").which.should_not.be.none
-    cert.should.have.key("certificatePem").which.should.match(
-        r"^-----BEGIN CERTIFICATE-----"
-    )
-    cert.should.have.key("keyPair")
-    cert["keyPair"].should.have.key("PublicKey").which.should.match(
-        r"^-----BEGIN PUBLIC KEY-----"
-    )
-    cert["keyPair"].should.have.key("PrivateKey").which.should.match(
-        r"^-----BEGIN RSA PRIVATE KEY-----"
-    )
+    assert cert["certificateArn"] is not None
+    assert cert["certificateId"] is not None
+    assert cert["certificatePem"].startswith("-----BEGIN CERTIFICATE-----")
+    assert cert["keyPair"]["PublicKey"].startswith("-----BEGIN PUBLIC KEY-----")
+    assert cert["keyPair"]["PrivateKey"].startswith("-----BEGIN RSA PRIVATE KEY-----")
 
 
 @mock_iot
@@ -60,16 +53,15 @@ def test_describe_certificate_by_id():
     cert_id = cert["certificateId"]
 
     cert = client.describe_certificate(certificateId=cert_id)
-    cert.should.have.key("certificateDescription")
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("certificateArn").which.should_not.be.none
-    cert_desc.should.have.key("certificateId").which.should_not.be.none
-    cert_desc.should.have.key("certificatePem").which.should_not.be.none
-    cert_desc.should.have.key("validity").which.should_not.be.none
+    assert cert_desc["certificateArn"] is not None
+    assert cert_desc["certificateId"] is not None
+    assert cert_desc["certificatePem"] is not None
+    assert cert_desc["validity"] is not None
     validity = cert_desc["validity"]
-    validity.should.have.key("notBefore").which.should_not.be.none
-    validity.should.have.key("notAfter").which.should_not.be.none
-    cert_desc.should.have.key("status").which.should.equal("ACTIVE")
+    assert validity["notBefore"] is not None
+    assert validity["notAfter"] is not None
+    assert cert_desc["status"] == "ACTIVE"
 
 
 @mock_iot
@@ -80,15 +72,15 @@ def test_list_certificates():
 
     res = client.list_certificates()
     for cert in res["certificates"]:
-        cert.should.have.key("certificateArn").which.should_not.be.none
-        cert.should.have.key("certificateId").which.should_not.be.none
-        cert.should.have.key("status").which.should_not.be.none
-        cert.should.have.key("creationDate").which.should_not.be.none
+        assert cert["certificateArn"] is not None
+        assert cert["certificateId"] is not None
+        assert cert["status"] is not None
+        assert cert["creationDate"] is not None
 
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
     cert = client.describe_certificate(certificateId=cert_id)
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("REVOKED")
+    assert cert_desc["status"] == "REVOKED"
 
 
 @mock_iot
@@ -100,7 +92,7 @@ def test_update_certificate():
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
     cert = client.describe_certificate(certificateId=cert_id)
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("REVOKED")
+    assert cert_desc["status"] == "REVOKED"
 
 
 @pytest.mark.parametrize("status", ["REVOKED", "INACTIVE"])
@@ -115,7 +107,7 @@ def test_delete_certificate_with_status(status):
 
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
-    res.should.have.key("certificates").equals([])
+    assert res["certificates"] == []
 
 
 @mock_iot
@@ -132,21 +124,21 @@ def test_register_certificate_without_ca():
     cert = client.register_certificate_without_ca(
         certificatePem=cert_pem, status="INACTIVE"
     )
-    cert.should.have.key("certificateId").which.should_not.be.none
-    cert.should.have.key("certificateArn").which.should_not.be.none
+    assert cert["certificateId"] is not None
+    assert cert["certificateArn"] is not None
     cert_id = cert["certificateId"]
 
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(1)
+    assert len(res["certificates"]) == 1
     for cert in res["certificates"]:
-        cert.should.have.key("certificateArn").which.should_not.be.none
-        cert.should.have.key("certificateId").which.should_not.be.none
-        cert.should.have.key("status").which.should_not.be.none
-        cert.should.have.key("creationDate").which.should_not.be.none
+        assert cert["certificateArn"] is not None
+        assert cert["certificateId"] is not None
+        assert cert["status"] is not None
+        assert cert["creationDate"] is not None
 
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
-    res.should.have.key("certificates")
+    assert "certificates" in res
 
 
 @mock_iot
@@ -159,18 +151,20 @@ def test_create_certificate_validation():
         client.register_certificate(
             certificatePem=cert["certificatePem"], setAsActive=False
         )
-    e.value.response["Error"]["Message"].should.contain(
+    assert (
         "The certificate is already provisioned or registered"
+        in e.value.response["Error"]["Message"]
     )
 
     with pytest.raises(ClientError) as e:
         client.register_certificate_without_ca(
             certificatePem=cert["certificatePem"], status="ACTIVE"
         )
-    e.value.response.should.have.key("resourceArn").equals(cert["certificateArn"])
-    e.value.response.should.have.key("resourceId").equals(cert["certificateId"])
-    e.value.response["Error"]["Message"].should.contain(
+    assert e.value.response["resourceArn"] == cert["certificateArn"]
+    assert e.value.response["resourceId"] == cert["certificateId"]
+    assert (
         "The certificate is already provisioned or registered"
+        in e.value.response["Error"]["Message"]
     )
 
 
@@ -202,34 +196,37 @@ def test_delete_certificate_validation():
 
     with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.value.response["Error"]["Message"].should.contain(
+    assert (
         "Certificate must be deactivated (not ACTIVE) before deletion."
+        in e.value.response["Error"]["Message"]
     )
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(1)
+    assert len(res["certificates"]) == 1
 
     client.update_certificate(certificateId=cert_id, newStatus="REVOKED")
     with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.value.response["Error"]["Message"].should.contain(
+    assert (
         f"Things must be detached before deletion (arn: {cert_arn})"
+        in e.value.response["Error"]["Message"]
     )
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(1)
+    assert len(res["certificates"]) == 1
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
     with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id)
-    e.value.response["Error"]["Message"].should.contain(
+    assert (
         f"Certificate policies must be detached before deletion (arn: {cert_arn})"
+        in e.value.response["Error"]["Message"]
     )
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(1)
+    assert len(res["certificates"]) == 1
 
     client.detach_principal_policy(policyName=policy_name, principal=cert_arn)
     client.delete_certificate(certificateId=cert_id)
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(0)
+    assert len(res["certificates"]) == 0
 
 
 @mock_iot
@@ -247,14 +244,14 @@ def test_delete_certificate_force():
     with pytest.raises(ClientError) as e:
         client.delete_certificate(certificateId=cert_id, forceDelete=True)
     err = e.value.response["Error"]
-    err["Message"].should.contain("Certificate must be deactivated")
+    assert "Certificate must be deactivated" in err["Message"]
 
     client.update_certificate(certificateId=cert_id, newStatus="INACTIVE")
     # If does work if the status is INACTIVE, even though we still have policies attached
     client.delete_certificate(certificateId=cert_id, forceDelete=True)
 
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(0)
+    assert len(res["certificates"]) == 0
 
 
 @mock_iot
@@ -272,9 +269,10 @@ def test_delete_thing_with_certificate_validation():
     with pytest.raises(ClientError) as e:
         client.delete_thing(thingName=thing_name)
     err = e.value.response["Error"]
-    err["Code"].should.equal("InvalidRequestException")
-    err["Message"].should.equals(
-        f"Cannot delete. Thing {thing_name} is still attached to one or more principals"
+    assert err["Code"] == "InvalidRequestException"
+    assert (
+        err["Message"]
+        == f"Cannot delete. Thing {thing_name} is still attached to one or more principals"
     )
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
@@ -283,9 +281,9 @@ def test_delete_thing_with_certificate_validation():
 
     # Certificate still exists
     res = client.list_certificates()
-    res.should.have.key("certificates").which.should.have.length_of(1)
-    res["certificates"][0]["certificateArn"].should.equal(cert_arn)
-    res["certificates"][0]["status"].should.equal("REVOKED")
+    assert len(res["certificates"]) == 1
+    assert res["certificates"][0]["certificateArn"] == cert_arn
+    assert res["certificates"][0]["status"] == "REVOKED"
 
 
 @mock_iot
@@ -295,12 +293,10 @@ def test_certs_create_inactive():
     cert_id = cert["certificateId"]
 
     cert = client.describe_certificate(certificateId=cert_id)
-    cert.should.have.key("certificateDescription")
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("INACTIVE")
+    assert cert_desc["status"] == "INACTIVE"
 
     client.update_certificate(certificateId=cert_id, newStatus="ACTIVE")
     cert = client.describe_certificate(certificateId=cert_id)
-    cert.should.have.key("certificateDescription")
     cert_desc = cert["certificateDescription"]
-    cert_desc.should.have.key("status").which.should.equal("ACTIVE")
+    assert cert_desc["status"] == "ACTIVE"

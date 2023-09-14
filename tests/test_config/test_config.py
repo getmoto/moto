@@ -12,6 +12,7 @@ import pytest
 from moto import mock_s3
 from moto.config import mock_config
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 
 
 @mock_config
@@ -1213,18 +1214,12 @@ def test_start_configuration_recorder():
     result = client.describe_configuration_recorder_status()[
         "ConfigurationRecordersStatus"
     ]
-    lower_bound = datetime.utcnow() - timedelta(minutes=5)
+    lower_bound = utcnow() - timedelta(minutes=5)
     assert result[0]["recording"]
     assert result[0]["lastStatus"] == "PENDING"
+    assert lower_bound < result[0]["lastStartTime"].replace(tzinfo=None) <= utcnow()
     assert (
-        lower_bound
-        < result[0]["lastStartTime"].replace(tzinfo=None)
-        <= datetime.utcnow()
-    )
-    assert (
-        lower_bound
-        < result[0]["lastStatusChangeTime"].replace(tzinfo=None)
-        <= datetime.utcnow()
+        lower_bound < result[0]["lastStatusChangeTime"].replace(tzinfo=None) <= utcnow()
     )
 
 
@@ -1263,23 +1258,13 @@ def test_stop_configuration_recorder():
     result = client.describe_configuration_recorder_status()[
         "ConfigurationRecordersStatus"
     ]
-    lower_bound = datetime.utcnow() - timedelta(minutes=5)
+    lower_bound = utcnow() - timedelta(minutes=5)
     assert not result[0]["recording"]
     assert result[0]["lastStatus"] == "PENDING"
+    assert lower_bound < result[0]["lastStartTime"].replace(tzinfo=None) <= utcnow()
+    assert lower_bound < result[0]["lastStopTime"].replace(tzinfo=None) <= utcnow()
     assert (
-        lower_bound
-        < result[0]["lastStartTime"].replace(tzinfo=None)
-        <= datetime.utcnow()
-    )
-    assert (
-        lower_bound
-        < result[0]["lastStopTime"].replace(tzinfo=None)
-        <= datetime.utcnow()
-    )
-    assert (
-        lower_bound
-        < result[0]["lastStatusChangeTime"].replace(tzinfo=None)
-        <= datetime.utcnow()
+        lower_bound < result[0]["lastStatusChangeTime"].replace(tzinfo=None) <= utcnow()
     )
 
 

@@ -14,8 +14,8 @@ def test_create_job():
     #         "field": "value"
     #     }
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -33,9 +33,9 @@ def test_create_job():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
-    job.should.have.key("description")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
+    assert "description" in job
 
 
 @mock_iot
@@ -48,8 +48,8 @@ def test_list_jobs():
     #         "field": "value"
     #     }
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -67,9 +67,9 @@ def test_list_jobs():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job1.should.have.key("jobId").which.should.equal(job_id)
-    job1.should.have.key("jobArn")
-    job1.should.have.key("description")
+    assert job1["jobId"] == job_id
+    assert "jobArn" in job1
+    assert "description" in job1
 
     job2 = client.create_job(
         jobId=job_id + "1",
@@ -84,15 +84,15 @@ def test_list_jobs():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job2.should.have.key("jobId").which.should.equal(job_id + "1")
-    job2.should.have.key("jobArn")
-    job2.should.have.key("description")
+    assert job2["jobId"] == job_id + "1"
+    assert "jobArn" in job2
+    assert "description" in job2
 
     jobs = client.list_jobs()
-    jobs.should.have.key("jobs")
-    jobs.should_not.have.key("nextToken")
-    jobs["jobs"][0].should.have.key("jobId").which.should.equal(job_id)
-    jobs["jobs"][1].should.have.key("jobId").which.should.equal(job_id + "1")
+    assert "jobs" in jobs
+    assert "nextToken" not in jobs
+    assert jobs["jobs"][0]["jobId"] == job_id
+    assert jobs["jobs"][1]["jobId"] == job_id + "1"
 
 
 @mock_iot
@@ -102,8 +102,8 @@ def test_describe_job():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     job = client.create_job(
         jobId=job_id,
@@ -117,34 +117,28 @@ def test_describe_job():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
-    job = client.describe_job(jobId=job_id)
-    job.should.have.key("documentSource")
-    job.should.have.key("job")
-    job.should.have.key("job").which.should.have.key("jobArn")
-    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("job").which.should.have.key("targets")
-    job.should.have.key("job").which.should.have.key("jobProcessDetails")
-    job.should.have.key("job").which.should.have.key("lastUpdatedAt")
-    job.should.have.key("job").which.should.have.key("createdAt")
-    job.should.have.key("job").which.should.have.key("jobExecutionsRolloutConfig")
-    job.should.have.key("job").which.should.have.key(
-        "targetSelection"
-    ).which.should.equal("CONTINUOUS")
-    job.should.have.key("job").which.should.have.key("presignedUrlConfig")
-    job.should.have.key("job").which.should.have.key(
-        "presignedUrlConfig"
-    ).which.should.have.key("roleArn").which.should.equal(
-        "arn:aws:iam::1:role/service-role/iot_job_role"
+    resp = client.describe_job(jobId=job_id)
+    assert "documentSource" in resp
+
+    job = resp["job"]
+    assert "jobArn" in job
+    assert job["jobId"] == job_id
+    assert "targets" in job
+    assert "jobProcessDetails" in job
+    assert "lastUpdatedAt" in job
+    assert "createdAt" in job
+    assert "jobExecutionsRolloutConfig" in job
+    assert job["targetSelection"] == "CONTINUOUS"
+    assert "presignedUrlConfig" in job
+    assert (
+        job["presignedUrlConfig"]["roleArn"]
+        == "arn:aws:iam::1:role/service-role/iot_job_role"
     )
-    job.should.have.key("job").which.should.have.key(
-        "presignedUrlConfig"
-    ).which.should.have.key("expiresInSec").which.should.equal(123)
-    job.should.have.key("job").which.should.have.key(
-        "jobExecutionsRolloutConfig"
-    ).which.should.have.key("maximumPerMinute").which.should.equal(10)
+    assert job["presignedUrlConfig"]["expiresInSec"] == 123
+    assert job["jobExecutionsRolloutConfig"]["maximumPerMinute"] == 10
 
 
 @mock_iot
@@ -154,8 +148,8 @@ def test_describe_job_1():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -172,33 +166,23 @@ def test_describe_job_1():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
-    job = client.describe_job(jobId=job_id)
-    job.should.have.key("job")
-    job.should.have.key("job").which.should.have.key("jobArn")
-    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("job").which.should.have.key("targets")
-    job.should.have.key("job").which.should.have.key("jobProcessDetails")
-    job.should.have.key("job").which.should.have.key("lastUpdatedAt")
-    job.should.have.key("job").which.should.have.key("createdAt")
-    job.should.have.key("job").which.should.have.key("jobExecutionsRolloutConfig")
-    job.should.have.key("job").which.should.have.key(
-        "targetSelection"
-    ).which.should.equal("CONTINUOUS")
-    job.should.have.key("job").which.should.have.key("presignedUrlConfig")
-    job.should.have.key("job").which.should.have.key(
-        "presignedUrlConfig"
-    ).which.should.have.key("roleArn").which.should.equal(
-        "arn:aws:iam::1:role/service-role/iot_job_role"
+    job = client.describe_job(jobId=job_id)["job"]
+    assert "jobArn" in job
+    assert job["jobId"] == job_id
+    assert "targets" in job
+    assert "jobProcessDetails" in job
+    assert "lastUpdatedAt" in job
+    assert "createdAt" in job
+    assert job["targetSelection"] == "CONTINUOUS"
+    assert (
+        job["presignedUrlConfig"]["roleArn"]
+        == "arn:aws:iam::1:role/service-role/iot_job_role"
     )
-    job.should.have.key("job").which.should.have.key(
-        "presignedUrlConfig"
-    ).which.should.have.key("expiresInSec").which.should.equal(123)
-    job.should.have.key("job").which.should.have.key(
-        "jobExecutionsRolloutConfig"
-    ).which.should.have.key("maximumPerMinute").which.should.equal(10)
+    assert job["presignedUrlConfig"]["expiresInSec"] == 123
+    assert job["jobExecutionsRolloutConfig"]["maximumPerMinute"] == 10
 
 
 @mock_iot
@@ -208,8 +192,8 @@ def test_delete_job():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     job = client.create_job(
         jobId=job_id,
@@ -223,16 +207,15 @@ def test_delete_job():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
-    job = client.describe_job(jobId=job_id)
-    job.should.have.key("job")
-    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+    job = client.describe_job(jobId=job_id)["job"]
+    assert job["jobId"] == job_id
 
     client.delete_job(jobId=job_id)
 
-    client.list_jobs()["jobs"].should.have.length_of(0)
+    assert client.list_jobs()["jobs"] == []
 
 
 @mock_iot
@@ -242,8 +225,8 @@ def test_cancel_job():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     job = client.create_job(
         jobId=job_id,
@@ -257,32 +240,22 @@ def test_cancel_job():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
-    job = client.describe_job(jobId=job_id)
-    job.should.have.key("job")
-    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
+    job = client.describe_job(jobId=job_id)["job"]
+    assert job["jobId"] == job_id
 
     job = client.cancel_job(jobId=job_id, reasonCode="Because", comment="You are")
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
-    job = client.describe_job(jobId=job_id)
-    job.should.have.key("job")
-    job.should.have.key("job").which.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("job").which.should.have.key("status").which.should.equal(
-        "CANCELED"
-    )
-    job.should.have.key("job").which.should.have.key(
-        "forceCanceled"
-    ).which.should.equal(False)
-    job.should.have.key("job").which.should.have.key("reasonCode").which.should.equal(
-        "Because"
-    )
-    job.should.have.key("job").which.should.have.key("comment").which.should.equal(
-        "You are"
-    )
+    job = client.describe_job(jobId=job_id)["job"]
+    assert job["jobId"] == job_id
+    assert job["status"] == "CANCELED"
+    assert job["forceCanceled"] is False
+    assert job["reasonCode"] == "Because"
+    assert job["comment"] == "You are"
 
 
 @mock_iot
@@ -292,8 +265,8 @@ def test_get_job_document_with_document_source():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     job = client.create_job(
         jobId=job_id,
@@ -307,11 +280,11 @@ def test_get_job_document_with_document_source():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
     job_document = client.get_job_document(jobId=job_id)
-    job_document.should.have.key("document").which.should.equal("")
+    assert job_document["document"] == ""
 
 
 @mock_iot
@@ -321,8 +294,8 @@ def test_get_job_document_with_document():
     job_id = "TestJob"
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # job document
     job_document = {"field": "value"}
@@ -339,8 +312,8 @@ def test_get_job_document_with_document():
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
     )
 
-    job.should.have.key("jobId").which.should.equal(job_id)
-    job.should.have.key("jobArn")
+    assert job["jobId"] == job_id
+    assert "jobArn" in job
 
     job_document = client.get_job_document(jobId=job_id)
-    job_document.should.have.key("document").which.should.equal('{"field": "value"}')
+    assert job_document["document"] == '{"field": "value"}'

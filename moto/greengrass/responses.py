@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 import json
 
@@ -789,11 +788,5 @@ class GreengrassResponse(BaseResponse):
         return (
             200,
             {"status": 200},
-            json.dumps(
-                {
-                    "DisassociatedAt": iso_8601_datetime_with_milliseconds(
-                        datetime.utcnow()
-                    )
-                }
-            ),
+            json.dumps({"DisassociatedAt": iso_8601_datetime_with_milliseconds()}),
         )

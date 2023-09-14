@@ -1,12 +1,12 @@
-import boto3
-
 import json
-import sure  # noqa # pylint: disable=unused-import
-from moto import mock_sqs, mock_cloudformation
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from string import Template
 from random import randint
 from uuid import uuid4
+
+import boto3
+
+from moto import mock_sqs, mock_cloudformation
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 simple_queue = Template(
     """{
@@ -56,13 +56,13 @@ def test_describe_stack_subresources():
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
     queue_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
-    assert any([f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls])
+    assert any({f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls})
 
     stack = res.Stack(stack_name)
     for s in stack.resource_summaries.all():
-        s.resource_type.should.equal("AWS::SQS::Queue")
-        s.logical_id.should.equal("QueueGroup")
-        s.physical_resource_id.should.contain(f"/{q_name}")
+        assert s.resource_type == "AWS::SQS::Queue"
+        assert s.logical_id == "QueueGroup"
+        assert f"/{q_name}" in s.physical_resource_id
 
 
 @mock_sqs
@@ -77,14 +77,14 @@ def test_list_stack_resources():
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
     queue_urls = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
-    assert any([f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls])
+    assert any({f"{ACCOUNT_ID}/{q_name}" in url for url in queue_urls})
 
     queue = cf.list_stack_resources(StackName=stack_name)["StackResourceSummaries"][0]
 
-    queue.should.have.key("ResourceType").equal("AWS::SQS::Queue")
-    queue.should.have.key("LogicalResourceId").should.equal("QueueGroup")
+    assert queue["ResourceType"] == "AWS::SQS::Queue"
+    assert queue["LogicalResourceId"] == "QueueGroup"
     expected_url = f"https://sqs.us-east-1.amazonaws.com/{ACCOUNT_ID}/{q_name}"
-    queue.should.have.key("PhysicalResourceId").should.equal(expected_url)
+    assert queue["PhysicalResourceId"] == expected_url
 
 
 @mock_sqs
@@ -103,7 +103,7 @@ def test_create_from_cloudformation_json_with_tags():
     queue_url = [url for url in all_urls if url.endswith(q_name)][0]
 
     queue_tags = client.list_queue_tags(QueueUrl=queue_url)["Tags"]
-    queue_tags.should.equal({"keyname1": "value1", "keyname2": "value2"})
+    assert queue_tags == {"keyname1": "value1", "keyname2": "value2"}
 
 
 @mock_cloudformation
@@ -127,11 +127,11 @@ def test_update_stack():
 
     client = boto3.client("sqs", region_name="us-west-1")
     queues = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
-    queues.should.have.length_of(1)
+    assert len(queues) == 1
     attrs = client.get_queue_attributes(QueueUrl=queues[0], AttributeNames=["All"])[
         "Attributes"
     ]
-    attrs["VisibilityTimeout"].should.equal("60")
+    assert attrs["VisibilityTimeout"] == "60"
 
     # when updating
     sqs_template["Resources"]["QueueGroup"]["Properties"]["VisibilityTimeout"] = 100
@@ -140,11 +140,11 @@ def test_update_stack():
 
     # then the attribute should be updated
     queues = client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]
-    queues.should.have.length_of(1)
+    assert len(queues) == 1
     attrs = client.get_queue_attributes(QueueUrl=queues[0], AttributeNames=["All"])[
         "Attributes"
     ]
-    attrs["VisibilityTimeout"].should.equal("100")
+    assert attrs["VisibilityTimeout"] == "100"
 
 
 @mock_cloudformation
@@ -167,14 +167,14 @@ def test_update_stack_and_remove_resource():
     cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client = boto3.client("sqs", region_name="us-west-1")
-    client.list_queues(QueueNamePrefix=q_name)["QueueUrls"].should.have.length_of(1)
+    assert len(client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]) == 1
 
     sqs_template["Resources"].pop("QueueGroup")
     sqs_template_json = json.dumps(sqs_template)
     cf.update_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     # No queues exist, so the key is not passed through
-    client.list_queues(QueueNamePrefix=q_name).shouldnt.have.key("QueueUrls")
+    assert "QueueUrls" not in client.list_queues(QueueNamePrefix=q_name)
 
 
 @mock_cloudformation
@@ -190,7 +190,7 @@ def test_update_stack_and_add_resource():
     cf.create_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
     client = boto3.client("sqs", region_name="us-west-1")
-    client.list_queues(QueueNamePrefix=q_name).shouldnt.have.key("QueueUrls")
+    assert "QueueUrls" not in client.list_queues(QueueNamePrefix=q_name)
 
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -204,7 +204,7 @@ def test_update_stack_and_add_resource():
     sqs_template_json = json.dumps(sqs_template)
     cf.update_stack(StackName=stack_name, TemplateBody=sqs_template_json)
 
-    client.list_queues(QueueNamePrefix=q_name)["QueueUrls"].should.have.length_of(1)
+    assert len(client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]) == 1
 
 
 @mock_sqs
@@ -223,4 +223,4 @@ def test_create_queue_passing_integer_as_name():
     cf.create_stack(StackName=stack_name, TemplateBody=template_body)
 
     queue_urls = client.list_queues(QueueNamePrefix=q_name[0:6])["QueueUrls"]
-    queue_urls.should.have.length_of(1)
+    assert len(queue_urls) == 1

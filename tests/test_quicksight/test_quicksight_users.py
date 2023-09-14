@@ -1,9 +1,8 @@
 """Unit tests for quicksight-supported APIs."""
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_quicksight
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -23,17 +22,17 @@ def test_register_user__quicksight():
         UserRole="READER",
     )
 
-    resp.should.have.key("UserInvitationUrl")
-    resp.should.have.key("User")
+    assert "UserInvitationUrl" in resp
+    assert "User" in resp
 
-    resp["User"].should.have.key("Arn").equals(
+    assert resp["User"]["Arn"] == (
         f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/tfacctestm9hpsr970z"
     )
-    resp["User"].should.have.key("UserName").equals("tfacctestm9hpsr970z")
-    resp["User"].should.have.key("Email").equals("fakeemail@example.com")
-    resp["User"].should.have.key("Role").equals("READER")
-    resp["User"].should.have.key("IdentityType").equals("QUICKSIGHT")
-    resp["User"].should.have.key("Active").equals(False)
+    assert resp["User"]["UserName"] == "tfacctestm9hpsr970z"
+    assert resp["User"]["Email"] == "fakeemail@example.com"
+    assert resp["User"]["Role"] == "READER"
+    assert resp["User"]["IdentityType"] == "QUICKSIGHT"
+    assert resp["User"]["Active"] is False
 
 
 @mock_quicksight
@@ -52,16 +51,16 @@ def test_describe_user__quicksight():
         UserName="tfacctestm9hpsr970z", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
 
-    resp.should.have.key("User")
+    assert "User" in resp
 
-    resp["User"].should.have.key("Arn").equals(
+    assert resp["User"]["Arn"] == (
         f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:user/default/tfacctestm9hpsr970z"
     )
-    resp["User"].should.have.key("UserName").equals("tfacctestm9hpsr970z")
-    resp["User"].should.have.key("Email").equals("fakeemail@example.com")
-    resp["User"].should.have.key("Role").equals("READER")
-    resp["User"].should.have.key("IdentityType").equals("QUICKSIGHT")
-    resp["User"].should.have.key("Active").equals(False)
+    assert resp["User"]["UserName"] == "tfacctestm9hpsr970z"
+    assert resp["User"]["Email"] == "fakeemail@example.com"
+    assert resp["User"]["Role"] == "READER"
+    assert resp["User"]["IdentityType"] == "QUICKSIGHT"
+    assert resp["User"]["Active"] is False
 
 
 @mock_quicksight
@@ -85,7 +84,7 @@ def test_delete_user__quicksight():
             UserName="tfacctestm9hpsr970z", AwsAccountId=ACCOUNT_ID, Namespace="default"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_quicksight
@@ -93,8 +92,8 @@ def test_list_users__initial():
     client = boto3.client("quicksight", region_name="us-east-2")
     resp = client.list_users(AwsAccountId=ACCOUNT_ID, Namespace="default")
 
-    resp.should.have.key("UserList").equals([])
-    resp.should.have.key("Status").equals(200)
+    assert resp["UserList"] == []
+    assert resp["Status"] == 200
 
 
 @mock_quicksight
@@ -112,30 +111,28 @@ def test_list_users():
 
     resp = client.list_users(AwsAccountId=ACCOUNT_ID, Namespace="default")
 
-    resp.should.have.key("UserList").length_of(4)
-    resp.should.have.key("Status").equals(200)
+    assert len(resp["UserList"]) == 4
+    assert resp["Status"] == 200
+    for user in resp["UserList"]:
+        user.pop("PrincipalId")
 
-    resp["UserList"].should.contain(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fake0",
-            "UserName": "fake0",
-            "Email": "fakeemail0@example.com",
-            "Role": "READER",
-            "IdentityType": "QUICKSIGHT",
-            "Active": False,
-        }
-    )
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fake0",
+        "UserName": "fake0",
+        "Email": "fakeemail0@example.com",
+        "Role": "READER",
+        "IdentityType": "QUICKSIGHT",
+        "Active": False,
+    } in resp["UserList"]
 
-    resp["UserList"].should.contain(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fake3",
-            "UserName": "fake3",
-            "Email": "fakeemail3@example.com",
-            "Role": "READER",
-            "IdentityType": "QUICKSIGHT",
-            "Active": False,
-        }
-    )
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fake3",
+        "UserName": "fake3",
+        "Email": "fakeemail3@example.com",
+        "Role": "READER",
+        "IdentityType": "QUICKSIGHT",
+        "Active": False,
+    } in resp["UserList"]
 
 
 @mock_quicksight
@@ -160,13 +157,11 @@ def test_create_group_membership():
         Namespace="default",
     )
 
-    resp.should.have.key("GroupMember").equals(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user.1",
-            "MemberName": "user.1",
-        }
-    )
-    resp.should.have.key("Status").equals(200)
+    assert resp["GroupMember"] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user.1",
+        "MemberName": "user.1",
+    }
+    assert resp["Status"] == 200
 
 
 @mock_quicksight
@@ -198,13 +193,11 @@ def test_describe_group_membership():
         Namespace="default",
     )
 
-    resp.should.have.key("GroupMember").equals(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user1",
-            "MemberName": "user1",
-        }
-    )
-    resp.should.have.key("Status").equals(200)
+    assert resp["GroupMember"] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user1",
+        "MemberName": "user1",
+    }
+    assert resp["Status"] == 200
 
 
 @mock_quicksight
@@ -249,21 +242,17 @@ def test_list_group_memberships():
         GroupName="group1", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
 
-    resp.should.have.key("GroupMemberList").length_of(2)
-    resp.should.have.key("Status").equals(200)
+    assert len(resp["GroupMemberList"]) == 2
+    assert resp["Status"] == 200
 
-    resp["GroupMemberList"].should.contain(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user0",
-            "MemberName": "user0",
-        }
-    )
-    resp["GroupMemberList"].should.contain(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user1",
-            "MemberName": "user1",
-        }
-    )
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user0",
+        "MemberName": "user0",
+    } in resp["GroupMemberList"]
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/user1",
+        "MemberName": "user1",
+    } in resp["GroupMemberList"]
 
 
 @mock_quicksight
@@ -291,11 +280,11 @@ def test_list_group_memberships__after_deleting_user():
     resp = client.list_group_memberships(
         GroupName="group1", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
-    resp.should.have.key("GroupMemberList").length_of(3)
+    assert len(resp["GroupMemberList"]) == 3
 
     client.delete_user(UserName="user1", AwsAccountId=ACCOUNT_ID, Namespace="default")
 
     resp = client.list_group_memberships(
         GroupName="group1", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
-    resp.should.have.key("GroupMemberList").length_of(2)
+    assert len(resp["GroupMemberList"]) == 2

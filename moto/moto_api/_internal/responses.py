@@ -168,6 +168,35 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_sagemaker_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        request_body_size = int(headers["Content-Length"])
+        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+        body = json.loads(body)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            body = result["Body"]
+            content_type = result.get("ContentType")
+            prod_variant = result.get("InvokedProductionVariant")
+            custom_attrs = result.get("CustomAttributes")
+            moto_api_backend.set_sagemaker_result(
+                body=body,
+                content_type=content_type,
+                prod_variant=prod_variant,
+                custom_attrs=custom_attrs,
+                account_id=account_id,
+                region=region,
+            )
+        return 201, {}, ""
+
     def set_rds_data_result(
         self,
         request: Any,

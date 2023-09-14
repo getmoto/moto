@@ -1,6 +1,9 @@
-import boto3
 import json
+from uuid import uuid4
+
+import boto3
 import pytest
+
 from moto import mock_lambda, mock_logs, mock_s3, mock_sqs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.markers import requires_docker
@@ -9,7 +12,6 @@ from tests.test_awslambda.utilities import (
     get_role_name,
     wait_for_log_msg,
 )
-from uuid import uuid4
 
 
 REGION_NAME = "us-east-1"
@@ -41,7 +43,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     function_name = str(uuid4())[0:6]
     fn_arn = lambda_client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_print_event()},
@@ -89,24 +91,20 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     records = [line for line in all_logs if line.startswith("{'Records'")][0]
     records = json.loads(records.replace("'", '"'))["Records"]
 
-    records.should.have.length_of(1)
-    records[0].should.have.key("awsRegion").equals(REGION_NAME)
-    records[0].should.have.key("eventName").equals(actual_event)
-    records[0].should.have.key("eventSource").equals("aws:s3")
-    records[0].should.have.key("eventTime")
-    records[0].should.have.key("s3")
-    records[0]["s3"].should.have.key("bucket")
-    records[0]["s3"]["bucket"].should.have.key("arn").equals(
-        f"arn:aws:s3:::{bucket_name}"
-    )
-    records[0]["s3"]["bucket"].should.have.key("name").equals(bucket_name)
-    records[0]["s3"].should.have.key("configurationId").equals("s3eventtriggerslambda")
-    records[0]["s3"].should.have.key("object")
-    records[0]["s3"]["object"].should.have.key("eTag").equals(
-        "61ea96c3c8d2c76fc5a42bfccb6affd9"
-    )
-    records[0]["s3"]["object"].should.have.key("key").equals("keyname")
-    records[0]["s3"]["object"].should.have.key("size").equals(15)
+    assert len(records) == 1
+    assert records[0]["awsRegion"] == REGION_NAME
+    assert records[0]["eventName"] == actual_event
+    assert records[0]["eventSource"] == "aws:s3"
+    assert "eventTime" in records[0]
+    assert "s3" in records[0]
+    assert "bucket" in records[0]["s3"]
+    assert records[0]["s3"]["bucket"]["arn"] == f"arn:aws:s3:::{bucket_name}"
+    assert records[0]["s3"]["bucket"]["name"] == bucket_name
+    assert records[0]["s3"]["configurationId"] == "s3eventtriggerslambda"
+    assert "object" in records[0]["s3"]
+    assert records[0]["s3"]["object"]["eTag"] == "61ea96c3c8d2c76fc5a42bfccb6affd9"
+    assert records[0]["s3"]["object"]["key"] == "keyname"
+    assert records[0]["s3"]["object"]["size"] == 15
 
 
 @mock_logs
@@ -138,8 +136,8 @@ def test_objectcreated_put__unknown_lambda_is_handled_gracefully():
 
     # The object was persisted successfully
     resp = s3_client.get_object(Bucket=bucket_name, Key="keyname")
-    resp.should.have.key("ContentLength").equal(15)
-    resp["Body"].read().should.equal(b"bodyofnewobject")
+    assert resp["ContentLength"] == 15
+    assert resp["Body"].read() == b"bodyofnewobject"
 
 
 @mock_s3
@@ -175,12 +173,12 @@ def test_object_copy__sends_to_queue():
 
     # We should have received a test event now
     messages = sqs_client.receive_message(QueueUrl=queue_url)["Messages"]
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
     message = json.loads(messages[0]["Body"])
-    message.should.have.key("Service").equals("Amazon S3")
-    message.should.have.key("Event").equals("s3:TestEvent")
-    message.should.have.key("Time")
-    message.should.have.key("Bucket").equals(bucket_name)
+    assert message["Service"] == "Amazon S3"
+    assert message["Event"] == "s3:TestEvent"
+    assert "Time" in message
+    assert message["Bucket"] == bucket_name
 
     # Copy an Object
     s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
@@ -190,27 +188,23 @@ def test_object_copy__sends_to_queue():
 
     # Read SQS messages - we should have the Copy-event here
     resp = sqs_client.receive_message(QueueUrl=queue_url)
-    resp.should.have.key("Messages").length_of(1)
+    assert len(resp["Messages"]) == 1
     records = json.loads(resp["Messages"][0]["Body"])["Records"]
 
-    records.should.have.length_of(1)
-    records[0].should.have.key("awsRegion").equals(REGION_NAME)
-    records[0].should.have.key("eventName").equals("ObjectCreated:Copy")
-    records[0].should.have.key("eventSource").equals("aws:s3")
-    records[0].should.have.key("eventTime")
-    records[0].should.have.key("s3")
-    records[0]["s3"].should.have.key("bucket")
-    records[0]["s3"]["bucket"].should.have.key("arn").equals(
-        f"arn:aws:s3:::{bucket_name}"
-    )
-    records[0]["s3"]["bucket"].should.have.key("name").equals(bucket_name)
-    records[0]["s3"].should.have.key("configurationId").equals("queue_config")
-    records[0]["s3"].should.have.key("object")
-    records[0]["s3"]["object"].should.have.key("eTag").equals(
-        "61ea96c3c8d2c76fc5a42bfccb6affd9"
-    )
-    records[0]["s3"]["object"].should.have.key("key").equals("key2")
-    records[0]["s3"]["object"].should.have.key("size").equals(15)
+    assert len(records) == 1
+    assert records[0]["awsRegion"] == REGION_NAME
+    assert records[0]["eventName"] == "ObjectCreated:Copy"
+    assert records[0]["eventSource"] == "aws:s3"
+    assert "eventTime" in records[0]
+    assert "s3" in records[0]
+    assert "bucket" in records[0]["s3"]
+    assert records[0]["s3"]["bucket"]["arn"] == f"arn:aws:s3:::{bucket_name}"
+    assert records[0]["s3"]["bucket"]["name"] == bucket_name
+    assert records[0]["s3"]["configurationId"] == "queue_config"
+    assert "object" in records[0]["s3"]
+    assert records[0]["s3"]["object"]["eTag"] == "61ea96c3c8d2c76fc5a42bfccb6affd9"
+    assert records[0]["s3"]["object"]["key"] == "key2"
+    assert records[0]["s3"]["object"]["size"] == 15
 
 
 @mock_s3
@@ -260,34 +254,34 @@ def test_object_put__sends_to_queue__using_filter():
 
     # Read the test-event
     resp = queue.receive_messages()
-    [m.delete() for m in resp]
+    _ = [m.delete() for m in resp]
 
     # Create an Object that does not meet any filter
     s3_client.put_object(Bucket=bucket_name, Key="bb", Body="sth")
     messages = queue.receive_messages()
-    messages.should.have.length_of(0)
-    [m.delete() for m in messages]
+    assert not messages
+    _ = [m.delete() for m in messages]
 
     # Create an Object that does meet the filter - using the prefix only
     s3_client.put_object(Bucket=bucket_name, Key="aafilter", Body="sth")
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
-    [m.delete() for m in messages]
+    assert len(messages) == 1
+    _ = [m.delete() for m in messages]
 
     # Create an Object that does meet the filter - using the prefix + suffix
     s3_client.put_object(Bucket=bucket_name, Key="image/yes.jpg", Body="img")
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
-    [m.delete() for m in messages]
+    assert len(messages) == 1
+    _ = [m.delete() for m in messages]
 
     # Create an Object that does not meet the filter - only the prefix
     s3_client.put_object(Bucket=bucket_name, Key="image/no.gif", Body="img")
     messages = queue.receive_messages()
-    messages.should.have.length_of(0)
-    [m.delete() for m in messages]
+    assert not messages
+    _ = [m.delete() for m in messages]
 
     # Create an Object that does not meet the filter - only the suffix
     s3_client.put_object(Bucket=bucket_name, Key="nonimages/yes.jpg", Body="img")
     messages = queue.receive_messages()
-    messages.should.have.length_of(0)
-    [m.delete() for m in messages]
+    assert not messages
+    _ = [m.delete() for m in messages]

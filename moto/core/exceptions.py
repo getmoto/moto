@@ -64,7 +64,7 @@ class RESTError(HTTPException):
 
         if template in self.templates.keys():
             env = Environment(loader=DictLoader(self.templates))
-            self.description: str = env.get_template(template).render(  # type: ignore
+            self.description: str = env.get_template(template).render(
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
@@ -88,7 +88,7 @@ class RESTError(HTTPException):
     def get_body(
         self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
     ) -> str:
-        return self.description  # type: ignore[return-value]
+        return self.description
 
     def to_json(self) -> "JsonRESTError":
         err = JsonRESTError(error_type=self.error_type, message=self.message)

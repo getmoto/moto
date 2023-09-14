@@ -154,7 +154,9 @@ class IoTDataPlaneBackend(BaseBackend):
     def iot_backend(self) -> IoTBackend:
         return iot_backends[self.account_id][self.region_name]
 
-    def update_thing_shadow(self, thing_name: str, payload: str) -> FakeShadow:
+    def update_thing_shadow(
+        self, thing_name: str, payload: str, shadow_name: Optional[str]
+    ) -> FakeShadow:
         """
         spec of payload:
           - need node `state`
@@ -175,34 +177,43 @@ class IoTDataPlaneBackend(BaseBackend):
         if any(_ for _ in _payload["state"].keys() if _ not in ["desired", "reported"]):
             raise InvalidRequestException("State contains an invalid node")
 
-        if "version" in _payload and thing.thing_shadow.version != _payload["version"]:
+        thing_shadow = thing.thing_shadows.get(shadow_name)
+        if "version" in _payload and thing_shadow.version != _payload["version"]:  # type: ignore
             raise ConflictException("Version conflict")
-        new_shadow = FakeShadow.create_from_previous_version(
-            thing.thing_shadow, _payload
-        )
-        thing.thing_shadow = new_shadow
-        return thing.thing_shadow
+        new_shadow = FakeShadow.create_from_previous_version(thing_shadow, _payload)
+        thing.thing_shadows[shadow_name] = new_shadow
+        return new_shadow
 
-    def get_thing_shadow(self, thing_name: str) -> FakeShadow:
+    def get_thing_shadow(
+        self, thing_name: str, shadow_name: Optional[str]
+    ) -> FakeShadow:
         thing = self.iot_backend.describe_thing(thing_name)
+        thing_shadow = thing.thing_shadows.get(shadow_name)
 
-        if thing.thing_shadow is None or thing.thing_shadow.deleted:
+        if thing_shadow is None or thing_shadow.deleted:
             raise ResourceNotFoundException()
-        return thing.thing_shadow
+        return thing_shadow
 
-    def delete_thing_shadow(self, thing_name: str) -> FakeShadow:
+    def delete_thing_shadow(
+        self, thing_name: str, shadow_name: Optional[str]
+    ) -> FakeShadow:
         thing = self.iot_backend.describe_thing(thing_name)
-        if thing.thing_shadow is None:
+        thing_shadow = thing.thing_shadows.get(shadow_name)
+        if thing_shadow is None:
             raise ResourceNotFoundException()
         payload = None
-        new_shadow = FakeShadow.create_from_previous_version(
-            thing.thing_shadow, payload
-        )
-        thing.thing_shadow = new_shadow
-        return thing.thing_shadow
+        new_shadow = FakeShadow.create_from_previous_version(thing_shadow, payload)
+        thing.thing_shadows[shadow_name] = new_shadow
+        return new_shadow
 
     def publish(self, topic: str, payload: str) -> None:
         self.published_payloads.append((topic, payload))
+
+    def list_named_shadows_for_thing(self, thing_name: str) -> List[FakeShadow]:
+        thing = self.iot_backend.describe_thing(thing_name)
+        return [
+            shadow for name, shadow in thing.thing_shadows.items() if name is not None
+        ]
 
 
 iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot")

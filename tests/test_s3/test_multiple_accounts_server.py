@@ -1,8 +1,9 @@
+from unittest import SkipTest
+
 import requests
 
 from moto import settings
 from moto.server import ThreadedMotoServer
-from unittest import SkipTest
 
 
 SERVER_PORT = 5001
@@ -27,8 +28,8 @@ class TestAccountIdResolution:
             requests.put(f"http://{name}.localhost:{SERVER_PORT}/")
 
         res = requests.get(BASE_URL)
-        res.content.should.contain(b"<Name>foo</Name>")
-        res.content.should.contain(b"<Name>bar</Name>")
+        assert b"<Name>foo</Name>" in res.content
+        assert b"<Name>bar</Name>" in res.content
 
         # Create two more buckets in another account
         headers = {"x-moto-account-id": "333344445555"}
@@ -38,12 +39,12 @@ class TestAccountIdResolution:
 
         # Verify only these buckets exist in this account
         res = requests.get(BASE_URL, headers=headers)
-        res.content.should.contain(b"<Name>baz</Name>")
-        res.content.should.contain(b"<Name>bla</Name>")
-        res.content.shouldnt.contain(b"<Name>foo</Name>")
-        res.content.shouldnt.contain(b"<Name>bar</Name>")
+        assert b"<Name>baz</Name>" in res.content
+        assert b"<Name>bla</Name>" in res.content
+        assert b"<Name>foo</Name>" not in res.content
+        assert b"<Name>bar</Name>" not in res.content
 
         # Verify these buckets do not exist in the original account
         res = requests.get(BASE_URL)
-        res.content.shouldnt.contain(b"<Name>baz</Name>")
-        res.content.shouldnt.contain(b"<Name>bla</Name>")
+        assert b"<Name>baz</Name>" not in res.content
+        assert b"<Name>bla</Name>" not in res.content

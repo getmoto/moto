@@ -1,7 +1,7 @@
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_redshiftdata
 from tests.test_redshiftdata.test_redshiftdata_constants import ErrorAttributes
 
@@ -112,7 +112,7 @@ def test_execute_statement_and_cancel_statement(client):
     # Cancel statement
     cancel_response = client.cancel_statement(Id=execute_response["Id"])
 
-    cancel_response["Status"].should.equal(True)
+    assert cancel_response["Status"] is True
 
 
 @mock_redshiftdata
@@ -137,13 +137,13 @@ def test_execute_statement_and_describe_statement(client):
     # Describe statement
     describe_response = client.describe_statement(Id=execute_response["Id"])
 
-    describe_response["ClusterIdentifier"].should.equal(cluster_identifier)
-    describe_response["Database"].should.equal(database)
-    describe_response["DbUser"].should.equal(db_user)
-    describe_response["QueryParameters"].should.equal(parameters)
-    describe_response["SecretArn"].should.equal(secret_arn)
-    describe_response["QueryString"].should.equal(sql)
-    describe_response["Status"].should.equal("STARTED")
+    assert describe_response["ClusterIdentifier"] == cluster_identifier
+    assert describe_response["Database"] == database
+    assert describe_response["DbUser"] == db_user
+    assert describe_response["QueryParameters"] == parameters
+    assert describe_response["SecretArn"] == secret_arn
+    assert describe_response["QueryString"] == sql
+    assert describe_response["Status"] == "STARTED"
 
 
 @mock_redshiftdata
@@ -168,15 +168,15 @@ def test_execute_statement_and_get_statement_result(client):
     # Get statement result
     result_response = client.get_statement_result(Id=execute_response["Id"])
 
-    result_response["ColumnMetadata"][0]["name"].should.equal("Number")
-    result_response["ColumnMetadata"][1]["name"].should.equal("Street")
-    result_response["ColumnMetadata"][2]["name"].should.equal("City")
-    result_response["Records"][0][0]["longValue"].should.equal(10)
-    result_response["Records"][1][1]["stringValue"].should.equal("Beta st")
-    result_response["Records"][2][2]["stringValue"].should.equal("Seattle")
+    assert result_response["ColumnMetadata"][0]["name"] == "Number"
+    assert result_response["ColumnMetadata"][1]["name"] == "Street"
+    assert result_response["ColumnMetadata"][2]["name"] == "City"
+    assert result_response["Records"][0][0]["longValue"] == 10
+    assert result_response["Records"][1][1]["stringValue"] == "Beta st"
+    assert result_response["Records"][2][2]["stringValue"] == "Seattle"
 
 
 def assert_expected_exception(raised_exception, expected_exception, expected_message):
     error = raised_exception.value.response[ErrorAttributes.ERROR]
-    error[ErrorAttributes.CODE].should.equal(expected_exception)
-    error[ErrorAttributes.MESSAGE].should.equal(expected_message)
+    assert error[ErrorAttributes.CODE] == expected_exception
+    assert error[ErrorAttributes.MESSAGE] == expected_message

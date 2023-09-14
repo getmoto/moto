@@ -31,7 +31,7 @@ class StateMachine(CloudFormationModel):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
-        self.creation_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.creation_date = iso_8601_datetime_with_milliseconds()
         self.update_date = self.creation_date
         self.arn = arn
         self.name = name
@@ -92,7 +92,7 @@ class StateMachine(CloudFormationModel):
         for key, value in kwargs.items():
             if value is not None:
                 setattr(self, key, value)
-        self.update_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.update_date = iso_8601_datetime_with_milliseconds()
 
     def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         merged_tags = []
@@ -253,7 +253,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.start_date = iso_8601_datetime_with_milliseconds()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -364,7 +364,7 @@ class Execution:
 
     def stop(self) -> None:
         self.status = "ABORTED"
-        self.stop_date = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.stop_date = iso_8601_datetime_with_milliseconds()
 
 
 class StepFunctionBackend(BaseBackend):
@@ -502,7 +502,7 @@ class StepFunctionBackend(BaseBackend):
             return state_machine
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_state_machines(self) -> Iterable[StateMachine]:  # type: ignore[misc]
+    def list_state_machines(self) -> Iterable[StateMachine]:
         return sorted(self.state_machines, key=lambda x: x.creation_date)
 
     def describe_state_machine(self, arn: str) -> StateMachine:
@@ -550,7 +550,9 @@ class StepFunctionBackend(BaseBackend):
         return state_machine.stop_execution(execution_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_executions(self, state_machine_arn: str, status_filter: Optional[str] = None) -> Iterable[Execution]:  # type: ignore[misc]
+    def list_executions(
+        self, state_machine_arn: str, status_filter: Optional[str] = None
+    ) -> Iterable[Execution]:
         """
         The status of every execution is set to 'RUNNING' by default.
         Set the following environment variable if you want to get a FAILED status back:

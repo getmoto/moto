@@ -3,12 +3,9 @@ import datetime
 import boto3
 from botocore.client import ClientError
 
+from moto import mock_s3, mock_kms
 from moto.s3.responses import DEFAULT_REGION_NAME
 import pytest
-
-import sure  # noqa # pylint: disable=unused-import
-
-from moto import mock_s3, mock_kms
 
 
 @pytest.mark.parametrize(
@@ -22,38 +19,38 @@ from moto import mock_s3, mock_kms
 )
 @mock_s3
 def test_copy_key_boto3(key_name):
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
 
-    key = s3.Object("foobar", key_name)
+    key = s3_resource.Object("foobar", key_name)
     key.put(Body=b"some value")
 
-    key2 = s3.Object("foobar", "new-key")
+    key2 = s3_resource.Object("foobar", "new-key")
     key2.copy_from(CopySource=f"foobar/{key_name}")
 
     resp = client.get_object(Bucket="foobar", Key=key_name)
-    resp["Body"].read().should.equal(b"some value")
+    assert resp["Body"].read() == b"some value"
     resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Body"].read().should.equal(b"some value")
+    assert resp["Body"].read() == b"some value"
 
 
 @mock_s3
 def test_copy_key_boto3_with_sha256_checksum():
     # Setup
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     key_name = "key"
     new_key = "new_key"
     bucket = "foobar"
     expected_hash = "qz0H8xacy9DtbEtF3iFRn5+TjHLSQSSZiquUnOg7tRs="
 
-    s3.create_bucket(Bucket=bucket)
-    key = s3.Object("foobar", key_name)
+    s3_resource.create_bucket(Bucket=bucket)
+    key = s3_resource.Object("foobar", key_name)
     key.put(Body=b"some value")
 
     # Execute
-    key2 = s3.Object(bucket, new_key)
+    key2 = s3_resource.Object(bucket, new_key)
     key2.copy(
         CopySource={"Bucket": bucket, "Key": key_name},
         ExtraArgs={"ChecksumAlgorithm": "SHA256"},
@@ -83,14 +80,14 @@ def test_copy_key_boto3_with_sha256_checksum():
 
 @mock_s3
 def test_copy_key_with_version_boto3():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
     client.put_bucket_versioning(
         Bucket="foobar", VersioningConfiguration={"Status": "Enabled"}
     )
 
-    key = s3.Object("foobar", "the-key")
+    key = s3_resource.Object("foobar", "the-key")
     key.put(Body=b"some value")
     key.put(Body=b"another value")
 
@@ -99,26 +96,26 @@ def test_copy_key_with_version_boto3():
     ]
     old_version = [v for v in all_versions if not v["IsLatest"]][0]
 
-    key2 = s3.Object("foobar", "new-key")
+    key2 = s3_resource.Object("foobar", "new-key")
     key2.copy_from(CopySource=f"foobar/the-key?versionId={old_version['VersionId']}")
 
     resp = client.get_object(Bucket="foobar", Key="the-key")
-    resp["Body"].read().should.equal(b"another value")
+    assert resp["Body"].read() == b"another value"
     resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Body"].read().should.equal(b"some value")
+    assert resp["Body"].read() == b"some value"
 
 
 @mock_s3
 def test_copy_object_with_bucketkeyenabled_returns_the_value():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test-copy-object-with-bucketkeyenabled"
-    s3.create_bucket(Bucket=bucket_name)
+    s3_resource.create_bucket(Bucket=bucket_name)
 
-    key = s3.Object(bucket_name, "the-key")
+    key = s3_resource.Object(bucket_name, "the-key")
     key.put(Body=b"some value")
 
-    key2 = s3.Object(bucket_name, "new-key")
+    key2 = s3_resource.Object(bucket_name, "new-key")
     key2.copy_from(
         CopySource=f"{bucket_name}/the-key",
         BucketKeyEnabled=True,
@@ -127,29 +124,30 @@ def test_copy_object_with_bucketkeyenabled_returns_the_value():
 
     resp = client.get_object(Bucket=bucket_name, Key="the-key")
     src_headers = resp["ResponseMetadata"]["HTTPHeaders"]
-    src_headers.shouldnt.have.key("x-amz-server-side-encryption")
-    src_headers.shouldnt.have.key("x-amz-server-side-encryption-aws-kms-key-id")
-    src_headers.shouldnt.have.key("x-amz-server-side-encryption-bucket-key-enabled")
+    assert "x-amz-server-side-encryption" not in src_headers
+    assert "x-amz-server-side-encryption-aws-kms-key-id" not in src_headers
+    assert "x-amz-server-side-encryption-bucket-key-enabled" not in src_headers
 
     resp = client.get_object(Bucket=bucket_name, Key="new-key")
     target_headers = resp["ResponseMetadata"]["HTTPHeaders"]
-    target_headers.should.have.key("x-amz-server-side-encryption")
+    assert "x-amz-server-side-encryption" in target_headers
     # AWS will also return the KMS default key id - not yet implemented
-    # target_headers.should.have.key("x-amz-server-side-encryption-aws-kms-key-id")
+    # assert "x-amz-server-side-encryption-aws-kms-key-id" in target_headers
     # This field is only returned if encryption is set to 'aws:kms'
-    target_headers.should.have.key("x-amz-server-side-encryption-bucket-key-enabled")
-    str(
-        target_headers["x-amz-server-side-encryption-bucket-key-enabled"]
-    ).lower().should.equal("true")
+    assert "x-amz-server-side-encryption-bucket-key-enabled" in target_headers
+    assert (
+        str(target_headers["x-amz-server-side-encryption-bucket-key-enabled"]).lower()
+        == "true"
+    )
 
 
 @mock_s3
 def test_copy_key_with_metadata():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
 
-    key = s3.Object("foobar", "the-key")
+    key = s3_resource.Object("foobar", "the-key")
     metadata = {"md": "Metadatastring"}
     content_type = "application/json"
     initial = key.put(Body=b"{}", Metadata=metadata, ContentType=content_type)
@@ -157,18 +155,18 @@ def test_copy_key_with_metadata():
     client.copy_object(Bucket="foobar", CopySource="foobar/the-key", Key="new-key")
 
     resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Metadata"].should.equal(metadata)
-    resp["ContentType"].should.equal(content_type)
-    resp["ETag"].should.equal(initial["ETag"])
+    assert resp["Metadata"] == metadata
+    assert resp["ContentType"] == content_type
+    assert resp["ETag"] == initial["ETag"]
 
 
 @mock_s3
 def test_copy_key_replace_metadata():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
 
-    key = s3.Object("foobar", "the-key")
+    key = s3_resource.Object("foobar", "the-key")
     initial = key.put(Body=b"some value", Metadata={"md": "Metadatastring"})
 
     client.copy_object(
@@ -180,29 +178,31 @@ def test_copy_key_replace_metadata():
     )
 
     resp = client.get_object(Bucket="foobar", Key="new-key")
-    resp["Metadata"].should.equal({"momd": "Mometadatastring"})
-    resp["ETag"].should.equal(initial["ETag"])
+    assert resp["Metadata"] == {"momd": "Mometadatastring"}
+    assert resp["ETag"] == initial["ETag"]
 
 
 @mock_s3
 def test_copy_key_without_changes_should_error():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "my_bucket"
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     key_name = "my_key"
-    key = s3.Object(bucket_name, key_name)
+    key = s3_resource.Object(bucket_name, key_name)
 
-    s3.create_bucket(Bucket=bucket_name)
+    s3_resource.create_bucket(Bucket=bucket_name)
     key.put(Body=b"some value")
 
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError) as exc:
         client.copy_object(
             Bucket=bucket_name,
             CopySource=f"{bucket_name}/{key_name}",
             Key=key_name,
         )
-        e.value.response["Error"]["Message"].should.equal(
-            "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes."
+        assert exc.value.response["Error"]["Message"] == (
+            "This copy request is illegal because it is trying to copy an "
+            "object to itself without changing the object's metadata, storage "
+            "class, website redirect location or encryption attributes."
         )
 
 
@@ -210,11 +210,11 @@ def test_copy_key_without_changes_should_error():
 def test_copy_key_without_changes_should_not_error():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "my_bucket"
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     key_name = "my_key"
-    key = s3.Object(bucket_name, key_name)
+    key = s3_resource.Object(bucket_name, key_name)
 
-    s3.create_bucket(Bucket=bucket_name)
+    s3_resource.create_bucket(Bucket=bucket_name)
     key.put(Body=b"some value")
 
     client.copy_object(
@@ -232,9 +232,9 @@ def test_copy_key_without_changes_should_not_error():
 
 @mock_s3
 def test_copy_key_reduced_redundancy():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3.Bucket("test_bucket")
+    bucket = s3_resource.Bucket("test_bucket")
     bucket.create()
 
     bucket.put_object(Key="the-key", Body=b"somedata")
@@ -246,18 +246,18 @@ def test_copy_key_reduced_redundancy():
         StorageClass="REDUCED_REDUNDANCY",
     )
 
-    keys = dict([(k.key, k) for k in bucket.objects.all()])
-    keys["new-key"].storage_class.should.equal("REDUCED_REDUNDANCY")
-    keys["the-key"].storage_class.should.equal("STANDARD")
+    keys = {k.key: k for k in bucket.objects.all()}
+    assert keys["new-key"].storage_class == "REDUCED_REDUNDANCY"
+    assert keys["the-key"].storage_class == "STANDARD"
 
 
 @mock_s3
 def test_copy_non_existing_file():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     src = "srcbucket"
     target = "target"
-    s3.create_bucket(Bucket=src)
-    s3.create_bucket(Bucket=target)
+    s3_resource.create_bucket(Bucket=src)
+    s3_resource.create_bucket(Bucket=target)
 
     s3_client = boto3.client("s3")
     with pytest.raises(ClientError) as exc:
@@ -265,9 +265,9 @@ def test_copy_non_existing_file():
             Bucket=target, CopySource={"Bucket": src, "Key": "foofoofoo"}, Key="newkey"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchKey")
-    err["Message"].should.equal("The specified key does not exist.")
-    err["Key"].should.equal("foofoofoo")
+    assert err["Code"] == "NoSuchKey"
+    assert err["Message"] == "The specified key does not exist."
+    assert err["Key"] == "foofoofoo"
 
 
 @mock_s3
@@ -284,7 +284,7 @@ def test_copy_object_with_versioning():
     client.put_object(Bucket="blah", Key="test1", Body=b"test1")
     client.put_object(Bucket="blah", Key="test2", Body=b"test2")
 
-    client.get_object(Bucket="blah", Key="test1")["VersionId"]
+    _ = client.get_object(Bucket="blah", Key="test1")["VersionId"]
     obj2_version = client.get_object(Bucket="blah", Key="test2")["VersionId"]
 
     client.copy_object(
@@ -293,7 +293,7 @@ def test_copy_object_with_versioning():
     obj2_version_new = client.get_object(Bucket="blah", Key="test2")["VersionId"]
 
     # Version should be different to previous version
-    obj2_version_new.should_not.equal(obj2_version)
+    assert obj2_version_new != obj2_version
 
     client.copy_object(
         CopySource={"Bucket": "blah", "Key": "test2", "VersionId": obj2_version},
@@ -301,16 +301,16 @@ def test_copy_object_with_versioning():
         Key="test3",
     )
     obj3_version_new = client.get_object(Bucket="blah", Key="test3")["VersionId"]
-    obj3_version_new.should_not.equal(obj2_version_new)
+    assert obj3_version_new != obj2_version_new
 
     # Copy file that doesn't exist
-    with pytest.raises(ClientError) as e:
+    with pytest.raises(ClientError) as exc:
         client.copy_object(
             CopySource={"Bucket": "blah", "Key": "test4", "VersionId": obj2_version},
             Bucket="blah",
             Key="test5",
         )
-    e.value.response["Error"]["Code"].should.equal("NoSuchKey")
+    assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
     response = client.create_multipart_upload(Bucket="blah", Key="test4")
     upload_id = response["UploadId"]
@@ -331,7 +331,7 @@ def test_copy_object_with_versioning():
 
     response = client.get_object(Bucket="blah", Key="test4")
     data = response["Body"].read()
-    data.should.equal(b"test2")
+    assert data == b"test2"
 
 
 @mock_s3
@@ -355,7 +355,7 @@ def test_copy_object_from_unversioned_to_versioned_bucket():
     ).get("VersionId")
 
     # VersionId should be present in the response
-    obj2_version_new.should_not.equal(None)
+    assert obj2_version_new is not None
 
 
 @mock_s3
@@ -376,8 +376,8 @@ def test_copy_object_with_replacement_tagging():
             Tagging="aws:tag=invalid_key",
         )
 
-    e = err.value
-    e.response["Error"]["Code"].should.equal("InvalidTag")
+    exc = err.value
+    assert exc.response["Error"]["Code"] == "InvalidTag"
 
     client.copy_object(
         CopySource={"Bucket": "mybucket", "Key": "original"},
@@ -394,9 +394,9 @@ def test_copy_object_with_replacement_tagging():
     )
 
     tags1 = client.get_object_tagging(Bucket="mybucket", Key="copy1")["TagSet"]
-    tags1.should.equal([{"Key": "tag", "Value": "new"}])
+    assert tags1 == [{"Key": "tag", "Value": "new"}]
     tags2 = client.get_object_tagging(Bucket="mybucket", Key="copy2")["TagSet"]
-    tags2.should.equal([{"Key": "tag", "Value": "old"}])
+    assert tags2 == [{"Key": "tag", "Value": "old"}]
 
 
 @mock_s3
@@ -428,10 +428,10 @@ def test_copy_object_with_kms_encryption():
 @mock_kms
 def test_copy_object_in_place_with_encryption():
     kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
-    bucket = s3.Bucket("test_bucket")
+    bucket = s3_resource.Bucket("test_bucket")
     bucket.create()
     key = "source-key"
     resp = client.put_object(
@@ -464,8 +464,9 @@ def test_copy_object_in_place_with_encryption():
     )
     assert "BucketKeyEnabled" not in resp
 
-    # this is an edge case, if the source object SSE was not AES256, AWS allows you to not specify any fields
-    # as it will use AES256 by default and is different from the source key
+    # This is an edge case, if the source object SSE was not AES256,
+    # AWS allows you to not specify any fields as it will use AES256 by
+    # default and is different from the source key.
     resp = client.copy_object(
         Bucket="test_bucket",
         CopySource=f"test_bucket/{key}",
@@ -473,7 +474,8 @@ def test_copy_object_in_place_with_encryption():
     )
     assert resp["ServerSideEncryption"] == "AES256"
 
-    # check that it allows copying in the place with the same ServerSideEncryption setting as the source
+    # Check that it allows copying in the place with the same
+    # ServerSideEncryption setting as the source.
     resp = client.copy_object(
         Bucket="test_bucket",
         CopySource=f"test_bucket/{key}",
@@ -485,11 +487,14 @@ def test_copy_object_in_place_with_encryption():
 
 @mock_s3
 def test_copy_object_in_place_with_storage_class():
-    # this test will validate that setting StorageClass (even the same as source) allows a copy in place
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    """Validate setting StorageClass allows a copy in place.
+
+    This should be true even if destination object is the same as source.
+    """
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test-bucket"
-    bucket = s3.Bucket(bucket_name)
+    bucket = s3_resource.Bucket(bucket_name)
     bucket.create()
     key = "source-key"
     bucket.put_object(Key=key, Body=b"somedata", StorageClass="STANDARD")
@@ -508,9 +513,9 @@ def test_copy_object_in_place_with_storage_class():
 
 @mock_s3
 def test_copy_object_does_not_copy_storage_class():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3.Bucket("test_bucket")
+    bucket = s3_resource.Bucket("test_bucket")
     bucket.create()
     source_key = "source-key"
     dest_key = "dest-key"
@@ -522,17 +527,17 @@ def test_copy_object_does_not_copy_storage_class():
     )
 
     # Verify that the destination key does not have STANDARD_IA as StorageClass
-    keys = dict([(k.key, k) for k in bucket.objects.all()])
-    keys[source_key].storage_class.should.equal("STANDARD_IA")
-    keys[dest_key].storage_class.should.equal("STANDARD")
+    keys = {k.key: k for k in bucket.objects.all()}
+    assert keys[source_key].storage_class == "STANDARD_IA"
+    assert keys[dest_key].storage_class == "STANDARD"
 
 
 @mock_s3
 def test_copy_object_does_not_copy_acl():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "testbucket"
-    bucket = s3.Bucket(bucket_name)
+    bucket = s3_resource.Bucket(bucket_name)
     bucket.create()
     source_key = "source-key"
     dest_key = "dest-key"
@@ -560,24 +565,27 @@ def test_copy_object_does_not_copy_acl():
 
 @mock_s3
 def test_copy_object_in_place_with_metadata():
-    s3 = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "testbucket"
-    bucket = s3.Bucket(bucket_name)
+    bucket = s3_resource.Bucket(bucket_name)
     bucket.create()
     key_name = "source-key"
     bucket.put_object(Key=key_name, Body=b"somedata")
 
-    # test that giving metadata is not enough, and should provide MetadataDirective=REPLACE on top
-    with pytest.raises(ClientError) as e:
+    # test that giving metadata is not enough and should provide
+    # MetadataDirective=REPLACE on top.
+    with pytest.raises(ClientError) as exc:
         client.copy_object(
             Bucket=bucket_name,
             CopySource=f"{bucket_name}/{key_name}",
             Key=key_name,
             Metadata={"key": "value"},
         )
-        e.value.response["Error"]["Message"].should.equal(
-            "This copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes."
+        assert exc.value.response["Error"]["Message"] == (
+            "This copy request is illegal because it is trying to copy an "
+            "object to itself without changing the object's metadata, "
+            "storage class, website redirect location or encryption attributes."
         )
 
     # you can only provide MetadataDirective=REPLACE and it will copy without any metadata
@@ -672,7 +680,8 @@ def test_copy_object_in_place_website_redirect_location():
     bucket_name = "testbucket"
     key = "source-key"
     client.create_bucket(Bucket=bucket_name)
-    # this test will validate that setting WebsiteRedirectLocation (even the same as source) allows a copy in place
+    # This test will validate that setting WebsiteRedirectLocation
+    # (even the same as source) allows a copy in place.
 
     client.put_object(
         Bucket=bucket_name,
@@ -738,11 +747,18 @@ def test_copy_object_in_place_with_bucket_encryption():
     ["CRC32", "SHA1", "SHA256"],
 )
 def test_copy_key_boto3_with_both_sha256_checksum(algorithm):
-    # This test will validate that moto S3 checksum calculations are correct
-    # We first create an object with a Checksum calculated by boto, by specifying ChecksumAlgorithm="SHA256"
-    # we then retrieve the right checksum from this request
-    # we copy the object while requesting moto to recalculate the checksum for that key
-    # we verify that both checksums are equal
+    """Validate that moto S3 checksum calculations are correct.
+
+    We first create an object with a Checksum calculated by boto, by
+    specifying ChecksumAlgorithm="SHA256".
+
+    We then retrieve the right checksum from this request.
+
+    We copy the object while requesting moto to recalculate the checksum
+    for that key.
+
+    We verify that both checksums are equal.
+    """
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     source_key = "source-key"
     dest_key = "dest-key"

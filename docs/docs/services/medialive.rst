@@ -55,6 +55,7 @@ medialive
 - [ ] delete_reservation
 - [ ] delete_schedule
 - [ ] delete_tags
+- [ ] describe_account_configuration
 - [X] describe_channel
 - [X] describe_input
 - [ ] describe_input_device
@@ -65,6 +66,7 @@ medialive
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] describe_schedule
+- [ ] describe_thumbnails
 - [X] list_channels
   
         Pagination is not yet implemented
@@ -92,6 +94,7 @@ medialive
 - [X] stop_channel
 - [ ] stop_multiplex
 - [ ] transfer_input_device
+- [ ] update_account_configuration
 - [X] update_channel
 - [ ] update_channel_class
 - [X] update_input

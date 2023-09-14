@@ -1,19 +1,25 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
+import os
 
-from moto import mock_ec2, mock_ssm
+from moto import mock_ec2, mock_ssm, settings
+from unittest import mock, SkipTest
 
 
+# The default AMIs are not loaded for our test case, to speed things up
+# But we do need it for this specific test
+@mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
 @mock_ec2
 @mock_ssm
 def test_ssm_get_latest_ami_by_path():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set environment variables in ServerMode")
     ssm = boto3.client("ssm", region_name="us-east-1")
     path = "/aws/service/ecs/optimized-ami"
     params = ssm.get_parameters_by_path(Path=path, Recursive=True)["Parameters"]
-    params.should.have.length_of(10)
+    assert len(params) == 10
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
     for param in params:
         if "Value" in param and isinstance(param["Value"], dict):
             ami = param["Value"]["image_id"]
-            ec2.describe_images(ImageIds=[ami])["Images"].should.have.length_of(1)
+            assert len(ec2.describe_images(ImageIds=[ami])["Images"]) == 1

@@ -1,13 +1,9 @@
+"""Test the different server responses."""
 import re
-import sure  # noqa # pylint: disable=unused-import
 import xmltodict
 
 import moto.server as server
 from tests import EXAMPLE_AMI_ID
-
-"""
-Test the different server responses
-"""
 
 
 def test_ec2_server_get():
@@ -23,7 +19,7 @@ def test_ec2_server_get():
     instance_id = groups.groups()[0]
 
     res = test_client.get("/?Action=DescribeInstances")
-    res.data.decode("utf-8").should.contain(instance_id)
+    assert instance_id in res.data.decode("utf-8")
 
 
 def test_ec2_get_unknown_vpc():
@@ -40,14 +36,14 @@ def test_ec2_get_unknown_vpc():
         headers={"Host": "ec2.us-east-1.amazonaws.com"},
     )
 
-    res.status_code.should.equal(400)
+    assert res.status_code == 400
     body = xmltodict.parse(res.data.decode("utf-8"), dict_constructor=dict)
-    body.should.have.key("Response")
-    body["Response"].should.have.key("Errors")
-    body["Response"]["Errors"].should.have.key("Error")
+    assert "Response" in body
+    assert "Errors" in body["Response"]
+    assert "Error" in body["Response"]["Errors"]
     error = body["Response"]["Errors"]["Error"]
-    error["Code"].should.equal("InvalidVpcID.NotFound")
-    error["Message"].should.equal("VpcID {'vpc-unknown'} does not exist.")
+    assert error["Code"] == "InvalidVpcID.NotFound"
+    assert error["Message"] == "VpcID {'vpc-unknown'} does not exist."
 
 
 def test_ec2_get_unknown_route_table():
@@ -64,11 +60,9 @@ def test_ec2_get_unknown_route_table():
         headers={"Host": "ec2.us-east-1.amazonaws.com"},
     )
 
-    res.status_code.should.equal(400)
+    assert res.status_code == 400
     body = xmltodict.parse(res.data.decode("utf-8"), dict_constructor=dict)
-    body.should.have.key("Response")
-    body["Response"].should.have.key("Errors")
-    body["Response"]["Errors"].should.have.key("Error")
+    assert "Error" in body["Response"]["Errors"]
     error = body["Response"]["Errors"]["Error"]
-    error["Code"].should.equal("InvalidRouteTableID.NotFound")
-    error["Message"].should.equal("The routeTable ID 'rtb-unknown' does not exist")
+    assert error["Code"] == "InvalidRouteTableID.NotFound"
+    assert error["Message"] == "The routeTable ID 'rtb-unknown' does not exist"

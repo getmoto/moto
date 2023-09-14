@@ -38,8 +38,8 @@ def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
 
 
 class TestListThingGroup:
-    group_name_1a = "my-group-name-1a"
-    group_name_1b = "my-group-name-1b"
+    group_name_1a = "my-group:name-1a"
+    group_name_1b = "my-group:name-1b"
     group_name_2a = "my-group-name-2a"
     group_name_2b = "my-group-name-2b"
     group_name_3a = "my-group-name-3a"
@@ -61,8 +61,8 @@ class TestListThingGroup:
         generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups()
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(8)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 8
 
     @mock_iot
     def test_should_list_all_groups_non_recursively(self):
@@ -71,8 +71,8 @@ class TestListThingGroup:
         generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(recursive=False)
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_parent(self):
@@ -81,17 +81,17 @@ class TestListThingGroup:
         generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a)
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(6)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 6
         resp = client.list_thing_groups(parentGroup=self.group_name_2a)
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
         resp = client.list_thing_groups(parentGroup=self.group_name_1b)
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(0)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 0
         with pytest.raises(ClientError) as e:
             client.list_thing_groups(parentGroup="inexistant-group-name")
-            e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+            assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
@@ -100,11 +100,11 @@ class TestListThingGroup:
         generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(parentGroup=self.group_name_1a, recursive=False)
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
         resp = client.list_thing_groups(parentGroup=self.group_name_2a, recursive=False)
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_name_prefix(self):
@@ -112,15 +112,15 @@ class TestListThingGroup:
         client = boto3.client("iot", region_name="ap-northeast-1")
         generate_thing_group_tree(client, self.tree_dict)
         # test
-        resp = client.list_thing_groups(namePrefixFilter="my-group-name-1")
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        resp = client.list_thing_groups(namePrefixFilter="my-group:name-1")
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
         resp = client.list_thing_groups(namePrefixFilter="my-group-name-3")
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(4)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 4
         resp = client.list_thing_groups(namePrefixFilter="prefix-which-doesn-not-match")
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(0)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 0
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
@@ -129,15 +129,15 @@ class TestListThingGroup:
         generate_thing_group_tree(client, self.tree_dict)
         # test
         resp = client.list_thing_groups(
-            namePrefixFilter="my-group-name-1", recursive=False
+            namePrefixFilter="my-group:name-1", recursive=False
         )
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-3", recursive=False
         )
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(0)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 0
 
     @mock_iot
     def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
@@ -148,25 +148,25 @@ class TestListThingGroup:
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-2", parentGroup=self.group_name_1a
         )
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(2)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 2
         resp = client.list_thing_groups(
             namePrefixFilter="my-group-name-3", parentGroup=self.group_name_1a
         )
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(4)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 4
         resp = client.list_thing_groups(
             namePrefixFilter="prefix-which-doesn-not-match",
             parentGroup=self.group_name_1a,
         )
-        resp.should.have.key("thingGroups")
-        resp["thingGroups"].should.have.length_of(0)
+        assert "thingGroups" in resp
+        assert len(resp["thingGroups"]) == 0
 
 
 @mock_iot
 def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
-    group_name_1a = "my-group-name-1a"
+    group_name_1a = "my-group:name-1a"
     group_name_2a = "my-group-name-2a"
     tree_dict = {group_name_1a: {group_name_2a: {}}}
     generate_thing_group_tree(client, tree_dict)
@@ -176,31 +176,31 @@ def test_delete_thing_group():
         client.delete_thing_group(thingGroupName=group_name_1a)
     except client.exceptions.InvalidRequestException as exc:
         error_code = exc.response["Error"]["Code"]
-        error_code.should.equal("InvalidRequestException")
+        assert error_code == "InvalidRequestException"
     else:
         raise Exception("Should have raised error")
 
     # delete child group
     client.delete_thing_group(thingGroupName=group_name_2a)
     res = client.list_thing_groups()
-    res.should.have.key("thingGroups").which.should.have.length_of(1)
-    res["thingGroups"].should_not.have.key(group_name_2a)
+    assert len(res["thingGroups"]) == 1
+    assert group_name_2a not in res["thingGroups"]
 
     # now that there is no child group, we can delete the previous group safely
     client.delete_thing_group(thingGroupName=group_name_1a)
     res = client.list_thing_groups()
-    res.should.have.key("thingGroups").which.should.have.length_of(0)
+    assert len(res["thingGroups"]) == 0
 
     # Deleting an invalid thing group does not raise an error.
     res = client.delete_thing_group(thingGroupName="non-existent-group-name")
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_iot
 def test_describe_thing_group_metadata_hierarchy():
     client = boto3.client("iot", region_name="ap-northeast-1")
-    group_name_1a = "my-group-name-1a"
-    group_name_1b = "my-group-name-1b"
+    group_name_1a = "my-group:name-1a"
+    group_name_1b = "my-group:name-1b"
     group_name_2a = "my-group-name-2a"
     group_name_2b = "my-group-name-2b"
     group_name_3a = "my-group-name-3a"
@@ -220,241 +220,125 @@ def test_describe_thing_group_metadata_hierarchy():
     # describe groups
     # groups level 1
     # 1a
-    thing_group_description1a = client.describe_thing_group(
-        thingGroupName=group_name_1a
-    )
-    thing_group_description1a.should.have.key("thingGroupName").which.should.equal(
-        group_name_1a
-    )
-    thing_group_description1a.should.have.key("thingGroupProperties")
-    thing_group_description1a.should.have.key("thingGroupMetadata")
-    thing_group_description1a["thingGroupMetadata"].should.have.key("creationDate")
-    thing_group_description1a.should.have.key("version")
+    desc1a = client.describe_thing_group(thingGroupName=group_name_1a)
+    assert desc1a["thingGroupName"] == group_name_1a
+    assert "thingGroupProperties" in desc1a
+    assert "creationDate" in desc1a["thingGroupMetadata"]
+    assert "version" in desc1a
     # 1b
-    thing_group_description1b = client.describe_thing_group(
-        thingGroupName=group_name_1b
-    )
-    thing_group_description1b.should.have.key("thingGroupName").which.should.equal(
-        group_name_1b
-    )
-    thing_group_description1b.should.have.key("thingGroupProperties")
-    thing_group_description1b.should.have.key("thingGroupMetadata")
-    thing_group_description1b["thingGroupMetadata"].should.have.length_of(1)
-    thing_group_description1b["thingGroupMetadata"].should.have.key("creationDate")
-    thing_group_description1b.should.have.key("version")
+    desc1b = client.describe_thing_group(thingGroupName=group_name_1b)
+    assert desc1b["thingGroupName"] == group_name_1b
+    assert "thingGroupProperties" in desc1b
+    assert len(desc1b["thingGroupMetadata"]) == 1
+    assert "creationDate" in desc1b["thingGroupMetadata"]
+    assert "version" in desc1b
     # groups level 2
     # 2a
-    thing_group_description2a = client.describe_thing_group(
-        thingGroupName=group_name_2a
-    )
-    thing_group_description2a.should.have.key("thingGroupName").which.should.equal(
-        group_name_2a
-    )
-    thing_group_description2a.should.have.key("thingGroupProperties")
-    thing_group_description2a.should.have.key("thingGroupMetadata")
-    thing_group_description2a["thingGroupMetadata"].should.have.length_of(3)
-    thing_group_description2a["thingGroupMetadata"].should.have.key(
-        "parentGroupName"
-    ).being.equal(group_name_1a)
-    thing_group_description2a["thingGroupMetadata"].should.have.key(
-        "rootToParentThingGroups"
-    )
-    thing_group_description2a["thingGroupMetadata"][
-        "rootToParentThingGroups"
-    ].should.have.length_of(1)
-    thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupName"
-    ].should.match(group_name_1a)
-    thing_group_description2a["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupArn"
-    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
-    thing_group_description2a.should.have.key("version")
+    desc2a = client.describe_thing_group(thingGroupName=group_name_2a)
+    assert desc2a["thingGroupName"] == group_name_2a
+    assert "thingGroupProperties" in desc2a
+    assert len(desc2a["thingGroupMetadata"]) == 3
+    assert desc2a["thingGroupMetadata"]["parentGroupName"] == group_name_1a
+    desc2a_groups = desc2a["thingGroupMetadata"]["rootToParentThingGroups"]
+    assert len(desc2a_groups) == 1
+    assert desc2a_groups[0]["groupName"] == group_name_1a
+    assert desc2a_groups[0]["groupArn"] == group_catalog[group_name_1a]["thingGroupArn"]
+    assert "version" in desc2a
     # 2b
-    thing_group_description2b = client.describe_thing_group(
-        thingGroupName=group_name_2b
-    )
-    thing_group_description2b.should.have.key("thingGroupName").which.should.equal(
-        group_name_2b
-    )
-    thing_group_description2b.should.have.key("thingGroupProperties")
-    thing_group_description2b.should.have.key("thingGroupMetadata")
-    thing_group_description2b["thingGroupMetadata"].should.have.length_of(3)
-    thing_group_description2b["thingGroupMetadata"].should.have.key(
-        "parentGroupName"
-    ).being.equal(group_name_1a)
-    thing_group_description2b["thingGroupMetadata"].should.have.key(
-        "rootToParentThingGroups"
-    )
-    thing_group_description2b["thingGroupMetadata"][
-        "rootToParentThingGroups"
-    ].should.have.length_of(1)
-    thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupName"
-    ].should.match(group_name_1a)
-    thing_group_description2b["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupArn"
-    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
-    thing_group_description2b.should.have.key("version")
+    desc2b = client.describe_thing_group(thingGroupName=group_name_2b)
+    assert desc2b["thingGroupName"] == group_name_2b
+    assert "thingGroupProperties" in desc2b
+    assert len(desc2b["thingGroupMetadata"]) == 3
+    assert desc2b["thingGroupMetadata"]["parentGroupName"] == group_name_1a
+    desc2b_groups = desc2b["thingGroupMetadata"]["rootToParentThingGroups"]
+    assert len(desc2b_groups) == 1
+    assert desc2b_groups[0]["groupName"] == group_name_1a
+    assert desc2b_groups[0]["groupArn"] == group_catalog[group_name_1a]["thingGroupArn"]
+    assert "version" in desc2b
     # groups level 3
     # 3a
-    thing_group_description3a = client.describe_thing_group(
-        thingGroupName=group_name_3a
-    )
-    thing_group_description3a.should.have.key("thingGroupName").which.should.equal(
-        group_name_3a
-    )
-    thing_group_description3a.should.have.key("thingGroupProperties")
-    thing_group_description3a.should.have.key("thingGroupMetadata")
-    thing_group_description3a["thingGroupMetadata"].should.have.length_of(3)
-    thing_group_description3a["thingGroupMetadata"].should.have.key(
-        "parentGroupName"
-    ).being.equal(group_name_2a)
-    thing_group_description3a["thingGroupMetadata"].should.have.key(
-        "rootToParentThingGroups"
-    )
-    thing_group_description3a["thingGroupMetadata"][
-        "rootToParentThingGroups"
-    ].should.have.length_of(2)
-    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupName"
-    ].should.match(group_name_1a)
-    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupArn"
-    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
-    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupName"
-    ].should.match(group_name_2a)
-    thing_group_description3a["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupArn"
-    ].should.match(group_catalog[group_name_2a]["thingGroupArn"])
-    thing_group_description3a.should.have.key("version")
+    desc3a = client.describe_thing_group(thingGroupName=group_name_3a)
+    assert desc3a["thingGroupName"] == group_name_3a
+    assert "thingGroupProperties" in desc3a
+    assert len(desc3a["thingGroupMetadata"]) == 3
+    assert desc3a["thingGroupMetadata"]["parentGroupName"] == group_name_2a
+    desc3a_groups = desc3a["thingGroupMetadata"]["rootToParentThingGroups"]
+    assert len(desc3a_groups) == 2
+    assert desc3a_groups[0]["groupName"] == group_name_1a
+    assert desc3a_groups[0]["groupArn"] == group_catalog[group_name_1a]["thingGroupArn"]
+    assert desc3a_groups[1]["groupName"] == group_name_2a
+    assert desc3a_groups[1]["groupArn"] == group_catalog[group_name_2a]["thingGroupArn"]
+    assert "version" in desc3a
     # 3b
-    thing_group_description3b = client.describe_thing_group(
-        thingGroupName=group_name_3b
-    )
-    thing_group_description3b.should.have.key("thingGroupName").which.should.equal(
-        group_name_3b
-    )
-    thing_group_description3b.should.have.key("thingGroupProperties")
-    thing_group_description3b.should.have.key("thingGroupMetadata")
-    thing_group_description3b["thingGroupMetadata"].should.have.length_of(3)
-    thing_group_description3b["thingGroupMetadata"].should.have.key(
-        "parentGroupName"
-    ).being.equal(group_name_2a)
-    thing_group_description3b["thingGroupMetadata"].should.have.key(
-        "rootToParentThingGroups"
-    )
-    thing_group_description3b["thingGroupMetadata"][
-        "rootToParentThingGroups"
-    ].should.have.length_of(2)
-    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupName"
-    ].should.match(group_name_1a)
-    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupArn"
-    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
-    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupName"
-    ].should.match(group_name_2a)
-    thing_group_description3b["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupArn"
-    ].should.match(group_catalog[group_name_2a]["thingGroupArn"])
-    thing_group_description3b.should.have.key("version")
+    desc3b = client.describe_thing_group(thingGroupName=group_name_3b)
+    assert desc3b["thingGroupName"] == group_name_3b
+    assert "thingGroupProperties" in desc3b
+    assert len(desc3b["thingGroupMetadata"]) == 3
+    assert desc3b["thingGroupMetadata"]["parentGroupName"] == group_name_2a
+    desc3b_groups = desc3b["thingGroupMetadata"]["rootToParentThingGroups"]
+    assert len(desc3b_groups) == 2
+    assert desc3b_groups[0]["groupName"] == group_name_1a
+    assert desc3b_groups[0]["groupArn"] == group_catalog[group_name_1a]["thingGroupArn"]
+    assert desc3b_groups[1]["groupName"] == group_name_2a
+    assert desc3b_groups[1]["groupArn"] == group_catalog[group_name_2a]["thingGroupArn"]
+    assert "version" in desc3b
     # 3c
-    thing_group_description3c = client.describe_thing_group(
-        thingGroupName=group_name_3c
-    )
-    thing_group_description3c.should.have.key("thingGroupName").which.should.equal(
-        group_name_3c
-    )
-    thing_group_description3c.should.have.key("thingGroupProperties")
-    thing_group_description3c.should.have.key("thingGroupMetadata")
-    thing_group_description3c["thingGroupMetadata"].should.have.length_of(3)
-    thing_group_description3c["thingGroupMetadata"].should.have.key(
-        "parentGroupName"
-    ).being.equal(group_name_2b)
-    thing_group_description3c["thingGroupMetadata"].should.have.key(
-        "rootToParentThingGroups"
-    )
-    thing_group_description3c["thingGroupMetadata"][
-        "rootToParentThingGroups"
-    ].should.have.length_of(2)
-    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupName"
-    ].should.match(group_name_1a)
-    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupArn"
-    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
-    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupName"
-    ].should.match(group_name_2b)
-    thing_group_description3c["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupArn"
-    ].should.match(group_catalog[group_name_2b]["thingGroupArn"])
-    thing_group_description3c.should.have.key("version")
+    desc3c = client.describe_thing_group(thingGroupName=group_name_3c)
+    assert desc3c["thingGroupName"] == group_name_3c
+    assert "thingGroupProperties" in desc3c
+    assert len(desc3c["thingGroupMetadata"]) == 3
+    assert desc3c["thingGroupMetadata"]["parentGroupName"] == group_name_2b
+    desc3c_groups = desc3c["thingGroupMetadata"]["rootToParentThingGroups"]
+    assert len(desc3c_groups) == 2
+    assert desc3c_groups[0]["groupName"] == group_name_1a
+    assert desc3c_groups[0]["groupArn"] == group_catalog[group_name_1a]["thingGroupArn"]
+    assert desc3c_groups[1]["groupName"] == group_name_2b
+    assert desc3c_groups[1]["groupArn"] == group_catalog[group_name_2b]["thingGroupArn"]
+    assert "version" in desc3c
     # 3d
-    thing_group_description3d = client.describe_thing_group(
-        thingGroupName=group_name_3d
-    )
-    thing_group_description3d.should.have.key("thingGroupName").which.should.equal(
-        group_name_3d
-    )
-    thing_group_description3d.should.have.key("thingGroupProperties")
-    thing_group_description3d.should.have.key("thingGroupMetadata")
-    thing_group_description3d["thingGroupMetadata"].should.have.length_of(3)
-    thing_group_description3d["thingGroupMetadata"].should.have.key(
-        "parentGroupName"
-    ).being.equal(group_name_2b)
-    thing_group_description3d["thingGroupMetadata"].should.have.key(
-        "rootToParentThingGroups"
-    )
-    thing_group_description3d["thingGroupMetadata"][
-        "rootToParentThingGroups"
-    ].should.have.length_of(2)
-    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupName"
-    ].should.match(group_name_1a)
-    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][0][
-        "groupArn"
-    ].should.match(group_catalog[group_name_1a]["thingGroupArn"])
-    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupName"
-    ].should.match(group_name_2b)
-    thing_group_description3d["thingGroupMetadata"]["rootToParentThingGroups"][1][
-        "groupArn"
-    ].should.match(group_catalog[group_name_2b]["thingGroupArn"])
-    thing_group_description3d.should.have.key("version")
+    desc3d = client.describe_thing_group(thingGroupName=group_name_3d)
+    assert desc3d["thingGroupName"] == group_name_3d
+    assert "thingGroupProperties" in desc3d
+    assert len(desc3d["thingGroupMetadata"]) == 3
+    assert desc3d["thingGroupMetadata"]["parentGroupName"] == group_name_2b
+    desc3d_groups = desc3d["thingGroupMetadata"]["rootToParentThingGroups"]
+    assert len(desc3d_groups) == 2
+    assert desc3d_groups[0]["groupName"] == group_name_1a
+    assert desc3d_groups[0]["groupArn"] == group_catalog[group_name_1a]["thingGroupArn"]
+    assert desc3d_groups[1]["groupName"] == group_name_2b
+    assert desc3d_groups[1]["groupArn"] == group_catalog[group_name_2b]["thingGroupArn"]
+    assert "version" in desc3d
 
 
 @mock_iot
 def test_thing_groups():
     client = boto3.client("iot", region_name="ap-northeast-1")
-    group_name = "my-group-name"
+    group_name = "my-group:name"
 
     # thing group
     thing_group = client.create_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
-    thing_group.should.have.key("thingGroupArn")
-    thing_group["thingGroupArn"].should.contain(group_name)
+    assert thing_group["thingGroupName"] == group_name
+    assert "thingGroupArn" in thing_group
+    assert group_name in thing_group["thingGroupArn"]
 
     res = client.list_thing_groups()
-    res.should.have.key("thingGroups").which.should.have.length_of(1)
+    assert len(res["thingGroups"]) == 1
     for thing_group in res["thingGroups"]:
-        thing_group.should.have.key("groupName").which.should_not.be.none
-        thing_group.should.have.key("groupArn").which.should_not.be.none
+        assert thing_group["groupName"] is not None
+        assert thing_group["groupArn"] is not None
 
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
-    thing_group.should.have.key("thingGroupProperties")
-    thing_group.should.have.key("thingGroupMetadata")
-    thing_group.should.have.key("version")
-    thing_group.should.have.key("thingGroupArn")
-    thing_group["thingGroupArn"].should.contain(group_name)
+    assert thing_group["thingGroupName"] == group_name
+    assert "thingGroupProperties" in thing_group
+    assert "thingGroupMetadata" in thing_group
+    assert "version" in thing_group
+    assert "thingGroupArn" in thing_group
+    assert group_name in thing_group["thingGroupArn"]
 
     # delete thing group
     client.delete_thing_group(thingGroupName=group_name)
     res = client.list_thing_groups()
-    res.should.have.key("thingGroups").which.should.have.length_of(0)
+    assert len(res["thingGroups"]) == 0
 
     # props create test
     props = {
@@ -464,40 +348,34 @@ def test_thing_groups():
     thing_group = client.create_thing_group(
         thingGroupName=group_name, thingGroupProperties=props
     )
-    thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
-    thing_group.should.have.key("thingGroupArn")
+    assert thing_group["thingGroupName"] == group_name
+    assert "thingGroupArn" in thing_group
 
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key("thingGroupProperties").which.should.have.key(
-        "attributePayload"
-    ).which.should.have.key("attributes")
+    assert "attributes" in thing_group["thingGroupProperties"]["attributePayload"]
     res_props = thing_group["thingGroupProperties"]["attributePayload"]["attributes"]
-    res_props.should.have.key("key1").which.should.equal("val01")
-    res_props.should.have.key("Key02").which.should.equal("VAL2")
+    assert res_props["key1"] == "val01"
+    assert res_props["Key02"] == "VAL2"
 
     # props update test with merge
     new_props = {"attributePayload": {"attributes": {"k3": "v3"}, "merge": True}}
     client.update_thing_group(thingGroupName=group_name, thingGroupProperties=new_props)
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key("thingGroupProperties").which.should.have.key(
-        "attributePayload"
-    ).which.should.have.key("attributes")
+    assert "attributes" in thing_group["thingGroupProperties"]["attributePayload"]
     res_props = thing_group["thingGroupProperties"]["attributePayload"]["attributes"]
-    res_props.should.have.key("key1").which.should.equal("val01")
-    res_props.should.have.key("Key02").which.should.equal("VAL2")
+    assert res_props["key1"] == "val01"
+    assert res_props["Key02"] == "VAL2"
 
-    res_props.should.have.key("k3").which.should.equal("v3")
+    assert res_props["k3"] == "v3"
 
     # props update test
     new_props = {"attributePayload": {"attributes": {"k4": "v4"}}}
     client.update_thing_group(thingGroupName=group_name, thingGroupProperties=new_props)
     thing_group = client.describe_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key("thingGroupProperties").which.should.have.key(
-        "attributePayload"
-    ).which.should.have.key("attributes")
+    assert "attributes" in thing_group["thingGroupProperties"]["attributePayload"]
     res_props = thing_group["thingGroupProperties"]["attributePayload"]["attributes"]
-    res_props.should.have.key("k4").which.should.equal("v4")
-    res_props.should_not.have.key("key1")
+    assert res_props["k4"] == "v4"
+    assert "key1" not in res_props
 
 
 @mock_iot
@@ -508,13 +386,13 @@ def test_thing_group_relations():
 
     # thing group
     thing_group = client.create_thing_group(thingGroupName=group_name)
-    thing_group.should.have.key("thingGroupName").which.should.equal(group_name)
-    thing_group.should.have.key("thingGroupArn")
+    assert thing_group["thingGroupName"] == group_name
+    assert "thingGroupArn" in thing_group
 
     # thing
     thing = client.create_thing(thingName=name)
-    thing.should.have.key("thingName").which.should.equal(name)
-    thing.should.have.key("thingArn")
+    assert thing["thingName"] == name
+    assert "thingArn" in thing
 
     # add in 4 way
     client.add_thing_to_thing_group(thingGroupName=group_name, thingName=name)
@@ -529,12 +407,12 @@ def test_thing_group_relations():
     )
 
     things = client.list_things_in_thing_group(thingGroupName=group_name)
-    things.should.have.key("things")
-    things["things"].should.have.length_of(1)
+    assert "things" in things
+    assert len(things["things"]) == 1
 
     thing_groups = client.list_thing_groups_for_thing(thingName=name)
-    thing_groups.should.have.key("thingGroups")
-    thing_groups["thingGroups"].should.have.length_of(1)
+    assert "thingGroups" in thing_groups
+    assert len(thing_groups["thingGroups"]) == 1
 
     # remove in 4 way
     client.remove_thing_from_thing_group(thingGroupName=group_name, thingName=name)
@@ -548,21 +426,21 @@ def test_thing_group_relations():
         thingGroupArn=thing_group["thingGroupArn"], thingName=name
     )
     things = client.list_things_in_thing_group(thingGroupName=group_name)
-    things.should.have.key("things")
-    things["things"].should.have.length_of(0)
+    assert "things" in things
+    assert len(things["things"]) == 0
 
     # update thing group for thing
     client.update_thing_groups_for_thing(thingName=name, thingGroupsToAdd=[group_name])
     things = client.list_things_in_thing_group(thingGroupName=group_name)
-    things.should.have.key("things")
-    things["things"].should.have.length_of(1)
+    assert "things" in things
+    assert len(things["things"]) == 1
 
     client.update_thing_groups_for_thing(
         thingName=name, thingGroupsToRemove=[group_name]
     )
     things = client.list_things_in_thing_group(thingGroupName=group_name)
-    things.should.have.key("things")
-    things["things"].should.have.length_of(0)
+    assert "things" in things
+    assert len(things["things"]) == 0
 
 
 @mock_iot
@@ -614,9 +492,9 @@ def test_thing_group_updates_description():
     )
 
     thing_group = client.describe_thing_group(thingGroupName=name)
-    thing_group.should.have.key("thingGroupProperties").which.should.have.key(
-        "thingGroupDescription"
-    ).which.should.equal(new_description)
+    assert (
+        thing_group["thingGroupProperties"]["thingGroupDescription"] == new_description
+    )
 
 
 @mock_iot
@@ -638,9 +516,9 @@ def test_thing_group_update_with_no_previous_attributes_no_merge():
     )
 
     updated_thing_group = client.describe_thing_group(thingGroupName=name)
-    updated_thing_group.should.have.key("thingGroupProperties").which.should.have.key(
-        "attributePayload"
-    ).which.should.have.key("attributes").which.should.equal({"key1": "val01"})
+    assert updated_thing_group["thingGroupProperties"]["attributePayload"][
+        "attributes"
+    ] == {"key1": "val01"}
 
 
 @mock_iot
@@ -662,9 +540,9 @@ def test_thing_group_update_with_no_previous_attributes_with_merge():
     )
 
     updated_thing_group = client.describe_thing_group(thingGroupName=name)
-    updated_thing_group.should.have.key("thingGroupProperties").which.should.have.key(
-        "attributePayload"
-    ).which.should.have.key("attributes").which.should.equal({"key1": "val01"})
+    assert updated_thing_group["thingGroupProperties"]["attributePayload"][
+        "attributes"
+    ] == {"key1": "val01"}
 
 
 @mock_iot
@@ -684,6 +562,4 @@ def test_thing_group_updated_with_empty_attributes_no_merge_no_attributes_added(
     )
 
     updated_thing_group = client.describe_thing_group(thingGroupName=name)
-    updated_thing_group.should.have.key(
-        "thingGroupProperties"
-    ).which.should_not.have.key("attributePayload")
+    assert "attributePayload" not in updated_thing_group["thingGroupProperties"]

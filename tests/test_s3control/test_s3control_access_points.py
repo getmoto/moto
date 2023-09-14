@@ -1,6 +1,7 @@
+import re
+
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.client import ClientError
 from moto import mock_s3control
@@ -13,8 +14,8 @@ def test_create_access_point():
         AccountId="111111111111", Name="ap_name", Bucket="mybucket"
     )
 
-    resp.should.have.key("AccessPointArn")
-    resp.should.have.key("Alias").equals("ap_name")
+    assert "AccessPointArn" in resp
+    assert resp["Alias"] == "ap_name"
 
 
 @mock_s3control
@@ -24,9 +25,9 @@ def test_get_unknown_access_point():
     with pytest.raises(ClientError) as exc:
         client.get_access_point(AccountId="111111111111", Name="ap_name")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchAccessPoint")
-    err["Message"].should.equal("The specified accesspoint does not exist")
-    err["AccessPointName"].should.equal("ap_name")
+    assert err["Code"] == "NoSuchAccessPoint"
+    assert err["Message"] == "The specified accesspoint does not exist"
+    assert err["AccessPointName"] == "ap_name"
 
 
 @mock_s3control
@@ -38,34 +39,29 @@ def test_get_access_point_minimal():
 
     resp = client.get_access_point(AccountId="111111111111", Name="ap_name")
 
-    resp.should.have.key("Name").equals("ap_name")
-    resp.should.have.key("Bucket").equals("mybucket")
-    resp.should.have.key("NetworkOrigin").equals("Internet")
-    resp.should.have.key("PublicAccessBlockConfiguration").equals(
-        {
-            "BlockPublicAcls": True,
-            "IgnorePublicAcls": True,
-            "BlockPublicPolicy": True,
-            "RestrictPublicBuckets": True,
-        }
-    )
-    resp.should.have.key("CreationDate")
-    resp.should.have.key("Alias").match("ap_name-[a-z0-9]+-s3alias")
-    resp.should.have.key("AccessPointArn").equals(
+    assert resp["Name"] == "ap_name"
+    assert resp["Bucket"] == "mybucket"
+    assert resp["NetworkOrigin"] == "Internet"
+    assert resp["PublicAccessBlockConfiguration"] == {
+        "BlockPublicAcls": True,
+        "IgnorePublicAcls": True,
+        "BlockPublicPolicy": True,
+        "RestrictPublicBuckets": True,
+    }
+    assert "CreationDate" in resp
+    assert "Alias" in resp
+    assert re.match("ap_name-[a-z0-9]+-s3alias", resp["Alias"])
+    assert resp["AccessPointArn"] == (
         "arn:aws:s3:us-east-1:111111111111:accesspoint/ap_name"
     )
-    resp.should.have.key("Endpoints")
+    assert "Endpoints" in resp
 
-    resp["Endpoints"].should.have.key("ipv4").equals(
-        "s3-accesspoint.us-east-1.amazonaws.com"
-    )
-    resp["Endpoints"].should.have.key("fips").equals(
-        "s3-accesspoint-fips.us-east-1.amazonaws.com"
-    )
-    resp["Endpoints"].should.have.key("fips_dualstack").equals(
+    assert resp["Endpoints"]["ipv4"] == "s3-accesspoint.us-east-1.amazonaws.com"
+    assert resp["Endpoints"]["fips"] == "s3-accesspoint-fips.us-east-1.amazonaws.com"
+    assert resp["Endpoints"]["fips_dualstack"] == (
         "s3-accesspoint-fips.dualstack.us-east-1.amazonaws.com"
     )
-    resp["Endpoints"].should.have.key("dualstack").equals(
+    assert resp["Endpoints"]["dualstack"] == (
         "s3-accesspoint.dualstack.us-east-1.amazonaws.com"
     )
 
@@ -88,18 +84,16 @@ def test_get_access_point_full():
 
     resp = client.get_access_point(AccountId="111111111111", Name="ap_name")
 
-    resp.should.have.key("Name").equals("ap_name")
-    resp.should.have.key("Bucket").equals("mybucket")
-    resp.should.have.key("NetworkOrigin").equals("VPC")
-    resp.should.have.key("VpcConfiguration").equals({"VpcId": "sth"})
-    resp.should.have.key("PublicAccessBlockConfiguration").equals(
-        {
-            "BlockPublicAcls": False,
-            "IgnorePublicAcls": False,
-            "BlockPublicPolicy": False,
-            "RestrictPublicBuckets": False,
-        }
-    )
+    assert resp["Name"] == "ap_name"
+    assert resp["Bucket"] == "mybucket"
+    assert resp["NetworkOrigin"] == "VPC"
+    assert resp["VpcConfiguration"] == {"VpcId": "sth"}
+    assert resp["PublicAccessBlockConfiguration"] == {
+        "BlockPublicAcls": False,
+        "IgnorePublicAcls": False,
+        "BlockPublicPolicy": False,
+        "RestrictPublicBuckets": False,
+    }
 
 
 @mock_s3control
@@ -115,4 +109,4 @@ def test_delete_access_point():
     with pytest.raises(ClientError) as exc:
         client.get_access_point(AccountId="111111111111", Name="ap_name")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchAccessPoint")
+    assert err["Code"] == "NoSuchAccessPoint"

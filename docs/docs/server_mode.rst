@@ -83,8 +83,7 @@ See the following example:
 
             in_mem_client = boto3.client("s3")
             buckets = in_mem_client.list_buckets()["Buckets"]
-            [b["Name"] for b in buckets].should.equal(["test"])
-
+            self.assertEqual([b["Name"] for b in buckets], ["test"])
 This example shows it is possible to create state using the TreadedMotoServer, and access that state using the usual decorators.  :raw-html:`<br />`
 Note that the decorators will destroy any resources on start, so make sure to not accidentally destroy any resources created by the ThreadedMotoServer that should be kept.
 

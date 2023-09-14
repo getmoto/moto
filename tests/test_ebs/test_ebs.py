@@ -1,7 +1,6 @@
 """Unit tests for ebs-supported APIs."""
 import boto3
 import hashlib
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ebs, mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -14,12 +13,12 @@ def test_start_snapshot__minimal():
     client = boto3.client("ebs", region_name="eu-west-1")
     resp = client.start_snapshot(VolumeSize=720)
 
-    resp.should.have.key("SnapshotId")
-    resp.should.have.key("OwnerId").equals(ACCOUNT_ID)
-    resp.should.have.key("Status").equals("pending")
-    resp.should.have.key("StartTime")
-    resp.should.have.key("VolumeSize").equals(720)
-    resp.should.have.key("BlockSize").equals(512)
+    assert "SnapshotId" in resp
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["Status"] == "pending"
+    assert "StartTime" in resp
+    assert resp["VolumeSize"] == 720
+    assert resp["BlockSize"] == 512
 
 
 @mock_ebs
@@ -31,14 +30,14 @@ def test_start_snapshot():
         Description="my fancy snapshot",
     )
 
-    resp.should.have.key("SnapshotId")
-    resp.should.have.key("OwnerId").equals(ACCOUNT_ID)
-    resp.should.have.key("Status").equals("pending")
-    resp.should.have.key("StartTime")
-    resp.should.have.key("VolumeSize").equals(120)
-    resp.should.have.key("BlockSize").equals(512)
-    resp.should.have.key("Tags").equals([{"Key": "kt", "Value": "vt"}])
-    resp.should.have.key("Description").equals("my fancy snapshot")
+    assert "SnapshotId" in resp
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["Status"] == "pending"
+    assert "StartTime" in resp
+    assert resp["VolumeSize"] == 120
+    assert resp["BlockSize"] == 512
+    assert resp["Tags"] == [{"Key": "kt", "Value": "vt"}]
+    assert resp["Description"] == "my fancy snapshot"
 
 
 @mock_ebs
@@ -47,7 +46,7 @@ def test_complete_snapshot():
     snapshot_id = client.start_snapshot(VolumeSize=720)["SnapshotId"]
 
     resp = client.complete_snapshot(SnapshotId=snapshot_id, ChangedBlocksCount=0)
-    resp.should.have.key("Status").equals("completed")
+    assert resp["Status"] == "completed"
 
 
 @mock_ebs
@@ -65,8 +64,8 @@ def test_put_snapshot_block():
         ChecksumAlgorithm="SHA256",
     )
 
-    resp.should.have.key("Checksum").equals(checksum)
-    resp.should.have.key("ChecksumAlgorithm").equals("SHA256")
+    assert resp["Checksum"] == checksum
+    assert resp["ChecksumAlgorithm"] == "SHA256"
 
 
 @mock_ebs
@@ -88,11 +87,11 @@ def test_get_snapshot_block():
         SnapshotId=snapshot_id, BlockIndex=2, BlockToken="n/a"
     )
 
-    resp.should.have.key("DataLength").equals(524288)
-    resp.should.have.key("BlockData")
-    resp["BlockData"].read().should.equal(b"data 2")
-    resp.should.have.key("Checksum")
-    resp.should.have.key("ChecksumAlgorithm").equals("SHA256")
+    assert resp["DataLength"] == 524288
+    assert "BlockData" in resp
+    assert resp["BlockData"].read() == b"data 2"
+    assert "Checksum" in resp
+    assert resp["ChecksumAlgorithm"] == "SHA256"
 
 
 @mock_ebs
@@ -125,13 +124,13 @@ def test_list_changed_blocks():
     )
     changed_blocks = resp["ChangedBlocks"]
     changed_idxes = [b["BlockIndex"] for b in changed_blocks]
-    changed_idxes.should.equal([1, 3])
+    assert changed_idxes == [1, 3]
 
-    changed_blocks[0].should.have.key("FirstBlockToken")
-    changed_blocks[0].should.have.key("SecondBlockToken")
+    assert "FirstBlockToken" in changed_blocks[0]
+    assert "SecondBlockToken" in changed_blocks[0]
 
-    changed_blocks[1].should.have.key("FirstBlockToken")
-    changed_blocks[1].shouldnt.have.key("SecondBlockToken")
+    assert "FirstBlockToken" in changed_blocks[1]
+    assert "SecondBlockToken" not in changed_blocks[1]
 
 
 @mock_ebs
@@ -151,11 +150,11 @@ def test_list_snapshot_blocks():
 
     resp = client.list_snapshot_blocks(SnapshotId=snapshot_id)
 
-    resp.should.have.key("VolumeSize").equals(415)
-    resp.should.have.key("BlockSize").equals(512)
-    resp.should.have.key("Blocks").length_of(3)
+    assert resp["VolumeSize"] == 415
+    assert resp["BlockSize"] == 512
+    assert len(resp["Blocks"]) == 3
 
-    [b["BlockIndex"] for b in resp["Blocks"]].should.equal([1, 2, 3])
+    assert [b["BlockIndex"] for b in resp["Blocks"]] == [1, 2, 3]
 
 
 @mock_ebs
@@ -165,6 +164,6 @@ def test_start_snapshot__should_be_created_in_ec2():
     ec2 = boto3.client("ec2", region_name="eu-north-1")
     snapshot_id = ebs.start_snapshot(VolumeSize=720)["SnapshotId"]
     resp = ec2.describe_snapshots(SnapshotIds=[snapshot_id])["Snapshots"]
-    resp.should.have.length_of(1)
+    assert len(resp) == 1
 
-    resp[0].should.have.key("VolumeSize").equals(720)
+    assert resp[0]["VolumeSize"] == 720

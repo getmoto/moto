@@ -20,6 +20,6 @@ def test_invoking_ec2_mark_access_key_as_used():
     last_used = c_iam.get_access_key_last_used(
         AccessKeyId=key["AccessKey"]["AccessKeyId"]
     )["AccessKeyLastUsed"]
-    last_used.should.have.key("LastUsedDate")
-    last_used.should.have.key("ServiceName").equals("ec2")
-    last_used.should.have.key("Region").equals("us-east-2")
+    assert "LastUsedDate" in last_used
+    assert last_used["ServiceName"] == "ec2"
+    assert last_used["Region"] == "us-east-2"

@@ -117,7 +117,7 @@ class IAMUserAccessKey:
 
 class AssumedRoleAccessKey:
     @property
-    def backend(self) -> IAMBackend:  # type: ignore[misc]
+    def backend(self) -> IAMBackend:
         return iam_backends[self.account_id]["global"]
 
     def __init__(self, account_id: str, access_key_id: str, headers: Dict[str, str]):
@@ -174,6 +174,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         method: str,
         path: str,
         data: Dict[str, str],
+        body: bytes,
         headers: Dict[str, str],
     ):
         log.debug(
@@ -183,6 +184,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         self._method = method
         self._path = path
         self._data = data
+        self._body = body
         self._headers = headers
         credential_scope = self._get_string_between(
             "Credential=", ",", self._headers["Authorization"]
@@ -190,13 +192,14 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         credential_data = credential_scope.split("/")
         self._region = credential_data[2]
         self._service = credential_data[3]
+        action_from_request = self._action_from_request()
         self._action = (
             self._service
             + ":"
             + (
-                self._data["Action"][0]
-                if isinstance(self._data["Action"], list)
-                else self._data["Action"]
+                action_from_request[0]
+                if isinstance(action_from_request, list)
+                else action_from_request
             )
         )
         try:
@@ -208,6 +211,11 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)
 
+    def _action_from_request(self) -> str:
+        if "X-Amz-Target" in self._headers:
+            return self._headers["X-Amz-Target"].split(".")[-1]
+        return self._data["Action"]
+
     def check_signature(self) -> None:
         original_signature = self._get_string_between(
             "Signature=", ",", self._headers["Authorization"]
@@ -216,7 +224,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         if original_signature != calculated_signature:
             self._raise_signature_does_not_match()
 
-    def check_action_permitted(self) -> None:
+    def check_action_permitted(self, resource: str) -> None:
         if (
             self._action == "sts:GetCallerIdentity"
         ):  # always allowed, even if there's an explicit Deny for it
@@ -226,7 +234,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         permitted = False
         for policy in policies:
             iam_policy = IAMPolicy(policy)
-            permission_result = iam_policy.is_action_permitted(self._action)
+            permission_result = iam_policy.is_action_permitted(self._action, resource)
             if permission_result == PermissionResult.DENIED:
                 self._raise_access_denied()
             elif permission_result == PermissionResult.PERMITTED:
@@ -267,7 +275,10 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         ).split(";")
         headers = self._create_headers_for_aws_request(signed_headers, self._headers)
         request = AWSRequest(
-            method=self._method, url=self._path, data=self._data, headers=headers
+            method=self._method,
+            url=self._path,
+            data=self._body or self._data,
+            headers=headers,
         )
         request.context["timestamp"] = headers["X-Amz-Date"]
 
@@ -351,7 +362,7 @@ class IAMPolicy:
         else:
             policy_document = policy["policy_document"]
 
-        self._policy_json = json.loads(policy_document)  # type: ignore[arg-type]
+        self._policy_json = json.loads(policy_document)
 
     def is_action_permitted(
         self, action: str, resource: str = "*"

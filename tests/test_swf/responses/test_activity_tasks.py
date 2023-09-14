@@ -1,7 +1,8 @@
+import re
+from unittest import SkipTest
+
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-import sure  # noqa # pylint: disable=unused-import
-from unittest import SkipTest
 import pytest
 
 from moto import mock_swf
@@ -28,17 +29,18 @@ def test_poll_for_activity_task_when_one_boto3():
         taskList={"name": "activity-task-list"},
         identity="surprise",
     )
-    resp["activityId"].should.equal("my-activity-001")
-    resp["taskToken"].should.match("[-a-z0-9]+")
+    assert resp["activityId"] == "my-activity-001"
+    assert re.match("[-a-z0-9]+", resp["taskToken"])
 
     resp = client.get_workflow_execution_history(
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
-    resp["events"][-1]["eventType"].should.equal("ActivityTaskStarted")
-    resp["events"][-1]["activityTaskStartedEventAttributes"].should.equal(
-        {"identity": "surprise", "scheduledEventId": 5}
-    )
+    assert resp["events"][-1]["eventType"] == "ActivityTaskStarted"
+    assert resp["events"][-1]["activityTaskStartedEventAttributes"] == {
+        "identity": "surprise",
+        "scheduledEventId": 5,
+    }
 
 
 @pytest.mark.parametrize("task_name", ["activity-task-list", "non-existent-queue"])
@@ -48,9 +50,9 @@ def test_poll_for_activity_task_when_none_boto3(task_name):
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": task_name}
     )
-    resp.shouldnt.have.key("taskToken")
-    resp.should.have.key("startedEventId").equal(0)
-    resp.should.have.key("previousStartedEventId").equal(0)
+    assert "taskToken" not in resp
+    assert resp["startedEventId"] == 0
+    assert resp["previousStartedEventId"] == 0
 
 
 # CountPendingActivityTasks endpoint
@@ -72,8 +74,8 @@ def test_count_pending_activity_tasks_boto3(task_name, cnt):
     resp = client.count_pending_activity_tasks(
         domain="test-domain", taskList={"name": task_name}
     )
-    resp.should.have.key("count").equal(cnt)
-    resp.should.have.key("truncated").equal(False)
+    assert resp["count"] == cnt
+    assert resp["truncated"] is False
 
 
 # RespondActivityTaskCompleted endpoint
@@ -100,10 +102,12 @@ def test_respond_activity_task_completed_boto3():
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
-    resp["events"][-2]["eventType"].should.equal("ActivityTaskCompleted")
-    resp["events"][-2]["activityTaskCompletedEventAttributes"].should.equal(
-        {"result": "result of the task", "scheduledEventId": 5, "startedEventId": 6}
-    )
+    assert resp["events"][-2]["eventType"] == "ActivityTaskCompleted"
+    assert resp["events"][-2]["activityTaskCompletedEventAttributes"] == {
+        "result": "result of the task",
+        "scheduledEventId": 5,
+        "startedEventId": 6,
+    }
 
 
 @mock_swf
@@ -123,11 +127,11 @@ def test_respond_activity_task_completed_on_closed_workflow_execution_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.respond_activity_task_completed(taskToken=activity_token)
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         f"Unknown execution: WorkflowExecution=[workflowId=uid-abcd1234, runId={client.run_id}]"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -147,11 +151,11 @@ def test_respond_activity_task_completed_with_task_already_completed_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.respond_activity_task_completed(taskToken=activity_token)
-    ex.value.response["Error"]["Code"].should.equal("UnknownResourceFault")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "UnknownResourceFault"
+    assert ex.value.response["Error"]["Message"] == (
         "Unknown activity, scheduledEventId = 5"
     )
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # RespondActivityTaskFailed endpoint
@@ -178,15 +182,13 @@ def test_respond_activity_task_failed_boto3():
         domain="test-domain",
         execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
     )
-    resp["events"][-2]["eventType"].should.equal("ActivityTaskFailed")
-    resp["events"][-2]["activityTaskFailedEventAttributes"].should.equal(
-        {
-            "reason": "short reason",
-            "details": "long details",
-            "scheduledEventId": 5,
-            "startedEventId": 6,
-        }
-    )
+    assert resp["events"][-2]["eventType"] == "ActivityTaskFailed"
+    assert resp["events"][-2]["activityTaskFailedEventAttributes"] == {
+        "reason": "short reason",
+        "details": "long details",
+        "scheduledEventId": 5,
+        "startedEventId": 6,
+    }
 
 
 @mock_swf
@@ -201,15 +203,15 @@ def test_respond_activity_task_completed_with_wrong_token_boto3():
     client.respond_decision_task_completed(
         taskToken=decision_token, decisions=[SCHEDULE_ACTIVITY_TASK_DECISION]
     )
-    client.poll_for_activity_task(
+    _ = client.poll_for_activity_task(
         domain="test-domain", taskList={"name": "activity-task-list"}
     )["taskToken"]
 
     with pytest.raises(ClientError) as ex:
         client.respond_activity_task_failed(taskToken="not-a-correct-token")
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid token")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == "Invalid token"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # RecordActivityTaskHeartbeat endpoint
@@ -229,7 +231,7 @@ def test_record_activity_task_heartbeat_boto3():
     )["taskToken"]
 
     resp = client.record_activity_task_heartbeat(taskToken=activity_token)
-    resp.should.have.key("cancelRequested").equal(False)
+    assert resp["cancelRequested"] is False
 
 
 @mock_swf
@@ -241,15 +243,15 @@ def test_record_activity_task_heartbeat_with_wrong_token_boto3():
     client.respond_decision_task_completed(
         taskToken=decision_token, decisions=[SCHEDULE_ACTIVITY_TASK_DECISION]
     )
-    client.poll_for_activity_task(
+    _ = client.poll_for_activity_task(
         domain="test-domain", taskList={"name": "activity-task-list"}
     )["taskToken"]
 
     with pytest.raises(ClientError) as ex:
         client.record_activity_task_heartbeat(taskToken="bad-token")
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal("Invalid token")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == "Invalid token"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_swf
@@ -278,6 +280,6 @@ def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout_boto3():
             domain="test-domain",
             execution={"runId": client.run_id, "workflowId": "uid-abcd1234"},
         )
-        resp["events"][-2]["eventType"].should.equal("ActivityTaskTimedOut")
+        assert resp["events"][-2]["eventType"] == "ActivityTaskTimedOut"
         attrs = resp["events"][-2]["activityTaskTimedOutEventAttributes"]
-        attrs["details"].should.equal("some progress details")
+        assert attrs["details"] == "some progress details"

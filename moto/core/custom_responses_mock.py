@@ -7,15 +7,7 @@ from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 from .responses import TYPE_RESPONSE
 
-from moto.utilities.distutils_version import LooseVersion
-
-try:
-    from importlib.metadata import version
-except ImportError:
-    from importlib_metadata import version  # type: ignore[no-redef]
-
-
-RESPONSES_VERSION = version("responses")
+from moto.core.versions import is_responses_0_17_x
 
 
 class CallbackResponse(responses.CallbackResponse):
@@ -155,7 +147,7 @@ def get_response_mock() -> responses.RequestsMock:
     """
     responses_mock = None
 
-    if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    if is_responses_0_17_x():
         from .responses_custom_registry import CustomRegistry
 
         responses_mock = responses.RequestsMock(
@@ -163,14 +155,14 @@ def get_response_mock() -> responses.RequestsMock:
         )
     else:
         responses_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
-        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)  # type: ignore[assignment]
+        responses_mock._find_match = types.MethodType(_find_first_match, responses_mock)  # type: ignore[method-assign]
 
     responses_mock.add_passthru("http")
     return responses_mock
 
 
 def reset_responses_mock(responses_mock: responses.RequestsMock) -> None:
-    if LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0"):
+    if is_responses_0_17_x():
         from .responses_custom_registry import CustomRegistry
 
         responses_mock.reset()

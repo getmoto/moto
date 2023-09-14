@@ -1,8 +1,9 @@
-import boto3
 import json
+
+import boto3
+from botocore.exceptions import ClientError
 import pytest
 
-from botocore.exceptions import ClientError
 from moto import mock_secretsmanager
 
 

@@ -3,6 +3,6 @@ pytest
 pytest-cov
 pytest-ordering
 pytest-xdist
-surer
 freezegun
 pylint
+ruff

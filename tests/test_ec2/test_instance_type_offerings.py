@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2
 
@@ -9,11 +8,10 @@ def test_describe_instance_type_offerings():
     client = boto3.client("ec2", "us-east-1")
     offerings = client.describe_instance_type_offerings()
 
-    offerings.should.have.key("InstanceTypeOfferings").be.a(list)
-    len(offerings["InstanceTypeOfferings"]).should.be.greater_than(0)
-    offerings["InstanceTypeOfferings"][0].should.have.key("InstanceType")
-    offerings["InstanceTypeOfferings"][0].should.have.key("Location")
-    offerings["InstanceTypeOfferings"][0].should.have.key("LocationType")
+    assert len(offerings["InstanceTypeOfferings"]) > 0
+    assert "InstanceType" in offerings["InstanceTypeOfferings"][0]
+    assert "Location" in offerings["InstanceTypeOfferings"][0]
+    assert "LocationType" in offerings["InstanceTypeOfferings"][0]
 
 
 @mock_ec2
@@ -25,24 +23,31 @@ def test_describe_instance_type_offering_filter_by_type():
         Filters=[{"Name": "instance-type", "Values": ["t2.nano"]}]
     )
 
-    offerings.should.have.key("InstanceTypeOfferings")
+    assert "InstanceTypeOfferings" in offerings
     offerings = offerings["InstanceTypeOfferings"]
-    offerings.should.have.length_of(1)
-    offerings[0]["InstanceType"].should.equal("t2.nano")
-    offerings[0]["Location"].should.equal("us-east-1")
+    assert len(offerings) == 1
+    assert offerings[0]["InstanceType"] == "t2.nano"
+    assert offerings[0]["Location"] == "us-east-1"
 
     # Verify offerings of that instance type per availibility zone
     offerings = client.describe_instance_type_offerings(
         LocationType="availability-zone",
         Filters=[{"Name": "instance-type", "Values": ["t2.nano"]}],
     )
-    offerings.should.have.key("InstanceTypeOfferings")
+    assert "InstanceTypeOfferings" in offerings
     offerings = offerings["InstanceTypeOfferings"]
-    offerings.should.have.length_of(6)
-    for offering in offerings:
-        offering["InstanceType"].should.equal("t2.nano")
-        offering["LocationType"].should.equal("availability-zone")
-        offering["Location"].should.match("us-east-1[a-f]")
+    assert len(offerings) == 6
+    for offrng in offerings:
+        assert offrng["InstanceType"] == "t2.nano"
+        assert offrng["LocationType"] == "availability-zone"
+        assert offrng["Location"] in [
+            "us-east-1a",
+            "us-east-1b",
+            "us-east-1c",
+            "us-east-1d",
+            "us-east-1e",
+            "us-east-1f",
+        ]
 
 
 @mock_ec2
@@ -53,10 +58,10 @@ def test_describe_instance_type_offering_filter_by_zone():
         Filters=[{"Name": "location", "Values": ["us-east-1c"]}],
     )
 
-    offerings.should.have.key("InstanceTypeOfferings")
+    assert "InstanceTypeOfferings" in offerings
     offerings = offerings["InstanceTypeOfferings"]
     # Exact number of offerings changes quite often, but it's a lot
-    len(offerings).should.be.greater_than(500)
+    assert len(offerings) > 500
     assert all([o["LocationType"] == "availability-zone" for o in offerings])
     assert all([o["Location"] == "us-east-1c" for o in offerings])
     assert any([o["InstanceType"] == "a1.2xlarge" for o in offerings])
@@ -73,9 +78,9 @@ def test_describe_instance_type_offering_filter_by_zone_id():
         ],
     )
 
-    offerings.should.have.key("InstanceTypeOfferings")
+    assert "InstanceTypeOfferings" in offerings
     offerings = offerings["InstanceTypeOfferings"]
-    offerings.should.have.length_of(1)
-    offerings[0]["LocationType"].should.equal("availability-zone-id")
-    offerings[0]["InstanceType"].should.equal("c5.9xlarge")
-    offerings[0]["Location"].should.equal("cac1-az1")
+    assert len(offerings) == 1
+    assert offerings[0]["LocationType"] == "availability-zone-id"
+    assert offerings[0]["InstanceType"] == "c5.9xlarge"
+    assert offerings[0]["Location"] == "cac1-az1"

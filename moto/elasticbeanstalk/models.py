@@ -2,7 +2,12 @@ import weakref
 from typing import Dict, List
 
 from moto.core import BaseBackend, BackendDict, BaseModel
-from .exceptions import InvalidParameterValueError, ResourceNotFoundException
+
+from .exceptions import (
+    InvalidParameterValueError,
+    ResourceNotFoundException,
+    ApplicationNotFound,
+)
 from .utils import make_arn
 
 
@@ -42,7 +47,11 @@ class FakeEnvironment(BaseModel):
 
 
 class FakeApplication(BaseModel):
-    def __init__(self, backend: "EBBackend", application_name: str):
+    def __init__(
+        self,
+        backend: "EBBackend",
+        application_name: str,
+    ):
         self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
         self.environments: Dict[str, FakeEnvironment] = dict()
@@ -147,6 +156,16 @@ class EBBackend(BaseBackend):
                 if env.environment_arn == arn:
                     return env
         raise KeyError()
+
+    def delete_application(
+        self,
+        application_name: str,
+    ) -> None:
+        if application_name:
+            if application_name in self.applications:
+                self.applications.pop(application_name)
+            else:
+                raise ApplicationNotFound(application_name)
 
 
 eb_backends = BackendDict(EBBackend, "elasticbeanstalk")

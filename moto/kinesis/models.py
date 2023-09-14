@@ -11,7 +11,7 @@ from operator import attrgetter
 from typing import Any, Dict, List, Optional, Tuple, Iterable
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
@@ -73,7 +73,7 @@ class Record(BaseModel):
         self.data = data
         self.sequence_number = sequence_number
         self.explicit_hash_key = explicit_hash_key
-        self.created_at_datetime = datetime.datetime.utcnow()
+        self.created_at_datetime = utcnow()
         self.created_at = unix_time(self.created_at_datetime)
 
     def to_json(self) -> Dict[str, Any]:
@@ -321,7 +321,7 @@ class Stream(CloudFormationModel):
             )
 
     def update_shard_count(self, target_shard_count: int) -> None:
-        if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":  # type: ignore
+        if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":
             raise StreamCannotBeUpdatedError(
                 stream_name=self.stream_name, account_id=self.account_id
             )
@@ -784,7 +784,9 @@ class KinesisBackend(BaseBackend):
         return current_shard_count
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_shards(self, stream_arn: Optional[str], stream_name: Optional[str]) -> List[Dict[str, Any]]:  # type: ignore
+    def list_shards(
+        self, stream_arn: Optional[str], stream_name: Optional[str]
+    ) -> List[Dict[str, Any]]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
         shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
         return [shard.to_json() for shard in shards]

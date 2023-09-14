@@ -1,8 +1,9 @@
-import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
+import re
 
+import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_rds
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -12,7 +13,7 @@ def test_describe_db_cluster_initial():
     client = boto3.client("rds", region_name="eu-north-1")
 
     resp = client.describe_db_clusters()
-    resp.should.have.key("DBClusters").should.have.length_of(0)
+    assert len(resp["DBClusters"]) == 0
 
 
 @mock_rds
@@ -20,12 +21,12 @@ def test_describe_db_cluster_fails_for_non_existent_cluster():
     client = boto3.client("rds", region_name="eu-north-1")
 
     resp = client.describe_db_clusters()
-    resp.should.have.key("DBClusters").should.have.length_of(0)
+    assert len(resp["DBClusters"]) == 0
     with pytest.raises(ClientError) as ex:
         client.describe_db_clusters(DBClusterIdentifier="cluster-id")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("DBClusterNotFoundFault")
-    err["Message"].should.equal("DBCluster cluster-id not found.")
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert err["Message"] == "DBCluster cluster-id not found."
 
 
 @mock_rds
@@ -35,8 +36,8 @@ def test_create_db_cluster_needs_master_username():
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="aurora")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
         "The parameter MasterUsername must be provided and must not be blank."
     )
 
@@ -50,8 +51,8 @@ def test_create_db_cluster_needs_master_user_password():
             DBClusterIdentifier="cluster-id", Engine="aurora", MasterUsername="root"
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
         "The parameter MasterUserPassword must be provided and must not be blank."
     )
 
@@ -68,9 +69,10 @@ def test_create_db_cluster_needs_long_master_user_password():
             MasterUserPassword="hunter2",
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
-        "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
+        "The parameter MasterUserPassword is not a valid password because "
+        "it is shorter than 8 characters."
     )
 
 
@@ -91,9 +93,10 @@ def test_modify_db_cluster_needs_long_master_user_password():
             MasterUserPassword="hunter2",
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
-        "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
+        "The parameter MasterUserPassword is not a valid password because "
+        "it is shorter than 8 characters."
     )
 
 
@@ -116,7 +119,7 @@ def test_modify_db_cluster_new_cluster_identifier():
         MasterUserPassword="hunter21",
     )
 
-    resp["DBCluster"].should.have.key("DBClusterIdentifier").equal(new_id)
+    assert resp["DBCluster"]["DBClusterIdentifier"] == new_id
 
     clusters = [
         cluster["DBClusterIdentifier"]
@@ -136,78 +139,61 @@ def test_create_db_cluster__verify_default_properties():
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
-    resp.should.have.key("DBCluster")
+    assert "DBCluster" in resp
 
     cluster = resp["DBCluster"]
 
-    cluster.shouldnt.have.key(
-        "DatabaseName"
-    )  # This was not supplied, so should not be returned
+    # This was not supplied, so should not be returned
+    assert "DatabaseName" not in cluster
 
-    cluster.should.have.key("AvailabilityZones")
-    set(cluster["AvailabilityZones"]).should.equal(
-        {"eu-north-1a", "eu-north-1b", "eu-north-1c"}
-    )
-    cluster.should.have.key("BackupRetentionPeriod").equal(1)
-    cluster.should.have.key("DBClusterIdentifier").equal("cluster-id")
-    cluster.should.have.key("DBClusterParameterGroup").equal("default.aurora8.0")
-    cluster.should.have.key("DBSubnetGroup").equal("default")
-    cluster.should.have.key("Status").equal("creating")
-    cluster.should.have.key("Endpoint").match(
-        "cluster-id.cluster-[a-z0-9]{12}.eu-north-1.rds.amazonaws.com"
+    assert "AvailabilityZones" in cluster
+    assert set(cluster["AvailabilityZones"]) == {
+        "eu-north-1a",
+        "eu-north-1b",
+        "eu-north-1c",
+    }
+    assert cluster["BackupRetentionPeriod"] == 1
+    assert cluster["DBClusterIdentifier"] == "cluster-id"
+    assert cluster["DBClusterParameterGroup"] == "default.aurora8.0"
+    assert cluster["DBSubnetGroup"] == "default"
+    assert cluster["Status"] == "creating"
+    assert re.match(
+        "cluster-id.cluster-[a-z0-9]{12}.eu-north-1.rds.amazonaws.com",
+        cluster["Endpoint"],
     )
     endpoint = cluster["Endpoint"]
     expected_readonly = endpoint.replace(
         "cluster-id.cluster-", "cluster-id.cluster-ro-"
     )
-    cluster.should.have.key("ReaderEndpoint").equal(expected_readonly)
-    cluster.should.have.key("MultiAZ").equal(False)
-    cluster.should.have.key("Engine").equal("aurora")
-    cluster.should.have.key("EngineVersion").equal("5.6.mysql_aurora.1.22.5")
-    cluster.should.have.key("Port").equal(3306)
-    cluster.should.have.key("MasterUsername").equal("root")
-    cluster.should.have.key("PreferredBackupWindow").equal("01:37-02:07")
-    cluster.should.have.key("PreferredMaintenanceWindow").equal("wed:02:40-wed:03:10")
-    cluster.should.have.key("ReadReplicaIdentifiers").equal([])
-    cluster.should.have.key("DBClusterMembers").equal([])
-    cluster.should.have.key("VpcSecurityGroups")
-    cluster.should.have.key("HostedZoneId")
-    cluster.should.have.key("StorageEncrypted").equal(False)
-    cluster.should.have.key("DbClusterResourceId").match(r"cluster-[A-Z0-9]{26}")
-    cluster.should.have.key("DBClusterArn").equal(
+    assert cluster["ReaderEndpoint"] == expected_readonly
+    assert cluster["MultiAZ"] is False
+    assert cluster["Engine"] == "aurora"
+    assert cluster["EngineVersion"] == "5.6.mysql_aurora.1.22.5"
+    assert cluster["Port"] == 3306
+    assert cluster["MasterUsername"] == "root"
+    assert cluster["PreferredBackupWindow"] == "01:37-02:07"
+    assert cluster["PreferredMaintenanceWindow"] == "wed:02:40-wed:03:10"
+    assert cluster["ReadReplicaIdentifiers"] == []
+    assert cluster["DBClusterMembers"] == []
+    assert "VpcSecurityGroups" in cluster
+    assert "HostedZoneId" in cluster
+    assert cluster["StorageEncrypted"] is False
+    assert re.match(r"cluster-[A-Z0-9]{26}", cluster["DbClusterResourceId"])
+    assert cluster["DBClusterArn"] == (
         f"arn:aws:rds:eu-north-1:{ACCOUNT_ID}:cluster:cluster-id"
     )
-    cluster.should.have.key("AssociatedRoles").equal([])
-    cluster.should.have.key("IAMDatabaseAuthenticationEnabled").equal(False)
-    cluster.should.have.key("EngineMode").equal("provisioned")
-    cluster.should.have.key("DeletionProtection").equal(False)
-    cluster.should.have.key("HttpEndpointEnabled").equal(False)
-    cluster.should.have.key("CopyTagsToSnapshot").equal(False)
-    cluster.should.have.key("CrossAccountClone").equal(False)
-    cluster.should.have.key("DeletionProtection").equal(False)
-    cluster.should.have.key("DomainMemberships").equal([])
-    cluster.should.have.key("TagList").equal([])
-    cluster.should.have.key("ClusterCreateTime")
-    cluster.should.have.key(
-        "EarliestRestorableTime"
-    ).should.be.greater_than_or_equal_to(cluster["ClusterCreateTime"])
-
-
-@mock_rds
-def test_create_db_cluster_with_database_name():
-    client = boto3.client("rds", region_name="eu-north-1")
-
-    resp = client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        DatabaseName="users",
-        Engine="aurora",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-    cluster = resp["DBCluster"]
-    cluster.should.have.key("DatabaseName").equal("users")
-    cluster.should.have.key("DBClusterIdentifier").equal("cluster-id")
-    cluster.should.have.key("DBClusterParameterGroup").equal("default.aurora8.0")
+    assert cluster["AssociatedRoles"] == []
+    assert cluster["IAMDatabaseAuthenticationEnabled"] is False
+    assert cluster["EngineMode"] == "provisioned"
+    assert cluster["DeletionProtection"] is False
+    assert cluster["HttpEndpointEnabled"] is False
+    assert cluster["CopyTagsToSnapshot"] is False
+    assert cluster["CrossAccountClone"] is False
+    assert cluster["DeletionProtection"] is False
+    assert cluster["DomainMemberships"] == []
+    assert cluster["TagList"] == []
+    assert "ClusterCreateTime" in cluster
+    assert cluster["EarliestRestorableTime"] >= cluster["ClusterCreateTime"]
 
 
 @mock_rds
@@ -216,6 +202,7 @@ def test_create_db_cluster_additional_parameters():
 
     resp = client.create_db_cluster(
         AvailabilityZones=["eu-north-1b"],
+        DatabaseName="users",
         DBClusterIdentifier="cluster-id",
         Engine="aurora",
         EngineVersion="8.0.mysql_aurora.3.01.0",
@@ -232,21 +219,36 @@ def test_create_db_cluster_additional_parameters():
             "MinCapacity": 5,
             "AutoPause": True,
         },
+        ServerlessV2ScalingConfiguration={
+            "MinCapacity": 2,
+            "MaxCapacity": 4,
+        },
+        VpcSecurityGroupIds=["sg1", "sg2"],
     )
 
     cluster = resp["DBCluster"]
 
-    cluster.should.have.key("AvailabilityZones").equal(["eu-north-1b"])
-    cluster.should.have.key("Engine").equal("aurora")
-    cluster.should.have.key("EngineVersion").equal("8.0.mysql_aurora.3.01.0")
-    cluster.should.have.key("EngineMode").equal("serverless")
-    cluster.should.have.key("Port").equal(1234)
-    cluster.should.have.key("DeletionProtection").equal(True)
-    cluster.should.have.key("EnabledCloudwatchLogsExports").equals(["audit"])
+    assert cluster["AvailabilityZones"] == ["eu-north-1b"]
+    assert cluster["DatabaseName"] == "users"
+    assert cluster["Engine"] == "aurora"
+    assert cluster["EngineVersion"] == "8.0.mysql_aurora.3.01.0"
+    assert cluster["EngineMode"] == "serverless"
+    assert cluster["Port"] == 1234
+    assert cluster["DeletionProtection"] is True
+    assert cluster["EnabledCloudwatchLogsExports"] == ["audit"]
     assert cluster["KmsKeyId"] == "some:kms:arn"
     assert cluster["NetworkType"] == "IPV4"
     assert cluster["DBSubnetGroup"] == "subnetgroupname"
     assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
+    assert cluster["ServerlessV2ScalingConfiguration"] == {
+        "MaxCapacity": 4.0,
+        "MinCapacity": 2.0,
+    }
+
+    security_groups = cluster["VpcSecurityGroups"]
+    assert len(security_groups) == 2
+    assert {"VpcSecurityGroupId": "sg1", "Status": "active"} in security_groups
+    assert {"VpcSecurityGroupId": "sg2", "Status": "active"} in security_groups
 
 
 @mock_rds
@@ -267,15 +269,19 @@ def test_describe_db_cluster_after_creation():
         MasterUserPassword="hunter2_",
     )["DBCluster"]["DBClusterArn"]
 
-    client.describe_db_clusters()["DBClusters"].should.have.length_of(2)
+    assert len(client.describe_db_clusters()["DBClusters"]) == 2
 
-    client.describe_db_clusters(DBClusterIdentifier="cluster-id2")[
-        "DBClusters"
-    ].should.have.length_of(1)
+    assert (
+        len(
+            client.describe_db_clusters(DBClusterIdentifier="cluster-id2")["DBClusters"]
+        )
+        == 1
+    )
 
-    client.describe_db_clusters(DBClusterIdentifier=cluster_arn)[
-        "DBClusters"
-    ].should.have.length_of(1)
+    assert (
+        len(client.describe_db_clusters(DBClusterIdentifier=cluster_arn)["DBClusters"])
+        == 1
+    )
 
 
 @mock_rds
@@ -291,7 +297,7 @@ def test_delete_db_cluster():
 
     client.delete_db_cluster(DBClusterIdentifier="cluster-id")
 
-    client.describe_db_clusters()["DBClusters"].should.have.length_of(0)
+    assert len(client.describe_db_clusters()["DBClusters"]) == 0
 
 
 @mock_rds
@@ -308,7 +314,7 @@ def test_delete_db_cluster_do_snapshot():
     client.delete_db_cluster(
         DBClusterIdentifier="cluster-id", FinalDBSnapshotIdentifier="final-snapshot"
     )
-    client.describe_db_clusters()["DBClusters"].should.have.length_of(0)
+    assert len(client.describe_db_clusters()["DBClusters"]) == 0
     snapshot = client.describe_db_cluster_snapshots()["DBClusterSnapshots"][0]
     assert snapshot["DBClusterIdentifier"] == "cluster-id"
     assert snapshot["DBClusterSnapshotIdentifier"] == "final-snapshot"
@@ -330,7 +336,7 @@ def test_delete_db_cluster_that_is_protected():
     with pytest.raises(ClientError) as exc:
         client.delete_db_cluster(DBClusterIdentifier="cluster-id")
     err = exc.value.response["Error"]
-    err["Message"].should.equal("Can't delete Cluster with protection enabled")
+    assert err["Message"] == "Can't delete Cluster with protection enabled"
 
 
 @mock_rds
@@ -340,8 +346,8 @@ def test_delete_db_cluster_unknown_cluster():
     with pytest.raises(ClientError) as ex:
         client.delete_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("DBClusterNotFoundFault")
-    err["Message"].should.equal("DBCluster cluster-unknown not found.")
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert err["Message"] == "DBCluster cluster-unknown not found."
 
 
 @mock_rds
@@ -351,8 +357,8 @@ def test_start_db_cluster_unknown_cluster():
     with pytest.raises(ClientError) as ex:
         client.start_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("DBClusterNotFoundFault")
-    err["Message"].should.equal("DBCluster cluster-unknown not found.")
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert err["Message"] == "DBCluster cluster-unknown not found."
 
 
 @mock_rds
@@ -369,7 +375,7 @@ def test_start_db_cluster_after_stopping():
 
     client.start_db_cluster(DBClusterIdentifier="cluster-id")
     cluster = client.describe_db_clusters()["DBClusters"][0]
-    cluster["Status"].should.equal("available")
+    assert cluster["Status"] == "available"
 
 
 @mock_rds
@@ -386,8 +392,8 @@ def test_start_db_cluster_without_stopping():
     with pytest.raises(ClientError) as ex:
         client.start_db_cluster(DBClusterIdentifier="cluster-id")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidDBClusterStateFault")
-    err["Message"].should.equal("DbCluster cluster-id is not in stopped state.")
+    assert err["Code"] == "InvalidDBClusterStateFault"
+    assert err["Message"] == "DbCluster cluster-id is not in stopped state."
 
 
 @mock_rds
@@ -404,11 +410,11 @@ def test_stop_db_cluster():
     resp = client.stop_db_cluster(DBClusterIdentifier="cluster-id")
     # Quirk of the AWS implementation - the immediate response show it's still available
     cluster = resp["DBCluster"]
-    cluster["Status"].should.equal("available")
+    assert cluster["Status"] == "available"
     # For some time the status will be 'stopping'
     # And finally it will be 'stopped'
     cluster = client.describe_db_clusters()["DBClusters"][0]
-    cluster["Status"].should.equal("stopped")
+    assert cluster["Status"] == "stopped"
 
 
 @mock_rds
@@ -427,8 +433,8 @@ def test_stop_db_cluster_already_stopped():
     with pytest.raises(ClientError) as ex:
         client.stop_db_cluster(DBClusterIdentifier="cluster-id")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidDBClusterStateFault")
-    err["Message"].should.equal("DbCluster cluster-id is not in available state.")
+    assert err["Code"] == "InvalidDBClusterStateFault"
+    assert err["Message"] == "DbCluster cluster-id is not in available state."
 
 
 @mock_rds
@@ -438,8 +444,8 @@ def test_stop_db_cluster_unknown_cluster():
     with pytest.raises(ClientError) as ex:
         client.stop_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("DBClusterNotFoundFault")
-    err["Message"].should.equal("DBCluster cluster-unknown not found.")
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert err["Message"] == "DBCluster cluster-unknown not found."
 
 
 @mock_rds
@@ -450,7 +456,7 @@ def test_create_db_cluster_snapshot_fails_for_unknown_cluster():
             DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
         )
     err = exc.value.response["Error"]
-    err["Message"].should.equal("DBCluster db-primary-1 not found.")
+    assert err["Message"] == "DBCluster db-primary-1 not found."
 
 
 @mock_rds
@@ -476,15 +482,16 @@ def test_create_db_cluster_snapshot():
     assert snapshot["DBClusterSnapshotIdentifier"] == "g-1"
     assert snapshot["SnapshotType"] == "manual"
     result = conn.list_tags_for_resource(ResourceName=snapshot["DBClusterSnapshotArn"])
-    result["TagList"].should.equal([])
+    assert result["TagList"] == []
 
 
 @mock_rds
 def test_create_db_cluster_snapshot_copy_tags():
     conn = boto3.client("rds", region_name="us-west-2")
 
+    dbci = "db-primary-1"
     conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
+        DBClusterIdentifier=dbci,
         AllocatedStorage=10,
         Engine="postgres",
         DatabaseName="staging-postgres",
@@ -497,17 +504,26 @@ def test_create_db_cluster_snapshot_copy_tags():
     )
 
     snapshot = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
+        DBClusterIdentifier=dbci, DBClusterSnapshotIdentifier="g-1"
     ).get("DBClusterSnapshot")
 
-    snapshot.get("Engine").should.equal("postgres")
-    snapshot.get("DBClusterIdentifier").should.equal("db-primary-1")
-    snapshot.get("DBClusterSnapshotIdentifier").should.equal("g-1")
+    assert snapshot.get("Engine") == "postgres"
+    assert snapshot.get("DBClusterIdentifier") == dbci
+    assert snapshot.get("DBClusterSnapshotIdentifier") == "g-1"
 
     result = conn.list_tags_for_resource(ResourceName=snapshot["DBClusterSnapshotArn"])
-    result["TagList"].should.equal(
-        [{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}]
-    )
+    assert result["TagList"] == [
+        {"Value": "bar", "Key": "foo"},
+        {"Value": "bar1", "Key": "foo1"},
+    ]
+
+    snapshot = conn.describe_db_cluster_snapshots(DBClusterIdentifier=dbci)[
+        "DBClusterSnapshots"
+    ][0]
+    assert snapshot["TagList"] == [
+        {"Key": "foo", "Value": "bar"},
+        {"Key": "foo1", "Value": "bar1"},
+    ]
 
 
 @mock_rds
@@ -521,7 +537,7 @@ def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot():
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal("DBClusterSnapshot snapshot-1 not found.")
+    assert err["Message"] == "DBClusterSnapshot snapshot-1 not found."
 
 
 @mock_rds
@@ -548,13 +564,13 @@ def test_copy_db_cluster_snapshot():
         TargetDBClusterSnapshotIdentifier="snapshot-2",
     ).get("DBClusterSnapshot")
 
-    target_snapshot.get("Engine").should.equal("postgres")
-    target_snapshot.get("DBClusterIdentifier").should.equal("db-primary-1")
-    target_snapshot.get("DBClusterSnapshotIdentifier").should.equal("snapshot-2")
+    assert target_snapshot.get("Engine") == "postgres"
+    assert target_snapshot.get("DBClusterIdentifier") == "db-primary-1"
+    assert target_snapshot.get("DBClusterSnapshotIdentifier") == "snapshot-2"
     result = conn.list_tags_for_resource(
         ResourceName=target_snapshot["DBClusterSnapshotArn"]
     )
-    result["TagList"].should.equal([])
+    assert result["TagList"] == []
 
 
 @mock_rds
@@ -587,8 +603,9 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
         )
 
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        "Cannot create the snapshot because a snapshot with the identifier snapshot-2 already exists."
+    assert err["Message"] == (
+        "Cannot create the snapshot because a snapshot with the identifier "
+        "snapshot-2 already exists."
     )
 
 
@@ -610,7 +627,7 @@ def test_describe_db_cluster_snapshots():
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
     ).get("DBClusterSnapshot")
 
-    created.get("Engine").should.equal("postgres")
+    assert created.get("Engine") == "postgres"
 
     by_database_id = conn.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
@@ -618,11 +635,11 @@ def test_describe_db_cluster_snapshots():
     by_snapshot_id = conn.describe_db_cluster_snapshots(
         DBClusterSnapshotIdentifier="snapshot-1"
     ).get("DBClusterSnapshots")
-    by_snapshot_id.should.equal(by_database_id)
+    assert by_snapshot_id == by_database_id
 
     snapshot = by_snapshot_id[0]
-    snapshot.should.equal(created)
-    snapshot.get("Engine").should.equal("postgres")
+    assert snapshot == created
+    assert snapshot.get("Engine") == "postgres"
 
     conn.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
@@ -630,7 +647,7 @@ def test_describe_db_cluster_snapshots():
     snapshots = conn.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
     ).get("DBClusterSnapshots")
-    snapshots.should.have.length_of(2)
+    assert len(snapshots) == 2
 
 
 @mock_rds
@@ -652,9 +669,8 @@ def test_delete_db_cluster_snapshot():
 
     conn.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
     conn.delete_db_cluster_snapshot(DBClusterSnapshotIdentifier="snapshot-1")
-    conn.describe_db_cluster_snapshots.when.called_with(
-        DBClusterSnapshotIdentifier="snapshot-1"
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError):
+        conn.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
 
 
 @mock_rds
@@ -670,7 +686,7 @@ def test_restore_db_cluster_from_snapshot():
         MasterUserPassword="hunter2000",
         Port=1234,
     )
-    conn.describe_db_clusters()["DBClusters"].should.have.length_of(1)
+    assert len(conn.describe_db_clusters()["DBClusters"]) == 1
 
     conn.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
@@ -682,17 +698,18 @@ def test_restore_db_cluster_from_snapshot():
         SnapshotIdentifier="snapshot-1",
         Engine="postgres",
     )["DBCluster"]
-    new_cluster["DBClusterIdentifier"].should.equal("db-restore-1")
-    new_cluster["DBClusterInstanceClass"].should.equal("db.m1.small")
-    new_cluster["Engine"].should.equal("postgres")
-    new_cluster["DatabaseName"].should.equal("staging-postgres")
-    new_cluster["Port"].should.equal(1234)
+    assert new_cluster["DBClusterIdentifier"] == "db-restore-1"
+    assert new_cluster["DBClusterInstanceClass"] == "db.m1.small"
+    assert new_cluster["Engine"] == "postgres"
+    assert new_cluster["DatabaseName"] == "staging-postgres"
+    assert new_cluster["Port"] == 1234
 
     # Verify it exists
-    conn.describe_db_clusters()["DBClusters"].should.have.length_of(2)
-    conn.describe_db_clusters(DBClusterIdentifier="db-restore-1")[
-        "DBClusters"
-    ].should.have.length_of(1)
+    assert len(conn.describe_db_clusters()["DBClusters"]) == 2
+    assert (
+        len(conn.describe_db_clusters(DBClusterIdentifier="db-restore-1")["DBClusters"])
+        == 1
+    )
 
 
 @mock_rds
@@ -708,7 +725,7 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
         MasterUserPassword="hunter2000",
         Port=1234,
     )
-    conn.describe_db_clusters()["DBClusters"].should.have.length_of(1)
+    assert len(conn.describe_db_clusters()["DBClusters"]) == 1
     conn.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
     )
@@ -721,10 +738,10 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
         Port=10000,
         DBClusterInstanceClass="db.r6g.xlarge",
     )["DBCluster"]
-    new_cluster["DBClusterIdentifier"].should.equal("db-restore-1")
-    new_cluster["DBClusterParameterGroup"].should.equal("default.aurora8.0")
-    new_cluster["DBClusterInstanceClass"].should.equal("db.r6g.xlarge")
-    new_cluster["Port"].should.equal(10000)
+    assert new_cluster["DBClusterIdentifier"] == "db-restore-1"
+    assert new_cluster["DBClusterParameterGroup"] == "default.aurora8.0"
+    assert new_cluster["DBClusterInstanceClass"] == "db.r6g.xlarge"
+    assert new_cluster["Port"] == 10000
 
 
 @mock_rds
@@ -748,12 +765,12 @@ def test_add_tags_to_cluster():
     )
 
     tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
-    tags.should.equal([{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}])
+    assert tags == [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
 
     conn.remove_tags_from_resource(ResourceName=cluster_arn, TagKeys=["k1"])
 
     tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
-    tags.should.equal([{"Key": "k2", "Value": "v2"}])
+    assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
 @mock_rds
@@ -780,12 +797,12 @@ def test_add_tags_to_cluster_snapshot():
     )
 
     tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
-    tags.should.equal([{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}])
+    assert tags == [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
 
     conn.remove_tags_from_resource(ResourceName=snapshot_arn, TagKeys=["k1"])
 
     tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
-    tags.should.equal([{"Key": "k2", "Value": "v2"}])
+    assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
 @mock_rds
@@ -804,7 +821,7 @@ def test_create_serverless_db_cluster():
     )
     cluster = resp["DBCluster"]
     # This is only true for specific engine versions
-    cluster.should.have.key("HttpEndpointEnabled").equal(True)
+    assert cluster["HttpEndpointEnabled"] is True
 
     # Verify that a default serverless_configuration is added
     assert "ScalingConfigurationInfo" in cluster
@@ -828,7 +845,7 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
     )
     cluster = resp["DBCluster"]
     # This attribute is ignored if an invalid engine version is supplied
-    cluster.should.have.key("HttpEndpointEnabled").equal(False)
+    assert cluster["HttpEndpointEnabled"] is False
 
 
 @mock_rds
@@ -868,8 +885,10 @@ def test_describe_db_clusters_filter_by_engine():
 @mock_rds
 def test_replicate_cluster():
     # WHEN create_db_cluster is called
-    # AND create_db_cluster is called again with ReplicationSourceIdentifier set to the first cluster
-    # THEN promote_read_replica_db_cluster can be called on the second cluster, elevating it to a read/write cluster
+    # AND create_db_cluster is called again with ReplicationSourceIdentifier
+    #    set to the first cluster
+    # THEN promote_read_replica_db_cluster can be called on the second
+    #    cluster, elevating it to a read/write cluster
     us_east = boto3.client("rds", "us-east-1")
     us_west = boto3.client("rds", "us-west-1")
 

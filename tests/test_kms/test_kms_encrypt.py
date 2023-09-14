@@ -1,7 +1,6 @@
 import base64
 
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 import pytest
 
@@ -16,9 +15,10 @@ def test_create_key_with_empty_content():
     with pytest.raises(ClientError) as exc:
         client_kms.encrypt(KeyId=metadata["KeyId"], Plaintext="")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
 
 
@@ -32,13 +32,13 @@ def test_encrypt(plaintext):
     key_arn = key["KeyMetadata"]["Arn"]
 
     response = client.encrypt(KeyId=key_id, Plaintext=plaintext)
-    response["CiphertextBlob"].should_not.equal(plaintext)
+    assert response["CiphertextBlob"] != plaintext
 
     # CiphertextBlob must NOT be base64-encoded
     with pytest.raises(Exception):
         base64.b64decode(response["CiphertextBlob"], validate=True)
 
-    response["KeyId"].should.equal(key_arn)
+    assert response["KeyId"] == key_arn
 
 
 @mock_kms
@@ -116,8 +116,8 @@ def test_decrypt(plaintext):
     with pytest.raises(Exception):
         base64.b64decode(decrypt_response["Plaintext"], validate=True)
 
-    decrypt_response["Plaintext"].should.equal(_get_encoded_value(plaintext))
-    decrypt_response["KeyId"].should.equal(key_arn)
+    assert decrypt_response["Plaintext"] == _get_encoded_value(plaintext)
+    assert decrypt_response["KeyId"] == key_arn
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
@@ -128,7 +128,7 @@ def test_kms_encrypt(plaintext):
     response = client.encrypt(KeyId=key["KeyMetadata"]["KeyId"], Plaintext=plaintext)
 
     response = client.decrypt(CiphertextBlob=response["CiphertextBlob"])
-    response["Plaintext"].should.equal(_get_encoded_value(plaintext))
+    assert response["Plaintext"] == _get_encoded_value(plaintext)
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
@@ -158,24 +158,24 @@ def test_re_encrypt_decrypt(plaintext):
     with pytest.raises(Exception):
         base64.b64decode(re_encrypt_response["CiphertextBlob"], validate=True)
 
-    re_encrypt_response["SourceKeyId"].should.equal(key_1_arn)
-    re_encrypt_response["KeyId"].should.equal(key_2_arn)
+    assert re_encrypt_response["SourceKeyId"] == key_1_arn
+    assert re_encrypt_response["KeyId"] == key_2_arn
 
     decrypt_response_1 = client.decrypt(
         CiphertextBlob=encrypt_response["CiphertextBlob"],
         EncryptionContext={"encryption": "context"},
     )
-    decrypt_response_1["Plaintext"].should.equal(_get_encoded_value(plaintext))
-    decrypt_response_1["KeyId"].should.equal(key_1_arn)
+    assert decrypt_response_1["Plaintext"] == _get_encoded_value(plaintext)
+    assert decrypt_response_1["KeyId"] == key_1_arn
 
     decrypt_response_2 = client.decrypt(
         CiphertextBlob=re_encrypt_response["CiphertextBlob"],
         EncryptionContext={"another": "context"},
     )
-    decrypt_response_2["Plaintext"].should.equal(_get_encoded_value(plaintext))
-    decrypt_response_2["KeyId"].should.equal(key_2_arn)
+    assert decrypt_response_2["Plaintext"] == _get_encoded_value(plaintext)
+    assert decrypt_response_2["KeyId"] == key_2_arn
 
-    decrypt_response_1["Plaintext"].should.equal(decrypt_response_2["Plaintext"])
+    assert decrypt_response_1["Plaintext"] == decrypt_response_2["Plaintext"]
 
 
 @mock_kms

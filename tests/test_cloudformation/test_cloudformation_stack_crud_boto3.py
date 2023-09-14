@@ -350,17 +350,19 @@ def test_describe_stack_instances():
         StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-west-2",
-    )
+    )["StackInstance"]
     use1_instance = cf.describe_stack_instance(
         StackSetName="teststackset",
         StackInstanceAccount=ACCOUNT_ID,
         StackInstanceRegion="us-east-1",
-    )
+    )["StackInstance"]
 
-    assert usw2_instance["StackInstance"]["Region"] == "us-west-2"
-    assert usw2_instance["StackInstance"]["Account"] == ACCOUNT_ID
-    assert use1_instance["StackInstance"]["Region"] == "us-east-1"
-    assert use1_instance["StackInstance"]["Account"] == ACCOUNT_ID
+    assert use1_instance["Region"] == "us-east-1"
+    assert usw2_instance["Region"] == "us-west-2"
+    for instance in [use1_instance, usw2_instance]:
+        assert instance["Account"] == ACCOUNT_ID
+        assert instance["Status"] == "CURRENT"
+        assert instance["StackInstanceStatus"] == {"DetailedStatus": "SUCCEEDED"}
 
 
 @mock_cloudformation
@@ -2207,7 +2209,7 @@ def test_create_stack_lambda_and_dynamodb():
                     "FunctionName": "func1",
                     "Handler": "handler.handler",
                     "Role": get_role_name(),
-                    "Runtime": "python2.7",
+                    "Runtime": "python3.11",
                     "Description": "descr",
                     "MemorySize": 12345,
                 },

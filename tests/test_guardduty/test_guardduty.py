@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_guardduty
@@ -16,16 +15,16 @@ def test_create_detector():
         DataSources={"S3Logs": {"Enable": True}},
         Tags={},
     )
-    response.should.have.key("DetectorId")
-    response["DetectorId"].shouldnt.equal(None)
+    assert "DetectorId" in response
+    assert response["DetectorId"] is not None
 
 
 @mock_guardduty
 def test_create_detector_with_minimal_params():
     client = boto3.client("guardduty", region_name="us-east-1")
     response = client.create_detector(Enable=True)
-    response.should.have.key("DetectorId")
-    response["DetectorId"].shouldnt.equal(None)
+    assert "DetectorId" in response
+    assert response["DetectorId"] is not None
 
 
 @mock_guardduty
@@ -40,10 +39,9 @@ def test_get_detector_with_s3():
     )["DetectorId"]
 
     resp = client.get_detector(DetectorId=detector_id)
-    resp.should.have.key("FindingPublishingFrequency").equals("ONE_HOUR")
-    resp.should.have.key("DataSources")
-    resp["DataSources"].should.have.key("S3Logs").equals({"Status": "ENABLED"})
-    resp.should.have.key("CreatedAt")
+    assert resp["FindingPublishingFrequency"] == "ONE_HOUR"
+    assert resp["DataSources"]["S3Logs"] == {"Status": "ENABLED"}
+    assert "CreatedAt" in resp
 
 
 @mock_guardduty
@@ -61,14 +59,10 @@ def test_get_detector_with_all_data_sources():
     )["DetectorId"]
 
     resp = client.get_detector(DetectorId=detector_id)
-    resp.should.have.key("FindingPublishingFrequency").equals("ONE_HOUR")
-    resp.should.have.key("DataSources")
-    resp["DataSources"].should.have.key("S3Logs").equals({"Status": "ENABLED"})
-    resp["DataSources"].should.have.key("Kubernetes")
-    resp["DataSources"]["Kubernetes"].should.have.key("AuditLogs").equals(
-        {"Status": "ENABLED"}
-    )
-    resp.should.have.key("CreatedAt")
+    assert resp["FindingPublishingFrequency"] == "ONE_HOUR"
+    assert resp["DataSources"]["S3Logs"] == {"Status": "ENABLED"}
+    assert resp["DataSources"]["Kubernetes"]["AuditLogs"] == {"Status": "ENABLED"}
+    assert "CreatedAt" in resp
 
 
 @mock_guardduty
@@ -92,13 +86,9 @@ def test_update_detector():
     )
 
     resp = client.get_detector(DetectorId=detector_id)
-    resp.should.have.key("FindingPublishingFrequency").equals("SIX_HOURS")
-    resp.should.have.key("DataSources")
-    resp["DataSources"].should.have.key("S3Logs").equals({"Status": "ENABLED"})
-    resp["DataSources"].should.have.key("Kubernetes")
-    resp["DataSources"]["Kubernetes"].should.have.key("AuditLogs").equals(
-        {"Status": "DISABLED"}
-    )
+    assert resp["FindingPublishingFrequency"] == "SIX_HOURS"
+    assert resp["DataSources"]["S3Logs"] == {"Status": "ENABLED"}
+    assert resp["DataSources"]["Kubernetes"]["AuditLogs"] == {"Status": "DISABLED"}
 
 
 @mock_guardduty
@@ -106,7 +96,7 @@ def test_list_detectors_initial():
     client = boto3.client("guardduty", region_name="us-east-1")
 
     response = client.list_detectors()
-    response.should.have.key("DetectorIds").equals([])
+    assert response["DetectorIds"] == []
 
 
 @mock_guardduty
@@ -122,8 +112,7 @@ def test_list_detectors():
     d2 = client.create_detector(Enable=False)["DetectorId"]
 
     response = client.list_detectors()
-    response.should.have.key("DetectorIds")
-    set(response["DetectorIds"]).should.equal({d1, d2})
+    assert set(response["DetectorIds"]) == {d1, d2}
 
 
 @mock_guardduty
@@ -147,9 +136,10 @@ def test_delete_detector():
     with pytest.raises(ClientError) as exc:
         client.get_detector(DetectorId=detector_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "The request is rejected because the input detectorId is not owned by the current account."
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"]
+        == "The request is rejected because the input detectorId is not owned by the current account."
     )
 
-    client.list_detectors().should.have.key("DetectorIds").equals([])
+    assert client.list_detectors()["DetectorIds"] == []

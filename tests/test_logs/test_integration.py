@@ -1,14 +1,12 @@
 import base64
 from io import BytesIO
 import json
-import sure  # noqa # pylint: disable=unused-import
 import time
 from zipfile import ZipFile, ZIP_DEFLATED
 import zlib
 
 import boto3
 from botocore.exceptions import ClientError
-from datetime import datetime
 from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
 from moto import mock_kinesis
 from moto.core.utils import unix_time_millis
@@ -32,7 +30,7 @@ def test_put_subscription_filter_update():
     )
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -52,10 +50,10 @@ def test_put_subscription_filter_update():
 
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
-    response["subscriptionFilters"].should.have.length_of(1)
+    assert len(response["subscriptionFilters"]) == 1
     sub_filter = response["subscriptionFilters"][0]
     creation_time = sub_filter["creationTime"]
-    creation_time.should.be.a(int)
+    assert isinstance(creation_time, int)
     sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
     sub_filter["distribution"] = "ByLogStream"
     sub_filter["logGroupName"] = "/test"
@@ -63,7 +61,7 @@ def test_put_subscription_filter_update():
     sub_filter["filterPattern"] = ""
 
     # when
-    # to update an existing subscription filter the 'filerName' must be identical
+    # to update an existing subscription filter the 'filterName' must be identical
     client_logs.put_subscription_filter(
         logGroupName=log_group_name,
         filterName="test",
@@ -73,9 +71,9 @@ def test_put_subscription_filter_update():
 
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
-    response["subscriptionFilters"].should.have.length_of(1)
+    assert len(response["subscriptionFilters"]) == 1
     sub_filter = response["subscriptionFilters"][0]
-    sub_filter["creationTime"].should.equal(creation_time)
+    assert sub_filter["creationTime"] == creation_time
     sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
     sub_filter["distribution"] = "ByLogStream"
     sub_filter["logGroupName"] = "/test"
@@ -83,21 +81,27 @@ def test_put_subscription_filter_update():
     sub_filter["filterPattern"] = "[]"
 
     # when
-    # only one subscription filter can be associated with a log group
+    # only two subscription filters can be associated with a log group
+    client_logs.put_subscription_filter(
+        logGroupName=log_group_name,
+        filterName="test-2",
+        filterPattern="[]",
+        destinationArn=function_arn,
+    )
     with pytest.raises(ClientError) as e:
         client_logs.put_subscription_filter(
             logGroupName=log_group_name,
-            filterName="test-2",
+            filterName="test-3",
             filterPattern="",
             destinationArn=function_arn,
         )
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("LimitExceededException")
-    ex.response["Error"]["Message"].should.equal("Resource limit exceeded.")
+    assert ex.operation_name == "PutSubscriptionFilter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "LimitExceededException"
+    assert ex.response["Error"]["Message"] == "Resource limit exceeded."
 
 
 @mock_lambda
@@ -117,7 +121,7 @@ def test_put_subscription_filter_with_lambda():
     )
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -137,9 +141,9 @@ def test_put_subscription_filter_with_lambda():
 
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
-    response["subscriptionFilters"].should.have.length_of(1)
+    assert len(response["subscriptionFilters"]) == 1
     sub_filter = response["subscriptionFilters"][0]
-    sub_filter["creationTime"].should.be.a(int)
+    assert isinstance(sub_filter["creationTime"], int)
     sub_filter["destinationArn"] = "arn:aws:lambda:us-east-1:123456789012:function:test"
     sub_filter["distribution"] = "ByLogStream"
     sub_filter["logGroupName"] = "/test"
@@ -147,8 +151,8 @@ def test_put_subscription_filter_with_lambda():
     sub_filter["filterPattern"] = ""
 
     # when
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis()) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
@@ -170,19 +174,19 @@ def test_put_subscription_filter_with_lambda():
     response = json.loads(
         zlib.decompress(base64.b64decode(data), 16 + zlib.MAX_WBITS).decode("utf-8")
     )
-    response["messageType"].should.equal("DATA_MESSAGE")
-    response["owner"].should.equal("123456789012")
-    response["logGroup"].should.equal("/test")
-    response["logStream"].should.equal("stream")
-    response["subscriptionFilters"].should.equal(["test"])
+    assert response["messageType"] == "DATA_MESSAGE"
+    assert response["owner"] == "123456789012"
+    assert response["logGroup"] == "/test"
+    assert response["logStream"] == "stream"
+    assert response["subscriptionFilters"] == ["test"]
     log_events = sorted(response["logEvents"], key=lambda log_event: log_event["id"])
-    log_events.should.have.length_of(2)
-    log_events[0]["id"].should.be.a(int)
-    log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(ts_0)
-    log_events[1]["id"].should.be.a(int)
-    log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(ts_1)
+    assert len(log_events) == 2
+    assert isinstance(log_events[0]["id"], int)
+    assert log_events[0]["message"] == "test"
+    assert log_events[0]["timestamp"] == ts_0
+    assert isinstance(log_events[1]["id"], int)
+    assert log_events[1]["message"] == "test 2"
+    assert log_events[1]["timestamp"] == ts_1
 
 
 @mock_lambda
@@ -199,7 +203,7 @@ def test_subscription_filter_applies_to_new_streams():
     client_logs.create_log_group(logGroupName=log_group_name)
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -219,8 +223,8 @@ def test_subscription_filter_applies_to_new_streams():
     client_logs.create_log_stream(  # create log stream after subscription filter applied
         logGroupName=log_group_name, logStreamName=log_stream_name
     )
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow())) + 10
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis()) + 10
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
@@ -242,19 +246,19 @@ def test_subscription_filter_applies_to_new_streams():
     response = json.loads(
         zlib.decompress(base64.b64decode(data), 16 + zlib.MAX_WBITS).decode("utf-8")
     )
-    response["messageType"].should.equal("DATA_MESSAGE")
-    response["owner"].should.equal("123456789012")
-    response["logGroup"].should.equal("/test")
-    response["logStream"].should.equal("stream")
-    response["subscriptionFilters"].should.equal(["test"])
+    assert response["messageType"] == "DATA_MESSAGE"
+    assert response["owner"] == "123456789012"
+    assert response["logGroup"] == "/test"
+    assert response["logStream"] == "stream"
+    assert response["subscriptionFilters"] == ["test"]
     log_events = sorted(response["logEvents"], key=lambda log_event: log_event["id"])
-    log_events.should.have.length_of(2)
-    log_events[0]["id"].should.be.a(int)
-    log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(ts_0)
-    log_events[1]["id"].should.be.a(int)
-    log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(ts_1)
+    assert len(log_events) == 2
+    assert isinstance(log_events[0]["id"], int)
+    assert log_events[0]["message"] == "test"
+    assert log_events[0]["timestamp"] == ts_0
+    assert isinstance(log_events[1]["id"], int)
+    assert log_events[1]["message"] == "test 2"
+    assert log_events[1]["timestamp"] == ts_1
 
 
 @mock_s3
@@ -303,9 +307,9 @@ def test_put_subscription_filter_with_firehose():
 
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
-    response["subscriptionFilters"].should.have.length_of(1)
+    assert len(response["subscriptionFilters"]) == 1
     _filter = response["subscriptionFilters"][0]
-    _filter["creationTime"].should.be.a(int)
+    assert isinstance(_filter["creationTime"], int)
     _filter["destinationArn"] = firehose_arn
     _filter["distribution"] = "ByLogStream"
     _filter["logGroupName"] = "/firehose-test"
@@ -313,8 +317,8 @@ def test_put_subscription_filter_with_firehose():
     _filter["filterPattern"] = ""
 
     # when
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow()))
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis())
     client_logs.put_log_events(
         logGroupName=log_group_name,
         logStreamName=log_stream_name,
@@ -333,19 +337,19 @@ def test_put_subscription_filter_with_firehose():
         zlib.decompress(message["Body"].read(), 16 + zlib.MAX_WBITS).decode("utf-8")
     )
 
-    response["messageType"].should.equal("DATA_MESSAGE")
-    response["owner"].should.equal("123456789012")
-    response["logGroup"].should.equal("/firehose-test")
-    response["logStream"].should.equal("delivery-stream")
-    response["subscriptionFilters"].should.equal(["firehose-test"])
+    assert response["messageType"] == "DATA_MESSAGE"
+    assert response["owner"] == "123456789012"
+    assert response["logGroup"] == "/firehose-test"
+    assert response["logStream"] == "delivery-stream"
+    assert response["subscriptionFilters"] == ["firehose-test"]
     log_events = sorted(response["logEvents"], key=lambda log_event: log_event["id"])
-    log_events.should.have.length_of(2)
-    log_events[0]["id"].should.be.a(int)
-    log_events[0]["message"].should.equal("test")
-    log_events[0]["timestamp"].should.equal(ts_0)
-    log_events[1]["id"].should.be.a(int)
-    log_events[1]["message"].should.equal("test 2")
-    log_events[1]["timestamp"].should.equal(ts_1)
+    assert len(log_events) == 2
+    assert isinstance(log_events[0]["id"], int)
+    assert log_events[0]["message"] == "test"
+    assert log_events[0]["timestamp"] == ts_0
+    assert isinstance(log_events[1]["id"], int)
+    assert log_events[1]["message"] == "test 2"
+    assert log_events[1]["timestamp"] == ts_1
 
 
 @mock_iam
@@ -378,8 +382,8 @@ def test_put_subscription_filter_with_kinesis():
     )
 
     # Create new log events
-    ts_0 = int(unix_time_millis(datetime.utcnow()))
-    ts_1 = int(unix_time_millis(datetime.utcnow()))
+    ts_0 = int(unix_time_millis())
+    ts_1 = int(unix_time_millis())
     logs.put_log_events(
         logGroupName="lg1",
         logStreamName="ls1",
@@ -415,7 +419,7 @@ def test_delete_subscription_filter():
     client_logs.create_log_group(logGroupName=log_group_name)
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -436,7 +440,7 @@ def test_delete_subscription_filter():
 
     # then
     response = client_logs.describe_subscription_filters(logGroupName=log_group_name)
-    response["subscriptionFilters"].should.have.length_of(0)
+    assert len(response["subscriptionFilters"]) == 0
 
 
 @mock_lambda
@@ -450,7 +454,7 @@ def test_delete_subscription_filter_errors():
     client_logs.create_log_group(logGroupName=log_group_name)
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name(region_name),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -474,12 +478,10 @@ def test_delete_subscription_filter_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified log group does not exist"
-    )
+    assert ex.operation_name == "DeleteSubscriptionFilter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.response["Error"]["Message"] == "The specified log group does not exist"
 
     # when
     with pytest.raises(ClientError) as e:
@@ -489,11 +491,12 @@ def test_delete_subscription_filter_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified subscription filter does not exist."
+    assert ex.operation_name == "DeleteSubscriptionFilter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The specified subscription filter does not exist."
     )
 
 
@@ -504,7 +507,7 @@ def test_put_subscription_filter_errors():
     client_lambda = boto3.client("lambda", "us-east-1")
     function_arn = client_lambda.create_function(
         FunctionName="test",
-        Runtime="python3.8",
+        Runtime="python3.11",
         Role=_get_role_name("us-east-1"),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": _get_test_zip_file()},
@@ -524,11 +527,28 @@ def test_put_subscription_filter_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ResourceNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "The specified log group does not exist"
+    assert ex.operation_name == "PutSubscriptionFilter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.response["Error"]["Message"] == "The specified log group does not exist"
+
+    # when
+    with pytest.raises(ClientError) as e:
+        client.put_subscription_filter(
+            logGroupName="/test",
+            filterName="test",
+            filterPattern="",
+            destinationArn="arn:aws:lambda:us-east-1:123456789012:function:not-existing",
+        )
+
+    # then
+    ex = e.value
+    assert ex.operation_name == "PutSubscriptionFilter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Could not execute the lambda function. Make sure you have given CloudWatch Logs permission to execute your function."
     )
 
     # when
@@ -542,31 +562,12 @@ def test_put_subscription_filter_errors():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Could not execute the lambda function. "
-        "Make sure you have given CloudWatch Logs permission to execute your function."
-    )
-
-    # when
-    with pytest.raises(ClientError) as e:
-        client.put_subscription_filter(
-            logGroupName="/test",
-            filterName="test",
-            filterPattern="",
-            destinationArn="arn:aws:lambda:us-east-1:123456789012:function:not-existing",
-        )
-
-    # then
-    ex = e.value
-    ex.operation_name.should.equal("PutSubscriptionFilter")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Could not execute the lambda function. "
-        "Make sure you have given CloudWatch Logs permission to execute your function."
+    assert ex.operation_name == "PutSubscriptionFilter"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Could not execute the lambda function. Make sure you have given CloudWatch Logs permission to execute your function."
     )
 
     # when we pass an unknown kinesis ARN

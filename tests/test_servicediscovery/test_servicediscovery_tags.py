@@ -1,7 +1,6 @@
 """Unit tests for servicediscovery-supported APIs."""
 import boto3
 
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_servicediscovery
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -18,9 +17,9 @@ def test_create_http_namespace_with_tags():
     ns_arn = client.list_namespaces()["Namespaces"][0]["Arn"]
 
     resp = client.list_tags_for_resource(ResourceARN=ns_arn)
-    resp.should.have.key("Tags")
+    assert "Tags" in resp
 
-    resp["Tags"].should.equal([{"Key": "key1", "Value": "val1"}])
+    assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
 @mock_servicediscovery
@@ -33,9 +32,9 @@ def test_create_public_dns_namespace_with_tags():
     ns_arn = client.list_namespaces()["Namespaces"][0]["Arn"]
 
     resp = client.list_tags_for_resource(ResourceARN=ns_arn)
-    resp.should.have.key("Tags")
+    assert "Tags" in resp
 
-    resp["Tags"].should.equal([{"Key": "key1", "Value": "val1"}])
+    assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
 @mock_servicediscovery
@@ -48,9 +47,9 @@ def test_create_private_dns_namespace_with_tags():
     ns_arn = client.list_namespaces()["Namespaces"][0]["Arn"]
 
     resp = client.list_tags_for_resource(ResourceARN=ns_arn)
-    resp.should.have.key("Tags")
+    assert "Tags" in resp
 
-    resp["Tags"].should.equal([{"Key": "key1", "Value": "val1"}])
+    assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
 @mock_servicediscovery
@@ -61,9 +60,9 @@ def test_create_service_with_tags():
     ns_arn = client.list_services()["Services"][0]["Arn"]
 
     resp = client.list_tags_for_resource(ResourceARN=ns_arn)
-    resp.should.have.key("Tags")
+    assert "Tags" in resp
 
-    resp["Tags"].should.equal([{"Key": "key1", "Value": "val1"}])
+    assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
 @mock_servicediscovery
@@ -77,11 +76,12 @@ def test_tag_resource():
     client.tag_resource(ResourceARN=ns_arn, Tags=[{"Key": "key2", "Value": "val2"}])
 
     resp = client.list_tags_for_resource(ResourceARN=ns_arn)
-    resp.should.have.key("Tags")
+    assert "Tags" in resp
 
-    resp["Tags"].should.equal(
-        [{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}]
-    )
+    assert resp["Tags"] == [
+        {"Key": "key1", "Value": "val1"},
+        {"Key": "key2", "Value": "val2"},
+    ]
 
 
 @mock_servicediscovery
@@ -98,6 +98,6 @@ def test_untag_resource():
     client.untag_resource(ResourceARN=ns_arn, TagKeys=["key1"])
 
     resp = client.list_tags_for_resource(ResourceARN=ns_arn)
-    resp.should.have.key("Tags")
+    assert "Tags" in resp
 
-    resp["Tags"].should.equal([{"Key": "key2", "Value": "val2"}])
+    assert resp["Tags"] == [{"Key": "key2", "Value": "val2"}]

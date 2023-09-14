@@ -100,7 +100,14 @@ class DomainDispatcherApplication:
             try:
                 credential_scope = auth.split(",")[0].split()[1]
                 _, _, region, service, _ = credential_scope.split("/")
-                service = SIGNING_ALIASES.get(service.lower(), service)
+                path = environ.get("PATH_INFO", "")
+                if service.lower() == "execute-api" and path.startswith(
+                    "/@connections"
+                ):
+                    # APIGateway Management API
+                    pass
+                else:
+                    service = SIGNING_ALIASES.get(service.lower(), service)
                 service = service.lower()
             except ValueError:
                 # Signature format does not match, this is exceptional and we can't
@@ -146,7 +153,10 @@ class DomainDispatcherApplication:
                 else:
                     host = "dynamodb"
         elif service == "sagemaker":
-            host = f"api.{service}.{region}.amazonaws.com"
+            if environ["PATH_INFO"].endswith("invocations"):
+                host = f"runtime.{service}.{region}.amazonaws.com"
+            else:
+                host = f"api.{service}.{region}.amazonaws.com"
         elif service == "timestream":
             host = f"ingest.{service}.{region}.amazonaws.com"
         elif service == "s3" and (
@@ -197,7 +207,7 @@ class DomainDispatcherApplication:
             )
             request_body_size = int(environ["CONTENT_LENGTH"])
             if simple_form and request_body_size:
-                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")  # type: ignore
+                body = environ["wsgi.input"].read(request_body_size).decode("utf-8")
         except (KeyError, ValueError):
             pass
         finally:

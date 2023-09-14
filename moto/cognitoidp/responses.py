@@ -534,6 +534,30 @@ class CognitoIdpResponse(BaseResponse):
         )
         return json.dumps({"ResourceServer": resource_server.to_json()})
 
+    def describe_resource_server(self) -> str:
+        user_pool_id = self._get_param("UserPoolId")
+        identifier = self._get_param("Identifier")
+        resource_server = self.backend.describe_resource_server(
+            user_pool_id, identifier
+        )
+        return json.dumps({"ResourceServer": resource_server.to_json()})
+
+    def list_resource_servers(self) -> str:
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        user_pool_id = self._get_param("UserPoolId")
+        resource_servers, next_token = self.backend.list_resource_servers(
+            user_pool_id, max_results=max_results, next_token=next_token
+        )
+        response: Dict[str, Any] = {
+            "ResourceServers": [
+                resource_server.to_json() for resource_server in resource_servers
+            ]
+        }
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return json.dumps(response)
+
     def sign_up(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")

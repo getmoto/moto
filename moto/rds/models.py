@@ -1,6 +1,6 @@
 import copy
-import datetime
 import os
+import re
 import string
 
 from collections import defaultdict
@@ -33,6 +33,7 @@ from .exceptions import (
     InvalidParameterValue,
     InvalidParameterCombination,
     InvalidDBClusterStateFault,
+    InvalidDBInstanceIdentifier,
     InvalidGlobalClusterStateFault,
     ExportTaskNotFoundError,
     ExportTaskAlreadyExistsError,
@@ -134,9 +135,7 @@ class Cluster:
         self.status = "active"
         self.account_id = kwargs.get("account_id")
         self.region_name = kwargs.get("region")
-        self.cluster_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.cluster_create_time = iso_8601_datetime_with_milliseconds()
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
             self.copy_tags_to_snapshot = True
@@ -180,7 +179,7 @@ class Cluster:
         self.preferred_backup_window = "01:37-02:07"
         self.preferred_maintenance_window = "wed:02:40-wed:03:10"
         # This should default to the default security group
-        self.vpc_security_groups: List[str] = []
+        self.vpc_security_group_ids: List[str] = kwargs["vpc_security_group_ids"]
         self.hosted_zone_id = "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(14)
         )
@@ -192,9 +191,7 @@ class Cluster:
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
         self.enable_http_endpoint = kwargs.get("enable_http_endpoint")  # type: ignore
-        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds()
         self.scaling_configuration = kwargs.get("scaling_configuration")
         if not self.scaling_configuration and self.engine_mode == "serverless":
             # In AWS, this default configuration only shows up when the Cluster is in a ready state, so a few minutes after creation
@@ -206,6 +203,9 @@ class Cluster:
                 "timeout_action": "RollbackCapacityChange",
                 "seconds_before_timeout": 300,
             }
+        self.serverless_v2_scaling_configuration = kwargs.get(
+            "serverless_v2_scaling_configuration"
+        )
         self.cluster_members: List[str] = list()
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
@@ -217,6 +217,10 @@ class Cluster:
             len(self.read_replica_identifiers) > 0
             or self.replication_source_identifier is not None
         )
+
+    @property
+    def arn(self) -> str:
+        return self.db_cluster_arn
 
     @property
     def db_cluster_arn(self) -> str:
@@ -256,6 +260,9 @@ class Cluster:
                     "5.6.1",
                     "2.07.1",
                     "5.7.2",
+                    "5.7.mysql_aurora.2.07.1",
+                    "5.7.mysql_aurora.2.07.2",
+                    "5.7.mysql_aurora.2.08.3",
                 ]:
                     self._enable_http_endpoint = val
                 elif self.engine == "aurora-postgresql" and self.engine_version in [
@@ -327,7 +334,7 @@ class Cluster:
               {% endfor %}
               </DBClusterMembers>
               <VpcSecurityGroups>
-              {% for id in cluster.vpc_security_groups %}
+              {% for id in cluster.vpc_security_group_ids %}
                   <VpcSecurityGroup>
                       <VpcSecurityGroupId>{{ id }}</VpcSecurityGroupId>
                       <Status>active</Status>
@@ -342,7 +349,7 @@ class Cluster:
               <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
-              <HttpEndpointEnabled>{{ cluster.enable_http_endpoint }}</HttpEndpointEnabled>
+              <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
               <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>
@@ -368,6 +375,12 @@ class Cluster:
                 {% if "timeout_action" in cluster.scaling_configuration %}<TimeoutAction>{{ cluster.scaling_configuration["timeout_action"] }}</TimeoutAction>{% endif %}
                 {% if "seconds_before_timeout" in cluster.scaling_configuration %}<SecondsBeforeTimeout>{{ cluster.scaling_configuration["seconds_before_timeout"] }}</SecondsBeforeTimeout>{% endif %}
               </ScalingConfigurationInfo>
+              {% endif %}
+              {% if cluster.serverless_v2_scaling_configuration %}
+              <ServerlessV2ScalingConfiguration>
+                {% if "MinCapacity" in cluster.serverless_v2_scaling_configuration %}<MinCapacity>{{ cluster.serverless_v2_scaling_configuration["MinCapacity"] }}</MinCapacity>{% endif %}
+                {% if "MaxCapacity" in cluster.serverless_v2_scaling_configuration %}<MaxCapacity>{{ cluster.serverless_v2_scaling_configuration["MaxCapacity"] }}</MaxCapacity>{% endif %}
+              </ServerlessV2ScalingConfiguration>
               {% endif %}
               {%- if cluster.global_cluster_identifier -%}
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
@@ -452,9 +465,11 @@ class ClusterSnapshot(BaseModel):
         self.snapshot_type = snapshot_type
         self.tags = tags
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
+
+    @property
+    def arn(self) -> str:
+        return self.snapshot_arn
 
     @property
     def snapshot_arn(self) -> str:
@@ -483,6 +498,11 @@ class ClusterSnapshot(BaseModel):
                 {% else %}
                 <StorageType>{{ cluster.storage_type }}</StorageType>
                 {% endif %}
+                <TagList>
+                {%- for tag in snapshot.tags -%}
+                    <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
+                {%- endfor -%}
+                </TagList>
                 <Timezone></Timezone>
                 <LicenseModel>{{ cluster.license_model }}</LicenseModel>
             </DBClusterSnapshot>
@@ -565,9 +585,7 @@ class Database(CloudFormationModel):
             self.port = Database.default_port(self.engine)  # type: ignore
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
-        self.instance_create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.instance_create_time = iso_8601_datetime_with_milliseconds()
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
             self.publicly_accessible = True
@@ -634,6 +652,10 @@ class Database(CloudFormationModel):
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
+
+    @property
+    def arn(self) -> str:
+        return self.db_instance_arn
 
     @property
     def db_instance_arn(self) -> str:
@@ -921,7 +943,7 @@ class Database(CloudFormationModel):
             "availability_zone": properties.get("AvailabilityZone"),
             "backup_retention_period": properties.get("BackupRetentionPeriod"),
             "db_instance_class": properties.get("DBInstanceClass"),
-            "db_instance_identifier": resource_name,
+            "db_instance_identifier": resource_name.replace("_", "-"),
             "db_name": properties.get("DBName"),
             "preferred_backup_window": properties.get(
                 "PreferredBackupWindow", "13:14-13:44"
@@ -1077,9 +1099,11 @@ class DatabaseSnapshot(BaseModel):
         self.snapshot_type = snapshot_type
         self.tags = tags
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
+
+    @property
+    def arn(self) -> str:
+        return self.snapshot_arn
 
     @property
     def snapshot_arn(self) -> str:
@@ -1156,9 +1180,7 @@ class ExportTask(BaseModel):
         self.export_only = kwargs.get("export_only", [])
 
         self.status = "complete"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
         self.source_type = (
             "SNAPSHOT" if type(snapshot) is DatabaseSnapshot else "CLUSTER"
         )
@@ -1206,9 +1228,7 @@ class EventSubscription(BaseModel):
         self.region_name = ""
         self.customer_aws_id = kwargs["account_id"]
         self.status = "active"
-        self.created_at = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.created_at = iso_8601_datetime_with_milliseconds()
 
     @property
     def es_arn(self) -> str:
@@ -1562,6 +1582,7 @@ class RDSBackend(BaseBackend):
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
         database_id = db_kwargs["db_instance_identifier"]
+        self._validate_db_identifier(database_id)
         database = Database(**db_kwargs)
 
         cluster_id = database.db_cluster_identifier
@@ -1710,7 +1731,7 @@ class RDSBackend(BaseBackend):
         preferred_backup_window = db_kwargs.get("preferred_backup_window")
         preferred_maintenance_window = db_kwargs.get("preferred_maintenance_window")
         msg = valid_preferred_maintenance_window(
-            preferred_maintenance_window, preferred_backup_window  # type: ignore
+            preferred_maintenance_window, preferred_backup_window
         )
         if msg:
             raise RDSClientError("InvalidParameterValue", msg)
@@ -1742,6 +1763,7 @@ class RDSBackend(BaseBackend):
     def stop_db_instance(
         self, db_instance_identifier: str, db_snapshot_identifier: Optional[str] = None
     ) -> Database:
+        self._validate_db_identifier(db_instance_identifier)
         database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html#USER_StopInstance.Limitations
@@ -1758,6 +1780,7 @@ class RDSBackend(BaseBackend):
         return database
 
     def start_db_instance(self, db_instance_identifier: str) -> Database:
+        self._validate_db_identifier(db_instance_identifier)
         database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: bunch of different error messages to be generated from this api call
         if database.status != "stopped":
@@ -1780,6 +1803,7 @@ class RDSBackend(BaseBackend):
     def delete_db_instance(
         self, db_instance_identifier: str, db_snapshot_name: Optional[str] = None
     ) -> Database:
+        self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
             if self.databases[db_instance_identifier].deletion_protection:
                 raise InvalidParameterValue(
@@ -2256,7 +2280,7 @@ class RDSBackend(BaseBackend):
         if tags is None:
             tags = source_snapshot.tags
         else:
-            tags = self._merge_tags(source_snapshot.tags, tags)  # type: ignore
+            tags = self._merge_tags(source_snapshot.tags, tags)
         return self.create_db_cluster_snapshot(
             db_cluster_identifier=source_snapshot.cluster.db_cluster_identifier,  # type: ignore
             db_snapshot_identifier=target_snapshot_identifier,
@@ -2587,6 +2611,19 @@ class RDSBackend(BaseBackend):
         tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
         tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
         return [{"Key": k, "Value": v} for k, v in tags_dict.items()]
+
+    @staticmethod
+    def _validate_db_identifier(db_identifier: str) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
+        # Constraints:
+        # # Must contain from 1 to 63 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if re.match(
+            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        ):
+            return
+        raise InvalidDBInstanceIdentifier
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str

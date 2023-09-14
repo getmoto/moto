@@ -1,8 +1,7 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from moto.core import CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from .core import TaggedEC2Resource
 from ..utils import random_nat_gateway_id, random_private_ip
 
@@ -25,7 +24,7 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         self.connectivity_type = connectivity_type
 
         # protected properties
-        self._created_at = datetime.utcnow()
+        self._created_at = utcnow()
         self.ec2_backend = backend
         # NOTE: this is the core of NAT Gateways creation
         self._eni = self.ec2_backend.create_network_interface(
@@ -133,6 +132,7 @@ class NatGatewayBackend:
             if eip:
                 address_set["allocationId"] = allocation_id
                 address_set["publicIp"] = eip.public_ip or None
+                address_set["associationId"] = eip.association_id or None
         address_set["networkInterfaceId"] = nat_gateway._eni.id
         address_set["privateIp"] = nat_gateway._eni.private_ip_address
         nat_gateway.address_set.append(address_set)

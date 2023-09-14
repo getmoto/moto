@@ -1,7 +1,7 @@
 import json
-import boto3
+import re
 
-import sure  # noqa # pylint: disable=unused-import
+import boto3
 
 from moto import mock_s3, mock_cloudformation
 
@@ -9,8 +9,8 @@ from moto import mock_s3, mock_cloudformation
 @mock_s3
 @mock_cloudformation
 def test_s3_bucket_cloudformation_basic():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -18,17 +18,17 @@ def test_s3_bucket_cloudformation_basic():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
+    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
 
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
+    s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
 
 @mock_s3
 @mock_cloudformation
 def test_s3_bucket_cloudformation_with_properties():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
     bucket_name = "MyBucket"
     template = {
@@ -53,21 +53,24 @@ def test_s3_bucket_cloudformation_with_properties():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    cf.describe_stacks(StackName="test_stack")
-    s3.head_bucket(Bucket=bucket_name)
+    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
+    cf_client.describe_stacks(StackName="test_stack")
+    s3_client.head_bucket(Bucket=bucket_name)
 
-    encryption = s3.get_bucket_encryption(Bucket=bucket_name)
-    encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
-        "ApplyServerSideEncryptionByDefault"
-    ]["SSEAlgorithm"].should.equal("AES256")
+    encryption = s3_client.get_bucket_encryption(Bucket=bucket_name)
+    assert (
+        encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
+            "ApplyServerSideEncryptionByDefault"
+        ]["SSEAlgorithm"]
+        == "AES256"
+    )
 
 
 @mock_s3
 @mock_cloudformation
 def test_s3_bucket_cloudformation_update_no_interruption():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -75,9 +78,9 @@ def test_s3_bucket_cloudformation_update_no_interruption():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
+    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -100,20 +103,23 @@ def test_s3_bucket_cloudformation_update_no_interruption():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf.update_stack(StackName="test_stack", TemplateBody=template_json)
-    encryption = s3.get_bucket_encryption(
+    cf_client.update_stack(StackName="test_stack", TemplateBody=template_json)
+    encryption = s3_client.get_bucket_encryption(
         Bucket=stack_description["Outputs"][0]["OutputValue"]
     )
-    encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
-        "ApplyServerSideEncryptionByDefault"
-    ]["SSEAlgorithm"].should.equal("AES256")
+    assert (
+        encryption["ServerSideEncryptionConfiguration"]["Rules"][0][
+            "ApplyServerSideEncryptionByDefault"
+        ]["SSEAlgorithm"]
+        == "AES256"
+    )
 
 
 @mock_s3
 @mock_cloudformation
 def test_s3_bucket_cloudformation_update_replacement():
-    s3 = boto3.client("s3", region_name="us-east-1")
-    cf = boto3.client("cloudformation", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -121,9 +127,9 @@ def test_s3_bucket_cloudformation_update_replacement():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf.create_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
+    cf_client.create_stack(StackName="test_stack", TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -136,17 +142,17 @@ def test_s3_bucket_cloudformation_update_replacement():
         "Outputs": {"Bucket": {"Value": {"Ref": "testInstance"}}},
     }
     template_json = json.dumps(template)
-    cf.update_stack(StackName="test_stack", TemplateBody=template_json)
-    stack_description = cf.describe_stacks(StackName="test_stack")["Stacks"][0]
-    s3.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
+    cf_client.update_stack(StackName="test_stack", TemplateBody=template_json)
+    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
+    s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
 
 @mock_s3
 @mock_cloudformation
 def test_s3_bucket_cloudformation_outputs():
     region_name = "us-east-1"
-    s3 = boto3.client("s3", region_name=region_name)
-    cf = boto3.resource("cloudformation", region_name=region_name)
+    s3_client = boto3.client("s3", region_name=region_name)
+    cf_client = boto3.resource("cloudformation", region_name=region_name)
     stack_name = "test-stack"
     bucket_name = "test-bucket"
     template = {
@@ -188,19 +194,19 @@ def test_s3_bucket_cloudformation_outputs():
             },
         },
     }
-    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
-    outputs_list = cf.Stack(stack_name).outputs
+    cf_client.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    outputs_list = cf_client.Stack(stack_name).outputs
     output = {item["OutputKey"]: item["OutputValue"] for item in outputs_list}
-    s3.head_bucket(Bucket=output["BucketName"])
-    output["BucketARN"].should.match(f"arn:aws:s3.+{bucket_name}")
-    output["BucketDomainName"].should.equal(f"{bucket_name}.s3.amazonaws.com")
-    output["BucketDualStackDomainName"].should.equal(
+    s3_client.head_bucket(Bucket=output["BucketName"])
+    assert re.match(f"arn:aws:s3.+{bucket_name}", output["BucketARN"])
+    assert output["BucketDomainName"] == f"{bucket_name}.s3.amazonaws.com"
+    assert output["BucketDualStackDomainName"] == (
         f"{bucket_name}.s3.dualstack.{region_name}.amazonaws.com"
     )
-    output["BucketRegionalDomainName"].should.equal(
+    assert output["BucketRegionalDomainName"] == (
         f"{bucket_name}.s3.{region_name}.amazonaws.com"
     )
-    output["BucketWebsiteURL"].should.equal(
+    assert output["BucketWebsiteURL"] == (
         f"http://{bucket_name}.s3-website.{region_name}.amazonaws.com"
     )
-    output["BucketName"].should.equal(bucket_name)
+    assert output["BucketName"] == bucket_name

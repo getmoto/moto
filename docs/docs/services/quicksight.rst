@@ -83,6 +83,8 @@ quicksight
 - [ ] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
+- [ ] describe_dashboard_snapshot_job
+- [ ] describe_dashboard_snapshot_job_result
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
 - [ ] describe_data_set_refresh_properties
@@ -171,6 +173,7 @@ quicksight
 - [ ] search_groups
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
+- [ ] start_dashboard_snapshot_job
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization

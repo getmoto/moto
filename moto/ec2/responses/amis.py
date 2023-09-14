@@ -11,7 +11,7 @@ class AmisResponse(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        image = self.ec2_backend.create_image(  # type: ignore[attr-defined]
+        image = self.ec2_backend.create_image(
             instance_id,
             name,
             description,

@@ -1,5 +1,4 @@
-import sure  # noqa # pylint: disable=unused-import
-
+import json
 import moto.server as server
 from moto import mock_medialive
 
@@ -15,7 +14,7 @@ def test_medialive_list_channels():
 
     res = test_client.get("/prod/channels")
     result = res.data.decode("utf-8")
-    result.should.contain('"channels": []')
+    assert json.loads(result) == {"channels": [], "nextToken": None}
 
 
 @mock_medialive
@@ -26,4 +25,4 @@ def test_medialive_list_inputs():
     res = test_client.get("/prod/inputs")
 
     result = res.data.decode("utf-8")
-    result.should.contain('"inputs": []')
+    assert json.loads(result) == {"inputs": [], "nextToken": None}

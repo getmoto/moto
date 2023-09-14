@@ -5,11 +5,9 @@ from unittest import SkipTest, mock
 import boto3
 import os
 
-import sure  # noqa # pylint: disable=unused-import
-
 from moto import mock_events, mock_sqs, mock_logs, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 
 
 @mock_events
@@ -37,7 +35,7 @@ def test_send_to_cw_log_group():
     )
 
     # when
-    event_time = datetime.utcnow()
+    event_time = utcnow()
     client_events.put_events(
         Entries=[
             {
@@ -51,22 +49,22 @@ def test_send_to_cw_log_group():
 
     # then
     response = client_logs.filter_log_events(logGroupName=log_group_name)
-    response["events"].should.have.length_of(1)
+    assert len(response["events"]) == 1
     event = response["events"][0]
-    event["logStreamName"].should_not.equal(None)
-    event["timestamp"].should.be.a(float)
-    event["ingestionTime"].should.be.a(int)
-    event["eventId"].should_not.equal(None)
+    assert event["logStreamName"] is not None
+    assert isinstance(event["timestamp"], float)
+    assert isinstance(event["ingestionTime"], int)
+    assert event["eventId"] is not None
 
     message = json.loads(event["message"])
-    message["version"].should.equal("0")
-    message["id"].should_not.equal(None)
-    message["detail-type"].should.equal("type")
-    message["source"].should.equal("source")
-    message["time"].should.equal(iso_8601_datetime_without_milliseconds(event_time))
-    message["region"].should.equal("eu-central-1")
-    message["resources"].should.equal([])
-    message["detail"].should.equal({"key": "value"})
+    assert message["version"] == "0"
+    assert message["id"] is not None
+    assert message["detail-type"] == "type"
+    assert message["source"] == "source"
+    assert message["time"] == iso_8601_datetime_without_milliseconds(event_time)
+    assert message["region"] == "eu-central-1"
+    assert message["resources"] == []
+    assert message["detail"] == {"key": "value"}
 
 
 @mock_events
@@ -130,31 +128,31 @@ def test_send_to_sqs_fifo_queue():
         QueueUrl=queue_url_dedup,
         AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
     )
-    response["Messages"].should.have.length_of(1)
+    assert len(response["Messages"]) == 1
     message = response["Messages"][0]
-    message["MessageId"].should_not.equal(None)
-    message["ReceiptHandle"].should_not.equal(None)
-    message["MD5OfBody"].should_not.equal(None)
+    assert message["MessageId"] is not None
+    assert message["ReceiptHandle"] is not None
+    assert message["MD5OfBody"] is not None
 
-    message["Attributes"]["MessageDeduplicationId"].should_not.equal(None)
-    message["Attributes"]["MessageGroupId"].should.equal("group-id")
+    assert message["Attributes"]["MessageDeduplicationId"] is not None
+    assert message["Attributes"]["MessageGroupId"] == "group-id"
 
     body = json.loads(message["Body"])
-    body["version"].should.equal("0")
-    body["id"].should_not.equal(None)
-    body["detail-type"].should.equal("type")
-    body["source"].should.equal("source")
-    body["time"].should.equal(iso_8601_datetime_without_milliseconds(event_time))
-    body["region"].should.equal("eu-central-1")
-    body["resources"].should.equal([])
-    body["detail"].should.equal({"key": "value"})
+    assert body["version"] == "0"
+    assert body["id"] is not None
+    assert body["detail-type"] == "type"
+    assert body["source"] == "source"
+    assert body["time"] == iso_8601_datetime_without_milliseconds(event_time)
+    assert body["region"] == "eu-central-1"
+    assert body["resources"] == []
+    assert body["detail"] == {"key": "value"}
 
     # A FIFO queue without content-based deduplication enabled
     # does not receive any event from the Event Bus
     response = client_sqs.receive_message(
         QueueUrl=queue_url, AttributeNames=["MessageDeduplicationId", "MessageGroupId"]
     )
-    response.should_not.have.key("Messages")
+    assert "Messages" not in response
 
 
 @mock_events
@@ -190,21 +188,21 @@ def test_send_to_sqs_queue():
 
     # then
     response = client_sqs.receive_message(QueueUrl=queue_url)
-    response["Messages"].should.have.length_of(1)
+    assert len(response["Messages"]) == 1
     message = response["Messages"][0]
-    message["MessageId"].should_not.equal(None)
-    message["ReceiptHandle"].should_not.equal(None)
-    message["MD5OfBody"].should_not.equal(None)
+    assert message["MessageId"] is not None
+    assert message["ReceiptHandle"] is not None
+    assert message["MD5OfBody"] is not None
 
     body = json.loads(message["Body"])
-    body["version"].should.equal("0")
-    body["id"].should_not.equal(None)
-    body["detail-type"].should.equal("type")
-    body["source"].should.equal("source")
-    body["time"].should.equal(iso_8601_datetime_without_milliseconds(event_time))
-    body["region"].should.equal("eu-central-1")
-    body["resources"].should.equal([])
-    body["detail"].should.equal({"key": "value"})
+    assert body["version"] == "0"
+    assert body["id"] is not None
+    assert body["detail-type"] == "type"
+    assert body["source"] == "source"
+    assert body["time"] == iso_8601_datetime_without_milliseconds(event_time)
+    assert body["region"] == "eu-central-1"
+    assert body["resources"] == []
+    assert body["detail"] == {"key": "value"}
 
 
 @mock_events
@@ -249,7 +247,7 @@ def test_send_to_sqs_queue_with_custom_event_bus():
     assert len(response["Messages"]) == 1
 
     body = json.loads(response["Messages"][0]["Body"])
-    body["detail"].should.equal({"key": "value"})
+    assert body["detail"] == {"key": "value"}
 
 
 @mock_events
@@ -313,12 +311,10 @@ def test_moto_matches_none_value_with_exists_filter():
     )
     event_details = [json.loads(x["message"])["detail"] for x in events]
 
-    event_details.should.equal(
-        [
-            {"foo": "123", "bar": "123"},
-            {"foo": None, "bar": "123"},
-        ],
-    )
+    assert event_details == [
+        {"foo": "123", "bar": "123"},
+        {"foo": None, "bar": "123"},
+    ]
 
 
 @mock_events
@@ -406,9 +402,9 @@ def test_put_events_event_bus_forwarding_rules():
 
         response = sqs_client.receive_message(QueueUrl=queue_url)
 
-        response["Messages"].should.have.length_of(1)
+        assert len(response["Messages"]) == 1
 
         message = json.loads(response["Messages"][0]["Body"])
-        message["source"].should.equal("source1")
-        message["detail-type"].should.equal("test-detail-type")
-        message["detail"].should.equal({"test": "true"})
+        assert message["source"] == "source1"
+        assert message["detail-type"] == "test-detail-type"
+        assert message["detail"] == {"test": "true"}

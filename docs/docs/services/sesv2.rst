@@ -28,6 +28,7 @@ sesv2
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_get_metric_data
+- [ ] cancel_export_job
 - [ ] create_configuration_set
 - [ ] create_configuration_set_event_destination
 - [X] create_contact
@@ -38,6 +39,7 @@ sesv2
 - [ ] create_email_identity
 - [ ] create_email_identity_policy
 - [ ] create_email_template
+- [ ] create_export_job
 - [ ] create_import_job
 - [ ] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
@@ -66,7 +68,9 @@ sesv2
 - [ ] get_email_identity
 - [ ] get_email_identity_policies
 - [ ] get_email_template
+- [ ] get_export_job
 - [ ] get_import_job
+- [ ] get_message_insights
 - [ ] get_suppressed_destination
 - [ ] list_configuration_sets
 - [X] list_contact_lists
@@ -77,6 +81,7 @@ sesv2
 - [ ] list_domain_deliverability_campaigns
 - [ ] list_email_identities
 - [ ] list_email_templates
+- [ ] list_export_jobs
 - [ ] list_import_jobs
 - [ ] list_recommendations
 - [ ] list_suppressed_destinations

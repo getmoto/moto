@@ -343,5 +343,31 @@ class ServiceDiscoveryBackend(BaseBackend):
         )
         return operation_id
 
+    def update_private_dns_namespace(
+        self, _id: str, description: str, properties: Dict[str, Any]
+    ) -> str:
+        namespace = self.get_namespace(namespace_id=_id)
+        if description is not None:
+            namespace.description = description
+        if properties is not None:
+            namespace.dns_properties = properties
+        operation_id = self._create_operation(
+            "UPDATE_NAMESPACE", targets={"NAMESPACE": namespace.id}
+        )
+        return operation_id
+
+    def update_public_dns_namespace(
+        self, _id: str, description: str, properties: Dict[str, Any]
+    ) -> str:
+        namespace = self.get_namespace(namespace_id=_id)
+        if description is not None:
+            namespace.description = description
+        if properties is not None:
+            namespace.dns_properties = properties
+        operation_id = self._create_operation(
+            "UPDATE_NAMESPACE", targets={"NAMESPACE": namespace.id}
+        )
+        return operation_id
+
 
 servicediscovery_backends = BackendDict(ServiceDiscoveryBackend, "servicediscovery")

@@ -1,12 +1,12 @@
 """Unit tests for lambda-supported APIs."""
-import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
+from uuid import uuid4
 
+import boto3
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_lambda
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
 from .utilities import (
     get_role_name,
     get_test_zip_file1,
@@ -15,6 +15,7 @@ from .utilities import (
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
+PYTHON_VERSION = "python3.11"
 
 
 @mock_lambda
@@ -24,7 +25,7 @@ def test_create_alias():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -52,7 +53,7 @@ def test_create_alias_with_routing_config():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -78,7 +79,7 @@ def test_create_alias_using_function_arn():
 
     fn = client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -104,7 +105,7 @@ def test_delete_alias():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -129,7 +130,7 @@ def test_get_alias():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -159,14 +160,14 @@ def test_aliases_are_unique_per_function():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
     )
     client.create_function(
         FunctionName=function_name2,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -195,9 +196,9 @@ def test_aliases_are_unique_per_function():
 
     err = exc.value.response["Error"]
     assert err["Code"] == "ConflictException"
-    assert (
-        err["Message"]
-        == f"Alias already exists: arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:alias1"
+    assert err["Message"] == (
+        f"Alias already exists: arn:aws:lambda:us-west-1:{ACCOUNT_ID}"
+        f":function:{function_name}:alias1"
     )
 
 
@@ -208,7 +209,7 @@ def test_get_alias_using_function_arn():
 
     fn = client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -238,7 +239,7 @@ def test_get_alias_using_alias_arn():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -268,7 +269,7 @@ def test_get_unknown_alias():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -278,9 +279,9 @@ def test_get_unknown_alias():
         client.get_alias(FunctionName=function_name, Name="unknown")
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-    assert (
-        err["Message"]
-        == f"Cannot find alias arn: arn:aws:lambda:us-west-1:{ACCOUNT_ID}:function:{function_name}:unknown"
+    assert err["Message"] == (
+        f"Cannot find alias arn: arn:aws:lambda:us-west-1:{ACCOUNT_ID}"
+        f":function:{function_name}:unknown"
     )
 
 
@@ -291,7 +292,7 @@ def test_update_alias():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -331,7 +332,7 @@ def test_update_alias_errors_if_version_doesnt_exist():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -363,7 +364,7 @@ def test_update_alias_routingconfig():
 
     client.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -399,7 +400,7 @@ def test_get_function_using_alias():
 
     client.create_function(
         FunctionName=fn_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},

@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 from botocore.exceptions import ClientError
 
@@ -17,8 +16,8 @@ def test_default_network_acl_created_with_vpc():
 
     all_network_acls = client.describe_network_acls()["NetworkAcls"]
     our_acl = [a for a in all_network_acls if a["VpcId"] == vpc.id]
-    our_acl.should.have.length_of(1)
-    our_acl[0].should.have.key("IsDefault").equals(True)
+    assert len(our_acl) == 1
+    assert our_acl[0]["IsDefault"] is True
 
 
 @mock_ec2
@@ -33,9 +32,9 @@ def test_network_create_and_list_acls():
     acl_found = [
         a for a in all_network_acls if a["NetworkAclId"] == created_acl.network_acl_id
     ][0]
-    acl_found["VpcId"].should.equal(vpc.id)
-    acl_found["Tags"].should.equal([])
-    acl_found["IsDefault"].should.equal(False)
+    assert acl_found["VpcId"] == vpc.id
+    assert acl_found["Tags"] == []
+    assert acl_found["IsDefault"] is False
 
 
 @mock_ec2
@@ -48,11 +47,11 @@ def test_new_subnet_associates_with_default_network_acl():
 
     subnet = ec2.create_subnet(VpcId=default_vpc["VpcId"], CidrBlock="172.31.112.0/20")
     all_network_acls = client.describe_network_acls()["NetworkAcls"]
-    all_network_acls.should.have.length_of(1)
+    assert len(all_network_acls) == 1
 
     acl = all_network_acls[0]
-    acl["Associations"].should.have.length_of(7)
-    [a["SubnetId"] for a in acl["Associations"]].should.contain(subnet.id)
+    assert len(acl["Associations"]) == 7
+    assert subnet.id in [a["SubnetId"] for a in acl["Associations"]]
 
 
 @mock_ec2
@@ -78,16 +77,16 @@ def test_network_acl_entries():
     test_network_acl = next(
         na for na in all_network_acls if na["NetworkAclId"] == network_acl.id
     )
-    test_network_acl.should.have.key("IsDefault").should.equal(False)
+    assert test_network_acl["IsDefault"] is False
 
     entries = test_network_acl["Entries"]
-    entries.should.have.length_of(1)
-    entries[0]["RuleNumber"].should.equal(110)
-    entries[0]["Protocol"].should.equal("6")
-    entries[0]["RuleAction"].should.equal("ALLOW")
-    entries[0]["Egress"].should.equal(False)
-    entries[0]["PortRange"].should.equal({"To": 443, "From": 443})
-    entries[0]["CidrBlock"].should.equal("0.0.0.0/0")
+    assert len(entries) == 1
+    assert entries[0]["RuleNumber"] == 110
+    assert entries[0]["Protocol"] == "6"
+    assert entries[0]["RuleAction"] == "ALLOW"
+    assert entries[0]["Egress"] is False
+    assert entries[0]["PortRange"] == {"To": 443, "From": 443}
+    assert entries[0]["CidrBlock"] == "0.0.0.0/0"
 
 
 @mock_ec2
@@ -116,7 +115,7 @@ def test_delete_network_acl_entry():
     test_network_acl = next(
         na for na in all_network_acls if na["NetworkAclId"] == network_acl.id
     )
-    test_network_acl["Entries"].should.have.length_of(0)
+    assert len(test_network_acl["Entries"]) == 0
 
 
 @mock_ec2
@@ -152,11 +151,11 @@ def test_replace_network_acl_entry():
         na for na in all_network_acls if na["NetworkAclId"] == network_acl.id
     )
     entries = test_network_acl["Entries"]
-    entries.should.have.length_of(1)
-    entries[0]["RuleNumber"].should.equal(110)
-    entries[0]["Protocol"].should.equal("-1")
-    entries[0]["RuleAction"].should.equal("DENY")
-    entries[0]["PortRange"].should.equal({"To": 22, "From": 22})
+    assert len(entries) == 1
+    assert entries[0]["RuleNumber"] == 110
+    assert entries[0]["Protocol"] == "-1"
+    assert entries[0]["RuleAction"] == "DENY"
+    assert entries[0]["PortRange"] == {"To": 22, "From": 22}
 
 
 @mock_ec2
@@ -168,15 +167,18 @@ def test_delete_network_acl():
 
     all_network_acls = client.describe_network_acls()["NetworkAcls"]
 
-    any(acl["NetworkAclId"] == network_acl.id for acl in all_network_acls).should.be.ok
+    assert (
+        any(acl["NetworkAclId"] == network_acl.id for acl in all_network_acls)
+        is not None
+    )
 
     client.delete_network_acl(NetworkAclId=network_acl.id)
 
     updated_network_acls = client.describe_network_acls()["NetworkAcls"]
 
-    any(
+    assert not any(
         acl["NetworkAclId"] == network_acl.id for acl in updated_network_acls
-    ).shouldnt.be.ok
+    )
 
 
 @mock_ec2
@@ -191,15 +193,15 @@ def test_network_acl_tagging():
     tag = client.describe_tags(
         Filters=[{"Name": "resource-id", "Values": [network_acl.id]}]
     )["Tags"][0]
-    tag.should.have.key("ResourceId").equal(network_acl.id)
-    tag.should.have.key("Key").equal("a key")
-    tag.should.have.key("Value").equal("some value")
+    assert tag["ResourceId"] == network_acl.id
+    assert tag["Key"] == "a key"
+    assert tag["Value"] == "some value"
 
     all_network_acls = client.describe_network_acls()["NetworkAcls"]
     test_network_acl = next(
         na for na in all_network_acls if na["NetworkAclId"] == network_acl.id
     )
-    test_network_acl["Tags"].should.equal([{"Value": "some value", "Key": "a key"}])
+    assert test_network_acl["Tags"] == [{"Value": "some value", "Key": "a key"}]
 
 
 @mock_ec2
@@ -213,9 +215,9 @@ def test_new_subnet_in_new_vpc_associates_with_default_network_acl():
 
     new_vpcs_default_network_acl = next(iter(new_vpc.network_acls.all()), None)
     new_vpcs_default_network_acl.reload()
-    new_vpcs_default_network_acl.vpc_id.should.equal(new_vpc.id)
-    new_vpcs_default_network_acl.associations.should.have.length_of(1)
-    new_vpcs_default_network_acl.associations[0]["SubnetId"].should.equal(subnet.id)
+    assert new_vpcs_default_network_acl.vpc_id == new_vpc.id
+    assert len(new_vpcs_default_network_acl.associations) == 1
+    assert new_vpcs_default_network_acl.associations[0]["SubnetId"] == subnet.id
 
 
 @mock_ec2
@@ -226,8 +228,8 @@ def test_default_network_acl_default_entries():
     if not settings.TEST_SERVER_MODE:
         # Can't know whether the first ACL is the default in ServerMode
         default_network_acl = next(iter(ec2.network_acls.all()), None)
-        default_network_acl.is_default.should.equal(True)
-        default_network_acl.entries.should.have.length_of(4)
+        assert default_network_acl.is_default is True
+        assert len(default_network_acl.entries) == 4
 
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")
     vpc_id = vpc["Vpc"]["VpcId"]
@@ -242,19 +244,19 @@ def test_default_network_acl_default_entries():
 
     unique_entries = []
     for entry in default_acl["Entries"]:
-        entry["CidrBlock"].should.equal("0.0.0.0/0")
-        entry["Protocol"].should.equal("-1")
-        entry["RuleNumber"].should.be.within([100, 32767])
-        entry["RuleAction"].should.be.within(["allow", "deny"])
-        assert type(entry["Egress"]) is bool
+        assert entry["CidrBlock"] == "0.0.0.0/0"
+        assert entry["Protocol"] == "-1"
+        assert entry["RuleNumber"] in [100, 32767]
+        assert entry["RuleAction"] in ["allow", "deny"]
+        assert isinstance(entry["Egress"], bool)
         if entry["RuleAction"] == "allow":
-            entry["RuleNumber"].should.be.equal(100)
+            assert entry["RuleNumber"] == 100
         else:
-            entry["RuleNumber"].should.be.equal(32767)
+            assert entry["RuleNumber"] == 32767
         if entry not in unique_entries:
             unique_entries.append(entry)
 
-    unique_entries.should.have.length_of(4)
+    assert len(unique_entries) == 4
 
 
 @mock_ec2
@@ -265,9 +267,9 @@ def test_delete_default_network_acl_default_entry():
         )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
-    default_network_acl.is_default.should.equal(True)
+    assert default_network_acl.is_default is True
 
-    default_network_acl.entries.should.have.length_of(4)
+    assert len(default_network_acl.entries) == 4
     first_default_network_acl_entry = default_network_acl.entries[0]
 
     default_network_acl.delete_entry(
@@ -275,14 +277,14 @@ def test_delete_default_network_acl_default_entry():
         RuleNumber=first_default_network_acl_entry["RuleNumber"],
     )
 
-    default_network_acl.entries.should.have.length_of(3)
+    assert len(default_network_acl.entries) == 3
 
 
 @mock_ec2
 def test_duplicate_network_acl_entry():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
-    default_network_acl.is_default.should.equal(True)
+    assert default_network_acl.is_default is True
 
     rule_number = randint(0, 9999)
     egress = True
@@ -302,9 +304,9 @@ def test_duplicate_network_acl_entry():
             RuleAction="deny",
             RuleNumber=rule_number,
         )
-    str(ex.value).should.equal(
-        "An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry "
-        f"operation: The network acl entry identified by {rule_number} already exists."
+    assert (
+        str(ex.value)
+        == f"An error occurred (NetworkAclEntryAlreadyExists) when calling the CreateNetworkAclEntry operation: The network acl entry identified by {rule_number} already exists."
     )
 
 
@@ -322,16 +324,16 @@ def test_describe_network_acls():
     resp = conn.describe_network_acls(NetworkAclIds=[network_acl_id])
     result = resp["NetworkAcls"]
 
-    result.should.have.length_of(1)
-    result[0]["NetworkAclId"].should.equal(network_acl_id)
+    assert len(result) == 1
+    assert result[0]["NetworkAclId"] == network_acl_id
 
     resp2 = conn.describe_network_acls()["NetworkAcls"]
-    [na["NetworkAclId"] for na in resp2].should.contain(network_acl_id)
+    assert network_acl_id in [na["NetworkAclId"] for na in resp2]
 
     resp3 = conn.describe_network_acls(
         Filters=[{"Name": "owner-id", "Values": [OWNER_ID]}]
     )["NetworkAcls"]
-    [na["NetworkAclId"] for na in resp3].should.contain(network_acl_id)
+    assert network_acl_id in [na["NetworkAclId"] for na in resp3]
 
     # Assertions for filters
     network_acl_id = conn.create_network_acl(VpcId=vpc_id)["NetworkAcl"]["NetworkAclId"]
@@ -352,51 +354,49 @@ def test_describe_network_acls():
     resp4 = conn.describe_network_acls(
         Filters=[{"Name": "entry.cidr", "Values": [cidr_block]}]
     )
-    resp4["NetworkAcls"].should.have.length_of(1)
-    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
-    [entry["CidrBlock"] for entry in resp4["NetworkAcls"][0]["Entries"]].should.contain(
-        cidr_block
-    )
+    assert len(resp4["NetworkAcls"]) == 1
+    assert resp4["NetworkAcls"][0]["NetworkAclId"] == network_acl_id
+    assert cidr_block in [
+        entry["CidrBlock"] for entry in resp4["NetworkAcls"][0]["Entries"]
+    ]
 
     # Ensure filtering by entry protocol
     resp4 = conn.describe_network_acls(
         Filters=[{"Name": "entry.protocol", "Values": [protocol]}]
     )
-    resp4["NetworkAcls"].should.have.length_of(1)
-    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
-    [entry["Protocol"] for entry in resp4["NetworkAcls"][0]["Entries"]].should.contain(
-        protocol
-    )
+    assert len(resp4["NetworkAcls"]) == 1
+    assert resp4["NetworkAcls"][0]["NetworkAclId"] == network_acl_id
+    assert protocol in [
+        entry["Protocol"] for entry in resp4["NetworkAcls"][0]["Entries"]
+    ]
 
     # Ensure filtering by entry rule number
     resp4 = conn.describe_network_acls(
         Filters=[{"Name": "entry.rule-number", "Values": [str(rule_number)]}]
     )
-    resp4["NetworkAcls"].should.have.length_of(1)
-    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
-    [
+    assert len(resp4["NetworkAcls"]) == 1
+    assert resp4["NetworkAcls"][0]["NetworkAclId"] == network_acl_id
+    assert rule_number in [
         entry["RuleNumber"] for entry in resp4["NetworkAcls"][0]["Entries"]
-    ].should.contain(rule_number)
+    ]
 
     resp4 = conn.describe_network_acls(
         Filters=[{"Name": "entry.rule-number", "Values": [str(rule_number + 1)]}]
     )
-    resp4["NetworkAcls"].should.have.length_of(0)
+    assert len(resp4["NetworkAcls"]) == 0
 
     # Ensure filtering by egress flag
     resp4 = conn.describe_network_acls(
         Filters=[{"Name": "entry.egress", "Values": ["false"]}]
     )
-    [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]].should.contain(
-        network_acl_id
-    )
+    assert network_acl_id in [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]]
     # the ACL with network_acl_id contains no entries with Egress=True
     resp4 = conn.describe_network_acls(
         Filters=[{"Name": "entry.egress", "Values": ["true"]}]
     )
-    [entry["NetworkAclId"] for entry in resp4["NetworkAcls"]].shouldnt.contain(
-        network_acl_id
-    )
+    assert network_acl_id not in [
+        entry["NetworkAclId"] for entry in resp4["NetworkAcls"]
+    ]
 
     # Ensure filtering by rule action
     resp4 = conn.describe_network_acls(
@@ -405,18 +405,18 @@ def test_describe_network_acls():
             {"Name": "id", "Values": [network_acl_id]},
         ]
     )
-    resp4["NetworkAcls"].should.have.length_of(1)
-    resp4["NetworkAcls"][0]["NetworkAclId"].should.equal(network_acl_id)
-    [
+    assert len(resp4["NetworkAcls"]) == 1
+    assert resp4["NetworkAcls"][0]["NetworkAclId"] == network_acl_id
+    assert rule_action in [
         entry["RuleAction"] for entry in resp4["NetworkAcls"][0]["Entries"]
-    ].should.contain(rule_action)
+    ]
 
     with pytest.raises(ClientError) as ex:
         conn.describe_network_acls(NetworkAclIds=["1"])
 
-    str(ex.value).should.equal(
-        "An error occurred (InvalidRouteTableID.NotFound) when calling the "
-        "DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
+    assert (
+        str(ex.value)
+        == "An error occurred (InvalidRouteTableID.NotFound) when calling the DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
     )
 
 
@@ -437,7 +437,7 @@ def test_create_network_acl_with_tags():
         ],
     )
 
-    (len(network_acl.get("NetworkAcl").get("Tags"))).should.equal(1)
-    network_acl.get("NetworkAcl").get("Tags").should.equal(
-        [{"Key": "test", "Value": "TestTags"}]
-    )
+    assert (len(network_acl.get("NetworkAcl").get("Tags"))) == 1
+    assert network_acl.get("NetworkAcl").get("Tags") == [
+        {"Key": "test", "Value": "TestTags"}
+    ]

@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_ec2
@@ -11,10 +10,10 @@ def test_create_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     customer_gateway = create_customer_gateway(ec2)
-    customer_gateway.should.have.key("CustomerGatewayId").match(r"cgw-\w+")
-    customer_gateway.should.have.key("Type").equal("ipsec.1")
-    customer_gateway.should.have.key("BgpAsn").equal("65534")
-    customer_gateway.should.have.key("IpAddress").equal("205.251.242.54")
+    assert customer_gateway["CustomerGatewayId"].startswith("cgw-")
+    assert customer_gateway["Type"] == "ipsec.1"
+    assert customer_gateway["BgpAsn"] == "65534"
+    assert customer_gateway["IpAddress"] == "205.251.242.54"
 
 
 @mock_ec2
@@ -26,10 +25,10 @@ def test_create_customer_gateways_using_publicip_argument():
     customer_gateway = ec2.create_customer_gateway(
         Type="ipsec.1", IpAddress="205.251.242.53", BgpAsn=65534
     )["CustomerGateway"]
-    customer_gateway.should.have.key("CustomerGatewayId").match(r"cgw-\w+")
-    customer_gateway.should.have.key("Type").equal("ipsec.1")
-    customer_gateway.should.have.key("BgpAsn").equal("65534")
-    customer_gateway.should.have.key("IpAddress").equal("205.251.242.53")
+    customer_gateway["CustomerGatewayId"].startswith("cgw-")
+    assert customer_gateway["Type"] == "ipsec.1"
+    assert customer_gateway["BgpAsn"] == "65534"
+    assert customer_gateway["IpAddress"] == "205.251.242.53"
 
 
 @mock_ec2
@@ -38,10 +37,11 @@ def test_describe_customer_gateways_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_customer_gateways(DryRun=True)
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(412)
-    ex.value.response["Error"]["Code"].should.equal("DryRunOperation")
-    ex.value.response["Error"]["Message"].should.equal(
-        "An error occurred (DryRunOperation) when calling the DescribeCustomerGateways operation: Request would have succeeded, but DryRun flag is set"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the DescribeCustomerGateways operation: Request would have succeeded, but DryRun flag is set"
     )
 
 
@@ -54,16 +54,16 @@ def test_describe_customer_gateways():
 
     cgws = ec2.describe_customer_gateways()["CustomerGateways"]
     cg_ids = [cg["CustomerGatewayId"] for cg in cgws]
-    cg_ids.should.contain(cg_id)
+    assert cg_id in cg_ids
 
     cgw = ec2.describe_customer_gateways(CustomerGatewayIds=[cg_id])[
         "CustomerGateways"
     ][0]
-    cgw.should.have.key("BgpAsn")
-    cgw.should.have.key("CustomerGatewayId").equal(cg_id)
-    cgw.should.have.key("IpAddress")
-    cgw.should.have.key("State").equal("available")
-    cgw.should.have.key("Type").equal("ipsec.1")
+    assert "BgpAsn" in cgw
+    assert cgw["CustomerGatewayId"] == cg_id
+    assert "IpAddress" in cgw
+    assert cgw["State"] == "available"
+    assert cgw["Type"] == "ipsec.1"
 
     all_cgws = ec2.describe_customer_gateways()["CustomerGateways"]
     assert (
@@ -81,16 +81,16 @@ def test_delete_customer_gateways():
     cgws = ec2.describe_customer_gateways(CustomerGatewayIds=[cg_id])[
         "CustomerGateways"
     ]
-    cgws.should.have.length_of(1)
-    cgws[0].should.have.key("State").equal("available")
+    assert len(cgws) == 1
+    assert cgws[0]["State"] == "available"
 
     ec2.delete_customer_gateway(CustomerGatewayId=customer_gateway["CustomerGatewayId"])
 
     cgws = ec2.describe_customer_gateways(CustomerGatewayIds=[cg_id])[
         "CustomerGateways"
     ]
-    cgws.should.have.length_of(1)
-    cgws[0].should.have.key("State").equal("deleted")
+    assert len(cgws) == 1
+    assert cgws[0]["State"] == "deleted"
 
 
 @mock_ec2
@@ -98,9 +98,9 @@ def test_delete_customer_gateways_bad_id():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.delete_customer_gateway(CustomerGatewayId="cgw-0123abcd")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"].should.have.key("RequestId")
-    ex.value.response["Error"]["Code"].should.equal("InvalidCustomerGatewayID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidCustomerGatewayID.NotFound"
 
 
 def create_customer_gateway(ec2):

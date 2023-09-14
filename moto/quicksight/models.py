@@ -1,5 +1,6 @@
 from typing import Any, Dict, Iterable
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.moto_api._internal import mock_random as random
 from .exceptions import ResourceNotFoundException
 
 
@@ -112,6 +113,7 @@ class QuicksightUser(BaseModel):
         self.username = username
         self.user_role = user_role
         self.active = False
+        self.principal_id = random.get_random_hex(10)
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -121,6 +123,7 @@ class QuicksightUser(BaseModel):
             "Role": self.user_role,
             "UserName": self.username,
             "Active": self.active,
+            "PrincipalId": self.principal_id,
         }
 
 

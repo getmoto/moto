@@ -1,7 +1,5 @@
 import boto3
-
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_ec2
 from uuid import uuid4
@@ -35,15 +33,15 @@ def test_transit_gateway_by_cloudformation_simple():
     gateways = ec2.describe_transit_gateways(TransitGatewayIds=[gateway_id])[
         "TransitGateways"
     ]
-    gateways.should.have.length_of(1)
-    gateways[0]["TransitGatewayId"].should.match("tgw-[0-9a-z]+")
-    gateways[0]["State"].should.equal("available")
-    gateways[0]["Description"].should.equal("My CF Gateway")
-    gateways[0]["Options"]["AmazonSideAsn"].should.equal(64512)
-    gateways[0]["Options"]["AutoAcceptSharedAttachments"].should.equal("disable")
-    gateways[0]["Options"]["DefaultRouteTableAssociation"].should.equal("enable")
+    assert len(gateways) == 1
+    assert gateways[0]["TransitGatewayId"].startswith("tgw-")
+    assert gateways[0]["State"] == "available"
+    assert gateways[0]["Description"] == "My CF Gateway"
+    assert gateways[0]["Options"]["AmazonSideAsn"] == 64512
+    assert gateways[0]["Options"]["AutoAcceptSharedAttachments"] == "disable"
+    assert gateways[0]["Options"]["DefaultRouteTableAssociation"] == "enable"
     # Gateway will only have the OOTB CF tags
-    gateways[0]["Tags"].should.have.length_of(3)
+    assert len(gateways[0]["Tags"]) == 3
 
 
 @mock_cloudformation
@@ -80,15 +78,15 @@ def test_transit_gateway_by_cloudformation():
     gateways = ec2.describe_transit_gateways(TransitGatewayIds=[gateway_id])[
         "TransitGateways"
     ]
-    gateways.should.have.length_of(1)
-    gateways[0]["TransitGatewayId"].should.match("tgw-[0-9a-z]+")
-    gateways[0]["State"].should.equal("available")
-    gateways[0]["Description"].should.equal("My CF Gateway")
-    gateways[0]["Options"]["AmazonSideAsn"].should.equal(1)
-    gateways[0]["Options"]["AutoAcceptSharedAttachments"].should.equal("enable")
-    gateways[0]["Options"]["DefaultRouteTableAssociation"].should.equal("disable")
+    assert len(gateways) == 1
+    assert gateways[0]["TransitGatewayId"].startswith("tgw-")
+    assert gateways[0]["State"] == "available"
+    assert gateways[0]["Description"] == "My CF Gateway"
+    assert gateways[0]["Options"]["AmazonSideAsn"] == 1
+    assert gateways[0]["Options"]["AutoAcceptSharedAttachments"] == "enable"
+    assert gateways[0]["Options"]["DefaultRouteTableAssociation"] == "disable"
     tags = gateways[0].get("Tags", {})
-    tags.should.have.length_of(4)
-    tags.should.contain({"Key": "foo", "Value": "bar"})
-    tags.should.contain({"Key": "aws:cloudformation:stack-name", "Value": stack_name})
-    tags.should.contain({"Key": "aws:cloudformation:logical-id", "Value": "ttg"})
+    assert len(tags) == 4
+    assert {"Key": "foo", "Value": "bar"} in tags
+    assert {"Key": "aws:cloudformation:stack-name", "Value": stack_name} in tags
+    assert {"Key": "aws:cloudformation:logical-id", "Value": "ttg"} in tags

@@ -594,6 +594,66 @@ def test_list_user_pools():
 
 
 @mock_cognitoidp
+def test_authorize_user_with_force_password_change_status():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    pool_id = conn.create_user_pool(PoolName="TestUserPool")["UserPool"]["Id"]
+    client_id = conn.create_user_pool_client(
+        UserPoolId=pool_id, ClientName="TestAppClient"
+    )["UserPoolClient"]["ClientId"]
+
+    username = "test@example.com"
+    temp_password = "Tempor@ryPassword123"
+    new_password = "NewP@ssword456"
+    conn.admin_create_user(
+        UserPoolId=pool_id,
+        Username=username,
+        TemporaryPassword=temp_password,
+    )
+
+    # Initiate USER_SRP_AUTH flow
+    key = bytes(str(temp_password).encode("latin-1"))
+    msg = bytes(str(username + client_id).encode("latin-1"))
+    new_digest = hmac.new(key, msg, hashlib.sha256).digest()
+    secret_hash = base64.b64encode(new_digest).decode()
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": uuid.uuid4().hex,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    # Try to log in with user in status FORCE_CHANGE_PASSWORD
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
+            "PASSWORD_CLAIM_SECRET_BLOCK": result["Session"],
+            "TIMESTAMP": str(uuid.uuid4()),
+            "USERNAME": username,
+        },
+    )
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
+    assert result["ChallengeParameters"]["USERNAME"] == username
+
+    # Sets a new password to the user and log it in
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        Session=result["Session"],
+        ChallengeResponses={
+            "USERNAME": username,
+            "NEW_PASSWORD": new_password,
+        },
+    )
+    assert result["AuthenticationResult"]["AccessToken"] is not None
+
+
+@mock_cognitoidp
 def test_set_user_pool_mfa_config():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2980,8 +3040,8 @@ def test_forgot_password():
     )["UserPoolClient"]["ClientId"]
     result = conn.forgot_password(ClientId=client_id, Username=str(uuid.uuid4()))
     assert result["CodeDeliveryDetails"]["Destination"] is not None
-    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
-    assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
 
 @mock_cognitoidp
@@ -3477,7 +3537,7 @@ def test_update_user_attributes_unknown_accesstoken():
 
 
 @mock_cognitoidp
-def test_resource_server():
+def test_create_resource_server():
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
     res = client.create_user_pool(PoolName=name)
@@ -3511,6 +3571,224 @@ def test_resource_server():
         == f"{identifier} already exists in user pool {user_pool_id}."
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_cognitoidp
+def test_describe_resource_server():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+
+    server_id = "my_server"
+    server_name = "new_remote_server"
+    scopes = [
+        {"ScopeName": "app:write", "ScopeDescription": "write scope"},
+        {"ScopeName": "app:read", "ScopeDescription": "read scope"},
+    ]
+
+    # Create a new resource server
+    new_resource_server = client.create_resource_server(
+        UserPoolId=user_pool_id, Identifier=server_id, Name=server_name, Scopes=scopes
+    )
+
+    assert new_resource_server["ResourceServer"]["UserPoolId"] == user_pool_id
+    assert new_resource_server["ResourceServer"]["Identifier"] == server_id
+    assert new_resource_server["ResourceServer"]["Name"] == server_name
+    assert new_resource_server["ResourceServer"]["Scopes"] == scopes
+
+    # Describe the newly created resource server
+    response = client.describe_resource_server(
+        UserPoolId=user_pool_id, Identifier=server_id
+    )
+
+    # Assert all the values we expect are seen in the description.
+    assert response["ResourceServer"]["UserPoolId"] == user_pool_id
+    assert response["ResourceServer"]["Identifier"] == server_id
+    assert response["ResourceServer"]["Name"] == server_name
+    assert response["ResourceServer"]["Scopes"] == scopes
+
+    # Make sure attempting to describe a non-existent server fails in
+    # the expected manner
+    fake_server_id = "non_existent_server"
+    negative_response = None
+    with pytest.raises(ClientError) as ex:
+        negative_response = client.describe_resource_server(
+            UserPoolId=user_pool_id, Identifier=fake_server_id
+        )
+
+    # Assert that error message content is what's expected for a failure.
+    assert negative_response is None
+    assert ex.value.operation_name == "DescribeResourceServer"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Resource server {fake_server_id} does not exist."
+    )
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_cognitoidp
+def test_list_resource_servers_empty_set():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+
+    # Empty list, because we aren't creating any.
+    all_resource_svrs = []
+
+    max_return = 50
+    servers = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return
+    )
+
+    expected_keys = ["ResourceServers", "ResponseMetadata"]
+    assert all(key in servers for key in expected_keys)
+    assert servers["ResponseMetadata"].get("HTTPStatusCode")
+    assert servers["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert servers.get("NextToken", False) is False
+    assert len(servers["ResourceServers"]) == len(all_resource_svrs)
+    assert len(servers["ResourceServers"]) == 0
+
+
+@mock_cognitoidp
+def test_list_resource_servers_single_page():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+    create_num = 48
+
+    all_resource_svrs = []
+    for id_num in range(0, create_num, 1):
+        server_id = f"my_server{id_num}"
+        server_name = "new_remote_server{id_num}"
+        scopes = [
+            {
+                "ScopeName": f"app:write{id_num}",
+                "ScopeDescription": f"write scope{id_num}",
+            },
+            {
+                "ScopeName": f"app:read{id_num}",
+                "ScopeDescription": f"read scope{id_num}",
+            },
+        ]
+
+        # Create a new resource server
+        new_resource_server = client.create_resource_server(
+            UserPoolId=user_pool_id,
+            Identifier=server_id,
+            Name=server_name,
+            Scopes=scopes,
+        )
+
+        all_resource_svrs.append(new_resource_server)
+
+    max_return = 50
+    servers = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return
+    )
+
+    expected_keys = ["ResourceServers", "ResponseMetadata"]
+    assert all(key in servers for key in expected_keys)
+    assert servers["ResponseMetadata"].get("HTTPStatusCode")
+    assert servers["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert servers.get("NextToken", False) is False
+    assert len(servers["ResourceServers"]) == create_num
+    returned_servers = servers["ResourceServers"]
+
+    for idx in range(0, create_num - 1, 1):
+        for key in returned_servers[idx].keys():
+            assert (
+                returned_servers[idx][key]
+                == all_resource_svrs[idx]["ResourceServer"][key]
+            )
+
+
+@mock_cognitoidp
+def test_list_resource_servers_multi_page():
+
+    # Create a user pool to attach a resource server to
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    user_pool = client.create_user_pool(PoolName=name)
+    user_pool_id = user_pool["UserPool"]["Id"]
+    create_num = 65
+
+    all_resource_svrs = []
+    for id_num in range(0, create_num, 1):
+        server_id = f"my_server{id_num}"
+        server_name = "new_remote_server{id_num}"
+        scopes = [
+            {
+                "ScopeName": f"app:write{id_num}",
+                "ScopeDescription": f"write scope{id_num}",
+            },
+            {
+                "ScopeName": f"app:read{id_num}",
+                "ScopeDescription": f"read scope{id_num}",
+            },
+        ]
+
+        # Create a new resource server
+        new_resource_server = client.create_resource_server(
+            UserPoolId=user_pool_id,
+            Identifier=server_id,
+            Name=server_name,
+            Scopes=scopes,
+        )
+
+        all_resource_svrs.append(new_resource_server)
+
+    max_return = 50
+    servers = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return
+    )
+
+    expected_keys = ["ResourceServers", "NextToken", "ResponseMetadata"]
+    assert all(key in servers for key in expected_keys)
+    assert servers["ResponseMetadata"].get("HTTPStatusCode")
+    assert servers["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert servers.get("NextToken", False)
+    assert len(servers["ResourceServers"]) == max_return
+    returned_servers = servers["ResourceServers"]
+
+    for idx in range(0, max_return - 1, 1):
+        for key in returned_servers[idx].keys():
+            assert (
+                returned_servers[idx][key]
+                == all_resource_svrs[idx]["ResourceServer"][key]
+            )
+
+    next_page = client.list_resource_servers(
+        UserPoolId=user_pool_id, MaxResults=max_return, NextToken=servers["NextToken"]
+    )
+
+    expected_keys = ["ResourceServers", "ResponseMetadata"]
+    expected_returns = create_num - max_return
+    assert all(key in next_page for key in expected_keys)
+    assert next_page["ResponseMetadata"].get("HTTPStatusCode")
+    assert next_page["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert next_page.get("NextToken", False) is False
+    assert len(next_page["ResourceServers"]) == expected_returns
+    returned_servers = next_page["ResourceServers"]
+
+    # Check the second page of results
+    # Each entry in the second page should be the offset of 'max_return + idx' in all_resource_svrs
+    for idx in range(0, expected_returns, 1):
+        for key in returned_servers[idx].keys():
+            all_idx = idx + max_return
+            assert (
+                returned_servers[idx][key]
+                == all_resource_svrs[all_idx]["ResourceServer"][key]
+            )
 
 
 @mock_cognitoidp
@@ -4373,6 +4651,60 @@ def test_admin_reset_password_multiple_invocations():
         client.admin_reset_user_password(UserPoolId=user_pool_id, Username=username)
         user = client.admin_get_user(UserPoolId=user_pool_id, Username=username)
         assert user["UserStatus"] == "RESET_REQUIRED"
+
+
+@mock_cognitoidp
+def test_login_denied_if_account_disabled():
+    """Make sure a disabled account is denied login"""
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = "P2$Sword"
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_attribute_name = str(uuid.uuid4())
+    user_attribute_value = str(uuid.uuid4())
+    client_id = conn.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ClientName=str(uuid.uuid4()),
+        ReadAttributes=[user_attribute_name],
+    )["UserPoolClient"]["ClientId"]
+
+    # Create a user and disable the account
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": user_attribute_name, "Value": user_attribute_value}],
+    )
+    conn.admin_disable_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+    )
+
+    # User should not be able to login into a disabled account
+    with pytest.raises(conn.exceptions.NotAuthorizedException) as ex:
+        conn.initiate_auth(
+            ClientId=client_id,
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+        )
+
+    assert ex.value.response["Error"]["Code"] == "NotAuthorizedException"
+    assert ex.value.response["Error"]["Message"] == "User is disabled."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+    # Using admin login should yield the same result
+    with pytest.raises(conn.exceptions.NotAuthorizedException) as ex:
+        conn.admin_initiate_auth(
+            UserPoolId=user_pool_id,
+            ClientId=client_id,
+            AuthFlow="ADMIN_NO_SRP_AUTH",
+            AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+        )
+
+    assert ex.value.response["Error"]["Code"] == "NotAuthorizedException"
+    assert ex.value.response["Error"]["Message"] == "User is disabled."
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
