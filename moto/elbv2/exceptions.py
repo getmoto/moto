@@ -184,3 +184,8 @@ class InvalidStatusCodeActionTypeError(ELBClientError):
 class InvalidLoadBalancerActionException(ELBClientError):
     def __init__(self, msg: str):
         super().__init__("InvalidLoadBalancerAction", msg)
+
+
+class ValidationError(ELBClientError):
+    def __init__(self, msg: str):
+        super().__init__("ValidationError", msg)

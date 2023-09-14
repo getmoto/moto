@@ -23,7 +23,7 @@ def test_create_target_group_with_invalid_healthcheck_protocol():
             HealthCheckPort="8080",
             HealthCheckPath="/",
             HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
+            HealthCheckTimeoutSeconds=3,
             HealthyThresholdCount=5,
             UnhealthyThresholdCount=2,
             Matcher={"HttpCode": "200"},
@@ -50,7 +50,7 @@ def test_create_target_group_with_tags():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -93,7 +93,7 @@ def test_create_target_group_and_listeners():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -245,7 +245,7 @@ def test_create_invalid_target_group_long_name():
             HealthCheckPort="8080",
             HealthCheckPath="/",
             HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
+            HealthCheckTimeoutSeconds=3,
             HealthyThresholdCount=5,
             UnhealthyThresholdCount=2,
             Matcher={"HttpCode": "200"},
@@ -277,7 +277,7 @@ def test_create_invalid_target_group_invalid_characters(name):
             HealthCheckPort="8080",
             HealthCheckPath="/",
             HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
+            HealthCheckTimeoutSeconds=3,
             HealthyThresholdCount=5,
             UnhealthyThresholdCount=2,
             Matcher={"HttpCode": "200"},
@@ -309,7 +309,7 @@ def test_create_invalid_target_group_alphanumeric_characters(name):
             HealthCheckPort="8080",
             HealthCheckPath="/",
             HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
+            HealthCheckTimeoutSeconds=3,
             HealthyThresholdCount=5,
             UnhealthyThresholdCount=2,
             Matcher={"HttpCode": "200"},
@@ -340,7 +340,7 @@ def test_create_valid_target_group_valid_names(name):
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -361,7 +361,7 @@ def test_target_group_attributes():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -433,7 +433,7 @@ def test_create_target_group_invalid_protocol():
             HealthCheckPort="8080",
             HealthCheckPath="/",
             HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
+            HealthCheckTimeoutSeconds=3,
             HealthyThresholdCount=5,
             UnhealthyThresholdCount=2,
             Matcher={"HttpCode": "200"},
@@ -474,7 +474,7 @@ def test_describe_target_groups_no_arguments():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "201"},
@@ -502,7 +502,7 @@ def test_modify_target_group():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -515,7 +515,7 @@ def test_modify_target_group():
         HealthCheckPort="8081",
         HealthCheckPath="/status",
         HealthCheckIntervalSeconds=10,
-        HealthCheckTimeoutSeconds=10,
+        HealthCheckTimeoutSeconds=8,
         HealthyThresholdCount=10,
         UnhealthyThresholdCount=4,
         Matcher={"HttpCode": "200-399"},
@@ -527,7 +527,7 @@ def test_modify_target_group():
     assert response["TargetGroups"][0]["HealthCheckPath"] == "/status"
     assert response["TargetGroups"][0]["HealthCheckPort"] == "8081"
     assert response["TargetGroups"][0]["HealthCheckProtocol"] == "HTTPS"
-    assert response["TargetGroups"][0]["HealthCheckTimeoutSeconds"] == 10
+    assert response["TargetGroups"][0]["HealthCheckTimeoutSeconds"] == 8
     assert response["TargetGroups"][0]["HealthyThresholdCount"] == 10
     assert response["TargetGroups"][0]["Protocol"] == "HTTP"
     assert response["TargetGroups"][0]["ProtocolVersion"] == "HTTP1"
@@ -538,23 +538,35 @@ def test_modify_target_group():
 @mock_ec2
 @pytest.mark.parametrize("target_type", ["instance", "ip", "lambda", "alb", "other"])
 def test_create_target_group_with_target_type(target_type):
-    response, _, _, _, _, conn = create_load_balancer()
+    response, vpc, _, _, _, conn = create_load_balancer()
 
-    response = conn.create_target_group(Name="a-target", TargetType=target_type)
+    args = {
+        "Name": "a-target",
+        "TargetType": target_type,
+    }
+
+    if target_type != "lambda":
+        args["Protocol"] = "HTTP"
+        args["Port"] = 80
+        args["VpcId"] = vpc.id
+
+    response = conn.create_target_group(**args)
 
     group = response["TargetGroups"][0]
     assert "TargetGroupArn" in group
     assert group["TargetGroupName"] == "a-target"
     assert group["TargetType"] == target_type
-    assert "Protocol" not in group
-    assert "VpcId" not in group
+    if target_type != "lambda":
+        assert "Protocol" in group
+        assert "VpcId" in group
 
     group = conn.describe_target_groups()["TargetGroups"][0]
     assert "TargetGroupArn" in group
     assert group["TargetGroupName"] == "a-target"
     assert group["TargetType"] == target_type
-    assert "Protocol" not in group
-    assert "VpcId" not in group
+    if target_type != "lambda":
+        assert "Protocol" in group
+        assert "VpcId" in group
 
 
 @mock_elbv2
@@ -721,3 +733,72 @@ def test_delete_target_group_while_listener_still_exists():
 
     # Deletion does succeed now that the listener is deleted
     client.delete_target_group(TargetGroupArn=target_group_arn1)
+
+
+@mock_elbv2
+def test_create_target_group_validation_error():
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A port must be specified"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A port must be specified"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+            Port=8080,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A VPC ID must be specified"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+            Port=8080,
+            VpcId="non-existing",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "The VPC ID 'non-existing' is not found"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            TargetType="lambda",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Health check timeout '5' must be smaller than the interval '5'"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            TargetType="lambda",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=6,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "Health check interval must be greater than the timeout."

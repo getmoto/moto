@@ -3176,8 +3176,6 @@ def test_message_delay_is_more_than_15_minutes():
 
     assert sorted([entry["Id"] for entry in response["Failed"]]) == ["id_2"]
 
-    # print(response)
-
     time.sleep(4)
 
     response = client.receive_message(

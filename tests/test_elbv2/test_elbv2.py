@@ -266,7 +266,7 @@ def test_create_listeners_without_port():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -445,7 +445,7 @@ def test_register_targets():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -551,7 +551,7 @@ def test_stopped_instance_target():
         HealthCheckProtocol="HTTP",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -580,7 +580,7 @@ def test_stopped_instance_target():
     target_health_description = response["TargetHealthDescriptions"][0]
 
     assert target_health_description["Target"] == target_dict
-    assert target_health_description["HealthCheckPort"] == str(target_group_port)
+    assert target_health_description["HealthCheckPort"] == "traffic-port"
     assert target_health_description["TargetHealth"] == {"State": "healthy"}
 
     instance.stop()
@@ -591,7 +591,7 @@ def test_stopped_instance_target():
     assert len(response["TargetHealthDescriptions"]) == 1
     target_health_description = response["TargetHealthDescriptions"][0]
     assert target_health_description["Target"] == target_dict
-    assert target_health_description["HealthCheckPort"] == str(target_group_port)
+    assert target_health_description["HealthCheckPort"] == "traffic-port"
     assert target_health_description["TargetHealth"] == {
         "State": "unused",
         "Reason": "Target.InvalidState",
@@ -634,7 +634,7 @@ def test_terminated_instance_target():
         HealthCheckProtocol="HTTP",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -663,7 +663,7 @@ def test_terminated_instance_target():
     target_health_description = response["TargetHealthDescriptions"][0]
 
     assert target_health_description["Target"] == target_dict
-    assert target_health_description["HealthCheckPort"] == str(target_group_port)
+    assert target_health_description["HealthCheckPort"] == "traffic-port"
     assert target_health_description["TargetHealth"] == {"State": "healthy"}
 
     instance.terminate()
@@ -772,7 +772,7 @@ def test_handle_listener_rules():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -1323,7 +1323,7 @@ def test_modify_listener_http_to_https():
         HealthCheckPort="8080",
         HealthCheckPath="/",
         HealthCheckIntervalSeconds=5,
-        HealthCheckTimeoutSeconds=5,
+        HealthCheckTimeoutSeconds=3,
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "200"},
@@ -1523,7 +1523,9 @@ def test_add_listener_certificate():
 
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    response = client.create_target_group(Name="a-target", Protocol="HTTPS", Port=8443)
+    response = client.create_target_group(
+        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id
+    )
     target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
 
     # HTTPS listener
@@ -1564,10 +1566,12 @@ def test_add_listener_certificate():
 @mock_elbv2
 @mock_ec2
 def test_forward_config_action():
-    response, _, _, _, _, conn = create_load_balancer()
+    response, vpc, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    response = conn.create_target_group(Name="a-target", Protocol="HTTPS", Port=8443)
+    response = conn.create_target_group(
+        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id
+    )
     target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
 
     action = {
@@ -1600,10 +1604,12 @@ def test_forward_config_action():
 @mock_elbv2
 @mock_ec2
 def test_forward_config_action__with_stickiness():
-    response, _, _, _, _, conn = create_load_balancer()
+    response, vpc, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    response = conn.create_target_group(Name="a-target", Protocol="HTTPS", Port=8443)
+    response = conn.create_target_group(
+        Name="a-target", Protocol="HTTPS", Port=8443, VpcId=vpc.id
+    )
     target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
 
     action = {

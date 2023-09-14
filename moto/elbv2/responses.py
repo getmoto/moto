@@ -185,7 +185,7 @@ class ELBV2Response(BaseResponse):
         name = params.get("Name")
         vpc_id = params.get("VpcId")
         protocol = params.get("Protocol")
-        protocol_version = params.get("ProtocolVersion", "HTTP1")
+        protocol_version = params.get("ProtocolVersion")
         port = params.get("Port")
         healthcheck_protocol = self._get_param("HealthCheckProtocol")
         healthcheck_port = self._get_param("HealthCheckPort")
@@ -196,7 +196,8 @@ class ELBV2Response(BaseResponse):
         healthy_threshold_count = self._get_param("HealthyThresholdCount")
         unhealthy_threshold_count = self._get_param("UnhealthyThresholdCount")
         matcher = params.get("Matcher")
-        target_type = params.get("TargetType")
+        target_type = params.get("TargetType", "instance")
+        ip_address_type = params.get("IpAddressType")
         tags = params.get("Tags")
 
         target_group = self.elbv2_backend.create_target_group(
@@ -214,6 +215,7 @@ class ELBV2Response(BaseResponse):
             healthy_threshold_count=healthy_threshold_count,
             unhealthy_threshold_count=unhealthy_threshold_count,
             matcher=matcher,
+            ip_address_type=ip_address_type,
             target_type=target_type,
             tags=tags,
         )
@@ -797,6 +799,9 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         <TargetGroupName>{{ target_group.name }}</TargetGroupName>
         {% if target_group.protocol %}
         <Protocol>{{ target_group.protocol }}</Protocol>
+        {% if target_group.protocol_version %}
+        <ProtocolVersion>{{ target_group.protocol_version }}</ProtocolVersion>
+        {% endif %}
         {% endif %}
         {% if target_group.port %}
         <Port>{{ target_group.port }}</Port>
@@ -804,14 +809,22 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
         {% endif %}
-        <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
-        {% if target_group.healthcheck_port %}<HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>{% endif %}
+        {% if target_group.healthcheck_enabled %}
+        {% if target_group.healthcheck_port %}
+        <HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>
+        {% endif %}
+        {% if target_group.healthcheck_protocol %}
+        <HealthCheckProtocol>{{ target_group.healthcheck_protocol or "None" }}</HealthCheckProtocol>
+        {% endif %}
+        {% endif %}
+        {% if target_group.healthcheck_path %}
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>
+        {% endif %}
         <HealthCheckIntervalSeconds>{{ target_group.healthcheck_interval_seconds }}</HealthCheckIntervalSeconds>
         <HealthCheckTimeoutSeconds>{{ target_group.healthcheck_timeout_seconds }}</HealthCheckTimeoutSeconds>
-        <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         <HealthyThresholdCount>{{ target_group.healthy_threshold_count }}</HealthyThresholdCount>
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
+        <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         {% if target_group.matcher %}
         <Matcher>
           <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
@@ -819,6 +832,9 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         {% endif %}
         {% if target_group.target_type %}
         <TargetType>{{ target_group.target_type }}</TargetType>
+        {% endif %}
+        {% if target_group.ip_address_type %}
+        <IpAddressType>{{ target_group.ip_address_type }}</IpAddressType>
         {% endif %}
       </member>
     </TargetGroups>

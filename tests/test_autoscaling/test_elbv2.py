@@ -27,7 +27,7 @@ class TestAutoscalignELBv2(unittest.TestCase):
             HealthCheckPort="8080",
             HealthCheckPath="/",
             HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
+            HealthCheckTimeoutSeconds=3,
             HealthyThresholdCount=5,
             UnhealthyThresholdCount=2,
             Matcher={"HttpCode": "200"},
