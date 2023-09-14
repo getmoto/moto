@@ -382,7 +382,7 @@ DEFAULT_USER_POOL_CONFIG: Dict[str, Any] = {
 
 class CognitoIdpUserPool(BaseModel):
 
-    MAX_ID_LENGTH = 56
+    MAX_ID_LENGTH = 55
 
     def __init__(
         self, account_id: str, region: str, name: str, extended_config: Dict[str, Any]
