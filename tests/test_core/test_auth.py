@@ -292,6 +292,47 @@ def test_access_denied_with_not_allowing_policy():
 
 
 @set_initial_no_auth_action_count(3)
+@mock_sts
+def test_access_denied_explicitly_on_specific_resource():
+    user_name = "test-user"
+    forbidden_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/forbidden_explicitly"
+    allowed_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/allowed_implictly"
+    role_session_name = "dummy"
+    inline_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Deny",
+                "Action": ["sts:AssumeRole"],
+                "Resource": forbidden_role_arn,
+            },
+            {"Effect": "Allow", "Action": ["sts:AssumeRole"], "Resource": "*"},
+        ],
+    }
+    access_key = create_user_with_access_key_and_inline_policy(
+        user_name, inline_policy_document
+    )
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=access_key["AccessKeyId"],
+        aws_secret_access_key=access_key["SecretAccessKey"],
+    )
+    with pytest.raises(ClientError) as ex:
+        client.assume_role(
+            RoleArn=forbidden_role_arn, RoleSessionName=role_session_name
+        )
+    assert ex.value.response["Error"]["Code"] == "AccessDenied"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"User: arn:aws:iam::{ACCOUNT_ID}:user/{user_name} is not authorized to perform: sts:AssumeRole"
+    )
+    # Not raising means success
+    client.assume_role(RoleArn=allowed_role_arn, RoleSessionName=role_session_name)
+
+
+@set_initial_no_auth_action_count(3)
 @mock_ec2
 def test_access_denied_for_run_instances():
     # https://github.com/getmoto/moto/issues/2774

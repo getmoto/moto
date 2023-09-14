@@ -157,10 +157,10 @@ class ActionAuthenticatorMixin(object):
         else:
             ActionAuthenticatorMixin.request_count += 1
 
-    def _authenticate_and_authorize_normal_action(self) -> None:
+    def _authenticate_and_authorize_normal_action(self, resource: str = "*") -> None:
         from moto.iam.access_control import IAMRequest
 
-        self._authenticate_and_authorize_action(IAMRequest)
+        self._authenticate_and_authorize_action(IAMRequest, resource)
 
     def _authenticate_and_authorize_s3_action(
         self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
@@ -491,9 +491,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
+        if hasattr(self, "_determine_resource"):
+            resource = self._determine_resource()
+        else:
+            resource = "*"
 
         try:
-            self._authenticate_and_authorize_normal_action()
+            self._authenticate_and_authorize_normal_action(resource)
         except HTTPException as http_error:
             response = http_error.description, dict(status=http_error.code)
             return self._send_response(headers, response)

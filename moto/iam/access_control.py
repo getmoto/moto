@@ -380,7 +380,7 @@ class IAMPolicy:
                     permitted = True
         else:  # dict
             iam_policy_statement = IAMPolicyStatement(self._policy_json["Statement"])
-            return iam_policy_statement.is_action_permitted(action)
+            return iam_policy_statement.is_action_permitted(action, resource)
 
         if permitted:
             return PermissionResult.PERMITTED
@@ -408,6 +408,8 @@ class IAMPolicyStatement:
             if self.is_unknown_principal(self._statement.get("Principal")):
                 return PermissionResult.NEUTRAL
             same_resource = self._check_element_matches("Resource", resource)
+            if not same_resource:
+                return PermissionResult.NEUTRAL
             if self._statement["Effect"] == "Allow" and same_resource:
                 return PermissionResult.PERMITTED
             else:  # Deny
