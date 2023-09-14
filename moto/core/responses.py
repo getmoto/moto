@@ -253,15 +253,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 querystring[key] = [value]
 
         raw_body = self.body
-
         if isinstance(self.body, bytes) and not use_raw_body:
-            try:
-                self.body = self.body.decode("base64")
-            except:
-                try:
-                    self.body = self.body.decode("utf-8")
-                except:
-                    pass
+            self.body = self.body.decode("utf-8")
 
         if not querystring:
             querystring.update(

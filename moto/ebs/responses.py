@@ -24,7 +24,7 @@ class EBSResponse(BaseResponse):
             return self.start_snapshot()
 
     def snapshot_block(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
+        self.setup_class(request, full_url, headers, use_raw_body=True)
         if request.method == "PUT":
             return self.put_snapshot_block(full_url, headers)
         if request.method == "GET":
