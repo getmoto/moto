@@ -95,16 +95,21 @@ class FakeTargetGroup(CloudFormationModel):
         if target_type == "lambda":
             self.protocol = None
             self.protocol_version = None
+        elif target_type == "alb":
+            self.protocol = "TCP"
+            self.protocol_version = None
         else:
             self.protocol = protocol
-            self.protocol_version = protocol_version or "HTTP1"
+            self.protocol_version = protocol_version
         self.port = port
         self.healthcheck_protocol = healthcheck_protocol or self.protocol
         self.healthcheck_port = healthcheck_port or "traffic-port"
-        self.healthcheck_path = healthcheck_path or "/"
+        self.healthcheck_path = healthcheck_path
         self.healthcheck_interval_seconds = healthcheck_interval_seconds or "30"
         self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or "10"
-        self.ip_address_type = ip_address_type or "ipv4"
+        self.ip_address_type = (
+            ip_address_type or "ipv4" if self.protocol != "GENEVE" else None
+        )
         self.healthcheck_enabled = (
             healthcheck_enabled.lower() == "true"
             if healthcheck_enabled in ["true", "false"]
@@ -1104,56 +1109,82 @@ Member must satisfy regular expression pattern: {expression}"
 
         kwargs_patch = {}
 
+        conditions: Dict[str, Any] = {
+            "target_lambda": {
+                "healthcheck_interval_seconds": 35,
+                "healthcheck_timeout_seconds": 30,
+                "unhealthy_threshold_count": 2,
+                "healthcheck_enabled": "false",
+                "healthcheck_path": "/",
+            },
+            "target_alb": {
+                "healthcheck_protocol": "HTTP",
+                "healthcheck_path": "/",
+                "healthcheck_timeout_seconds": 6,
+                "matcher": {"HttpCode": "200-399"},
+            },
+            "protocol_GENEVE": {
+                "healthcheck_interval_seconds": 10,
+                "healthcheck_port": 80,
+                "healthcheck_timeout_seconds": 5,
+                "healthcheck_protocol": "TCP",
+                "unhealthy_threshold_count": 2,
+            },
+            "protocol_HTTP_HTTPS": {
+                "healthcheck_timeout_seconds": 5,
+                "protocol_version": "HTTP1",
+                "healthcheck_path": "/",
+                "unhealthy_threshold_count": 2,
+                "healthcheck_interval_seconds": 30,
+            },
+            "protocol_TCP": {
+                "healthcheck_timeout_seconds": 10,
+            },
+            "protocol_TCP_TCP_UDP_UDP_TLS": {
+                "healthcheck_protocol": "TCP",
+                "unhealthy_threshold_count": 2,
+                "healthcheck_interval_seconds": 30,
+            },
+        }
+
         if target_type == "lambda":
-            patch = {
-                "healthcheck_interval_seconds": kwargs.get(
-                    "healthcheck_interval_seconds"
-                )
-                or "35",
-                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
-                or "30",
-                "unhealthy_threshold_count": kwargs.get("unhealthy_threshold_count")
-                or "2",
-                "healthcheck_enabled": kwargs.get("healthcheck_enabled") or "false",
-            }
-            kwargs_patch.update(patch)
+            kwargs_patch.update(
+                {k: kwargs.get(k) or v for k, v in conditions["target_lambda"].items()}
+            )
 
         if protocol == "GENEVE":
-            patch = {
-                "healthcheck_interval_seconds": kwargs.get(
-                    "healthcheck_interval_seconds"
-                )
-                or "10",
-                "healthcheck_port": kwargs.get("healthcheck_port") or "80",
-                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
-                or "5",
-            }
-            kwargs_patch.update(patch)
+            kwargs_patch.update(
+                {
+                    k: kwargs.get(k) or v
+                    for k, v in conditions["protocol_GENEVE"].items()
+                }
+            )
 
-        if protocol == "HTTP":
-            patch = {
-                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
-                or "5",
-            }
-            kwargs_patch.update(patch)
+        if protocol in ("HTTP", "HTTPS"):
+            kwargs_patch.update(
+                {
+                    k: kwargs.get(k) or v
+                    for k, v in conditions["protocol_HTTP_HTTPS"].items()
+                }
+            )
 
-        if protocol in ("TCP", "TLS", "HTTPS"):
-            patch = {
-                "healthcheck_timeout_seconds": kwargs.get("healthcheck_timeout_seconds")
-                or "10",
-            }
-            kwargs_patch.update(patch)
+        if protocol == "TCP":
+            kwargs_patch.update(
+                {k: kwargs.get(k) or v for k, v in conditions["protocol_TCP"].items()}
+            )
 
-        if protocol in ("TCP", "TCP_UDP", "UDP", "TLS", "HTTP", "HTTPS"):
-            patch = {
-                "unhealthy_threshold_count": kwargs.get("unhealthy_threshold_count")
-                or "2",
-                "healthcheck_interval_seconds": kwargs.get(
-                    "healthcheck_interval_seconds"
-                )
-                or "30",
-            }
-            kwargs_patch.update(patch)
+        if protocol in ("TCP", "TCP_UDP", "UDP", "TLS"):
+            kwargs_patch.update(
+                {
+                    k: kwargs.get(k) or v
+                    for k, v in conditions["protocol_TCP_TCP_UDP_UDP_TLS"].items()
+                }
+            )
+
+        if target_type == "alb":
+            kwargs_patch.update(
+                {k: kwargs.get(k) or v for k, v in conditions["target_alb"].items()}
+            )
 
         kwargs.update(kwargs_patch)
 

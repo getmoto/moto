@@ -733,3 +733,72 @@ def test_delete_target_group_while_listener_still_exists():
 
     # Deletion does succeed now that the listener is deleted
     client.delete_target_group(TargetGroupArn=target_group_arn1)
+
+
+@mock_elbv2
+def test_create_target_group_validation_error():
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A port must be specified"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A port must be specified"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+            Port=8080,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A VPC ID must be specified"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            Protocol="HTTP",
+            Port=8080,
+            VpcId="non-existing",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "The VPC ID 'non-existing' is not found"
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            TargetType="lambda",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=5,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Health check timeout '5' must be smaller than the interval '5'"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            TargetType="lambda",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=6,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "Health check interval must be greater than the timeout."
