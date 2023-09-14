@@ -1397,16 +1397,14 @@ Member must satisfy regular expression pattern: {expression}"
 
         if names:
             target_groups = [
-                next(
-                    (tg for tg in self.target_groups.values() if tg.name == name), None
-                )
+                next((tg for tg in self.target_groups.values() if tg.name == name))
                 for name in names
             ]
             if None in target_groups:
                 raise TargetGroupNotFoundError()
 
         if len(target_groups) == 0:
-            target_groups = self.target_groups.values()
+            target_groups = list(self.target_groups.values())
 
         return sorted(target_groups, key=lambda tg: tg.name)
 
