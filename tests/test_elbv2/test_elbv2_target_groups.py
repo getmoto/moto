@@ -460,10 +460,16 @@ def test_describe_invalid_target_group():
 
 @mock_elbv2
 @mock_ec2
-def test_describe_target_groups_no_arguments():
+def test_describe_target_groups():
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+
     response, vpc, _, _, _, conn = create_load_balancer()
 
+    lb_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
     assert "LoadBalancerArn" in response["LoadBalancers"][0]
+
+    groups = conn.describe_target_groups()["TargetGroups"]
+    assert len(groups) == 0
 
     conn.create_target_group(
         Name="a-target",
@@ -483,6 +489,64 @@ def test_describe_target_groups_no_arguments():
     groups = conn.describe_target_groups()["TargetGroups"]
     assert len(groups) == 1
     assert groups[0]["Matcher"] == {"HttpCode": "201"}
+
+    response = elbv2.create_target_group(
+        Name="c-target",
+        Protocol="HTTP",
+        Port=8081,
+        VpcId=vpc.id,
+    )
+    arn_c = response["TargetGroups"][0]["TargetGroupArn"]
+    groups = conn.describe_target_groups()["TargetGroups"]
+    assert len(groups) == 2
+    assert groups[0]["TargetGroupName"] == "a-target"
+    assert groups[1]["TargetGroupName"] == "c-target"
+
+    response = elbv2.create_target_group(
+        Name="b-target",
+        Protocol="HTTP",
+        Port=8082,
+        VpcId=vpc.id,
+    )
+    arn_b = response["TargetGroups"][0]["TargetGroupArn"]
+    groups = conn.describe_target_groups()["TargetGroups"]
+    assert len(groups) == 3
+    assert groups[0]["TargetGroupName"] == "a-target"
+    assert groups[1]["TargetGroupName"] == "b-target"
+    assert groups[2]["TargetGroupName"] == "c-target"
+
+    groups = conn.describe_target_groups(Names=["a-target"])["TargetGroups"]
+    assert len(groups) == 1
+    assert groups[0]["TargetGroupName"] == "a-target"
+
+    groups = conn.describe_target_groups(Names=["a-target", "b-target"])["TargetGroups"]
+    assert len(groups) == 2
+    assert groups[0]["TargetGroupName"] == "a-target"
+    assert groups[1]["TargetGroupName"] == "b-target"
+
+    groups = conn.describe_target_groups(TargetGroupArns=[arn_b])["TargetGroups"]
+    assert len(groups) == 1
+    assert groups[0]["TargetGroupName"] == "b-target"
+
+    groups = conn.describe_target_groups(TargetGroupArns=[arn_b, arn_c])["TargetGroups"]
+    assert len(groups) == 2
+    assert groups[0]["TargetGroupName"] == "b-target"
+    assert groups[1]["TargetGroupName"] == "c-target"
+
+    groups = conn.describe_target_groups(LoadBalancerArn=lb_arn)["TargetGroups"]
+    assert len(groups) == 1
+    assert groups[0]["TargetGroupName"] == "a-target"
+
+    conn.create_target_group(
+        Name="d-target",
+        Protocol="HTTP",
+        Port=8082,
+        VpcId=vpc.id,
+    )
+    groups = conn.describe_target_groups(LoadBalancerArn=lb_arn)["TargetGroups"]
+    assert len(groups) == 2
+    assert groups[0]["TargetGroupName"] == "a-target"
+    assert groups[1]["TargetGroupName"] == "d-target"
 
 
 @mock_elbv2

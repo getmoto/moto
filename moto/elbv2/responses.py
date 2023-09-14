@@ -1070,6 +1070,7 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
         {% if target_group.vpc_id %}
         <VpcId>{{ target_group.vpc_id }}</VpcId>
         {% endif %}
+        <IpAddressType>{{ target_group.ip_address_type }}</IpAddressType>
         <HealthCheckProtocol>{{ target_group.healthcheck_protocol }}</HealthCheckProtocol>
         {% if target_group.healthcheck_port %}<HealthCheckPort>{{ target_group.healthcheck_port }}</HealthCheckPort>{% endif %}
         <HealthCheckPath>{{ target_group.healthcheck_path or '' }}</HealthCheckPath>

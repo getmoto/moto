@@ -1370,10 +1370,20 @@ Member must satisfy regular expression pattern: {expression}"
         target_group_arns: List[str],
         names: Optional[List[str]],
     ) -> Iterable[FakeTargetGroup]:
+
+        args = sum(bool(arg) for arg in [load_balancer_arn, target_group_arns, names])
+
+        if args > 1:
+            raise ValidationError(
+                "Target group names, target group ARNs, and a load balancer ARN cannot be specified at the same time"
+            )
+
+        target_groups = []
+
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
-            return [
+            target_groups = [
                 tg
                 for tg in self.target_groups.values()
                 if load_balancer_arn in tg.load_balancer_arns
@@ -1381,22 +1391,24 @@ Member must satisfy regular expression pattern: {expression}"
 
         if target_group_arns:
             try:
-                return [self.target_groups[arn] for arn in target_group_arns]
+                target_groups = [self.target_groups[arn] for arn in target_group_arns]
             except KeyError:
                 raise TargetGroupNotFoundError()
-        if names:
-            matched = []
-            for name in names:
-                found = None
-                for target_group in self.target_groups.values():
-                    if target_group.name == name:
-                        found = target_group
-                if not found:
-                    raise TargetGroupNotFoundError()
-                matched.append(found)
-            return matched
 
-        return self.target_groups.values()
+        if names:
+            target_groups = [
+                next(
+                    (tg for tg in self.target_groups.values() if tg.name == name), None
+                )
+                for name in names
+            ]
+            if None in target_groups:
+                raise TargetGroupNotFoundError()
+
+        if len(target_groups) == 0:
+            target_groups = self.target_groups.values()
+
+        return sorted(target_groups, key=lambda tg: tg.name)
 
     def describe_listeners(
         self, load_balancer_arn: Optional[str], listener_arns: List[str]
