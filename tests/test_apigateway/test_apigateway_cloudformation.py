@@ -108,7 +108,7 @@ template = """{
             "Arn"
           ]
         },
-        "Runtime": "python2.7",
+        "Runtime": "python3.11",
         "Timeout": 6
       },
       "DependsOn": [

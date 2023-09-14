@@ -5,7 +5,7 @@ from functools import lru_cache
 from threading import RLock
 from typing import Any, List, Dict, Optional, ClassVar, TypeVar, Iterator
 from uuid import uuid4
-from moto.settings import allow_unknown_region
+from moto.settings import allow_unknown_region, enable_iso_regions
 from .model_instances import model_data
 from .utils import convert_regex_to_flask_path
 
@@ -56,13 +56,16 @@ class BaseBackend:
         for url_base in url_bases:
             # The default URL_base will look like: http://service.[..].amazonaws.com/...
             # This extension ensures support for the China & ISO regions
-            alt_dns_suffixes = {
-                "cn": "amazonaws.com.cn",
-                "iso": "c2s.ic.gov",
-                "isob": "sc2s.sgov.gov",
-                "isoe": "cloud.adc-e.uk",
-                "isof": "csp.hci.ic.gov",
-            }
+            alt_dns_suffixes = {"cn": "amazonaws.com.cn"}
+            if enable_iso_regions():
+                alt_dns_suffixes.update(
+                    {
+                        "iso": "c2s.ic.gov",
+                        "isob": "sc2s.sgov.gov",
+                        "isoe": "cloud.adc-e.uk",
+                        "isof": "csp.hci.ic.gov",
+                    }
+                )
 
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
@@ -237,7 +240,7 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         super().__setitem__(key, value)
 
     @lru_cache()
-    def __getitem__(self, region_name: str) -> SERVICE_BACKEND:  # type: ignore[override]
+    def __getitem__(self, region_name: str) -> SERVICE_BACKEND:
         if region_name in self.keys():
             return super().__getitem__(region_name)
         # Create the backend for a specific region

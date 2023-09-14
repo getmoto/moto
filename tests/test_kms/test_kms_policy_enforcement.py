@@ -46,7 +46,7 @@ class TestKMSPolicyEnforcement:
         with pytest.raises(ClientError) as exc:
             self.client.describe_key(KeyId=self.key_id)
         err = exc.value.response["Error"]
-        err["Code"].should.equal("AccessDeniedException")
+        assert err["Code"] == "AccessDeniedException"
 
     @pytest.mark.parametrize("actions", [["kms:unknown"], ["kms:describestuff"]])
     def test_policy__allow_based_on_actions(self, actions):
@@ -67,7 +67,7 @@ class TestKMSPolicyEnforcement:
             Policy=json.dumps(policy), PolicyName="default", KeyId=self.key_id
         )
         key = self.client.describe_key(KeyId=self.key_id)["KeyMetadata"]
-        key["Description"].should.equal("t")
+        assert key["Description"] == "t"
 
 
 class TestKMSPolicyValidator:

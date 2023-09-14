@@ -50,7 +50,7 @@ class TestCognitoUserDeleter(TestCase):
                     "REFRESH_TOKEN": refresh_token,
                 },
             )
-        exc.exception.response["Error"]["Code"].should.equal("NotAuthorizedException")
+        assert exc.exception.response["Error"]["Code"] == "NotAuthorizedException"
 
 
 @mock_cognitoidp
@@ -84,8 +84,8 @@ class TestCognitoUserPoolDuplidateEmails(TestCase):
                 UserAttributes=[{"Name": "email", "Value": "user2@test.com"}],
             )
         err = exc.value.response["Error"]
-        err["Code"].should.equal("AliasExistsException")
-        err["Message"].should.equal("An account with the given email already exists.")
+        assert err["Code"] == "AliasExistsException"
+        assert err["Message"] == "An account with the given email already exists."
 
     def test_use_existing_email__when_username_is_login(self):
         # Because we cannot use the email as username,

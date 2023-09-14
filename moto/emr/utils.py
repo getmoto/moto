@@ -1,5 +1,4 @@
 import copy
-import datetime
 import re
 import string
 from typing import Any, List, Dict, Tuple, Iterator
@@ -33,15 +32,23 @@ def steps_from_query_string(
     steps = []
     for step in querystring_dict:
         step["jar"] = step.pop("hadoop_jar_step._jar")
-        step["properties"] = dict(
-            (o["Key"], o["Value"]) for o in step.get("properties", [])
-        )
         step["args"] = []
         idx = 1
         keyfmt = "hadoop_jar_step._args.member.{0}"
         while keyfmt.format(idx) in step:
             step["args"].append(step.pop(keyfmt.format(idx)))
             idx += 1
+
+        idx = 1
+        keyfmt_prop = "hadoop_jar_step._properties.member.{0}._key"
+        properties = {}
+        while keyfmt_prop.format(idx) in step:
+            key = keyfmt_prop.format(idx)
+            value = key.replace("_key", "_value")
+            properties[step.pop(key)] = step.pop(value)
+            idx += 1
+
+        step["properties"] = properties
         steps.append(step)
     return steps
 
@@ -95,9 +102,9 @@ class Unflattener:
 
     @staticmethod
     def _add_to_container(container: Any, key: Any, value: Any) -> Any:  # type: ignore[misc]
-        if type(container) is dict:
+        if isinstance(container, dict):
             container[key] = value
-        elif type(container) is list:
+        elif isinstance(container, list):
             i = int(key)
             while len(container) < i:
                 container.append(None)
@@ -106,17 +113,17 @@ class Unflattener:
 
     @staticmethod
     def _get_child(container: Any, key: Any) -> Any:  # type: ignore[misc]
-        if type(container) is dict:
+        if isinstance(container, dict):
             return container[key]
-        elif type(container) is list:
+        elif isinstance(container, list):
             i = int(key)
             return container[i - 1]
 
     @staticmethod
     def _key_in_container(container: Any, key: Any) -> bool:  # type: ignore
-        if type(container) is dict:
+        if isinstance(container, dict):
             return key in container
-        elif type(container) is list:
+        elif isinstance(container, list):
             i = int(key)
             return len(container) >= i
 
@@ -153,7 +160,6 @@ class CamelToUnderscoresWalker:
 
 
 class ReleaseLabel:
-
     version_re = re.compile(r"^emr-(\d+)\.(\d+)\.(\d+)$")
 
     def __init__(self, release_label: str):
@@ -235,7 +241,7 @@ class EmrManagedSecurityGroup:
 
     @classmethod
     def description(cls) -> str:
-        created = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        created = iso_8601_datetime_with_milliseconds()
         return cls.desc_fmt.format(short_name=cls.short_name, created=created)
 
 
@@ -258,7 +264,6 @@ class EmrManagedServiceAccessSecurityGroup(EmrManagedSecurityGroup):
 
 
 class EmrSecurityGroupManager:
-
     MANAGED_RULES_EGRESS = [
         {
             "group_name_or_id": EmrManagedSecurityGroup.Kind.MASTER,

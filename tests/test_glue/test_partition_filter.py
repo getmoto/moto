@@ -2,7 +2,6 @@ from unittest import SkipTest
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.client import ClientError
 
 from moto import mock_glue, settings
@@ -32,8 +31,8 @@ def test_get_partitions_expression_unknown_column():
             Expression="unknown_col IS NULL",
         )
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match("Unknown column 'unknown_col'")
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
 
 
 @mock_glue
@@ -55,7 +54,7 @@ def test_get_partitions_expression_int_column():
 
     response = client.get_partitions(**kwargs)
     partitions = response["Partitions"]
-    partitions.should.have.length_of(3)
+    assert len(partitions) == 3
 
     int_col_is_two_expressions = (
         "int_col = 2",
@@ -75,24 +74,25 @@ def test_get_partitions_expression_int_column():
     for expression in int_col_is_two_expressions:
         response = client.get_partitions(**kwargs, Expression=expression)
         partitions = response["Partitions"]
-        partitions.should.have.length_of(1)
+        assert len(partitions) == 1
         partition = partitions[0]
-        partition["Values"].should.equal(["2"])
+        assert partition["Values"] == ["2"]
 
     bad_int_expressions = ("int_col = 'test'", "int_col in (2.5)")
     for expression in bad_int_expressions:
         with pytest.raises(ClientError) as exc:
             client.get_partitions(**kwargs, Expression=expression)
 
-        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-        exc.value.response["Error"]["Message"].should.match("is not an integer")
+        assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+        assert "is not an integer" in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="int_col LIKE '2'")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match(
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
         "Integral data type doesn't support operation 'LIKE'"
+        in exc.value.response["Error"]["Message"]
     )
 
 
@@ -115,7 +115,7 @@ def test_get_partitions_expression_decimal_column():
 
     response = client.get_partitions(**kwargs)
     partitions = response["Partitions"]
-    partitions.should.have.length_of(3)
+    assert len(partitions) == 3
 
     decimal_col_is_two_point_six_expressions = (
         "decimal_col = 2.6",
@@ -130,24 +130,25 @@ def test_get_partitions_expression_decimal_column():
     for expression in decimal_col_is_two_point_six_expressions:
         response = client.get_partitions(**kwargs, Expression=expression)
         partitions = response["Partitions"]
-        partitions.should.have.length_of(1)
+        assert len(partitions) == 1
         partition = partitions[0]
-        partition["Values"].should.equal(["2.6"])
+        assert partition["Values"] == ["2.6"]
 
     bad_decimal_expressions = ("decimal_col = 'test'",)
     for expression in bad_decimal_expressions:
         with pytest.raises(ClientError) as exc:
             client.get_partitions(**kwargs, Expression=expression)
 
-        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-        exc.value.response["Error"]["Message"].should.match("is not a decimal")
+        assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+        assert "is not a decimal" in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="decimal_col LIKE '2'")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match(
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
         "Decimal data type doesn't support operation 'LIKE'"
+        in exc.value.response["Error"]["Message"]
     )
 
 
@@ -171,7 +172,7 @@ def test_get_partitions_expression_string_column():
 
     response = client.get_partitions(**kwargs)
     partitions = response["Partitions"]
-    partitions.should.have.length_of(4)
+    assert len(partitions) == 4
 
     string_col_is_two_expressions = (
         "string_col = 'two'",
@@ -191,15 +192,15 @@ def test_get_partitions_expression_string_column():
     for expression in string_col_is_two_expressions:
         response = client.get_partitions(**kwargs, Expression=expression)
         partitions = response["Partitions"]
-        partitions.should.have.length_of(1)
+        assert len(partitions) == 1
         partition = partitions[0]
-        partition["Values"].should.be.within((["two"], ["2"]))
+        assert partition["Values"] in [["two"], ["2"]]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="unknown_col LIKE 'two'")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match("Unknown column 'unknown_col'")
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
 
 
 @mock_glue
@@ -221,7 +222,7 @@ def test_get_partitions_expression_date_column():
 
     response = client.get_partitions(**kwargs)
     partitions = response["Partitions"]
-    partitions.should.have.length_of(3)
+    assert len(partitions) == 3
 
     date_col_is_february_expressions = (
         "date_col = '2022-02-01'",
@@ -234,24 +235,25 @@ def test_get_partitions_expression_date_column():
     for expression in date_col_is_february_expressions:
         response = client.get_partitions(**kwargs, Expression=expression)
         partitions = response["Partitions"]
-        partitions.should.have.length_of(1)
+        assert len(partitions) == 1
         partition = partitions[0]
-        partition["Values"].should.equal(["2022-02-01"])
+        assert partition["Values"] == ["2022-02-01"]
 
     bad_date_expressions = ("date_col = 'test'", "date_col = '2022-02-32'")
     for expression in bad_date_expressions:
         with pytest.raises(ClientError) as exc:
             client.get_partitions(**kwargs, Expression=expression)
 
-        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-        exc.value.response["Error"]["Message"].should.match("is not a date")
+        assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+        assert "is not a date" in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="date_col LIKE '2022-02-01'")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match(
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
         "Date data type doesn't support operation 'LIKE'"
+        in exc.value.response["Error"]["Message"]
     )
 
 
@@ -278,7 +280,7 @@ def test_get_partitions_expression_timestamp_column():
 
     response = client.get_partitions(**kwargs)
     partitions = response["Partitions"]
-    partitions.should.have.length_of(3)
+    assert len(partitions) == 3
 
     timestamp_col_is_february_expressions = (
         "timestamp_col = '2022-02-01 00:00:00'",
@@ -297,9 +299,9 @@ def test_get_partitions_expression_timestamp_column():
     for expression in timestamp_col_is_february_expressions:
         response = client.get_partitions(**kwargs, Expression=expression)
         partitions = response["Partitions"]
-        partitions.should.have.length_of(1)
+        assert len(partitions) == 1
         partition = partitions[0]
-        partition["Values"].should.equal(["2022-02-01 00:00:00.000000"])
+        assert partition["Values"] == ["2022-02-01 00:00:00.000000"]
 
     bad_timestamp_expressions = (
         "timestamp_col = '2022-02-01'",
@@ -310,17 +312,18 @@ def test_get_partitions_expression_timestamp_column():
         with pytest.raises(ClientError) as exc:
             client.get_partitions(**kwargs, Expression=expression)
 
-        exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-        exc.value.response["Error"]["Message"].should.match("is not a timestamp")
+        assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+        assert "is not a timestamp" in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(
             **kwargs, Expression="timestamp_col LIKE '2022-02-01 00:00:00'"
         )
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match(
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
         "Timestamp data type doesn't support operation 'LIKE'"
+        in exc.value.response["Error"]["Message"]
     )
 
 
@@ -348,32 +351,32 @@ def test_get_partition_expression_warnings_and_exceptions():
 
     response = client.get_partitions(**kwargs, Expression="string_col = 'test'")
     partitions = response["Partitions"]
-    partitions.should.have.length_of(1)
+    assert len(partitions) == 1
     partition = partitions[0]
-    partition["Values"].should.equal(["test", "int", "3.14"])
+    assert partition["Values"] == ["test", "int", "3.14"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="float_col = 3.14")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match("Unknown type : 'float'")
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert "Unknown type : 'float'" in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="int_col = 2")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidStateException")
-    exc.value.response["Error"]["Message"].should.match('"int" is not an integer')
+    assert exc.value.response["Error"]["Code"] == "InvalidStateException"
+    assert '"int" is not an integer' in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(**kwargs, Expression="unknown_col = 'test'")
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match("Unknown column 'unknown_col'")
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(
             **kwargs, Expression="string_col IS test' AND not parsable"
         )
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidInputException")
-    exc.value.response["Error"]["Message"].should.match("Unsupported expression")
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert "Unsupported expression" in exc.value.response["Error"]["Message"]

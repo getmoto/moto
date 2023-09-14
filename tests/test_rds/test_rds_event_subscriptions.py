@@ -1,8 +1,7 @@
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_rds
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -44,16 +43,16 @@ def test_create_event_subscription():
         SourceIds=[db_identifier],
     ).get("EventSubscription")
 
-    es["CustSubscriptionId"].should.equal(f"{db_identifier}-events")
-    es["SnsTopicArn"].should.equal(
+    assert es["CustSubscriptionId"] == f"{db_identifier}-events"
+    assert es["SnsTopicArn"] == (
         f"arn:aws:sns::{ACCOUNT_ID}:{db_identifier}-events-topic"
     )
-    es["SourceType"].should.equal("db-instance")
-    es["EventCategoriesList"].should.equal(
+    assert es["SourceType"] == "db-instance"
+    assert es["EventCategoriesList"] == (
         ["Backup", "Creation", "Deletion", "Failure", "Recovery", "Restoration"]
     )
-    es["SourceIdsList"].should.equal([db_identifier])
-    es["Enabled"].should.equal(False)
+    assert es["SourceIdsList"] == [db_identifier]
+    assert es["Enabled"] is False
 
 
 @mock_rds
@@ -75,8 +74,8 @@ def test_create_event_fail_already_exists():
 
     err = ex.value.response["Error"]
 
-    err["Code"].should.equal("SubscriptionAlreadyExistFault")
-    err["Message"].should.equal("Subscription db-primary-1-events already exists.")
+    assert err["Code"] == "SubscriptionAlreadyExistFault"
+    assert err["Message"] == "Subscription db-primary-1-events already exists."
 
 
 @mock_rds
@@ -86,8 +85,8 @@ def test_delete_event_subscription_fails_unknown_subscription():
         client.delete_event_subscription(SubscriptionName="my-db-events")
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("SubscriptionNotFoundFault")
-    err["Message"].should.equal("Subscription my-db-events not found.")
+    assert err["Code"] == "SubscriptionNotFoundFault"
+    assert err["Message"] == "Subscription my-db-events not found."
 
 
 @mock_rds
@@ -104,8 +103,8 @@ def test_delete_event_subscription():
         SubscriptionName=f"{db_identifier}-events"
     ).get("EventSubscription")
 
-    es["CustSubscriptionId"].should.equal(f"{db_identifier}-events")
-    es["SnsTopicArn"].should.equal(
+    assert es["CustSubscriptionId"] == f"{db_identifier}-events"
+    assert es["SnsTopicArn"] == (
         f"arn:aws:sns::{ACCOUNT_ID}:{db_identifier}-events-topic"
     )
 
@@ -122,8 +121,8 @@ def test_describe_event_subscriptions():
 
     subscriptions = client.describe_event_subscriptions().get("EventSubscriptionsList")
 
-    subscriptions.should.have.length_of(1)
-    subscriptions[0]["CustSubscriptionId"].should.equal(f"{db_identifier}-events")
+    assert len(subscriptions) == 1
+    assert subscriptions[0]["CustSubscriptionId"] == f"{db_identifier}-events"
 
 
 @mock_rds
@@ -134,5 +133,5 @@ def test_describe_event_subscriptions_fails_unknown_subscription():
 
     err = ex.value.response["Error"]
 
-    err["Code"].should.equal("SubscriptionNotFoundFault")
-    err["Message"].should.equal("Subscription my-db-events not found.")
+    assert err["Code"] == "SubscriptionNotFoundFault"
+    assert err["Message"] == "Subscription my-db-events not found."

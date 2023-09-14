@@ -454,12 +454,12 @@ def test_normalize_with_one_action(table):
         item=item,
         table=table,
     ).validate()
-    validated_ast.children.should.have.length_of(1)
-    validated_ast.children[0].should.be.a(UpdateExpressionAddClause)
+    assert len(validated_ast.children) == 1
+    assert isinstance(validated_ast.children[0], UpdateExpressionAddClause)
 
     validated_ast.normalize()
-    validated_ast.children.should.have.length_of(1)
-    validated_ast.children[0].should.be.a(UpdateExpressionAddAction)
+    assert len(validated_ast.children) == 1
+    assert isinstance(validated_ast.children[0], UpdateExpressionAddAction)
 
 
 def test_normalize_with_multiple_actions__order_is_preserved(table):
@@ -481,22 +481,22 @@ def test_normalize_with_multiple_actions__order_is_preserved(table):
         item=item,
         table=table,
     ).validate()
-    validated_ast.children.should.have.length_of(2)
+    assert len(validated_ast.children) == 2
     # add clause first
-    validated_ast.children[0].should.be.a(UpdateExpressionAddClause)
+    assert isinstance(validated_ast.children[0], UpdateExpressionAddClause)
     # rest of the expression next
-    validated_ast.children[1].should.be.a(UpdateExpression)
+    assert isinstance(validated_ast.children[1], UpdateExpression)
 
     validated_ast.normalize()
-    validated_ast.children.should.have.length_of(5)
+    assert len(validated_ast.children) == 5
     # add action first
-    validated_ast.children[0].should.be.a(UpdateExpressionAddAction)
+    assert isinstance(validated_ast.children[0], UpdateExpressionAddAction)
     # Removal actions in reverse order
-    validated_ast.children[1].should.be.a(UpdateExpressionRemoveAction)
-    validated_ast.children[1]._get_value().should.equal(3)
-    validated_ast.children[2].should.be.a(UpdateExpressionRemoveAction)
-    validated_ast.children[2]._get_value().should.equal(2)
-    validated_ast.children[3].should.be.a(UpdateExpressionRemoveAction)
-    validated_ast.children[3]._get_value().should.equal(1)
+    assert isinstance(validated_ast.children[1], UpdateExpressionRemoveAction)
+    assert validated_ast.children[1]._get_value() == 3
+    assert isinstance(validated_ast.children[2], UpdateExpressionRemoveAction)
+    assert validated_ast.children[2]._get_value() == 2
+    assert isinstance(validated_ast.children[3], UpdateExpressionRemoveAction)
+    assert validated_ast.children[3]._get_value() == 1
     # Set action last, as per insertion order
-    validated_ast.children[4].should.be.a(UpdateExpressionSetAction)
+    assert isinstance(validated_ast.children[4], UpdateExpressionSetAction)

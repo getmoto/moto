@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ssm
 
@@ -9,12 +8,12 @@ def test_describe_maintenance_window():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
     resp = ssm.describe_maintenance_windows()
-    resp.should.have.key("WindowIdentities").equals([])
+    assert resp["WindowIdentities"] == []
 
     resp = ssm.describe_maintenance_windows(
         Filters=[{"Key": "Name", "Values": ["fake-maintenance-window-name"]}]
     )
-    resp.should.have.key("WindowIdentities").equals([])
+    assert resp["WindowIdentities"] == []
 
 
 @mock_ssm
@@ -28,25 +27,25 @@ def test_create_maintenance_windows_simple():
         Cutoff=1,
         AllowUnassociatedTargets=False,
     )
-    resp.should.have.key("WindowId")
+    assert "WindowId" in resp
     _id = resp["WindowId"]  # mw-01d6bbfdf6af2c39a
 
     resp = ssm.describe_maintenance_windows()
-    resp.should.have.key("WindowIdentities").have.length_of(1)
+    assert len(resp["WindowIdentities"]) == 1
 
     my_window = resp["WindowIdentities"][0]
-    my_window.should.have.key("WindowId").equal(_id)
-    my_window.should.have.key("Name").equal("simple-window")
-    my_window.should.have.key("Enabled").equal(True)
-    my_window.should.have.key("Duration").equal(2)
-    my_window.should.have.key("Cutoff").equal(1)
-    my_window.should.have.key("Schedule").equal("cron(15 12 * * ? *)")
-    # my_window.should.have.key("NextExecutionTime")
-    my_window.shouldnt.have.key("Description")
-    my_window.shouldnt.have.key("ScheduleTimezone")
-    my_window.shouldnt.have.key("ScheduleOffset")
-    my_window.shouldnt.have.key("EndDate")
-    my_window.shouldnt.have.key("StartDate")
+    assert my_window["WindowId"] == _id
+    assert my_window["Name"] == "simple-window"
+    assert my_window["Enabled"] is True
+    assert my_window["Duration"] == 2
+    assert my_window["Cutoff"] == 1
+    assert my_window["Schedule"] == "cron(15 12 * * ? *)"
+    # assert "NextExecutionTime" in my_window
+    assert "Description" not in my_window
+    assert "ScheduleTimezone" not in my_window
+    assert "ScheduleOffset" not in my_window
+    assert "EndDate" not in my_window
+    assert "StartDate" not in my_window
 
 
 @mock_ssm
@@ -65,25 +64,25 @@ def test_create_maintenance_windows_advanced():
         StartDate="2021-11-01",
         EndDate="2021-12-31",
     )
-    resp.should.have.key("WindowId")
+    assert "WindowId" in resp
     _id = resp["WindowId"]  # mw-01d6bbfdf6af2c39a
 
     resp = ssm.describe_maintenance_windows()
-    resp.should.have.key("WindowIdentities").have.length_of(1)
+    assert len(resp["WindowIdentities"]) == 1
 
     my_window = resp["WindowIdentities"][0]
-    my_window.should.have.key("WindowId").equal(_id)
-    my_window.should.have.key("Name").equal("simple-window")
-    my_window.should.have.key("Enabled").equal(True)
-    my_window.should.have.key("Duration").equal(5)
-    my_window.should.have.key("Cutoff").equal(4)
-    my_window.should.have.key("Schedule").equal("cron(15 12 * * ? *)")
-    # my_window.should.have.key("NextExecutionTime")
-    my_window.should.have.key("Description").equals("French windows are just too fancy")
-    my_window.should.have.key("ScheduleTimezone").equals("Europe/London")
-    my_window.should.have.key("ScheduleOffset").equals(1)
-    my_window.should.have.key("StartDate").equals("2021-11-01")
-    my_window.should.have.key("EndDate").equals("2021-12-31")
+    assert my_window["WindowId"] == _id
+    assert my_window["Name"] == "simple-window"
+    assert my_window["Enabled"] is True
+    assert my_window["Duration"] == 5
+    assert my_window["Cutoff"] == 4
+    assert my_window["Schedule"] == "cron(15 12 * * ? *)"
+    # assert "NextExecutionTime" in my_window
+    assert my_window["Description"] == "French windows are just too fancy"
+    assert my_window["ScheduleTimezone"] == "Europe/London"
+    assert my_window["ScheduleOffset"] == 1
+    assert my_window["StartDate"] == "2021-11-01"
+    assert my_window["EndDate"] == "2021-12-31"
 
 
 @mock_ssm
@@ -97,22 +96,22 @@ def test_get_maintenance_windows():
         Cutoff=1,
         AllowUnassociatedTargets=False,
     )
-    resp.should.have.key("WindowId")
+    assert "WindowId" in resp
     _id = resp["WindowId"]  # mw-01d6bbfdf6af2c39a
 
     my_window = ssm.get_maintenance_window(WindowId=_id)
-    my_window.should.have.key("WindowId").equal(_id)
-    my_window.should.have.key("Name").equal("my-window")
-    my_window.should.have.key("Enabled").equal(True)
-    my_window.should.have.key("Duration").equal(2)
-    my_window.should.have.key("Cutoff").equal(1)
-    my_window.should.have.key("Schedule").equal("cron(15 12 * * ? *)")
-    # my_window.should.have.key("NextExecutionTime")
-    my_window.shouldnt.have.key("Description")
-    my_window.shouldnt.have.key("ScheduleTimezone")
-    my_window.shouldnt.have.key("ScheduleOffset")
-    my_window.shouldnt.have.key("EndDate")
-    my_window.shouldnt.have.key("StartDate")
+    assert my_window["WindowId"] == _id
+    assert my_window["Name"] == "my-window"
+    assert my_window["Enabled"] is True
+    assert my_window["Duration"] == 2
+    assert my_window["Cutoff"] == 1
+    assert my_window["Schedule"] == "cron(15 12 * * ? *)"
+    # assert "NextExecutionTime" in my_window
+    assert "Description" not in my_window
+    assert "ScheduleTimezone" not in my_window
+    assert "ScheduleOffset" not in my_window
+    assert "EndDate" not in my_window
+    assert "StartDate" not in my_window
 
 
 @mock_ssm
@@ -129,12 +128,12 @@ def test_describe_maintenance_windows():
         )
 
     resp = ssm.describe_maintenance_windows()
-    resp.should.have.key("WindowIdentities").have.length_of(4)
+    assert len(resp["WindowIdentities"]) == 4
 
     resp = ssm.describe_maintenance_windows(
         Filters=[{"Key": "Name", "Values": ["window_0", "window_2"]}]
     )
-    resp.should.have.key("WindowIdentities").have.length_of(2)
+    assert len(resp["WindowIdentities"]) == 2
 
 
 @mock_ssm
@@ -149,10 +148,10 @@ def test_delete_maintenance_windows():
         AllowUnassociatedTargets=False,
     )
 
-    ssm.delete_maintenance_window(WindowId=(resp["WindowId"]))
+    ssm.delete_maintenance_window(WindowId=resp["WindowId"])
 
     resp = ssm.describe_maintenance_windows()
-    resp.should.have.key("WindowIdentities").equals([])
+    assert resp["WindowIdentities"] == []
 
 
 @mock_ssm
@@ -232,17 +231,17 @@ def test_register_maintenance_window_target():
         ResourceType="INSTANCE",
         Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
     )
-    resp.should.have.key("WindowTargetId")
+    assert "WindowTargetId" in resp
     _id = resp["WindowTargetId"]
 
     resp = ssm.describe_maintenance_window_targets(
         WindowId=window_id,
     )
-    resp.should.have.key("Targets").should.have.length_of(1)
-    resp["Targets"][0].should.have.key("ResourceType").equal("INSTANCE")
-    resp["Targets"][0].should.have.key("WindowTargetId").equal(_id)
-    resp["Targets"][0]["Targets"][0].should.have.key("Key").equal("tag:Name")
-    resp["Targets"][0]["Targets"][0].should.have.key("Values").equal(["my-instance"])
+    assert len(resp["Targets"]) == 1
+    assert resp["Targets"][0]["ResourceType"] == "INSTANCE"
+    assert resp["Targets"][0]["WindowTargetId"] == _id
+    assert resp["Targets"][0]["Targets"][0]["Key"] == "tag:Name"
+    assert resp["Targets"][0]["Targets"][0]["Values"] == ["my-instance"]
 
 
 @mock_ssm
@@ -273,4 +272,112 @@ def test_deregister_target_from_maintenance_window():
     resp = ssm.describe_maintenance_window_targets(
         WindowId=window_id,
     )
-    resp.should.have.key("Targets").should.have.length_of(0)
+    assert len(resp["Targets"]) == 0
+
+
+@mock_ssm
+def test_describe_maintenance_window_with_no_task_or_targets():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.describe_maintenance_window_tasks(
+        WindowId=window_id,
+    )
+    assert len(resp["Tasks"]) == 0
+
+    resp = ssm.describe_maintenance_window_targets(
+        WindowId=window_id,
+    )
+    assert len(resp["Targets"]) == 0
+
+
+@mock_ssm
+def test_register_maintenance_window_task():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.register_target_with_maintenance_window(
+        WindowId=window_id,
+        ResourceType="INSTANCE",
+        Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
+    )
+    window_target_id = resp["WindowTargetId"]
+
+    resp = ssm.register_task_with_maintenance_window(
+        WindowId=window_id,
+        Targets=[{"Key": "WindowTargetIds", "Values": [window_target_id]}],
+        TaskArn="AWS-RunShellScript",
+        TaskType="RUN_COMMAND",
+        MaxConcurrency="1",
+        MaxErrors="1",
+    )
+
+    assert "WindowTaskId" in resp
+    _id = resp["WindowTaskId"]
+
+    resp = ssm.describe_maintenance_window_tasks(
+        WindowId=window_id,
+    )
+    assert len(resp["Tasks"]) == 1
+    assert resp["Tasks"][0]["WindowTaskId"] == _id
+    assert resp["Tasks"][0]["WindowId"] == window_id
+    assert resp["Tasks"][0]["TaskArn"] == "AWS-RunShellScript"
+    assert resp["Tasks"][0]["MaxConcurrency"] == "1"
+    assert resp["Tasks"][0]["MaxErrors"] == "1"
+
+
+@mock_ssm
+def test_deregister_maintenance_window_task():
+    ssm = boto3.client("ssm", region_name="us-east-1")
+
+    resp = ssm.create_maintenance_window(
+        Name="simple-window",
+        Schedule="cron(15 12 * * ? *)",
+        Duration=2,
+        Cutoff=1,
+        AllowUnassociatedTargets=False,
+    )
+    window_id = resp["WindowId"]
+
+    resp = ssm.register_target_with_maintenance_window(
+        WindowId=window_id,
+        ResourceType="INSTANCE",
+        Targets=[{"Key": "tag:Name", "Values": ["my-instance"]}],
+    )
+    window_target_id = resp["WindowTargetId"]
+
+    resp = ssm.register_task_with_maintenance_window(
+        WindowId=window_id,
+        Targets=[{"Key": "WindowTargetIds", "Values": [window_target_id]}],
+        TaskArn="AWS-RunShellScript",
+        TaskType="RUN_COMMAND",
+        MaxConcurrency="1",
+        MaxErrors="1",
+    )
+    window_task_id = resp["WindowTaskId"]
+
+    ssm.deregister_task_from_maintenance_window(
+        WindowId=window_id,
+        WindowTaskId=window_task_id,
+    )
+
+    resp = ssm.describe_maintenance_window_tasks(
+        WindowId=window_id,
+    )
+    assert len(resp["Tasks"]) == 0

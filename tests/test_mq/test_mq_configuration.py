@@ -3,7 +3,6 @@ import base64
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_mq
@@ -20,19 +19,20 @@ def test_create_configuration_minimal():
         EngineType="ACTIVEMQ", EngineVersion="rabbit1", Name="myconfig"
     )
 
-    resp.should.have.key("Id").match("^c-")
-    resp.should.have.key("Arn").equals(
-        f"arn:aws:mq:ap-southeast-1:{ACCOUNT_ID}:configuration:{resp['Id']}"
+    assert resp["Id"].startswith("c-")
+    assert (
+        resp["Arn"]
+        == f"arn:aws:mq:ap-southeast-1:{ACCOUNT_ID}:configuration:{resp['Id']}"
     )
-    resp.should.have.key("AuthenticationStrategy").equals("simple")
-    resp.should.have.key("Created")
-    resp.should.have.key("Name").equals("myconfig")
-    resp.should.have.key("LatestRevision")
+    assert resp["AuthenticationStrategy"] == "simple"
+    assert "Created" in resp
+    assert resp["Name"] == "myconfig"
+    assert "LatestRevision" in resp
 
     revision = resp["LatestRevision"]
-    revision.should.have.key("Created")
-    revision.should.have.key("Description")
-    revision.should.have.key("Revision").equals(1)
+    assert "Created" in revision
+    assert "Description" in revision
+    assert revision["Revision"] == 1
 
 
 @mock_mq
@@ -44,9 +44,10 @@ def test_create_configuration_for_rabbitmq():
             EngineType="RABBITMQ", EngineVersion="rabbit1", Name="myconfig"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "Broker engine type [RABBITMQ] does not support configuration."
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"]
+        == "Broker engine type [RABBITMQ] does not support configuration."
     )
 
 
@@ -59,9 +60,10 @@ def test_create_configuration_for_unknown_engine():
             EngineType="unknown", EngineVersion="rabbit1", Name="myconfig"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.equal(
-        "Broker engine type [unknown] is invalid. Valid values are: [ACTIVEMQ]"
+    assert err["Code"] == "BadRequestException"
+    assert (
+        err["Message"]
+        == "Broker engine type [unknown] is invalid. Valid values are: [ACTIVEMQ]"
     )
 
 
@@ -74,19 +76,19 @@ def test_describe_configuration():
 
     resp = client.describe_configuration(ConfigurationId=config_id)
 
-    resp.should.have.key("Id").match("^c-")
-    resp.should.have.key("Arn").equals(
-        f"arn:aws:mq:eu-north-1:{ACCOUNT_ID}:configuration:{resp['Id']}"
+    assert resp["Id"].startswith("c-")
+    assert (
+        resp["Arn"] == f"arn:aws:mq:eu-north-1:{ACCOUNT_ID}:configuration:{resp['Id']}"
     )
-    resp.should.have.key("AuthenticationStrategy").equals("simple")
-    resp.should.have.key("Created")
-    resp.should.have.key("Name").equals("myconfig")
-    resp.should.have.key("LatestRevision")
+    assert resp["AuthenticationStrategy"] == "simple"
+    assert "Created" in resp
+    assert resp["Name"] == "myconfig"
+    assert "LatestRevision" in resp
 
     revision = resp["LatestRevision"]
-    revision.should.have.key("Created")
-    revision.should.have.key("Description")
-    revision.should.have.key("Revision").equals(1)
+    assert "Created" in revision
+    assert "Description" in revision
+    assert revision["Revision"] == 1
 
 
 @mock_mq
@@ -100,13 +102,13 @@ def test_describe_configuration_revision():
         ConfigurationId=config_id, ConfigurationRevision="1"
     )
 
-    resp.should.have.key("ConfigurationId").equals(config_id)
-    resp.should.have.key("Created")
-    resp.should.have.key("Description").equals(
-        "Auto-generated default for myconfig on ActiveMQ 5.16.3"
+    assert resp["ConfigurationId"] == config_id
+    assert "Created" in resp
+    assert (
+        resp["Description"] == "Auto-generated default for myconfig on ActiveMQ 5.16.3"
     )
 
-    resp.should.have.key("Data")
+    assert "Data" in resp
 
 
 @mock_mq
@@ -117,9 +119,10 @@ def test_describe_configuration_unknown():
         client.describe_configuration(ConfigurationId="c-unknown")
     err = exc.value.response["Error"]
 
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal(
-        "Can't find requested configuration [c-unknown]. Make sure your configuration exists."
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Can't find requested configuration [c-unknown]. Make sure your configuration exists."
     )
 
 
@@ -129,7 +132,7 @@ def test_list_configurations_empty():
 
     resp = client.list_configurations()
 
-    resp.should.have.key("Configurations").equals([])
+    assert resp["Configurations"] == []
 
 
 @mock_mq
@@ -141,15 +144,15 @@ def test_list_configurations():
 
     resp = client.list_configurations()
 
-    resp.should.have.key("Configurations").length_of(1)
+    assert len(resp["Configurations"]) == 1
 
     config = resp["Configurations"][0]
-    config.should.have.key("Arn").match("arn:aws")
-    config.should.have.key("Created")
-    config.should.have.key("Id").equals(config_id)
-    config.should.have.key("Name").equals("myconfig")
-    config.should.have.key("EngineType").equals("ACTIVEMQ")
-    config.should.have.key("EngineVersion").equals("active1")
+    assert config["Arn"].startswith("arn:aws")
+    assert "Created" in config
+    assert config["Id"] == config_id
+    assert config["Name"] == "myconfig"
+    assert config["EngineType"] == "ACTIVEMQ"
+    assert config["EngineVersion"] == "active1"
 
 
 @mock_mq
@@ -165,16 +168,16 @@ def test_update_configuration():
         Description="updated config",
     )
 
-    resp.should.have.key("Arn").match("arn:aws:mq")
-    resp.should.have.key("Created")
-    resp.should.have.key("Id")
-    resp.should.have.key("Name").equals("myconfig")
-    resp.should.have.key("LatestRevision")
+    assert resp["Arn"].startswith("arn:aws:mq")
+    assert "Created" in resp
+    assert "Id" in resp
+    assert resp["Name"] == "myconfig"
+    assert "LatestRevision" in resp
 
     revision = resp["LatestRevision"]
-    revision.should.have.key("Created")
-    revision.should.have.key("Description").equals("updated config")
-    revision.should.have.key("Revision").equals(2)
+    assert "Created" in revision
+    assert revision["Description"] == "updated config"
+    assert revision["Revision"] == 2
 
 
 @mock_mq
@@ -207,4 +210,4 @@ def test_update_configuration_to_ldap():
 
     resp = client.describe_configuration(ConfigurationId=config_id)
 
-    resp.should.have.key("AuthenticationStrategy").equals("ldap")
+    assert resp["AuthenticationStrategy"] == "ldap"

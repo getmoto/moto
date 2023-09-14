@@ -1,17 +1,15 @@
 """Unit tests for emrcontainers-supported APIs."""
-import re
 from datetime import datetime, timezone, timedelta
+import re
+from unittest.mock import patch
 from unittest import SkipTest
 
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError, ParamValidationError
+import pytest
 
 from moto import mock_emrcontainers, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from unittest.mock import patch
-
 from moto.emrcontainers import REGION as DEFAULT_REGION
 
 
@@ -29,16 +27,14 @@ def fixture_virtual_cluster_factory(client):
     cluster_state = ["RUNNING", "TERMINATING", "TERMINATED", "ARRESTED"]
 
     cluster_list = []
-    for i in range(len(cluster_state)):
-        with patch(
-            "moto.emrcontainers.models.VIRTUAL_CLUSTER_STATUS", cluster_state[i]
-        ):
+    for idx, state in enumerate(cluster_state):
+        with patch("moto.emrcontainers.models.VIRTUAL_CLUSTER_STATUS", state):
             resp = client.create_virtual_cluster(
                 name="test-emr-virtual-cluster",
                 containerProvider={
                     "type": "EKS",
                     "id": "test-eks-cluster",
-                    "info": {"eksInfo": {"namespace": f"emr-container-{i}"}},
+                    "info": {"eksInfo": {"namespace": f"emr-container-{idx}"}},
                 },
             )
 
@@ -53,7 +49,10 @@ def fixture_job_factory(client, virtual_cluster_factory):
     default_job_driver = {
         "sparkSubmitJobDriver": {
             "entryPoint": "s3://code/pi.py",
-            "sparkSubmitParameters": "--conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=2G --conf spark.executor.cores=4",
+            "sparkSubmitParameters": (
+                "--conf spark.executor.instances=2 --conf spark.executor.memory=2G "
+                "--conf spark.driver.memory=2G --conf spark.executor.cores=4"
+            ),
         }
     }
     default_execution_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/iamrole-emrcontainers"
@@ -70,10 +69,10 @@ def fixture_job_factory(client, virtual_cluster_factory):
     ]
 
     job_list = []
-    for i in range(len(job_state)):
-        with patch("moto.emrcontainers.models.JOB_STATUS", job_state[i]):
+    for idx, state in enumerate(job_state):
+        with patch("moto.emrcontainers.models.JOB_STATUS", state):
             resp = client.start_job_run(
-                name=f"test_job_{i}",
+                name=f"test_job_{idx}",
                 virtualClusterId=virtual_cluster_id,
                 executionRoleArn=default_execution_role_arn,
                 releaseLabel=default_release_label,
@@ -168,7 +167,10 @@ class TestDescribeVirtualCluster:
         resp = self.client.describe_virtual_cluster(id=self.virtual_cluster_ids[0])
 
         expected_resp = {
-            "arn": f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_ids[0]}",
+            "arn": (
+                f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:"
+                f"/virtualclusters/{self.virtual_cluster_ids[0]}"
+            ),
             "containerProvider": {
                 "id": "test-eks-cluster",
                 "info": {"eksInfo": {"namespace": "emr-container-0"}},
@@ -261,7 +263,10 @@ class TestStartJobRun:
     default_job_driver = {
         "sparkSubmitJobDriver": {
             "entryPoint": "s3://code/pi.py",
-            "sparkSubmitParameters": "--conf spark.executor.instances=2 --conf spark.executor.memory=2G --conf spark.driver.memory=2G --conf spark.executor.cores=4",
+            "sparkSubmitParameters": (
+                "--conf spark.executor.instances=2 --conf spark.executor.memory=2G"
+                "--conf spark.driver.memory=2G --conf spark.executor.cores=4"
+            ),
         }
     }
 
@@ -302,9 +307,9 @@ class TestStartJobRun:
 
         assert re.match(r"[a-z,0-9]{19}", resp["id"])
         assert resp["name"] == "test_job"
-        assert (
-            resp["arn"]
-            == f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_id}/jobruns/{resp['id']}"
+        assert resp["arn"] == (
+            f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:"
+            f"/virtualclusters/{self.virtual_cluster_id}/jobruns/{resp['id']}"
         )
         assert resp["virtualClusterId"] == self.virtual_cluster_id
 
@@ -320,9 +325,9 @@ class TestStartJobRun:
 
         assert exc.typename == "ParamValidationError"
         assert (
-            "Parameter validation failed:\nInvalid length for parameter executionRoleArn, value: 6, valid min length: 20"
-            in exc.value.args
-        )
+            "Parameter validation failed:\nInvalid length for parameter "
+            "executionRoleArn, value: 6, valid min length: 20"
+        ) in exc.value.args
 
     def test_invalid_virtual_cluster_id(self):
         with pytest.raises(ClientError) as exc:
@@ -508,7 +513,11 @@ class TestDescribeJobRun:
         )
 
         expected = {
-            "arn": f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}:/virtualclusters/{self.virtual_cluster_id}/jobruns/{self.job_list[2]}",
+            "arn": (
+                f"arn:aws:emr-containers:us-east-1:{ACCOUNT_ID}"
+                f":/virtualclusters/{self.virtual_cluster_id}"
+                f"/jobruns/{self.job_list[2]}"
+            ),
             "createdAt": (
                 datetime.today()
                 .replace(hour=0, minute=0, second=0, microsecond=0)

@@ -15,9 +15,9 @@ def test_set_stack_policy_on_nonexisting_stack():
     with pytest.raises(ClientError) as exc:
         cf_conn.set_stack_policy(StackName="unknown", StackPolicyBody="{}")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal("Stack: unknown does not exist")
-    err["Type"].should.equal("Sender")
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "Stack: unknown does not exist"
+    assert err["Type"] == "Sender"
 
 
 @mock_cloudformation
@@ -27,9 +27,9 @@ def test_get_stack_policy_on_nonexisting_stack():
     with pytest.raises(ClientError) as exc:
         cf_conn.get_stack_policy(StackName="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal("Stack: unknown does not exist")
-    err["Type"].should.equal("Sender")
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "Stack: unknown does not exist"
+    assert err["Type"] == "Sender"
 
 
 @mock_cloudformation
@@ -38,7 +38,7 @@ def test_get_stack_policy_on_stack_without_policy():
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
 
     resp = cf_conn.get_stack_policy(StackName="test_stack")
-    resp.shouldnt.have.key("StackPolicyBody")
+    assert "StackPolicyBody" not in resp
 
 
 @mock_cloudformation
@@ -51,11 +51,11 @@ def test_set_stack_policy_with_both_body_and_url():
             StackName="test_stack", StackPolicyBody="{}", StackPolicyURL="..."
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationError")
-    err["Message"].should.equal(
-        "You cannot specify both StackPolicyURL and StackPolicyBody"
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"] == "You cannot specify both StackPolicyURL and StackPolicyBody"
     )
-    err["Type"].should.equal("Sender")
+    assert err["Type"] == "Sender"
 
 
 @mock_cloudformation
@@ -68,7 +68,7 @@ def test_set_stack_policy_with_body():
     cf_conn.set_stack_policy(StackName="test_stack", StackPolicyBody=policy)
 
     resp = cf_conn.get_stack_policy(StackName="test_stack")
-    resp.should.have.key("StackPolicyBody").equals(policy)
+    assert resp["StackPolicyBody"] == policy
 
 
 @mock_cloudformation
@@ -81,7 +81,7 @@ def test_set_stack_policy_on_create():
     )
 
     resp = cf_conn.get_stack_policy(StackName="test_stack")
-    resp.should.have.key("StackPolicyBody").equals("stack_policy_body")
+    assert resp["StackPolicyBody"] == "stack_policy_body"
 
 
 @mock_cloudformation
@@ -101,7 +101,7 @@ def test_set_stack_policy_with_url():
     cf_conn.set_stack_policy(StackName="test_stack", StackPolicyURL=key_url)
 
     resp = cf_conn.get_stack_policy(StackName="test_stack")
-    resp.should.have.key("StackPolicyBody").equals(policy)
+    assert resp["StackPolicyBody"] == policy
 
 
 @mock_cloudformation
@@ -113,6 +113,6 @@ def test_set_stack_policy_with_url_pointing_to_unknown_key():
     with pytest.raises(ClientError) as exc:
         cf_conn.set_stack_policy(StackName="test_stack", StackPolicyURL="...")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationError")
-    err["Message"].should.contain("S3 error: Access Denied")
-    err["Type"].should.equal("Sender")
+    assert err["Code"] == "ValidationError"
+    assert "S3 error: Access Denied" in err["Message"]
+    assert err["Type"] == "Sender"

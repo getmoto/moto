@@ -5,7 +5,6 @@ from unittest import TestCase
 
 
 class TestSelectStatements:
-
     mock = mock_dynamodb()
 
     @classmethod

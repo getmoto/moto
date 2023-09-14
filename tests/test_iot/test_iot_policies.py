@@ -30,12 +30,12 @@ def test_attach_policy(iot_client, policy):
     iot_client.attach_policy(policyName=policy_name, target=cert_arn)
 
     res = iot_client.list_attached_policies(target=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(1)
-    res["policies"][0]["policyName"].should.equal("my-policy")
+    assert len(res["policies"]) == 1
+    assert res["policies"][0]["policyName"] == "my-policy"
 
     res = iot_client.list_attached_policies(target=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(1)
-    res["policies"][0]["policyName"].should.equal("my-policy")
+    assert len(res["policies"]) == 1
+    assert res["policies"][0]["policyName"] == "my-policy"
 
 
 @mock_cognitoidentity
@@ -54,8 +54,8 @@ def test_attach_policy_to_identity(region_name, iot_client, policy):
     client.attach_policy(policyName=policy_name, target=identity["IdentityId"])
 
     res = client.list_attached_policies(target=identity["IdentityId"])
-    res.should.have.key("policies").which.should.have.length_of(1)
-    res["policies"][0]["policyName"].should.equal(policy_name)
+    assert len(res["policies"]) == 1
+    assert res["policies"][0]["policyName"] == policy_name
 
 
 def test_detach_policy(iot_client, policy):
@@ -67,18 +67,18 @@ def test_detach_policy(iot_client, policy):
     iot_client.attach_policy(policyName=policy_name, target=cert_arn)
 
     res = iot_client.list_attached_policies(target=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(1)
-    res["policies"][0]["policyName"].should.equal(policy_name)
+    assert len(res["policies"]) == 1
+    assert res["policies"][0]["policyName"] == policy_name
 
     iot_client.detach_policy(policyName=policy_name, target=cert_arn)
     res = iot_client.list_attached_policies(target=cert_arn)
-    res.should.have.key("policies").which.should.be.empty
+    assert res["policies"] == []
 
 
 def test_list_attached_policies(iot_client):
     cert = iot_client.create_keys_and_certificate(setAsActive=True)
     policies = iot_client.list_attached_policies(target=cert["certificateArn"])
-    policies["policies"].should.equal([])
+    assert policies["policies"] == []
 
 
 def test_policy_versions(iot_client):
@@ -86,123 +86,103 @@ def test_policy_versions(iot_client):
     doc = "{}"
 
     policy = iot_client.create_policy(policyName=policy_name, policyDocument=doc)
-    policy.should.have.key("policyName").which.should.equal(policy_name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(json.dumps({}))
-    policy.should.have.key("policyVersionId").which.should.equal("1")
+    assert policy["policyName"] == policy_name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == json.dumps({})
+    assert policy["policyVersionId"] == "1"
 
     policy = iot_client.get_policy(policyName=policy_name)
-    policy.should.have.key("policyName").which.should.equal(policy_name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(json.dumps({}))
-    policy.should.have.key("defaultVersionId").which.should.equal(
-        policy["defaultVersionId"]
-    )
+    assert policy["policyName"] == policy_name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == json.dumps({})
+    assert policy["defaultVersionId"] == policy["defaultVersionId"]
 
     policy1 = iot_client.create_policy_version(
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_1"}),
         setAsDefault=True,
     )
-    policy1.should.have.key("policyArn").which.should_not.be.none
-    policy1.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_1"})
-    )
-    policy1.should.have.key("policyVersionId").which.should.equal("2")
-    policy1.should.have.key("isDefaultVersion").which.should.equal(True)
+    assert policy1["policyArn"] is not None
+    assert policy1["policyDocument"] == json.dumps({"version": "version_1"})
+    assert policy1["policyVersionId"] == "2"
+    assert policy1["isDefaultVersion"] is True
 
     policy2 = iot_client.create_policy_version(
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_2"}),
         setAsDefault=False,
     )
-    policy2.should.have.key("policyArn").which.should_not.be.none
-    policy2.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_2"})
-    )
-    policy2.should.have.key("policyVersionId").which.should.equal("3")
-    policy2.should.have.key("isDefaultVersion").which.should.equal(False)
+    assert policy2["policyArn"] is not None
+    assert policy2["policyDocument"] == json.dumps({"version": "version_2"})
+    assert policy2["policyVersionId"] == "3"
+    assert policy2["isDefaultVersion"] is False
 
     policy = iot_client.get_policy(policyName=policy_name)
-    policy.should.have.key("policyName").which.should.equal(policy_name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_1"})
-    )
-    policy.should.have.key("defaultVersionId").which.should.equal(
-        policy1["policyVersionId"]
-    )
+    assert policy["policyName"] == policy_name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == json.dumps({"version": "version_1"})
+    assert policy["defaultVersionId"] == policy1["policyVersionId"]
 
     policy3 = iot_client.create_policy_version(
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_3"}),
         setAsDefault=False,
     )
-    policy3.should.have.key("policyArn").which.should_not.be.none
-    policy3.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_3"})
-    )
-    policy3.should.have.key("policyVersionId").which.should.equal("4")
-    policy3.should.have.key("isDefaultVersion").which.should.equal(False)
+    assert policy3["policyArn"] is not None
+    assert policy3["policyDocument"] == json.dumps({"version": "version_3"})
+    assert policy3["policyVersionId"] == "4"
+    assert policy3["isDefaultVersion"] is False
 
     policy4 = iot_client.create_policy_version(
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_4"}),
         setAsDefault=False,
     )
-    policy4.should.have.key("policyArn").which.should_not.be.none
-    policy4.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_4"})
-    )
-    policy4.should.have.key("policyVersionId").which.should.equal("5")
-    policy4.should.have.key("isDefaultVersion").which.should.equal(False)
+    assert policy4["policyArn"] is not None
+    assert policy4["policyDocument"] == json.dumps({"version": "version_4"})
+    assert policy4["policyVersionId"] == "5"
+    assert policy4["isDefaultVersion"] is False
 
-    policy_versions = iot_client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(5)
-    list(
-        map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
-    ).count(True).should.equal(1)
+    policy_versions = iot_client.list_policy_versions(policyName=policy_name)[
+        "policyVersions"
+    ]
+    assert len(policy_versions) == 5
+    assert (
+        list(map(lambda item: item["isDefaultVersion"], policy_versions)).count(True)
+        == 1
+    )
     default_policy = list(
-        filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+        filter(lambda item: item["isDefaultVersion"], policy_versions)
     )
-    default_policy[0].should.have.key("versionId").should.equal(
-        policy1["policyVersionId"]
-    )
+    assert default_policy[0]["versionId"] == policy1["policyVersionId"]
 
     policy = iot_client.get_policy(policyName=policy_name)
-    policy.should.have.key("policyName").which.should.equal(policy_name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_1"})
-    )
-    policy.should.have.key("defaultVersionId").which.should.equal(
-        policy1["policyVersionId"]
-    )
+    assert policy["policyName"] == policy_name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == json.dumps({"version": "version_1"})
+    assert policy["defaultVersionId"] == policy1["policyVersionId"]
 
     iot_client.set_default_policy_version(
         policyName=policy_name, policyVersionId=policy4["policyVersionId"]
     )
-    policy_versions = iot_client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(5)
-    list(
-        map(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
-    ).count(True).should.equal(1)
+    policy_versions = iot_client.list_policy_versions(policyName=policy_name)[
+        "policyVersions"
+    ]
+    assert len(policy_versions) == 5
+    assert (
+        list(map(lambda item: item["isDefaultVersion"], policy_versions)).count(True)
+        == 1
+    )
     default_policy = list(
-        filter(lambda item: item["isDefaultVersion"], policy_versions["policyVersions"])
+        filter(lambda item: item["isDefaultVersion"], policy_versions)
     )
-    default_policy[0].should.have.key("versionId").should.equal(
-        policy4["policyVersionId"]
-    )
+    assert default_policy[0]["versionId"] == policy4["policyVersionId"]
 
     policy = iot_client.get_policy(policyName=policy_name)
-    policy.should.have.key("policyName").which.should.equal(policy_name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(
-        json.dumps({"version": "version_4"})
-    )
-    policy.should.have.key("defaultVersionId").which.should.equal(
-        policy4["policyVersionId"]
-    )
+    assert policy["policyName"] == policy_name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == json.dumps({"version": "version_4"})
+    assert policy["defaultVersionId"] == policy4["policyVersionId"]
 
     with pytest.raises(ClientError) as exc:
         iot_client.create_policy_version(
@@ -211,30 +191,31 @@ def test_policy_versions(iot_client):
             setAsDefault=False,
         )
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        f"The policy {policy_name} already has the maximum number of versions (5)"
+    assert (
+        err["Message"]
+        == f"The policy {policy_name} already has the maximum number of versions (5)"
     )
 
     iot_client.delete_policy_version(policyName=policy_name, policyVersionId="1")
     policy_versions = iot_client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(4)
+    assert len(policy_versions["policyVersions"]) == 4
 
     iot_client.delete_policy_version(
         policyName=policy_name, policyVersionId=policy1["policyVersionId"]
     )
     policy_versions = iot_client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(3)
+    assert len(policy_versions["policyVersions"]) == 3
     iot_client.delete_policy_version(
         policyName=policy_name, policyVersionId=policy2["policyVersionId"]
     )
     policy_versions = iot_client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(2)
+    assert len(policy_versions["policyVersions"]) == 2
 
     iot_client.delete_policy_version(
         policyName=policy_name, policyVersionId=policy3["policyVersionId"]
     )
     policy_versions = iot_client.list_policy_versions(policyName=policy_name)
-    policy_versions.should.have.key("policyVersions").which.should.have.length_of(1)
+    assert len(policy_versions["policyVersions"]) == 1
 
     # should fail as it"s the default policy. Should use delete_policy instead
     with pytest.raises(ClientError) as exc:
@@ -242,7 +223,7 @@ def test_policy_versions(iot_client):
             policyName=policy_name, policyVersionId=policy4["policyVersionId"]
         )
     err = exc.value.response["Error"]
-    err["Message"].should.equal("Cannot delete the default version of a policy")
+    assert err["Message"] == "Cannot delete the default version of a policy"
 
 
 def test_policy_versions_increment_beyond_5(iot_client, policy):
@@ -260,7 +241,7 @@ def test_policy_versions_increment_beyond_5(iot_client, policy):
             policyDocument=json.dumps({"version": f"version_{v}"}),
             setAsDefault=True,
         )
-        new_version.should.have.key("policyVersionId").which.should.equal(str(v))
+        assert new_version["policyVersionId"] == str(v)
         iot_client.delete_policy_version(
             policyName=policy_name, policyVersionId=str(v - 1)
         )
@@ -275,13 +256,13 @@ def test_policy_versions_increment_even_after_version_delete(iot_client, policy)
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_2"}),
     )
-    new_version.should.have.key("policyVersionId").which.should.equal("2")
+    assert new_version["policyVersionId"] == "2"
     iot_client.delete_policy_version(policyName=policy_name, policyVersionId="2")
     third_version = iot_client.create_policy_version(
         policyName=policy_name,
         policyDocument=json.dumps({"version": "version_3"}),
     )
-    third_version.should.have.key("policyVersionId").which.should.equal("3")
+    assert third_version["policyVersionId"] == "3"
 
 
 def test_delete_policy_validation(iot_client):
@@ -306,43 +287,43 @@ def test_delete_policy_validation(iot_client):
 
     with pytest.raises(ClientError) as e:
         iot_client.delete_policy(policyName=policy_name)
-    e.value.response["Error"]["Message"].should.contain(
-        "The policy cannot be deleted as the policy is attached to one or more principals (name=%s)"
-        % policy_name
+    assert (
+        f"The policy cannot be deleted as the policy is attached to one or more principals (name={policy_name})"
+        in e.value.response["Error"]["Message"]
     )
     res = iot_client.list_policies()
-    res.should.have.key("policies").which.should.have.length_of(1)
+    assert len(res["policies"]) == 1
 
     iot_client.detach_principal_policy(policyName=policy_name, principal=cert_arn)
     iot_client.delete_policy(policyName=policy_name)
     res = iot_client.list_policies()
-    res.should.have.key("policies").which.should.have.length_of(0)
+    assert len(res["policies"]) == 0
 
 
 def test_policy(iot_client):
     name = "my-policy"
     doc = "{}"
     policy = iot_client.create_policy(policyName=name, policyDocument=doc)
-    policy.should.have.key("policyName").which.should.equal(name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(doc)
-    policy.should.have.key("policyVersionId").which.should.equal("1")
+    assert policy["policyName"] == name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == doc
+    assert policy["policyVersionId"] == "1"
 
     policy = iot_client.get_policy(policyName=name)
-    policy.should.have.key("policyName").which.should.equal(name)
-    policy.should.have.key("policyArn").which.should_not.be.none
-    policy.should.have.key("policyDocument").which.should.equal(doc)
-    policy.should.have.key("defaultVersionId").which.should.equal("1")
+    assert policy["policyName"] == name
+    assert policy["policyArn"] is not None
+    assert policy["policyDocument"] == doc
+    assert policy["defaultVersionId"] == "1"
 
     res = iot_client.list_policies()
-    res.should.have.key("policies").which.should.have.length_of(1)
+    assert len(res["policies"]) == 1
     for policy in res["policies"]:
-        policy.should.have.key("policyName").which.should_not.be.none
-        policy.should.have.key("policyArn").which.should_not.be.none
+        assert policy["policyName"] is not None
+        assert policy["policyArn"] is not None
 
     iot_client.delete_policy(policyName=name)
     res = iot_client.list_policies()
-    res.should.have.key("policies").which.should.have.length_of(0)
+    assert len(res["policies"]) == 0
 
 
 def test_attach_policy_to_thing_group(iot_client, policy):
@@ -353,8 +334,8 @@ def test_attach_policy_to_thing_group(iot_client, policy):
     iot_client.attach_policy(policyName=policy_name, target=thing_group_arn)
 
     res = iot_client.list_attached_policies(target=thing_group_arn)
-    res.should.have.key("policies").which.should.have.length_of(1)
-    res["policies"][0]["policyName"].should.equal(policy_name)
+    assert len(res["policies"]) == 1
+    assert res["policies"][0]["policyName"] == policy_name
 
 
 def test_attach_policy_to_non_existant_thing_group_raises_ResourceNotFoundException(
@@ -378,14 +359,15 @@ def test_policy_delete_fails_when_versions_exist(iot_client, policy):
     )
     with pytest.raises(ClientError) as e:
         iot_client.delete_policy(policyName=policy_name)
-    e.value.response["Error"]["Message"].should.contain(
+    assert (
         "Cannot delete the policy because it has one or more policy versions attached to it"
+        in e.value.response["Error"]["Message"]
     )
 
 
 def test_list_targets_for_policy_empty(iot_client, policy):
     res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
-    res.should.have.key("targets").which.should.have.length_of(0)
+    assert len(res["targets"]) == 0
 
 
 def test_list_targets_for_policy_one_attached_thing_group(iot_client, policy):
@@ -396,8 +378,8 @@ def test_list_targets_for_policy_one_attached_thing_group(iot_client, policy):
     iot_client.attach_policy(policyName=policy_name, target=thing_group_arn)
 
     res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
-    res.should.have.key("targets").which.should.have.length_of(1)
-    res["targets"][0].should.equal(thing_group_arn)
+    assert len(res["targets"]) == 1
+    assert res["targets"][0] == thing_group_arn
 
 
 def test_list_targets_for_policy_one_attached_certificate(iot_client, policy):
@@ -408,16 +390,16 @@ def test_list_targets_for_policy_one_attached_certificate(iot_client, policy):
     iot_client.attach_policy(policyName=policy_name, target=cert_arn)
 
     res = iot_client.list_targets_for_policy(policyName=policy["policyName"])
-    res.should.have.key("targets").which.should.have.length_of(1)
-    res["targets"][0].should.equal(cert_arn)
+    assert len(res["targets"]) == 1
+    assert res["targets"][0] == cert_arn
 
 
 def test_list_targets_for_policy_resource_not_found(iot_client):
     with pytest.raises(ClientError) as e:
         iot_client.list_targets_for_policy(policyName="NON_EXISTENT_POLICY_NAME")
 
-    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    e.value.response["Error"]["Message"].should.contain("Policy not found")
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert "Policy not found" in e.value.response["Error"]["Message"]
 
 
 def test_create_policy_fails_when_name_taken(iot_client, policy):
@@ -430,12 +412,11 @@ def test_create_policy_fails_when_name_taken(iot_client, policy):
         )
 
     current_policy = iot_client.get_policy(policyName=policy_name)
-    e.value.response["Error"]["Code"].should.equal("ResourceAlreadyExistsException")
-    e.value.response["Error"]["Message"].should.equal(
-        f"Policy cannot be created - name already exists (name={policy_name})"
+    assert e.value.response["Error"]["Code"] == "ResourceAlreadyExistsException"
+    assert (
+        e.value.response["Error"]["Message"]
+        == f"Policy cannot be created - name already exists (name={policy_name})"
     )
 
     # the policy should not have been overwritten
-    current_policy.should.have.key("policyDocument").which.should.equal(
-        policy["policyDocument"]
-    )
+    assert current_policy["policyDocument"] == policy["policyDocument"]

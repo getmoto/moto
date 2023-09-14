@@ -10,7 +10,7 @@ jobs:
         python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
@@ -21,7 +21,7 @@ jobs:
       run: |
         pip install build
         python -m build
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_EC2_LOAD_DEFAULT_AMIS=false -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${{ matrix.python-version }}-buster /moto/scripts/ci_moto_server.sh &
         python scripts/ci_wait_for_server.py
     - name: Get pip cache dir
       id: pip-cache
@@ -38,6 +38,13 @@ jobs:
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
+    - name: Download Docker dependencies
+      # This happens automatically during test execution
+      # However, our tests can run concurrently
+      # Which means that our tests can pull this image concurrently
+      # Pulling it once is more efficient
+      run: |
+        docker pull mlupin/docker-lambda:python3.11
     - name: Test ServerMode/Coverage
       env:
         TEST_SERVER_MODE: ${{ true }}

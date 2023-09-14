@@ -270,7 +270,7 @@ class ELBResponse(BaseResponse):
         if mb_backend:
             policies = self._get_multi_param("PolicyNames.member")
             self.elb_backend.set_load_balancer_policies_of_backend_server(
-                load_balancer_name, instance_port, policies  # type: ignore[arg-type]
+                load_balancer_name, instance_port, policies
             )
         # else: explode?
 

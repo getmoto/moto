@@ -39,7 +39,7 @@ SCHEMA_VERSION_ID_PATTERN = re.compile(
     r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 )
 MIN_SCHEMA_VERSION_ID_LENGTH = 36
-SCHEMA_VERSION_METADATA_PATTERN = re.compile(r"^[a-zA-Z0-9+-=._./@]+$")
+SCHEMA_VERSION_METADATA_PATTERN = re.compile(r"^[a-zA-Z0-9+=._/@-]+$")
 MAX_SCHEMA_VERSION_METADATA_ALLOWED = 10
 MAX_SCHEMA_VERSION_METADATA_LENGTH = 128
 METADATA_KEY = "MetadataKey"

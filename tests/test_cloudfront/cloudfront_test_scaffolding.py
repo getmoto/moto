@@ -38,7 +38,7 @@ def example_dist_config_with_tags(ref):
     return config
 
 
-def example_dist_custom_config(ref):
+def example_dist_custom_config(ref, ssl_protocols):
     return {
         "CallerReference": ref,
         "Origins": {
@@ -50,12 +50,12 @@ def example_dist_custom_config(ref):
                     "CustomOriginConfig": {
                         "HTTPPort": 80,
                         "HTTPSPort": 443,
-                        "OriginKeepaliveTimeout": 5,
+                        "OriginKeepaliveTimeout": 10,
                         "OriginProtocolPolicy": "http-only",
-                        "OriginReadTimeout": 30,
+                        "OriginReadTimeout": 15,
                         "OriginSslProtocols": {
                             "Quantity": 2,
-                            "Items": ["TLSv1", "SSLv3"],
+                            "Items": ssl_protocols,
                         },
                     },
                 }
@@ -69,4 +69,39 @@ def example_dist_custom_config(ref):
         },
         "Comment": "an optional comment that's not actually optional",
         "Enabled": False,
+    }
+
+
+def minimal_dist_custom_config(ref: str):
+    return {
+        "CallerReference": ref,
+        "Origins": {
+            "Quantity": 1,
+            "Items": [
+                {
+                    "Id": "my-origin",
+                    "DomainName": "example.com",
+                    "CustomOriginConfig": {
+                        "HTTPPort": 80,
+                        "HTTPSPort": 443,
+                        "OriginProtocolPolicy": "http-only",
+                    },
+                }
+            ],
+        },
+        "DefaultCacheBehavior": {
+            "TargetOriginId": "my-origin",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "DefaultTTL": 86400,
+            "AllowedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+            "ForwardedValues": {
+                "QueryString": False,
+                "Cookies": {"Forward": "none"},
+                "Headers": {"Quantity": 0},
+            },
+            "TrustedSigners": {"Enabled": False, "Quantity": 0},
+            "MinTTL": 0,
+        },
+        "Comment": "My CloudFront distribution",
+        "Enabled": True,
     }

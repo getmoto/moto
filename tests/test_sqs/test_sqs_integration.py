@@ -1,7 +1,8 @@
-import boto3
 import json
 import time
 import uuid
+
+import boto3
 
 from moto import mock_lambda, mock_sqs, mock_logs
 from tests.markers import requires_docker
@@ -23,7 +24,7 @@ def test_invoke_function_from_sqs_queue():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=fn_name,
-        Runtime="python2.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -94,7 +95,7 @@ def test_invoke_function_from_sqs_fifo_queue():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=fn_name,
-        Runtime="python3.7",
+        Runtime="python3.11",
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_print_event()},
@@ -132,8 +133,8 @@ def test_invoke_function_from_sqs_fifo_queue():
             try:
                 body = json.loads(event.get("message"))
                 atts = body["Records"][0]["attributes"]
-                atts.should.have.key("MessageGroupId").equals("mg1")
-                atts.should.have.key("MessageDeduplicationId")
+                assert atts["MessageGroupId"] == "mg1"
+                assert "MessageDeduplicationId" in atts
                 return
             except:  # noqa: E722 Do not use bare except
                 pass

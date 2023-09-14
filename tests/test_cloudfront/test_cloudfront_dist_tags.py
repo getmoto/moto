@@ -1,7 +1,6 @@
 import boto3
 from moto import mock_cloudfront
 from . import cloudfront_test_scaffolding as scaffold
-import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_cloudfront
@@ -12,13 +11,11 @@ def test_create_distribution_with_tags():
     config = {"DistributionConfig": config, "Tags": tags}
 
     resp = client.create_distribution_with_tags(DistributionConfigWithTags=config)
-    resp.should.have.key("Distribution")
 
     resp = client.list_tags_for_resource(Resource=resp["Distribution"]["ARN"])
-    resp.should.have.key("Tags")
-    resp["Tags"].should.have.key("Items").length_of(2)
-    resp["Tags"]["Items"].should.contain({"Key": "k1", "Value": "v1"})
-    resp["Tags"]["Items"].should.contain({"Key": "k2", "Value": "v2"})
+    assert len(resp["Tags"]["Items"]) == 2
+    assert {"Key": "k1", "Value": "v1"} in resp["Tags"]["Items"]
+    assert {"Key": "k2", "Value": "v2"} in resp["Tags"]["Items"]
 
 
 @mock_cloudfront
@@ -29,9 +26,7 @@ def test_create_distribution_with_tags_only_one_tag():
     config = {"DistributionConfig": config, "Tags": tags}
 
     resp = client.create_distribution_with_tags(DistributionConfigWithTags=config)
-    resp.should.have.key("Distribution")
 
     resp = client.list_tags_for_resource(Resource=resp["Distribution"]["ARN"])
-    resp.should.have.key("Tags")
-    resp["Tags"].should.have.key("Items").length_of(1)
-    resp["Tags"]["Items"].should.contain({"Key": "k1", "Value": "v1"})
+    assert len(resp["Tags"]["Items"]) == 1
+    assert {"Key": "k1", "Value": "v1"} in resp["Tags"]["Items"]

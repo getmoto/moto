@@ -2,12 +2,11 @@ import contextlib
 import copy
 import warnings
 from collections import OrderedDict
-from datetime import datetime
 from typing import Any, Dict, ItemsView, List, Tuple, Optional, Set
 from moto import settings
 
 from moto.core import CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.launch_templates import LaunchTemplateVersion
@@ -95,7 +94,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
             self.image_id = template_version.image_id
         else:
-            self.image_id = image_id  # type: ignore
+            self.image_id = image_id
         # Check if we have tags to process
         if launch_template_arg:
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
@@ -120,6 +119,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         in_ec2_classic = not bool(self.subnet_id)
         self.key_name = kwargs.get("key_name")
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
+        self.monitoring_state = kwargs.get("monitoring_state", "disabled")
         self.source_dest_check = "true"
         self.launch_time = utc_date_and_time()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
@@ -214,7 +214,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         kms_key_id: Optional[str],
         volume_type: Optional[str],
     ) -> None:
-        volume = self.ec2_backend.create_volume(  # type: ignore[attr-defined]
+        volume = self.ec2_backend.create_volume(
             size=size,
             zone_name=self._placement.zone,
             snapshot_id=snapshot_id,
@@ -380,9 +380,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.name = "stopped"
         self._state.code = 80
 
-        self._reason = (
-            f"User initiated ({datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        )
+        self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
         self._state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
@@ -432,9 +430,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.name = "terminated"
         self._state.code = 48
 
-        self._reason = (
-            f"User initiated ({datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        )
+        self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
         self._state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
@@ -721,7 +717,7 @@ class InstanceBackend:
                     kms_key_id = block_device["Ebs"].get("KmsKeyId")
 
                     if block_device.get("NoDevice") != "":
-                        new_instance.add_block_device(  # type: ignore[attr-defined]
+                        new_instance.add_block_device(
                             volume_size,
                             device_name,
                             snapshot_id,

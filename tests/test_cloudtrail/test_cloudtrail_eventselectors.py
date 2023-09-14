@@ -26,19 +26,17 @@ def test_put_event_selectors():
         ],
     )
 
-    resp.should.have.key("TrailARN")
-    resp.should.have.key("EventSelectors").equals(
-        [
-            {
-                "ReadWriteType": "All",
-                "IncludeManagementEvents": True,
-                "DataResources": [
-                    {"Type": "AWS::S3::Object", "Values": ["arn:aws:s3:::*/*"]}
-                ],
-            }
-        ]
-    )
-    resp.shouldnt.have.key("AdvancedEventSelectors")
+    assert "TrailARN" in resp
+    assert resp["EventSelectors"] == [
+        {
+            "ReadWriteType": "All",
+            "IncludeManagementEvents": True,
+            "DataResources": [
+                {"Type": "AWS::S3::Object", "Values": ["arn:aws:s3:::*/*"]}
+            ],
+        }
+    ]
+    assert "AdvancedEventSelectors" not in resp
 
 
 @mock_cloudtrail
@@ -63,21 +61,19 @@ def test_put_event_selectors_advanced():
         ],
     )
 
-    resp.should.have.key("TrailARN")
-    resp.should.have.key("EventSelectors").equals(
-        [
-            {
-                "ReadWriteType": "All",
-                "IncludeManagementEvents": True,
-                "DataResources": [
-                    {"Type": "AWS::S3::Object", "Values": ["arn:aws:s3:::*/*"]}
-                ],
-            }
-        ]
-    )
-    resp.should.have.key("AdvancedEventSelectors").equals(
-        [{"Name": "aes1", "FieldSelectors": [{"Field": "f", "Equals": ["fs1"]}]}]
-    )
+    assert "TrailARN" in resp
+    assert resp["EventSelectors"] == [
+        {
+            "ReadWriteType": "All",
+            "IncludeManagementEvents": True,
+            "DataResources": [
+                {"Type": "AWS::S3::Object", "Values": ["arn:aws:s3:::*/*"]}
+            ],
+        }
+    ]
+    assert resp["AdvancedEventSelectors"] == [
+        {"Name": "aes1", "FieldSelectors": [{"Field": "f", "Equals": ["fs1"]}]}
+    ]
 
 
 @mock_cloudtrail
@@ -88,11 +84,12 @@ def test_get_event_selectors_empty():
 
     resp = client.get_event_selectors(TrailName=trail_name)
 
-    resp.should.have.key("TrailARN").equals(
-        f"arn:aws:cloudtrail:ap-southeast-1:{ACCOUNT_ID}:trail/{trail_name}"
+    assert (
+        resp["TrailARN"]
+        == f"arn:aws:cloudtrail:ap-southeast-1:{ACCOUNT_ID}:trail/{trail_name}"
     )
-    resp.should.have.key("EventSelectors").equals([])
-    resp.should.have.key("AdvancedEventSelectors").equals([])
+    assert resp["EventSelectors"] == []
+    assert resp["AdvancedEventSelectors"] == []
 
 
 @mock_cloudtrail
@@ -116,20 +113,19 @@ def test_get_event_selectors():
 
     resp = client.get_event_selectors(TrailName=trail_name)
 
-    resp.should.have.key("TrailARN").equals(
-        f"arn:aws:cloudtrail:ap-southeast-2:{ACCOUNT_ID}:trail/{trail_name}"
+    assert (
+        resp["TrailARN"]
+        == f"arn:aws:cloudtrail:ap-southeast-2:{ACCOUNT_ID}:trail/{trail_name}"
     )
-    resp.should.have.key("EventSelectors").equals(
-        [
-            {
-                "ReadWriteType": "All",
-                "IncludeManagementEvents": False,
-                "DataResources": [
-                    {"Type": "AWS::S3::Object", "Values": ["arn:aws:s3:::*/*"]}
-                ],
-            }
-        ]
-    )
+    assert resp["EventSelectors"] == [
+        {
+            "ReadWriteType": "All",
+            "IncludeManagementEvents": False,
+            "DataResources": [
+                {"Type": "AWS::S3::Object", "Values": ["arn:aws:s3:::*/*"]}
+            ],
+        }
+    ]
 
 
 @mock_cloudtrail
@@ -160,13 +156,12 @@ def test_get_event_selectors_multiple():
 
     resp = client.get_event_selectors(TrailName=trail_name)
 
-    resp.should.have.key("TrailARN")
+    assert "TrailARN" in resp
     # Setting advanced selectors cancels any existing event selectors
-    resp.should.have.key("EventSelectors").equals([])
-    resp.should.have.key("AdvancedEventSelectors").length_of(1)
-    resp.should.have.key("AdvancedEventSelectors").equals(
-        [{"Name": "aes1", "FieldSelectors": [{"Field": "f", "Equals": ["fs1"]}]}]
-    )
+    assert resp["EventSelectors"] == []
+    assert resp["AdvancedEventSelectors"] == [
+        {"Name": "aes1", "FieldSelectors": [{"Field": "f", "Equals": ["fs1"]}]}
+    ]
 
 
 @mock_cloudtrail
@@ -180,10 +175,8 @@ def test_put_insight_selectors(using_arn):
         TrailName=trail_name, InsightSelectors=[{"InsightType": "ApiCallRateInsight"}]
     )
 
-    resp.should.have.key("TrailARN")
-    resp.should.have.key("InsightSelectors").equals(
-        [{"InsightType": "ApiCallRateInsight"}]
-    )
+    assert "TrailARN" in resp
+    assert resp["InsightSelectors"] == [{"InsightType": "ApiCallRateInsight"}]
 
     if using_arn:
         trail_arn = resp["TrailARN"]
@@ -191,10 +184,8 @@ def test_put_insight_selectors(using_arn):
     else:
         resp = client.get_insight_selectors(TrailName=trail_name)
 
-    resp.should.have.key("TrailARN")
-    resp.should.have.key("InsightSelectors").equals(
-        [{"InsightType": "ApiCallRateInsight"}]
-    )
+    assert "TrailARN" in resp
+    assert resp["InsightSelectors"] == [{"InsightType": "ApiCallRateInsight"}]
 
 
 @mock_cloudtrail
@@ -204,5 +195,5 @@ def test_get_insight_selectors():
     _, resp, trail_name = create_trail_simple(region_name="eu-west-1")
     resp = client.get_insight_selectors(TrailName=trail_name)
 
-    resp.should.have.key("TrailARN")
-    resp.shouldnt.have.key("InsightSelectors")
+    assert "TrailARN" in resp
+    assert "InsightSelectors" not in resp

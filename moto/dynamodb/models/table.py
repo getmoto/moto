@@ -1,10 +1,9 @@
 from collections import defaultdict
 import copy
-import datetime
 
 from typing import Any, Dict, Optional, List, Tuple, Iterator, Sequence
 from moto.core import BaseModel, CloudFormationModel
-from moto.core.utils import unix_time, unix_time_millis
+from moto.core.utils import unix_time, unix_time_millis, utcnow
 from moto.dynamodb.comparisons import get_filter_expression, get_expected
 from moto.dynamodb.exceptions import (
     InvalidIndexNameError,
@@ -50,12 +49,18 @@ class SecondaryIndex(BaseModel):
             ]
 
             if projection_type == "KEYS_ONLY":
-                item = item.project(",".join(key_attributes))
+                # 'project' expects lists of lists of strings
+                # project([["attr1"], ["nested", "attr2"]]
+                #
+                # In our case, we need to convert
+                # ["key1", "key2"]
+                # into
+                # [["key1"], ["key2"]]
+                item = item.project([[attr] for attr in key_attributes])
             elif projection_type == "INCLUDE":
-                allowed_attributes = key_attributes + self.projection.get(
-                    "NonKeyAttributes", []
-                )
-                item = item.project(",".join(allowed_attributes))
+                allowed_attributes = key_attributes
+                allowed_attributes.extend(self.projection.get("NonKeyAttributes", []))
+                item = item.project([[attr] for attr in allowed_attributes])
             # ALL is handled implicitly by not filtering
         return item
 
@@ -147,7 +152,7 @@ class StreamRecord(BaseModel):
             "awsRegion": "us-east-1",
             "dynamodb": {
                 "StreamViewType": stream_type,
-                "ApproximateCreationDateTime": datetime.datetime.utcnow().isoformat(),
+                "ApproximateCreationDateTime": utcnow().isoformat(),
                 "SequenceNumber": str(seq),
                 "SizeBytes": 1,
                 "Keys": keys,
@@ -175,7 +180,7 @@ class StreamShard(BaseModel):
         self.id = "shardId-00000001541626099285-f35f62ef"
         self.starting_sequence_number = 1100000000017454423009
         self.items: List[StreamRecord] = []
-        self.created_on = datetime.datetime.utcnow()
+        self.created_on = utcnow()
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -271,7 +276,7 @@ class Table(CloudFormationModel):
             GlobalSecondaryIndex.create(i, self.table_key_attrs)
             for i in (global_indexes if global_indexes else [])
         ]
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
         self.items = defaultdict(dict)  # type: ignore  # [hash: DynamoType] or [hash: [range: DynamoType]]
         self.table_arn = self._generate_arn(table_name)
         self.tags = tags or []
@@ -320,7 +325,7 @@ class Table(CloudFormationModel):
     def has_cfn_attr(cls, attr: str) -> bool:
         return attr in ["Arn", "StreamArn"]
 
-    def get_cfn_attribute(self, attribute_name: str) -> Any:  # type: ignore[misc]
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
@@ -410,7 +415,7 @@ class Table(CloudFormationModel):
             and (streams.get("StreamEnabled") or streams.get("StreamViewType"))
         ):
             self.stream_specification["StreamEnabled"] = True
-            self.latest_stream_label = datetime.datetime.utcnow().isoformat()
+            self.latest_stream_label = utcnow().isoformat()
             self.stream_shard = StreamShard(self.account_id, self)
         else:
             self.stream_specification = {"StreamEnabled": False}
@@ -488,18 +493,18 @@ class Table(CloudFormationModel):
         self, item_attrs: Dict[str, Any], attr: Optional[str] = None
     ) -> None:
         for key, value in item_attrs.items():
-            if type(value) == dict:
+            if isinstance(value, dict):
                 self._validate_item_types(value, attr=key if attr is None else key)
-            elif type(value) == int and key == "N":
+            elif isinstance(value, int) and key == "N":
                 raise InvalidConversion
             if key == "S":
                 # This scenario is usually caught by boto3, but the user can disable parameter validation
                 # Which is why we need to catch it 'server-side' as well
-                if type(value) == int:
+                if isinstance(value, int):
                     raise SerializationException(
                         "NUMBER_VALUE cannot be converted to String"
                     )
-                if attr and attr in self.table_key_attrs and type(value) == dict:
+                if attr and attr in self.table_key_attrs and isinstance(value, dict):
                     raise SerializationException(
                         "Start of structure or map found where not expected"
                     )
@@ -592,7 +597,7 @@ class Table(CloudFormationModel):
         self,
         hash_key: DynamoType,
         range_key: Optional[DynamoType] = None,
-        projection_expression: Optional[str] = None,
+        projection_expression: Optional[List[List[str]]] = None,
     ) -> Optional[Item]:
         if self.has_range_key and not range_key:
             raise MockValidationException(
@@ -637,7 +642,7 @@ class Table(CloudFormationModel):
         limit: int,
         exclusive_start_key: Dict[str, Any],
         scan_index_forward: bool,
-        projection_expression: str,
+        projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
         filter_expression: Any = None,
         **filter_kwargs: Any,
@@ -754,8 +759,8 @@ class Table(CloudFormationModel):
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
 
-        if projection_expression:
-            results = [r.project(projection_expression) for r in results]
+        if projection_expressions:
+            results = [r.project(projection_expressions) for r in results]
 
         return results, scanned_count, last_evaluated_key
 
@@ -799,7 +804,7 @@ class Table(CloudFormationModel):
         exclusive_start_key: Dict[str, Any],
         filter_expression: Any = None,
         index_name: Optional[str] = None,
-        projection_expression: Optional[str] = None,
+        projection_expression: Optional[List[List[str]]] = None,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results = []
         scanned_count = 0
@@ -922,7 +927,7 @@ class Backup:
         self.table = copy.deepcopy(table)
         self.status = status or "AVAILABLE"
         self.type = type_ or "USER"
-        self.creation_date_time = datetime.datetime.utcnow()
+        self.creation_date_time = utcnow()
         self.identifier = self._make_identifier()
 
     def _make_identifier(self) -> str:

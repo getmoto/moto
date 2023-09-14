@@ -2,7 +2,7 @@ import base64
 import time
 from collections import defaultdict
 import copy
-import datetime
+from datetime import datetime
 from gzip import GzipFile
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from sys import platform
@@ -20,12 +20,13 @@ import tarfile
 import calendar
 import threading
 import weakref
+import warnings
 import requests.exceptions
 
 from moto.awslambda.policy import Policy
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds
+from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds, utcnow
 from moto.iam.models import iam_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.ecr.exceptions import ImageNotFoundException
@@ -36,6 +37,7 @@ from moto.ecr.models import ecr_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto import settings
 from .exceptions import (
+    ConflictException,
     CrossAccountNotAllowed,
     FunctionUrlConfigNotFound,
     InvalidRoleFormat,
@@ -44,6 +46,7 @@ from .exceptions import (
     UnknownLayerVersionException,
     UnknownFunctionException,
     UnknownAliasException,
+    ValidationException,
 )
 from .utils import (
     make_function_arn,
@@ -56,33 +59,27 @@ from moto.sqs import sqs_backends
 from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.utilities.docker_utilities import DockerModel
-from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 
 
-def zip2tar(zip_bytes: bytes) -> bytes:
-    with TemporaryDirectory() as td:
-        tarname = os.path.join(td, "data.tar")
-        timeshift = int(
-            (datetime.datetime.now() - datetime.datetime.utcnow()).total_seconds()
-        )
-        with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zipf, tarfile.TarFile(
-            tarname, "w"
-        ) as tarf:
-            for zipinfo in zipf.infolist():
-                if zipinfo.filename[-1] == "/":  # is_dir() is py3.6+
-                    continue
+def zip2tar(zip_bytes: bytes) -> io.BytesIO:
+    tarstream = io.BytesIO()
+    timeshift = int((datetime.now() - utcnow()).total_seconds())
+    tarf = tarfile.TarFile(fileobj=tarstream, mode="w")
+    with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zipf:
+        for zipinfo in zipf.infolist():
+            if zipinfo.is_dir():
+                continue
 
-                tarinfo = tarfile.TarInfo(name=zipinfo.filename)
-                tarinfo.size = zipinfo.file_size
-                tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
-                infile = zipf.open(zipinfo.filename)
-                tarf.addfile(tarinfo, infile)
+            tarinfo = tarfile.TarInfo(name=zipinfo.filename)
+            tarinfo.size = zipinfo.file_size
+            tarinfo.mtime = calendar.timegm(zipinfo.date_time) - timeshift
+            infile = zipf.open(zipinfo.filename)
+            tarf.addfile(tarinfo, infile)
 
-        with open(tarname, "rb") as f:
-            tar_data = f.read()
-            return tar_data
+    tarstream.seek(0)
+    return tarstream
 
 
 class _VolumeRefCount:
@@ -133,8 +130,91 @@ class _DockerDataVolumeContext:
                 "busybox", "sleep 100", volumes=volumes, detach=True
             )
             try:
-                tar_bytes = zip2tar(self._lambda_func.code_bytes)
-                container.put_archive(settings.LAMBDA_DATA_DIR, tar_bytes)
+                with zip2tar(self._lambda_func.code_bytes) as stream:
+                    container.put_archive(settings.LAMBDA_DATA_DIR, stream)
+            finally:
+                container.remove(force=True)
+
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        with self.__class__._lock:
+            self._vol_ref.refcount -= 1  # type: ignore[union-attr]
+            if self._vol_ref.refcount == 0:  # type: ignore[union-attr]
+                try:
+                    self._vol_ref.volume.remove()  # type: ignore[union-attr]
+                except docker.errors.APIError as e:
+                    if e.status_code != 409:
+                        raise
+
+                    raise  # multiple processes trying to use same volume?
+
+
+class _DockerDataVolumeLayerContext:
+    _data_vol_map: Dict[str, _VolumeRefCount] = defaultdict(
+        lambda: _VolumeRefCount(0, None)
+    )
+    _lock = threading.Lock()
+
+    def __init__(self, lambda_func: "LambdaFunction"):
+        self._lambda_func = lambda_func
+        self._layers: List[Dict[str, str]] = self._lambda_func.layers
+        self._vol_ref: Optional[_VolumeRefCount] = None
+
+    @property
+    def name(self) -> str:
+        return self._vol_ref.volume.name  # type: ignore[union-attr]
+
+    @property
+    def hash(self) -> str:
+        return "-".join(
+            [
+                layer["Arn"].split("layer:")[-1].replace(":", "_")
+                for layer in self._layers
+            ]
+        )
+
+    def __enter__(self) -> "_DockerDataVolumeLayerContext":
+        # See if volume is already known
+        with self.__class__._lock:
+            self._vol_ref = self.__class__._data_vol_map[self.hash]
+            self._vol_ref.refcount += 1
+            if self._vol_ref.refcount > 1:
+                return self
+
+            # See if the volume already exists
+            for vol in self._lambda_func.docker_client.volumes.list():
+                if vol.name == self.hash:
+                    self._vol_ref.volume = vol
+                    return self
+
+            # It doesn't exist so we need to create it
+            self._vol_ref.volume = self._lambda_func.docker_client.volumes.create(
+                self.hash
+            )
+            # If we don't have any layers to apply, just return at this point
+            # When invoking the function, we will bind this empty volume
+            if len(self._layers) == 0:
+                return self
+            volumes = {self.name: {"bind": "/opt", "mode": "rw"}}
+
+            self._lambda_func.ensure_image_exists("busybox")
+            container = self._lambda_func.docker_client.containers.run(
+                "busybox", "sleep 100", volumes=volumes, detach=True
+            )
+            backend: "LambdaBackend" = lambda_backends[self._lambda_func.account_id][
+                self._lambda_func.region
+            ]
+            try:
+                for layer in self._layers:
+                    try:
+                        layer_zip = backend.layers_versions_by_arn(  # type: ignore[union-attr]
+                            layer["Arn"]
+                        ).code_bytes
+                        layer_tar = zip2tar(layer_zip)
+                        container.put_archive("/opt", layer_tar)
+                    except zipfile.BadZipfile as e:
+                        warnings.warn(f"Error extracting layer to Lambda: {e}")
             finally:
                 container.remove(force=True)
 
@@ -195,6 +275,22 @@ def _validate_s3_bucket_and_key(
     return key
 
 
+class ImageConfig:
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.cmd = config.get("Command", [])
+        self.entry_point = config.get("EntryPoint", [])
+        self.working_directory = config.get("WorkingDirectory", None)
+
+    def response(self) -> Dict[str, Any]:
+        content = {
+            "Command": self.cmd,
+            "EntryPoint": self.entry_point,
+        }
+        if self.working_directory is not None:
+            content["WorkingDirectory"] = self.working_directory
+        return dict(content)
+
+
 class Permission(CloudFormationModel):
     def __init__(self, region: str):
         self.region = region
@@ -238,7 +334,7 @@ class LayerVersion(CloudFormationModel):
         self.license_info = spec.get("LicenseInfo", "")
 
         # auto-generated
-        self.created_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        self.created_date = utcnow().strftime("%Y-%m-%d %H:%M:%S")
         self.version: Optional[int] = None
         self._attached = False
         self._layer: Optional["Layer"] = None
@@ -258,9 +354,7 @@ class LayerVersion(CloudFormationModel):
                     self.code_size,
                     self.code_sha_256,
                     self.code_digest,
-                ) = _s3_content(
-                    key
-                )  # type: ignore[assignment]
+                ) = _s3_content(key)
 
     @property
     def arn(self) -> str:
@@ -428,16 +522,29 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
         # optional
+        self.ephemeral_storage: str
+        self.code_digest: str
+        self.code_bytes: bytes
+
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
         self.package_type = spec.get("PackageType", None)
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
-        self.layers = self._get_layers_data(spec.get("Layers", []))
+        self.layers: List[Dict[str, str]] = self._get_layers_data(
+            spec.get("Layers", [])
+        )
         self.signing_profile_version_arn = spec.get("SigningProfileVersionArn")
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
         self.tracing_config = spec.get("TracingConfig") or {"Mode": "PassThrough"}
+        self.architectures: List[str] = spec.get("Architectures", ["x86_64"])
+        self.image_config: ImageConfig = ImageConfig(spec.get("ImageConfig", {}))
+        _es = spec.get("EphemeralStorage")
+        if _es:
+            self.ephemeral_storage = _es["Size"]
+        else:
+            self.ephemeral_storage = 512
 
         self.logs_group_name = f"/aws/lambda/{self.function_name}"
 
@@ -448,73 +555,15 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         # auto-generated
         self.version = version
-        self.last_modified = iso_8601_datetime_with_nanoseconds(
-            datetime.datetime.utcnow()
-        )
+        self.last_modified = iso_8601_datetime_with_nanoseconds()
 
-        if "ZipFile" in self.code:
-            (
-                self.code_bytes,
-                self.code_size,
-                self.code_sha_256,
-                self.code_digest,
-            ) = _zipfile_content(self.code["ZipFile"])
-
-            # TODO: we should be putting this in a lambda bucket
-            self.code["UUID"] = str(random.uuid4())
-            self.code["S3Key"] = f"{self.function_name}-{self.code['UUID']}"
-        elif "S3Bucket" in self.code:
-            key = _validate_s3_bucket_and_key(self.account_id, data=self.code)
-            if key:
-                (
-                    self.code_bytes,
-                    self.code_size,
-                    self.code_sha_256,
-                    self.code_digest,
-                ) = _s3_content(key)
-            else:
-                self.code_bytes = b""
-                self.code_size = 0
-                self.code_sha_256 = ""
-        elif "ImageUri" in self.code:
-            if settings.lambda_stub_ecr():
-                self.code_sha_256 = hashlib.sha256(
-                    self.code["ImageUri"].encode("utf-8")
-                ).hexdigest()
-                self.code_size = 0
-            else:
-                if "@" in self.code["ImageUri"]:
-                    # deploying via digest
-                    uri, digest = self.code["ImageUri"].split("@")
-                    image_id = {"imageDigest": digest}
-                else:
-                    # deploying via tag
-                    uri, tag = self.code["ImageUri"].split(":")
-                    image_id = {"imageTag": tag}
-
-                repo_name = uri.split("/")[-1]
-                ecr_backend = ecr_backends[self.account_id][self.region]
-                registry_id = ecr_backend.describe_registry()["registryId"]
-                images = ecr_backend.batch_get_image(
-                    repository_name=repo_name, image_ids=[image_id]
-                )["images"]
-
-                if len(images) == 0:
-                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
-                else:
-                    manifest = json.loads(images[0]["imageManifest"])
-                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
-                        "sha256:", ""
-                    )
-                    self.code_size = manifest["config"]["size"]
+        self._set_function_code(self.code)
 
         self.function_arn = make_function_arn(
             self.region, self.account_id, self.function_name
         )
 
         self.tags = spec.get("Tags") or dict()
-
-        self._aliases: Dict[str, LambdaAlias] = dict()
 
     def __getstate__(self) -> Dict[str, Any]:
         return {
@@ -528,9 +577,42 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name, version
         )
         self.version = version
-        self.last_modified = iso_8601_datetime_with_nanoseconds(
-            datetime.datetime.utcnow()
-        )
+        self.last_modified = iso_8601_datetime_with_nanoseconds()
+
+    @property
+    def architectures(self) -> List[str]:
+        return self._architectures
+
+    @architectures.setter
+    def architectures(self, architectures: List[str]) -> None:
+        if (
+            len(architectures) > 1
+            or not architectures
+            or architectures[0] not in ("x86_64", "arm64")
+        ):
+            raise ValidationException(
+                str(architectures),
+                "architectures",
+                "Member must satisfy constraint: "
+                "[Member must satisfy enum value set: [x86_64, arm64], Member must not be null]",
+            )
+        self._architectures = architectures
+
+    @property
+    def ephemeral_storage(self) -> int:
+        return self._ephemeral_storage
+
+    @ephemeral_storage.setter
+    def ephemeral_storage(self, ephemeral_storage: int) -> None:
+        if ephemeral_storage > 10240:
+            raise ValidationException(
+                str(ephemeral_storage),
+                "ephemeralStorage.size",
+                "Member must have value less than or equal to 10240",
+            )
+
+        # ephemeral_storage < 512 is handled by botocore 1.30.0
+        self._ephemeral_storage = ephemeral_storage
 
     @property
     def vpc_config(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -583,7 +665,16 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             "SigningProfileVersionArn": self.signing_profile_version_arn,
             "SigningJobArn": self.signing_job_arn,
             "TracingConfig": self.tracing_config,
+            "Architectures": self.architectures,
+            "EphemeralStorage": {
+                "Size": self.ephemeral_storage,
+            },
+            "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
         }
+        if self.package_type == "Image":
+            config["ImageConfigResponse"] = {
+                "ImageConfig": self.image_config.response(),
+            }
         if not on_create:
             # Only return this variable after the first creation
             config["LastUpdateStatus"] = "Successful"
@@ -642,12 +733,16 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         return self.get_configuration()
 
-    def update_function_code(self, updated_spec: Dict[str, Any]) -> Dict[str, Any]:
-        if "DryRun" in updated_spec and updated_spec["DryRun"]:
-            return self.get_configuration()
+    def _set_function_code(self, updated_spec: Dict[str, Any]) -> None:
+        from_update = updated_spec is not self.code
+
+        # "DryRun" is only used for UpdateFunctionCode
+        if from_update and "DryRun" in updated_spec and updated_spec["DryRun"]:
+            return
 
         if "ZipFile" in updated_spec:
-            self.code["ZipFile"] = updated_spec["ZipFile"]
+            if from_update:
+                self.code["ZipFile"] = updated_spec["ZipFile"]
 
             (
                 self.code_bytes,
@@ -662,10 +757,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         elif "S3Bucket" in updated_spec and "S3Key" in updated_spec:
             key = None
             try:
-                # FIXME: does not validate bucket region
-                key = s3_backends[self.account_id]["global"].get_object(
-                    updated_spec["S3Bucket"], updated_spec["S3Key"]
-                )
+                if from_update:
+                    # FIXME: does not validate bucket region
+                    key = s3_backends[self.account_id]["global"].get_object(
+                        updated_spec["S3Bucket"], updated_spec["S3Key"]
+                    )
+                else:
+                    key = _validate_s3_bucket_and_key(self.account_id, data=self.code)
             except MissingBucket:
                 if do_validate_s3():
                     raise ValueError(
@@ -684,12 +782,50 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     self.code_size,
                     self.code_sha_256,
                     self.code_digest,
-                ) = _s3_content(
-                    key
-                )  # type: ignore[assignment]
+                ) = _s3_content(key)
+            else:
+                self.code_bytes = b""
+                self.code_size = 0
+                self.code_sha_256 = ""
+            if from_update:
                 self.code["S3Bucket"] = updated_spec["S3Bucket"]
                 self.code["S3Key"] = updated_spec["S3Key"]
+        elif "ImageUri" in updated_spec:
+            if settings.lambda_stub_ecr():
+                self.code_sha_256 = hashlib.sha256(
+                    updated_spec["ImageUri"].encode("utf-8")
+                ).hexdigest()
+                self.code_size = 0
+            else:
+                if "@" in updated_spec["ImageUri"]:
+                    # deploying via digest
+                    uri, digest = updated_spec["ImageUri"].split("@")
+                    image_id = {"imageDigest": digest}
+                else:
+                    # deploying via tag
+                    uri, tag = updated_spec["ImageUri"].split(":")
+                    image_id = {"imageTag": tag}
 
+                repo_name = uri.split("/")[-1]
+                ecr_backend = ecr_backends[self.account_id][self.region]
+                registry_id = ecr_backend.describe_registry()["registryId"]
+                images = ecr_backend.batch_get_image(
+                    repository_name=repo_name, image_ids=[image_id]
+                )["images"]
+
+                if len(images) == 0:
+                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                else:
+                    manifest = json.loads(images[0]["imageManifest"])
+                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
+                        "sha256:", ""
+                    )
+                    self.code_size = manifest["config"]["size"]
+            if from_update:
+                self.code["ImageUri"] = updated_spec["ImageUri"]
+
+    def update_function_code(self, updated_spec: Dict[str, Any]) -> Dict[str, Any]:
+        self._set_function_code(updated_spec)
         return self.get_configuration()
 
     @staticmethod
@@ -701,7 +837,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def _invoke_lambda(self, event: Optional[str] = None) -> Tuple[str, bool, str]:
         # Create the LogGroup if necessary, to write the result to
-        self.logs_backend.ensure_log_group(self.logs_group_name, [])
+        self.logs_backend.ensure_log_group(self.logs_group_name)
         # TODO: context not yet implemented
         if event is None:
             event = dict()  # type: ignore[assignment]
@@ -734,7 +870,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
 
-            with _DockerDataVolumeContext(self) as data_vol:
+            with _DockerDataVolumeContext(
+                self
+            ) as data_vol, _DockerDataVolumeLayerContext(self) as layer_context:
                 try:
                     run_kwargs: Dict[str, Any] = dict()
                     network_name = settings.moto_network_name()
@@ -776,12 +914,16 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             break
                         except docker.errors.NotFound:
                             pass
+                    volumes = {
+                        data_vol.name: {"bind": "/var/task", "mode": "rw"},
+                        layer_context.name: {"bind": "/opt", "mode": "rw"},
+                    }
                     container = self.docker_client.containers.run(
                         image_ref,
                         [self.handler, json.dumps(event)],
                         remove=False,
                         mem_limit=f"{self.memory_size}m",
-                        volumes=[f"{data_vol.name}:/var/task"],
+                        volumes=volumes,
                         environment=env_vars,
                         detach=True,
                         log_config=log_config,
@@ -822,7 +964,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def save_logs(self, output: str) -> None:
         # Send output to "logs" backend
         invoke_id = random.uuid4().hex
-        date = datetime.datetime.utcnow()
+        date = utcnow()
         log_stream_name = (
             f"{date.year}/{date.month:02d}/{date.day:02d}/[{self.version}]{invoke_id}"
         )
@@ -954,46 +1096,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def delete(self, account_id: str, region: str) -> None:
         lambda_backends[account_id][region].delete_function(self.function_name)
 
-    def delete_alias(self, name: str) -> None:
-        self._aliases.pop(name, None)
-
-    def get_alias(self, name: str) -> LambdaAlias:
-        if name in self._aliases:
-            return self._aliases[name]
-        arn = f"arn:aws:lambda:{self.region}:{self.account_id}:function:{self.function_name}:{name}"
-        raise UnknownAliasException(arn)
-
-    def has_alias(self, alias_name: str) -> bool:
-        try:
-            return self.get_alias(alias_name) is not None
-        except UnknownAliasException:
-            return False
-
-    def put_alias(
-        self, name: str, description: str, function_version: str, routing_config: str
-    ) -> LambdaAlias:
-        alias = LambdaAlias(
-            account_id=self.account_id,
-            region=self.region,
-            name=name,
-            function_name=self.function_name,
-            function_version=function_version,
-            description=description,
-            routing_config=routing_config,
-        )
-        self._aliases[name] = alias
-        return alias
-
-    def update_alias(
-        self, name: str, description: str, function_version: str, routing_config: str
-    ) -> LambdaAlias:
-        alias = self.get_alias(name)
-        alias.update(description, function_version, routing_config)
-        return alias
-
     def create_url_config(self, config: Dict[str, Any]) -> "FunctionUrlConfig":
         self.url_config = FunctionUrlConfig(function=self, config=config)
-        return self.url_config  # type: ignore[return-value]
+        return self.url_config
 
     def delete_url_config(self) -> None:
         self.url_config = None
@@ -1013,7 +1118,7 @@ class FunctionUrlConfig:
         self.function = function
         self.config = config
         self.url = f"https://{random.uuid4().hex}.lambda-url.{function.region}.on.aws"
-        self.created = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
+        self.created = utcnow().strftime("%Y-%m-%dT%H:%M:%S.000+0000")
         self.last_modified = self.created
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1024,6 +1129,7 @@ class FunctionUrlConfig:
             "Cors": self.config.get("Cors"),
             "CreationTime": self.created,
             "LastModifiedTime": self.last_modified,
+            "InvokeMode": self.config.get("InvokeMode") or "Buffered",
         }
 
     def update(self, new_config: Dict[str, Any]) -> None:
@@ -1031,7 +1137,7 @@ class FunctionUrlConfig:
             self.config["Cors"] = new_config["Cors"]
         if new_config.get("AuthType"):
             self.config["AuthType"] = new_config["AuthType"]
-        self.last_modified = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        self.last_modified = utcnow().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 class EventSourceMapping(CloudFormationModel):
@@ -1048,7 +1154,7 @@ class EventSourceMapping(CloudFormationModel):
 
         self.function_arn = spec["FunctionArn"]
         self.uuid = str(random.uuid4())
-        self.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        self.last_modified = time.mktime(utcnow().timetuple())
 
     def _get_service_source_from_arn(self, event_source_arn: str) -> str:
         return event_source_arn.split(":")[2].lower()
@@ -1205,22 +1311,34 @@ class LambdaStorage(object):
         self.region_name = region_name
         self.account_id = account_id
 
+        # function-arn -> alias -> LambdaAlias
+        self._aliases: Dict[str, Dict[str, LambdaAlias]] = defaultdict(lambda: {})
+
     def _get_latest(self, name: str) -> LambdaFunction:
         return self._functions[name]["latest"]
 
     def _get_version(self, name: str, version: str) -> Optional[LambdaFunction]:
         for config in self._functions[name]["versions"]:
-            if str(config.version) == version or config.has_alias(version):
+            if str(config.version) == version:
                 return config
+
         return None
 
-    def delete_alias(self, name: str, function_name: str) -> None:
+    def _get_function_aliases(self, function_name: str) -> Dict[str, LambdaAlias]:
         fn = self.get_function_by_name_or_arn(function_name)
-        return fn.delete_alias(name)
+        return self._aliases[fn.function_arn]
+
+    def delete_alias(self, name: str, function_name: str) -> None:
+        aliases = self._get_function_aliases(function_name)
+        aliases.pop(name, None)
 
     def get_alias(self, name: str, function_name: str) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name)
-        return fn.get_alias(name)
+        aliases = self._get_function_aliases(function_name)
+        if name in aliases:
+            return aliases[name]
+
+        arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+        raise UnknownAliasException(arn)
 
     def put_alias(
         self,
@@ -1230,8 +1348,23 @@ class LambdaStorage(object):
         description: str,
         routing_config: str,
     ) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name)
-        return fn.put_alias(name, description, function_version, routing_config)
+        fn = self.get_function_by_name_or_arn(function_name, function_version)
+        aliases = self._get_function_aliases(function_name)
+        if name in aliases:
+            arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+            raise ConflictException(f"Alias already exists: {arn}")
+
+        alias = LambdaAlias(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            function_name=fn.function_name,
+            function_version=function_version,
+            description=description,
+            routing_config=routing_config,
+        )
+        aliases[name] = alias
+        return alias
 
     def update_alias(
         self,
@@ -1241,8 +1374,13 @@ class LambdaStorage(object):
         description: str,
         routing_config: str,
     ) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name)
-        return fn.update_alias(name, description, function_version, routing_config)
+        alias = self.get_alias(name, function_name)
+
+        # errors if new function version doesn't exist
+        self.get_function_by_name_or_arn(function_name, function_version)
+
+        alias.update(description, function_version, routing_config)
+        return alias
 
     def get_function_by_name(
         self, name: str, qualifier: Optional[str] = None
@@ -1256,7 +1394,17 @@ class LambdaStorage(object):
         if qualifier.lower() == "$latest":
             return self._functions[name]["latest"]
 
-        return self._get_version(name, qualifier)
+        found_version = self._get_version(name, qualifier)
+        if found_version:
+            return found_version
+
+        aliases = self._get_function_aliases(name)
+
+        if qualifier in aliases:
+            alias = aliases[qualifier]
+            return self._get_version(name, alias.function_version)
+
+        return None
 
     def list_versions_by_function(self, name: str) -> Iterable[LambdaFunction]:
         if name not in self._functions:
@@ -1265,6 +1413,10 @@ class LambdaStorage(object):
         latest = copy.copy(self._functions[name]["latest"])
         latest.function_arn += ":$LATEST"
         return [latest] + self._functions[name]["versions"]
+
+    def list_aliases(self, function_name: str) -> Iterable[LambdaAlias]:
+        aliases = self._get_function_aliases(function_name)
+        return sorted(aliases.values(), key=lambda alias: alias.name)
 
     def get_arn(self, arn: str) -> Optional[LambdaFunction]:
         # Function ARN may contain an alias
@@ -1375,10 +1527,12 @@ class LambdaStorage(object):
                 ):
                     del self._functions[name]
 
+        self._aliases[function.function_arn] = {}
+
     def all(self) -> Iterable[LambdaFunction]:
         result = []
 
-        for function_group in self._functions.values():
+        for function_group in list(self._functions.values()):
             latest = copy.deepcopy(function_group["latest"])
             latest.function_arn = f"{latest.function_arn}:$LATEST"
             result.append(latest)
@@ -1524,7 +1678,9 @@ class LambdaBackend(BaseBackend):
         self._layers = LayerStorage()
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, str]]:  # type: ignore[misc]
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "lambda"
@@ -1706,6 +1862,9 @@ class LambdaBackend(BaseBackend):
     def list_versions_by_function(self, function_name: str) -> Iterable[LambdaFunction]:
         return self._lambdas.list_versions_by_function(function_name)
 
+    def list_aliases(self, function_name: str) -> Iterable[LambdaAlias]:
+        return self._lambdas.list_aliases(function_name)
+
     def get_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
         return self._event_source_mappings.get(uuid)
 
@@ -1728,7 +1887,7 @@ class LambdaBackend(BaseBackend):
             elif key == "Enabled":
                 esm.enabled = spec[key]
 
-        esm.last_modified = time.mktime(datetime.datetime.utcnow().timetuple())
+        esm.last_modified = time.mktime(utcnow().timetuple())
         return esm
 
     def list_event_source_mappings(
@@ -1835,7 +1994,7 @@ class LambdaBackend(BaseBackend):
             ]
         }
         func = self._lambdas.get_function_by_name_or_arn(function_name, qualifier)
-        func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
+        func.invoke(json.dumps(event), {}, {})
 
     def send_dynamodb_items(
         self, function_arn: str, items: List[Any], source: str
@@ -1958,6 +2117,31 @@ class LambdaBackend(BaseBackend):
     def put_function_concurrency(
         self, function_name: str, reserved_concurrency: str
     ) -> str:
+        """Establish concurrency limit/reservations for a function
+
+        Actual lambda restricts concurrency to 1000 (default) per region/account
+        across all functions; we approximate that behavior by summing across all
+        functions (hopefully all in the same account and region) and allowing the
+        caller to simulate an increased quota.
+
+        By default, no quota is enforced in order to preserve compatibility with
+        existing code that assumes it can do as many things as it likes. To model
+        actual AWS behavior, define the MOTO_LAMBDA_CONCURRENCY_QUOTA environment
+        variable prior to testing.
+        """
+
+        quota: Optional[str] = os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA")
+        if quota is not None:
+            # Enforce concurrency limits as described above
+            available = int(quota) - int(reserved_concurrency)
+            for fnx in self.list_functions():
+                if fnx.reserved_concurrency and fnx.function_name != function_name:
+                    available -= int(fnx.reserved_concurrency)
+            if available < 100:
+                raise InvalidParameterValueException(
+                    "Specified ReservedConcurrentExecutions for function decreases account's UnreservedConcurrentExecution below its minimum value of [100]."
+                )
+
         fn = self.get_function(function_name)
         fn.reserved_concurrency = reserved_concurrency
         return fn.reserved_concurrency

@@ -1,5 +1,4 @@
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 import moto.server as server
 from moto import mock_kms
@@ -15,7 +14,6 @@ def test_list_keys():
     test_client = backend.test_client()
 
     res = test_client.get("/?Action=ListKeys")
+    body = json.loads(res.data.decode("utf-8"))
 
-    json.loads(res.data.decode("utf-8")).should.equal(
-        {"Keys": [], "NextMarker": None, "Truncated": False}
-    )
+    assert body == {"Keys": [], "NextMarker": None, "Truncated": False}

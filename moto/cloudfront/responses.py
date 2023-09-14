@@ -39,6 +39,22 @@ class CloudFrontResponse(BaseResponse):
         if request.method == "GET":
             return self.list_tags_for_resource()
 
+    def origin_access_controls(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return self.create_origin_access_control()
+        if request.method == "GET":
+            return self.list_origin_access_controls()
+
+    def origin_access_control(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+        self.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return self.get_origin_access_control()
+        if request.method == "PUT":
+            return self.update_origin_access_control()
+        if request.method == "DELETE":
+            return self.delete_origin_access_control()
+
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
         if "DistributionConfigWithTags" in params:
@@ -129,6 +145,37 @@ class CloudFrontResponse(BaseResponse):
         template = self.response_template(TAGS_TEMPLATE)
         response = template.render(tags=tags, xmlns=XMLNS)
         return 200, {}, response
+
+    def create_origin_access_control(self) -> TYPE_RESPONSE:
+        config = self._get_xml_body().get("OriginAccessControlConfig", {})
+        config.pop("@xmlns", None)
+        control = self.backend.create_origin_access_control(config)
+        template = self.response_template(ORIGIN_ACCESS_CONTROl)
+        return 200, {}, template.render(control=control)
+
+    def get_origin_access_control(self) -> TYPE_RESPONSE:
+        control_id = self.path.split("/")[-1]
+        control = self.backend.get_origin_access_control(control_id)
+        template = self.response_template(ORIGIN_ACCESS_CONTROl)
+        return 200, {"ETag": control.etag}, template.render(control=control)
+
+    def list_origin_access_controls(self) -> TYPE_RESPONSE:
+        controls = self.backend.list_origin_access_controls()
+        template = self.response_template(LIST_ORIGIN_ACCESS_CONTROl)
+        return 200, {}, template.render(controls=controls)
+
+    def update_origin_access_control(self) -> TYPE_RESPONSE:
+        control_id = self.path.split("/")[-2]
+        config = self._get_xml_body().get("OriginAccessControlConfig", {})
+        config.pop("@xmlns", None)
+        control = self.backend.update_origin_access_control(control_id, config)
+        template = self.response_template(ORIGIN_ACCESS_CONTROl)
+        return 200, {"ETag": control.etag}, template.render(control=control)
+
+    def delete_origin_access_control(self) -> TYPE_RESPONSE:
+        control_id = self.path.split("/")[-1]
+        self.backend.delete_origin_access_control(control_id)
+        return 200, {}, "{}"
 
 
 DIST_META_TEMPLATE = """
@@ -650,4 +697,40 @@ TAGS_TEMPLATE = """<?xml version="1.0"?>
     {% endfor %}
   </Items>
 </Tags>
+"""
+
+
+ORIGIN_ACCESS_CONTROl = """<?xml version="1.0"?>
+<OriginAccessControl>
+  <Id>{{ control.id }}</Id>
+  <OriginAccessControlConfig>
+    <Name>{{ control.name }}</Name>
+    {% if control.description %}
+    <Description>{{ control.description }}</Description>
+    {% endif %}
+    <SigningProtocol>{{ control.signing_protocol }}</SigningProtocol>
+    <SigningBehavior>{{ control.signing_behaviour }}</SigningBehavior>
+    <OriginAccessControlOriginType>{{ control.origin_type }}</OriginAccessControlOriginType>
+  </OriginAccessControlConfig>
+</OriginAccessControl>
+"""
+
+
+LIST_ORIGIN_ACCESS_CONTROl = """<?xml version="1.0"?>
+<OriginAccessControlList>
+  <Items>
+  {% for control in controls %}
+    <OriginAccessControlSummary>
+      <Id>{{ control.id }}</Id>
+      <Name>{{ control.name }}</Name>
+      {% if control.description %}
+      <Description>{{ control.description }}</Description>
+      {% endif %}
+      <SigningProtocol>{{ control.signing_protocol }}</SigningProtocol>
+      <SigningBehavior>{{ control.signing_behaviour }}</SigningBehavior>
+      <OriginAccessControlOriginType>{{ control.origin_type }}</OriginAccessControlOriginType>
+    </OriginAccessControlSummary>
+  {% endfor %}
+  </Items>
+</OriginAccessControlList>
 """

@@ -377,7 +377,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         self.spot_requests = [
             req for req in self.spot_requests if req.instance.id not in instance_ids
         ]
-        self.ec2_backend.terminate_instances(instance_ids)  # type: ignore[attr-defined]
+        self.ec2_backend.terminate_instances(instance_ids)
 
 
 class SpotRequestBackend:

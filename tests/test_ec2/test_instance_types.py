@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 import pytest
 
 from botocore.exceptions import ClientError
@@ -12,11 +11,9 @@ def test_describe_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types()
 
-    instance_types.should.have.key("InstanceTypes").be.a(list)
-    len(instance_types["InstanceTypes"]).should.be.greater_than(0)
-    instance_types["InstanceTypes"][0].should.have.key("InstanceType")
-    instance_types["InstanceTypes"][0].should.have.key("MemoryInfo")
-    instance_types["InstanceTypes"][0]["MemoryInfo"].should.have.key("SizeInMiB")
+    assert len(instance_types["InstanceTypes"]) > 0
+    assert "InstanceType" in instance_types["InstanceTypes"][0]
+    assert "SizeInMiB" in instance_types["InstanceTypes"][0]["MemoryInfo"]
 
 
 @mock_ec2
@@ -26,14 +23,10 @@ def test_describe_instance_types_filter_by_type():
         InstanceTypes=["t1.micro", "t2.nano"]
     )
 
-    instance_types.should.have.key("InstanceTypes")
-    instance_types["InstanceTypes"].should.have.length_of(2)
-    instance_types["InstanceTypes"][0]["InstanceType"].should.be.within(
-        ["t1.micro", "t2.nano"]
-    )
-    instance_types["InstanceTypes"][1]["InstanceType"].should.be.within(
-        ["t1.micro", "t2.nano"]
-    )
+    assert "InstanceTypes" in instance_types
+    assert len(instance_types["InstanceTypes"]) == 2
+    assert instance_types["InstanceTypes"][0]["InstanceType"] in ["t1.micro", "t2.nano"]
+    assert instance_types["InstanceTypes"][1]["InstanceType"] in ["t1.micro", "t2.nano"]
 
 
 @mock_ec2
@@ -43,10 +36,9 @@ def test_describe_instance_types_gpu_instance_types():
         InstanceTypes=["p3.2xlarge", "g4ad.8xlarge"]
     )
 
-    instance_types.should.have.key("InstanceTypes")
-    instance_types["InstanceTypes"].should.have.length_of(2)
-    instance_types["InstanceTypes"][0].should.have.key("GpuInfo")
-    instance_types["InstanceTypes"][1].should.have.key("GpuInfo")
+    assert len(instance_types["InstanceTypes"]) == 2
+    assert "GpuInfo" in instance_types["InstanceTypes"][0]
+    assert "GpuInfo" in instance_types["InstanceTypes"][1]
 
     instance_type_to_gpu_info = {
         instance_info["InstanceType"]: instance_info["GpuInfo"]
@@ -85,11 +77,12 @@ def test_describe_instance_types_unknown_type():
     with pytest.raises(ClientError) as exc_info:
         client.describe_instance_types(InstanceTypes=["t1.non_existent"])
 
-    exc_info.value.response["Error"]["Code"].should.equal("InvalidInstanceType")
-    exc_info.value.response["Error"]["Message"].should.equal(
-        "The following supplied instance types do not exist: [t1.non_existent]",
+    assert exc_info.value.response["Error"]["Code"] == "InvalidInstanceType"
+    assert (
+        exc_info.value.response["Error"]["Message"]
+        == "The following supplied instance types do not exist: [t1.non_existent]"
     )
-    exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
 @mock_ec2
@@ -99,16 +92,15 @@ def test_describe_instance_types_filter_by_vcpus():
         Filters=[{"Name": "vcpu-info.default-vcpus", "Values": ["1", "2"]}]
     )
 
-    instance_types.should.have.key("InstanceTypes")
     types = [
         instance_type["InstanceType"]
         for instance_type in instance_types["InstanceTypes"]
     ]
-    types.should.contain("t1.micro")
-    types.should.contain("t2.nano")
+    assert "t1.micro" in types
+    assert "t2.nano" in types
 
     # not contain
-    types.should_not.contain("m5d.xlarge")
+    assert "m5d.xlarge" not in types
 
 
 @mock_ec2
@@ -118,15 +110,14 @@ def test_describe_instance_types_filter_by_memory():
         Filters=[{"Name": "memory-info.size-in-mib", "Values": ["512"]}]
     )
 
-    instance_types.should.have.key("InstanceTypes")
     types = [
         instance_type["InstanceType"]
         for instance_type in instance_types["InstanceTypes"]
     ]
-    types.should.contain("t4g.nano")
+    assert "t4g.nano" in types
 
     # not contain
-    types.should_not.contain("m5d.xlarge")
+    assert "m5d.xlarge" not in types
 
 
 @mock_ec2
@@ -136,15 +127,14 @@ def test_describe_instance_types_filter_by_bare_metal():
         Filters=[{"Name": "bare-metal", "Values": ["true"]}]
     )
 
-    instance_types.should.have.key("InstanceTypes")
     types = [
         instance_type["InstanceType"]
         for instance_type in instance_types["InstanceTypes"]
     ]
-    types.should.contain("a1.metal")
+    assert "a1.metal" in types
 
     # not contain
-    types.should_not.contain("t1.micro")
+    assert "t1.micro" not in types
 
 
 @mock_ec2
@@ -154,15 +144,14 @@ def test_describe_instance_types_filter_by_burstable_performance_supported():
         Filters=[{"Name": "burstable-performance-supported", "Values": ["true"]}]
     )
 
-    instance_types.should.have.key("InstanceTypes")
     types = [
         instance_type["InstanceType"]
         for instance_type in instance_types["InstanceTypes"]
     ]
-    types.should.contain("t2.micro")
+    assert "t2.micro" in types
 
     # not contain
-    types.should_not.contain("t1.micro")
+    assert "t1.micro" not in types
 
 
 @mock_ec2
@@ -172,15 +161,14 @@ def test_describe_instance_types_filter_by_current_generation():
         Filters=[{"Name": "current-generation", "Values": ["true"]}]
     )
 
-    instance_types.should.have.key("InstanceTypes")
     types = [
         instance_type["InstanceType"]
         for instance_type in instance_types["InstanceTypes"]
     ]
-    types.should.contain("t2.micro")
+    assert "t2.micro" in types
 
     # not contain
-    types.should_not.contain("t1.micro")
+    assert "t1.micro" not in types
 
 
 @mock_ec2
@@ -195,7 +183,7 @@ def test_describe_instance_types_small_instances():
     ])  # fmt: skip
 
     types = set(t["InstanceType"] for t in instance_types["InstanceTypes"])
-    types.should.equal({"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"})
+    assert types == {"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"}
 
 
 @mock_ec2
@@ -207,8 +195,9 @@ def test_describe_instance_types_invalid_filter():
             Filters=[{"Name": "spam", "Values": ["eggs"]}],
         )
 
-    exc_info.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-    exc_info.value.response["Error"]["Message"].split(":")[0].should.equal(
-        "The filter 'spam' is invalid",
+    assert exc_info.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        exc_info.value.response["Error"]["Message"].split(":")[0]
+        == "The filter 'spam' is invalid"
     )
-    exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
+    assert exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400

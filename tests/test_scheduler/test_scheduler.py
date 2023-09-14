@@ -3,6 +3,7 @@ import boto3
 import pytest
 
 from botocore.client import ClientError
+from datetime import datetime
 from moto import mock_scheduler
 from moto.core import DEFAULT_ACCOUNT_ID
 
@@ -44,6 +45,9 @@ def test_create_get_schedule():
         "RoleArn": "n/a",
         "RetryPolicy": {"MaximumEventAgeInSeconds": 86400, "MaximumRetryAttempts": 185},
     }
+    assert isinstance(resp["CreationDate"], datetime)
+    assert isinstance(resp["LastModificationDate"], datetime)
+    assert resp["CreationDate"] == resp["LastModificationDate"]
 
 
 @mock_scheduler
@@ -134,6 +138,30 @@ def test_update_schedule(extra_kwargs):
         "RoleArn": "n/a",
         "RetryPolicy": {"MaximumEventAgeInSeconds": 86400, "MaximumRetryAttempts": 185},
     }
+
+    assert isinstance(schedule["CreationDate"], datetime)
+    assert isinstance(schedule["LastModificationDate"], datetime)
+    assert schedule["CreationDate"] != schedule["LastModificationDate"]
+
+
+@mock_scheduler
+def test_create_duplicate_schedule():
+    client = boto3.client("scheduler", region_name="us-east-1")
+    params = {
+        "ScheduleExpression": "at(2022-12-12T00:00:00)",
+        "FlexibleTimeWindow": {
+            "MaximumWindowInMinutes": 4,
+            "Mode": "FLEXIBLE",
+        },
+        "Target": {"Arn": "arn1", "RoleArn": "arn2"},
+    }
+
+    client.create_schedule(Name="schedule1", **params)
+    with pytest.raises(ClientError) as exc:
+        client.create_schedule(Name="schedule1", **params)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+    assert err["Message"] == "Schedule schedule1 already exists."
 
 
 @mock_scheduler

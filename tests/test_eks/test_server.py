@@ -1,9 +1,7 @@
 import json
-from copy import deepcopy
-
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
+from copy import deepcopy
 import moto.server as server
 from moto import mock_eks
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -94,7 +92,7 @@ def fixtue_create_cluster(test_client):
         response = client.post(
             TestCluster.endpoint, data=json.dumps(data), headers=DEFAULT_HTTP_HEADERS
         )
-        response.status_code.should.equal(StatusCodes.OK)
+        assert response.status_code == StatusCodes.OK
 
         return json.loads(response.data.decode(DEFAULT_ENCODING))[
             ResponseAttributes.CLUSTER
@@ -115,7 +113,7 @@ def fixture_create_nodegroup(test_client):
         response = client.post(
             TestNodegroup.endpoint, data=json.dumps(data), headers=DEFAULT_HTTP_HEADERS
         )
-        response.status_code.should.equal(StatusCodes.OK)
+        assert response.status_code == StatusCodes.OK
 
         return json.loads(response.data.decode(DEFAULT_ENCODING))[
             ResponseAttributes.NODEGROUP
@@ -131,7 +129,7 @@ def fixture_create_nodegroup(test_client):
 def test_eks_create_single_cluster(create_cluster):
     result_cluster = create_cluster()
 
-    result_cluster[ClusterAttributes.NAME].should.equal(TestCluster.cluster_name)
+    assert result_cluster[ClusterAttributes.NAME] == TestCluster.cluster_name
     all_arn_values_should_be_valid(
         expected_arn_values=TestCluster.expected_arn_values,
         pattern=RegExTemplates.CLUSTER_ARN,
@@ -185,8 +183,8 @@ def test_eks_create_nodegroup_on_existing_cluster(create_cluster, create_nodegro
     create_cluster()
     result_data = create_nodegroup()
 
-    result_data[NodegroupAttributes.NODEGROUP_NAME].should.equal(
-        TestNodegroup.nodegroup_name
+    assert (
+        result_data[NodegroupAttributes.NODEGROUP_NAME] == TestNodegroup.nodegroup_name
     )
     all_arn_values_should_be_valid(
         expected_arn_values=TestNodegroup.expected_arn_values,
@@ -235,9 +233,9 @@ def test_eks_list_clusters(test_client, create_cluster):
         ResponseAttributes.CLUSTERS
     ]
 
-    response.status_code.should.equal(StatusCodes.OK)
-    len(result_data).should.equal(len(NAME_LIST))
-    sorted(result_data).should.equal(sorted(NAME_LIST))
+    assert response.status_code == StatusCodes.OK
+    assert len(result_data) == len(NAME_LIST)
+    assert sorted(result_data) == sorted(NAME_LIST)
 
 
 @mock_eks
@@ -256,9 +254,9 @@ def test_eks_list_nodegroups(test_client, create_cluster, create_nodegroup):
         ResponseAttributes.NODEGROUPS
     ]
 
-    response.status_code.should.equal(StatusCodes.OK)
-    sorted(result_data).should.equal(sorted(NAME_LIST))
-    len(result_data).should.equal(len(NAME_LIST))
+    assert response.status_code == StatusCodes.OK
+    assert sorted(result_data) == sorted(NAME_LIST)
+    assert len(result_data) == len(NAME_LIST)
 
 
 @mock_eks
@@ -272,9 +270,9 @@ def test_eks_describe_existing_cluster(test_client, create_cluster):
         ResponseAttributes.CLUSTER
     ]
 
-    response.status_code.should.equal(StatusCodes.OK)
-    result_data[ClusterAttributes.NAME].should.equal(TestCluster.cluster_name)
-    result_data[ClusterAttributes.ENCRYPTION_CONFIG].should.equal([])
+    assert response.status_code == StatusCodes.OK
+    assert result_data[ClusterAttributes.NAME] == TestCluster.cluster_name
+    assert result_data[ClusterAttributes.ENCRYPTION_CONFIG] == []
     all_arn_values_should_be_valid(
         expected_arn_values=TestCluster.expected_arn_values,
         pattern=RegExTemplates.CLUSTER_ARN,
@@ -316,10 +314,10 @@ def test_eks_describe_existing_nodegroup(test_client, create_cluster, create_nod
         ResponseAttributes.NODEGROUP
     ]
 
-    response.status_code.should.equal(StatusCodes.OK)
-    result_data[ClusterAttributes.CLUSTER_NAME].should.equal(TestNodegroup.cluster_name)
-    result_data[NodegroupAttributes.NODEGROUP_NAME].should.equal(
-        TestNodegroup.nodegroup_name
+    assert response.status_code == StatusCodes.OK
+    assert result_data[ClusterAttributes.CLUSTER_NAME] == TestNodegroup.cluster_name
+    assert (
+        result_data[NodegroupAttributes.NODEGROUP_NAME] == TestNodegroup.nodegroup_name
     )
     all_arn_values_should_be_valid(
         expected_arn_values=TestNodegroup.expected_arn_values,
@@ -387,8 +385,8 @@ def test_eks_delete_cluster(test_client, create_cluster):
         ResponseAttributes.CLUSTER
     ]
 
-    response.status_code.should.equal(StatusCodes.OK)
-    result_data[ClusterAttributes.NAME].should.equal(TestCluster.cluster_name)
+    assert response.status_code == StatusCodes.OK
+    assert result_data[ClusterAttributes.NAME] == TestCluster.cluster_name
     all_arn_values_should_be_valid(
         expected_arn_values=TestCluster.expected_arn_values,
         pattern=RegExTemplates.CLUSTER_ARN,
@@ -452,10 +450,10 @@ def test_eks_delete_nodegroup(test_client, create_cluster, create_nodegroup):
         ResponseAttributes.NODEGROUP
     ]
 
-    response.status_code.should.equal(StatusCodes.OK)
-    result_data[ClusterAttributes.CLUSTER_NAME].should.equal(TestNodegroup.cluster_name)
-    result_data[NodegroupAttributes.NODEGROUP_NAME].should.equal(
-        TestNodegroup.nodegroup_name
+    assert response.status_code == StatusCodes.OK
+    assert result_data[ClusterAttributes.CLUSTER_NAME] == TestNodegroup.cluster_name
+    assert (
+        result_data[NodegroupAttributes.NODEGROUP_NAME] == TestNodegroup.nodegroup_name
     )
     all_arn_values_should_be_valid(
         expected_arn_values=TestNodegroup.expected_arn_values,
@@ -518,6 +516,6 @@ def test_eks_delete_nodegroup_nonexisting_cluster(test_client):
 def should_return_expected_exception(response, expected_exception, expected_data):
     result_data = json.loads(response.data.decode(DEFAULT_ENCODING))
 
-    response.status_code.should.equal(expected_exception.STATUS)
-    response.headers.get(HttpHeaders.ErrorType).should.equal(expected_exception.TYPE)
-    result_data.should.equal(expected_data)
+    assert response.status_code == expected_exception.STATUS
+    assert response.headers.get(HttpHeaders.ErrorType) == expected_exception.TYPE
+    assert result_data == expected_data

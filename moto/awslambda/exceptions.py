@@ -14,6 +14,14 @@ class CrossAccountNotAllowed(LambdaClientError):
         )
 
 
+class FunctionAlreadyExists(LambdaClientError):
+    code = 409
+
+    def __init__(self, function_name: str) -> None:
+        message = f"Function already exist: {function_name}"
+        super().__init__("ResourceConflictException", message)
+
+
 class InvalidParameterValueException(LambdaClientError):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValueException", message)
@@ -32,6 +40,13 @@ class PreconditionFailedException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("PreconditionFailedException", message)
+
+
+class ConflictException(LambdaClientError):
+    code = 409
+
+    def __init__(self, message: str):
+        super().__init__("ConflictException", message)
 
 
 class UnknownAliasException(LambdaClientError):
@@ -82,3 +97,9 @@ class UnknownPolicyException(LambdaClientError):
             "ResourceNotFoundException",
             "No policy is associated with the given resource.",
         )
+
+
+class ValidationException(LambdaClientError):
+    def __init__(self, value: str, property_name: str, specific_message: str):
+        message = f"1 validation error detected: Value '{value}' at '{property_name}' failed to satisfy constraint: {specific_message}"
+        super().__init__("ValidationException", message)

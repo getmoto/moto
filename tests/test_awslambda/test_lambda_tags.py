@@ -7,6 +7,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from uuid import uuid4
 from .utilities import get_role_name, get_test_zip_file2
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-east-1"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -28,7 +29,7 @@ def test_tags():
 
     function = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -80,7 +81,7 @@ def test_create_function_with_tags():
 
     function = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},

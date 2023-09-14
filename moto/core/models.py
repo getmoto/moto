@@ -56,8 +56,8 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
         self.backends_for_urls.extend(default_backends)
 
         self.FAKE_KEYS = {
-            "AWS_ACCESS_KEY_ID": "foobar_key",
-            "AWS_SECRET_ACCESS_KEY": "foobar_secret",
+            "AWS_ACCESS_KEY_ID": "FOOBARKEY",
+            "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
         self.ORIG_KEYS: Dict[str, Optional[str]] = {}
         self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
@@ -271,9 +271,9 @@ def patch_client(client: botocore.client.BaseClient) -> None:
     if isinstance(client, botocore.client.BaseClient):
         # Check if our event handler was already registered
         try:
-            event_emitter = client._ruleset_resolver._event_emitter._emitter  # type: ignore
-            all_handlers = event_emitter._handlers._root["children"]  # type: ignore
-            handler_trie = list(all_handlers["before-send"].values())[1]  # type: ignore
+            event_emitter = client._ruleset_resolver._event_emitter._emitter
+            all_handlers = event_emitter._handlers._root["children"]
+            handler_trie = list(all_handlers["before-send"].values())[1]
             handlers_list = handler_trie.first + handler_trie.middle + handler_trie.last
             if botocore_stubber in handlers_list:
                 # No need to patch - this client already has the botocore_stubber registered
@@ -392,7 +392,10 @@ class ServerModeMockAWS(BaseMockAWS):
             region = self._get_region(*args, **kwargs)
             if region:
                 if "config" in kwargs:
-                    kwargs["config"].__dict__["user_agent_extra"] += " region/" + region
+                    user_agent = kwargs["config"].__dict__.get("user_agent_extra") or ""
+                    kwargs["config"].__dict__[
+                        "user_agent_extra"
+                    ] = f"{user_agent} region/{region}"
                 else:
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config

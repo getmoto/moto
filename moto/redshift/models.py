@@ -1,8 +1,10 @@
+from collections import OrderedDict
 import copy
 import datetime
-
-from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
+
+from dateutil.tz import tzutc
+
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
@@ -46,7 +48,10 @@ class TaggableResourceMixin:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:redshift:{self.region}:{self.account_id}:{self.resource_type}:{self.resource_id}"
+        return (
+            f"arn:aws:redshift:{self.region}:{self.account_id}"
+            f":{self.resource_type}:{self.resource_id}"
+        )
 
     def create_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         new_keys = [tag_set["Key"] for tag_set in tags]
@@ -94,9 +99,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         super().__init__(redshift_backend.account_id, region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
-        self.create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.create_time = iso_8601_datetime_with_milliseconds()
         self.status = "available"
         self.node_type = node_type
         self.master_username = master_username
@@ -220,7 +223,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
         if attribute_name == "Endpoint.Address":
             return self.endpoint
-        elif attribute_name == "Endpoint.Port":
+        if attribute_name == "Endpoint.Port":
             return self.port
         raise UnformattedGetAttTemplateException()
 
@@ -527,9 +530,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = snapshot_type
         self.status = "available"
-        self.create_time = iso_8601_datetime_with_milliseconds(
-            datetime.datetime.utcnow()
-        )
+        self.create_time = iso_8601_datetime_with_milliseconds()
         self.iam_roles_arn = iam_roles_arn or []
 
     @property
@@ -622,8 +623,7 @@ class RedshiftBackend(BaseBackend):
             }
             cluster.cluster_snapshot_copy_status = status
             return cluster
-        else:
-            raise SnapshotCopyAlreadyEnabledFaultError(cluster_identifier)
+        raise SnapshotCopyAlreadyEnabledFaultError(cluster_identifier)
 
     def disable_snapshot_copy(self, **kwargs: Any) -> Cluster:
         cluster_identifier = kwargs["cluster_identifier"]
@@ -631,8 +631,7 @@ class RedshiftBackend(BaseBackend):
         if cluster.cluster_snapshot_copy_status is not None:
             cluster.cluster_snapshot_copy_status = None
             return cluster
-        else:
-            raise SnapshotCopyAlreadyDisabledFaultError(cluster_identifier)
+        raise SnapshotCopyAlreadyDisabledFaultError(cluster_identifier)
 
     def modify_snapshot_copy_retention_period(
         self, cluster_identifier: str, retention_period: str
@@ -650,7 +649,10 @@ class RedshiftBackend(BaseBackend):
             raise ClusterAlreadyExistsFaultError()
         cluster = Cluster(self, **cluster_kwargs)
         self.clusters[cluster_identifier] = cluster
-        snapshot_id = f"rs:{cluster_identifier}-{datetime.datetime.utcnow().strftime('%Y-%m-%d-%H-%M')}"
+        snapshot_id = (
+            f"rs:{cluster_identifier}-"
+            f"{datetime.datetime.now(tzutc()).strftime('%Y-%m-%d-%H-%M')}"
+        )
         # Automated snapshots don't copy over the tags
         self.create_cluster_snapshot(
             cluster_identifier,
@@ -679,8 +681,7 @@ class RedshiftBackend(BaseBackend):
         if cluster_identifier:
             if cluster_identifier in self.clusters:
                 return [self.clusters[cluster_identifier]]
-            else:
-                raise ClusterNotFoundError(cluster_identifier)
+            raise ClusterNotFoundError(cluster_identifier)
         return list(self.clusters.values())
 
     def modify_cluster(self, **cluster_kwargs: Any) -> Cluster:
@@ -739,9 +740,10 @@ class RedshiftBackend(BaseBackend):
                 and cluster_snapshot_identifer is None
             ):
                 raise InvalidParameterCombinationError(
-                    "FinalClusterSnapshotIdentifier is required unless SkipFinalClusterSnapshot is specified."
+                    "FinalClusterSnapshotIdentifier is required unless "
+                    "SkipFinalClusterSnapshot is specified."
                 )
-            elif (
+            if (
                 cluster_skip_final_snapshot is False
                 and cluster_snapshot_identifer is not None
             ):  # create snapshot
@@ -781,8 +783,7 @@ class RedshiftBackend(BaseBackend):
         if subnet_identifier:
             if subnet_identifier in self.subnet_groups:
                 return [self.subnet_groups[subnet_identifier]]
-            else:
-                raise ClusterSubnetGroupNotFoundError(subnet_identifier)
+            raise ClusterSubnetGroupNotFoundError(subnet_identifier)
         return list(self.subnet_groups.values())
 
     def delete_cluster_subnet_group(self, subnet_identifier: str) -> SubnetGroup:
@@ -812,8 +813,7 @@ class RedshiftBackend(BaseBackend):
         if security_group_name:
             if security_group_name in self.security_groups:
                 return [self.security_groups[security_group_name]]
-            else:
-                raise ClusterSecurityGroupNotFoundError(security_group_name)
+            raise ClusterSecurityGroupNotFoundError(security_group_name)
         return list(self.security_groups.values())
 
     def delete_cluster_security_group(
@@ -861,8 +861,7 @@ class RedshiftBackend(BaseBackend):
         if parameter_group_name:
             if parameter_group_name in self.parameter_groups:
                 return [self.parameter_groups[parameter_group_name]]
-            else:
-                raise ClusterParameterGroupNotFoundError(parameter_group_name)
+            raise ClusterParameterGroupNotFoundError(parameter_group_name)
         return list(self.parameter_groups.values())
 
     def delete_cluster_parameter_group(
@@ -983,8 +982,7 @@ class RedshiftBackend(BaseBackend):
         if snapshot_copy_grant_name:
             if snapshot_copy_grant_name in self.snapshot_copy_grants:
                 return [self.snapshot_copy_grants[snapshot_copy_grant_name]]
-            else:
-                raise SnapshotCopyGrantNotFoundFaultError(snapshot_copy_grant_name)
+            raise SnapshotCopyGrantNotFoundFaultError(snapshot_copy_grant_name)
         return copy_grants
 
     def _get_resource_from_arn(self, arn: str) -> TaggableResourceMixin:
@@ -1000,16 +998,16 @@ class RedshiftBackend(BaseBackend):
         resources = self.RESOURCE_TYPE_MAP.get(resource_type)
         if resources is None:
             message = (
-                f"Tagging is not supported for this type of resource: '{resource_type}' "
-                "(the ARN is potentially malformed, please check the ARN documentation for more information)"
+                "Tagging is not supported for this type of resource: "
+                f"'{resource_type}' (the ARN is potentially malformed, "
+                "please check the ARN documentation for more information)"
             )
             raise ResourceNotFoundFaultError(message=message)
         try:
             resource = resources[resource_id]
         except KeyError:
             raise ResourceNotFoundFaultError(resource_type, resource_id)
-        else:
-            return resource
+        return resource
 
     @staticmethod
     def _describe_tags_for_resources(resources: Iterable[Any]) -> List[Dict[str, Any]]:  # type: ignore[misc]
@@ -1081,7 +1079,7 @@ class RedshiftBackend(BaseBackend):
             raise InvalidParameterValueError(
                 "Token duration must be between 900 and 3600 seconds"
             )
-        expiration = datetime.datetime.utcnow() + datetime.timedelta(
+        expiration = datetime.datetime.now(tzutc()) + datetime.timedelta(
             0, duration_seconds
         )
         if cluster_identifier in self.clusters:
@@ -1092,8 +1090,7 @@ class RedshiftBackend(BaseBackend):
                 "DbPassword": mock_random.get_random_string(32),
                 "Expiration": expiration,
             }
-        else:
-            raise ClusterNotFoundError(cluster_identifier)
+        raise ClusterNotFoundError(cluster_identifier)
 
 
 redshift_backends = BackendDict(RedshiftBackend, "redshift")

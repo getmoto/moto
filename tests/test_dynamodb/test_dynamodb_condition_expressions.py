@@ -3,7 +3,6 @@ import re
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_dynamodb
 
 
@@ -38,7 +37,7 @@ def test_condition_expression_with_dot_in_attr_name():
     )
 
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal({"id": "key-0", "first": {}})
+    assert item == {"id": "key-0", "first": {}}
 
 
 @mock_dynamodb
@@ -232,8 +231,8 @@ def test_condition_expressions():
 
 def _assert_conditional_check_failed_exception(exc):
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ConditionalCheckFailedException")
-    err["Message"].should.equal("The conditional request failed")
+    assert err["Code"] == "ConditionalCheckFailedException"
+    assert err["Message"] == "The conditional request failed"
 
 
 @mock_dynamodb
@@ -274,9 +273,7 @@ def update_numerical_con_expr(key, con_expr, res, table):
         ExpressionAttributeValues={":zero": 0, ":one": 1},
         ConditionExpression=con_expr,
     )
-    table.get_item(Key={"partitionKey": key})["Item"]["myAttr"].should.equal(
-        Decimal(res)
-    )
+    assert table.get_item(Key={"partitionKey": key})["Item"]["myAttr"] == Decimal(res)
 
 
 @mock_dynamodb
@@ -404,7 +401,7 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
 
     # table is unchanged
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal(record)
+    assert item == record
 
     # using attribute names solves the issue
     table.update_item(
@@ -422,4 +419,4 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
     )
 
     item = table.get_item(Key={"id": "key-0"})["Item"]
-    item.should.equal({"id": "key-0", "first": {}})
+    assert item == {"id": "key-0", "first": {}}

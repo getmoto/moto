@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from datetime import datetime, timedelta, timezone
@@ -23,9 +22,7 @@ def test_put_metric_data_no_dimensions():
     )
 
     metrics = conn.list_metrics()["Metrics"]
-    metrics.should.contain(
-        {"Namespace": "tester", "MetricName": "metric", "Dimensions": []}
-    )
+    assert {"Namespace": "tester", "MetricName": "metric", "Dimensions": []} in metrics
 
 
 @mock_cloudwatch
@@ -45,9 +42,10 @@ def test_put_metric_data_can_not_have_nan():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
-        "The value NaN for parameter MetricData.member.1.Value is invalid."
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "The value NaN for parameter MetricData.member.1.Value is invalid."
     )
 
 
@@ -69,9 +67,10 @@ def test_put_metric_data_can_not_have_value_and_values():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
-        "The parameters MetricData.member.1.Value and MetricData.member.1.Values are mutually exclusive and you have specified both."
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "The parameters MetricData.member.1.Value and MetricData.member.1.Values are mutually exclusive and you have specified both."
     )
 
 
@@ -93,9 +92,10 @@ def test_put_metric_data_can_not_have_and_values_mismatched_counts():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
-        "The parameters MetricData.member.1.Values and MetricData.member.1.Counts must be of the same size."
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "The parameters MetricData.member.1.Values and MetricData.member.1.Counts must be of the same size."
     )
 
 
@@ -125,9 +125,9 @@ def test_put_metric_data_values_and_counts():
         Statistics=["SampleCount", "Sum", "Maximum"],
     )
     datapoint = stats["Datapoints"][0]
-    datapoint["SampleCount"].should.equal(6.0)
-    datapoint["Sum"].should.equal(42.0)
-    datapoint["Maximum"].should.equal(10.0)
+    assert datapoint["SampleCount"] == 6.0
+    assert datapoint["Sum"] == 42.0
+    assert datapoint["Maximum"] == 10.0
 
 
 @mock_cloudwatch
@@ -155,9 +155,9 @@ def test_put_metric_data_values_without_counts():
         Statistics=["SampleCount", "Sum", "Maximum"],
     )
     datapoint = stats["Datapoints"][0]
-    datapoint["SampleCount"].should.equal(3.0)
-    datapoint["Sum"].should.equal(34.45)
-    datapoint["Maximum"].should.equal(23.45)
+    assert datapoint["SampleCount"] == 3.0
+    assert datapoint["Sum"] == 34.45
+    assert datapoint["Maximum"] == 23.45
 
 
 @mock_cloudwatch
@@ -177,9 +177,10 @@ def test_put_metric_data_value_and_statistics():
             ],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterCombination")
-    err["Message"].should.equal(
-        "The parameters MetricData.member.1.Value and MetricData.member.1.StatisticValues are mutually exclusive and you have specified both."
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "The parameters MetricData.member.1.Value and MetricData.member.1.StatisticValues are mutually exclusive and you have specified both."
     )
 
 
@@ -205,9 +206,11 @@ def test_put_metric_data_with_statistics():
     )
 
     metrics = conn.list_metrics()["Metrics"]
-    metrics.should.contain(
-        {"Namespace": "tester", "MetricName": "statmetric", "Dimensions": []}
-    )
+    assert {
+        "Namespace": "tester",
+        "MetricName": "statmetric",
+        "Dimensions": [],
+    } in metrics
 
     stats = conn.get_metric_statistics(
         Namespace="tester",
@@ -218,13 +221,13 @@ def test_put_metric_data_with_statistics():
         Statistics=["SampleCount", "Sum", "Maximum", "Minimum", "Average"],
     )
 
-    stats["Datapoints"].should.have.length_of(1)
+    assert len(stats["Datapoints"]) == 1
     datapoint = stats["Datapoints"][0]
-    datapoint["SampleCount"].should.equal(3.0)
-    datapoint["Sum"].should.equal(123.0)
-    datapoint["Minimum"].should.equal(12.0)
-    datapoint["Maximum"].should.equal(100.0)
-    datapoint["Average"].should.equal(41.0)
+    assert datapoint["SampleCount"] == 3.0
+    assert datapoint["Sum"] == 123.0
+    assert datapoint["Minimum"] == 12.0
+    assert datapoint["Maximum"] == 100.0
+    assert datapoint["Average"] == 41.0
 
     # add single value
     conn.put_metric_data(
@@ -248,13 +251,13 @@ def test_put_metric_data_with_statistics():
         Statistics=["SampleCount", "Sum", "Maximum", "Minimum", "Average"],
     )
 
-    stats["Datapoints"].should.have.length_of(1)
+    assert len(stats["Datapoints"]) == 1
     datapoint = stats["Datapoints"][0]
-    datapoint["SampleCount"].should.equal(4.0)
-    datapoint["Sum"].should.equal(224.0)
-    datapoint["Minimum"].should.equal(12.0)
-    datapoint["Maximum"].should.equal(101.0)
-    datapoint["Average"].should.equal(56.0)
+    assert datapoint["SampleCount"] == 4.0
+    assert datapoint["Sum"] == 224.0
+    assert datapoint["Minimum"] == 12.0
+    assert datapoint["Maximum"] == 101.0
+    assert datapoint["Average"] == 56.0
 
 
 @mock_cloudwatch
@@ -276,10 +279,10 @@ def test_get_metric_statistics():
         Statistics=["SampleCount", "Sum"],
     )
 
-    stats["Datapoints"].should.have.length_of(1)
+    assert len(stats["Datapoints"]) == 1
     datapoint = stats["Datapoints"][0]
-    datapoint["SampleCount"].should.equal(1.0)
-    datapoint["Sum"].should.equal(1.5)
+    assert datapoint["SampleCount"] == 1.0
+    assert datapoint["Sum"] == 1.5
 
 
 @mock_cloudwatch
@@ -303,8 +306,8 @@ def test_get_metric_invalid_parameter_combination():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterCombination")
-    err["Message"].should.equal("Must specify either Statistics or ExtendedStatistics")
+    assert err["Code"] == "InvalidParameterCombination"
+    assert err["Message"] == "Must specify either Statistics or ExtendedStatistics"
 
 
 @mock_cloudwatch
@@ -370,10 +373,10 @@ def test_get_metric_statistics_dimensions():
             Statistics=["Average", "Sum"],
             **params[0],
         )
-        stats["Datapoints"].should.have.length_of(1)
+        assert len(stats["Datapoints"]) == 1
         datapoint = stats["Datapoints"][0]
-        datapoint["Sum"].should.equal(params[1])
-        datapoint["Average"].should.equal(params[2])
+        assert datapoint["Sum"] == params[1]
+        assert datapoint["Average"] == params[2]
 
 
 @mock_cloudwatch
@@ -396,11 +399,12 @@ def test_get_metric_statistics_endtime_sooner_than_starttime():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetMetricStatistics")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "The parameter StartTime must be less than the parameter EndTime."
+    assert ex.operation_name == "GetMetricStatistics"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The parameter StartTime must be less than the parameter EndTime."
     )
 
 
@@ -424,11 +428,12 @@ def test_get_metric_statistics_starttime_endtime_equals():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetMetricStatistics")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "The parameter StartTime must be less than the parameter EndTime."
+    assert ex.operation_name == "GetMetricStatistics"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The parameter StartTime must be less than the parameter EndTime."
     )
 
 
@@ -452,11 +457,12 @@ def test_get_metric_statistics_starttime_endtime_within_1_second():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetMetricStatistics")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "The parameter StartTime must be less than the parameter EndTime."
+    assert ex.operation_name == "GetMetricStatistics"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The parameter StartTime must be less than the parameter EndTime."
     )
 
 
@@ -485,10 +491,10 @@ def test_get_metric_statistics_starttime_endtime_ignore_miliseconds():
         Statistics=["SampleCount", "Sum"],
     )
 
-    stats["Datapoints"].should.have.length_of(1)
+    assert len(stats["Datapoints"]) == 1
     datapoint = stats["Datapoints"][0]
-    datapoint["SampleCount"].should.equal(1.0)
-    datapoint["Sum"].should.equal(1.5)
+    assert datapoint["SampleCount"] == 1.0
+    assert datapoint["Sum"] == 1.5
 
 
 @mock_cloudwatch
@@ -511,7 +517,7 @@ def test_duplicate_put_metric_data():
     result = conn.list_metrics(
         Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
     )["Metrics"]
-    len(result).should.equal(1)
+    assert len(result) == 1
 
     conn.put_metric_data(
         Namespace="tester",
@@ -528,16 +534,14 @@ def test_duplicate_put_metric_data():
     result = conn.list_metrics(
         Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
     )["Metrics"]
-    len(result).should.equal(1)
-    result.should.equal(
-        [
-            {
-                "Namespace": "tester",
-                "MetricName": "metric",
-                "Dimensions": [{"Name": "Name", "Value": "B"}],
-            }
-        ]
-    )
+    assert len(result) == 1
+    assert result == [
+        {
+            "Namespace": "tester",
+            "MetricName": "metric",
+            "Dimensions": [{"Name": "Name", "Value": "B"}],
+        }
+    ]
 
     conn.put_metric_data(
         Namespace="tester",
@@ -557,39 +561,35 @@ def test_duplicate_put_metric_data():
     result = conn.list_metrics(
         Namespace="tester", Dimensions=[{"Name": "Name", "Value": "B"}]
     )["Metrics"]
-    result.should.equal(
-        [
-            {
-                "Namespace": "tester",
-                "MetricName": "metric",
-                "Dimensions": [{"Name": "Name", "Value": "B"}],
-            },
-            {
-                "Namespace": "tester",
-                "MetricName": "metric",
-                "Dimensions": [
-                    {"Name": "Name", "Value": "B"},
-                    {"Name": "Name", "Value": "C"},
-                ],
-            },
-        ]
-    )
+    assert result == [
+        {
+            "Namespace": "tester",
+            "MetricName": "metric",
+            "Dimensions": [{"Name": "Name", "Value": "B"}],
+        },
+        {
+            "Namespace": "tester",
+            "MetricName": "metric",
+            "Dimensions": [
+                {"Name": "Name", "Value": "B"},
+                {"Name": "Name", "Value": "C"},
+            ],
+        },
+    ]
 
     result = conn.list_metrics(
         Namespace="tester", Dimensions=[{"Name": "Name", "Value": "C"}]
     )["Metrics"]
-    result.should.equal(
-        [
-            {
-                "Namespace": "tester",
-                "MetricName": "metric",
-                "Dimensions": [
-                    {"Name": "Name", "Value": "B"},
-                    {"Name": "Name", "Value": "C"},
-                ],
-            }
-        ]
-    )
+    assert result == [
+        {
+            "Namespace": "tester",
+            "MetricName": "metric",
+            "Dimensions": [
+                {"Name": "Name", "Value": "B"},
+                {"Name": "Name", "Value": "C"},
+            ],
+        }
+    ]
 
 
 @mock_cloudwatch
@@ -611,7 +611,7 @@ def test_custom_timestamp():
         ],
     )
 
-    cw.get_metric_statistics(
+    resp = cw.get_metric_statistics(
         Namespace="tester",
         MetricName="metric",
         StartTime=utc_now - timedelta(seconds=60),
@@ -619,7 +619,7 @@ def test_custom_timestamp():
         Period=60,
         Statistics=["SampleCount", "Sum"],
     )
-    # TODO: What are we actually testing here?
+    assert resp["Datapoints"] == []
 
 
 @mock_cloudwatch
@@ -627,7 +627,7 @@ def test_list_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify namespace has to exist
     res = cloudwatch.list_metrics(Namespace="unknown/")["Metrics"]
-    res.should.equal([])
+    assert res == []
     # Create some metrics to filter on
     create_metrics(cloudwatch, namespace="list_test_1/", metrics=4, data_points=2)
     create_metrics(cloudwatch, namespace="list_test_2/", metrics=4, data_points=2)
@@ -636,67 +636,67 @@ def test_list_metrics():
     assert len(res) >= 16  # 2 namespaces * 4 metrics * 2 data points
     # Verify we can filter by namespace/metric name
     res = cloudwatch.list_metrics(Namespace="list_test_1/")["Metrics"]
-    res.should.have.length_of(8)  # 1 namespace * 4 metrics * 2 data points
+    assert len(res) == 8  # 1 namespace * 4 metrics * 2 data points
     res = cloudwatch.list_metrics(Namespace="list_test_1/", MetricName="metric1")[
         "Metrics"
     ]
-    res.should.have.length_of(2)  # 1 namespace * 1 metrics * 2 data points
+    assert len(res) == 2  # 1 namespace * 1 metrics * 2 data points
     # Verify format
-    res.should.equal(
-        [
-            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1"},
-            {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1"},
-        ]
-    )
+    assert res == [
+        {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1"},
+        {"Namespace": "list_test_1/", "Dimensions": [], "MetricName": "metric1"},
+    ]
     # Verify unknown namespace still has no results
     res = cloudwatch.list_metrics(Namespace="unknown/")["Metrics"]
-    res.should.equal([])
+    assert res == []
 
 
 @mock_cloudwatch
 def test_list_metrics_paginated():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify that only a single page of metrics is returned
-    cloudwatch.list_metrics().shouldnt.have.key("NextToken")
+    assert "NextToken" not in cloudwatch.list_metrics()
+
     # Verify we can't pass a random NextToken
     with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(NextToken=str(uuid4()))
-    e.value.response["Error"]["Message"].should.equal(
-        "Request parameter NextToken is invalid"
+    assert (
+        e.value.response["Error"]["Message"] == "Request parameter NextToken is invalid"
     )
+
     # Add a boatload of metrics
     create_metrics(cloudwatch, namespace="test", metrics=100, data_points=1)
     # Verify that a single page is returned until we've reached 500
     first_page = cloudwatch.list_metrics(Namespace="test")
-    first_page["Metrics"].should.have.length_of(100)
+    assert len(first_page["Metrics"]) == 100
 
-    len(first_page["Metrics"]).should.equal(100)
+    assert len(first_page["Metrics"]) == 100
     create_metrics(cloudwatch, namespace="test", metrics=200, data_points=2)
     first_page = cloudwatch.list_metrics(Namespace="test")
-    len(first_page["Metrics"]).should.equal(500)
-    first_page.shouldnt.contain("NextToken")
+    assert len(first_page["Metrics"]) == 500
+    assert "NextToken" not in first_page
     # Verify that adding more data points results in pagination
     create_metrics(cloudwatch, namespace="test", metrics=60, data_points=10)
     first_page = cloudwatch.list_metrics(Namespace="test")
-    len(first_page["Metrics"]).should.equal(500)
-    first_page["NextToken"].shouldnt.equal(None)
+    assert len(first_page["Metrics"]) == 500
+
     # Retrieve second page - and verify there's more where that came from
     second_page = cloudwatch.list_metrics(
         Namespace="test", NextToken=first_page["NextToken"]
     )
-    len(second_page["Metrics"]).should.equal(500)
-    second_page.should.contain("NextToken")
+    assert len(second_page["Metrics"]) == 500
+
     # Last page should only have the last 100 results, and no NextToken (indicating that pagination is finished)
     third_page = cloudwatch.list_metrics(
         Namespace="test", NextToken=second_page["NextToken"]
     )
-    len(third_page["Metrics"]).should.equal(100)
-    third_page.shouldnt.contain("NextToken")
+    assert len(third_page["Metrics"]) == 100
+    assert "NextToken" not in third_page
     # Verify that we can't reuse an existing token
     with pytest.raises(ClientError) as e:
         cloudwatch.list_metrics(Namespace="test", NextToken=first_page["NextToken"])
-    e.value.response["Error"]["Message"].should.equal(
-        "Request parameter NextToken is invalid"
+    assert (
+        e.value.response["Error"]["Message"] == "Request parameter NextToken is invalid"
     )
 
 
@@ -707,16 +707,16 @@ def test_list_metrics_without_value():
     create_metrics_with_dimensions(cloudwatch, namespace="MyNamespace", data_points=3)
     # Verify we can filter by namespace/metric name
     res = cloudwatch.list_metrics(Namespace="MyNamespace")["Metrics"]
-    res.should.have.length_of(3)
+    assert len(res) == 3
     # Verify we can filter by Dimension without value
     results = cloudwatch.list_metrics(
         Namespace="MyNamespace", MetricName="MyMetric", Dimensions=[{"Name": "D1"}]
     )["Metrics"]
 
-    results.should.have.length_of(1)
-    results[0]["Namespace"].should.equals("MyNamespace")
-    results[0]["MetricName"].should.equal("MyMetric")
-    results[0]["Dimensions"].should.equal([{"Name": "D1", "Value": "V1"}])
+    assert len(results) == 1
+    assert results[0]["Namespace"] == "MyNamespace"
+    assert results[0]["MetricName"] == "MyMetric"
+    assert results[0]["Dimensions"] == [{"Name": "D1", "Value": "V1"}]
 
 
 @mock_cloudwatch
@@ -747,7 +747,7 @@ def test_list_metrics_with_same_dimensions_different_metric_name():
     )
 
     results = cloudwatch.list_metrics(Namespace="unique/")["Metrics"]
-    results.should.have.length_of(2)
+    assert len(results) == 2
 
     # duplicating existing metric
     cloudwatch.put_metric_data(
@@ -763,7 +763,7 @@ def test_list_metrics_with_same_dimensions_different_metric_name():
 
     # asserting only unique values are returned
     results = cloudwatch.list_metrics(Namespace="unique/")["Metrics"]
-    results.should.have.length_of(2)
+    assert len(results) == 2
 
 
 def create_metrics(cloudwatch, namespace, metrics=5, data_points=5):
@@ -831,10 +831,10 @@ def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
         EndTime=utc_now + timedelta(seconds=60),
     )
     #
-    len(response1["MetricDataResults"]).should.equal(1)
+    assert len(response1["MetricDataResults"]) == 1
 
     res1 = response1["MetricDataResults"][0]
-    res1["Values"].should.equal([50.0])
+    assert res1["Values"] == [50.0]
 
     # get_metric_data 2
     response2 = cloudwatch.get_metric_data(
@@ -856,10 +856,10 @@ def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
         EndTime=utc_now + timedelta(seconds=60),
     )
     #
-    len(response2["MetricDataResults"]).should.equal(1)
+    assert len(response2["MetricDataResults"]) == 1
 
     res2 = response2["MetricDataResults"][0]
-    res2["Values"].should.equal([25.0])
+    assert res2["Values"] == [25.0]
 
 
 @mock_cloudwatch
@@ -897,30 +897,30 @@ def test_get_metric_data_within_timeframe():
     avg = [
         res for res in response["MetricDataResults"] if res["Id"] == "result_Average"
     ][0]
-    avg["Label"].should.equal("metric1 Average")
-    avg["StatusCode"].should.equal("Complete")
-    [int(val) for val in avg["Values"]].should.equal([19])
+    assert avg["Label"] == "metric1 Average"
+    assert avg["StatusCode"] == "Complete"
+    assert [int(val) for val in avg["Values"]] == [19]
 
     sum_ = [res for res in response["MetricDataResults"] if res["Id"] == "result_Sum"][
         0
     ]
-    sum_["Label"].should.equal("metric1 Sum")
-    sum_["StatusCode"].should.equal("Complete")
-    [val for val in sum_["Values"]].should.equal([sum(values)])
+    assert sum_["Label"] == "metric1 Sum"
+    assert sum_["StatusCode"] == "Complete"
+    assert [val for val in sum_["Values"]] == [sum(values)]
 
     min_ = [
         res for res in response["MetricDataResults"] if res["Id"] == "result_Minimum"
     ][0]
-    min_["Label"].should.equal("metric1 Minimum")
-    min_["StatusCode"].should.equal("Complete")
-    [int(val) for val in min_["Values"]].should.equal([0])
+    assert min_["Label"] == "metric1 Minimum"
+    assert min_["StatusCode"] == "Complete"
+    assert [int(val) for val in min_["Values"]] == [0]
 
     max_ = [
         res for res in response["MetricDataResults"] if res["Id"] == "result_Maximum"
     ][0]
-    max_["Label"].should.equal("metric1 Maximum")
-    max_["StatusCode"].should.equal("Complete")
-    [int(val) for val in max_["Values"]].should.equal([100])
+    assert max_["Label"] == "metric1 Maximum"
+    assert max_["StatusCode"] == "Complete"
+    assert [int(val) for val in max_["Values"]] == [100]
 
 
 @mock_cloudwatch
@@ -1010,17 +1010,17 @@ def test_get_metric_data_partially_within_timeframe():
     )
 
     # Assert Last week's data is not returned
-    len(response["MetricDataResults"]).should.equal(1)
+    assert len(response["MetricDataResults"]) == 1
     sum_ = response["MetricDataResults"][0]
-    sum_["Label"].should.equal("metric1 Sum")
-    sum_["StatusCode"].should.equal("Complete")
-    sum_["Values"].should.equal([20.0, 10.0])
+    assert sum_["Label"] == "metric1 Sum"
+    assert sum_["StatusCode"] == "Complete"
+    assert sum_["Values"] == [20.0, 10.0]
     response = get_data(
         start=yesterday - timedelta(seconds=60),
         end=utc_now + timedelta(seconds=60),
         scanBy="TimestampDescending",
     )
-    response["MetricDataResults"][0]["Values"].should.equal([10.0, 20.0])
+    assert response["MetricDataResults"][0]["Values"] == [10.0, 20.0]
 
     response = get_data(
         start=last_week - timedelta(seconds=1),
@@ -1028,7 +1028,7 @@ def test_get_metric_data_partially_within_timeframe():
         stat="Average",
     )
     # assert average
-    response["MetricDataResults"][0]["Values"].should.equal([30.0, 20.0, 10.0])
+    assert response["MetricDataResults"][0]["Values"] == [30.0, 20.0, 10.0]
 
     response = get_data(
         start=last_week - timedelta(seconds=1),
@@ -1036,7 +1036,7 @@ def test_get_metric_data_partially_within_timeframe():
         stat="Maximum",
     )
     # assert maximum
-    response["MetricDataResults"][0]["Values"].should.equal([50.0, 20.0, 10.0])
+    assert response["MetricDataResults"][0]["Values"] == [50.0, 20.0, 10.0]
 
     response = get_data(
         start=last_week - timedelta(seconds=1),
@@ -1044,7 +1044,7 @@ def test_get_metric_data_partially_within_timeframe():
         stat="Minimum",
     )
     # assert minimum
-    response["MetricDataResults"][0]["Values"].should.equal([10.0, 20.0, 10.0])
+    assert response["MetricDataResults"][0]["Values"] == [10.0, 20.0, 10.0]
 
 
 @mock_cloudwatch
@@ -1082,10 +1082,10 @@ def test_get_metric_data_outside_timeframe():
     )
     #
     # Assert Last week's data is not returned
-    len(response["MetricDataResults"]).should.equal(1)
-    response["MetricDataResults"][0]["Id"].should.equal("result")
-    response["MetricDataResults"][0]["StatusCode"].should.equal("Complete")
-    response["MetricDataResults"][0]["Values"].should.equal([])
+    assert len(response["MetricDataResults"]) == 1
+    assert response["MetricDataResults"][0]["Id"] == "result"
+    assert response["MetricDataResults"][0]["StatusCode"] == "Complete"
+    assert response["MetricDataResults"][0]["Values"] == []
 
 
 @mock_cloudwatch
@@ -1140,13 +1140,13 @@ def test_get_metric_data_for_multiple_metrics():
         EndTime=utc_now + timedelta(seconds=60),
     )
     #
-    len(response["MetricDataResults"]).should.equal(2)
+    assert len(response["MetricDataResults"]) == 2
 
     res1 = [res for res in response["MetricDataResults"] if res["Id"] == "result1"][0]
-    res1["Values"].should.equal([50.0])
+    assert res1["Values"] == [50.0]
 
     res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
-    res2["Values"].should.equal([25.0])
+    assert res2["Values"] == [25.0]
 
 
 @mock_cloudwatch
@@ -1238,23 +1238,23 @@ def test_get_metric_data_for_dimensions():
         EndTime=utc_now + timedelta(seconds=60),
     )
     #
-    len(response["MetricDataResults"]).should.equal(4)
+    assert len(response["MetricDataResults"]) == 4
 
     res1 = [res for res in response["MetricDataResults"] if res["Id"] == "result1"][0]
     # expect sample count for dimension_frankfurt
-    res1["Values"].should.equal([1.0])
+    assert res1["Values"] == [1.0]
 
     res2 = [res for res in response["MetricDataResults"] if res["Id"] == "result2"][0]
     # expect sum for dimension_berlin
-    res2["Values"].should.equal([50.0])
+    assert res2["Values"] == [50.0]
 
     res3 = [res for res in response["MetricDataResults"] if res["Id"] == "result3"][0]
     # expect no result, as server_prod is only a part of other dimensions, e.g. there is no match
-    res3["Values"].should.equal([])
+    assert res3["Values"] == []
 
     res4 = [res for res in response["MetricDataResults"] if res["Id"] == "result4"][0]
     # expect sum of both metrics, as we did not filter for dimensions
-    res4["Values"].should.equal([75.0])
+    assert res4["Values"] == [75.0]
 
 
 @mock_cloudwatch
@@ -1325,8 +1325,8 @@ def test_get_metric_data_for_unit():
                 response["MetricDataResults"],
             )
         )
-        len(metric_result_data).should.equal(1)
-        metric_result_data[0]["Values"][0].should.equal(expected_value)
+        assert len(metric_result_data) == 1
+        assert metric_result_data[0]["Values"][0] == expected_value
 
 
 @mock_cloudwatch
@@ -1358,12 +1358,11 @@ def test_get_metric_data_endtime_sooner_than_starttime():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetMetricData")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationError")
-    ex.response["Error"]["Message"].should.equal(
-        "The parameter EndTime must be greater than StartTime."
-    )
+    assert ex.operation_name == "GetMetricData"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    err = ex.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "The parameter EndTime must be greater than StartTime."
 
 
 @mock_cloudwatch
@@ -1395,12 +1394,11 @@ def test_get_metric_data_starttime_endtime_equals():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetMetricData")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationError")
-    ex.response["Error"]["Message"].should.equal(
-        "The parameter StartTime must not equal parameter EndTime."
-    )
+    assert ex.operation_name == "GetMetricData"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    err = ex.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "The parameter StartTime must not equal parameter EndTime."
 
 
 @mock_cloudwatch
@@ -1432,11 +1430,12 @@ def test_get_metric_data_starttime_endtime_within_1_second():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetMetricData")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationError")
-    ex.response["Error"]["Message"].should.equal(
-        "The parameter StartTime must not equal parameter EndTime."
+    assert ex.operation_name == "GetMetricData"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ValidationError"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The parameter StartTime must not equal parameter EndTime."
     )
 
 
@@ -1476,9 +1475,9 @@ def test_get_metric_data_starttime_endtime_ignore_miliseconds():
         EndTime=(utc_now + timedelta(seconds=1)).replace(microsecond=0),
     )
 
-    len(response["MetricDataResults"]).should.equal(1)
-    response["MetricDataResults"][0]["Id"].should.equal("test")
-    response["MetricDataResults"][0]["Values"][0].should.equal(1.0)
+    assert len(response["MetricDataResults"]) == 1
+    assert response["MetricDataResults"][0]["Id"] == "test"
+    assert response["MetricDataResults"][0]["Values"][0] == 1.0
 
 
 @mock_cloudwatch
@@ -1501,27 +1500,23 @@ def test_cloudwatch_return_s3_metrics():
     )["Metrics"]
 
     # then
-    metrics.should.have.length_of(2)
-    metrics.should.contain(
-        {
-            "Namespace": "AWS/S3",
-            "MetricName": "NumberOfObjects",
-            "Dimensions": [
-                {"Name": "StorageType", "Value": "AllStorageTypes"},
-                {"Name": "BucketName", "Value": bucket_name},
-            ],
-        }
-    )
-    metrics.should.contain(
-        {
-            "Namespace": "AWS/S3",
-            "MetricName": "BucketSizeBytes",
-            "Dimensions": [
-                {"Name": "StorageType", "Value": "StandardStorage"},
-                {"Name": "BucketName", "Value": bucket_name},
-            ],
-        }
-    )
+    assert len(metrics) == 2
+    assert {
+        "Namespace": "AWS/S3",
+        "MetricName": "NumberOfObjects",
+        "Dimensions": [
+            {"Name": "StorageType", "Value": "AllStorageTypes"},
+            {"Name": "BucketName", "Value": bucket_name},
+        ],
+    } in metrics
+    assert {
+        "Namespace": "AWS/S3",
+        "MetricName": "BucketSizeBytes",
+        "Dimensions": [
+            {"Name": "StorageType", "Value": "StandardStorage"},
+            {"Name": "BucketName", "Value": bucket_name},
+        ],
+    } in metrics
 
     # when
     stats = cloudwatch.get_metric_statistics(
@@ -1539,11 +1534,11 @@ def test_cloudwatch_return_s3_metrics():
     )
 
     # then
-    stats.should.have.key("Label").equal("BucketSizeBytes")
-    stats.should.have.key("Datapoints").length_of(1)
+    assert stats["Label"] == "BucketSizeBytes"
+    assert len(stats["Datapoints"]) == 1
     data_point = stats["Datapoints"][0]
-    data_point.should.have.key("Average").being.above(0)
-    data_point.should.have.key("Unit").being.equal("Bytes")
+    assert data_point["Average"] > 0
+    assert data_point["Unit"] == "Bytes"
 
     # when
     stats = cloudwatch.get_metric_statistics(
@@ -1560,11 +1555,11 @@ def test_cloudwatch_return_s3_metrics():
     )
 
     # then
-    stats.should.have.key("Label").equal("NumberOfObjects")
-    stats.should.have.key("Datapoints").length_of(1)
+    assert stats["Label"] == "NumberOfObjects"
+    assert len(stats["Datapoints"]) == 1
     data_point = stats["Datapoints"][0]
-    data_point.should.have.key("Average").being.equal(1)
-    data_point.should.have.key("Unit").being.equal("Count")
+    assert data_point["Average"] == 1
+    assert data_point["Unit"] == "Count"
 
     s3_client.delete_object(Bucket=bucket_name, Key="file.txt")
     s3_client.delete_bucket(Bucket=bucket_name)
@@ -1605,43 +1600,37 @@ def test_put_metric_alarm():
 
     # then
     alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
-    alarms.should.have.length_of(1)
+    assert len(alarms) == 1
 
     alarm = alarms[0]
-    alarm["AlarmName"].should.equal(alarm_name)
-    alarm["AlarmArn"].should.equal(
-        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    assert alarm["AlarmName"] == alarm_name
+    assert (
+        alarm["AlarmArn"]
+        == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
-    alarm["AlarmDescription"].should.equal("test alarm")
-    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
-    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["ActionsEnabled"].should.equal(True)
-    alarm["OKActions"].should.equal([sns_topic_arn])
-    alarm["AlarmActions"].should.equal([sns_topic_arn])
-    alarm["InsufficientDataActions"].should.equal([sns_topic_arn])
-    alarm["StateValue"].should.equal("OK")
-    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
-    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
-    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["MetricName"].should.equal("5XXError")
-    alarm["Namespace"].should.equal("AWS/ApiGateway")
-    alarm["Statistic"].should.equal("Sum")
-    sorted(alarm["Dimensions"], key=itemgetter("Name")).should.equal(
-        sorted(
-            [
-                {"Name": "ApiName", "Value": "test-api"},
-                {"Name": "Stage", "Value": "default"},
-            ],
-            key=itemgetter("Name"),
-        )
-    )
-    alarm["Period"].should.equal(60)
-    alarm["Unit"].should.equal("Seconds")
-    alarm["EvaluationPeriods"].should.equal(1)
-    alarm["DatapointsToAlarm"].should.equal(1)
-    alarm["Threshold"].should.equal(1.0)
-    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
-    alarm["TreatMissingData"].should.equal("notBreaching")
+    assert alarm["AlarmDescription"] == "test alarm"
+    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert alarm["ActionsEnabled"] is True
+    assert alarm["OKActions"] == [sns_topic_arn]
+    assert alarm["AlarmActions"] == [sns_topic_arn]
+    assert alarm["InsufficientDataActions"] == [sns_topic_arn]
+    assert alarm["StateValue"] == "OK"
+    assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
+    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert alarm["MetricName"] == "5XXError"
+    assert alarm["Namespace"] == "AWS/ApiGateway"
+    assert alarm["Statistic"] == "Sum"
+    assert sorted(alarm["Dimensions"], key=itemgetter("Name")) == [
+        {"Name": "ApiName", "Value": "test-api"},
+        {"Name": "Stage", "Value": "default"},
+    ]
+    assert alarm["Period"] == 60
+    assert alarm["Unit"] == "Seconds"
+    assert alarm["EvaluationPeriods"] == 1
+    assert alarm["DatapointsToAlarm"] == 1
+    assert alarm["Threshold"] == 1.0
+    assert alarm["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
+    assert alarm["TreatMissingData"] == "notBreaching"
 
 
 @mock_cloudwatch
@@ -1675,41 +1664,35 @@ def test_put_metric_alarm_with_percentile():
 
     # then
     alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
-    alarms.should.have.length_of(1)
+    assert len(alarms) == 1
 
     alarm = alarms[0]
-    alarm["AlarmName"].should.equal(alarm_name)
-    alarm["AlarmArn"].should.equal(
-        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    assert alarm["AlarmName"] == alarm_name
+    assert (
+        alarm["AlarmArn"]
+        == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
-    alarm["AlarmDescription"].should.equal("test alarm")
-    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
-    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["ActionsEnabled"].should.equal(True)
-    alarm["StateValue"].should.equal("OK")
-    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
-    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
-    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["MetricName"].should.equal("5XXError")
-    alarm["Namespace"].should.equal("AWS/ApiGateway")
-    alarm["ExtendedStatistic"].should.equal("p90")
-    sorted(alarm["Dimensions"], key=itemgetter("Name")).should.equal(
-        sorted(
-            [
-                {"Name": "ApiName", "Value": "test-api"},
-                {"Name": "Stage", "Value": "default"},
-            ],
-            key=itemgetter("Name"),
-        )
-    )
-    alarm["Period"].should.equal(60)
-    alarm["Unit"].should.equal("Seconds")
-    alarm["EvaluationPeriods"].should.equal(1)
-    alarm["DatapointsToAlarm"].should.equal(1)
-    alarm["Threshold"].should.equal(1.0)
-    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
-    alarm["TreatMissingData"].should.equal("notBreaching")
-    alarm["EvaluateLowSampleCountPercentile"].should.equal("ignore")
+    assert alarm["AlarmDescription"] == "test alarm"
+    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert alarm["ActionsEnabled"] is True
+    assert alarm["StateValue"] == "OK"
+    assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
+    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert alarm["MetricName"] == "5XXError"
+    assert alarm["Namespace"] == "AWS/ApiGateway"
+    assert alarm["ExtendedStatistic"] == "p90"
+    assert sorted(alarm["Dimensions"], key=itemgetter("Name")) == [
+        {"Name": "ApiName", "Value": "test-api"},
+        {"Name": "Stage", "Value": "default"},
+    ]
+    assert alarm["Period"] == 60
+    assert alarm["Unit"] == "Seconds"
+    assert alarm["EvaluationPeriods"] == 1
+    assert alarm["DatapointsToAlarm"] == 1
+    assert alarm["Threshold"] == 1.0
+    assert alarm["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
+    assert alarm["TreatMissingData"] == "notBreaching"
+    assert alarm["EvaluateLowSampleCountPercentile"] == "ignore"
 
 
 @mock_cloudwatch
@@ -1753,23 +1736,22 @@ def test_put_metric_alarm_with_anomaly_detection():
 
     # then
     alarms = client.describe_alarms(AlarmNames=[alarm_name])["MetricAlarms"]
-    alarms.should.have.length_of(1)
+    assert len(alarms) == 1
 
     alarm = alarms[0]
-    alarm["AlarmName"].should.equal(alarm_name)
-    alarm["AlarmArn"].should.equal(
-        f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
+    assert alarm["AlarmName"] == alarm_name
+    assert (
+        alarm["AlarmArn"]
+        == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
-    alarm["AlarmConfigurationUpdatedTimestamp"].should.be.a(datetime)
-    alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["StateValue"].should.equal("OK")
-    alarm["StateReason"].should.equal("Unchecked: Initial alarm creation")
-    alarm["StateUpdatedTimestamp"].should.be.a(datetime)
-    alarm["StateUpdatedTimestamp"].tzinfo.should.equal(tzutc())
-    alarm["EvaluationPeriods"].should.equal(2)
-    alarm["ComparisonOperator"].should.equal("GreaterThanOrEqualToThreshold")
-    alarm["Metrics"].should.equal(metrics)
-    alarm["ThresholdMetricId"].should.equal("t1")
+    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert alarm["StateValue"] == "OK"
+    assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
+    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert alarm["EvaluationPeriods"] == 2
+    assert alarm["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
+    assert alarm["Metrics"] == metrics
+    assert alarm["ThresholdMetricId"] == "t1"
 
 
 @mock_cloudwatch
@@ -1802,11 +1784,12 @@ def test_put_metric_alarm_error_extended_statistic():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutMetricAlarm")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "The value 90 for parameter ExtendedStatistic is not supported."
+    assert ex.operation_name == "PutMetricAlarm"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The value 90 for parameter ExtendedStatistic is not supported."
     )
 
 
@@ -1841,11 +1824,12 @@ def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutMetricAlarm")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationError")
-    ex.response["Error"]["Message"].should.equal(
-        "Option unknown is not supported. "
+    assert ex.operation_name == "PutMetricAlarm"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    err = ex.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"] == "Option unknown is not supported. "
         "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
     )
 
@@ -1917,5 +1901,5 @@ def test_get_metric_data_with_custom_label():
                 response["MetricDataResults"],
             )
         )
-        len(metric_result_data).should.equal(1)
-        metric_result_data[0]["Label"].should.equal(expected_value)
+        assert len(metric_result_data) == 1
+        assert metric_result_data[0]["Label"] == expected_value

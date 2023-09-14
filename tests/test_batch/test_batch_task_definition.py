@@ -53,8 +53,43 @@ def test_register_task_definition_with_platform_capability(platform_capability):
         platformCapabilities=[platform_capability],
     )
 
-    resp = batch_client.describe_job_definitions(jobDefinitionName=def_name)
-    assert resp["jobDefinitions"][0]["platformCapabilities"] == [platform_capability]
+    job_def = batch_client.describe_job_definitions(jobDefinitionName=def_name)[
+        "jobDefinitions"
+    ][0]
+    assert job_def["platformCapabilities"] == [platform_capability]
+
+    container_props = job_def["containerProperties"]
+    assert container_props["resourceRequirements"] == []
+    assert container_props["secrets"] == []
+    if platform_capability == "FARGATE":
+        assert container_props["fargatePlatformConfiguration"] == {
+            "platformVersion": "LATEST"
+        }
+    else:
+        assert "fargatePlatformConfiguration" not in container_props
+
+
+@mock_batch
+def test_register_task_definition_without_command():
+    _, _, _, _, batch_client = _get_clients()
+
+    def_name = str(uuid4())[0:6]
+    batch_client.register_job_definition(
+        jobDefinitionName=def_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": 4,
+        },
+    )
+
+    job_def = batch_client.describe_job_definitions(jobDefinitionName=def_name)[
+        "jobDefinitions"
+    ][0]
+
+    container_props = job_def["containerProperties"]
+    assert container_props["command"] == []
 
 
 @mock_batch

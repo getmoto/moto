@@ -1,7 +1,6 @@
 import boto3
 from freezegun import freeze_time
-import sure  # noqa # pylint: disable=unused-import
-import re
+import pytest
 
 from moto import mock_opsworks
 
@@ -19,7 +18,7 @@ def test_create_app_response():
 
     response = client.create_app(StackId=stack_id, Type="other", Name="TestApp")
 
-    response.should.contain("AppId")
+    assert "AppId" in response
 
     second_stack_id = client.create_stack(
         Name="test_stack_2",
@@ -30,17 +29,17 @@ def test_create_app_response():
 
     response = client.create_app(StackId=second_stack_id, Type="other", Name="TestApp")
 
-    response.should.contain("AppId")
+    assert "AppId" in response
 
     # ClientError
-    client.create_app.when.called_with(
-        StackId=stack_id, Type="other", Name="TestApp"
-    ).should.throw(Exception, re.compile(r'already an app named "TestApp"'))
+    with pytest.raises(Exception) as exc:
+        client.create_app(StackId=stack_id, Type="other", Name="TestApp")
+    assert r'already an app named "TestApp"' in exc.value.response["Error"]["Message"]
 
     # ClientError
-    client.create_app.when.called_with(
-        StackId="nothere", Type="other", Name="TestApp"
-    ).should.throw(Exception, "nothere")
+    with pytest.raises(Exception) as exc:
+        client.create_app(StackId="nothere", Type="other", Name="TestApp")
+    assert exc.value.response["Error"]["Message"] == "nothere"
 
 
 @freeze_time("2015-01-01")
@@ -57,19 +56,25 @@ def test_describe_apps():
 
     rv1 = client.describe_apps(StackId=stack_id)
     rv2 = client.describe_apps(AppIds=[app_id])
-    rv1["Apps"].should.equal(rv2["Apps"])
+    assert rv1["Apps"] == rv2["Apps"]
 
-    rv1["Apps"][0]["Name"].should.equal("TestApp")
+    assert rv1["Apps"][0]["Name"] == "TestApp"
 
     # ClientError
-    client.describe_apps.when.called_with(
-        StackId=stack_id, AppIds=[app_id]
-    ).should.throw(Exception, "Please provide one or more app IDs or a stack ID")
-    # ClientError
-    client.describe_apps.when.called_with(StackId="nothere").should.throw(
-        Exception, "Unable to find stack with ID nothere"
+    with pytest.raises(Exception) as exc:
+        client.describe_apps(StackId=stack_id, AppIds=[app_id])
+    assert exc.value.response["Error"]["Message"] == (
+        "Please provide one or more app IDs or a stack ID"
     )
+
     # ClientError
-    client.describe_apps.when.called_with(AppIds=["nothere"]).should.throw(
-        Exception, "nothere"
+    with pytest.raises(Exception) as exc:
+        client.describe_apps(StackId="nothere")
+    assert exc.value.response["Error"]["Message"] == (
+        "Unable to find stack with ID nothere"
     )
+
+    # ClientError
+    with pytest.raises(Exception) as exc:
+        client.describe_apps(AppIds=["nothere"])
+    assert exc.value.response["Error"]["Message"] == "nothere"

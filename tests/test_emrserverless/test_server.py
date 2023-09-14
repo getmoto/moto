@@ -1,6 +1,4 @@
 """Test different server responses."""
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 
 
@@ -9,5 +7,5 @@ def test_emrserverless_list():
     test_client = backend.test_client()
 
     resp = test_client.get("/applications")
-    resp.status_code.should.equal(200)
-    str(resp.data).should.contain("applications")
+    assert resp.status_code == 200
+    assert "applications" in str(resp.data)

@@ -858,20 +858,20 @@ def test_associate_resolver_endpoint_ip_address():
     # create resolver
     random_num = mock_random.get_random_hex(10)
     resolver = create_test_endpoint(client, ec2_client, name=f"A-{random_num}")
-    resolver.should.have.key("IpAddressCount").equals(2)
+    assert resolver["IpAddressCount"] == 2
     # associate
     resp = client.associate_resolver_endpoint_ip_address(
         IpAddress={"Ip": "10.0.2.126", "SubnetId": subnet["SubnetId"]},
         ResolverEndpointId=resolver["Id"],
     )["ResolverEndpoint"]
-    resp.should.have.key("Id").equals(resolver["Id"])
-    resp.should.have.key("IpAddressCount").equals(3)
-    resp.should.have.key("SecurityGroupIds").should.have.length_of(1)
+    assert resp["Id"] == resolver["Id"]
+    assert resp["IpAddressCount"] == 3
+    assert len(resp["SecurityGroupIds"]) == 1
     # verify ENI was created
     enis = ec2_client.describe_network_interfaces()["NetworkInterfaces"]
 
     ip_addresses = [eni["PrivateIpAddress"] for eni in enis]
-    ip_addresses.should.contain("10.0.2.126")
+    assert "10.0.2.126" in ip_addresses
 
 
 @mock_route53resolver
@@ -882,8 +882,8 @@ def test_associate_resolver_endpoint_ip_address__invalid_resolver():
             IpAddress={"Ip": "notapplicable"}, ResolverEndpointId="unknown"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Resolver endpoint with ID 'unknown' does not exist")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resolver endpoint with ID 'unknown' does not exist"
 
 
 @mock_ec2
@@ -912,7 +912,7 @@ def test_disassociate_resolver_endpoint_ip_address__using_ip():
     )
     # One ENI was deleted
     enis_after = ec2_client.describe_network_interfaces()["NetworkInterfaces"]
-    (len(enis_after) + 1).should.equal(len(enis_before))
+    assert (len(enis_after) + 1) == len(enis_before)
 
 
 @mock_ec2
@@ -943,7 +943,7 @@ def test_disassociate_resolver_endpoint_ip_address__using_ipid_and_subnet():
         ResolverEndpointId=resolver["Id"],
         IpAddress={"SubnetId": subnet_id, "IpId": ip_id},
     )["ResolverEndpoint"]
-    resp.should.have.key("IpAddressCount").equals(2)
+    assert resp["IpAddressCount"] == 2
 
 
 @mock_ec2
@@ -970,7 +970,8 @@ def test_disassociate_resolver_endpoint_ip_address__using_subnet_alone():
             ResolverEndpointId=resolver["Id"], IpAddress={"SubnetId": subnet_id}
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidRequestException")
-    err["Message"].should.equal(
-        "[RSLVR-00503] Need to specify either the IP ID or both subnet and IP address in order to remove IP address."
+    assert err["Code"] == "InvalidRequestException"
+    assert (
+        err["Message"]
+        == "[RSLVR-00503] Need to specify either the IP ID or both subnet and IP address in order to remove IP address."
     )

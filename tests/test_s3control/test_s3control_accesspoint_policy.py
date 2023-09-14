@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.client import ClientError
 from moto import mock_s3control
@@ -32,7 +31,8 @@ def test_get_access_point_policy():
     )
 
     resp = client.get_access_point_policy(AccountId="111111111111", Name="ap_name")
-    resp.should.have.key("Policy").equals(policy)
+    assert "Policy" in resp
+    assert resp["Policy"] == policy
 
 
 @mock_s3control
@@ -45,9 +45,9 @@ def test_get_unknown_access_point_policy():
     with pytest.raises(ClientError) as exc:
         client.get_access_point_policy(AccountId="111111111111", Name="ap_name")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchAccessPointPolicy")
-    err["Message"].should.equal("The specified accesspoint policy does not exist")
-    err["AccessPointName"].should.equal("ap_name")
+    assert err["Code"] == "NoSuchAccessPointPolicy"
+    assert err["Message"] == "The specified accesspoint policy does not exist"
+    assert err["AccessPointName"] == "ap_name"
 
 
 @mock_s3control
@@ -78,7 +78,8 @@ def test_get_access_point_policy_status():
     resp = client.get_access_point_policy_status(
         AccountId="111111111111", Name="ap_name"
     )
-    resp.should.have.key("PolicyStatus").equals({"IsPublic": True})
+    assert "PolicyStatus" in resp
+    assert resp["PolicyStatus"] == {"IsPublic": True}
 
 
 @mock_s3control
@@ -98,7 +99,7 @@ def test_delete_access_point_policy():
     with pytest.raises(ClientError) as exc:
         client.get_access_point_policy(AccountId="111111111111", Name="ap_name")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchAccessPointPolicy")
+    assert err["Code"] == "NoSuchAccessPointPolicy"
 
 
 @mock_s3control
@@ -111,6 +112,6 @@ def test_get_unknown_access_point_policy_status():
     with pytest.raises(ClientError) as exc:
         client.get_access_point_policy_status(AccountId="111111111111", Name="ap_name")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchAccessPointPolicy")
-    err["Message"].should.equal("The specified accesspoint policy does not exist")
-    err["AccessPointName"].should.equal("ap_name")
+    assert err["Code"] == "NoSuchAccessPointPolicy"
+    assert err["Message"] == "The specified accesspoint policy does not exist"
+    assert err["AccessPointName"] == "ap_name"

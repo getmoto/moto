@@ -1,21 +1,20 @@
+import hashlib
 import json
 import os
-import time
-import uuid
-import hashlib
+import re
 import sys
+import time
+from unittest import SkipTest, mock
+from uuid import uuid4
 
 import boto3
 import botocore.exceptions
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
+import pytest
+
 from moto import mock_sqs, settings
 from moto.utilities.distutils_version import LooseVersion
-
-from unittest import SkipTest, mock
-
-import pytest
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
     Queue,
@@ -23,7 +22,6 @@ from moto.sqs.models import (
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
     MAXIMUM_MESSAGE_LENGTH,
 )
-from uuid import uuid4
 
 TEST_POLICY = """
 {
@@ -54,7 +52,7 @@ def test_create_fifo_queue_fail():
     try:
         sqs.create_queue(QueueName=str(uuid4())[0:6], Attributes={"FifoQueue": "true"})
     except botocore.exceptions.ClientError as err:
-        err.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
     else:
         raise RuntimeError("Should have raised InvalidParameterValue Exception")
 
@@ -94,7 +92,7 @@ def test_create_queue_with_different_attributes_fail():
     try:
         sqs.create_queue(QueueName=q_name, Attributes={"VisibilityTimeout": "60"})
     except botocore.exceptions.ClientError as err:
-        err.response["Error"]["Code"].should.equal("QueueAlreadyExists")
+        assert err.response["Error"]["Code"] == "QueueAlreadyExists"
     else:
         raise RuntimeError("Should have raised QueueAlreadyExists Exception")
 
@@ -105,7 +103,7 @@ def test_create_queue_with_different_attributes_fail():
     sqs.set_queue_attributes(QueueUrl=response.get("QueueUrl"), Attributes=attributes)
 
     new_response = sqs.create_queue(QueueName=q_name2, Attributes={"FifoQueue": "tru"})
-    new_response["QueueUrl"].should.equal(response.get("QueueUrl"))
+    assert new_response["QueueUrl"] == response.get("QueueUrl")
 
 
 @mock_sqs
@@ -121,28 +119,28 @@ def test_create_fifo_queue():
     )["QueueUrl"]
 
     # then
-    queue_url.should.contain(queue_name)
+    assert queue_name in queue_url
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
     ]
-    attributes["ApproximateNumberOfMessages"].should.equal("0")
-    attributes["ApproximateNumberOfMessagesNotVisible"].should.equal("0")
-    attributes["ApproximateNumberOfMessagesDelayed"].should.equal("0")
-    attributes["CreatedTimestamp"].should.be.a(str)
-    attributes["ContentBasedDeduplication"].should.equal("false")
-    attributes["DeduplicationScope"].should.equal("queue")
-    attributes["DelaySeconds"].should.equal("0")
-    attributes["LastModifiedTimestamp"].should.be.a(str)
-    attributes["FifoQueue"].should.equal("true")
-    attributes["FifoThroughputLimit"].should.equal("perQueue")
-    attributes["MaximumMessageSize"].should.equal("262144")
-    attributes["MessageRetentionPeriod"].should.equal("345600")
-    attributes["QueueArn"].should.equal(
+    assert attributes["ApproximateNumberOfMessages"] == "0"
+    assert attributes["ApproximateNumberOfMessagesNotVisible"] == "0"
+    assert attributes["ApproximateNumberOfMessagesDelayed"] == "0"
+    assert isinstance(attributes["CreatedTimestamp"], str)
+    assert attributes["ContentBasedDeduplication"] == "false"
+    assert attributes["DeduplicationScope"] == "queue"
+    assert attributes["DelaySeconds"] == "0"
+    assert isinstance(attributes["LastModifiedTimestamp"], str)
+    assert attributes["FifoQueue"] == "true"
+    assert attributes["FifoThroughputLimit"] == "perQueue"
+    assert attributes["MaximumMessageSize"] == "262144"
+    assert attributes["MessageRetentionPeriod"] == "345600"
+    assert attributes["QueueArn"] == (
         f"arn:aws:sqs:{region_name}:{ACCOUNT_ID}:{queue_name}"
     )
-    attributes["ReceiveMessageWaitTimeSeconds"].should.equal("0")
-    attributes["VisibilityTimeout"].should.equal("30")
+    assert attributes["ReceiveMessageWaitTimeSeconds"] == "0"
+    assert attributes["VisibilityTimeout"] == "30"
 
 
 @mock_sqs
@@ -162,14 +160,14 @@ def test_create_fifo_queue_with_high_throughput():
     )["QueueUrl"]
 
     # then
-    queue_url.should.contain(queue_name)
+    assert queue_name in queue_url
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
     ]
-    attributes["DeduplicationScope"].should.equal("messageGroup")
-    attributes["FifoQueue"].should.equal("true")
-    attributes["FifoThroughputLimit"].should.equal("perMessageGroupId")
+    assert attributes["DeduplicationScope"] == "messageGroup"
+    assert attributes["FifoQueue"] == "true"
+    assert attributes["FifoThroughputLimit"] == "perMessageGroupId"
 
 
 @mock_sqs
@@ -178,12 +176,12 @@ def test_create_queue():
 
     q_name = str(uuid4())[0:6]
     new_queue = sqs.create_queue(QueueName=q_name)
-    new_queue.should.have.property("url").should.contain(q_name)
+    assert q_name in getattr(new_queue, "url")
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
-    queue.attributes.get("QueueArn").split(":")[-1].should.equal(q_name)
-    queue.attributes.get("QueueArn").split(":")[3].should.equal("us-east-1")
-    queue.attributes.get("VisibilityTimeout").should.equal("30")
+    assert queue.attributes.get("QueueArn").split(":")[-1] == q_name
+    assert queue.attributes.get("QueueArn").split(":")[3] == "us-east-1"
+    assert queue.attributes.get("VisibilityTimeout") == "30"
 
 
 @mock_sqs
@@ -201,8 +199,8 @@ def test_create_queue_kms():
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
 
-    queue.attributes.get("KmsMasterKeyId").should.equal("master-key-id")
-    queue.attributes.get("KmsDataKeyReusePeriodSeconds").should.equal("600")
+    assert queue.attributes.get("KmsMasterKeyId") == "master-key-id"
+    assert queue.attributes.get("KmsDataKeyReusePeriodSeconds") == "600"
 
 
 @mock_sqs
@@ -214,9 +212,10 @@ def test_create_queue_with_tags():
     )
     queue_url = response["QueueUrl"]
 
-    client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
-        {"tag_key_1": "tag_value_1", "tag_key_2": ""}
-    )
+    assert client.list_queue_tags(QueueUrl=queue_url)["Tags"] == {
+        "tag_key_1": "tag_value_1",
+        "tag_key_2": "",
+    }
 
 
 @mock_sqs
@@ -240,13 +239,11 @@ def test_create_queue_with_policy():
     response = client.get_queue_attributes(
         QueueUrl=queue_url, AttributeNames=["Policy"]
     )
-    json.loads(response["Attributes"]["Policy"]).should.equal(
-        {
-            "Version": "2012-10-17",
-            "Id": "test",
-            "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
-        }
-    )
+    assert json.loads(response["Attributes"]["Policy"]) == {
+        "Version": "2012-10-17",
+        "Id": "test",
+        "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
+    }
 
 
 @mock_sqs
@@ -272,7 +269,7 @@ def test_set_queue_attribute_empty_policy_removes_attr():
     response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
     ]
-    response.shouldnt.have.key("Policy")
+    assert "Policy" not in response
 
 
 def test_is_empty_redrive_policy_returns_true_for_empty_and_falsy_values():
@@ -312,7 +309,7 @@ def test_set_queue_attribute_empty_redrive_removes_attr():
     response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
     ]
-    response.shouldnt.have.key("RedrivePolicy")
+    assert "RedrivePolicy" not in response
 
 
 @mock_sqs
@@ -323,7 +320,7 @@ def test_get_queue_url():
 
     response = client.get_queue_url(QueueName=q_name)
 
-    response.should.have.key("QueueUrl").which.should.contain(q_name)
+    assert q_name in response["QueueUrl"]
 
 
 @mock_sqs
@@ -337,12 +334,10 @@ def test_get_queue_url_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetQueueUrl")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "AWS.SimpleQueueService.NonExistentQueue"
-    )
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "GetQueueUrl"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "The specified queue does not exist for this wsdl version."
     )
 
@@ -354,9 +349,9 @@ def test_get_nonexistent_queue():
     with pytest.raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
     ex = err.value
-    ex.operation_name.should.equal("GetQueueAttributes")
-    ex.response["Error"]["Code"].should.equal("AWS.SimpleQueueService.NonExistentQueue")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "GetQueueAttributes"
+    assert ex.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue"
+    assert ex.response["Error"]["Message"] == (
         "The specified queue does not exist for this wsdl version."
     )
 
@@ -366,12 +361,12 @@ def test_message_send_without_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
     msg = queue.send_message(MessageBody="derp")
-    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.shouldnt.have.key("MD5OfMessageAttributes")
-    msg.get("MessageId").should_not.contain(" \n")
+    assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
+    assert "MD5OfMessageAttributes" not in msg
+    assert " \n" not in msg.get("MessageId")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
@@ -387,12 +382,12 @@ def test_message_send_with_attributes():
             }
         },
     )
-    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("36655e7e9d7c0e8479fa3f3f42247ae7")
-    msg.get("MessageId").should_not.contain(" \n")
+    assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
+    assert msg.get("MD5OfMessageAttributes") == "36655e7e9d7c0e8479fa3f3f42247ae7"
+    assert " \n" not in msg.get("MessageId")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
@@ -464,10 +459,11 @@ def test_message_with_invalid_attributes():
             },
         )
     ex = e.value
-    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Message"] == (
         "The message attribute name 'öther_encodings' is invalid. "
-        "Attribute name can contain A-Z, a-z, 0-9, underscore (_), hyphen (-), and period (.) characters."
+        "Attribute name can contain A-Z, a-z, 0-9, underscore (_), "
+        "hyphen (-), and period (.) characters."
     )
 
 
@@ -489,12 +485,12 @@ def test_message_with_string_attributes():
             },
         },
     )
-    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("b12289320bb6e494b18b645ef562b4a9")
-    msg.get("MessageId").should_not.contain(" \n")
+    assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
+    assert msg.get("MD5OfMessageAttributes") == "b12289320bb6e494b18b645ef562b4a9"
+    assert " \n" not in msg.get("MessageId")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
@@ -516,12 +512,12 @@ def test_message_with_binary_attribute():
             "contentType": {"StringValue": "application/json", "DataType": "String"},
         },
     )
-    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("049075255ebc53fb95f7f9f3cedf3c50")
-    msg.get("MessageId").should_not.contain(" \n")
+    assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
+    assert msg.get("MD5OfMessageAttributes") == "049075255ebc53fb95f7f9f3cedf3c50"
+    assert " \n" not in msg.get("MessageId")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
@@ -537,12 +533,12 @@ def test_message_with_attributes_have_labels():
             }
         },
     )
-    msg.get("MD5OfMessageBody").should.equal("58fd9edd83341c29f1aebba81c31e257")
-    msg.get("MD5OfMessageAttributes").should.equal("2e2e4876d8e0bd6b8c2c8f556831c349")
-    msg.get("MessageId").should_not.contain(" \n")
+    assert msg.get("MD5OfMessageBody") == "58fd9edd83341c29f1aebba81c31e257"
+    assert msg.get("MD5OfMessageAttributes") == "2e2e4876d8e0bd6b8c2c8f556831c349"
+    assert " \n" not in msg.get("MessageId")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
@@ -561,9 +557,10 @@ def test_message_with_attributes_invalid_datatype():
             },
         )
     ex = e.value
-    ex.response["Error"]["Code"].should.equal("MessageAttributesInvalid")
-    ex.response["Error"]["Message"].should.equal(
-        "The message attribute 'timestamp' has an invalid message attribute type, the set of supported type "
+    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Message"] == (
+        "The message attribute 'timestamp' has an invalid message "
+        "attribute type, the set of supported type "
         "prefixes is Binary, Number, and String."
     )
 
@@ -584,13 +581,13 @@ def test_send_message_with_message_group_id():
     messages = queue.receive_messages(
         AttributeNames=["MessageDeduplicationId", "MessageGroupId"]
     )
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     message_attributes = messages[0].attributes
-    message_attributes.should.contain("MessageGroupId")
-    message_attributes["MessageGroupId"].should.equal("group_id_1")
-    message_attributes.should.contain("MessageDeduplicationId")
-    message_attributes["MessageDeduplicationId"].should.equal("dedupe_id_1")
+    assert "MessageGroupId" in message_attributes
+    assert message_attributes["MessageGroupId"] == "group_id_1"
+    assert "MessageDeduplicationId" in message_attributes
+    assert message_attributes["MessageDeduplicationId"] == "dedupe_id_1"
 
 
 @mock_sqs
@@ -602,8 +599,8 @@ def test_send_message_with_message_group_id_standard_queue():
         queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
 
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
         "Value group_id_1 for parameter MessageGroupId is invalid. "
         "Reason: The request include parameter that is not valid for this queue type."
     )
@@ -620,7 +617,7 @@ def test_send_message_with_unicode_characters():
     messages = queue.receive_messages()
     message_body = messages[0].body
 
-    message_body.should.equal(body_one)
+    assert message_body == body_one
 
 
 @mock_sqs
@@ -628,10 +625,10 @@ def test_set_queue_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
-    queue.attributes["VisibilityTimeout"].should.equal("30")
+    assert queue.attributes["VisibilityTimeout"] == "30"
 
     queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
-    queue.attributes["VisibilityTimeout"].should.equal("45")
+    assert queue.attributes["VisibilityTimeout"] == "45"
 
 
 def _get_common_url(region):
@@ -662,13 +659,13 @@ def test_create_queues_in_multiple_region():
 
     boto_common_url = _get_common_url("us-west-1")
     base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
-    w1.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
-    w1.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
+    assert f"{base_url}/{ACCOUNT_ID}/{w1_name}" in w1.list_queues()["QueueUrls"]
+    assert f"{base_url}/{ACCOUNT_ID}/{w2_name}" not in w1.list_queues()["QueueUrls"]
 
     boto_common_url = _get_common_url("us-west-2")
     base_url = "http://localhost:5000" if settings.TEST_SERVER_MODE else boto_common_url
-    w2.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
-    w2.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
+    assert f"{base_url}/{ACCOUNT_ID}/{w1_name}" not in w2.list_queues()["QueueUrls"]
+    assert f"{base_url}/{ACCOUNT_ID}/{w2_name}" in w2.list_queues()["QueueUrls"]
 
 
 @mock_sqs
@@ -687,13 +684,13 @@ def test_get_queue_with_prefix():
     expected_url2 = f"{base_url}/{ACCOUNT_ID}/{q_name2}"
 
     all_urls = conn.list_queues()["QueueUrls"]
-    all_urls.should.contain(expected_url1)
-    all_urls.should.contain(expected_url2)
+    assert expected_url1 in all_urls
+    assert expected_url2 in all_urls
 
     queue = conn.list_queues(QueueNamePrefix=prefix)["QueueUrls"]
-    queue.should.have.length_of(1)
+    assert len(queue) == 1
 
-    queue[0].should.equal(expected_url2)
+    assert queue[0] == expected_url2
 
 
 @mock_sqs
@@ -705,12 +702,12 @@ def test_delete_queue():
     queue = sqs.Queue(q_resp["QueueUrl"])
 
     all_urls = conn.list_queues()["QueueUrls"]
-    [u[u.rfind("/") + 1 :] for u in all_urls].should.contain(q_name)
+    assert q_name in [u[u.rfind("/") + 1 :] for u in all_urls]
 
     queue.delete()
 
     all_urls = conn.list_queues().get("QueueUrls", [])
-    [u[u.rfind("/") + 1 :] for u in all_urls].shouldnt.contain(q_name)
+    assert q_name not in [u[u.rfind("/") + 1 :] for u in all_urls]
 
 
 @mock_sqs
@@ -723,12 +720,10 @@ def test_delete_queue_error_not_exists():
         )
 
     ex = e.value
-    ex.operation_name.should.equal("DeleteQueue")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "AWS.SimpleQueueService.NonExistentQueue"
-    )
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "DeleteQueue"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "The specified queue does not exist for this wsdl version."
     )
 
@@ -755,19 +750,19 @@ def test_get_queue_attributes():
 
     response = client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
 
-    response["Attributes"]["ApproximateNumberOfMessages"].should.equal("0")
-    response["Attributes"]["ApproximateNumberOfMessagesDelayed"].should.equal("0")
-    response["Attributes"]["ApproximateNumberOfMessagesNotVisible"].should.equal("0")
-    response["Attributes"]["CreatedTimestamp"].should.be.a(str)
-    response["Attributes"]["DelaySeconds"].should.equal("0")
-    response["Attributes"]["LastModifiedTimestamp"].should.be.a(str)
-    response["Attributes"]["MaximumMessageSize"].should.equal("262144")
-    response["Attributes"]["MessageRetentionPeriod"].should.equal("345600")
-    response["Attributes"]["QueueArn"].should.equal(
+    assert response["Attributes"]["ApproximateNumberOfMessages"] == "0"
+    assert response["Attributes"]["ApproximateNumberOfMessagesDelayed"] == "0"
+    assert response["Attributes"]["ApproximateNumberOfMessagesNotVisible"] == "0"
+    assert isinstance(response["Attributes"]["CreatedTimestamp"], str)
+    assert response["Attributes"]["DelaySeconds"] == "0"
+    assert isinstance(response["Attributes"]["LastModifiedTimestamp"], str)
+    assert response["Attributes"]["MaximumMessageSize"] == "262144"
+    assert response["Attributes"]["MessageRetentionPeriod"] == "345600"
+    assert response["Attributes"]["QueueArn"] == (
         f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:{q_name}"
     )
-    response["Attributes"]["ReceiveMessageWaitTimeSeconds"].should.equal("0")
-    response["Attributes"]["VisibilityTimeout"].should.equal("30")
+    assert response["Attributes"]["ReceiveMessageWaitTimeSeconds"] == "0"
+    assert response["Attributes"]["VisibilityTimeout"] == "30"
 
     response = client.get_queue_attributes(
         QueueUrl=queue_url,
@@ -780,24 +775,22 @@ def test_get_queue_attributes():
         ],
     )
 
-    response["Attributes"].should.equal(
-        {
-            "ApproximateNumberOfMessages": "0",
-            "MaximumMessageSize": "262144",
-            "QueueArn": f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:{q_name}",
-            "VisibilityTimeout": "30",
-            "RedrivePolicy": json.dumps(
-                {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 2}
-            ),
-        }
-    )
+    assert response["Attributes"] == {
+        "ApproximateNumberOfMessages": "0",
+        "MaximumMessageSize": "262144",
+        "QueueArn": f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:{q_name}",
+        "VisibilityTimeout": "30",
+        "RedrivePolicy": json.dumps(
+            {"deadLetterTargetArn": dlq_arn1, "maxReceiveCount": 2}
+        ),
+    }
 
     # should not return any attributes, if it was not set before
     response = client.get_queue_attributes(
         QueueUrl=queue_url, AttributeNames=["KmsMasterKeyId"]
     )
 
-    response.should_not.have.key("Attributes")
+    assert "Attributes" not in response
 
 
 @mock_sqs
@@ -806,18 +799,23 @@ def test_get_queue_attributes_errors():
     response = client.create_queue(QueueName=str(uuid4())[0:6])
     queue_url = response["QueueUrl"]
 
-    client.get_queue_attributes.when.called_with(
-        QueueUrl=queue_url,
-        AttributeNames=["QueueArn", "not-existing", "VisibilityTimeout"],
-    ).should.throw(ClientError, "Unknown Attribute not-existing.")
+    with pytest.raises(ClientError) as client_error:
+        client.get_queue_attributes(
+            QueueUrl=queue_url,
+            AttributeNames=["QueueArn", "not-existing", "VisibilityTimeout"],
+        )
+    assert (
+        client_error.value.response["Error"]["Message"]
+        == "Unknown Attribute not-existing."
+    )
 
-    client.get_queue_attributes.when.called_with(
-        QueueUrl=queue_url, AttributeNames=[""]
-    ).should.throw(ClientError, "Unknown Attribute .")
+    with pytest.raises(ClientError) as client_error:
+        client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[""])
+    assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
-    client.get_queue_attributes.when.called_with(
-        QueueUrl=queue_url, AttributeNames=[]
-    ).should.throw(ClientError, "Unknown Attribute .")
+    with pytest.raises(ClientError) as client_error:
+        client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
+    assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
 @mock_sqs
@@ -833,12 +831,10 @@ def test_get_queue_attributes_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetQueueAttributes")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain(
-        "AWS.SimpleQueueService.NonExistentQueue"
-    )
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "GetQueueAttributes"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "The specified queue does not exist for this wsdl version."
     )
 
@@ -852,11 +848,11 @@ def test_set_queue_attribute():
     )
 
     queue = sqs.Queue(q_resp["QueueUrl"])
-    queue.attributes["VisibilityTimeout"].should.equal("3")
+    assert queue.attributes["VisibilityTimeout"] == "3"
 
     queue.set_attributes(Attributes={"VisibilityTimeout": "45"})
     queue = sqs.Queue(q_resp["QueueUrl"])
-    queue.attributes["VisibilityTimeout"].should.equal("45")
+    assert queue.attributes["VisibilityTimeout"] == "45"
 
 
 @mock_sqs
@@ -879,14 +875,14 @@ def test_send_receive_message_without_attributes():
     message1 = messages[0]
     message2 = messages[1]
 
-    message1["Body"].should.equal(body_one)
-    message2["Body"].should.equal(body_two)
+    assert message1["Body"] == body_one
+    assert message2["Body"] == body_two
 
-    message1.shouldnt.have.key("MD5OfMessageAttributes")
-    message2.shouldnt.have.key("MD5OfMessageAttributes")
+    assert "MD5OfMessageAttributes" not in message1
+    assert "MD5OfMessageAttributes" not in message2
 
-    message1.should_not.have.key("Attributes")
-    message2.should_not.have.key("Attributes")
+    assert "Attributes" not in message1
+    assert "Attributes" not in message2
 
 
 @mock_sqs
@@ -920,15 +916,11 @@ def test_send_receive_message_with_attributes():
     message1 = messages[0]
     message2 = messages[1]
 
-    message1.get("Body").should.equal(body_one)
-    message2.get("Body").should.equal(body_two)
+    assert message1.get("Body") == body_one
+    assert message2.get("Body") == body_two
 
-    message1.get("MD5OfMessageAttributes").should.equal(
-        "235c5c510d26fb653d073faed50ae77c"
-    )
-    message2.get("MD5OfMessageAttributes").should.equal(
-        "994258b45346a2cc3f9cbb611aa7af30"
-    )
+    assert message1.get("MD5OfMessageAttributes") == "235c5c510d26fb653d073faed50ae77c"
+    assert message2.get("MD5OfMessageAttributes") == "994258b45346a2cc3f9cbb611aa7af30"
 
 
 @mock_sqs
@@ -968,15 +960,11 @@ def test_send_receive_message_with_attributes_with_labels():
     message1 = messages[0]
     message2 = messages[1]
 
-    message1.get("Body").should.equal(body_one)
-    message2.get("Body").should.equal(body_two)
+    assert message1.get("Body") == body_one
+    assert message2.get("Body") == body_two
 
-    message1.get("MD5OfMessageAttributes").should.equal(
-        "2e2e4876d8e0bd6b8c2c8f556831c349"
-    )
-    message2.get("MD5OfMessageAttributes").should.equal(
-        "cfa7c73063c6e2dbf9be34232a1978cf"
-    )
+    assert message1.get("MD5OfMessageAttributes") == "2e2e4876d8e0bd6b8c2c8f556831c349"
+    assert message2.get("MD5OfMessageAttributes") == "cfa7c73063c6e2dbf9be34232a1978cf"
 
     response = queue.send_message(
         MessageBody="test message",
@@ -985,16 +973,17 @@ def test_send_receive_message_with_attributes_with_labels():
         },
     )
 
-    response.get("MD5OfMessageAttributes").should.equal(
-        "9e05cca738e70ff6c6041e82d5e77ef1"
-    )
+    assert response.get("MD5OfMessageAttributes") == "9e05cca738e70ff6c6041e82d5e77ef1"
 
 
 @mock_sqs
 def test_receive_message_with_xml_content():
     sqs = boto3.client("sqs", region_name="eu-west-2")
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
-    original_payload = '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"/>'
+    original_payload = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<feed xmlns="http://www.w3.org/2005/Atom"/>'
+    )
     data = {"Payload": {"DataType": "String", "StringValue": original_payload}}
 
     sqs.send_message(
@@ -1009,7 +998,7 @@ def test_receive_message_with_xml_content():
     )["Messages"]
 
     attr = messages[0]["MessageAttributes"]["Payload"]["StringValue"]
-    attr.should.equal(original_payload)
+    assert attr == original_payload
 
 
 @mock_sqs
@@ -1025,7 +1014,7 @@ def test_change_message_visibility_than_permitted():
         queue = sqs.Queue(q_resp["QueueUrl"])
         queue.send_message(MessageBody="derp")
         messages = conn.receive_message(QueueUrl=queue.url)
-        messages.get("Messages").should.have.length_of(1)
+        assert len(messages.get("Messages")) == 1
 
         conn.change_message_visibility(
             QueueUrl=queue.url,
@@ -1043,8 +1032,8 @@ def test_change_message_visibility_than_permitted():
             )
 
         ex = err.value
-        ex.operation_name.should.equal("ChangeMessageVisibility")
-        ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
+        assert ex.operation_name == "ChangeMessageVisibility"
+        assert ex.response["Error"]["Code"] == "InvalidParameterValue"
 
 
 @mock_sqs
@@ -1069,8 +1058,14 @@ def test_send_receive_message_timestamps():
         "ApproximateFirstReceiveTimestamp"
     )
 
-    int.when.called_with(sent_timestamp).shouldnt.throw(ValueError)
-    int.when.called_with(approximate_first_receive_timestamp).shouldnt.throw(ValueError)
+    try:
+        int(sent_timestamp)
+    except ValueError:
+        assert False, "sent_timestamp not an int"
+    try:
+        int(approximate_first_receive_timestamp)
+    except ValueError:
+        assert False, "aproximate_first_receive_timestamp not an int"
 
 
 @mock_sqs
@@ -1080,61 +1075,61 @@ def test_send_receive_message_timestamps():
         (
             "All",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
-                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should_not.be.empty,
-                "SentTimestamp": lambda x: x.should_not.be.empty,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x,
+                "ApproximateReceiveCount": lambda x: x == "1",
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x,
+                "SentTimestamp": lambda x: x,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "ApproximateFirstReceiveTimestamp",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "ApproximateReceiveCount",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x == "1",
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "SenderId",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should_not.be.empty,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "SentTimestamp",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should_not.be.empty,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
     ],
@@ -1165,39 +1160,39 @@ def test_send_receive_message_with_attribute_name(attribute_name, expected):
     message1 = messages[0]
     message2 = messages[1]
 
-    message1["Body"].should.equal(body_one)
-    message2["Body"].should.equal(body_two)
+    assert message1["Body"] == body_one
+    assert message2["Body"] == body_two
 
-    message1.shouldnt.have.key("MD5OfMessageAttributes")
-    message2.shouldnt.have.key("MD5OfMessageAttributes")
+    assert "MD5OfMessageAttributes" not in message1
+    assert "MD5OfMessageAttributes" not in message2
 
-    expected["ApproximateFirstReceiveTimestamp"](
+    assert expected["ApproximateFirstReceiveTimestamp"](
         message1["Attributes"].get("ApproximateFirstReceiveTimestamp")
     )
-    expected["ApproximateReceiveCount"](
+    assert expected["ApproximateReceiveCount"](
         message1["Attributes"].get("ApproximateReceiveCount")
     )
-    expected["MessageDeduplicationId"](
+    assert expected["MessageDeduplicationId"](
         message1["Attributes"].get("MessageDeduplicationId")
     )
-    expected["MessageGroupId"](message1["Attributes"].get("MessageGroupId"))
-    expected["SenderId"](message1["Attributes"].get("SenderId"))
-    expected["SentTimestamp"](message1["Attributes"].get("SentTimestamp"))
-    expected["SequenceNumber"](message1["Attributes"].get("SequenceNumber"))
+    assert expected["MessageGroupId"](message1["Attributes"].get("MessageGroupId"))
+    assert expected["SenderId"](message1["Attributes"].get("SenderId"))
+    assert expected["SentTimestamp"](message1["Attributes"].get("SentTimestamp"))
+    assert expected["SequenceNumber"](message1["Attributes"].get("SequenceNumber"))
 
-    expected["ApproximateFirstReceiveTimestamp"](
+    assert expected["ApproximateFirstReceiveTimestamp"](
         message2["Attributes"].get("ApproximateFirstReceiveTimestamp")
     )
-    expected["ApproximateReceiveCount"](
+    assert expected["ApproximateReceiveCount"](
         message2["Attributes"].get("ApproximateReceiveCount")
     )
-    expected["MessageDeduplicationId"](
+    assert expected["MessageDeduplicationId"](
         message2["Attributes"].get("MessageDeduplicationId")
     )
-    expected["MessageGroupId"](message2["Attributes"].get("MessageGroupId"))
-    expected["SenderId"](message2["Attributes"].get("SenderId"))
-    expected["SentTimestamp"](message2["Attributes"].get("SentTimestamp"))
-    expected["SequenceNumber"](message2["Attributes"].get("SequenceNumber"))
+    assert expected["MessageGroupId"](message2["Attributes"].get("MessageGroupId"))
+    assert expected["SenderId"](message2["Attributes"].get("SenderId"))
+    assert expected["SentTimestamp"](message2["Attributes"].get("SentTimestamp"))
+    assert expected["SequenceNumber"](message2["Attributes"].get("SequenceNumber"))
 
 
 @mock_sqs
@@ -1207,97 +1202,97 @@ def test_send_receive_message_with_attribute_name(attribute_name, expected):
         (
             "All",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
-                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
-                "MessageDeduplicationId": lambda x: x.should.equal("123"),
-                "MessageGroupId": lambda x: x.should.equal("456"),
-                "SenderId": lambda x: x.should_not.be.empty,
-                "SentTimestamp": lambda x: x.should_not.be.empty,
-                "SequenceNumber": lambda x: x.should_not.be.empty,
+                "ApproximateFirstReceiveTimestamp": lambda x: x,
+                "ApproximateReceiveCount": lambda x: x == "1",
+                "MessageDeduplicationId": lambda x: x == "123",
+                "MessageGroupId": lambda x: x == "456",
+                "SenderId": lambda x: x,
+                "SentTimestamp": lambda x: x,
+                "SequenceNumber": lambda x: x,
             },
         ),
         (
             "ApproximateFirstReceiveTimestamp",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should_not.be.empty,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "ApproximateReceiveCount",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.equal("1"),
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x == "1",
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "MessageDeduplicationId",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.equal("123"),
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x == "123",
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "MessageGroupId",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.equal("456"),
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x == "456",
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "SenderId",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should_not.be.empty,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "SentTimestamp",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should_not.be.empty,
-                "SequenceNumber": lambda x: x.should.be.none,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x,
+                "SequenceNumber": lambda x: x is None,
             },
         ),
         (
             "SequenceNumber",
             {
-                "ApproximateFirstReceiveTimestamp": lambda x: x.should.be.none,
-                "ApproximateReceiveCount": lambda x: x.should.be.none,
-                "MessageDeduplicationId": lambda x: x.should.be.none,
-                "MessageGroupId": lambda x: x.should.be.none,
-                "SenderId": lambda x: x.should.be.none,
-                "SentTimestamp": lambda x: x.should.be.none,
-                "SequenceNumber": lambda x: x.should_not.be.empty,
+                "ApproximateFirstReceiveTimestamp": lambda x: x is None,
+                "ApproximateReceiveCount": lambda x: x is None,
+                "MessageDeduplicationId": lambda x: x is None,
+                "MessageGroupId": lambda x: x is None,
+                "SenderId": lambda x: x is None,
+                "SentTimestamp": lambda x: x is None,
+                "SequenceNumber": lambda x: x,
             },
         ),
     ],
@@ -1331,38 +1326,36 @@ def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected)
         QueueUrl=queue_url, AttributeNames=[attribute_name], MaxNumberOfMessages=2
     )["Messages"][0]
 
-    message["Body"].should.equal(body)
+    assert message["Body"] == body
 
-    message.should_not.have.key("MD5OfMessageAttributes")
+    assert "MD5OfMessageAttributes" not in message
 
-    expected["ApproximateFirstReceiveTimestamp"](
+    assert expected["ApproximateFirstReceiveTimestamp"](
         message["Attributes"].get("ApproximateFirstReceiveTimestamp")
     )
-    expected["ApproximateReceiveCount"](
+    assert expected["ApproximateReceiveCount"](
         message["Attributes"].get("ApproximateReceiveCount")
     )
-    expected["MessageDeduplicationId"](
+    assert expected["MessageDeduplicationId"](
         message["Attributes"].get("MessageDeduplicationId")
     )
-    expected["MessageGroupId"](message["Attributes"].get("MessageGroupId"))
-    expected["SenderId"](message["Attributes"].get("SenderId"))
-    expected["SentTimestamp"](message["Attributes"].get("SentTimestamp"))
-    expected["SequenceNumber"](message["Attributes"].get("SequenceNumber"))
+    assert expected["MessageGroupId"](message["Attributes"].get("MessageGroupId"))
+    assert expected["SenderId"](message["Attributes"].get("SenderId"))
+    assert expected["SentTimestamp"](message["Attributes"].get("SentTimestamp"))
+    assert expected["SequenceNumber"](message["Attributes"].get("SequenceNumber"))
 
 
 @mock_sqs
 def test_get_queue_attributes_no_param():
-    """
-    AWS does not return the Attributes-key when omitting the AttributeNames-parameter
-    """
+    """Test Attributes-key is not returned when no AttributeNames-parameter."""
     sqs = boto3.client("sqs", region_name="ap-northeast-3")
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
-    queue_attrs.shouldnt.have.key("Attributes")
+    assert "Attributes" not in queue_attrs
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
-    queue_attrs.should.have.key("Attributes")
+    assert "Attributes" in queue_attrs
 
 
 @mock_sqs
@@ -1407,7 +1400,7 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
 
     messages = queue.receive_messages(WaitTimeSeconds=0)
-    messages.should.equal([])
+    assert messages == []
 
 
 @mock_sqs
@@ -1422,7 +1415,7 @@ def test_send_message_with_xml_characters():
 
     messages = client.receive_message(QueueUrl=queue.url)["Messages"]
 
-    messages[0]["Body"].should.equal(body_one)
+    assert messages[0]["Body"] == body_one
 
 
 @mock_sqs
@@ -1437,12 +1430,12 @@ def test_send_message_with_delay():
     queue.send_message(MessageBody=body_two)
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
-    messages[0].body.should.equal(body_two)
+    assert messages[0].body == body_two
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(0)
+    assert len(messages) == 0
 
 
 @mock_sqs
@@ -1454,8 +1447,8 @@ def test_send_large_message_fails():
     with pytest.raises(ClientError) as ex:
         queue.send_message(MessageBody=body)
     err = ex.value.response["Error"]
-    err["Code"].should.equal("InvalidParameterValue")
-    err["Message"].should.equal(
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
         "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes."
     )
 
@@ -1467,25 +1460,25 @@ def test_message_becomes_inflight_when_received():
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "2"}
     )
 
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     body = "this is a test message"
     queue.send_message(MessageBody=body)
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     # Wait
     time.sleep(3)
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
 
 @mock_sqs
@@ -1495,19 +1488,19 @@ def test_receive_message_with_explicit_visibility_timeout():
         QueueName=str(uuid4())[0:6], Attributes={"VisibilityTimeout ": "1"}
     )
 
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     body = "this is a test message"
     queue.send_message(MessageBody=body)
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
     messages = queue.receive_messages(VisibilityTimeout=0)
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
 
 @mock_sqs
@@ -1521,13 +1514,13 @@ def test_change_message_visibility():
     queue.send_message(MessageBody=body)
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
     messages = queue.receive_messages()
 
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     messages[0].change_visibility(VisibilityTimeout=2)
 
@@ -1536,18 +1529,18 @@ def test_change_message_visibility():
 
     # Message is not visible
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     time.sleep(2)
 
     # Message now becomes visible
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
     messages = queue.receive_messages()
     messages[0].delete()
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
 
 @mock_sqs
@@ -1563,8 +1556,8 @@ def test_change_message_visibility_on_unknown_receipt_handle():
             QueueUrl=queue.url, ReceiptHandle="unknown-stuff", VisibilityTimeout=432
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ReceiptHandleIsInvalid")
-    err["Message"].should.equal("The input receipt handle is invalid.")
+    assert err["Code"] == "ReceiptHandleIsInvalid"
+    assert err["Message"] == "The input receipt handle is invalid."
 
 
 @mock_sqs
@@ -1578,7 +1571,7 @@ def test_queue_length():
     queue.send_message(MessageBody="this is another test message")
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("2")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "2"
 
 
 @mock_sqs
@@ -1600,7 +1593,7 @@ def test_delete_batch_operation():
     )
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
 
 @mock_sqs
@@ -1614,21 +1607,21 @@ def test_change_message_visibility_on_old_message():
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
 
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     original_message = messages[0]
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     time.sleep(2)
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
 
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     # Docs indicate this should throw an ReceiptHandleIsInvalid, but this is allowed in AWS
     original_message.change_visibility(VisibilityTimeout=100)
@@ -1639,7 +1632,7 @@ def test_change_message_visibility_on_old_message():
 
     # Message is not yet available, because of the visibility-timeout
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    messages.should.have.length_of(0)
+    assert len(messages) == 0
 
 
 @mock_sqs
@@ -1651,22 +1644,22 @@ def test_change_message_visibility_on_visible_message():
 
     queue.send_message(MessageBody="test message")
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
     time.sleep(2)
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     messages[0].change_visibility(VisibilityTimeout=100)
 
     time.sleep(2)
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
 
 @mock_sqs
@@ -1697,8 +1690,8 @@ def test_purge_queue_before_delete_message():
     )
     receive_resp2 = client.receive_message(QueueUrl=queue_url)
 
-    len(receive_resp2.get("Messages", [])).should.equal(1)
-    receive_resp2["Messages"][0]["Body"].should.equal("second_message")
+    assert len(receive_resp2.get("Messages", [])) == 1
+    assert receive_resp2["Messages"][0]["Body"] == "second_message"
 
 
 @mock_sqs
@@ -1713,7 +1706,7 @@ def test_delete_message_after_visibility_timeout():
     queue.send_message(MessageBody="Message 1!")
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
     m1_retrieved = queue.receive_messages()[0]
 
@@ -1722,7 +1715,7 @@ def test_delete_message_after_visibility_timeout():
     m1_retrieved.delete()
 
     queue.reload()
-    queue.attributes["ApproximateNumberOfMessages"].should.equal("0")
+    assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
 
 @mock_sqs
@@ -1734,15 +1727,20 @@ def test_delete_message_errors():
     response = client.receive_message(QueueUrl=queue_url)
     receipt_handle = response["Messages"][0]["ReceiptHandle"]
 
-    client.delete_message.when.called_with(
-        QueueUrl=queue_url + "-not-existing", ReceiptHandle=receipt_handle
-    ).should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
+    with pytest.raises(ClientError) as client_error:
+        client.delete_message(
+            QueueUrl=queue_url + "-not-existing", ReceiptHandle=receipt_handle
+        )
+    assert client_error.value.response["Error"]["Message"] == (
+        "The specified queue does not exist for this wsdl version."
     )
 
-    client.delete_message.when.called_with(
-        QueueUrl=queue_url, ReceiptHandle="not-existing"
-    ).should.throw(ClientError, "The input receipt handle is invalid.")
+    with pytest.raises(ClientError) as client_error:
+        client.delete_message(QueueUrl=queue_url, ReceiptHandle="not-existing")
+    assert (
+        client_error.value.response["Error"]["Message"]
+        == "The input receipt handle is invalid."
+    )
 
 
 @mock_sqs
@@ -1774,16 +1772,17 @@ def test_delete_message_using_old_receipt_handle():
     response = client.receive_message(QueueUrl=queue_url)
     receipt_2 = response["Messages"][0]["ReceiptHandle"]
 
-    receipt_1.shouldnt.equal(receipt_2)
+    assert receipt_1 != receipt_2
 
     # Can use an old receipt_handle to delete a message
     client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_1)
     # Sanity check the message really is gone
-    client.receive_message(QueueUrl=queue_url).shouldnt.have.key("Messages")
+    assert "Messages" not in client.receive_message(QueueUrl=queue_url)
     # We can delete it again
     client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_1)
 
-    # Can use the second receipt handle to delete it 'again' - succeeds, as it is idempotent against the message
+    # Can use the second receipt handle to delete it 'again' - succeeds,
+    # as it is idempotent against the message
     client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_2)
 
 
@@ -1824,9 +1823,7 @@ def test_send_message_batch():
         ],
     )
 
-    sorted([entry["Id"] for entry in response["Successful"]]).should.equal(
-        ["id_1", "id_2"]
-    )
+    assert sorted([entry["Id"] for entry in response["Successful"]]) == ["id_1", "id_2"]
 
     response = client.receive_message(
         QueueUrl=queue_url,
@@ -1835,24 +1832,24 @@ def test_send_message_batch():
         AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
     )
 
-    response["Messages"][0]["Body"].should.equal("body_1")
-    response["Messages"][0]["MessageAttributes"].should.equal(
+    assert response["Messages"][0]["Body"] == "body_1"
+    assert response["Messages"][0]["MessageAttributes"] == (
         {"attribute_name_1": {"StringValue": "attribute_value_1", "DataType": "String"}}
     )
-    response["Messages"][0]["Attributes"]["MessageGroupId"].should.equal(
-        "message_group_id_1"
+    assert (
+        response["Messages"][0]["Attributes"]["MessageGroupId"] == "message_group_id_1"
     )
-    response["Messages"][0]["Attributes"]["MessageDeduplicationId"].should.equal(
+    assert response["Messages"][0]["Attributes"]["MessageDeduplicationId"] == (
         "message_deduplication_id_1"
     )
-    response["Messages"][1]["Body"].should.equal("body_2")
-    response["Messages"][1]["MessageAttributes"].should.equal(
+    assert response["Messages"][1]["Body"] == "body_2"
+    assert response["Messages"][1]["MessageAttributes"] == (
         {"attribute_name_2": {"StringValue": "123", "DataType": "Number"}}
     )
-    response["Messages"][1]["Attributes"]["MessageGroupId"].should.equal(
+    assert response["Messages"][1]["Attributes"]["MessageGroupId"] == (
         "message_group_id_2"
     )
-    response["Messages"][1]["Attributes"]["MessageDeduplicationId"].should.equal(
+    assert response["Messages"][1]["Attributes"]["MessageDeduplicationId"] == (
         "message_deduplication_id_2"
     )
 
@@ -1914,13 +1911,19 @@ def test_delete_message_batch_with_invalid_receipt_id():
             "Id": "fake-receipt-handle-1",
             "SenderFault": True,
             "Code": "ReceiptHandleIsInvalid",
-            "Message": 'The input receipt handle "fake-receipt-handle-1" is not a valid receipt handle.',
+            "Message": (
+                'The input receipt handle "fake-receipt-handle-1" is not '
+                "a valid receipt handle."
+            ),
         },
         {
             "Id": "fake-receipt-handle-2",
             "SenderFault": True,
             "Code": "ReceiptHandleIsInvalid",
-            "Message": 'The input receipt handle "fake-receipt-handle-2" is not a valid receipt handle.',
+            "Message": (
+                'The input receipt handle "fake-receipt-handle-2" is not '
+                "a valid receipt handle."
+            ),
         },
     ]
 
@@ -1929,7 +1932,7 @@ def test_delete_message_batch_with_invalid_receipt_id():
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
-    q_resp = conn.create_queue(QueueName="test-queue")
+    q_resp = conn.create_queue(QueueName=str(uuid4())[0:6])
     queue = sqs.Queue(q_resp["QueueUrl"])
 
     body_one = "this is a test message"
@@ -1947,14 +1950,12 @@ def test_message_attributes_in_receive_message():
         QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["timestamp"]
     )["Messages"]
 
-    messages[0]["MessageAttributes"].should.equal(
-        {
-            "timestamp": {
-                "StringValue": "1493147359900",
-                "DataType": "Number.java.lang.Long",
-            }
+    assert messages[0]["MessageAttributes"] == {
+        "timestamp": {
+            "StringValue": "1493147359900",
+            "DataType": "Number.java.lang.Long",
         }
-    )
+    }
 
     queue.send_message(
         MessageBody=body_one,
@@ -1969,7 +1970,7 @@ def test_message_attributes_in_receive_message():
         "Messages"
     ]
 
-    messages[0].get("MessageAttributes").should.equal(None)
+    assert messages[0].get("MessageAttributes") is None
 
     queue.send_message(
         MessageBody=body_one,
@@ -1984,14 +1985,12 @@ def test_message_attributes_in_receive_message():
         QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
     )["Messages"]
 
-    messages[0]["MessageAttributes"].should.equal(
-        {
-            "timestamp": {
-                "StringValue": "1493147359900",
-                "DataType": "Number.java.lang.Long",
-            }
+    assert messages[0]["MessageAttributes"] == {
+        "timestamp": {
+            "StringValue": "1493147359900",
+            "DataType": "Number.java.lang.Long",
         }
-    )
+    }
 
 
 @mock_sqs
@@ -2001,69 +2000,76 @@ def test_send_message_batch_errors():
     response = client.create_queue(QueueName="test-queue")
     queue_url = response["QueueUrl"]
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url + "-not-existing",
-        Entries=[{"Id": "id_1", "MessageBody": "body_1"}],
-    ).should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(
+            QueueUrl=queue_url + "-not-existing",
+            Entries=[{"Id": "id_1", "MessageBody": "body_1"}],
+        )
+    assert client_error.value.response["Error"]["Message"] == (
+        "The specified queue does not exist for this wsdl version."
     )
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=[]
-    ).should.throw(
-        ClientError,
-        "There should be at least one SendMessageBatchRequestEntry in the request.",
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(QueueUrl=queue_url, Entries=[])
+    assert client_error.value.response["Error"]["Message"] == (
+        "There should be at least one SendMessageBatchRequestEntry in the request."
     )
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=[{"Id": "", "MessageBody": "body_1"}]
-    ).should.throw(
-        ClientError,
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(
+            QueueUrl=queue_url, Entries=[{"Id": "", "MessageBody": "body_1"}]
+        )
+    assert client_error.value.response["Error"]["Message"] == (
         "A batch entry id can only contain alphanumeric characters, "
-        "hyphens and underscores. It can be at most 80 letters long.",
+        "hyphens and underscores. It can be at most 80 letters long."
     )
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=[{"Id": ".!@#$%^&*()+=", "MessageBody": "body_1"}]
-    ).should.throw(
-        ClientError,
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(
+            QueueUrl=queue_url,
+            Entries=[{"Id": ".!@#$%^&*()+=", "MessageBody": "body_1"}],
+        )
+    assert client_error.value.response["Error"]["Message"] == (
         "A batch entry id can only contain alphanumeric characters, "
-        "hyphens and underscores. It can be at most 80 letters long.",
+        "hyphens and underscores. It can be at most 80 letters long."
     )
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=[{"Id": "i" * 81, "MessageBody": "body_1"}]
-    ).should.throw(
-        ClientError,
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(
+            QueueUrl=queue_url, Entries=[{"Id": "i" * 81, "MessageBody": "body_1"}]
+        )
+    assert client_error.value.response["Error"]["Message"] == (
         "A batch entry id can only contain alphanumeric characters, "
-        "hyphens and underscores. It can be at most 80 letters long.",
+        "hyphens and underscores. It can be at most 80 letters long."
     )
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 262145}]
-    ).should.throw(
-        ClientError,
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(
+            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 262145}]
+        )
+    assert client_error.value.response["Error"]["Message"] == (
         "Batch requests cannot be longer than 262144 bytes. "
-        "You have sent 262145 bytes.",
+        "You have sent 262145 bytes."
     )
 
-    # only the first duplicated Id is reported
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url,
-        Entries=[
-            {"Id": "id_1", "MessageBody": "body_1"},
-            {"Id": "id_2", "MessageBody": "body_2"},
-            {"Id": "id_2", "MessageBody": "body_2"},
-            {"Id": "id_1", "MessageBody": "body_1"},
-        ],
-    ).should.throw(ClientError, "Id id_2 repeated.")
+    with pytest.raises(ClientError) as client_error:
+        # only the first duplicated Id is reported
+        client.send_message_batch(
+            QueueUrl=queue_url,
+            Entries=[
+                {"Id": "id_1", "MessageBody": "body_1"},
+                {"Id": "id_2", "MessageBody": "body_2"},
+                {"Id": "id_2", "MessageBody": "body_2"},
+                {"Id": "id_1", "MessageBody": "body_1"},
+            ],
+        )
+    assert client_error.value.response["Error"]["Message"] == "Id id_2 repeated."
 
     entries = [{"Id": f"id_{i}", "MessageBody": f"body_{i}"} for i in range(11)]
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=entries
-    ).should.throw(
-        ClientError,
-        "Maximum number of entries per request are 10. " "You have sent 11.",
+    with pytest.raises(ClientError) as client_error:
+        assert client.send_message_batch(QueueUrl=queue_url, Entries=entries)
+    assert client_error.value.response["Error"]["Message"] == (
+        "Maximum number of entries per request are 10. You have sent 11."
     )
 
 
@@ -2074,11 +2080,10 @@ def test_send_message_batch_with_empty_list():
     response = client.create_queue(QueueName="test-queue")
     queue_url = response["QueueUrl"]
 
-    client.send_message_batch.when.called_with(
-        QueueUrl=queue_url, Entries=[]
-    ).should.throw(
-        ClientError,
-        "There should be at least one SendMessageBatchRequestEntry in the request.",
+    with pytest.raises(ClientError) as client_error:
+        client.send_message_batch(QueueUrl=queue_url, Entries=[])
+    assert client_error.value.response["Error"]["Message"] == (
+        "There should be at least one SendMessageBatchRequestEntry in the request."
     )
 
 
@@ -2107,12 +2112,12 @@ def test_batch_change_message_visibility():
 
     with freeze_time("2015-01-01 12:01:00"):
         receive_resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=2)
-        len(receive_resp["Messages"]).should.equal(2)
+        assert len(receive_resp["Messages"]) == 2
 
         handles = [item["ReceiptHandle"] for item in receive_resp["Messages"]]
         entries = [
             {
-                "Id": str(uuid.uuid4()),
+                "Id": str(uuid4()),
                 "ReceiptHandle": handle,
                 "VisibilityTimeout": 43000,
             }
@@ -2120,19 +2125,19 @@ def test_batch_change_message_visibility():
         ]
 
         resp = sqs.change_message_visibility_batch(QueueUrl=queue_url, Entries=entries)
-        len(resp["Successful"]).should.equal(2)
+        assert len(resp["Successful"]) == 2
 
     with freeze_time("2015-01-01 14:00:00"):
         resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
-        len(resp["Messages"]).should.equal(1)
+        assert len(resp["Messages"]) == 1
 
     with freeze_time("2015-01-01 16:00:00"):
         resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
-        len(resp["Messages"]).should.equal(1)
+        assert len(resp["Messages"]) == 1
 
     with freeze_time("2015-01-02 12:00:00"):
         resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=3)
-        len(resp["Messages"]).should.equal(3)
+        assert len(resp["Messages"]) == 3
 
 
 @mock_sqs
@@ -2146,25 +2151,25 @@ def test_batch_change_message_visibility_on_old_message():
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
 
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     original_message = messages[0]
 
     time.sleep(2)
 
     messages = queue.receive_messages(MaxNumberOfMessages=1)
-    messages[0].receipt_handle.shouldnt.equal(original_message.receipt_handle)
+    assert messages[0].receipt_handle != original_message.receipt_handle
 
     entries = [
         {
-            "Id": str(uuid.uuid4()),
+            "Id": str(uuid4()),
             "ReceiptHandle": original_message.receipt_handle,
             "VisibilityTimeout": 4,
         }
     ]
 
     resp = queue.change_message_visibility_batch(Entries=entries)
-    resp["Successful"].should.have.length_of(1)
+    assert len(resp["Successful"]) == 1
 
 
 @mock_sqs
@@ -2192,12 +2197,36 @@ def test_permissions():
         QueueUrl=queue_url, AttributeNames=["Policy"]
     )
     policy = json.loads(response["Attributes"]["Policy"])
-    policy["Version"].should.equal("2012-10-17")
-    policy["Id"].should.equal(
+    assert policy["Version"] == "2012-10-17"
+    assert policy["Id"] == (
         f"arn:aws:sqs:us-east-1:123456789012:{q_name}/SQSDefaultPolicy"
     )
-    sorted(policy["Statement"], key=lambda x: x["Sid"]).should.equal(
-        [
+    assert sorted(policy["Statement"], key=lambda x: x["Sid"]) == [
+        {
+            "Sid": "account1",
+            "Effect": "Allow",
+            "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
+            "Action": "SQS:*",
+            "Resource": f"arn:aws:sqs:us-east-1:123456789012:{q_name}",
+        },
+        {
+            "Sid": "account2",
+            "Effect": "Allow",
+            "Principal": {"AWS": "arn:aws:iam::222211111111:root"},
+            "Action": "SQS:SendMessage",
+            "Resource": f"arn:aws:sqs:us-east-1:123456789012:{q_name}",
+        },
+    ]
+
+    client.remove_permission(QueueUrl=queue_url, Label="account2")
+
+    response = client.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["Policy"]
+    )
+    assert json.loads(response["Attributes"]["Policy"]) == {
+        "Version": "2012-10-17",
+        "Id": f"arn:aws:sqs:us-east-1:123456789012:{q_name}/SQSDefaultPolicy",
+        "Statement": [
             {
                 "Sid": "account1",
                 "Effect": "Allow",
@@ -2205,36 +2234,8 @@ def test_permissions():
                 "Action": "SQS:*",
                 "Resource": f"arn:aws:sqs:us-east-1:123456789012:{q_name}",
             },
-            {
-                "Sid": "account2",
-                "Effect": "Allow",
-                "Principal": {"AWS": "arn:aws:iam::222211111111:root"},
-                "Action": "SQS:SendMessage",
-                "Resource": f"arn:aws:sqs:us-east-1:123456789012:{q_name}",
-            },
-        ]
-    )
-
-    client.remove_permission(QueueUrl=queue_url, Label="account2")
-
-    response = client.get_queue_attributes(
-        QueueUrl=queue_url, AttributeNames=["Policy"]
-    )
-    json.loads(response["Attributes"]["Policy"]).should.equal(
-        {
-            "Version": "2012-10-17",
-            "Id": f"arn:aws:sqs:us-east-1:123456789012:{q_name}/SQSDefaultPolicy",
-            "Statement": [
-                {
-                    "Sid": "account1",
-                    "Effect": "Allow",
-                    "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
-                    "Action": "SQS:*",
-                    "Resource": f"arn:aws:sqs:us-east-1:123456789012:{q_name}",
-                },
-            ],
-        }
-    )
+        ],
+    }
 
 
 @mock_sqs
@@ -2287,11 +2288,11 @@ def test_add_permission_errors():
             Actions=["ReceiveMessage", "SendMessage"],
         )
     ex = e.value
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
-        "Value test for parameter Label is invalid. " "Reason: Already exists."
+    assert ex.operation_name == "AddPermission"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterValue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
+        "Value test for parameter Label is invalid. Reason: Already exists."
     )
 
     with pytest.raises(ClientError) as e:
@@ -2302,10 +2303,10 @@ def test_add_permission_errors():
             Actions=["RemovePermission"],
         )
     ex = e.value
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "AddPermission"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterValue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "Value SQS:RemovePermission for parameter ActionName is invalid. "
         "Reason: Only the queue owner is allowed to invoke this action."
     )
@@ -2318,10 +2319,10 @@ def test_add_permission_errors():
             Actions=[],
         )
     ex = e.value
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("MissingParameter")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "AddPermission"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "MissingParameter" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "The request must contain the parameter Actions."
     )
 
@@ -2333,10 +2334,10 @@ def test_add_permission_errors():
             Actions=["ReceiveMessage"],
         )
     ex = e.value
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "AddPermission"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterValue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "Value [] for parameter PrincipalId is invalid. Reason: Unable to verify."
     )
 
@@ -2357,10 +2358,10 @@ def test_add_permission_errors():
             ],
         )
     ex = e.value
-    ex.operation_name.should.equal("AddPermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(403)
-    ex.response["Error"]["Code"].should.contain("OverLimit")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "AddPermission"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 403
+    assert "OverLimit" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "8 Actions were found, maximum allowed is 7."
     )
 
@@ -2374,10 +2375,10 @@ def test_remove_permission_errors():
     with pytest.raises(ClientError) as e:
         client.remove_permission(QueueUrl=queue_url, Label="test")
     ex = e.value
-    ex.operation_name.should.equal("RemovePermission")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.operation_name == "RemovePermission"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterValue" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
         "Value test for parameter Label is invalid. "
         "Reason: can't find label on existing policy."
     )
@@ -2395,18 +2396,18 @@ def test_tags():
     client.tag_queue(QueueUrl=queue_url, Tags={"test1": "value1", "test2": "value2"})
 
     resp = client.list_queue_tags(QueueUrl=queue_url)
-    resp["Tags"].should.contain("test1")
-    resp["Tags"].should.contain("test2")
+    assert "test1" in resp["Tags"]
+    assert "test2" in resp["Tags"]
 
     client.untag_queue(QueueUrl=queue_url, TagKeys=["test2"])
 
     resp = client.list_queue_tags(QueueUrl=queue_url)
-    resp["Tags"].should.contain("test1")
-    resp["Tags"].should_not.contain("test2")
+    assert "test1" in resp["Tags"]
+    assert "test2" not in resp["Tags"]
 
     # removing a non existing tag should not raise any error
     client.untag_queue(QueueUrl=queue_url, TagKeys=["not-existing-tag"])
-    client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal({"test1": "value1"})
+    assert client.list_queue_tags(QueueUrl=queue_url)["Tags"] == {"test1": "value1"}
 
 
 @mock_sqs
@@ -2418,10 +2419,10 @@ def test_list_queue_tags_errors():
     )
     queue_url = response["QueueUrl"]
 
-    client.list_queue_tags.when.called_with(
-        QueueUrl=queue_url + "-not-existing"
-    ).should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
+    with pytest.raises(ClientError) as client_error:
+        client.list_queue_tags(QueueUrl=queue_url + "-not-existing")
+    assert client_error.value.response["Error"]["Message"] == (
+        "The specified queue does not exist for this wsdl version."
     )
 
 
@@ -2433,23 +2434,29 @@ def test_tag_queue_errors():
     response = client.create_queue(QueueName=q_name, tags={"tag_key_1": "tag_value_X"})
     queue_url = response["QueueUrl"]
 
-    client.tag_queue.when.called_with(
-        QueueUrl=queue_url + "-not-existing", Tags={"tag_key_1": "tag_value_1"}
-    ).should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
+    with pytest.raises(ClientError) as client_error:
+        client.tag_queue(
+            QueueUrl=queue_url + "-not-existing", Tags={"tag_key_1": "tag_value_1"}
+        )
+    assert client_error.value.response["Error"]["Message"] == (
+        "The specified queue does not exist for this wsdl version."
     )
 
-    client.tag_queue.when.called_with(QueueUrl=queue_url, Tags={}).should.throw(
-        ClientError, "The request must contain the parameter Tags."
+    with pytest.raises(ClientError) as client_error:
+        client.tag_queue(QueueUrl=queue_url, Tags={})
+    assert client_error.value.response["Error"]["Message"] == (
+        "The request must contain the parameter Tags."
     )
 
     too_many_tags = {f"tag_key_{i}": f"tag_value_{i}" for i in range(51)}
-    client.tag_queue.when.called_with(
-        QueueUrl=queue_url, Tags=too_many_tags
-    ).should.throw(ClientError, f"Too many tags added for queue {q_name}.")
+    with pytest.raises(ClientError) as client_error:
+        client.tag_queue(QueueUrl=queue_url, Tags=too_many_tags)
+    assert client_error.value.response["Error"]["Message"] == (
+        f"Too many tags added for queue {q_name}."
+    )
 
     # when the request fails, the tags should not be updated
-    client.list_queue_tags(QueueUrl=queue_url)["Tags"].should.equal(
+    assert client.list_queue_tags(QueueUrl=queue_url)["Tags"] == (
         {"tag_key_1": "tag_value_X"}
     )
 
@@ -2463,14 +2470,16 @@ def test_untag_queue_errors():
     )
     queue_url = response["QueueUrl"]
 
-    client.untag_queue.when.called_with(
-        QueueUrl=queue_url + "-not-existing", TagKeys=["tag_key_1"]
-    ).should.throw(
-        ClientError, "The specified queue does not exist for this wsdl version."
+    with pytest.raises(ClientError) as client_error:
+        client.untag_queue(QueueUrl=queue_url + "-not-existing", TagKeys=["tag_key_1"])
+    assert client_error.value.response["Error"]["Message"] == (
+        "The specified queue does not exist for this wsdl version."
     )
 
-    client.untag_queue.when.called_with(QueueUrl=queue_url, TagKeys=[]).should.throw(
-        ClientError, "Tag keys must be between 1 and 128 characters in length."
+    with pytest.raises(ClientError) as client_error:
+        client.untag_queue(QueueUrl=queue_url, TagKeys=[])
+    assert client_error.value.response["Error"]["Message"] == (
+        "Tag keys must be between 1 and 128 characters in length."
     )
 
 
@@ -2696,20 +2705,20 @@ def test_receive_messages_with_message_group_id():
     messages = queue.receive_messages(
         MaxNumberOfMessages=2, AttributeNames=["MessageGroupId"]
     )
-    messages.should.have.length_of(2)
-    messages[0].attributes["MessageGroupId"].should.equal("group")
+    assert len(messages) == 2
+    assert messages[0].attributes["MessageGroupId"] == "group"
 
     # Different client can not 'see' messages from the group until they are processed
     messages_for_client_2 = queue.receive_messages(WaitTimeSeconds=0)
-    messages_for_client_2.should.have.length_of(1)
-    messages_for_client_2[0].body.should.equal("separate-message")
+    assert len(messages_for_client_2) == 1
+    assert messages_for_client_2[0].body == "separate-message"
 
     # message is now processed, next one should be available
     for message in messages:
         message.delete()
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
-    messages[0].body.should.equal("message-3")
+    assert len(messages) == 1
+    assert messages[0].body == "message-3"
 
 
 @mock_sqs
@@ -2724,19 +2733,19 @@ def test_receive_messages_with_message_group_id_on_requeue():
     queue.send_message(MessageBody="message-2", MessageGroupId="group")
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
     message = messages[0]
 
     # received message is not deleted!
 
     messages = queue.receive_messages(WaitTimeSeconds=0)
-    messages.should.have.length_of(0)
+    assert len(messages) == 0
 
     # message is now available again, next one should be available
     message.change_visibility(VisibilityTimeout=0)
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
-    messages[0].message_id.should.equal(message.message_id)
+    assert len(messages) == 1
+    assert messages[0].message_id == message.message_id
 
 
 @mock_sqs
@@ -2755,12 +2764,12 @@ def test_receive_messages_with_message_group_id_on_visibility_timeout():
         queue.send_message(MessageBody="message-2", MessageGroupId="group")
 
         messages = queue.receive_messages()
-        messages.should.have.length_of(1)
+        assert len(messages) == 1
         message = messages[0]
 
         # received message is not processed yet
         messages_for_second_client = queue.receive_messages(WaitTimeSeconds=0)
-        messages_for_second_client.should.have.length_of(0)
+        assert len(messages_for_second_client) == 0
 
         for message in messages:
             message.change_visibility(VisibilityTimeout=10)
@@ -2768,13 +2777,13 @@ def test_receive_messages_with_message_group_id_on_visibility_timeout():
     with freeze_time("2015-01-01 12:00:05"):
         # no timeout yet
         messages = queue.receive_messages(WaitTimeSeconds=0)
-        messages.should.have.length_of(0)
+        assert len(messages) == 0
 
     with freeze_time("2015-01-01 12:00:15"):
         # message is now available again, next one should be available
         messages = queue.receive_messages()
-        messages.should.have.length_of(1)
-        messages[0].message_id.should.equal(message.message_id)
+        assert len(messages) == 1
+        assert messages[0].message_id == message.message_id
 
 
 @mock_sqs
@@ -2801,17 +2810,13 @@ def test_list_queues_limits_to_1000_queues():
         queue = client.create_queue(QueueName=f"{prefix_name}-{i}")
         queue_urls.append(queue["QueueUrl"])
 
-    client.list_queues()["QueueUrls"].should.have.length_of(1000)
-    client.list_queues(QueueNamePrefix=prefix_name)["QueueUrls"].should.have.length_of(
-        1000
-    )
+    assert len(client.list_queues()["QueueUrls"]) == 1000
+    assert len(client.list_queues(QueueNamePrefix=prefix_name)["QueueUrls"]) == 1000
 
     resource = boto3.resource("sqs", region_name="us-east-1")
 
-    list(resource.queues.all()).should.have.length_of(1000)
-    list(resource.queues.filter(QueueNamePrefix=prefix_name)).should.have.length_of(
-        1000
-    )
+    assert len(list(resource.queues.all())) == 1000
+    assert len(list(resource.queues.filter(QueueNamePrefix=prefix_name))) == 1000
 
     # Delete this again, to not hog all the resources
     for url in queue_urls:
@@ -2829,8 +2834,8 @@ def test_send_message_to_fifo_without_message_group_id():
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="message-1")
     ex = e.value
-    ex.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.response["Error"]["Code"] == "MissingParameter"
+    assert ex.response["Error"]["Message"] == (
         "The request must contain the parameter MessageGroupId."
     )
 
@@ -2846,8 +2851,8 @@ def test_send_messages_to_fifo_without_message_group_id():
     with pytest.raises(Exception) as e:
         queue.send_messages(Entries=[{"Id": "id_1", "MessageBody": "body_1"}])
     ex = e.value
-    ex.response["Error"]["Code"].should.equal("MissingParameter")
-    ex.response["Error"]["Message"].should.equal(
+    assert ex.response["Error"]["Code"] == "MissingParameter"
+    assert ex.response["Error"]["Message"] == (
         "The request must contain the parameter MessageGroupId."
     )
 
@@ -2856,11 +2861,11 @@ def test_send_messages_to_fifo_without_message_group_id():
 def test_maximum_message_size_attribute_default():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(QueueName=str(uuid4()))
-    int(queue.attributes["MaximumMessageSize"]).should.equal(MAXIMUM_MESSAGE_LENGTH)
+    assert int(queue.attributes["MaximumMessageSize"]) == MAXIMUM_MESSAGE_LENGTH
     with pytest.raises(Exception) as e:
         queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
     ex = e.value
-    ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
 
 
 @mock_sqs
@@ -2877,7 +2882,7 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
                 Attributes={"MaximumMessageSize": str(message_size)},
             )
         ex = e.value
-        ex.response["Error"]["Code"].should.equal("InvalidAttributeValue")
+        assert ex.response["Error"]["Code"] == "InvalidAttributeValue"
 
 
 @mock_sqs
@@ -2888,12 +2893,12 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
         QueueName=str(uuid4()),
         Attributes={"MaximumMessageSize": str(message_size_limit)},
     )
-    int(queue.attributes["MaximumMessageSize"]).should.equal(message_size_limit)
+    assert int(queue.attributes["MaximumMessageSize"]) == message_size_limit
     with pytest.raises(ClientError) as e:
         queue.send_message(MessageBody="a" * (message_size_limit + 1))
     ex = e.value
-    ex.response["Error"]["Code"].should.equal("InvalidParameterValue")
-    ex.response["Error"]["Message"].should.contain(f"{message_size_limit} bytes")
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert f"{message_size_limit} bytes" in ex.response["Error"]["Message"]
 
 
 @mock_sqs
@@ -2924,7 +2929,7 @@ def test_fifo_queue_deduplication_with_id(
         MessageBody=msg_2, MessageDeduplicationId=dedupid_2, MessageGroupId="2"
     )
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(expected_count)
+    assert len(messages) == expected_count
 
 
 @mock_sqs
@@ -2943,7 +2948,7 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
     msg_queue.send_message(MessageBody=msg_1, MessageGroupId="1")
     msg_queue.send_message(MessageBody=msg_2, MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(expected_count)
+    assert len(messages) == expected_count
 
 
 @mock.patch(
@@ -2964,7 +2969,7 @@ def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     time.sleep(MOCK_DEDUPLICATION_TIME_IN_SECONDS + 5)
     msg_queue.send_message(MessageBody="first", MessageGroupId="2")
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(2)
+    assert len(messages) == 2
 
 
 @mock_sqs
@@ -2987,7 +2992,7 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
         MessageBody="second", MessageGroupId="2", MessageDeduplicationId=deduplicationid
     )
     messages = msg_queue.receive_messages(MaxNumberOfMessages=2)
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
@@ -3017,23 +3022,23 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
     msg_queue.send_message(MessageBody="first", MessageGroupId="1")
     messages = msg_queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     time.sleep(1.1)
 
     messages = msg_queue.receive_messages()
-    messages.should.have.length_of(0)
+    assert len(messages) == 0
 
     messages = dlq.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
     msg_queue.send_message(MessageBody="second", MessageGroupId="1")
     messages = msg_queue.receive_messages()
-    messages.should.have.length_of(1)
+    assert len(messages) == 1
 
 
 @mock_sqs
-def test_receive_message_using_name__should_return_name_as_url():
+def test_receive_message_using_name_should_return_name_as_url():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
     name = str(uuid4())[0:6]
@@ -3041,13 +3046,13 @@ def test_receive_message_using_name__should_return_name_as_url():
     working_url = q_response["QueueUrl"]
     # https://queue.amazonaws.com/012341234/test-queue
     # http://localhost:5000/012341234/test-queue in ServerMode
-    working_url.should.match(f"/{ACCOUNT_ID}/{name}")
+    assert working_url.endswith(f"/{ACCOUNT_ID}/{name}")
 
     queue = sqs.Queue(name)
     queue.send_message(MessageBody="this is a test message")
 
     resp = queue.receive_messages()
-    resp[0].queue_url.should.equal(name)
+    assert resp[0].queue_url == name
 
 
 @mock_sqs
@@ -3063,7 +3068,10 @@ def test_message_attributes_contains_trace_header():
         MessageBody=body_one,
         MessageSystemAttributes={
             "AWSTraceHeader": {
-                "StringValue": "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1",
+                "StringValue": (
+                    "Root=1-3152b799-8954dae64eda91bc9a23a7e8;"
+                    "Parent=7fa8c0f79203be72;Sampled=1"
+                ),
                 "DataType": "String",
             }
         },
@@ -3123,8 +3131,8 @@ def test_message_has_windows_return():
     queue.send_message(MessageBody=message)
 
     messages = queue.receive_messages()
-    messages.should.have.length_of(1)
-    messages[0].body.should.match(message)
+    assert len(messages) == 1
+    assert re.match(message, messages[0].body)
 
 
 @mock_sqs
@@ -3164,9 +3172,9 @@ def test_message_delay_is_more_than_15_minutes():
         ],
     )
 
-    sorted([entry["Id"] for entry in response["Successful"]]).should.equal(["id_1"])
+    assert sorted([entry["Id"] for entry in response["Successful"]]) == ["id_1"]
 
-    sorted([entry["Id"] for entry in response["Failed"]]).should.equal(["id_2"])
+    assert sorted([entry["Id"] for entry in response["Failed"]]) == ["id_2"]
 
     # print(response)
 
@@ -3179,15 +3187,15 @@ def test_message_delay_is_more_than_15_minutes():
         AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
     )
 
-    response["Messages"].should.have.length_of(1)
-    response["Messages"][0]["Body"].should.equal("body_1")
-    response["Messages"][0]["MessageAttributes"].should.equal(
+    assert len(response["Messages"]) == 1
+    assert response["Messages"][0]["Body"] == "body_1"
+    assert response["Messages"][0]["MessageAttributes"] == (
         {"attribute_name_1": {"StringValue": "attribute_value_1", "DataType": "String"}}
     )
-    response["Messages"][0]["Attributes"]["MessageGroupId"].should.equal(
-        "message_group_id_1"
+    assert (
+        response["Messages"][0]["Attributes"]["MessageGroupId"] == "message_group_id_1"
     )
-    response["Messages"][0]["Attributes"]["MessageDeduplicationId"].should.equal(
+    assert response["Messages"][0]["Attributes"]["MessageDeduplicationId"] == (
         "message_deduplication_id_1"
     )
 
@@ -3195,7 +3203,7 @@ def test_message_delay_is_more_than_15_minutes():
 @mock_sqs
 def test_receive_message_that_becomes_visible_while_long_polling():
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(QueueName="test-queue")
+    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
     msg_body = str(uuid4())
     queue.send_message(MessageBody=msg_body)
     messages = queue.receive_messages()
@@ -3241,8 +3249,8 @@ def test_fifo_dedupe_error_no_message_group_id():
             MessageDeduplicationId="1",
         )
 
-    exc.value.response["Error"]["Code"].should.equal("MissingParameter")
-    exc.value.response["Error"]["Message"].should.equal(
+    assert exc.value.response["Error"]["Code"] == "MissingParameter"
+    assert exc.value.response["Error"]["Message"] == (
         "The request must contain the parameter MessageGroupId."
     )
 
@@ -3260,7 +3268,42 @@ def test_fifo_dedupe_error_no_message_dedupe_id():
             MessageGroupId="1",
         )
 
-    exc.value.response["Error"]["Code"].should.equal("InvalidParameterValue")
-    exc.value.response["Error"]["Message"].should.equal(
-        "The queue should either have ContentBasedDeduplication enabled or MessageDeduplicationId provided explicitly"
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert exc.value.response["Error"]["Message"] == (
+        "The queue should either have ContentBasedDeduplication enabled "
+        "or MessageDeduplicationId provided explicitly"
+    )
+
+
+@mock_sqs
+def test_fifo_dedupe_error_no_message_dedupe_id_batch():
+    client = boto3.client("sqs", region_name="us-east-1")
+    response = client.create_queue(
+        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
+    )
+    queue_url = response["QueueUrl"]
+    with pytest.raises(ClientError) as exc:
+        client.send_message_batch(
+            QueueUrl=queue_url,
+            Entries=[
+                {
+                    "Id": "id_1",
+                    "MessageBody": "body_1",
+                    "DelaySeconds": 0,
+                    "MessageGroupId": "message_group_id_1",
+                    "MessageDeduplicationId": "message_deduplication_id_1",
+                },
+                {
+                    "Id": "id_2",
+                    "MessageBody": "body_2",
+                    "DelaySeconds": 0,
+                    "MessageGroupId": "message_group_id_2",
+                },
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert exc.value.response["Error"]["Message"] == (
+        "The queue should either have ContentBasedDeduplication enabled "
+        "or MessageDeduplicationId provided explicitly"
     )

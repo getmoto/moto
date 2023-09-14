@@ -1,7 +1,6 @@
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
-from datetime import datetime
 from typing import Dict, List, Optional
 from .exceptions import RepositoryDoesNotExistException, RepositoryNameExistsException
 
@@ -14,7 +13,7 @@ class CodeCommit(BaseModel):
         repository_description: str,
         repository_name: str,
     ):
-        current_date = iso_8601_datetime_with_milliseconds(datetime.utcnow())
+        current_date = iso_8601_datetime_with_milliseconds()
         self.repository_metadata = dict()
         self.repository_metadata["repositoryName"] = repository_name
         self.repository_metadata[

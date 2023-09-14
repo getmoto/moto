@@ -154,7 +154,7 @@ class DirectoryServiceResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         limit = self._get_param("Limit")
         try:
-            (tags, next_token) = self.ds_backend.list_tags_for_resource(
+            tags, next_token = self.ds_backend.list_tags_for_resource(
                 resource_id=resource_id, next_token=next_token, limit=limit
             )
         except InvalidToken as exc:

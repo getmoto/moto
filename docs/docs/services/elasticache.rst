@@ -33,7 +33,7 @@ elasticache
 - [ ] batch_stop_update_action
 - [ ] complete_migration
 - [ ] copy_snapshot
-- [ ] create_cache_cluster
+- [X] create_cache_cluster
 - [ ] create_cache_parameter_group
 - [ ] create_cache_security_group
 - [ ] create_cache_subnet_group
@@ -44,7 +44,7 @@ elasticache
 - [ ] create_user_group
 - [ ] decrease_node_groups_in_global_replication_group
 - [ ] decrease_replica_count
-- [ ] delete_cache_cluster
+- [X] delete_cache_cluster
 - [ ] delete_cache_parameter_group
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
@@ -53,7 +53,7 @@ elasticache
 - [ ] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
-- [ ] describe_cache_clusters
+- [X] describe_cache_clusters
 - [ ] describe_cache_engine_versions
 - [ ] describe_cache_parameter_groups
 - [ ] describe_cache_parameters
@@ -97,4 +97,5 @@ elasticache
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
 - [ ] test_failover
+- [ ] test_migration
 

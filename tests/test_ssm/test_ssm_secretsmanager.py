@@ -1,8 +1,9 @@
-import boto3
 import json
+
+import boto3
+from botocore.exceptions import ClientError
 import pytest
 
-from botocore.exceptions import ClientError
 from moto import mock_ssm, mock_secretsmanager
 
 
@@ -22,18 +23,18 @@ def test_get_value_from_secrets_manager__by_name():
     param = ssm.get_parameter(
         Name=f"/aws/reference/secretsmanager/{secret_name}", WithDecryption=True
     )["Parameter"]
-    param.should.have.key("Name").equals("mysecret")
-    param.should.have.key("Type").equals("SecureString")
-    param.should.have.key("Value").equals("some secret")
-    param.should.have.key("Version").equals(0)
-    param.should.have.key("SourceResult")
+    assert param["Name"] == "mysecret"
+    assert param["Type"] == "SecureString"
+    assert param["Value"] == "some secret"
+    assert param["Version"] == 0
+    assert "SourceResult" in param
 
     secret = secrets_manager.describe_secret(SecretId=secret_name)
     source_result = json.loads(param["SourceResult"])
 
-    source_result["ARN"].should.equal(secret["ARN"])
-    source_result["Name"].should.equal(secret["Name"])
-    source_result["VersionIdsToStages"].should.equal(secret["VersionIdsToStages"])
+    assert source_result["ARN"] == secret["ARN"]
+    assert source_result["Name"] == secret["Name"]
+    assert source_result["VersionIdsToStages"] == secret["VersionIdsToStages"]
 
 
 @mock_secretsmanager
@@ -44,8 +45,8 @@ def test_get_value_from_secrets_manager__without_decryption():
     with pytest.raises(ClientError) as exc:
         ssm.get_parameter(Name="/aws/reference/secretsmanager/sth")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
         "WithDecryption flag must be True for retrieving a Secret Manager secret."
     )
 
@@ -60,8 +61,8 @@ def test_get_value_from_secrets_manager__with_decryption_false():
             Name="/aws/reference/secretsmanager/sth", WithDecryption=False
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
         "WithDecryption flag must be True for retrieving a Secret Manager secret."
     )
 
@@ -86,15 +87,15 @@ def test_get_value_from_secrets_manager__by_id():
     # then
     full_name = f"/aws/reference/secretsmanager/{name}:{version_id1}"
     param = ssm.get_parameter(Name=full_name, WithDecryption=True)["Parameter"]
-    param.should.have.key("Value").equals("1st")
+    assert param["Value"] == "1st"
 
     full_name = f"/aws/reference/secretsmanager/{name}"
     param = ssm.get_parameter(Name=full_name, WithDecryption=True)["Parameter"]
-    param.should.have.key("Value").equals("2nd")
+    assert param["Value"] == "2nd"
 
     full_name = f"/aws/reference/secretsmanager/{name}:{version_id3}"
     param = ssm.get_parameter(Name=full_name, WithDecryption=True)["Parameter"]
-    param.should.have.key("Value").equals("3rd")
+    assert param["Value"] == "3rd"
 
 
 @mock_secretsmanager
@@ -112,7 +113,7 @@ def test_get_value_from_secrets_manager__by_version():
     # then
     full_name = f"/aws/reference/secretsmanager/{name}:AWSPREVIOUS"
     param = ssm.get_parameter(Name=full_name, WithDecryption=True)["Parameter"]
-    param.should.have.key("Value").equals("1st")
+    assert param["Value"] == "1st"
 
 
 @mock_secretsmanager
@@ -124,7 +125,8 @@ def test_get_value_from_secrets_manager__param_does_not_exist():
             Name="/aws/reference/secretsmanager/test", WithDecryption=True
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ParameterNotFound")
-    err["Message"].should.equal(
-        "An error occurred (ParameterNotFound) when referencing Secrets Manager: Secret /aws/reference/secretsmanager/test not found."
+    assert err["Code"] == "ParameterNotFound"
+    assert err["Message"] == (
+        "An error occurred (ParameterNotFound) when referencing Secrets "
+        "Manager: Secret /aws/reference/secretsmanager/test not found."
     )

@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_guardduty
@@ -16,7 +15,7 @@ def test_create_filter():
         Name="my first filter",
         FindingCriteria={"Criterion": {"x": {"Eq": ["y"]}}},
     )
-    resp.should.have.key("Name").equals("my first filter")
+    assert resp["Name"] == "my first filter"
 
 
 @mock_guardduty
@@ -31,7 +30,7 @@ def test_create_filter__defaults():
     )
 
     resp = client.get_filter(DetectorId=detector_id, FilterName="my first filter")
-    resp.should.have.key("Rank").equals(1)
+    assert resp["Rank"] == 1
 
 
 @mock_guardduty
@@ -46,8 +45,8 @@ def test_get_filter():
     )
 
     resp = client.get_filter(DetectorId=detector_id, FilterName="my first filter")
-    resp.should.have.key("Name").equals("my first filter")
-    resp.should.have.key("FindingCriteria").equals({"Criterion": {"x": {"Eq": ["y"]}}})
+    assert resp["Name"] == "my first filter"
+    assert resp["FindingCriteria"] == {"Criterion": {"x": {"Eq": ["y"]}}}
 
 
 @mock_guardduty
@@ -68,14 +67,14 @@ def test_update_filter():
         Rank=21,
         Action="NOOP",
     )
-    resp.should.have.key("Name").equals("my first filter")
+    assert resp["Name"] == "my first filter"
 
     resp = client.get_filter(DetectorId=detector_id, FilterName="my first filter")
-    resp.should.have.key("Name").equals("my first filter")
-    resp.should.have.key("Description").equals("with desc")
-    resp.should.have.key("Rank").equals(21)
-    resp.should.have.key("Action").equals("NOOP")
-    resp.should.have.key("FindingCriteria").equals({"Criterion": {"x": {"Eq": ["y"]}}})
+    assert resp["Name"] == "my first filter"
+    assert resp["Description"] == "with desc"
+    assert resp["Rank"] == 21
+    assert resp["Action"] == "NOOP"
+    assert resp["FindingCriteria"] == {"Criterion": {"x": {"Eq": ["y"]}}}
 
 
 @mock_guardduty
@@ -94,4 +93,4 @@ def test_delete_filter():
     with pytest.raises(ClientError) as exc:
         client.get_filter(DetectorId=detector_id, FilterName="my first filter")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
+    assert err["Code"] == "BadRequestException"

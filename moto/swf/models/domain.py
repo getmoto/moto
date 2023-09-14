@@ -77,7 +77,7 @@ class Domain(BaseModel):
         _all = []
         for family in self.types[kind].values():
             for _type in family.values():
-                if _type.status == status:  # type: ignore
+                if _type.status == status:
                     _all.append(_type)
         return _all
 

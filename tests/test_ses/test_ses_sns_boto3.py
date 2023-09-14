@@ -1,7 +1,7 @@
-import boto3
 import json
 
-import sure  # noqa # pylint: disable=unused-import
+import boto3
+
 from moto import mock_ses, mock_sns, mock_sqs
 from moto.ses.models import SESFeedback
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -57,18 +57,18 @@ def __test_sns_feedback__(addr, expected_msg, raw_email=False):
     )
 
     # Send the message
-    kwargs = dict(
-        Source="test@" + domain,
-        Destination={
+    kwargs = {
+        "Source": "test@" + domain,
+        "Destination": {
             "ToAddresses": [addr + "@" + domain],
             "CcAddresses": ["test_cc@" + domain],
             "BccAddresses": ["test_bcc@" + domain],
         },
-        Message={
+        "Message": {
             "Subject": {"Data": "test subject"},
             "Body": {"Text": {"Data": "test body"}},
         },
-    )
+    }
     if raw_email:
         kwargs.pop("Message")
         kwargs.pop("Destination")
@@ -139,22 +139,16 @@ def test_get_identity_notification_attributes_default_values():
     resp = ses.get_identity_notification_attributes(
         Identities=["test@example.com", "another@example.com"]
     )["NotificationAttributes"]
-    resp.should.have.length_of(2)
-    resp.should.have.key("test@example.com")
-    resp.should.have.key("another@example.com")
-    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(True)
-    resp["test@example.com"].should.have.key(
-        "HeadersInBounceNotificationsEnabled"
-    ).equal(False)
-    resp["test@example.com"].should.have.key(
-        "HeadersInComplaintNotificationsEnabled"
-    ).equal(False)
-    resp["test@example.com"].should.have.key(
-        "HeadersInDeliveryNotificationsEnabled"
-    ).equal(False)
-    resp["test@example.com"].shouldnt.have.key("BounceTopic")
-    resp["test@example.com"].shouldnt.have.key("ComplaintTopic")
-    resp["test@example.com"].shouldnt.have.key("DeliveryTopic")
+    assert len(resp) == 2
+    assert "test@example.com" in resp
+    assert "another@example.com" in resp
+    assert resp["test@example.com"]["ForwardingEnabled"] is True
+    assert resp["test@example.com"]["HeadersInBounceNotificationsEnabled"] is False
+    assert resp["test@example.com"]["HeadersInComplaintNotificationsEnabled"] is False
+    assert resp["test@example.com"]["HeadersInDeliveryNotificationsEnabled"] is False
+    assert "BounceTopic" not in resp["test@example.com"]
+    assert "ComplaintTopic" not in resp["test@example.com"]
+    assert "DeliveryTopic" not in resp["test@example.com"]
 
 
 @mock_ses
@@ -166,7 +160,7 @@ def test_set_identity_feedback_forwarding_enabled():
     resp = ses.get_identity_notification_attributes(Identities=["test@example.com"])[
         "NotificationAttributes"
     ]
-    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(True)
+    assert resp["test@example.com"]["ForwardingEnabled"] is True
 
     ses.set_identity_feedback_forwarding_enabled(
         Identity="test@example.com", ForwardingEnabled=False
@@ -175,7 +169,7 @@ def test_set_identity_feedback_forwarding_enabled():
     resp = ses.get_identity_notification_attributes(Identities=["test@example.com"])[
         "NotificationAttributes"
     ]
-    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(False)
+    assert resp["test@example.com"]["ForwardingEnabled"] is False
 
     ses.set_identity_feedback_forwarding_enabled(
         Identity="test@example.com", ForwardingEnabled=True
@@ -184,4 +178,4 @@ def test_set_identity_feedback_forwarding_enabled():
     resp = ses.get_identity_notification_attributes(Identities=["test@example.com"])[
         "NotificationAttributes"
     ]
-    resp["test@example.com"].should.have.key("ForwardingEnabled").equal(True)
+    assert resp["test@example.com"]["ForwardingEnabled"] is True

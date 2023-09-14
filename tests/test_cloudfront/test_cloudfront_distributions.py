@@ -4,7 +4,6 @@ from moto import mock_cloudfront
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from . import cloudfront_test_scaffolding as scaffold
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_cloudfront
@@ -12,121 +11,110 @@ def test_create_distribution_s3_minimum():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
 
-    resp = client.create_distribution(DistributionConfig=config)
-    resp.should.have.key("Distribution")
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+    assert dist["ARN"] == f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{dist['Id']}"
+    assert dist["Status"] == "InProgress"
+    assert "LastModifiedTime" in dist
+    assert dist["InProgressInvalidationBatches"] == 0
+    assert ".cloudfront.net" in dist["DomainName"]
 
-    distribution = resp["Distribution"]
-    distribution.should.have.key("Id")
-    distribution.should.have.key("ARN").equals(
-        f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{distribution['Id']}"
-    )
-    distribution.should.have.key("Status").equals("InProgress")
-    distribution.should.have.key("LastModifiedTime")
-    distribution.should.have.key("InProgressInvalidationBatches").equals(0)
-    distribution.should.have.key("DomainName").should.contain(".cloudfront.net")
+    assert dist["ActiveTrustedSigners"] == {
+        "Enabled": False,
+        "Items": [],
+        "Quantity": 0,
+    }
 
-    distribution.should.have.key("ActiveTrustedSigners")
-    signers = distribution["ActiveTrustedSigners"]
-    signers.should.have.key("Enabled").equals(False)
-    signers.should.have.key("Quantity").equals(0)
+    assert dist["ActiveTrustedKeyGroups"] == {
+        "Enabled": False,
+        "Items": [],
+        "Quantity": 0,
+    }
 
-    distribution.should.have.key("ActiveTrustedKeyGroups")
-    key_groups = distribution["ActiveTrustedKeyGroups"]
-    key_groups.should.have.key("Enabled").equals(False)
-    key_groups.should.have.key("Quantity").equals(0)
+    config = dist["DistributionConfig"]
+    assert config["CallerReference"] == "ref"
 
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-    config.should.have.key("CallerReference").should.equal("ref")
+    assert config["Aliases"]["Quantity"] == 0
 
-    config.should.have.key("Aliases")
-    config["Aliases"].should.have.key("Quantity").equals(0)
-
-    config.should.have.key("Origins")
     origins = config["Origins"]
-    origins.should.have.key("Quantity").equals(1)
-    origins.should.have.key("Items").length_of(1)
+    assert origins["Quantity"] == 1
+    assert len(origins["Items"]) == 1
     origin = origins["Items"][0]
-    origin.should.have.key("Id").equals("origin1")
-    origin.should.have.key("DomainName").equals("asdf.s3.us-east-1.amazonaws.com")
-    origin.should.have.key("OriginPath").equals("/example")
+    assert origin["Id"] == "origin1"
+    assert origin["DomainName"] == "asdf.s3.us-east-1.amazonaws.com"
+    assert origin["OriginPath"] == "/example"
 
-    origin.should.have.key("CustomHeaders")
-    origin["CustomHeaders"].should.have.key("Quantity").equals(0)
+    assert origin["CustomHeaders"]["Quantity"] == 0
 
-    origin.should.have.key("ConnectionAttempts").equals(3)
-    origin.should.have.key("ConnectionTimeout").equals(10)
-    origin.should.have.key("OriginShield").equals({"Enabled": False})
+    assert origin["ConnectionAttempts"] == 3
+    assert origin["ConnectionTimeout"] == 10
+    assert origin["OriginShield"] == {"Enabled": False}
 
-    config.should.have.key("OriginGroups").equals({"Quantity": 0})
+    assert config["OriginGroups"] == {"Quantity": 0}
 
-    config.should.have.key("DefaultCacheBehavior")
     default_cache = config["DefaultCacheBehavior"]
-    default_cache.should.have.key("TargetOriginId").should.equal("origin1")
-    default_cache.should.have.key("TrustedSigners")
+    assert default_cache["TargetOriginId"] == "origin1"
 
-    signers = default_cache["TrustedSigners"]
-    signers.should.have.key("Enabled").equals(False)
-    signers.should.have.key("Quantity").equals(0)
+    assert default_cache["TrustedSigners"] == {
+        "Enabled": False,
+        "Items": [],
+        "Quantity": 0,
+    }
 
-    default_cache.should.have.key("TrustedKeyGroups")
-    groups = default_cache["TrustedKeyGroups"]
-    groups.should.have.key("Enabled").equals(False)
-    groups.should.have.key("Quantity").equals(0)
+    assert default_cache["TrustedKeyGroups"] == {
+        "Enabled": False,
+        "Items": [],
+        "Quantity": 0,
+    }
 
-    default_cache.should.have.key("ViewerProtocolPolicy").equals("allow-all")
+    assert default_cache["ViewerProtocolPolicy"] == "allow-all"
 
-    default_cache.should.have.key("AllowedMethods")
     methods = default_cache["AllowedMethods"]
-    methods.should.have.key("Quantity").equals(2)
-    methods.should.have.key("Items")
-    set(methods["Items"]).should.equal({"HEAD", "GET"})
+    assert methods["Quantity"] == 2
+    assert set(methods["Items"]) == {"HEAD", "GET"}
 
-    methods.should.have.key("CachedMethods")
     cached_methods = methods["CachedMethods"]
-    cached_methods.should.have.key("Quantity").equals(2)
-    set(cached_methods["Items"]).should.equal({"HEAD", "GET"})
+    assert cached_methods["Quantity"] == 2
+    assert set(cached_methods["Items"]) == {"HEAD", "GET"}
 
-    default_cache.should.have.key("SmoothStreaming").equals(False)
-    default_cache.should.have.key("Compress").equals(True)
-    default_cache.should.have.key("LambdaFunctionAssociations").equals({"Quantity": 0})
-    default_cache.should.have.key("FunctionAssociations").equals({"Quantity": 0})
-    default_cache.should.have.key("FieldLevelEncryptionId").equals("")
-    default_cache.should.have.key("CachePolicyId")
+    assert default_cache["SmoothStreaming"] is False
+    assert default_cache["Compress"] is True
+    assert default_cache["LambdaFunctionAssociations"] == {"Quantity": 0}
+    assert default_cache["FunctionAssociations"] == {"Quantity": 0}
+    assert default_cache["FieldLevelEncryptionId"] == ""
+    assert "CachePolicyId" in default_cache
 
-    config.should.have.key("CacheBehaviors").equals({"Quantity": 0})
-    config.should.have.key("CustomErrorResponses").equals({"Quantity": 0})
-    config.should.have.key("Comment").equals(
-        "an optional comment that's not actually optional"
-    )
+    assert config["CacheBehaviors"] == {"Quantity": 0}
+    assert config["CustomErrorResponses"] == {"Quantity": 0}
+    assert config["Comment"] == "an optional comment that's not actually optional"
 
-    config.should.have.key("Logging")
-    logging = config["Logging"]
-    logging.should.have.key("Enabled").equals(False)
-    logging.should.have.key("IncludeCookies").equals(False)
-    logging.should.have.key("Bucket").equals("")
-    logging.should.have.key("Prefix").equals("")
+    assert config["Logging"] == {
+        "Bucket": "",
+        "Enabled": False,
+        "IncludeCookies": False,
+        "Prefix": "",
+    }
 
-    config.should.have.key("PriceClass").equals("PriceClass_All")
-    config.should.have.key("Enabled").equals(False)
-    config.should.have.key("WebACLId")
-    config.should.have.key("HttpVersion").equals("http2")
-    config.should.have.key("IsIPV6Enabled").equals(True)
+    assert config["PriceClass"] == "PriceClass_All"
+    assert config["Enabled"] is False
+    assert "WebACLId" in config
+    assert config["HttpVersion"] == "http2"
+    assert config["IsIPV6Enabled"] is True
 
-    config.should.have.key("ViewerCertificate")
-    cert = config["ViewerCertificate"]
-    cert.should.have.key("CloudFrontDefaultCertificate").equals(True)
-    cert.should.have.key("MinimumProtocolVersion").equals("TLSv1")
-    cert.should.have.key("CertificateSource").equals("cloudfront")
+    assert config["ViewerCertificate"] == {
+        "ACMCertificateArn": "",
+        "Certificate": "",
+        "CertificateSource": "cloudfront",
+        "CloudFrontDefaultCertificate": True,
+        "IAMCertificateId": "",
+        "MinimumProtocolVersion": "TLSv1",
+        "SSLSupportMethod": "",
+    }
 
-    config.should.have.key("Restrictions")
-    config["Restrictions"].should.have.key("GeoRestriction")
     restriction = config["Restrictions"]["GeoRestriction"]
-    restriction.should.have.key("RestrictionType").equals("none")
-    restriction.should.have.key("Quantity").equals(0)
+    assert restriction["RestrictionType"] == "none"
+    assert restriction["Quantity"] == 0
 
-    config.should.have.key("WebACLId")
-    config.should.have.key("WebACLId").equals("")
+    assert config["WebACLId"] == ""
 
 
 @mock_cloudfront
@@ -141,19 +129,14 @@ def test_create_distribution_with_logging():
     }
 
     resp = client.create_distribution(DistributionConfig=config)
-    resp.should.have.key("Distribution")
+    config = resp["Distribution"]["DistributionConfig"]
 
-    distribution = resp["Distribution"]
-
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-
-    config.should.have.key("Logging")
-    logging = config["Logging"]
-    logging.should.have.key("Enabled").equals(True)
-    logging.should.have.key("IncludeCookies").equals(True)
-    logging.should.have.key("Bucket").equals("logging-bucket")
-    logging.should.have.key("Prefix").equals("logging-bucket")
+    assert config["Logging"] == {
+        "Bucket": "logging-bucket",
+        "Enabled": True,
+        "IncludeCookies": True,
+        "Prefix": "logging-bucket",
+    }
 
 
 @mock_cloudfront
@@ -163,15 +146,9 @@ def test_create_distribution_with_web_acl():
     config["WebACLId"] = "test-web-acl"
 
     resp = client.create_distribution(DistributionConfig=config)
-    resp.should.have.key("Distribution")
+    config = resp["Distribution"]["DistributionConfig"]
 
-    distribution = resp["Distribution"]
-
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-
-    config.should.have.key("WebACLId")
-    config.should.have.key("WebACLId").equals("test-web-acl")
+    assert config["WebACLId"] == "test-web-acl"
 
 
 @mock_cloudfront
@@ -183,23 +160,12 @@ def test_create_distribution_with_field_level_encryption_and_real_time_log_confi
     config["DefaultCacheBehavior"]["FieldLevelEncryptionId"] = "K3D5EWEUDCCXON"
 
     resp = client.create_distribution(DistributionConfig=config)
-    resp.should.have.key("Distribution")
 
-    distribution = resp["Distribution"]
-
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-
-    config.should.have.key("DefaultCacheBehavior")
+    config = resp["Distribution"]["DistributionConfig"]
     default_cache = config["DefaultCacheBehavior"]
 
-    default_cache.should.have.key("FieldLevelEncryptionId")
-    default_cache.should.have.key("FieldLevelEncryptionId").equals("K3D5EWEUDCCXON")
-
-    default_cache.should.have.key("RealtimeLogConfigArn")
-    default_cache.should.have.key("RealtimeLogConfigArn").equals(
-        real_time_log_config_arn
-    )
+    assert default_cache["FieldLevelEncryptionId"] == "K3D5EWEUDCCXON"
+    assert default_cache["RealtimeLogConfigArn"] == real_time_log_config_arn
 
 
 @mock_cloudfront
@@ -215,20 +181,13 @@ def test_create_distribution_with_georestriction():
     }
 
     resp = client.create_distribution(DistributionConfig=config)
-    resp.should.have.key("Distribution")
+    config = resp["Distribution"]["DistributionConfig"]
 
-    distribution = resp["Distribution"]
-
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-
-    config.should.have.key("Restrictions")
-    config["Restrictions"].should.have.key("GeoRestriction")
     restriction = config["Restrictions"]["GeoRestriction"]
-    restriction.should.have.key("RestrictionType").equals("whitelist")
-    restriction.should.have.key("Quantity").equals(2)
-    restriction["Items"].should.contain("US")
-    restriction["Items"].should.contain("GB")
+    assert restriction["RestrictionType"] == "whitelist"
+    assert restriction["Quantity"] == 2
+    assert "US" in restriction["Items"]
+    assert "GB" in restriction["Items"]
 
 
 @mock_cloudfront
@@ -246,19 +205,16 @@ def test_create_distribution_with_allowed_methods():
 
     dist = client.create_distribution(DistributionConfig=config)["Distribution"]
 
-    dist.should.have.key("DistributionConfig")
     cache = dist["DistributionConfig"]["DefaultCacheBehavior"]
 
-    cache.should.have.key("AllowedMethods").equals(
-        {
-            "CachedMethods": {
-                "Items": ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-                "Quantity": 7,
-            },
-            "Items": ["GET", "HEAD", "PUT"],
-            "Quantity": 3,
-        }
-    )
+    assert cache["AllowedMethods"] == {
+        "CachedMethods": {
+            "Items": ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+            "Quantity": 7,
+        },
+        "Items": ["GET", "HEAD", "PUT"],
+        "Quantity": 3,
+    }
 
 
 @mock_cloudfront
@@ -275,11 +231,9 @@ def test_create_distribution_with_origins():
     dist = client.create_distribution(DistributionConfig=config)["Distribution"]
 
     origin = dist["DistributionConfig"]["Origins"]["Items"][0]
-    origin.should.have.key("ConnectionAttempts").equals(1)
-    origin.should.have.key("ConnectionTimeout").equals(2)
-    origin.should.have.key("OriginShield").equals(
-        {"Enabled": True, "OriginShieldRegion": "east"}
-    )
+    assert origin["ConnectionAttempts"] == 1
+    assert origin["ConnectionTimeout"] == 2
+    assert origin["OriginShield"] == {"Enabled": True, "OriginShieldRegion": "east"}
 
 
 @mock_cloudfront
@@ -287,12 +241,15 @@ def test_create_distribution_with_origins():
 @pytest.mark.parametrize("qs", [True, False])
 @pytest.mark.parametrize("smooth", [True, False])
 @pytest.mark.parametrize("ipv6", [True, False])
-def test_create_distribution_with_additional_fields(compress, qs, smooth, ipv6):
+@pytest.mark.parametrize("aliases", [["alias1", "alias2"], ["alias1"]])
+def test_create_distribution_with_additional_fields(
+    compress, qs, smooth, ipv6, aliases
+):
     client = boto3.client("cloudfront", region_name="us-west-1")
 
     config = scaffold.example_distribution_config("ref")
     config["IsIPV6Enabled"] = ipv6
-    config["Aliases"] = {"Quantity": 2, "Items": ["alias1", "alias2"]}
+    config["Aliases"] = {"Quantity": 2, "Items": aliases}
     config["DefaultCacheBehavior"]["ForwardedValues"]["Cookies"] = {
         "Forward": "whitelist",
         "WhitelistedNames": {"Quantity": 1, "Items": ["x-amz-header"]},
@@ -302,28 +259,23 @@ def test_create_distribution_with_additional_fields(compress, qs, smooth, ipv6):
     config["DefaultCacheBehavior"]["MinTTL"] = 10
     config["DefaultCacheBehavior"]["SmoothStreaming"] = smooth
     config["PriceClass"] = "PriceClass_100"
+
     resp = client.create_distribution(DistributionConfig=config)
-    distribution = resp["Distribution"]
-    distribution.should.have.key("DistributionConfig")
-    config = distribution["DistributionConfig"]
-    config.should.have.key("Aliases").equals(
-        {"Items": ["alias1", "alias2"], "Quantity": 2}
-    )
+    config = resp["Distribution"]["DistributionConfig"]
 
-    config.should.have.key("PriceClass").equals("PriceClass_100")
-    config.should.have.key("IsIPV6Enabled").equals(ipv6)
+    assert config["Aliases"] == {"Items": aliases, "Quantity": len(aliases)}
 
-    config["DefaultCacheBehavior"].should.have.key("Compress").equals(compress)
-    config["DefaultCacheBehavior"].should.have.key("MinTTL").equals(10)
-    config["DefaultCacheBehavior"].should.have.key("SmoothStreaming").equals(smooth)
+    assert config["PriceClass"] == "PriceClass_100"
+    assert config["IsIPV6Enabled"] == ipv6
+
+    assert config["DefaultCacheBehavior"]["Compress"] == compress
+    assert config["DefaultCacheBehavior"]["MinTTL"] == 10
+    assert config["DefaultCacheBehavior"]["SmoothStreaming"] == smooth
 
     forwarded = config["DefaultCacheBehavior"]["ForwardedValues"]
-    forwarded.should.have.key("QueryString").equals(qs)
-    forwarded["Cookies"].should.have.key("Forward").equals("whitelist")
-    forwarded["Cookies"].should.have.key("WhitelistedNames")
-    forwarded["Cookies"]["WhitelistedNames"].should.have.key("Items").equals(
-        ["x-amz-header"]
-    )
+    assert forwarded["QueryString"] == qs
+    assert forwarded["Cookies"]["Forward"] == "whitelist"
+    assert forwarded["Cookies"]["WhitelistedNames"]["Items"] == ["x-amz-header"]
 
 
 @mock_cloudfront
@@ -335,9 +287,10 @@ def test_create_distribution_returns_etag():
     dist_id = resp["Distribution"]["Id"]
 
     headers = resp["ResponseMetadata"]["HTTPHeaders"]
-    headers.should.have.key("etag").length_of(13)
-    headers.should.have.key("location").equals(
-        f"https://cloudfront.amazonaws.com/2020-05-31/distribution/{dist_id}"
+    assert len(headers["etag"]) == 13
+    assert (
+        headers["location"]
+        == f"https://cloudfront.amazonaws.com/2020-05-31/distribution/{dist_id}"
     )
 
 
@@ -354,19 +307,20 @@ def test_create_distribution_needs_unique_caller_reference():
     with pytest.raises(ClientError) as exc:
         client.create_distribution(DistributionConfig=config)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("DistributionAlreadyExists")
-    err["Message"].should.equal(
-        f"The caller reference that you are using to create a distribution is associated with another distribution. Already exists: {dist1_id}"
+    assert err["Code"] == "DistributionAlreadyExists"
+    assert (
+        err["Message"]
+        == f"The caller reference that you are using to create a distribution is associated with another distribution. Already exists: {dist1_id}"
     )
 
     # Creating another distribution with a different reference
     config = scaffold.example_distribution_config(ref="ref2")
     dist2 = client.create_distribution(DistributionConfig=config)
-    dist1_id.shouldnt.equal(dist2["Distribution"]["Id"])
+    assert dist1_id != dist2["Distribution"]["Id"]
 
     resp = client.list_distributions()["DistributionList"]
-    resp.should.have.key("Quantity").equals(2)
-    resp.should.have.key("Items").length_of(2)
+    assert resp["Quantity"] == 2
+    assert len(resp["Items"]) == 2
 
 
 @mock_cloudfront
@@ -377,10 +331,10 @@ def test_get_distribution_config_with_unknown_distribution_id():
         client.get_distribution_config(Id="unknown")
 
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(404)
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchDistribution")
-    err["Message"].should.equal("The specified distribution does not exist.")
+    assert err["Code"] == "NoSuchDistribution"
+    assert err["Message"] == "The specified distribution does not exist."
 
 
 @mock_cloudfront
@@ -404,11 +358,11 @@ def test_get_distribution_config_with_mismatched_originid():
             }
         )
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(404)
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchOrigin")
-    err["Message"].should.equal(
-        "One or more of your origins or origin groups do not exist."
+    assert err["Code"] == "NoSuchOrigin"
+    assert (
+        err["Message"] == "One or more of your origins or origin groups do not exist."
     )
 
 
@@ -434,11 +388,11 @@ def test_create_origin_without_origin_config():
         )
 
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(400)
+    assert metadata["HTTPStatusCode"] == 400
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidOrigin")
-    err["Message"].should.equal(
-        "The specified origin server does not exist or is not valid."
+    assert err["Code"] == "InvalidOrigin"
+    assert (
+        err["Message"] == "The specified origin server does not exist or is not valid."
     )
 
 
@@ -470,49 +424,70 @@ def test_create_distribution_with_invalid_s3_bucket():
         )
 
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(400)
+    assert metadata["HTTPStatusCode"] == 400
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidArgument")
-    err["Message"].should.equal(
-        "The parameter Origin DomainName does not refer to a valid S3 bucket."
+    assert err["Code"] == "InvalidArgument"
+    assert (
+        err["Message"]
+        == "The parameter Origin DomainName does not refer to a valid S3 bucket."
     )
 
 
 @mock_cloudfront
-def test_create_distribution_custom_config():
+@pytest.mark.parametrize("ssl_protocols", (["TLSv1"], ["TLSv1", "SSLv3"]))
+def test_create_distribution_custom_config(ssl_protocols):
     client = boto3.client("cloudfront", region_name="us-west-1")
-    config = scaffold.example_dist_custom_config("ref")
+    config = scaffold.example_dist_custom_config("ref", ssl_protocols)
 
     dist = client.create_distribution(DistributionConfig=config)["Distribution"][
         "DistributionConfig"
     ]
-    dist.should.have.key("Origins")
-    dist["Origins"].should.have.key("Items").length_of(1)
-    origin = dist["Origins"]["Items"][0]
+    assert len(dist["Origins"]["Items"]) == 1
+    custom_config = dist["Origins"]["Items"][0]["CustomOriginConfig"]
 
-    origin.should.have.key("CustomOriginConfig")
-    custom_config = origin["CustomOriginConfig"]
+    assert custom_config["HTTPPort"] == 80
+    assert custom_config["HTTPSPort"] == 443
+    assert custom_config["OriginReadTimeout"] == 15
+    assert custom_config["OriginKeepaliveTimeout"] == 10
+    assert custom_config["OriginProtocolPolicy"] == "http-only"
+    assert custom_config["OriginSslProtocols"] == {
+        "Items": ssl_protocols,
+        "Quantity": len(ssl_protocols),
+    }
 
-    custom_config.should.have.key("HTTPPort").equals(80)
-    custom_config.should.have.key("HTTPSPort").equals(443)
-    custom_config.should.have.key("OriginProtocolPolicy").equals("http-only")
-    custom_config.should.have.key("OriginSslProtocols").equals(
-        {"Items": ["TLSv1", "SSLv3"], "Quantity": 2}
-    )
+
+@mock_cloudfront
+def test_create_distribution_minimal_custom_config():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.minimal_dist_custom_config("ref")
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+    dist_config = dist["DistributionConfig"]
+    assert len(dist_config["Origins"]["Items"]) == 1
+    custom_config = dist_config["Origins"]["Items"][0]["CustomOriginConfig"]
+
+    assert custom_config["HTTPPort"] == 80
+    assert custom_config["HTTPSPort"] == 443
+    assert custom_config["OriginReadTimeout"] == 30
+    assert custom_config["OriginKeepaliveTimeout"] == 5
+    assert custom_config["OriginProtocolPolicy"] == "http-only"
+
+    dist = client.get_distribution(Id=dist["Id"])["Distribution"]
+    dist_config = dist["DistributionConfig"]
+    get_custom_config = dist_config["Origins"]["Items"][0]["CustomOriginConfig"]
+    assert custom_config == get_custom_config
 
 
 @mock_cloudfront
 def test_list_distributions_without_any():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
-    resp = client.list_distributions()
-    resp.should.have.key("DistributionList")
-    dlist = resp["DistributionList"]
-    dlist.should.have.key("Marker").equals("")
-    dlist.should.have.key("MaxItems").equals(100)
-    dlist.should.have.key("IsTruncated").equals(False)
-    dlist.should.have.key("Quantity").equals(0)
-    dlist.shouldnt.have.key("Items")
+    dlist = client.list_distributions()["DistributionList"]
+    assert dlist["Marker"] == ""
+    assert dlist["MaxItems"] == 100
+    assert dlist["IsTruncated"] is False
+    assert dlist["Quantity"] == 0
+    assert "Items" not in dlist
 
 
 @mock_cloudfront
@@ -524,21 +499,19 @@ def test_list_distributions():
     config = scaffold.example_distribution_config(ref="ref2")
     dist2 = client.create_distribution(DistributionConfig=config)["Distribution"]
 
-    resp = client.list_distributions()
-    resp.should.have.key("DistributionList")
-    dlist = resp["DistributionList"]
-    dlist.should.have.key("Quantity").equals(2)
-    dlist.should.have.key("Items").length_of(2)
+    dlist = client.list_distributions()["DistributionList"]
+    assert dlist["Quantity"] == 2
+    assert len(dlist["Items"]) == 2
 
     item1 = dlist["Items"][0]
-    item1.should.have.key("Id").equals(dist1["Id"])
-    item1.should.have.key("ARN")
-    item1.should.have.key("Status").equals("Deployed")
+    assert item1["Id"] == dist1["Id"]
+    assert "ARN" in item1
+    assert item1["Status"] == "Deployed"
 
     item2 = dlist["Items"][1]
-    item2.should.have.key("Id").equals(dist2["Id"])
-    item2.should.have.key("ARN")
-    item2.should.have.key("Status").equals("Deployed")
+    assert item2["Id"] == dist2["Id"]
+    assert "ARN" in item2
+    assert item2["Status"] == "Deployed"
 
 
 @mock_cloudfront
@@ -553,15 +526,14 @@ def test_get_distribution():
     resp = client.get_distribution(Id=dist_id)
 
     headers = resp["ResponseMetadata"]["HTTPHeaders"]
-    headers.should.have.key("etag").length_of(13)
+    assert len(headers["etag"]) == 13
     dist = resp["Distribution"]
-    dist.should.have.key("Id").equals(dist_id)
-    dist.should.have.key("Status").equals("Deployed")
-    dist.should.have.key("DomainName").equals(dist["DomainName"])
+    assert dist["Id"] == dist_id
+    assert dist["Status"] == "Deployed"
+    assert dist["DomainName"] == dist["DomainName"]
 
-    dist.should.have.key("DistributionConfig")
     config = dist["DistributionConfig"]
-    config.should.have.key("CallerReference").should.equal("ref")
+    assert config["CallerReference"] == "ref"
 
 
 @mock_cloudfront
@@ -573,10 +545,10 @@ def test_get_unknown_distribution():
         client.get_distribution(Id="unknown")
 
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(404)
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchDistribution")
-    err["Message"].should.equal("The specified distribution does not exist.")
+    assert err["Code"] == "NoSuchDistribution"
+    assert err["Message"] == "The specified distribution does not exist."
 
 
 @mock_cloudfront
@@ -587,10 +559,10 @@ def test_delete_unknown_distribution():
         client.delete_distribution(Id="unknown", IfMatch="..")
 
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(404)
+    assert metadata["HTTPStatusCode"] == 404
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchDistribution")
-    err["Message"].should.equal("The specified distribution does not exist.")
+    assert err["Code"] == "NoSuchDistribution"
+    assert err["Message"] == "The specified distribution does not exist."
 
 
 @mock_cloudfront
@@ -602,11 +574,12 @@ def test_delete_distribution_without_ifmatch():
         client.delete_distribution(Id="...")
 
     metadata = exc.value.response["ResponseMetadata"]
-    metadata["HTTPStatusCode"].should.equal(400)
+    assert metadata["HTTPStatusCode"] == 400
     err = exc.value.response["Error"]
-    err["Code"].should.equal("InvalidIfMatchVersion")
-    err["Message"].should.equal(
-        "The If-Match version is missing or not valid for the resource."
+    assert err["Code"] == "InvalidIfMatchVersion"
+    assert (
+        err["Message"]
+        == "The If-Match version is missing or not valid for the resource."
     )
 
 
@@ -628,7 +601,7 @@ def test_delete_distribution_random_etag():
     with pytest.raises(ClientError) as exc:
         client.get_distribution(Id=dist_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchDistribution")
+    assert err["Code"] == "NoSuchDistribution"
 
 
 @mock_cloudfront
@@ -640,97 +613,79 @@ def test_get_distribution_config():
     dist = client.create_distribution(DistributionConfig=config)
     dist_id = dist["Distribution"]["Id"]
 
-    resp = client.get_distribution_config(Id=dist_id)
-    resp.should.have.key("DistributionConfig")
+    config = client.get_distribution_config(Id=dist_id)["DistributionConfig"]
+    assert config["CallerReference"] == "ref"
 
-    config = resp["DistributionConfig"]
-    config.should.have.key("CallerReference").should.equal("ref")
+    assert config["Aliases"]["Quantity"] == 0
 
-    config.should.have.key("Aliases")
-    config["Aliases"].should.have.key("Quantity").equals(0)
-
-    config.should.have.key("Origins")
     origins = config["Origins"]
-    origins.should.have.key("Quantity").equals(1)
-    origins.should.have.key("Items").length_of(1)
+    assert origins["Quantity"] == 1
+    assert len(origins["Items"]) == 1
     origin = origins["Items"][0]
-    origin.should.have.key("Id").equals("origin1")
-    origin.should.have.key("DomainName").equals("asdf.s3.us-east-1.amazonaws.com")
-    origin.should.have.key("OriginPath").equals("/example")
+    assert origin["Id"] == "origin1"
+    assert origin["DomainName"] == "asdf.s3.us-east-1.amazonaws.com"
+    assert origin["OriginPath"] == "/example"
 
-    origin.should.have.key("CustomHeaders")
-    origin["CustomHeaders"].should.have.key("Quantity").equals(0)
+    assert origin["CustomHeaders"]["Quantity"] == 0
 
-    origin.should.have.key("ConnectionAttempts").equals(3)
-    origin.should.have.key("ConnectionTimeout").equals(10)
-    origin.should.have.key("OriginShield").equals({"Enabled": False})
+    assert origin["ConnectionAttempts"] == 3
+    assert origin["ConnectionTimeout"] == 10
+    assert origin["OriginShield"] == {"Enabled": False}
 
-    config.should.have.key("OriginGroups").equals({"Quantity": 0})
+    assert config["OriginGroups"] == {"Quantity": 0}
 
-    config.should.have.key("DefaultCacheBehavior")
     default_cache = config["DefaultCacheBehavior"]
-    default_cache.should.have.key("TargetOriginId").should.equal("origin1")
-    default_cache.should.have.key("TrustedSigners")
+    assert default_cache["TargetOriginId"] == "origin1"
 
     signers = default_cache["TrustedSigners"]
-    signers.should.have.key("Enabled").equals(False)
-    signers.should.have.key("Quantity").equals(0)
+    assert signers["Enabled"] is False
+    assert signers["Quantity"] == 0
 
-    default_cache.should.have.key("TrustedKeyGroups")
     groups = default_cache["TrustedKeyGroups"]
-    groups.should.have.key("Enabled").equals(False)
-    groups.should.have.key("Quantity").equals(0)
+    assert groups["Enabled"] is False
+    assert groups["Quantity"] == 0
 
-    default_cache.should.have.key("ViewerProtocolPolicy").equals("allow-all")
+    assert default_cache["ViewerProtocolPolicy"] == "allow-all"
 
-    default_cache.should.have.key("AllowedMethods")
     methods = default_cache["AllowedMethods"]
-    methods.should.have.key("Quantity").equals(2)
-    methods.should.have.key("Items")
-    set(methods["Items"]).should.equal({"HEAD", "GET"})
+    assert methods["Quantity"] == 2
+    assert set(methods["Items"]) == {"HEAD", "GET"}
 
-    methods.should.have.key("CachedMethods")
     cached_methods = methods["CachedMethods"]
-    cached_methods.should.have.key("Quantity").equals(2)
-    set(cached_methods["Items"]).should.equal({"HEAD", "GET"})
+    assert cached_methods["Quantity"] == 2
+    assert set(cached_methods["Items"]) == {"HEAD", "GET"}
 
-    default_cache.should.have.key("SmoothStreaming").equals(False)
-    default_cache.should.have.key("Compress").equals(True)
-    default_cache.should.have.key("LambdaFunctionAssociations").equals({"Quantity": 0})
-    default_cache.should.have.key("FunctionAssociations").equals({"Quantity": 0})
-    default_cache.should.have.key("FieldLevelEncryptionId").equals("")
-    default_cache.should.have.key("CachePolicyId")
+    assert default_cache["SmoothStreaming"] is False
+    assert default_cache["Compress"] is True
+    assert default_cache["LambdaFunctionAssociations"] == {"Quantity": 0}
+    assert default_cache["FunctionAssociations"] == {"Quantity": 0}
+    assert default_cache["FieldLevelEncryptionId"] == ""
+    assert "CachePolicyId" in default_cache
 
-    config.should.have.key("CacheBehaviors").equals({"Quantity": 0})
-    config.should.have.key("CustomErrorResponses").equals({"Quantity": 0})
-    config.should.have.key("Comment").equals(
-        "an optional comment that's not actually optional"
-    )
+    assert config["CacheBehaviors"] == {"Quantity": 0}
+    assert config["CustomErrorResponses"] == {"Quantity": 0}
+    assert config["Comment"] == "an optional comment that's not actually optional"
 
-    config.should.have.key("Logging")
     logging = config["Logging"]
-    logging.should.have.key("Enabled").equals(False)
-    logging.should.have.key("IncludeCookies").equals(False)
-    logging.should.have.key("Bucket").equals("")
-    logging.should.have.key("Prefix").equals("")
+    assert logging["Enabled"] is False
+    assert logging["IncludeCookies"] is False
+    assert logging["Bucket"] == ""
+    assert logging["Prefix"] == ""
 
-    config.should.have.key("PriceClass").equals("PriceClass_All")
-    config.should.have.key("Enabled").equals(False)
-    config.should.have.key("WebACLId")
-    config.should.have.key("HttpVersion").equals("http2")
-    config.should.have.key("IsIPV6Enabled").equals(True)
+    assert config["PriceClass"] == "PriceClass_All"
+    assert config["Enabled"] is False
+    assert "WebACLId" in config
+    assert config["HttpVersion"] == "http2"
+    assert config["IsIPV6Enabled"] is True
 
-    config.should.have.key("ViewerCertificate")
     cert = config["ViewerCertificate"]
-    cert.should.have.key("CloudFrontDefaultCertificate").equals(True)
-    cert.should.have.key("MinimumProtocolVersion").equals("TLSv1")
-    cert.should.have.key("CertificateSource").equals("cloudfront")
+    assert cert["CloudFrontDefaultCertificate"] is True
+    assert cert["MinimumProtocolVersion"] == "TLSv1"
+    assert cert["CertificateSource"] == "cloudfront"
 
-    config.should.have.key("Restrictions")
-    config["Restrictions"].should.have.key("GeoRestriction")
-    restriction = config["Restrictions"]["GeoRestriction"]
-    restriction.should.have.key("RestrictionType").equals("none")
-    restriction.should.have.key("Quantity").equals(0)
+    assert config["Restrictions"]["GeoRestriction"] == {
+        "RestrictionType": "none",
+        "Quantity": 0,
+    }
 
-    config.should.have.key("WebACLId")
-    config.should.have.key("WebACLId").equals("")
+    assert config["WebACLId"] == ""

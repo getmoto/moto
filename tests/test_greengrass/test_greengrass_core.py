@@ -11,7 +11,6 @@ from moto.settings import TEST_SERVER_MODE
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_core_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -25,20 +24,19 @@ def test_create_core_definition():
 
     core_name = "TestCore"
     res = client.create_core_definition(InitialVersion=initial_version, Name=core_name)
-    res.should.have.key("Arn")
-    res.should.have.key("Id")
+    assert "Arn" in res
+    assert "Id" in res
     if not TEST_SERVER_MODE:
-        res.should.have.key("CreationTimestamp").equals("2022-06-01T12:00:00.000Z")
-        res.should.have.key("LastUpdatedTimestamp").equals("2022-06-01T12:00:00.000Z")
-    res.should.have.key("LatestVersionArn")
-    res.should.have.key("Name").equals(core_name)
-    res["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+        assert res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert "LatestVersionArn" in res
+    assert res["Name"] == core_name
+    assert res["ResponseMetadata"]["HTTPStatusCode"] == 201
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_core_definitions():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -52,27 +50,22 @@ def test_list_core_definitions():
     core_name = "TestCore"
     client.create_core_definition(InitialVersion=initial_version, Name=core_name)
     res = client.list_core_definitions()
-    res.should.have.key("Definitions")
+    assert "Definitions" in res
     core_definition = res["Definitions"][0]
 
-    core_definition.should.have.key("Name").equals(core_name)
-    core_definition.should.have.key("Arn")
-    core_definition.should.have.key("Id")
-    core_definition.should.have.key("LatestVersion")
-    core_definition.should.have.key("LatestVersionArn")
+    assert core_definition["Name"] == core_name
+    assert "Arn" in core_definition
+    assert "Id" in core_definition
+    assert "LatestVersion" in core_definition
+    assert "LatestVersionArn" in core_definition
     if not TEST_SERVER_MODE:
-        core_definition.should.have.key("CreationTimestamp").equal(
-            "2022-06-01T12:00:00.000Z"
-        )
-        core_definition.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert core_definition["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert core_definition["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_core_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -95,22 +88,19 @@ def test_get_core_definition():
 
     get_res = client.get_core_definition(CoreDefinitionId=core_def_id)
 
-    get_res.should.have.key("Name").equals(core_name)
-    get_res.should.have.key("Arn").equals(arn)
-    get_res.should.have.key("Id").equals(core_def_id)
-    get_res.should.have.key("LatestVersion").equals(latest_version)
-    get_res.should.have.key("LatestVersionArn").equals(latest_version_arn)
+    assert get_res["Name"] == core_name
+    assert get_res["Arn"] == arn
+    assert get_res["Id"] == core_def_id
+    assert get_res["LatestVersion"] == latest_version
+    assert get_res["LatestVersionArn"] == latest_version_arn
 
     if not TEST_SERVER_MODE:
-        get_res.should.have.key("CreationTimestamp").equal("2022-06-01T12:00:00.000Z")
-        get_res.should.have.key("LastUpdatedTimestamp").equals(
-            "2022-06-01T12:00:00.000Z"
-        )
+        assert get_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+        assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
 @mock_greengrass
 def test_delete_core_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -131,15 +121,13 @@ def test_delete_core_definition():
     client.delete_core_definition(CoreDefinitionId=core_def_id)
     with pytest.raises(ClientError) as ex:
         client.delete_core_definition(CoreDefinitionId=core_def_id)
-    ex.value.response["Error"]["Message"].should.equal(
-        "That cores definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That cores definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_update_core_definition():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -157,12 +145,11 @@ def test_update_core_definition():
     updated_core_name = "UpdatedCore"
     client.update_core_definition(CoreDefinitionId=core_def_id, Name="UpdatedCore")
     get_res = client.get_core_definition(CoreDefinitionId=core_def_id)
-    get_res.should.have.key("Name").equals(updated_core_name)
+    assert get_res["Name"] == updated_core_name
 
 
 @mock_greengrass
 def test_update_core_definition_with_empty_name():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
         {
@@ -180,32 +167,26 @@ def test_update_core_definition_with_empty_name():
 
     with pytest.raises(ClientError) as ex:
         client.update_core_definition(CoreDefinitionId=core_def_id, Name="")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Input does not contain any attributes to be updated"
-    )
-    ex.value.response["Error"]["Code"].should.equal(
-        "InvalidContainerDefinitionException"
-    )
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Input does not contain any attributes to be updated"
+    assert err["Code"] == "InvalidContainerDefinitionException"
 
 
 @mock_greengrass
 def test_update_core_definition_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.update_core_definition(
             CoreDefinitionId="6fbffc21-989e-4d29-a793-a42f450a78c6", Name="abc"
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That cores definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That cores definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_create_core_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_cores = [
         {
@@ -233,18 +214,17 @@ def test_create_core_definition_version():
     core_def_ver_res = client.create_core_definition_version(
         CoreDefinitionId=core_def_id, Cores=v2_cores
     )
-    core_def_ver_res.should.have.key("Arn")
-    core_def_ver_res.should.have.key("CreationTimestamp")
+    assert "Arn" in core_def_ver_res
+    assert "CreationTimestamp" in core_def_ver_res
     if not TEST_SERVER_MODE:
-        core_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
-    core_def_ver_res.should.have.key("Id").equals(core_def_id)
-    core_def_ver_res.should.have.key("Version")
+        assert core_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert core_def_ver_res["Id"] == core_def_id
+    assert "Version" in core_def_ver_res
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_get_core_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     initial_version = {
         "Cores": [
@@ -266,18 +246,17 @@ def test_get_core_definition_version():
         CoreDefinitionId=core_def_id, CoreDefinitionVersionId=core_def_ver_id
     )
 
-    core_def_ver_res.should.have.key("Arn")
-    core_def_ver_res.should.have.key("CreationTimestamp")
-    core_def_ver_res.should.have.key("Definition").should.equal(initial_version)
+    assert "Arn" in core_def_ver_res
+    assert "CreationTimestamp" in core_def_ver_res
+    assert core_def_ver_res["Definition"] == initial_version
     if not TEST_SERVER_MODE:
-        core_def_ver_res["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
-    core_def_ver_res.should.have.key("Id").equals(core_def_id)
-    core_def_ver_res.should.have.key("Version")
+        assert core_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert core_def_ver_res["Id"] == core_def_id
+    assert "Version" in core_def_ver_res
 
 
 @mock_greengrass
 def test_get_core_definition_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
     with pytest.raises(ClientError) as ex:
@@ -285,15 +264,13 @@ def test_get_core_definition_version_with_invalid_id():
             CoreDefinitionId="fe2392e9-e67f-4308-af1b-ff94a128b231",
             CoreDefinitionVersionId="cd2ea6dc-6634-4e89-8441-8003500435f9",
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        "That cores definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That cores definition does not exist."
+    assert err["Code"] == "IdNotFoundException"
 
 
 @mock_greengrass
 def test_get_core_definition_version_with_invalid_version_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     core_def_res = client.create_core_definition(
         Name="TestCore",
@@ -313,16 +290,17 @@ def test_get_core_definition_version_with_invalid_version_id():
         client.get_core_definition_version(
             CoreDefinitionId=core_def_id, CoreDefinitionVersionId=invalid_version_id
         )
-    ex.value.response["Error"]["Message"].should.equal(
-        f"Version {invalid_version_id} of Core List Definition {core_def_id} does not exist."
+    err = ex.value.response["Error"]
+    assert (
+        err["Message"]
+        == f"Version {invalid_version_id} of Core List Definition {core_def_id} does not exist."
     )
-    ex.value.response["Error"]["Code"].should.equal("VersionNotFoundException")
+    assert err["Code"] == "VersionNotFoundException"
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
 @mock_greengrass
 def test_list_core_definition_version():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     initial_version = {
         "Cores": [
@@ -342,27 +320,25 @@ def test_list_core_definition_version():
         CoreDefinitionId=core_def_id
     )
 
-    core_def_vers_res.should.have.key("Versions")
+    assert "Versions" in core_def_vers_res
     core_def_ver = core_def_vers_res["Versions"][0]
-    core_def_ver.should.have.key("Arn")
-    core_def_ver.should.have.key("CreationTimestamp")
+    assert "Arn" in core_def_ver
+    assert "CreationTimestamp" in core_def_ver
 
     if not TEST_SERVER_MODE:
-        core_def_ver["CreationTimestamp"].should.equal("2022-06-01T12:00:00.000Z")
-    core_def_ver.should.have.key("Id").equals(core_def_id)
-    core_def_ver.should.have.key("Version")
+        assert core_def_ver["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
+    assert core_def_ver["Id"] == core_def_id
+    assert "Version" in core_def_ver
 
 
 @mock_greengrass
 def test_list_core_definition_version_with_invalid_id():
-
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
         client.list_core_definition_versions(
             CoreDefinitionId="cd2ea6dc-6634-4e89-8441-8003500435f9"
         )
 
-    ex.value.response["Error"]["Message"].should.equal(
-        "That cores definition does not exist."
-    )
-    ex.value.response["Error"]["Code"].should.equal("IdNotFoundException")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "That cores definition does not exist."
+    assert err["Code"] == "IdNotFoundException"

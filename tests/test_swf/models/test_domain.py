@@ -1,5 +1,6 @@
 from collections import namedtuple
-import sure  # noqa # pylint: disable=unused-import
+
+import pytest
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.swf.exceptions import SWFUnknownResourceFault
@@ -14,55 +15,53 @@ WorkflowExecution = namedtuple(
 
 def test_domain_short_dict_representation():
     domain = Domain("foo", "52", ACCOUNT_ID, TEST_REGION)
-    domain.to_short_dict().should.equal(
-        {
-            "name": "foo",
-            "status": "REGISTERED",
-            "arn": f"arn:aws:swf:{TEST_REGION}:{ACCOUNT_ID}:/domain/foo",
-        }
-    )
+    assert domain.to_short_dict() == {
+        "name": "foo",
+        "status": "REGISTERED",
+        "arn": f"arn:aws:swf:{TEST_REGION}:{ACCOUNT_ID}:/domain/foo",
+    }
 
     domain.description = "foo bar"
-    domain.to_short_dict()["description"].should.equal("foo bar")
+    assert domain.to_short_dict()["description"] == "foo bar"
 
 
 def test_domain_full_dict_representation():
     domain = Domain("foo", "52", ACCOUNT_ID, TEST_REGION)
 
-    domain.to_full_dict()["domainInfo"].should.equal(domain.to_short_dict())
+    assert domain.to_full_dict()["domainInfo"] == domain.to_short_dict()
     _config = domain.to_full_dict()["configuration"]
-    _config["workflowExecutionRetentionPeriodInDays"].should.equal("52")
+    assert _config["workflowExecutionRetentionPeriodInDays"] == "52"
 
 
 def test_domain_string_representation():
     domain = Domain("my-domain", "60", ACCOUNT_ID, TEST_REGION)
-    str(domain).should.equal("Domain(name: my-domain, status: REGISTERED)")
+    assert str(domain) == "Domain(name: my-domain, status: REGISTERED)"
 
 
 def test_domain_add_to_activity_task_list():
     domain = Domain("my-domain", "60", ACCOUNT_ID, TEST_REGION)
     domain.add_to_activity_task_list("foo", "bar")
-    domain.activity_task_lists.should.equal({"foo": ["bar"]})
+    assert domain.activity_task_lists == {"foo": ["bar"]}
 
 
 def test_domain_activity_tasks():
     domain = Domain("my-domain", "60", ACCOUNT_ID, TEST_REGION)
     domain.add_to_activity_task_list("foo", "bar")
     domain.add_to_activity_task_list("other", "baz")
-    sorted(domain.activity_tasks).should.equal(["bar", "baz"])
+    assert sorted(domain.activity_tasks) == ["bar", "baz"]
 
 
 def test_domain_add_to_decision_task_list():
     domain = Domain("my-domain", "60", ACCOUNT_ID, TEST_REGION)
     domain.add_to_decision_task_list("foo", "bar")
-    domain.decision_task_lists.should.equal({"foo": ["bar"]})
+    assert domain.decision_task_lists == {"foo": ["bar"]}
 
 
 def test_domain_decision_tasks():
     domain = Domain("my-domain", "60", ACCOUNT_ID, TEST_REGION)
     domain.add_to_decision_task_list("foo", "bar")
     domain.add_to_decision_task_list("other", "baz")
-    sorted(domain.decision_tasks).should.equal(["bar", "baz"])
+    assert sorted(domain.decision_tasks) == ["bar", "baz"]
 
 
 def test_domain_get_workflow_execution():
@@ -83,30 +82,31 @@ def test_domain_get_workflow_execution():
     domain.workflow_executions = [wfe1, wfe2, wfe3, wfe4]
 
     # get workflow execution through workflow_id and run_id
-    domain.get_workflow_execution("wf-id-1", run_id="run-id-1").should.equal(wfe1)
-    domain.get_workflow_execution("wf-id-1", run_id="run-id-2").should.equal(wfe2)
-    domain.get_workflow_execution("wf-id-3", run_id="run-id-4").should.equal(wfe4)
+    assert domain.get_workflow_execution("wf-id-1", run_id="run-id-1") == wfe1
+    assert domain.get_workflow_execution("wf-id-1", run_id="run-id-2") == wfe2
+    assert domain.get_workflow_execution("wf-id-3", run_id="run-id-4") == wfe4
 
-    domain.get_workflow_execution.when.called_with(
-        "wf-id-1", run_id="non-existent"
-    ).should.throw(SWFUnknownResourceFault)
+    with pytest.raises(SWFUnknownResourceFault):
+        domain.get_workflow_execution("wf-id-1", run_id="non-existent")
 
     # get OPEN workflow execution by default if no run_id
-    domain.get_workflow_execution("wf-id-1").should.equal(wfe1)
-    domain.get_workflow_execution.when.called_with("wf-id-3").should.throw(
-        SWFUnknownResourceFault
-    )
-    domain.get_workflow_execution.when.called_with("wf-id-non-existent").should.throw(
-        SWFUnknownResourceFault
-    )
+    assert domain.get_workflow_execution("wf-id-1") == wfe1
+    with pytest.raises(SWFUnknownResourceFault):
+        domain.get_workflow_execution("wf-id-3")
+    with pytest.raises(SWFUnknownResourceFault):
+        domain.get_workflow_execution("wf-id-non-existent")
 
     # raise_if_closed attribute
-    domain.get_workflow_execution(
-        "wf-id-1", run_id="run-id-1", raise_if_closed=True
-    ).should.equal(wfe1)
-    domain.get_workflow_execution.when.called_with(
-        "wf-id-3", run_id="run-id-4", raise_if_closed=True
-    ).should.throw(SWFUnknownResourceFault)
+    assert (
+        domain.get_workflow_execution(
+            "wf-id-1", run_id="run-id-1", raise_if_closed=True
+        )
+        == wfe1
+    )
+    with pytest.raises(SWFUnknownResourceFault):
+        domain.get_workflow_execution(
+            "wf-id-3", run_id="run-id-4", raise_if_closed=True
+        )
 
     # raise_if_none attribute
-    domain.get_workflow_execution("foo", raise_if_none=False).should.be.none
+    assert domain.get_workflow_execution("foo", raise_if_none=False) is None

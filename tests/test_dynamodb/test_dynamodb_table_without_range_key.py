@@ -1,12 +1,10 @@
 import boto3
-from boto3.dynamodb.conditions import Key
-import sure  # noqa # pylint: disable=unused-import
 import pytest
+from boto3.dynamodb.conditions import Key
 from datetime import datetime
 from botocore.exceptions import ClientError
 from moto import mock_dynamodb
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-import botocore
 
 
 @mock_dynamodb
@@ -35,41 +33,37 @@ def test_create_table():
 
     actual = client.describe_table(TableName="messages")["Table"]
 
-    actual.should.have.key("AttributeDefinitions").equal(
-        [
-            {"AttributeName": "id", "AttributeType": "S"},
-            {"AttributeName": "gsi_col", "AttributeType": "S"},
-        ]
+    assert actual["AttributeDefinitions"] == [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "gsi_col", "AttributeType": "S"},
+    ]
+    assert isinstance(actual["CreationDateTime"], datetime)
+    assert actual["GlobalSecondaryIndexes"] == [
+        {
+            "IndexName": "test_gsi",
+            "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
+            "Projection": {"ProjectionType": "ALL"},
+            "IndexStatus": "ACTIVE",
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 1,
+                "WriteCapacityUnits": 1,
+            },
+        }
+    ]
+    assert actual["LocalSecondaryIndexes"] == []
+    assert actual["ProvisionedThroughput"] == {
+        "NumberOfDecreasesToday": 0,
+        "ReadCapacityUnits": 1,
+        "WriteCapacityUnits": 1,
+    }
+    assert actual["TableSizeBytes"] == 0
+    assert actual["TableName"] == "messages"
+    assert actual["TableStatus"] == "ACTIVE"
+    assert (
+        actual["TableArn"] == f"arn:aws:dynamodb:us-east-2:{ACCOUNT_ID}:table/messages"
     )
-    actual.should.have.key("CreationDateTime").be.a(datetime)
-    actual.should.have.key("GlobalSecondaryIndexes").equal(
-        [
-            {
-                "IndexName": "test_gsi",
-                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
-                "Projection": {"ProjectionType": "ALL"},
-                "IndexStatus": "ACTIVE",
-                "ProvisionedThroughput": {
-                    "ReadCapacityUnits": 1,
-                    "WriteCapacityUnits": 1,
-                },
-            }
-        ]
-    )
-    actual.should.have.key("LocalSecondaryIndexes").equal([])
-    actual.should.have.key("ProvisionedThroughput").equal(
-        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 1, "WriteCapacityUnits": 1}
-    )
-    actual.should.have.key("TableSizeBytes").equal(0)
-    actual.should.have.key("TableName").equal("messages")
-    actual.should.have.key("TableStatus").equal("ACTIVE")
-    actual.should.have.key("TableArn").equal(
-        f"arn:aws:dynamodb:us-east-2:{ACCOUNT_ID}:table/messages"
-    )
-    actual.should.have.key("KeySchema").equal(
-        [{"AttributeName": "id", "KeyType": "HASH"}]
-    )
-    actual.should.have.key("ItemCount").equal(0)
+    assert actual["KeySchema"] == [{"AttributeName": "id", "KeyType": "HASH"}]
+    assert actual["ItemCount"] == 0
 
 
 @mock_dynamodb
@@ -81,17 +75,17 @@ def test_delete_table():
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    conn.list_tables()["TableNames"].should.have.length_of(1)
+    assert len(conn.list_tables()["TableNames"]) == 1
 
     conn.delete_table(TableName="messages")
-    conn.list_tables()["TableNames"].should.have.length_of(0)
+    assert conn.list_tables()["TableNames"] == []
 
     with pytest.raises(ClientError) as ex:
         conn.delete_table(TableName="messages")
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -112,11 +106,13 @@ def test_item_add_and_describe_and_update():
 
     table.put_item(Item=data)
     returned_item = table.get_item(Key={"id": "LOLCat Forum"})
-    returned_item.shouldnt.have.key("ConsumedCapacity")
+    assert "ConsumedCapacity" not in returned_item
 
-    dict(returned_item["Item"]).should.equal(
-        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User A"}
-    )
+    assert returned_item["Item"] == {
+        "id": "LOLCat Forum",
+        "Body": "http://url_to_lolcat.gif",
+        "SentBy": "User A",
+    }
 
     table.update_item(
         Key={"id": "LOLCat Forum"},
@@ -125,9 +121,11 @@ def test_item_add_and_describe_and_update():
     )
 
     returned_item = table.get_item(Key={"id": "LOLCat Forum"})
-    returned_item["Item"].should.equal(
-        {"id": "LOLCat Forum", "Body": "http://url_to_lolcat.gif", "SentBy": "User B"}
-    )
+    assert returned_item["Item"] == {
+        "id": "LOLCat Forum",
+        "Body": "http://url_to_lolcat.gif",
+        "SentBy": "User B",
+    }
 
 
 @mock_dynamodb
@@ -144,9 +142,9 @@ def test_item_put_without_table():
             },
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -156,9 +154,9 @@ def test_get_item_with_undeclared_table():
     with pytest.raises(ClientError) as ex:
         conn.get_item(TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}})
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -179,11 +177,11 @@ def test_delete_item():
     }
     table.put_item(Item=item_data)
 
-    table.item_count.should.equal(1)
+    assert table.item_count == 1
 
     table.delete_item(Key={"id": "LOLCat Forum"})
 
-    table.item_count.should.equal(0)
+    assert table.item_count == 0
 
     table.delete_item(Key={"id": "LOLCat Forum"})
 
@@ -197,11 +195,9 @@ def test_delete_item_with_undeclared_table():
             TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}}
         )
 
-    ex.value.response["Error"]["Code"].should.equal("ConditionalCheckFailedException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal(
-        "A condition specified in the operation could not be evaluated."
-    )
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -211,9 +207,9 @@ def test_scan_with_undeclared_table():
     with pytest.raises(ClientError) as ex:
         conn.scan(TableName="messages")
 
-    ex.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["Error"]["Message"].should.equal("Requested resource not found")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -226,7 +222,7 @@ def test_get_key_schema():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    table.key_schema.should.equal([{"AttributeName": "id", "KeyType": "HASH"}])
+    assert table.key_schema == [{"AttributeName": "id", "KeyType": "HASH"}]
 
 
 @mock_dynamodb
@@ -261,7 +257,7 @@ def test_update_item_double_nested_remove():
         "username": {"S": "steve"},
         "Meta": {"M": {"Name": {"M": {"Last": {"S": "Urkel"}}}}},
     }
-    dict(returned_item["Item"]).should.equal(expected_item)
+    assert returned_item["Item"] == expected_item
 
 
 @mock_dynamodb
@@ -285,7 +281,7 @@ def test_update_item_set():
     )
 
     returned_item = table.get_item(Key=key_map)["Item"]
-    dict(returned_item).should.equal({"username": "steve", "foo": "bar", "blah": "baz"})
+    assert returned_item == {"username": "steve", "foo": "bar", "blah": "baz"}
 
 
 @mock_dynamodb
@@ -298,7 +294,7 @@ def test_create_table__using_resource():
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table.name.should.equal("users")
+    assert table.name == "users"
 
 
 def _create_user_table():
@@ -321,9 +317,8 @@ def test_conditions():
     table.put_item(Item={"username": "janedoe"})
 
     response = table.query(KeyConditionExpression=Key("username").eq("johndoe"))
-    response["Count"].should.equal(1)
-    response["Items"].should.have.length_of(1)
-    response["Items"][0].should.equal({"username": "johndoe"})
+    assert response["Count"] == 1
+    assert response["Items"] == [{"username": "johndoe"}]
 
 
 @mock_dynamodb
@@ -335,7 +330,7 @@ def test_put_item_conditions_pass():
         Expected={"foo": {"ComparisonOperator": "EQ", "AttributeValueList": ["bar"]}},
     )
     final_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(final_item)["Item"]["foo"].should.equal("baz")
+    assert final_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
@@ -347,7 +342,7 @@ def test_put_item_conditions_pass_because_expect_not_exists_by_compare_to_null()
         Expected={"whatever": {"ComparisonOperator": "NULL"}},
     )
     final_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(final_item)["Item"]["foo"].should.equal("baz")
+    assert final_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
@@ -359,53 +354,67 @@ def test_put_item_conditions_pass_because_expect_exists_by_compare_to_not_null()
         Expected={"foo": {"ComparisonOperator": "NOT_NULL"}},
     )
     final_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(final_item)["Item"]["foo"].should.equal("baz")
+    assert final_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
 def test_put_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
-    table.put_item.when.called_with(
-        Item={"username": "johndoe", "foo": "baz"},
-        Expected={"foo": {"ComparisonOperator": "NE", "AttributeValueList": ["bar"]}},
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"username": "johndoe", "foo": "baz"},
+            Expected={
+                "foo": {"ComparisonOperator": "NE", "AttributeValueList": ["bar"]}
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConditionalCheckFailedException"
 
 
 @mock_dynamodb
 def test_update_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
-    table.update_item.when.called_with(
-        Key={"username": "johndoe"},
-        UpdateExpression="SET foo=:bar",
-        Expected={"foo": {"Value": "bar"}},
-        ExpressionAttributeValues={":bar": "bar"},
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"username": "johndoe"},
+            UpdateExpression="SET foo=:bar",
+            Expected={"foo": {"Value": "bar"}},
+            ExpressionAttributeValues={":bar": "bar"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConditionalCheckFailedException"
 
 
 @mock_dynamodb
 def test_update_item_conditions_fail_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
-    table.update_item.when.called_with(
-        Key={"username": "johndoe"},
-        UpdateExpression="SET foo=:bar",
-        Expected={"foo": {"Exists": False}},
-        ExpressionAttributeValues={":bar": "bar"},
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"username": "johndoe"},
+            UpdateExpression="SET foo=:bar",
+            Expected={"foo": {"Exists": False}},
+            ExpressionAttributeValues={":bar": "bar"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConditionalCheckFailedException"
 
 
 @mock_dynamodb
 def test_update_item_conditions_fail_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
-    table.update_item.when.called_with(
-        Key={"username": "johndoe"},
-        UpdateExpression="SET foo=:bar",
-        Expected={"foo": {"ComparisonOperator": "NULL"}},
-        ExpressionAttributeValues={":bar": "bar"},
-    ).should.throw(botocore.client.ClientError)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"username": "johndoe"},
+            UpdateExpression="SET foo=:bar",
+            Expected={"foo": {"ComparisonOperator": "NULL"}},
+            ExpressionAttributeValues={":bar": "bar"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ConditionalCheckFailedException"
 
 
 @mock_dynamodb
@@ -419,7 +428,7 @@ def test_update_item_conditions_pass():
         ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(returned_item)["Item"]["foo"].should.equal("baz")
+    assert returned_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
@@ -433,7 +442,7 @@ def test_update_item_conditions_pass_because_expect_not_exists():
         ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(returned_item)["Item"]["foo"].should.equal("baz")
+    assert returned_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
@@ -447,7 +456,7 @@ def test_update_item_conditions_pass_because_expect_not_exists_by_compare_to_nul
         ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(returned_item)["Item"]["foo"].should.equal("baz")
+    assert returned_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
@@ -461,7 +470,7 @@ def test_update_item_conditions_pass_because_expect_exists_by_compare_to_not_nul
         ExpressionAttributeValues={":baz": "baz"},
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(returned_item)["Item"]["foo"].should.equal("baz")
+    assert returned_item["Item"]["foo"] == "baz"
 
 
 @mock_dynamodb
@@ -498,7 +507,7 @@ def test_update_settype_item_with_conditions():
         },
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert dict(returned_item)["Item"]["foo"].should.equal(set(["baz"]))
+    assert returned_item["Item"]["foo"] == set(["baz"])
 
 
 @mock_dynamodb
@@ -510,18 +519,17 @@ def test_scan_pagination():
         table.put_item(Item={"username": u})
 
     page1 = table.scan(Limit=6)
-    page1["Count"].should.equal(6)
-    page1["Items"].should.have.length_of(6)
-    page1.should.have.key("LastEvaluatedKey")
+    assert page1["Count"] == 6
+    assert len(page1["Items"]) == 6
 
     page2 = table.scan(Limit=6, ExclusiveStartKey=page1["LastEvaluatedKey"])
-    page2["Count"].should.equal(4)
-    page2["Items"].should.have.length_of(4)
-    page2.should_not.have.key("LastEvaluatedKey")
+    assert page2["Count"] == 4
+    assert len(page2["Items"]) == 4
+    assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
     usernames = set([r["username"] for r in results])
-    usernames.should.equal(set(expected_usernames))
+    assert usernames == set(expected_usernames)
 
 
 @mock_dynamodb

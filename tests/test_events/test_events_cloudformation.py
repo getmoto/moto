@@ -6,7 +6,6 @@ import boto3
 import json
 from botocore.exceptions import ClientError
 from moto import mock_cloudformation, mock_events
-import sure  # noqa # pylint: disable=unused-import
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -86,12 +85,12 @@ def test_create_archive():
     # then
     archive_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:archive/{name}"
     stack = cfn_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.equal(archive_arn)
+    assert stack["Outputs"][0]["OutputValue"] == archive_arn
 
     events_client = boto3.client("events", region_name="eu-central-1")
     response = events_client.describe_archive(ArchiveName=name)
 
-    response["ArchiveArn"].should.equal(archive_arn)
+    assert response["ArchiveArn"] == archive_arn
 
 
 @mock_events
@@ -118,10 +117,11 @@ def test_update_archive():
     events_client = boto3.client("events", region_name="eu-central-1")
     response = events_client.describe_archive(ArchiveName=name)
 
-    response["ArchiveArn"].should.equal(
-        f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:archive/{name}"
+    assert (
+        response["ArchiveArn"]
+        == f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:archive/{name}"
     )
-    response["Description"].should.equal("test archive")
+    assert response["Description"] == "test archive"
 
 
 @mock_events
@@ -140,7 +140,7 @@ def test_delete_archive():
     # then
     events_client = boto3.client("events", region_name="eu-central-1")
     response = events_client.list_archives(NamePrefix="test")["Archives"]
-    response.should.have.length_of(0)
+    assert len(response) == 0
 
 
 @mock_events
@@ -158,13 +158,13 @@ def test_create_rule():
     # then
     rule_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:rule/{name}"
     stack = cfn_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.equal(rule_arn)
+    assert stack["Outputs"][0]["OutputValue"] == rule_arn
 
     events_client = boto3.client("events", region_name="eu-central-1")
     response = events_client.describe_rule(Name=name)
 
-    response["Arn"].should.equal(rule_arn)
-    response["EventPattern"].should.equal('{"detail-type": ["SomeDetailType"]}')
+    assert response["Arn"] == rule_arn
+    assert response["EventPattern"] == '{"detail-type": ["SomeDetailType"]}'
 
 
 @mock_events
@@ -186,5 +186,5 @@ def test_delete_rule():
     with pytest.raises(ClientError) as exc:
         events_client.describe_rule(Name=name)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Rule test-rule does not exist.")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Rule test-rule does not exist."

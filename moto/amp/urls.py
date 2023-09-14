@@ -6,17 +6,18 @@ url_bases = [
 ]
 
 
-response = PrometheusServiceResponse()
-
-
 url_paths = {
-    "{0}/workspaces$": response.dispatch,
-    "{0}/workspaces/(?P<workspace_id>[^/]+)$": response.dispatch,
-    "{0}/workspaces/(?P<workspace_id>[^/]+)/alias$": response.dispatch,
-    "{0}/workspaces/(?P<workspace_id>[^/]+)/logging$": response.dispatch,
-    "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces$": response.dispatch,
-    "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces/(?P<name>[^/]+)$": response.dispatch,
-    "{0}/tags/(?P<resource_arn>[^/]+)$": response.dispatch,
-    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)$": response.tags,
-    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)/(?P<ns_name>[^/]+)$": response.tags,
+    "{0}/workspaces$": PrometheusServiceResponse.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)$": PrometheusServiceResponse.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/alias$": PrometheusServiceResponse.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/logging$": PrometheusServiceResponse.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces$": PrometheusServiceResponse.dispatch,
+    "{0}/workspaces/(?P<workspace_id>[^/]+)/rulegroupsnamespaces/(?P<name>[^/]+)$": PrometheusServiceResponse.dispatch,
+    "{0}/tags/(?P<resource_arn>[^/]+)$": PrometheusServiceResponse.dispatch,
+    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)$": PrometheusServiceResponse.method_dispatch(
+        PrometheusServiceResponse.tags  # type: ignore
+    ),
+    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<workspace_id>[^/]+)/(?P<ns_name>[^/]+)$": PrometheusServiceResponse.method_dispatch(
+        PrometheusServiceResponse.tags  # type: ignore
+    ),
 }

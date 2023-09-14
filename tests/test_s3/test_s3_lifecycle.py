@@ -1,8 +1,7 @@
-import boto3
-
-import sure  # noqa # pylint: disable=unused-import
-from botocore.exceptions import ClientError
 from datetime import datetime
+
+import boto3
+from botocore.exceptions import ClientError
 import pytest
 
 from moto import mock_s3
@@ -489,9 +488,9 @@ def test_lifecycle_with_aimu():
 
 @mock_s3
 def test_lifecycle_with_glacier_transition_boto3():
-    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
 
     client.put_bucket_lifecycle_configuration(
         Bucket="foobar",
@@ -508,24 +507,24 @@ def test_lifecycle_with_glacier_transition_boto3():
     )
 
     response = client.get_bucket_lifecycle_configuration(Bucket="foobar")
-    response.should.have.key("Rules")
+    assert "Rules" in response
     rules = response["Rules"]
-    rules.should.have.length_of(1)
-    rules[0].should.have.key("ID").equal("myid")
+    assert len(rules) == 1
+    assert rules[0]["ID"] == "myid"
     transition = rules[0]["Transitions"][0]
-    transition["Days"].should.equal(30)
-    transition["StorageClass"].should.equal("GLACIER")
-    transition.shouldnt.have.key("Date")
+    assert transition["Days"] == 30
+    assert transition["StorageClass"] == "GLACIER"
+    assert "Date" not in transition
 
 
 @mock_s3
 def test_lifecycle_multi_boto3():
-    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
 
     date = "2022-10-12T00:00:00.000Z"
-    sc = "GLACIER"
+    storage_class = "GLACIER"
 
     client.put_bucket_lifecycle_configuration(
         Bucket="foobar",
@@ -565,37 +564,36 @@ def test_lifecycle_multi_boto3():
 
     for rule in rules:
         if rule["ID"] == "1":
-            rule["Prefix"].should.equal("1/")
-            rule.shouldnt.have.key("Expiration")
+            assert rule["Prefix"] == "1/"
+            assert "Expiration" not in rule
         elif rule["ID"] == "2":
-            rule["Prefix"].should.equal("2/")
-            rule["Expiration"]["Days"].should.equal(2)
+            assert rule["Prefix"] == "2/"
+            assert rule["Expiration"]["Days"] == 2
         elif rule["ID"] == "3":
-            rule["Prefix"].should.equal("3/")
-            rule["Expiration"]["Date"].should.be.a(datetime)
-            rule["Expiration"]["Date"].strftime("%Y-%m-%dT%H:%M:%S.000Z").should.equal(
-                date
-            )
+            assert rule["Prefix"] == "3/"
+            assert isinstance(rule["Expiration"]["Date"], datetime)
+            assert rule["Expiration"]["Date"].strftime("%Y-%m-%dT%H:%M:%S.000Z") == date
         elif rule["ID"] == "4":
-            rule["Prefix"].should.equal("4/")
-            rule["Transitions"][0]["Days"].should.equal(4)
-            rule["Transitions"][0]["StorageClass"].should.equal(sc)
+            assert rule["Prefix"] == "4/"
+            assert rule["Transitions"][0]["Days"] == 4
+            assert rule["Transitions"][0]["StorageClass"] == storage_class
         elif rule["ID"] == "5":
-            rule["Prefix"].should.equal("5/")
-            rule["Transitions"][0]["Date"].should.be.a(datetime)
-            rule["Transitions"][0]["Date"].strftime(
-                "%Y-%m-%dT%H:%M:%S.000Z"
-            ).should.equal(date)
-            rule["Transitions"][0]["StorageClass"].should.equal(sc)
+            assert rule["Prefix"] == "5/"
+            assert isinstance(rule["Transitions"][0]["Date"], datetime)
+            assert (
+                rule["Transitions"][0]["Date"].strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                == date
+            )
+            assert rule["Transitions"][0]["StorageClass"] == storage_class
         else:
             assert False, "Invalid rule id"
 
 
 @mock_s3
 def test_lifecycle_delete_boto3():
-    s3 = boto3.resource("s3", region_name="us-east-1")
+    s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
-    s3.create_bucket(Bucket="foobar")
+    s3_resource.create_bucket(Bucket="foobar")
 
     client.put_bucket_lifecycle_configuration(
         Bucket="foobar",
@@ -608,7 +606,7 @@ def test_lifecycle_delete_boto3():
 
     with pytest.raises(ClientError) as ex:
         client.get_bucket_lifecycle_configuration(Bucket="foobar")
-    ex.value.response["Error"]["Code"].should.equal("NoSuchLifecycleConfiguration")
-    ex.value.response["Error"]["Message"].should.equal(
+    assert ex.value.response["Error"]["Code"] == "NoSuchLifecycleConfiguration"
+    assert ex.value.response["Error"]["Message"] == (
         "The lifecycle configuration does not exist"
     )

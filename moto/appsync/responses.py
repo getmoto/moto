@@ -236,7 +236,7 @@ class AppSyncResponse(BaseResponse):
         )
         return 200, {}, json.dumps(dict(type=graphql_type))
 
-    def get_introspection_schema(self) -> TYPE_RESPONSE:  # type: ignore[return]
+    def get_introspection_schema(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-2]
         format_ = self.querystring.get("format")[0]  # type: ignore[index]
         if self.querystring.get("includeDirectives"):

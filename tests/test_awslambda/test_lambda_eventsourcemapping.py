@@ -15,6 +15,7 @@ from .utilities import (
 )
 from ..markers import requires_docker
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -30,7 +31,7 @@ def test_create_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -63,7 +64,7 @@ def test_invoke_function_from_sqs(key):
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -118,7 +119,7 @@ def test_invoke_function_from_dynamodb_put():
     function_name = str(uuid4())[0:6]
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -136,7 +137,8 @@ def test_invoke_function_from_dynamodb_put():
     assert response["EventSourceArn"] == table["TableDescription"]["LatestStreamArn"]
     assert response["State"] == "Enabled"
 
-    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "item 1"}})
+    item_to_create = {"id": {"S": "item 1"}, "data": {"M": {"nested": {"S": "stuff"}}}}
+    dynamodb.put_item(TableName=table_name, Item=item_to_create)
 
     expected_msg = "get_test_zip_file3 success"
     log_group = f"/aws/lambda/{function_name}"
@@ -144,6 +146,9 @@ def test_invoke_function_from_dynamodb_put():
 
     assert msg_showed_up, (
         expected_msg + " was not found after a DDB insert. All logs: " + str(all_logs)
+    )
+    assert any(
+        [json.dumps(item_to_create, separators=(",", ":")) in msg for msg in all_logs]
     )
 
 
@@ -170,7 +175,7 @@ def test_invoke_function_from_dynamodb_update():
     function_name = str(uuid4())[0:6]
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -223,7 +228,7 @@ def test_invoke_function_from_sqs_exception():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file_error()},
@@ -291,7 +296,7 @@ def test_invoke_function_from_sns():
     function_name = str(uuid4())[0:6]
     result = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -344,7 +349,7 @@ def test_list_event_source_mappings():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -377,7 +382,7 @@ def test_get_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -407,7 +412,7 @@ def test_update_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func1 = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -418,7 +423,7 @@ def test_update_event_source_mapping():
     )
     func2 = conn.create_function(
         FunctionName="testFunction2",
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},
@@ -453,7 +458,7 @@ def test_delete_event_source_mapping():
     conn = boto3.client("lambda", region_name="us-east-1")
     func1 = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.8",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file3()},

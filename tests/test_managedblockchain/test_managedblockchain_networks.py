@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from botocore.exceptions import ClientError
 from moto import mock_managedblockchain
@@ -21,22 +20,23 @@ def test_create_network():
     )
     network_id = response["NetworkId"]
     member_id = response["MemberId"]
-    network_id.should.match("n-[A-Z0-9]{26}")
-    member_id.should.match("m-[A-Z0-9]{26}")
+    assert network_id.startswith("n-")
+    assert len(network_id) == 28
+    assert member_id.startswith("m-")
+    assert len(member_id) == 28
 
     # Find in full list
-    response = conn.list_networks()
-    mbcnetworks = response["Networks"]
-    mbcnetworks.should.have.length_of(1)
-    mbcnetworks[0]["Name"].should.equal("testnetwork1")
+    mbcnetworks = conn.list_networks()["Networks"]
+    assert len(mbcnetworks) == 1
+    assert mbcnetworks[0]["Name"] == "testnetwork1"
 
     # Get network details
     response = conn.get_network(NetworkId=network_id)
-    response["Network"]["Name"].should.equal("testnetwork1")
+    assert response["Network"]["Name"] == "testnetwork1"
 
 
 @mock_managedblockchain
-def test_create_network_withopts():
+def test_create_network_with_description():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
     response = conn.create_network(
@@ -49,19 +49,15 @@ def test_create_network_withopts():
         MemberConfiguration=helpers.default_memberconfiguration,
     )
     network_id = response["NetworkId"]
-    member_id = response["MemberId"]
-    network_id.should.match("n-[A-Z0-9]{26}")
-    member_id.should.match("m-[A-Z0-9]{26}")
 
     # Find in full list
-    response = conn.list_networks()
-    mbcnetworks = response["Networks"]
-    mbcnetworks.should.have.length_of(1)
-    mbcnetworks[0]["Description"].should.equal("Test Network 1")
+    mbcnetworks = conn.list_networks()["Networks"]
+    assert len(mbcnetworks) == 1
+    assert mbcnetworks[0]["Description"] == "Test Network 1"
 
     # Get network details
     response = conn.get_network(NetworkId=network_id)
-    response["Network"]["Description"].should.equal("Test Network 1")
+    assert response["Network"]["Description"] == "Test Network 1"
 
 
 @mock_managedblockchain
@@ -79,8 +75,8 @@ def test_create_network_noframework():
             MemberConfiguration=helpers.default_memberconfiguration,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain("Invalid request body")
+    assert err["Code"] == "BadRequestException"
+    assert "Invalid request body" in err["Message"]
 
 
 @mock_managedblockchain
@@ -98,9 +94,10 @@ def test_create_network_badframeworkver():
             MemberConfiguration=helpers.default_memberconfiguration,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain(
+    assert err["Code"] == "BadRequestException"
+    assert (
         "Invalid version 1.X requested for framework HYPERLEDGER_FABRIC"
+        in err["Message"]
     )
 
 
@@ -121,8 +118,8 @@ def test_create_network_badedition():
             MemberConfiguration=helpers.default_memberconfiguration,
         )
     err = ex.value.response["Error"]
-    err["Code"].should.equal("BadRequestException")
-    err["Message"].should.contain("Invalid request body")
+    assert err["Code"] == "BadRequestException"
+    assert "Invalid request body" in err["Message"]
 
 
 @mock_managedblockchain
@@ -132,5 +129,5 @@ def test_get_network_badnetwork():
     with pytest.raises(ClientError) as ex:
         conn.get_network(NetworkId="n-ABCDEFGHIJKLMNOP0123456789")
     err = ex.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.contain("Network n-ABCDEFGHIJKLMNOP0123456789 not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]

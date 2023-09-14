@@ -1,12 +1,13 @@
-import time
 from datetime import datetime
+import time
+from typing import Any, Dict, List, Optional
+
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
-from typing import Any, Dict, List, Optional
 
 
-class TaggableResourceMixin(object):
+class TaggableResourceMixin:
     # This mixing was copied from Redshift when initially implementing
     # Athena. TBD if it's worth the overhead.
 
@@ -263,7 +264,7 @@ class AthenaBackend(BaseBackend):
                 "http://motoapi.amazonaws.com:5000/moto-api/static/athena/query-results",
                 json=expected_results,
             )
-            resp.status_code.should.equal(201)
+            assert resp.status_code == 201
 
             client = boto3.client("athena", region_name="us-east-1")
             details = client.get_query_execution(QueryExecutionId="any_id")["QueryExecution"]
@@ -339,7 +340,7 @@ class AthenaBackend(BaseBackend):
         return data_catalog
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_named_queries(self, work_group: str) -> List[str]:  # type: ignore[misc]
+    def list_named_queries(self, work_group: str) -> List[str]:
         named_query_ids = [
             q.id for q in self.named_queries.values() if q.workgroup.name == work_group
         ]

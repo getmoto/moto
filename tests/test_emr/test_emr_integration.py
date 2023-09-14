@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

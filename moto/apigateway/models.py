@@ -1,13 +1,14 @@
-import string
-import re
-import responses
-import requests
-import time
-from datetime import datetime
 from collections import defaultdict
-from openapi_spec_validator import validate_spec
+from datetime import datetime
+import re
+import string
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
+
+from openapi_spec_validator import validate_spec
+import requests
+import responses
 
 try:
     from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
@@ -674,7 +675,7 @@ class Stage(BaseModel):
                     self.tracing_enabled = self._str2bool(op["value"])
                 elif op["path"].startswith("/accessLogSettings/"):
                     self.access_log_settings = self.access_log_settings or {}
-                    self.access_log_settings[op["path"].split("/")[-1]] = op["value"]  # type: ignore[index]
+                    self.access_log_settings[op["path"].split("/")[-1]] = op["value"]
                 else:
                     # (e.g., path could be '/*/*/logging/loglevel')
                     split_path = op["path"].split("/", 3)
@@ -1511,7 +1512,7 @@ class APIGatewayBackend(BaseBackend):
             integrationHttpMethod="GET"
         )
         deploy_url = f"https://{api_id}.execute-api.us-east-1.amazonaws.com/dev"
-        requests.get(deploy_url).content.should.equal(b"a fake response")
+        assert requests.get(deploy_url).content == b"a fake response"
 
     Limitations:
      - Integrations of type HTTP are supported
@@ -2309,11 +2310,11 @@ class APIGatewayBackend(BaseBackend):
             self.base_path_mappings[domain_name] = {}
         else:
             if (
-                self.base_path_mappings[domain_name].get(new_base_path)  # type: ignore[arg-type]
+                self.base_path_mappings[domain_name].get(new_base_path)
                 and new_base_path != "(none)"
             ):
                 raise BasePathConflictException()
-        self.base_path_mappings[domain_name][new_base_path] = new_base_path_mapping  # type: ignore[index]
+        self.base_path_mappings[domain_name][new_base_path] = new_base_path_mapping
         return new_base_path_mapping
 
     def get_base_path_mappings(self, domain_name: str) -> List[BasePathMapping]:

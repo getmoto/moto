@@ -1,7 +1,5 @@
-import sure  # noqa # pylint: disable=unused-import
-import unittest
-
 import boto3
+import unittest
 
 from moto import mock_sqs, mock_ec2
 from tests import EXAMPLE_AMI_ID
@@ -16,7 +14,7 @@ class TestNestedDecoratorsBoto3(unittest.TestCase):
         queue.send_message(MessageBody="test message 1")
 
         queue.reload()
-        queue.attributes["ApproximateNumberOfMessages"].should.equal("1")
+        assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
     @mock_ec2
     def test_nested(self):

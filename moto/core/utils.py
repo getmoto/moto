@@ -1,10 +1,13 @@
 import datetime
 import inspect
 import re
+import unicodedata
 from botocore.exceptions import ClientError
+from gzip import decompress
 from typing import Any, Optional, List, Callable, Dict, Tuple
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from .common_types import TYPE_RESPONSE
+from .versions import is_werkzeug_2_3_x, PYTHON_311
 
 
 def camelcase_to_underscores(argument: str) -> str:
@@ -145,19 +148,17 @@ class convert_flask_to_responses_response(object):
 def iso_8601_datetime_with_milliseconds(
     value: Optional[datetime.datetime] = None,
 ) -> str:
-    date_to_use = value or datetime.datetime.now()
+    date_to_use = value or utcnow()
     return date_to_use.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 # Even Python does not support nanoseconds, other languages like Go do (needed for Terraform)
-def iso_8601_datetime_with_nanoseconds(value: datetime.datetime) -> str:
-    return value.strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
+def iso_8601_datetime_with_nanoseconds() -> str:
+    return utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f000Z")
 
 
-def iso_8601_datetime_without_milliseconds(
-    value: Optional[datetime.datetime],
-) -> Optional[str]:
-    return value.strftime("%Y-%m-%dT%H:%M:%SZ") if value else None
+def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def iso_8601_datetime_without_milliseconds_s3(
@@ -178,7 +179,7 @@ def str_to_rfc_1123_datetime(value: str) -> datetime.datetime:
 
 
 def unix_time(dt: Optional[datetime.datetime] = None) -> float:
-    dt = dt or datetime.datetime.utcnow()
+    dt = dt or utcnow()
     epoch = datetime.datetime.utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
@@ -186,6 +187,21 @@ def unix_time(dt: Optional[datetime.datetime] = None) -> float:
 
 def unix_time_millis(dt: Optional[datetime.datetime] = None) -> float:
     return unix_time(dt) * 1000.0
+
+
+def utcnow() -> datetime.datetime:
+    # Python 3.12 starts throwing deprecation warnings for utcnow()
+    # The docs recommend to use now(UTC) instead
+    #
+    # now(UTC) creates an aware datetime - but utcnow() creates a naive datetime
+    # That's why we have to `replace(tzinfo=None)` to make now(UTC) naive.
+    if PYTHON_311:
+        # Only available in 3.11
+        from datetime import UTC  # type: ignore
+
+        return datetime.datetime.now(UTC).replace(tzinfo=None)
+    else:
+        return datetime.datetime.utcnow()
 
 
 def path_url(url: str) -> str:
@@ -321,3 +337,100 @@ def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, Any]:
         member_num = int(key.split(".")[2])
         return ("Tags.member", member_num)
     return item
+
+
+def normalize_werkzeug_path(path: str) -> str:
+    if is_werkzeug_2_3_x():
+        # New versions of werkzeug expose a quoted path
+        #   %40connections
+        #
+        # Older versions (and botocore requests) expose the original:
+        #   @connections
+        #
+        # We're unquoting the path here manually, so it behaves the same as botocore requests and requests coming in from old werkzeug versions.
+        #
+        return _unquote_hex_characters(path)
+    else:
+        return unquote(path)
+
+
+def _unquote_hex_characters(path: str) -> str:
+    allowed_characters = ["%2F"]  # /
+    # Path can contain a single hex character
+    #    my%3Fchar
+    #
+    # Path can also contain multiple hex characters in a row
+    #    %AA%AB%AC
+    #
+    # This is how complex unicode characters, such as smileys, are encoded.
+    # Note that these particular characters do not translate to anything useful
+    # For the sake of simplicy, let's assume that it translates to a smiley: :)
+    #
+    # Just to make things interesting, they could be found right next to eachother:
+    #    my%3F%AA%AB%ACchar
+    #
+    # Which should translate to my?:)char
+
+    # char_ranges contains all consecutie hex characters:
+    # [(2, 5, %3F), (0, 9, %AA%AB%AC)]
+    char_ranges = [
+        (m.start(0), m.end(0)) for m in re.finditer("(%[0-9A-F][0-9A-F])+", path)
+    ]
+
+    # characters_found will contain the replacement characters
+    # [(2, 5, '?'), (0, 9, ':)')]
+    characters_found: List[Tuple[int, int, str]] = []
+    for char_range in char_ranges:
+        range_start, range_end = char_range
+        possible_combo_start = range_start
+        possible_combo_end = range_end
+        while possible_combo_start < possible_combo_end:
+            # For every range, create combinations of possibilities
+            #    iter 1:   %AA%AB%AC
+            #    iter 2:   %AA%AB
+            #    iter3:    %AA
+            possible_char = path[possible_combo_start:possible_combo_end]
+
+            if possible_char in allowed_characters:
+                # Werkzeug has already converted these characters for us
+                possible_combo_end -= 3
+                continue
+            try:
+                start_of_raw_repr = possible_combo_start + len(characters_found)
+                end_of_raw_repr = start_of_raw_repr + len(possible_char)
+                # Verify that the current possibility is a known unicode character
+                unicodedata.category(unquote(possible_char))
+                characters_found.append(
+                    (start_of_raw_repr, end_of_raw_repr, unquote(possible_char))
+                )
+                if range_end == possible_combo_end:
+                    # We've matched on the full phrase:
+                    # %AA%AB%AC
+                    break
+                else:
+                    # we matched on %AA%AB
+                    # reset the indexes, and try to match %AC next
+                    possible_combo_start = possible_combo_end
+                    possible_combo_end = range_end
+            except:  # noqa: E722 Do not use bare except
+                # 'unicodedata.category' would have thrown an error, meaning:
+                # %AA%AB%AC does not exist
+                # Try the next possibility:
+                # %AA%AB
+                possible_combo_end -= 3
+
+    # Replace the hex characters with the appropriate unicode representation
+    char_offset = 0
+    for char_pos in characters_found:
+        combo_start, combo_end, character = char_pos
+        path = (
+            path[0 : combo_start - char_offset]
+            + character
+            + path[combo_end - char_offset :]
+        )
+        char_offset += (combo_end - combo_start) + len(character) - 1
+    return path
+
+
+def gzip_decompress(body: bytes) -> bytes:
+    return decompress(body)

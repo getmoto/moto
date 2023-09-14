@@ -74,7 +74,7 @@ ssm
         Deregisters a target from a maintenance window. No error handling has been implemented yet.
         
 
-- [ ] deregister_task_from_maintenance_window
+- [X] deregister_task_from_maintenance_window
 - [ ] describe_activations
 - [ ] describe_association
 - [ ] describe_association_execution_targets
@@ -105,7 +105,7 @@ ssm
         Describes all targets for a maintenance window. No error handling has been implemented yet.
         
 
-- [ ] describe_maintenance_window_tasks
+- [X] describe_maintenance_window_tasks
 - [X] describe_maintenance_windows
   
         Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
@@ -191,7 +191,7 @@ ssm
         Registers a target with a maintenance window. No error handling has been implemented yet.
         
 
-- [ ] register_task_with_maintenance_window
+- [X] register_task_with_maintenance_window
 - [X] remove_tags_from_resource
 - [ ] reset_service_setting
 - [ ] resume_session

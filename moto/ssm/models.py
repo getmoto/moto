@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
+from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.exceptions import SecretsManagerClientError
@@ -589,7 +590,7 @@ class Document(BaseModel):
         self.status = "Active"
         self.document_version = document_version
         self.owner = account_id
-        self.created_date = datetime.datetime.utcnow()
+        self.created_date = utcnow()
 
         if document_format == "JSON":
             try:
@@ -975,10 +976,77 @@ class FakeMaintenanceWindowTarget:
         return str(random.uuid4())
 
 
+class FakeMaintenanceWindowTask:
+    def __init__(
+        self,
+        window_id: str,
+        targets: Optional[List[Dict[str, Any]]],
+        task_arn: str,
+        service_role_arn: Optional[str],
+        task_type: str,
+        task_parameters: Optional[Dict[str, Any]],
+        task_invocation_parameters: Optional[Dict[str, Any]],
+        priority: Optional[int],
+        max_concurrency: Optional[str],
+        max_errors: Optional[str],
+        logging_info: Optional[Dict[str, Any]],
+        name: Optional[str],
+        description: Optional[str],
+        cutoff_behavior: Optional[str],
+        alarm_configurations: Optional[Dict[str, Any]],
+    ):
+        self.window_task_id = FakeMaintenanceWindowTask.generate_id()
+        self.window_id = window_id
+        self.task_type = task_type
+        self.task_arn = task_arn
+        self.service_role_arn = service_role_arn
+        self.task_parameters = task_parameters
+        self.priority = priority
+        self.max_concurrency = max_concurrency
+        self.max_errors = max_errors
+        self.logging_info = logging_info
+        self.name = name
+        self.description = description
+        self.targets = targets
+        self.task_invocation_parameters = task_invocation_parameters
+        self.cutoff_behavior = cutoff_behavior
+        self.alarm_configurations = alarm_configurations
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "WindowId": self.window_id,
+            "WindowTaskId": self.window_task_id,
+            "TaskType": self.task_type,
+            "TaskArn": self.task_arn,
+            "ServiceRoleArn": self.service_role_arn,
+            "TaskParameters": self.task_parameters,
+            "Priority": self.priority,
+            "MaxConcurrency": self.max_concurrency,
+            "MaxErrors": self.max_errors,
+            "LoggingInfo": self.logging_info,
+            "Name": self.name,
+            "Description": self.description,
+            "Targets": self.targets,
+            "TaskInvocationParameters": self.task_invocation_parameters,
+        }
+
+    @staticmethod
+    def generate_id() -> str:
+        return str(random.uuid4())
+
+
 def _maintenance_window_target_filter_match(
     filters: Optional[List[Dict[str, Any]]], target: FakeMaintenanceWindowTarget
 ) -> bool:
     if not filters and target:
+        return True
+    return False
+
+
+def _maintenance_window_task_filter_match(
+    filters: Optional[List[Dict[str, Any]]], task: FakeMaintenanceWindowTask
+) -> bool:
+    if not filters and task:
         return True
     return False
 
@@ -1007,6 +1075,7 @@ class FakeMaintenanceWindow:
         self.start_date = start_date
         self.end_date = end_date
         self.targets: Dict[str, FakeMaintenanceWindowTarget] = {}
+        self.tasks: Dict[str, FakeMaintenanceWindowTask] = {}
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -1913,7 +1982,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 label.startswith("aws")
                 or label.startswith("ssm")
                 or label[:1].isdigit()
-                or not re.match(r"^[a-zA-z0-9_\.\-]*$", label)
+                or not re.match(r"^[a-zA-Z0-9_\.\-]*$", label)
             ):
                 invalid_labels.append(label)
                 continue
@@ -1994,7 +2063,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                     "formed as a mix of letters, numbers and the following 3 symbols .-_"
                 )
             raise ValidationException(invalid_prefix_error)
-        if not parameter_type and not overwrite and not self._parameters[name]:
+        if (
+            not parameter_type
+            and not overwrite
+            and not (name in self._parameters and self._parameters[name])
+        ):
             raise ValidationException(
                 "A parameter type is required when you create a parameter."
             )
@@ -2350,6 +2423,63 @@ class SimpleSystemManagerBackend(BaseBackend):
             if _maintenance_window_target_filter_match(filters, target)
         ]
         return targets
+
+    def register_task_with_maintenance_window(
+        self,
+        window_id: str,
+        targets: Optional[List[Dict[str, Any]]],
+        task_arn: str,
+        service_role_arn: Optional[str],
+        task_type: str,
+        task_parameters: Optional[Dict[str, Any]],
+        task_invocation_parameters: Optional[Dict[str, Any]],
+        priority: Optional[int],
+        max_concurrency: Optional[str],
+        max_errors: Optional[str],
+        logging_info: Optional[Dict[str, Any]],
+        name: Optional[str],
+        description: Optional[str],
+        cutoff_behavior: Optional[str],
+        alarm_configurations: Optional[Dict[str, Any]],
+    ) -> str:
+
+        window = self.get_maintenance_window(window_id)
+        task = FakeMaintenanceWindowTask(
+            window_id,
+            targets,
+            task_arn,
+            service_role_arn,
+            task_type,
+            task_parameters,
+            task_invocation_parameters,
+            priority,
+            max_concurrency,
+            max_errors,
+            logging_info,
+            name,
+            description,
+            cutoff_behavior,
+            alarm_configurations,
+        )
+        window.tasks[task.window_task_id] = task
+        return task.window_task_id
+
+    def describe_maintenance_window_tasks(
+        self, window_id: str, filters: List[Dict[str, Any]]
+    ) -> List[FakeMaintenanceWindowTask]:
+        window = self.get_maintenance_window(window_id)
+        tasks = [
+            task
+            for task in window.tasks.values()
+            if _maintenance_window_task_filter_match(filters, task)
+        ]
+        return tasks
+
+    def deregister_task_from_maintenance_window(
+        self, window_id: str, window_task_id: str
+    ) -> None:
+        window = self.get_maintenance_window(window_id)
+        del window.tasks[window_task_id]
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

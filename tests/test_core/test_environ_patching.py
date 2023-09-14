@@ -1,5 +1,4 @@
 import os
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, mock_s3
 
 KEY = "AWS_ACCESS_KEY_ID"
@@ -8,7 +7,7 @@ KEY = "AWS_ACCESS_KEY_ID"
 def test_aws_keys_are_patched():
     with mock_ec2():
         patched_value = os.environ[KEY]
-        patched_value.should.equal("foobar_key")
+        assert patched_value == "FOOBARKEY"
 
 
 def test_aws_keys_can_be_none():
@@ -26,7 +25,7 @@ def test_aws_keys_can_be_none():
         # Verify that the os.environ[KEY] is patched
         with mock_s3():
             patched_value = os.environ[KEY]
-            patched_value.should.equal("foobar_key")
+            assert patched_value == "FOOBARKEY"
         # Verify that the os.environ[KEY] is unpatched, and reverts to None
         assert os.environ.get(KEY) is None
     finally:

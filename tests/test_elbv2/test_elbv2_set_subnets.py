@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_elbv2, mock_ec2
 
@@ -38,7 +37,7 @@ def test_set_subnets_errors():
     )
 
     resp = client.describe_load_balancers(LoadBalancerArns=[arn])
-    len(resp["LoadBalancers"][0]["AvailabilityZones"]).should.equal(3)
+    assert len(resp["LoadBalancers"][0]["AvailabilityZones"]) == 3
 
 
 @mock_elbv2
@@ -74,6 +73,6 @@ def test_set_subnets__mapping():
 
     resp = client.describe_load_balancers(LoadBalancerArns=[arn])
     a_zones = resp["LoadBalancers"][0]["AvailabilityZones"]
-    a_zones.should.have.length_of(2)
-    a_zones.should.contain({"ZoneName": "us-east-1a", "SubnetId": subnet1.id})
-    a_zones.should.contain({"ZoneName": "us-east-1b", "SubnetId": subnet2.id})
+    assert len(a_zones) == 2
+    assert {"ZoneName": "us-east-1a", "SubnetId": subnet1.id} in a_zones
+    assert {"ZoneName": "us-east-1b", "SubnetId": subnet2.id} in a_zones

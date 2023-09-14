@@ -51,7 +51,7 @@ class NodeExecutor:
         if len(path_nodes) == 0:
             return item.attrs
         else:
-            return ExpressionPathResolver(  # type: ignore
+            return ExpressionPathResolver(
                 self.expression_attribute_names
             ).resolve_expression_path_nodes_to_dynamo_type(item, path_nodes)
 

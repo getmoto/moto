@@ -1,7 +1,6 @@
 import pytest
 
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2
@@ -14,7 +13,7 @@ def test_console_output():
     instances = conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
 
     output = instances[0].console_output()
-    output.get("Output").should_not.equal(None)
+    assert output.get("Output") is not None
 
 
 @mock_ec2
@@ -23,6 +22,6 @@ def test_console_output_without_instance():
 
     with pytest.raises(ClientError) as ex:
         client.get_console_output(InstanceId="i-1234abcd")
-    ex.value.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.value.response["ResponseMetadata"]["RequestId"].shouldnt.equal(None)
-    ex.value.response["Error"]["Code"].should.equal("InvalidInstanceID.NotFound")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
+    assert ex.value.response["Error"]["Code"] == "InvalidInstanceID.NotFound"

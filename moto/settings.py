@@ -65,9 +65,22 @@ def get_s3_default_key_buffer_size() -> int:
     )
 
 
+def s3_allow_crossdomain_access() -> bool:
+    return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
+
+
+def ec2_load_default_amis() -> bool:
+    # True by default - only the value 'false' will return false
+    return os.environ.get("MOTO_EC2_LOAD_DEFAULT_AMIS", "true").lower() != "false"
+
+
 def ecs_new_arn_format() -> bool:
     # True by default - only the value 'false' will return false
     return os.environ.get("MOTO_ECS_NEW_ARN", "true").lower() != "false"
+
+
+def events_invoke_http() -> bool:
+    return os.environ.get("MOTO_EVENTS_INVOKE_HTTP", "false").lower() == "true"
 
 
 def allow_unknown_region() -> bool:
@@ -145,3 +158,7 @@ def get_docker_host() -> str:
 
 def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")
+
+
+def enable_iso_regions() -> bool:
+    return os.environ.get("MOTO_ENABLE_ISO_REGIONS", "false").lower() == "true"

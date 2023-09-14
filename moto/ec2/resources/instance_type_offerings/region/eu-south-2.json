@@ -108,6 +108,30 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "g5g.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g5g.2xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g5g.4xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g5g.8xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g5g.metal",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g5g.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eu-south-2"
  },
@@ -308,6 +332,62 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "m7i-flex.2xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i-flex.4xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i-flex.8xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i-flex.large",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i-flex.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.12xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.24xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.2xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.48xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.4xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.8xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.large",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "m7i.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eu-south-2"
  },
@@ -469,6 +549,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "x2idn.metal",
   "Location": "eu-south-2"
  }
 ]

@@ -1,6 +1,5 @@
 import boto3
 from botocore.exceptions import ClientError
-import sure  # noqa # pylint: disable=unused-import
 from datetime import datetime
 import pytest
 
@@ -26,31 +25,29 @@ def test_create_table_standard():
     )
     actual = client.describe_table(TableName="messages")["Table"]
 
-    actual.should.have.key("AttributeDefinitions").equal(
-        [
-            {"AttributeName": "id", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ]
+    assert actual["AttributeDefinitions"] == [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "subject", "AttributeType": "S"},
+    ]
+    assert isinstance(actual["CreationDateTime"], datetime)
+    assert actual["GlobalSecondaryIndexes"] == []
+    assert actual["LocalSecondaryIndexes"] == []
+    assert actual["ProvisionedThroughput"] == {
+        "NumberOfDecreasesToday": 0,
+        "ReadCapacityUnits": 1,
+        "WriteCapacityUnits": 5,
+    }
+    assert actual["TableSizeBytes"] == 0
+    assert actual["TableName"] == "messages"
+    assert actual["TableStatus"] == "ACTIVE"
+    assert (
+        actual["TableArn"] == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
     )
-    actual.should.have.key("CreationDateTime").be.a(datetime)
-    actual.should.have.key("GlobalSecondaryIndexes").equal([])
-    actual.should.have.key("LocalSecondaryIndexes").equal([])
-    actual.should.have.key("ProvisionedThroughput").equal(
-        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 1, "WriteCapacityUnits": 5}
-    )
-    actual.should.have.key("TableSizeBytes").equal(0)
-    actual.should.have.key("TableName").equal("messages")
-    actual.should.have.key("TableStatus").equal("ACTIVE")
-    actual.should.have.key("TableArn").equal(
-        f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
-    )
-    actual.should.have.key("KeySchema").equal(
-        [
-            {"AttributeName": "id", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ]
-    )
-    actual.should.have.key("ItemCount").equal(0)
+    assert actual["KeySchema"] == [
+        {"AttributeName": "id", "KeyType": "HASH"},
+        {"AttributeName": "subject", "KeyType": "RANGE"},
+    ]
+    assert actual["ItemCount"] == 0
 
 
 @mock_dynamodb
@@ -81,43 +78,39 @@ def test_create_table_with_local_index():
     )
     actual = client.describe_table(TableName="messages")["Table"]
 
-    actual.should.have.key("AttributeDefinitions").equal(
-        [
-            {"AttributeName": "id", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-            {"AttributeName": "threads", "AttributeType": "S"},
-        ]
+    assert actual["AttributeDefinitions"] == [
+        {"AttributeName": "id", "AttributeType": "S"},
+        {"AttributeName": "subject", "AttributeType": "S"},
+        {"AttributeName": "threads", "AttributeType": "S"},
+    ]
+    assert isinstance(actual["CreationDateTime"], datetime)
+    assert actual["GlobalSecondaryIndexes"] == []
+    assert actual["LocalSecondaryIndexes"] == [
+        {
+            "IndexName": "threads_index",
+            "KeySchema": [
+                {"AttributeName": "id", "KeyType": "HASH"},
+                {"AttributeName": "threads", "KeyType": "RANGE"},
+            ],
+            "Projection": {"ProjectionType": "ALL"},
+        }
+    ]
+    assert actual["ProvisionedThroughput"] == {
+        "NumberOfDecreasesToday": 0,
+        "ReadCapacityUnits": 1,
+        "WriteCapacityUnits": 5,
+    }
+    assert actual["TableSizeBytes"] == 0
+    assert actual["TableName"] == "messages"
+    assert actual["TableStatus"] == "ACTIVE"
+    assert (
+        actual["TableArn"] == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
     )
-    actual.should.have.key("CreationDateTime").be.a(datetime)
-    actual.should.have.key("GlobalSecondaryIndexes").equal([])
-    actual.should.have.key("LocalSecondaryIndexes").equal(
-        [
-            {
-                "IndexName": "threads_index",
-                "KeySchema": [
-                    {"AttributeName": "id", "KeyType": "HASH"},
-                    {"AttributeName": "threads", "KeyType": "RANGE"},
-                ],
-                "Projection": {"ProjectionType": "ALL"},
-            }
-        ]
-    )
-    actual.should.have.key("ProvisionedThroughput").equal(
-        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 1, "WriteCapacityUnits": 5}
-    )
-    actual.should.have.key("TableSizeBytes").equal(0)
-    actual.should.have.key("TableName").equal("messages")
-    actual.should.have.key("TableStatus").equal("ACTIVE")
-    actual.should.have.key("TableArn").equal(
-        f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
-    )
-    actual.should.have.key("KeySchema").equal(
-        [
-            {"AttributeName": "id", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ]
-    )
-    actual.should.have.key("ItemCount").equal(0)
+    assert actual["KeySchema"] == [
+        {"AttributeName": "id", "KeyType": "HASH"},
+        {"AttributeName": "subject", "KeyType": "RANGE"},
+    ]
+    assert actual["ItemCount"] == 0
 
 
 @mock_dynamodb
@@ -143,20 +136,18 @@ def test_create_table_with_gsi():
             }
         ],
     )
-    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
-        [
-            {
-                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
-                "IndexName": "test_gsi",
-                "Projection": {"ProjectionType": "ALL"},
-                "IndexStatus": "ACTIVE",
-                "ProvisionedThroughput": {
-                    "ReadCapacityUnits": 0,
-                    "WriteCapacityUnits": 0,
-                },
-            }
-        ]
-    )
+    assert table["TableDescription"]["GlobalSecondaryIndexes"] == [
+        {
+            "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+            "IndexName": "test_gsi",
+            "Projection": {"ProjectionType": "ALL"},
+            "IndexStatus": "ACTIVE",
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 0,
+                "WriteCapacityUnits": 0,
+            },
+        }
+    ]
 
     table = dynamodb.create_table(
         TableName="users2",
@@ -181,20 +172,18 @@ def test_create_table_with_gsi():
             }
         ],
     )
-    table["TableDescription"]["GlobalSecondaryIndexes"].should.equal(
-        [
-            {
-                "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
-                "IndexName": "test_gsi",
-                "Projection": {"ProjectionType": "ALL"},
-                "IndexStatus": "ACTIVE",
-                "ProvisionedThroughput": {
-                    "ReadCapacityUnits": 3,
-                    "WriteCapacityUnits": 5,
-                },
-            }
-        ]
-    )
+    assert table["TableDescription"]["GlobalSecondaryIndexes"] == [
+        {
+            "KeySchema": [{"KeyType": "HASH", "AttributeName": "subject"}],
+            "IndexName": "test_gsi",
+            "Projection": {"ProjectionType": "ALL"},
+            "IndexStatus": "ACTIVE",
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 3,
+                "WriteCapacityUnits": 5,
+            },
+        }
+    ]
 
 
 @mock_dynamodb
@@ -212,16 +201,16 @@ def test_create_table_with_stream_specification():
         },
     )
 
-    resp["TableDescription"].should.have.key("StreamSpecification")
-    resp["TableDescription"]["StreamSpecification"].should.equal(
-        {"StreamEnabled": True, "StreamViewType": "NEW_AND_OLD_IMAGES"}
-    )
-    resp["TableDescription"].should.contain("LatestStreamLabel")
-    resp["TableDescription"].should.contain("LatestStreamArn")
+    assert resp["TableDescription"]["StreamSpecification"] == {
+        "StreamEnabled": True,
+        "StreamViewType": "NEW_AND_OLD_IMAGES",
+    }
+    assert "LatestStreamLabel" in resp["TableDescription"]
+    assert "LatestStreamArn" in resp["TableDescription"]
 
     resp = conn.delete_table(TableName="test-streams")
 
-    resp["TableDescription"].should.contain("StreamSpecification")
+    assert "StreamSpecification" in resp["TableDescription"]
 
 
 @mock_dynamodb
@@ -239,7 +228,7 @@ def test_create_table_with_tags():
     resp = client.list_tags_of_resource(
         ResourceArn=resp["TableDescription"]["TableArn"]
     )
-    resp.should.have.key("Tags").equals([{"Key": "tk", "Value": "tv"}])
+    assert resp["Tags"] == [{"Key": "tk", "Value": "tv"}]
 
 
 @mock_dynamodb
@@ -259,12 +248,12 @@ def test_create_table_pay_per_request():
     )
 
     actual = client.describe_table(TableName="test1")["Table"]
-    actual.should.have.key("BillingModeSummary").equals(
-        {"BillingMode": "PAY_PER_REQUEST"}
-    )
-    actual.should.have.key("ProvisionedThroughput").equals(
-        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 0, "WriteCapacityUnits": 0}
-    )
+    assert actual["BillingModeSummary"] == {"BillingMode": "PAY_PER_REQUEST"}
+    assert actual["ProvisionedThroughput"] == {
+        "NumberOfDecreasesToday": 0,
+        "ReadCapacityUnits": 0,
+        "WriteCapacityUnits": 0,
+    }
 
 
 @mock_dynamodb
@@ -284,10 +273,12 @@ def test_create_table__provisioned_throughput():
     )
 
     actual = client.describe_table(TableName="test1")["Table"]
-    actual.should.have.key("BillingModeSummary").equals({"BillingMode": "PROVISIONED"})
-    actual.should.have.key("ProvisionedThroughput").equals(
-        {"NumberOfDecreasesToday": 0, "ReadCapacityUnits": 2, "WriteCapacityUnits": 3}
-    )
+    assert actual["BillingModeSummary"] == {"BillingMode": "PROVISIONED"}
+    assert actual["ProvisionedThroughput"] == {
+        "NumberOfDecreasesToday": 0,
+        "ReadCapacityUnits": 2,
+        "WriteCapacityUnits": 3,
+    }
 
 
 @mock_dynamodb
@@ -305,9 +296,10 @@ def test_create_table_without_specifying_throughput():
             StreamSpecification={"StreamEnabled": False, "StreamViewType": "NEW_IMAGE"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED"
     )
 
 
@@ -330,9 +322,10 @@ def test_create_table_error_pay_per_request_with_provisioned_param():
             BillingMode="PAY_PER_REQUEST",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST"
     )
 
 
@@ -354,7 +347,7 @@ def test_create_table_with_ssespecification__false():
     )
 
     actual = client.describe_table(TableName="test1")["Table"]
-    actual.shouldnt.have.key("SSEDescription")
+    assert "SSEDescription" not in actual
 
 
 @mock_dynamodb
@@ -375,12 +368,11 @@ def test_create_table_with_ssespecification__true():
     )
 
     actual = client.describe_table(TableName="test1")["Table"]
-    actual.should.have.key("SSEDescription")
-    actual["SSEDescription"].should.have.key("Status").equals("ENABLED")
-    actual["SSEDescription"].should.have.key("SSEType").equals("KMS")
-    actual["SSEDescription"].should.have.key("KMSMasterKeyArn").match(
-        "^arn:aws:kms"
-    )  # Default KMS key for DynamoDB
+    assert "SSEDescription" in actual
+    assert actual["SSEDescription"]["Status"] == "ENABLED"
+    assert actual["SSEDescription"]["SSEType"] == "KMS"
+    # Default KMS key for DynamoDB
+    assert actual["SSEDescription"]["KMSMasterKeyArn"].startswith("arn:aws:kms")
 
 
 @mock_dynamodb
@@ -401,10 +393,10 @@ def test_create_table_with_ssespecification__custom_kms_key():
     )
 
     actual = client.describe_table(TableName="test1")["Table"]
-    actual.should.have.key("SSEDescription")
-    actual["SSEDescription"].should.have.key("Status").equals("ENABLED")
-    actual["SSEDescription"].should.have.key("SSEType").equals("KMS")
-    actual["SSEDescription"].should.have.key("KMSMasterKeyArn").equals("custom-kms-key")
+    assert "SSEDescription" in actual
+    assert actual["SSEDescription"]["Status"] == "ENABLED"
+    assert actual["SSEDescription"]["SSEType"] == "KMS"
+    assert actual["SSEDescription"]["KMSMasterKeyArn"] == "custom-kms-key"
 
 
 @mock_dynamodb
@@ -424,23 +416,19 @@ def test_create_table__specify_non_key_column():
     )
 
     actual = client.describe_table(TableName="tab")["Table"]
-    actual["KeySchema"].should.equal(
-        [
-            {"AttributeName": "PK", "KeyType": "HASH"},
-            {"AttributeName": "SomeColumn", "KeyType": "N"},
-        ]
-    )
+    assert actual["KeySchema"] == [
+        {"AttributeName": "PK", "KeyType": "HASH"},
+        {"AttributeName": "SomeColumn", "KeyType": "N"},
+    ]
 
     if not settings.TEST_SERVER_MODE:
         ddb = dynamodb_backends[ACCOUNT_ID]["us-east-2"]
-        ddb.tables["tab"].attr.should.contain(
-            {"AttributeName": "PK", "AttributeType": "S"}
-        )
-        ddb.tables["tab"].attr.should.contain(
-            {"AttributeName": "SomeColumn", "AttributeType": "N"}
-        )
+        assert {"AttributeName": "PK", "AttributeType": "S"} in ddb.tables["tab"].attr
+        assert {"AttributeName": "SomeColumn", "AttributeType": "N"} in ddb.tables[
+            "tab"
+        ].attr
         # It should recognize PK is the Hash Key
-        ddb.tables["tab"].hash_key_attr.should.equal("PK")
+        assert ddb.tables["tab"].hash_key_attr == "PK"
         # It should recognize that SomeColumn is not a Range Key
-        ddb.tables["tab"].has_range_key.should.equal(False)
-        ddb.tables["tab"].range_key_names.should.equal([])
+        assert ddb.tables["tab"].has_range_key is False
+        assert ddb.tables["tab"].range_key_names == []

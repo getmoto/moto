@@ -5,10 +5,11 @@ url_bases = [
 ]
 
 
-response = ElasticTranscoderResponse()
-
-
 url_paths = {
-    r"{0}/(?P<api_version>[^/]+)/pipelines/?$": response.pipelines,
-    r"{0}/(?P<api_version>[^/]+)/pipelines/(?P<pipeline_id>[^/]+)/?$": response.individual_pipeline,
+    r"{0}/(?P<api_version>[^/]+)/pipelines/?$": ElasticTranscoderResponse.method_dispatch(
+        ElasticTranscoderResponse.pipelines
+    ),
+    r"{0}/(?P<api_version>[^/]+)/pipelines/(?P<pipeline_id>[^/]+)/?$": ElasticTranscoderResponse.method_dispatch(
+        ElasticTranscoderResponse.individual_pipeline
+    ),
 }

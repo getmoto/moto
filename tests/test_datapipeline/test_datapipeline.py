@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_datapipeline
 from moto.datapipeline.utils import remove_capitalization_of_dict_keys
@@ -21,15 +20,15 @@ def test_create_pipeline_boto3():
     pipeline_descriptions = conn.describe_pipelines(pipelineIds=[pipeline_id])[
         "pipelineDescriptionList"
     ]
-    pipeline_descriptions.should.have.length_of(1)
+    assert len(pipeline_descriptions) == 1
 
     pipeline_description = pipeline_descriptions[0]
-    pipeline_description["name"].should.equal("mypipeline")
-    pipeline_description["pipelineId"].should.equal(pipeline_id)
+    assert pipeline_description["name"] == "mypipeline"
+    assert pipeline_description["pipelineId"] == pipeline_id
     fields = pipeline_description["fields"]
 
-    get_value_from_fields("@pipelineState", fields).should.equal("PENDING")
-    get_value_from_fields("uniqueId", fields).should.equal("some-unique-id")
+    assert get_value_from_fields("@pipelineState", fields) == "PENDING"
+    assert get_value_from_fields("uniqueId", fields) == "some-unique-id"
 
 
 PIPELINE_OBJECTS = [
@@ -72,13 +71,13 @@ def test_creating_pipeline_definition_boto3():
     )
 
     pipeline_definition = conn.get_pipeline_definition(pipelineId=pipeline_id)
-    pipeline_definition["pipelineObjects"].should.have.length_of(3)
+    assert len(pipeline_definition["pipelineObjects"]) == 3
     default_object = pipeline_definition["pipelineObjects"][0]
-    default_object["name"].should.equal("Default")
-    default_object["id"].should.equal("Default")
-    default_object["fields"].should.equal(
-        [{"key": "workerGroup", "stringValue": "workerGroup"}]
-    )
+    assert default_object["name"] == "Default"
+    assert default_object["id"] == "Default"
+    assert default_object["fields"] == [
+        {"key": "workerGroup", "stringValue": "workerGroup"}
+    ]
 
 
 @mock_datapipeline
@@ -95,12 +94,12 @@ def test_describing_pipeline_objects_boto3():
         pipelineId=pipeline_id, objectIds=["Schedule", "Default"]
     )["pipelineObjects"]
 
-    objects.should.have.length_of(2)
+    assert len(objects) == 2
     default_object = [x for x in objects if x["id"] == "Default"][0]
-    default_object["name"].should.equal("Default")
-    default_object["fields"].should.equal(
-        [{"key": "workerGroup", "stringValue": "workerGroup"}]
-    )
+    assert default_object["name"] == "Default"
+    assert default_object["fields"] == [
+        {"key": "workerGroup", "stringValue": "workerGroup"}
+    ]
 
 
 @mock_datapipeline
@@ -114,11 +113,11 @@ def test_activate_pipeline_boto3():
     pipeline_descriptions = conn.describe_pipelines(pipelineIds=[pipeline_id])[
         "pipelineDescriptionList"
     ]
-    pipeline_descriptions.should.have.length_of(1)
+    assert len(pipeline_descriptions) == 1
     pipeline_description = pipeline_descriptions[0]
     fields = pipeline_description["fields"]
 
-    get_value_from_fields("@pipelineState", fields).should.equal("SCHEDULED")
+    assert get_value_from_fields("@pipelineState", fields) == "SCHEDULED"
 
 
 @mock_datapipeline
@@ -131,7 +130,7 @@ def test_delete_pipeline_boto3():
 
     response = conn.list_pipelines()
 
-    response["pipelineIdList"].should.have.length_of(0)
+    assert len(response["pipelineIdList"]) == 0
 
 
 @mock_datapipeline
@@ -142,15 +141,12 @@ def test_listing_pipelines_boto3():
 
     response = conn.list_pipelines()
 
-    response["hasMoreResults"].should.be(False)
-    response.shouldnt.have.key("marker")
-    response["pipelineIdList"].should.have.length_of(2)
-    response["pipelineIdList"].should.contain(
-        {"id": res1["pipelineId"], "name": "mypipeline1"}
-    )
-    response["pipelineIdList"].should.contain(
-        {"id": res2["pipelineId"], "name": "mypipeline2"}
-    )
+    assert response["hasMoreResults"] is False
+    assert "marker" not in response
+    objects = response["pipelineIdList"]
+    assert len(objects) == 2
+    assert {"id": res1["pipelineId"], "name": "mypipeline1"} in objects
+    assert {"id": res2["pipelineId"], "name": "mypipeline2"} in objects
 
 
 @mock_datapipeline
@@ -161,9 +157,9 @@ def test_listing_paginated_pipelines_boto3():
 
     response = conn.list_pipelines()
 
-    response["hasMoreResults"].should.be(True)
-    response["marker"].should.equal(response["pipelineIdList"][-1]["id"])
-    response["pipelineIdList"].should.have.length_of(50)
+    assert response["hasMoreResults"] is True
+    assert response["marker"] == response["pipelineIdList"][-1]["id"]
+    assert len(response["pipelineIdList"]) == 50
 
 
 # testing a helper function
@@ -175,9 +171,7 @@ def test_remove_capitalization_of_dict_keys():
         }
     )
 
-    result.should.equal(
-        {
-            "id": "IdValue",
-            "fields": [{"key": "KeyValue", "stringValue": "StringValueValue"}],
-        }
-    )
+    assert result == {
+        "id": "IdValue",
+        "fields": [{"key": "KeyValue", "stringValue": "StringValueValue"}],
+    }

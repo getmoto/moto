@@ -30,6 +30,9 @@ apigatewayv2:
   - TestAccAPIGatewayV2IntegrationResponse
   - TestAccAPIGatewayV2Model
   - TestAccAPIGatewayV2Route
+  - TestAccAPIGatewayV2Stage_basicHTTP
+  - TestAccAPIGatewayV2Stage_basicWebSocket
+  - TestAccAPIGatewayV2Stage_disappears
   - TestAccAPIGatewayV2VPCLink
 appconfig:
   - TestAccAppConfigConfigurationProfileDataSource_basic
@@ -85,6 +88,7 @@ cloudformation:
 cloudfront:
   - TestAccCloudFrontDistributionDataSource_basic
   - TestAccCloudFrontDistribution_isIPV6Enabled
+  - TestAccCloudFrontOriginAccessControl_
 cloudtrail:
   - TestAccCloudTrailServiceAccount
 cloudwatch:
@@ -118,7 +122,7 @@ comprehend:
   - TestAccComprehendEntityRecognizer_KMSKeys
 dax:
   - TestAccDAXCluster_basic
-  - TestAccDAXCluster_Encryption
+  - TestAccDAXCluster_Encryption_enabled
 dynamodb:
   - TestAccDynamoDBTableItem
 ec2:
@@ -201,7 +205,9 @@ ecr:
   - TestAccECRRepositoryDataSource
   - TestAccECRRepositoryPolicy
 ecs:
- - TestAccECSCapacityProvider_
+ - TestAccECSCapacityProvider_basic
+ - TestAccECSCapacityProvider_disappears
+ - TestAccECSCapacityProvider_tags
  - TestAccECSCluster_
  - TestAccECSClusterCapacityProviders_basic
  - TestAccECSClusterCapacityProviders_defaults
@@ -361,6 +367,13 @@ lambda:
   - TestAccLambdaFunctionURL_Alias
   - TestAccLambdaFunctionURL_basic
   - TestAccLambdaFunctionURL_TwoURLs
+logs:
+  - TestAccLogsDestination_
+  - TestAccLogsGroupDataSource_basic
+  - TestAccLogsGroupsDataSource_basic
+  - TestAccLogsGroup_basic
+  - TestAccLogsGroup_tags
+  - TestAccLogsStream
 meta:
   - TestAccMetaBillingServiceAccountDataSource
 mq:

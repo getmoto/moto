@@ -1,11 +1,11 @@
-import boto3
-import sure  # noqa # pylint: disable=unused-import
 import os
+from unittest import SkipTest
+from unittest.mock import patch
+
+import boto3
 import pytest
 
 from moto import mock_s3, settings
-from unittest import SkipTest
-from unittest.mock import patch
 
 
 DEFAULT_REGION_NAME = "us-east-1"
@@ -25,9 +25,9 @@ def test_create_and_list_buckets(url):
             conn = boto3.resource("s3", endpoint_url=url)
             conn.create_bucket(Bucket=bucket)
 
-            s3 = boto3.client("s3", endpoint_url=url)
-            all_buckets = s3.list_buckets()["Buckets"]
-            [b["Name"] for b in all_buckets].should.contain(bucket)
+            s3_client = boto3.client("s3", endpoint_url=url)
+            all_buckets = s3_client.list_buckets()["Buckets"]
+            assert bucket in [b["Name"] for b in all_buckets]
 
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
@@ -45,9 +45,9 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
             conn = boto3.resource("s3", endpoint_url=url)
             conn.create_bucket(Bucket=bucket)
 
-            s3 = boto3.client("s3", endpoint_url=url)
-            all_buckets = s3.list_buckets()["Buckets"]
-            [b["Name"] for b in all_buckets].should.contain(bucket)
+            s3_client = boto3.client("s3", endpoint_url=url)
+            all_buckets = s3_client.list_buckets()["Buckets"]
+            assert bucket in [b["Name"] for b in all_buckets]
 
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
@@ -63,12 +63,12 @@ def test_put_and_get_object(url):
             conn = boto3.resource("s3", endpoint_url=url)
             conn.create_bucket(Bucket=bucket)
 
-            s3 = boto3.client("s3", endpoint_url=url)
-            s3.put_object(Bucket=bucket, Key=key, Body=contents)
+            s3_client = boto3.client("s3", endpoint_url=url)
+            s3_client.put_object(Bucket=bucket, Key=key, Body=contents)
 
             body = conn.Object(bucket, key).get()["Body"].read().decode()
 
-            body.should.equal(contents)
+            assert body == contents
 
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
@@ -80,12 +80,12 @@ def test_put_and_list_objects(url):
         with mock_s3():
             bucket = "mybucket"
 
-            s3 = boto3.client("s3", endpoint_url=url)
-            s3.create_bucket(Bucket=bucket)
-            s3.put_object(Bucket=bucket, Key="one", Body=b"1")
-            s3.put_object(Bucket=bucket, Key="two", Body=b"22")
-            s3.put_object(Bucket=bucket, Key="three", Body=b"333")
+            s3_client = boto3.client("s3", endpoint_url=url)
+            s3_client.create_bucket(Bucket=bucket)
+            s3_client.put_object(Bucket=bucket, Key="one", Body=b"1")
+            s3_client.put_object(Bucket=bucket, Key="two", Body=b"22")
+            s3_client.put_object(Bucket=bucket, Key="three", Body=b"333")
 
-            contents = s3.list_objects(Bucket=bucket)["Contents"]
-            contents.should.have.length_of(3)
-            [c["Key"] for c in contents].should.contain("two")
+            contents = s3_client.list_objects(Bucket=bucket)["Contents"]
+            assert len(contents) == 3
+            assert "two" in [c["Key"] for c in contents]

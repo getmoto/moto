@@ -11,8 +11,8 @@ def test_enable_encryption():
 
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
-    desc.should.have.key("EncryptionType").should.equal("NONE")
-    desc.shouldnt.have.key("KeyId")
+    assert desc["EncryptionType"] == "NONE"
+    assert "KeyId" not in desc
 
     client.start_stream_encryption(
         StreamName="my-stream", EncryptionType="KMS", KeyId="n/a"
@@ -20,8 +20,8 @@ def test_enable_encryption():
 
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
-    desc.should.have.key("EncryptionType").should.equal("KMS")
-    desc.should.have.key("KeyId").equals("n/a")
+    assert desc["EncryptionType"] == "KMS"
+    assert desc["KeyId"] == "n/a"
 
 
 @mock_kinesis
@@ -31,7 +31,7 @@ def test_disable_encryption():
 
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
-    desc.should.have.key("EncryptionType").should.equal("NONE")
+    assert desc["EncryptionType"] == "NONE"
 
     client.start_stream_encryption(
         StreamName="my-stream", EncryptionType="KMS", KeyId="n/a"
@@ -43,8 +43,8 @@ def test_disable_encryption():
 
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
-    desc.should.have.key("EncryptionType").should.equal("NONE")
-    desc.shouldnt.have.key("KeyId")
+    assert desc["EncryptionType"] == "NONE"
+    assert "KeyId" not in desc
 
 
 @mock_kinesis
@@ -55,7 +55,7 @@ def test_disable_encryption__using_arns():
 
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
-    desc.should.have.key("EncryptionType").should.equal("NONE")
+    assert desc["EncryptionType"] == "NONE"
 
     client.start_stream_encryption(
         StreamARN=stream_arn, EncryptionType="KMS", KeyId="n/a"
@@ -67,5 +67,5 @@ def test_disable_encryption__using_arns():
 
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
-    desc.should.have.key("EncryptionType").should.equal("NONE")
-    desc.shouldnt.have.key("KeyId")
+    assert desc["EncryptionType"] == "NONE"
+    assert "KeyId" not in desc

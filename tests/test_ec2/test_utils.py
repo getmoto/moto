@@ -1,6 +1,5 @@
 from copy import deepcopy
 import ipaddress
-import sure  # noqa # pylint: disable=unused-import
 from unittest.mock import patch
 from pytest import raises
 
@@ -52,9 +51,9 @@ def test_gen_moto_amis():
     images[1].pop("Public")
 
     # with drop=True, it shouldn't throw but will give us only one AMI in the result
-    images.should.have.length_of(2)
+    assert len(images) == 2
     amis = utils.gen_moto_amis(images, drop_images_missing_keys=True)
-    amis.should.have.length_of(1)
+    assert len(amis) == 1
 
     # with drop=False, it should raise KeyError because of the missing key
     with raises(KeyError, match="'Public'"):

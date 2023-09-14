@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ce
 
@@ -19,12 +18,12 @@ def test_list_tags_if_none_exist():
     )["CostCategoryArn"]
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceTags").equals([])
+    assert resp["ResourceTags"] == []
 
     client.tag_resource(ResourceArn=arn, ResourceTags=[{"Key": "t1", "Value": "v1"}])
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceTags").equals([{"Key": "t1", "Value": "v1"}])
+    assert resp["ResourceTags"] == [{"Key": "t1", "Value": "v1"}]
 
 
 @mock_ce
@@ -40,16 +39,17 @@ def test_cost_category_tags_workflow():
     )["CostCategoryArn"]
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceTags").equals([{"Key": "t1", "Value": "v1"}])
+    assert resp["ResourceTags"] == [{"Key": "t1", "Value": "v1"}]
 
     client.tag_resource(ResourceArn=arn, ResourceTags=[{"Key": "t2", "Value": "v2"}])
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceTags").equals(
-        [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
-    )
+    assert resp["ResourceTags"] == [
+        {"Key": "t1", "Value": "v1"},
+        {"Key": "t2", "Value": "v2"},
+    ]
 
     client.untag_resource(ResourceArn=arn, ResourceTagKeys=["t2"])
 
     resp = client.list_tags_for_resource(ResourceArn=arn)
-    resp.should.have.key("ResourceTags").equals([{"Key": "t1", "Value": "v1"}])
+    assert resp["ResourceTags"] == [{"Key": "t1", "Value": "v1"}]

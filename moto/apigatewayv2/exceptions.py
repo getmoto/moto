@@ -123,3 +123,13 @@ class ApiMappingNotFound(APIGatewayV2Error):
             "NotFoundException",
             "The api mapping resource specified in the request was not found.",
         )
+
+
+class StageNotFound(APIGatewayV2Error):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NotFoundException",
+            "Invalid stage identifier specified",
+        )

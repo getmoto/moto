@@ -59,9 +59,7 @@ class SecurityRule:
             "all": "-1",
             "-1": "-1",
             "tCp": "tcp",
-            "6": "tcp",
             "UDp": "udp",
-            "17": "udp",
             "ALL": "-1",
             "icMp": "icmp",
             "1": "icmp",
@@ -550,16 +548,19 @@ class SecurityGroupBackend:
 
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[SecurityRule]:
+    ) -> Dict[str, List[SecurityRule]]:
         matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
         if not matches:
             raise InvalidSecurityGroupNotFoundError(
                 "No security groups found matching the filters provided."
             )
-        rules = []
+        rules = {}
         for group in matches:
-            rules.extend(group.ingress_rules)
-            rules.extend(group.egress_rules)
+            group_rules = []
+            group_rules.extend(group.ingress_rules)
+            group_rules.extend(group.egress_rules)
+            if group_rules:
+                rules[group.group_id] = group_rules
 
         return rules
 
@@ -611,7 +612,6 @@ class SecurityGroupBackend:
     def get_security_group_by_name_or_id(
         self, group_name_or_id: str, vpc_id: Optional[str] = None
     ) -> Optional[SecurityGroup]:
-
         # try searching by id, fallbacks to name search
         group = self.get_security_group_from_id(group_name_or_id)
         if group is None:
@@ -649,7 +649,7 @@ class SecurityGroupBackend:
         if ip_ranges:
             for cidr in ip_ranges:
                 if (
-                    type(cidr) is dict
+                    isinstance(cidr, dict)
                     and not any(
                         [
                             is_valid_cidr(cidr.get("CidrIp", "")),
@@ -657,7 +657,7 @@ class SecurityGroupBackend:
                         ]
                     )
                 ) or (
-                    type(cidr) is str
+                    isinstance(cidr, str)
                     and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
                 ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
@@ -728,7 +728,6 @@ class SecurityGroupBackend:
         security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> None:
-
         group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
 
         if security_rule_ids:
@@ -805,7 +804,6 @@ class SecurityGroupBackend:
         if group is None:
             raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-
             if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
                 ip_ranges = [{"CidrIp": ip_ranges}]
             else:
@@ -813,7 +811,7 @@ class SecurityGroupBackend:
         if ip_ranges:
             for cidr in ip_ranges:
                 if (
-                    type(cidr) is dict
+                    isinstance(cidr, dict)
                     and not any(
                         [
                             is_valid_cidr(cidr.get("CidrIp", "")),
@@ -821,7 +819,7 @@ class SecurityGroupBackend:
                         ]
                     )
                 ) or (
-                    type(cidr) is str
+                    isinstance(cidr, str)
                     and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
                 ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
@@ -895,7 +893,6 @@ class SecurityGroupBackend:
         security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> None:
-
         group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
 
         if security_rule_ids:
@@ -981,12 +978,10 @@ class SecurityGroupBackend:
         security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
-
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
             raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-
             if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
                 ip_ranges = [{"CidrIp": ip_ranges}]
             else:
@@ -994,7 +989,7 @@ class SecurityGroupBackend:
         if ip_ranges:
             for cidr in ip_ranges:
                 if (
-                    type(cidr) is dict  # type: ignore
+                    isinstance(cidr, dict)  # type: ignore
                     and not any(
                         [
                             is_valid_cidr(cidr.get("CidrIp", "")),
@@ -1002,7 +997,7 @@ class SecurityGroupBackend:
                         ]
                     )
                 ) or (
-                    type(cidr) is str
+                    isinstance(cidr, str)
                     and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
                 ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
@@ -1038,12 +1033,10 @@ class SecurityGroupBackend:
         security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
-
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
             raise InvalidSecurityGroupNotFoundError(group_name_or_id)
         if ip_ranges and not isinstance(ip_ranges, list):
-
             if isinstance(ip_ranges, str) and "CidrIp" not in ip_ranges:
                 ip_ranges = [{"CidrIp": ip_ranges}]
             else:
@@ -1051,7 +1044,7 @@ class SecurityGroupBackend:
         if ip_ranges:
             for cidr in ip_ranges:
                 if (
-                    type(cidr) is dict  # type: ignore
+                    isinstance(cidr, dict)  # type: ignore
                     and not any(
                         [
                             is_valid_cidr(cidr.get("CidrIp", "")),
@@ -1059,7 +1052,7 @@ class SecurityGroupBackend:
                         ]
                     )
                 ) or (
-                    type(cidr) is str
+                    isinstance(cidr, str)
                     and not any([is_valid_cidr(cidr), is_valid_ipv6_cidr(cidr)])
                 ):
                     raise InvalidCIDRSubnetError(cidr=cidr)
@@ -1070,7 +1063,7 @@ class SecurityGroupBackend:
             ip_protocol,
             from_port,
             to_port,
-            ip_ranges,  # type: ignore[arg-type]
+            ip_ranges,
             _source_groups,
             prefix_list_ids,
         )

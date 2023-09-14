@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_ec2, mock_kms
 from tests import EXAMPLE_AMI_ID
@@ -44,6 +43,6 @@ def test_run_instance_with_encrypted_ebs():
     volume = instances[0]["BlockDeviceMappings"][0]["Ebs"]
 
     volumes = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])
-    volumes["Volumes"][0]["Size"].should.equal(50)
-    volumes["Volumes"][0]["Encrypted"].should.equal(True)
-    volumes["Volumes"][0]["KmsKeyId"].should.equal(key_id)
+    assert volumes["Volumes"][0]["Size"] == 50
+    assert volumes["Volumes"][0]["Encrypted"] is True
+    assert volumes["Volumes"][0]["KmsKeyId"] == key_id

@@ -1,9 +1,8 @@
 """Unit tests for route53resolver rule-related APIs."""
+from botocore.exceptions import ClientError
 from datetime import datetime, timezone
 
 import boto3
-from botocore.exceptions import ClientError
-
 import pytest
 
 from moto import mock_route53resolver

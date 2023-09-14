@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 from unittest.mock import patch
 from moto.server import main, create_backend_app, DomainDispatcherApplication
 
@@ -19,16 +17,16 @@ def test_wrong_arguments():
 def test_right_arguments(run_simple):
     main(["s3"])
     func_call = run_simple.call_args[0]
-    func_call[0].should.equal("127.0.0.1")
-    func_call[1].should.equal(5000)
+    assert func_call[0] == "127.0.0.1"
+    assert func_call[1] == 5000
 
 
 @patch("moto.server.run_simple")
 def test_port_argument(run_simple):
     main(["s3", "--port", "8080"])
     func_call = run_simple.call_args[0]
-    func_call[0].should.equal("127.0.0.1")
-    func_call[1].should.equal(8080)
+    assert func_call[0] == "127.0.0.1"
+    assert func_call[1] == 8080
 
 
 def test_domain_dispatched():
@@ -37,7 +35,7 @@ def test_domain_dispatched():
         {"HTTP_HOST": "email.us-east1.amazonaws.com"}
     )
     keys = list(backend_app.view_functions.keys())
-    keys[0].should.equal("EmailResponse.dispatch")
+    assert keys[0] == "EmailResponse.dispatch"
 
 
 def test_domain_dispatched_with_service():
@@ -45,4 +43,4 @@ def test_domain_dispatched_with_service():
     dispatcher = DomainDispatcherApplication(create_backend_app, service="s3")
     backend_app = dispatcher.get_application({"HTTP_HOST": "s3.us-east1.amazonaws.com"})
     keys = set(backend_app.view_functions.keys())
-    keys.should.contain("S3Response.key_response")
+    assert "moto.s3.responses.key_response" in keys

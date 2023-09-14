@@ -1,5 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
-
 import moto.server as server
 from moto import mock_elastictranscoder
 
@@ -14,4 +12,4 @@ def test_elastictranscoder_list():
     test_client = backend.test_client()
 
     res = test_client.get("/2012-09-25/pipelines")
-    res.data.should.contain(b"Pipelines")
+    assert b"Pipelines" in res.data

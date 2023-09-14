@@ -1,7 +1,6 @@
 import boto3
 
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 from moto import mock_cloudformation, mock_ec2, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -51,10 +50,10 @@ def test_flow_logs_by_cloudformation():
     flow_logs = client.describe_flow_logs(
         Filters=[{"Name": "resource-id", "Values": [vpc["VpcId"]]}]
     )["FlowLogs"]
-    flow_logs.should.have.length_of(1)
-    flow_logs[0]["ResourceId"].should.equal(vpc["VpcId"])
-    flow_logs[0]["LogDestination"].should.equal("arn:aws:s3:::" + bucket.name)
-    flow_logs[0]["MaxAggregationInterval"].should.equal(60)
+    assert len(flow_logs) == 1
+    assert flow_logs[0]["ResourceId"] == vpc["VpcId"]
+    assert flow_logs[0]["LogDestination"] == "arn:aws:s3:::" + bucket.name
+    assert flow_logs[0]["MaxAggregationInterval"] == 60
 
 
 @mock_ec2
@@ -95,11 +94,11 @@ def test_cloudformation():
         "IamInstanceProfileAssociations"
     ]
     our_assoc = [a for a in all_assocs if a["IamInstanceProfile"]["Arn"] == iam_ip_arn]
-    our_assoc[0]["IamInstanceProfile"]["Arn"].should.contain(stack_name)
+    assert stack_name in our_assoc[0]["IamInstanceProfile"]["Arn"]
     our_assoc_id = our_assoc[0]["AssociationId"]
 
     cf_conn.delete_stack(StackName=stack_name)
     associations = client.describe_iam_instance_profile_associations()[
         "IamInstanceProfileAssociations"
     ]
-    [a["AssociationId"] for a in associations].shouldnt.contain(our_assoc_id)
+    assert our_assoc_id not in [a["AssociationId"] for a in associations]

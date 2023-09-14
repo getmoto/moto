@@ -1,9 +1,11 @@
-import boto3
 import json
-import pytest
-from moto import mock_s3
 from unittest import TestCase
 from uuid import uuid4
+
+import boto3
+import pytest
+
+from moto import mock_s3
 
 
 SIMPLE_JSON = {"a1": "b1", "a2": "b2", "a3": None}
@@ -53,7 +55,7 @@ class TestS3Select(TestCase):
         self.client.delete_bucket(Bucket=self.bucket_name)
 
     def test_query_all(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="simple.json",
             Expression="SELECT * FROM S3Object",
@@ -61,30 +63,26 @@ class TestS3Select(TestCase):
             InputSerialization={"JSON": {"Type": "DOCUMENT"}},
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
-        result.should.contain(
-            {"Records": {"Payload": b'{"a1":"b1","a2":"b2","a3":null},'}}
-        )
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"a1":"b1","a2":"b2","a3":null},'}} in result
 
         # Verify result is valid JSON
         json.loads(result[0]["Records"]["Payload"][0:-1].decode("utf-8"))
 
         # Verify result contains metadata
-        result.should.contain(
-            {
-                "Stats": {
-                    "Details": {
-                        "BytesScanned": 24,
-                        "BytesProcessed": 24,
-                        "BytesReturned": 22,
-                    }
+        assert {
+            "Stats": {
+                "Details": {
+                    "BytesScanned": 24,
+                    "BytesProcessed": 24,
+                    "BytesReturned": 22,
                 }
             }
-        )
-        result.should.contain({"End": {}})
+        } in result
+        assert {"End": {}} in result
 
     def test_count_function(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="simple.json",
             Expression="SELECT count(*) FROM S3Object",
@@ -92,12 +90,12 @@ class TestS3Select(TestCase):
             InputSerialization={"JSON": {"Type": "DOCUMENT"}},
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
-        result.should.contain({"Records": {"Payload": b'{"_1":1},'}})
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"_1":1},'}} in result
 
     @pytest.mark.xfail(message="Not yet implement in our parser")
     def test_count_as(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="simple.json",
             Expression="SELECT count(*) as cnt FROM S3Object",
@@ -105,12 +103,12 @@ class TestS3Select(TestCase):
             InputSerialization={"JSON": {"Type": "DOCUMENT"}},
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
-        result.should.contain({"Records": {"Payload": b'{"cnt":1},'}})
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"cnt":1},'}} in result
 
     @pytest.mark.xfail(message="Not yet implement in our parser")
     def test_count_list_as(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="list.json",
             Expression="SELECT count(*) as cnt FROM S3Object",
@@ -118,11 +116,11 @@ class TestS3Select(TestCase):
             InputSerialization={"JSON": {"Type": "DOCUMENT"}},
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
-        result.should.contain({"Records": {"Payload": b'{"cnt":1},'}})
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"cnt":1},'}} in result
 
     def test_count_csv(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="simple_csv",
             Expression="SELECT count(*) FROM S3Object",
@@ -132,11 +130,26 @@ class TestS3Select(TestCase):
             },
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
-        result.should.contain({"Records": {"Payload": b'{"_1":3},'}})
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"_1":3},'}} in result
+
+    def test_default_record_delimiter(self):
+        content = self.client.select_object_content(
+            Bucket=self.bucket_name,
+            Key="simple_csv",
+            Expression="SELECT count(*) FROM S3Object",
+            ExpressionType="SQL",
+            InputSerialization={
+                "CSV": {"FileHeaderInfo": "USE", "FieldDelimiter": ","}
+            },
+            # RecordDelimiter is not specified - should default to new line (\n)
+            OutputSerialization={"JSON": {}},
+        )
+        result = list(content["Payload"])
+        assert {"Records": {"Payload": b'{"_1":3}\n'}} in result
 
     def test_extensive_json__select_list(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="extensive.json",
             Expression="select * from s3object[*].staff[*] s",
@@ -144,11 +157,11 @@ class TestS3Select(TestCase):
             InputSerialization={"JSON": {"Type": "DOCUMENT"}},
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
+        result = list(content["Payload"])
         assert {"Records": {"Payload": b"{},"}} in result
 
     def test_extensive_json__select_all(self):
-        x = self.client.select_object_content(
+        content = self.client.select_object_content(
             Bucket=self.bucket_name,
             Key="extensive.json",
             Expression="select * from s3object s",
@@ -156,7 +169,7 @@ class TestS3Select(TestCase):
             InputSerialization={"JSON": {"Type": "DOCUMENT"}},
             OutputSerialization={"JSON": {"RecordDelimiter": ","}},
         )
-        result = list(x["Payload"])
+        result = list(content["Payload"])
         assert {
             "Records": {
                 "Payload": b'{"_1":[{"staff":[{"name":"Janelyn M","city":"Chicago","kids":2},{"name":"Stacy P","city":"Seattle","kids":1}],"country":"USA"}]},'

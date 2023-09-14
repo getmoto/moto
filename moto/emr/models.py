@@ -644,7 +644,7 @@ class ElasticMapReduceBackend(BaseBackend):
         from moto.ec2.exceptions import InvalidSubnetIdError
 
         try:
-            subnet = self.ec2_backend.get_subnet(ec2_subnet_id)  # type: ignore
+            subnet = self.ec2_backend.get_subnet(ec2_subnet_id)
         except InvalidSubnetIdError:
             warnings.warn(
                 f"Could not find Subnet with id: {ec2_subnet_id}\n"

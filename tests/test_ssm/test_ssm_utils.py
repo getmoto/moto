@@ -1,11 +1,11 @@
-import sure  # noqa # pylint: disable=unused-import
-
-
 from moto.ssm.utils import convert_to_tree, convert_to_params
 
 SOURCE_PARAMS = [
     {
-        "ARN": "arn:aws:ssm:us-west-1::parameter/aws/service/global-infrastructure/regions/af-south-1",
+        "ARN": (
+            "arn:aws:ssm:us-west-1::parameter/aws/service"
+            "/global-infrastructure/regions/af-south-1"
+        ),
         "DataType": "text",
         "Name": "/aws/service/global-infrastructure/regions/af-south-1",
         "Type": "String",
@@ -13,7 +13,10 @@ SOURCE_PARAMS = [
         "Version": 1,
     },
     {
-        "ARN": "arn:aws:ssm:us-west-1::parameter/aws/service/global-infrastructure/regions/ap-northeast-2",
+        "ARN": (
+            "arn:aws:ssm:us-west-1::parameter/aws/service"
+            "/global-infrastructure/regions/ap-northeast-2"
+        ),
         "DataType": "text",
         "Name": "/aws/service/global-infrastructure/regions/ap-northeast-2",
         "Type": "String",
@@ -21,7 +24,10 @@ SOURCE_PARAMS = [
         "Version": 1,
     },
     {
-        "ARN": "arn:aws:ssm:us-west-1::parameter/aws/service/global-infrastructure/regions/cn-north-1",
+        "ARN": (
+            "arn:aws:ssm:us-west-1::parameter/aws/service"
+            "/global-infrastructure/regions/cn-north-1"
+        ),
         "DataType": "text",
         "Name": "/aws/service/global-infrastructure/regions/cn-north-1",
         "Type": "String",
@@ -29,9 +35,16 @@ SOURCE_PARAMS = [
         "Version": 1,
     },
     {
-        "ARN": "arn:aws:ssm:us-west-1::parameter/aws/service/global-infrastructure/regions/ap-northeast-2/services/codestar-notifications",
+        "ARN": (
+            "arn:aws:ssm:us-west-1::parameter/aws/service"
+            "/global-infrastructure/regions/ap-northeast-2/services"
+            "/codestar-notifications"
+        ),
         "DataType": "text",
-        "Name": "/aws/service/global-infrastructure/regions/ap-northeast-2/services/codestar-notifications",
+        "Name": (
+            "/aws/service/global-infrastructure/regions"
+            "/ap-northeast-2/services/codestar-notifications"
+        ),
         "Type": "String",
         "Value": "codestar-notifications",
         "Version": 1,
@@ -73,7 +86,10 @@ CONVERTED_PARAMS = [
         "Value": "ap-northeast-2",
     },
     {
-        "Name": "/aws/service/global-infrastructure/regions/ap-northeast-2/services/codestar-notifications",
+        "Name": (
+            "/aws/service/global-infrastructure/regions/ap-northeast-2"
+            "/services/codestar-notifications"
+        ),
         "Value": "codestar-notifications",
     },
 ]
@@ -82,20 +98,18 @@ CONVERTED_PARAMS = [
 def test_convert_to_tree():
     tree = convert_to_tree(SOURCE_PARAMS)
 
-    tree.should.equal(EXPECTED_TREE)
+    assert tree == EXPECTED_TREE
 
 
 def test_convert_to_params():
     actual = convert_to_params(EXPECTED_TREE)
-    actual.should.have.length_of(len(CONVERTED_PARAMS))
+    assert len(actual) == len(CONVERTED_PARAMS)
     for param in CONVERTED_PARAMS:
-        actual.should.contain(param)
+        assert param in actual
 
 
 def test_input_is_correct():
-    """
-    Test input should match
-    """
+    """Test input should match."""
     for src in SOURCE_PARAMS:
         minimized_src = {"Name": src["Name"], "Value": src["Value"]}
-        CONVERTED_PARAMS.should.contain(minimized_src)
+        assert minimized_src in CONVERTED_PARAMS

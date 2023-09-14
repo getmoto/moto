@@ -1,10 +1,9 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from unittest import TestCase
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from moto import mock_logs
-from moto.core.utils import unix_time_millis
+from moto.core.utils import unix_time_millis, utcnow
 
 TEST_REGION = "eu-west-1"
 
@@ -42,14 +41,14 @@ class TestLogFilterParameters(TestLogFilter):
         )
         events = res["events"]
         for original_message, resulting_event in zip(messages, events):
-            resulting_event["eventId"].should.equal(str(resulting_event["eventId"]))
-            resulting_event["timestamp"].should.equal(original_message["timestamp"])
-            resulting_event["message"].should.equal(original_message["message"])
+            assert resulting_event["eventId"] == str(resulting_event["eventId"])
+            assert resulting_event["timestamp"] == original_message["timestamp"]
+            assert resulting_event["message"] == original_message["message"]
 
     def test_put_log_events_now(self):
         ts_1 = int(unix_time_millis())
-        ts_2 = int(unix_time_millis(datetime.utcnow() + timedelta(minutes=5)))
-        ts_3 = int(unix_time_millis(datetime.utcnow() + timedelta(days=1)))
+        ts_2 = int(unix_time_millis(utcnow() + timedelta(minutes=5)))
+        ts_3 = int(unix_time_millis(utcnow() + timedelta(days=1)))
 
         messages = [
             {"message": f"Message {idx}", "timestamp": ts}
@@ -64,9 +63,7 @@ class TestLogFilterParameters(TestLogFilter):
         )
 
         # Message 2 was too new
-        resp.should.have.key("rejectedLogEventsInfo").should.equal(
-            {"tooNewLogEventStartIndex": 2}
-        )
+        assert resp["rejectedLogEventsInfo"] == {"tooNewLogEventStartIndex": 2}
         # Message 0 and 1 were persisted though
         events = self.conn.filter_log_events(
             logGroupName=self.log_group_name,
@@ -74,12 +71,12 @@ class TestLogFilterParameters(TestLogFilter):
             limit=20,
         )["events"]
         messages = [e["message"] for e in events]
-        messages.should.contain("Message 0")
-        messages.should.contain("Message 1")
-        messages.shouldnt.contain("Message 2")
+        assert "Message 0" in messages
+        assert "Message 1" in messages
+        assert "Message 2" not in messages
 
     def test_filter_logs_paging(self):
-        timestamp = int(unix_time_millis(datetime.utcnow()))
+        timestamp = int(unix_time_millis())
         messages = []
         for i in range(25):
             messages.append({"message": f"Message number {i}", "timestamp": timestamp})
@@ -96,8 +93,8 @@ class TestLogFilterParameters(TestLogFilter):
             limit=20,
         )
         events = res["events"]
-        events.should.have.length_of(20)
-        res["nextToken"].should.equal("dummy@stream@" + events[-1]["eventId"])
+        assert len(events) == 20
+        assert res["nextToken"] == "dummy@stream@" + events[-1]["eventId"]
 
         res = self.conn.filter_log_events(
             logGroupName=self.log_group_name,
@@ -106,13 +103,13 @@ class TestLogFilterParameters(TestLogFilter):
             nextToken=res["nextToken"],
         )
         events += res["events"]
-        events.should.have.length_of(25)
-        res.should_not.have.key("nextToken")
+        assert len(events) == 25
+        assert "nextToken" not in res
 
         for original_message, resulting_event in zip(messages, events):
-            resulting_event["eventId"].should.equal(str(resulting_event["eventId"]))
-            resulting_event["timestamp"].should.equal(original_message["timestamp"])
-            resulting_event["message"].should.equal(original_message["message"])
+            assert resulting_event["eventId"] == str(resulting_event["eventId"])
+            assert resulting_event["timestamp"] == original_message["timestamp"]
+            assert resulting_event["message"] == original_message["message"]
 
         res = self.conn.filter_log_events(
             logGroupName=self.log_group_name,
@@ -120,8 +117,8 @@ class TestLogFilterParameters(TestLogFilter):
             limit=20,
             nextToken="wrong-group@stream@999",
         )
-        res["events"].should.have.length_of(0)
-        res.should_not.have.key("nextToken")
+        assert len(res["events"]) == 0
+        assert "nextToken" not in res
 
     def test_filter_logs_paging__unknown_token(self):
         res = self.conn.filter_log_events(
@@ -130,15 +127,15 @@ class TestLogFilterParameters(TestLogFilter):
             limit=20,
             nextToken="invalid-token",
         )
-        res["events"].should.have.length_of(0)
-        res.should_not.have.key("nextToken")
+        assert len(res["events"]) == 0
+        assert "nextToken" not in res
 
 
 @mock_logs
 class TestLogsFilterPattern(TestLogFilter):
     def setUp(self) -> None:
         super().setUp()
-        now = int(unix_time_millis(datetime.utcnow()))
+        now = int(unix_time_millis())
         messages = [
             {"timestamp": now, "message": "hello"},
             {"timestamp": now, "message": "world"},
@@ -159,7 +156,7 @@ class TestLogsFilterPattern(TestLogFilter):
             logStreamNames=[self.log_stream_name],
             filterPattern='{$.message = "hello"}',
         )["events"]
-        events.should.have.length_of(6)
+        assert len(events) == 6
 
     def test_simple_word_pattern(self):
         events = self.conn.filter_log_events(
@@ -168,7 +165,7 @@ class TestLogsFilterPattern(TestLogFilter):
             filterPattern="hello",
         )["events"]
         messages = [e["message"] for e in events]
-        set(messages).should.equal({"hello", "hello cruela", "hello world"})
+        assert set(messages) == {"hello", "hello cruela", "hello world"}
 
     def test_multiple_words_pattern(self):
         events = self.conn.filter_log_events(
@@ -177,7 +174,7 @@ class TestLogsFilterPattern(TestLogFilter):
             filterPattern="goodbye world",
         )["events"]
         messages = [e["message"] for e in events]
-        set(messages).should.equal({"goodbye world", "goodbye cruel world"})
+        assert set(messages) == {"goodbye world", "goodbye cruel world"}
 
     def test_quoted_pattern(self):
         events = self.conn.filter_log_events(
@@ -186,4 +183,4 @@ class TestLogsFilterPattern(TestLogFilter):
             filterPattern='"hello cruel"',
         )["events"]
         messages = [e["message"] for e in events]
-        set(messages).should.equal({"hello cruela"})
+        assert set(messages) == {"hello cruela"}

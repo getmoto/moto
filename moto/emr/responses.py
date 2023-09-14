@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Dict, List, Pattern
 
-from urllib.parse import urlparse
 from moto.core.responses import AWSServiceSpec
 from moto.core.responses import BaseResponse
 from moto.core.responses import xml_to_json_response
@@ -65,9 +64,8 @@ class ElasticMapReduceResponse(BaseResponse):
         super().__init__(service_name="emr")
 
     def get_region_from_url(self, request: Any, full_url: str) -> str:
-        parsed = urlparse(full_url)
         for regex in ElasticMapReduceResponse.emr_region_regex:
-            match = regex.search(parsed.netloc)
+            match = regex.search(self.parsed_url.netloc)
             if match:
                 return match.group(1)
         return self.default_region
@@ -820,7 +818,14 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
                   <member>{{ arg | escape }}</member>
                   {% endfor %}
                 </Args>
-                <Properties/>
+                <Properties>
+                {% for key, val in step.properties.items() %}
+                  <member>
+                    <Key>{{ key }}</Key>
+                    <Value>{{ val | escape }}</Value>
+                  </member>
+                {% endfor %}
+                </Properties>
               </HadoopJarStep>
               <Name>{{ step.name | escape }}</Name>
             </StepConfig>
@@ -852,10 +857,10 @@ DESCRIBE_STEP_TEMPLATE = """<DescribeStepResponse xmlns="http://elasticmapreduce
         <MainClass/>
         <Properties>
           {% for key, val in step.properties.items() %}
-          <member>
+          <entry>
             <key>{{ key }}</key>
             <value>{{ val | escape }}</value>
-          </member>
+          </entry>
           {% endfor %}
         </Properties>
       </Config>
@@ -1180,10 +1185,10 @@ LIST_STEPS_TEMPLATE = """<ListStepsResponse xmlns="http://elasticmapreduce.amazo
           <MainClass/>
           <Properties>
             {% for key, val in step.properties.items() %}
-            <member>
+            <entry>
               <key>{{ key }}</key>
               <value>{{ val | escape }}</value>
-            </member>
+            </entry>
             {% endfor %}
           </Properties>
         </Config>

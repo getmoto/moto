@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from .utilities import get_role_name, get_test_zip_file1
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -87,7 +88,7 @@ def test_get_lambda_layers():
     function_name = str(uuid4())[0:6]
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -115,10 +116,11 @@ def test_get_lambda_layers():
     assert result["LayerVersions"] == []
 
     # Test create function with non existant layer version
+    function_name = str(uuid4())[0:6]  # Must be different than above
     with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,
-            Runtime="python2.7",
+            Runtime=PYTHON_VERSION,
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},

@@ -301,11 +301,11 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         keys: Dict[str, Any],
-        projection_expression: Optional[str] = None,
+        projection_expressions: Optional[List[List[str]]] = None,
     ) -> Optional[Item]:
         table = self.get_table(table_name)
         hash_key, range_key = self.get_keys_value(table, keys)
-        return table.get_item(hash_key, range_key, projection_expression)
+        return table.get_item(hash_key, range_key, projection_expressions)
 
     def query(
         self,
@@ -316,7 +316,7 @@ class DynamoDBBackend(BaseBackend):
         limit: int,
         exclusive_start_key: Dict[str, Any],
         scan_index_forward: bool,
-        projection_expression: str,
+        projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
         expr_names: Optional[Dict[str, str]] = None,
         expr_values: Optional[Dict[str, str]] = None,
@@ -339,7 +339,7 @@ class DynamoDBBackend(BaseBackend):
             limit,
             exclusive_start_key,
             scan_index_forward,
-            projection_expression,
+            projection_expressions,
             index_name,
             filter_expression_op,
             **filter_kwargs,
@@ -351,11 +351,11 @@ class DynamoDBBackend(BaseBackend):
         filters: Dict[str, Any],
         limit: int,
         exclusive_start_key: Dict[str, Any],
-        filter_expression: str,
+        filter_expression: Optional[str],
         expr_names: Dict[str, Any],
         expr_values: Dict[str, Any],
         index_name: str,
-        projection_expression: str,
+        projection_expression: Optional[List[List[str]]],
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         table = self.get_table(table_name)
 
@@ -494,7 +494,7 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_names,
             expression_attribute_values,
         )
-        if not condition_op.expr(item):  # type: ignore[arg-type]
+        if not condition_op.expr(item):
             raise ConditionalCheckFailed
 
         return table.delete_item(hash_value, range_value)
@@ -565,7 +565,7 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_names,
                         expression_attribute_values,
                     )
-                    if not condition_op.expr(current):  # type: ignore[arg-type]
+                    if not condition_op.expr(current):
                         raise ConditionalCheckFailed()
                 elif "Put" in item:
                     item = item["Put"]

@@ -936,7 +936,10 @@ def test_create_autoscaling_policy_with_predictive_scaling_config():
 
 @mock_autoscaling
 @mock_ec2
-def test_create_auto_scaling_group_with_mixed_instances_policy():
+@pytest.mark.parametrize("include_instances_distribution", [True, False])
+def test_create_auto_scaling_group_with_mixed_instances_policy(
+    include_instances_distribution,
+):
     mocked_networking = setup_networking(region_name="eu-west-1")
     client = boto3.client("autoscaling", region_name="eu-west-1")
     ec2_client = boto3.client("ec2", region_name="eu-west-1")
@@ -946,15 +949,25 @@ def test_create_auto_scaling_group_with_mixed_instances_policy():
         LaunchTemplateName="launchie",
         LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID},
     )["LaunchTemplate"]
-    client.create_auto_scaling_group(
-        MixedInstancesPolicy={
-            "LaunchTemplate": {
-                "LaunchTemplateSpecification": {
-                    "LaunchTemplateName": "launchie",
-                    "Version": "$DEFAULT",
-                }
+    input_policy = {
+        "LaunchTemplate": {
+            "LaunchTemplateSpecification": {
+                "LaunchTemplateName": "launchie",
+                "Version": "$DEFAULT",
             }
-        },
+        }
+    }
+    if include_instances_distribution:
+        input_policy["InstancesDistribution"] = {
+            "OnDemandAllocationStrategy": "string",
+            "OnDemandBaseCapacity": 123,
+            "OnDemandPercentageAboveBaseCapacity": 123,
+            "SpotAllocationStrategy": "string",
+            "SpotInstancePools": 123,
+            "SpotMaxPrice": "string",
+        }
+    client.create_auto_scaling_group(
+        MixedInstancesPolicy=input_policy,
         AutoScalingGroupName=asg_name,
         MinSize=2,
         MaxSize=2,
@@ -964,15 +977,11 @@ def test_create_auto_scaling_group_with_mixed_instances_policy():
     # Assert we can describe MixedInstancesPolicy
     response = client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
     group = response["AutoScalingGroups"][0]
-    assert group["MixedInstancesPolicy"] == {
-        "LaunchTemplate": {
-            "LaunchTemplateSpecification": {
-                "LaunchTemplateId": lt["LaunchTemplateId"],
-                "LaunchTemplateName": "launchie",
-                "Version": "$DEFAULT",
-            }
-        }
-    }
+
+    input_policy["LaunchTemplate"]["LaunchTemplateSpecification"][
+        "LaunchTemplateId"
+    ] = lt["LaunchTemplateId"]
+    assert group["MixedInstancesPolicy"] == input_policy
 
     # Assert the LaunchTemplate is known for the resulting instances
     response = client.describe_auto_scaling_instances()

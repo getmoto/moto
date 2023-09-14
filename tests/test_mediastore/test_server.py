@@ -1,4 +1,4 @@
-import sure  # noqa # pylint: disable=unused-import
+import json
 
 import moto.server as server
 from moto import mock_mediastore
@@ -18,4 +18,4 @@ def test_mediastore_lists_containers():
     )
 
     result = res.data.decode("utf-8")
-    result.should.contain('"Containers": []')
+    assert json.loads(result) == {"Containers": [], "NextToken": None}

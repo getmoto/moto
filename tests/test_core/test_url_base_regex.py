@@ -18,7 +18,6 @@ class TestMockBucketStartingWithServiceName:
 
     @pytest.mark.parametrize("service_name,decorator", service_names)
     def test_bucketname_starting_with_service_name(self, service_name, decorator):
-
         decorator = getattr(moto, f"mock_{service_name}")
         with decorator():
             with mock_s3():

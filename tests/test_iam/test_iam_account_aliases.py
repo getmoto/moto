@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_iam
 
 
@@ -9,12 +8,12 @@ def test_account_aliases():
 
     alias = "my-account-name"
     aliases = client.list_account_aliases()
-    aliases.should.have.key("AccountAliases").which.should.equal([])
+    assert aliases["AccountAliases"] == []
 
     client.create_account_alias(AccountAlias=alias)
     aliases = client.list_account_aliases()
-    aliases.should.have.key("AccountAliases").which.should.equal([alias])
+    assert aliases["AccountAliases"] == [alias]
 
     client.delete_account_alias(AccountAlias=alias)
     aliases = client.list_account_aliases()
-    aliases.should.have.key("AccountAliases").which.should.equal([])
+    assert aliases["AccountAliases"] == []

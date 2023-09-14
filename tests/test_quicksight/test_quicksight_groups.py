@@ -1,9 +1,8 @@
 """Unit tests for quicksight-supported APIs."""
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_quicksight
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -21,14 +20,14 @@ def test_create_group():
         Description="my new fancy group",
     )
 
-    resp.should.have.key("Group")
+    assert "Group" in resp
 
-    resp["Group"].should.have.key("Arn").equals(
+    assert resp["Group"]["Arn"] == (
         f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/mygroup"
     )
-    resp["Group"].should.have.key("GroupName").equals("mygroup")
-    resp["Group"].should.have.key("Description").equals("my new fancy group")
-    resp["Group"].should.have.key("PrincipalId").equals(f"{ACCOUNT_ID}")
+    assert resp["Group"]["GroupName"] == "mygroup"
+    assert resp["Group"]["Description"] == "my new fancy group"
+    assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
 @mock_quicksight
@@ -45,14 +44,14 @@ def test_describe_group():
         GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
 
-    resp.should.have.key("Group")
+    assert "Group" in resp
 
-    resp["Group"].should.have.key("Arn").equals(
+    assert resp["Group"]["Arn"] == (
         f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/mygroup"
     )
-    resp["Group"].should.have.key("GroupName").equals("mygroup")
-    resp["Group"].should.have.key("Description").equals("my new fancy group")
-    resp["Group"].should.have.key("PrincipalId").equals(f"{ACCOUNT_ID}")
+    assert resp["Group"]["GroupName"] == "mygroup"
+    assert resp["Group"]["Description"] == "my new fancy group"
+    assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
 @mock_quicksight
@@ -71,19 +70,19 @@ def test_update_group():
         Namespace="default",
         Description="desc2",
     )
-    resp.should.have.key("Group").should.have.key("Description").equals("desc2")
+    assert resp["Group"]["Description"] == "desc2"
 
     resp = client.describe_group(
         GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
 
-    resp.should.have.key("Group")
-    resp["Group"].should.have.key("Arn").equals(
+    assert "Group" in resp
+    assert resp["Group"]["Arn"] == (
         f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/mygroup"
     )
-    resp["Group"].should.have.key("GroupName").equals("mygroup")
-    resp["Group"].should.have.key("Description").equals("desc2")
-    resp["Group"].should.have.key("PrincipalId").equals(f"{ACCOUNT_ID}")
+    assert resp["Group"]["GroupName"] == "mygroup"
+    assert resp["Group"]["Description"] == "desc2"
+    assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
 @mock_quicksight
@@ -105,7 +104,7 @@ def test_delete_group():
             GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_quicksight
@@ -113,8 +112,8 @@ def test_list_groups__initial():
     client = boto3.client("quicksight", region_name="us-east-2")
     resp = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
 
-    resp.should.have.key("GroupList").equals([])
-    resp.should.have.key("Status").equals(200)
+    assert resp["GroupList"] == []
+    assert resp["Status"] == 200
 
 
 @mock_quicksight
@@ -127,21 +126,17 @@ def test_list_groups():
 
     resp = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
 
-    resp.should.have.key("GroupList").length_of(4)
-    resp.should.have.key("Status").equals(200)
+    assert len(resp["GroupList"]) == 4
+    assert resp["Status"] == 200
 
-    resp["GroupList"].should.contain(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group0",
-            "GroupName": "group0",
-            "PrincipalId": ACCOUNT_ID,
-        }
-    )
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group0",
+        "GroupName": "group0",
+        "PrincipalId": ACCOUNT_ID,
+    } in resp["GroupList"]
 
-    resp["GroupList"].should.contain(
-        {
-            "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group3",
-            "GroupName": "group3",
-            "PrincipalId": ACCOUNT_ID,
-        }
-    )
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group3",
+        "GroupName": "group3",
+        "PrincipalId": ACCOUNT_ID,
+    } in resp["GroupList"]

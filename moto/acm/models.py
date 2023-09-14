@@ -2,6 +2,7 @@ import base64
 import re
 import datetime
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import utcnow
 from moto import settings
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Set
 
@@ -122,7 +123,7 @@ class CertBundle(BaseModel):
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
     ):
-        self.created_at = datetime.datetime.utcnow()
+        self.created_at = utcnow()
         self.cert = certificate
         self.key = private_key
         # AWS always returns your chain + root CA
@@ -192,8 +193,8 @@ class CertBundle(BaseModel):
             .issuer_name(issuer)
             .public_key(key.public_key())
             .serial_number(cryptography.x509.random_serial_number())
-            .not_valid_before(datetime.datetime.utcnow())
-            .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+            .not_valid_before(utcnow())
+            .not_valid_after(utcnow() + datetime.timedelta(days=365))
             .add_extension(
                 cryptography.x509.SubjectAlternativeName(unique_dns_names),
                 critical=False,
@@ -235,7 +236,7 @@ class CertBundle(BaseModel):
                 self.cert, default_backend()
             )
 
-            now = datetime.datetime.utcnow()
+            now = utcnow()
             if _cert.not_valid_after < now:
                 raise AWSValidationException(
                     "The certificate has expired, is not valid."
@@ -264,7 +265,7 @@ class CertBundle(BaseModel):
                     cert_armored, default_backend()
                 )
 
-                now = datetime.datetime.utcnow()
+                now = utcnow()
                 if self._cert.not_valid_after < now:
                     raise AWSValidationException(
                         "The certificate chain has expired, is not valid."
@@ -286,7 +287,7 @@ class CertBundle(BaseModel):
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.
-        waited_seconds = (datetime.datetime.utcnow() - self.created_at).total_seconds()
+        waited_seconds = (utcnow() - self.created_at).total_seconds()
         if (
             self.type == "AMAZON_ISSUED"
             and self.status == "PENDING_VALIDATION"
@@ -414,7 +415,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         :param token: String token
         :return: None or ARN
         """
-        now = datetime.datetime.utcnow()
+        now = utcnow()
         if token in self._idempotency_tokens:
             if self._idempotency_tokens[token]["expires"] < now:
                 # Token has expired, new request
@@ -428,7 +429,7 @@ class AWSCertificateManagerBackend(BaseBackend):
     def _set_idempotency_token_arn(self, token: str, arn: str) -> None:
         self._idempotency_tokens[token] = {
             "arn": arn,
-            "expires": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            "expires": utcnow() + datetime.timedelta(hours=1),
         }
 
     def import_cert(
@@ -550,4 +551,4 @@ class AWSCertificateManagerBackend(BaseBackend):
         return certificate, certificate_chain, private_key
 
 
-acm_backends = BackendDict(AWSCertificateManagerBackend, "ec2")
+acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

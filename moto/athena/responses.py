@@ -55,11 +55,15 @@ class AthenaResponse(BaseResponse):
     def get_query_execution(self) -> str:
         exec_id = self._get_param("QueryExecutionId")
         execution = self.athena_backend.get_query_execution(exec_id)
+        ddl_commands = ("ALTER", "CREATE", "DESCRIBE", "DROP", "MSCK", "SHOW")
+        statement_type = "DML"
+        if execution.query.upper().startswith(ddl_commands):
+            statement_type = "DDL"
         result = {
             "QueryExecution": {
                 "QueryExecutionId": exec_id,
                 "Query": execution.query,
-                "StatementType": "DDL",
+                "StatementType": statement_type,
                 "ResultConfiguration": execution.config,
                 "QueryExecutionContext": execution.context,
                 "Status": {

@@ -1045,6 +1045,7 @@ DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http:
       {% if stackset.description %}
       <Description>{{ stackset.description }}</Description>
       {% endif %}
+      <ManagedExecution><Active>false</Active></ManagedExecution>
     </StackSet>
   </DescribeStackSetResult>
   <ResponseMetadata>
@@ -1122,6 +1123,9 @@ DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http
       <Region>{{ instance["Region"] }}</Region>
       <Account>{{ instance["Account"] }}</Account>
       <Status>{{ instance["Status"] }}</Status>
+      <StackInstanceStatus>
+          <DetailedStatus>{{ instance["StackInstanceStatus"]["DetailedStatus"] }}</DetailedStatus>
+      </StackInstanceStatus>
     </StackInstance>
   </DescribeStackInstanceResult>
   <ResponseMetadata>

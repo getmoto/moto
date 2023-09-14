@@ -6,11 +6,14 @@ from typing import Any, Dict, List, Iterator, Union, Tuple, Optional, Type
 import urllib.parse
 
 from moto import settings
+from moto.core.versions import is_werkzeug_2_3_x
 from moto.core.utils import (
     extract_region_from_aws_authorization,
     str_to_rfc_1123_datetime,
+    normalize_werkzeug_path,
 )
 from urllib.parse import parse_qs, urlparse, unquote, urlencode, urlunparse
+from urllib.parse import ParseResult
 
 import xmltodict
 
@@ -155,6 +158,20 @@ def parse_key_name(pth: str) -> str:
 class S3Response(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="s3")
+        # Whatever format requests come in, we should never touch them
+        # There are some nuances here - this decision should be method-specific, instead of service-specific
+        # E.G.: we don't want to touch put_object(), but we might have to decompress put_object_configuration()
+        # Taking the naive approach to never decompress anything from S3 for now
+        self.allow_request_decompression = False
+
+    def get_safe_path_from_url(self, url: ParseResult) -> str:
+        return self.get_safe_path(url.path)
+
+    def get_safe_path(self, part: str) -> str:
+        if self.is_werkzeug_request:
+            return normalize_werkzeug_path(part)
+        else:
+            return unquote(part)
 
     @property
     def backend(self) -> S3Backend:
@@ -253,7 +270,9 @@ class S3Response(BaseResponse):
             return self.bucket_response(request, full_url, headers)
 
     @amzn_request_id
-    def bucket_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def bucket_response(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers, use_raw_body=True)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.backend.log_incoming_request(request, bucket_name)
@@ -313,8 +332,7 @@ class S3Response(BaseResponse):
                 f"Method {method} has not been implemented in the S3 backend yet"
             )
 
-    @staticmethod
-    def _get_querystring(request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
         # Flask's Request has the querystring already parsed
         # In ServerMode, we can use this, instead of manually parsing this
         if hasattr(request, "args"):
@@ -341,7 +359,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         self._set_action("BUCKET", "HEAD", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         try:
             bucket = self.backend.head_bucket(bucket_name)
@@ -403,7 +421,7 @@ class S3Response(BaseResponse):
         self, headers: Dict[str, str], bucket_name: str
     ) -> TYPE_RESPONSE:
         # Return 200 with the headers from the bucket CORS configuration
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
         try:
             bucket = self.backend.head_bucket(bucket_name)
         except MissingBucket:
@@ -437,8 +455,8 @@ class S3Response(BaseResponse):
 
             for cors_rule in bucket.cors:
                 if cors_rule.allowed_origins is not None:
-                    if cors_matches_origin(origin, cors_rule.allowed_origins):  # type: ignore
-                        response_headers["Access-Control-Allow-Origin"] = origin  # type: ignore
+                    if cors_matches_origin(origin, cors_rule.allowed_origins):
+                        response_headers["Access-Control-Allow-Origin"] = origin
                         if cors_rule.allowed_methods is not None:
                             response_headers[
                                 "Access-Control-Allow-Methods"
@@ -465,7 +483,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> Union[str, TYPE_RESPONSE]:
         self._set_action("BUCKET", "GET", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "object-lock" in querystring:
             (
@@ -810,7 +828,7 @@ class S3Response(BaseResponse):
             return 411, {}, "Content-Length required"
 
         self._set_action("BUCKET", "PUT", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "object-lock" in querystring:
             config = self._lock_config_from_body()
@@ -831,7 +849,7 @@ class S3Response(BaseResponse):
             body = self.body.decode("utf-8")
             ver = re.search(r"<Status>([A-Za-z]+)</Status>", body)
             if ver:
-                self.backend.put_bucket_versioning(bucket_name, ver.group(1))  # type: ignore
+                self.backend.put_bucket_versioning(bucket_name, ver.group(1))
                 template = self.response_template(S3_BUCKET_VERSIONING)
                 return template.render(bucket_versioning_status=ver.group(1))
             else:
@@ -996,7 +1014,7 @@ class S3Response(BaseResponse):
         self, bucket_name: str, querystring: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         self._set_action("BUCKET", "DELETE", querystring)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "policy" in querystring:
             self.backend.delete_bucket_policy(bucket_name)
@@ -1047,7 +1065,7 @@ class S3Response(BaseResponse):
         if self.is_delete_keys():
             self.data["Action"] = "DeleteObject"
             try:
-                self._authenticate_and_authorize_s3_action()
+                self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
                 return self._bucket_response_delete_keys(bucket_name)
             except BucketAccessDeniedError:
                 return self._bucket_response_delete_keys(
@@ -1055,7 +1073,7 @@ class S3Response(BaseResponse):
                 )
 
         self.data["Action"] = "PutObject"
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         # POST to bucket-url should create file from form
         form = request.form
@@ -1127,6 +1145,10 @@ class S3Response(BaseResponse):
             objects = [objects]
         if len(objects) == 0:
             raise MalformedXML()
+        if self.is_werkzeug_request and is_werkzeug_2_3_x():
+            for obj in objects:
+                if "Key" in obj:
+                    obj["Key"] = self.get_safe_path(obj["Key"])
 
         if authenticated:
             deleted_objects = self.backend.delete_objects(bucket_name, objects)
@@ -1147,25 +1169,35 @@ class S3Response(BaseResponse):
     ) -> TYPE_RESPONSE:
         length = len(response_content)
         last = length - 1
+
         _, rspec = request.headers.get("range").split("=")
         if "," in rspec:
-            raise NotImplementedError("Multiple range specifiers not supported")
+            return 200, response_headers, response_content
 
-        def toint(i: Any) -> Optional[int]:
-            return int(i) if i else None
+        try:
+            begin, end = [int(i) if i else None for i in rspec.split("-")]
+        except ValueError:
+            # if we can't parse the Range header, S3 just treat the request as a non-range request
+            return 200, response_headers, response_content
 
-        begin, end = map(toint, rspec.split("-"))
+        if (begin is None and end == 0) or (begin is not None and begin > last):
+            raise InvalidRange(
+                actual_size=str(length), range_requested=request.headers.get("range")
+            )
+
         if begin is not None:  # byte range
             end = last if end is None else min(end, last)
         elif end is not None:  # suffix byte range
             begin = length - min(end, length)
             end = last
         else:
-            return 400, response_headers, ""
-        if begin < 0 or end > last or begin > min(end, last):
-            raise InvalidRange(
-                actual_size=str(length), range_requested=request.headers.get("range")
-            )
+            # Treat as non-range request
+            return 200, response_headers, response_content
+
+        if begin > min(end, last):
+            # Treat as non-range request if after the logic is applied, the start of the range is greater than the end
+            return 200, response_headers, response_content
+
         response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
         content = response_content[begin : end + 1]
         response_headers["content-length"] = len(content)
@@ -1196,7 +1228,9 @@ class S3Response(BaseResponse):
         # amz-checksum-sha256:<..>\r\n
 
     @amzn_request_id
-    def key_response(self, request: Any, full_url: str, headers: Dict[str, Any]) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def key_response(
+        self, request: Any, full_url: str, headers: Dict[str, Any]
+    ) -> TYPE_RESPONSE:
         # Key and Control are lumped in because splitting out the regex is too much of a pain :/
         self.setup_class(request, full_url, headers, use_raw_body=True)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
@@ -1231,10 +1265,11 @@ class S3Response(BaseResponse):
         self, request: Any, full_url: str, headers: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         parsed_url = urlparse(full_url)
+        url_path = self.get_safe_path_from_url(parsed_url)
         query = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
 
-        key_name = self.parse_key_name(request, parsed_url.path)
+        key_name = self.parse_key_name(request, url_path)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
 
         # SDK requests tend to have Authorization set automatically
@@ -1341,7 +1376,9 @@ class S3Response(BaseResponse):
         headers: Dict[str, Any],
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "GET", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         response_headers = self._get_cors_headers_other(headers, bucket_name)
         if query.get("uploadId"):
@@ -1458,7 +1495,9 @@ class S3Response(BaseResponse):
         key_name: str,
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "PUT", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         response_headers = self._get_cors_headers_other(request.headers, bucket_name)
         if query.get("uploadId") and query.get("partNumber"):
@@ -1469,7 +1508,8 @@ class S3Response(BaseResponse):
                 if isinstance(copy_source, bytes):
                     copy_source = copy_source.decode("utf-8")
                 copy_source_parsed = urlparse(copy_source)
-                src_bucket, src_key = copy_source_parsed.path.lstrip("/").split("/", 1)
+                url_path = self.get_safe_path_from_url(copy_source_parsed)
+                src_bucket, src_key = url_path.lstrip("/").split("/", 1)
                 src_version_id = parse_qs(copy_source_parsed.query).get(
                     "versionId", [None]  # type: ignore
                 )[0]
@@ -1626,7 +1666,7 @@ class S3Response(BaseResponse):
             )[0]
 
             key_to_copy = self.backend.get_object(
-                src_bucket, src_key, version_id=src_version_id, key_is_clean=True
+                src_bucket, src_key, version_id=src_version_id
             )
 
             if key_to_copy is not None:
@@ -1729,7 +1769,9 @@ class S3Response(BaseResponse):
         headers: Dict[str, Any],
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "HEAD", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         response_headers: Dict[str, Any] = {}
         version_id = query.get("versionId", [None])[0]
@@ -1923,7 +1965,7 @@ class S3Response(BaseResponse):
 
         tags = {}
         for tag in parsed_xml["Tagging"]["TagSet"]["Tag"]:
-            tags[tag["Key"]] = tag["Value"]
+            tags[tag["Key"]] = tag["Value"] or ""
 
         return tags
 
@@ -2128,7 +2170,9 @@ class S3Response(BaseResponse):
         self, headers: Any, bucket_name: str, query: Dict[str, Any], key_name: str
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "DELETE", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         if query.get("uploadId"):
             upload_id = query["uploadId"][0]
@@ -2169,7 +2213,9 @@ class S3Response(BaseResponse):
         key_name: str,
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "POST", query)
-        self._authenticate_and_authorize_s3_action()
+        self._authenticate_and_authorize_s3_action(
+            bucket_name=bucket_name, key_name=key_name
+        )
 
         encryption = request.headers.get("x-amz-server-side-encryption")
         kms_key_id = request.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
@@ -2205,7 +2251,7 @@ class S3Response(BaseResponse):
             return 200, response_headers, response
 
         if query.get("uploadId"):
-            multipart_id = query["uploadId"][0]  # type: ignore
+            multipart_id = query["uploadId"][0]
 
             multipart, value, etag = self.backend.complete_multipart_upload(
                 bucket_name, multipart_id, self._complete_multipart_body(body)
@@ -2229,7 +2275,6 @@ class S3Response(BaseResponse):
                 bucket_name=bucket_name,
                 key_name=key.name,
                 acl=multipart.acl,
-                key_is_clean=True,
             )
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
@@ -2268,9 +2313,9 @@ class S3Response(BaseResponse):
             input_details = request["InputSerialization"]
             output_details = request["OutputSerialization"]
             results = self.backend.select_object_content(
-                bucket_name, key_name, select_query, input_details, output_details
+                bucket_name, key_name, select_query, input_details
             )
-            return 200, {}, serialize_select(results)
+            return 200, {}, serialize_select(results, output_details)
 
         else:
             raise NotImplementedError(

@@ -1,7 +1,6 @@
 import boto3
 from moto import mock_cloudfront
 from . import cloudfront_test_scaffolding as scaffold
-import sure  # noqa # pylint: disable=unused-import
 
 
 @mock_cloudfront
@@ -19,18 +18,16 @@ def test_create_invalidation_with_single_path():
         },
     )
 
-    resp.should.have.key("Location")
-    resp.should.have.key("Invalidation")
+    assert "Location" in resp
+    assert "Invalidation" in resp
 
-    resp["Invalidation"].should.have.key("Id")
-    resp["Invalidation"].should.have.key("Status").equals("COMPLETED")
-    resp["Invalidation"].should.have.key("CreateTime")
-    resp["Invalidation"].should.have.key("InvalidationBatch").equals(
-        {
-            "Paths": {"Quantity": 1, "Items": ["/path1"]},
-            "CallerReference": "ref2",
-        }
-    )
+    assert "Id" in resp["Invalidation"]
+    assert resp["Invalidation"]["Status"] == "COMPLETED"
+    assert "CreateTime" in resp["Invalidation"]
+    assert resp["Invalidation"]["InvalidationBatch"] == {
+        "Paths": {"Quantity": 1, "Items": ["/path1"]},
+        "CallerReference": "ref2",
+    }
 
 
 @mock_cloudfront
@@ -48,18 +45,16 @@ def test_create_invalidation_with_multiple_paths():
         },
     )
 
-    resp.should.have.key("Location")
-    resp.should.have.key("Invalidation")
+    assert "Location" in resp
+    assert "Invalidation" in resp
 
-    resp["Invalidation"].should.have.key("Id")
-    resp["Invalidation"].should.have.key("Status").equals("COMPLETED")
-    resp["Invalidation"].should.have.key("CreateTime")
-    resp["Invalidation"].should.have.key("InvalidationBatch").equals(
-        {
-            "Paths": {"Quantity": 2, "Items": ["/path1", "/path2"]},
-            "CallerReference": "ref2",
-        }
-    )
+    assert "Id" in resp["Invalidation"]
+    assert resp["Invalidation"]["Status"] == "COMPLETED"
+    assert "CreateTime" in resp["Invalidation"]
+    assert resp["Invalidation"]["InvalidationBatch"] == {
+        "Paths": {"Quantity": 2, "Items": ["/path1", "/path2"]},
+        "CallerReference": "ref2",
+    }
 
 
 @mock_cloudfront
@@ -77,32 +72,26 @@ def test_list_invalidations():
     )
     invalidation_id = resp["Invalidation"]["Id"]
 
-    resp = client.list_invalidations(
-        DistributionId=dist_id,
-    )
+    resp = client.list_invalidations(DistributionId=dist_id)
 
-    resp.should.have.key("InvalidationList")
-    resp["InvalidationList"].shouldnt.have.key("NextMarker")
-    resp["InvalidationList"].should.have.key("MaxItems").equal(100)
-    resp["InvalidationList"].should.have.key("IsTruncated").equal(False)
-    resp["InvalidationList"].should.have.key("Quantity").equal(1)
-    resp["InvalidationList"].should.have.key("Items").length_of(1)
-    resp["InvalidationList"]["Items"][0].should.have.key("Id").equal(invalidation_id)
-    resp["InvalidationList"]["Items"][0].should.have.key("CreateTime")
-    resp["InvalidationList"]["Items"][0].should.have.key("Status").equal("COMPLETED")
+    assert "NextMarker" not in resp["InvalidationList"]
+    assert resp["InvalidationList"]["MaxItems"] == 100
+    assert resp["InvalidationList"]["IsTruncated"] is False
+    assert resp["InvalidationList"]["Quantity"] == 1
+    assert len(resp["InvalidationList"]["Items"]) == 1
+    assert resp["InvalidationList"]["Items"][0]["Id"] == invalidation_id
+    assert "CreateTime" in resp["InvalidationList"]["Items"][0]
+    assert resp["InvalidationList"]["Items"][0]["Status"] == "COMPLETED"
 
 
 @mock_cloudfront
 def test_list_invalidations__no_entries():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
-    resp = client.list_invalidations(
-        DistributionId="SPAM",
-    )
+    resp = client.list_invalidations(DistributionId="SPAM")
 
-    resp.should.have.key("InvalidationList")
-    resp["InvalidationList"].shouldnt.have.key("NextMarker")
-    resp["InvalidationList"].should.have.key("MaxItems").equal(100)
-    resp["InvalidationList"].should.have.key("IsTruncated").equal(False)
-    resp["InvalidationList"].should.have.key("Quantity").equal(0)
-    resp["InvalidationList"].shouldnt.have.key("Items")
+    assert "NextMarker" not in resp["InvalidationList"]
+    assert resp["InvalidationList"]["MaxItems"] == 100
+    assert resp["InvalidationList"]["IsTruncated"] is False
+    assert resp["InvalidationList"]["Quantity"] == 0
+    assert "Items" not in resp["InvalidationList"]

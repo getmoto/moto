@@ -32,26 +32,33 @@ logs
 - [X] create_log_stream
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
-- [ ] delete_destination
+- [X] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
 - [X] delete_metric_filter
 - [ ] delete_query_definition
 - [X] delete_resource_policy
-  Remove resource policy with a policy name matching given name.
+  
+        Remove resource policy with a policy name matching given name.
+        
 
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
 - [ ] describe_account_policies
-- [ ] describe_destinations
+- [X] describe_destinations
 - [ ] describe_export_tasks
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
-- [ ] describe_queries
+- [X] describe_queries
+  
+        Pagination is not yet implemented
+        
+
 - [ ] describe_query_definitions
 - [X] describe_resource_policies
-  Return list of resource policies.
+  
+        Return list of resource policies.
 
         The next_token and limit arguments are ignored.  The maximum
         number of resource policies per region is a small number (less
@@ -70,13 +77,17 @@ logs
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
-- [ ] get_query_results
-- [ ] list_tags_for_resource
+- [X] get_query_results
+  
+        Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
+        
+
+- [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
-- [ ] put_destination
-- [ ] put_destination_policy
+- [X] put_destination
+- [X] put_destination_policy
 - [X] put_log_events
   
         The SequenceToken-parameter is not yet implemented
@@ -85,15 +96,17 @@ logs
 - [X] put_metric_filter
 - [ ] put_query_definition
 - [X] put_resource_policy
-  Creates/updates resource policy and return policy object
+  
+        Creates/updates resource policy and return policy object
+        
 
 - [X] put_retention_policy
 - [X] put_subscription_filter
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_metric_filter
 - [X] untag_log_group
-- [ ] untag_resource
+- [X] untag_resource
 

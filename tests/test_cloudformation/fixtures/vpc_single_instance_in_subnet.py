@@ -65,7 +65,6 @@ template = {
                 "Tags": [{"Value": {"Ref": "AWS::StackId"}, "Key": "Application"}],
             },
         },
-        "WebServerWaitHandle": {"Type": "AWS::CloudFormation::WaitConditionHandle"},
         "Route": {
             "Type": "AWS::EC2::Route",
             "Properties": {
@@ -94,11 +93,6 @@ template = {
                 "VpcId": {"Ref": "VPC"},
                 "Tags": [{"Value": {"Ref": "AWS::StackId"}, "Key": "Application"}],
             },
-        },
-        "WebServerWaitCondition": {
-            "Type": "AWS::CloudFormation::WaitCondition",
-            "Properties": {"Handle": {"Ref": "WebServerWaitHandle"}, "Timeout": "300"},
-            "DependsOn": "WebServerInstance",
         },
         "VPC": {
             "Type": "AWS::EC2::VPC",
@@ -142,7 +136,6 @@ template = {
                                 "function error_exit\n",
                                 "{\n",
                                 '  /opt/aws/bin/cfn-signal -e 1 -r "$1" \'',
-                                {"Ref": "WebServerWaitHandle"},
                                 "'\n",
                                 "  exit 1\n",
                                 "}\n",
@@ -157,7 +150,6 @@ template = {
                                 "/opt/aws/bin/cfn-hup || error_exit 'Failed to start cfn-hup'\n",
                                 "# All done so signal success\n",
                                 '/opt/aws/bin/cfn-signal -e 0 -r "WebServer setup complete" \'',
-                                {"Ref": "WebServerWaitHandle"},
                                 "'\n",
                             ],
                         ]

@@ -1,7 +1,6 @@
 import boto3
 from freezegun import freeze_time
-import sure  # noqa # pylint: disable=unused-import
-import re
+import pytest
 
 from moto import mock_opsworks
 
@@ -24,7 +23,7 @@ def test_create_layer_response():
         Shortname="TestLayerShortName",
     )
 
-    response.should.contain("LayerId")
+    assert "LayerId" in response
 
     second_stack_id = client.create_stack(
         Name="test_stack_2",
@@ -40,22 +39,32 @@ def test_create_layer_response():
         Shortname="TestLayerShortName",
     )
 
-    response.should.contain("LayerId")
+    assert "LayerId" in response
 
     # ClientError
-    client.create_layer.when.called_with(
-        StackId=stack_id, Type="custom", Name="TestLayer", Shortname="_"
-    ).should.throw(Exception, re.compile(r'already a layer named "TestLayer"'))
-    # ClientError
-    client.create_layer.when.called_with(
-        StackId=stack_id, Type="custom", Name="_", Shortname="TestLayerShortName"
-    ).should.throw(
-        Exception, re.compile(r'already a layer with shortname "TestLayerShortName"')
+    with pytest.raises(Exception) as exc:
+        client.create_layer(
+            StackId=stack_id, Type="custom", Name="TestLayer", Shortname="_"
+        )
+    assert (
+        r'already a layer named "TestLayer"' in exc.value.response["Error"]["Message"]
     )
+
     # ClientError
-    client.create_layer.when.called_with(
-        StackId="nothere", Type="custom", Name="TestLayer", Shortname="_"
-    ).should.throw(Exception, "nothere")
+    with pytest.raises(Exception) as exc:
+        client.create_layer(
+            StackId=stack_id, Type="custom", Name="_", Shortname="TestLayerShortName"
+        )
+    assert (
+        r'already a layer with shortname "TestLayerShortName"'
+    ) in exc.value.response["Error"]["Message"]
+
+    # ClientError
+    with pytest.raises(Exception) as exc:
+        client.create_layer(
+            StackId="nothere", Type="custom", Name="TestLayer", Shortname="_"
+        )
+    assert exc.value.response["Error"]["Message"] == "nothere"
 
 
 @freeze_time("2015-01-01")
@@ -77,19 +86,25 @@ def test_describe_layers():
 
     rv1 = client.describe_layers(StackId=stack_id)
     rv2 = client.describe_layers(LayerIds=[layer_id])
-    rv1["Layers"].should.equal(rv2["Layers"])
+    assert rv1["Layers"] == rv2["Layers"]
 
-    rv1["Layers"][0]["Name"].should.equal("TestLayer")
+    assert rv1["Layers"][0]["Name"] == "TestLayer"
 
     # ClientError
-    client.describe_layers.when.called_with(
-        StackId=stack_id, LayerIds=[layer_id]
-    ).should.throw(Exception, "Please provide one or more layer IDs or a stack ID")
-    # ClientError
-    client.describe_layers.when.called_with(StackId="nothere").should.throw(
-        Exception, "Unable to find stack with ID nothere"
+    with pytest.raises(Exception) as exc:
+        client.describe_layers(StackId=stack_id, LayerIds=[layer_id])
+    assert exc.value.response["Error"]["Message"] == (
+        "Please provide one or more layer IDs or a stack ID"
     )
+
     # ClientError
-    client.describe_layers.when.called_with(LayerIds=["nothere"]).should.throw(
-        Exception, "nothere"
+    with pytest.raises(Exception) as exc:
+        client.describe_layers(StackId="nothere")
+    assert exc.value.response["Error"]["Message"] == (
+        "Unable to find stack with ID nothere"
     )
+
+    # ClientError
+    with pytest.raises(Exception) as exc:
+        client.describe_layers(LayerIds=["nothere"])
+    assert exc.value.response["Error"]["Message"] == "nothere"

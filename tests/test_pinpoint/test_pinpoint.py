@@ -1,9 +1,8 @@
 """Unit tests for pinpoint-supported APIs."""
 import boto3
-import pytest
-import sure  # noqa # pylint: disable=unused-import
-
 from botocore.exceptions import ClientError
+import pytest
+
 from moto import mock_pinpoint
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -15,11 +14,11 @@ def test_create_app():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
 
-    resp.should.have.key("ApplicationResponse")
-    resp["ApplicationResponse"].should.have.key("Arn")
-    resp["ApplicationResponse"].should.have.key("Id")
-    resp["ApplicationResponse"].should.have.key("Name").equals("myfirstapp")
-    resp["ApplicationResponse"].should.have.key("CreationDate")
+    assert "ApplicationResponse" in resp
+    assert "Arn" in resp["ApplicationResponse"]
+    assert "Id" in resp["ApplicationResponse"]
+    assert resp["ApplicationResponse"]["Name"] == "myfirstapp"
+    assert "CreationDate" in resp["ApplicationResponse"]
 
 
 @mock_pinpoint
@@ -31,13 +30,13 @@ def test_delete_app():
     app_id = creation["Id"]
 
     deletion = client.delete_app(ApplicationId=app_id)["ApplicationResponse"]
-    deletion.should.equal(creation)
+    assert deletion == creation
 
     with pytest.raises(ClientError) as exc:
         client.get_app(ApplicationId=app_id)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("Application not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Application not found"
 
 
 @mock_pinpoint
@@ -48,11 +47,11 @@ def test_get_app():
 
     resp = client.get_app(ApplicationId=app_id)
 
-    resp.should.have.key("ApplicationResponse")
-    resp["ApplicationResponse"].should.have.key("Arn")
-    resp["ApplicationResponse"].should.have.key("Id")
-    resp["ApplicationResponse"].should.have.key("Name").equals("myfirstapp")
-    resp["ApplicationResponse"].should.have.key("CreationDate")
+    assert "ApplicationResponse" in resp
+    assert "Arn" in resp["ApplicationResponse"]
+    assert "Id" in resp["ApplicationResponse"]
+    assert resp["ApplicationResponse"]["Name"] == "myfirstapp"
+    assert "CreationDate" in resp["ApplicationResponse"]
 
 
 @mock_pinpoint
@@ -60,8 +59,8 @@ def test_get_apps_initial():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.get_apps()
 
-    resp.should.have.key("ApplicationsResponse")
-    resp["ApplicationsResponse"].should.equal({"Item": []})
+    assert "ApplicationsResponse" in resp
+    assert resp["ApplicationsResponse"] == {"Item": []}
 
 
 @mock_pinpoint
@@ -72,11 +71,11 @@ def test_get_apps():
 
     resp = client.get_apps()
 
-    resp.should.have.key("ApplicationsResponse").should.have.key("Item").length_of(1)
-    resp["ApplicationsResponse"]["Item"][0].should.have.key("Arn")
-    resp["ApplicationsResponse"]["Item"][0].should.have.key("Id").equals(app_id)
-    resp["ApplicationsResponse"]["Item"][0].should.have.key("Name").equals("myfirstapp")
-    resp["ApplicationsResponse"]["Item"][0].should.have.key("CreationDate")
+    assert len(resp["ApplicationsResponse"]["Item"]) == 1
+    assert "Arn" in resp["ApplicationsResponse"]["Item"][0]
+    assert resp["ApplicationsResponse"]["Item"][0]["Id"] == app_id
+    assert resp["ApplicationsResponse"]["Item"][0]["Name"] == "myfirstapp"
+    assert "CreationDate" in resp["ApplicationsResponse"]["Item"][0]
 
 
 @mock_pinpoint
@@ -95,12 +94,12 @@ def test_update_application_settings():
         },
     )
 
-    resp.should.have.key("ApplicationSettingsResource")
+    assert "ApplicationSettingsResource" in resp
     app_settings = resp["ApplicationSettingsResource"]
-    app_settings.should.have.key("ApplicationId").equals(app_id)
-    app_settings.should.have.key("CampaignHook").equals({"LambdaFunctionName": "lfn"})
-    app_settings.should.have.key("Limits").equals({"Daily": 42})
-    app_settings.should.have.key("LastModifiedDate")
+    assert app_settings["ApplicationId"] == app_id
+    assert app_settings["CampaignHook"] == {"LambdaFunctionName": "lfn"}
+    assert app_settings["Limits"] == {"Daily": 42}
+    assert "LastModifiedDate" in app_settings
 
 
 @mock_pinpoint
@@ -121,9 +120,9 @@ def test_get_application_settings():
 
     resp = client.get_application_settings(ApplicationId=app_id)
 
-    resp.should.have.key("ApplicationSettingsResource")
+    assert "ApplicationSettingsResource" in resp
     app_settings = resp["ApplicationSettingsResource"]
-    app_settings.should.have.key("ApplicationId").equals(app_id)
-    app_settings.should.have.key("CampaignHook").equals({"LambdaFunctionName": "lfn"})
-    app_settings.should.have.key("Limits").equals({"Daily": 42})
-    app_settings.should.have.key("LastModifiedDate")
+    assert app_settings["ApplicationId"] == app_id
+    assert app_settings["CampaignHook"] == {"LambdaFunctionName": "lfn"}
+    assert app_settings["Limits"] == {"Daily": 42}
+    assert "LastModifiedDate" in app_settings

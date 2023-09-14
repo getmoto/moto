@@ -53,6 +53,7 @@ from moto.config.exceptions import (
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.common_models import ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
+from moto.core.utils import utcnow
 from moto.iam.config import role_config_query, policy_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
@@ -84,7 +85,7 @@ CAMEL_TO_SNAKE_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
 MAX_TAGS_IN_ARG = 50
 
 MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
-MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]  # type: ignore[index]
+MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
 
 
 def datetime2int(date: datetime) -> int:
@@ -238,13 +239,13 @@ class ConfigRecorderStatus(ConfigEmptyDictable):
     def start(self) -> None:
         self.recording = True
         self.last_status = "PENDING"
-        self.last_start_time = datetime2int(datetime.utcnow())
-        self.last_status_change_time = datetime2int(datetime.utcnow())
+        self.last_start_time = datetime2int(utcnow())
+        self.last_status_change_time = datetime2int(utcnow())
 
     def stop(self) -> None:
         self.recording = False
-        self.last_stop_time = datetime2int(datetime.utcnow())
-        self.last_status_change_time = datetime2int(datetime.utcnow())
+        self.last_stop_time = datetime2int(utcnow())
+        self.last_status_change_time = datetime2int(utcnow())
 
 
 class ConfigDeliverySnapshotProperties(ConfigEmptyDictable):
@@ -404,8 +405,8 @@ class ConfigAggregator(ConfigEmptyDictable):
         self.configuration_aggregator_arn = f"arn:aws:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
         self.account_aggregation_sources = account_sources
         self.organization_aggregation_source = org_source
-        self.creation_time = datetime2int(datetime.utcnow())
-        self.last_updated_time = datetime2int(datetime.utcnow())
+        self.creation_time = datetime2int(utcnow())
+        self.last_updated_time = datetime2int(utcnow())
 
         # Tags are listed in the list_tags_for_resource API call.
         self.tags = tags or {}
@@ -442,7 +443,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
         self.aggregation_authorization_arn = f"arn:aws:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
         self.authorized_account_id = authorized_account_id
         self.authorized_aws_region = authorized_aws_region
-        self.creation_time = datetime2int(datetime.utcnow())
+        self.creation_time = datetime2int(utcnow())
 
         # Tags are listed in the list_tags_for_resource API call.
         self.tags = tags or {}
@@ -468,7 +469,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_bucket = delivery_s3_bucket
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
-        self.last_update_time = datetime2int(datetime.utcnow())
+        self.last_update_time = datetime2int(utcnow())
         self.organization_conformance_pack_arn = f"arn:aws:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
         self.organization_conformance_pack_name = name
 
@@ -485,7 +486,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_bucket = delivery_s3_bucket
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts
-        self.last_update_time = datetime2int(datetime.utcnow())
+        self.last_update_time = datetime2int(utcnow())
 
 
 class Scope(ConfigEmptyDictable):
@@ -839,17 +840,17 @@ class ConfigRule(ConfigEmptyDictable):
                 "CreatedBy field"
             )
 
-        self.last_updated_time = datetime2int(datetime.utcnow())
+        self.last_updated_time = datetime2int(utcnow())
         self.tags = tags
 
     def validate_managed_rule(self) -> None:
         """Validate parameters specific to managed rules."""
-        rule_info = MANAGED_RULES_CONSTRAINTS[self.source.source_identifier]  # type: ignore[index]
+        rule_info = MANAGED_RULES_CONSTRAINTS[self.source.source_identifier]
         param_names = self.input_parameters_dict.keys()
 
         # Verify input parameter names are actual parameters for the rule ID.
         if param_names:
-            allowed_names = {x["Name"] for x in rule_info["Parameters"]}  # type: ignore[index]
+            allowed_names = {x["Name"] for x in rule_info["Parameters"]}
             if not set(param_names).issubset(allowed_names):
                 raise InvalidParameterValueException(
                     f"Unknown parameters provided in the inputParameters: {self.input_parameters}"
@@ -857,7 +858,7 @@ class ConfigRule(ConfigEmptyDictable):
 
         # Verify all the required parameters are specified.
         required_names = {
-            x["Name"] for x in rule_info["Parameters"] if not x["Optional"]  # type: ignore[index]
+            x["Name"] for x in rule_info["Parameters"] if not x["Optional"]
         }
         diffs = required_names.difference(set(param_names))
         if diffs:
@@ -938,12 +939,12 @@ class ConfigBackend(BaseBackend):
         # Verify that each entry exists in the supported list:
         bad_list = []
         for resource in resource_list:
-            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:  # type: ignore[index]
+            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:
                 bad_list.append(resource)
 
         if bad_list:
             raise InvalidResourceTypeException(
-                bad_list, self.config_schema.shapes["ResourceType"]["enum"]  # type: ignore[index]
+                bad_list, self.config_schema.shapes["ResourceType"]["enum"]
             )
 
     def _validate_delivery_snapshot_properties(
@@ -957,11 +958,11 @@ class ConfigBackend(BaseBackend):
         # Verify that the deliveryFrequency is set to an acceptable value:
         if (
             properties.get("deliveryFrequency", None)
-            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]  # type: ignore[index]
+            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]
         ):
             raise InvalidDeliveryFrequency(
                 properties.get("deliveryFrequency", None),
-                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],  # type: ignore[index]
+                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],
             )
 
     def put_configuration_aggregator(
@@ -1046,7 +1047,7 @@ class ConfigBackend(BaseBackend):
             aggregator.tags = tags
             aggregator.account_aggregation_sources = account_sources
             aggregator.organization_aggregation_source = org_source
-            aggregator.last_updated_time = datetime2int(datetime.utcnow())
+            aggregator.last_updated_time = datetime2int(utcnow())
 
         return aggregator.to_dict()
 
@@ -1922,7 +1923,7 @@ class ConfigBackend(BaseBackend):
                 "AccountId": self.account_id,
                 "ConformancePackName": f"OrgConformsPack-{pack._unique_pack_name}",
                 "Status": pack._status,
-                "LastUpdateTime": datetime2int(datetime.utcnow()),
+                "LastUpdateTime": datetime2int(utcnow()),
             }
         ]
 

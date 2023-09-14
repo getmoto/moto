@@ -489,7 +489,7 @@ class EBSBackend:
         return snapshot
 
     def delete_snapshot(self, snapshot_id: str) -> Snapshot:
-        if snapshot_id in self.snapshots:  # type: ignore[attr-defined]
+        if snapshot_id in self.snapshots:
             snapshot = self.snapshots[snapshot_id]
             if snapshot.from_ami and snapshot.from_ami in self.amis:  # type: ignore[attr-defined]
                 raise InvalidSnapshotInUse(snapshot_id, snapshot.from_ami)
@@ -497,17 +497,17 @@ class EBSBackend:
         raise InvalidSnapshotIdError()
 
     def get_create_volume_permission_groups(self, snapshot_id: str) -> Set[str]:
-        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
+        snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_groups
 
     def get_create_volume_permission_userids(self, snapshot_id: str) -> Set[str]:
-        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
+        snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_userids
 
     def add_create_volume_permission(
         self, snapshot_id: str, user_ids: List[str], groups: List[str]
     ) -> None:
-        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
+        snapshot = self.get_snapshot(snapshot_id)
         if user_ids:
             snapshot.create_volume_permission_userids.update(user_ids)
 
@@ -522,7 +522,7 @@ class EBSBackend:
         user_ids: Optional[List[str]] = None,
         groups: Optional[Iterable[str]] = None,
     ) -> None:
-        snapshot = self.get_snapshot(snapshot_id)  # type: ignore[attr-defined]
+        snapshot = self.get_snapshot(snapshot_id)
         if user_ids:
             snapshot.create_volume_permission_userids.difference_update(user_ids)
 

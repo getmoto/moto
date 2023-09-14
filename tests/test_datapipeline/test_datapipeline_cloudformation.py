@@ -1,6 +1,5 @@
 import boto3
 import json
-import sure  # noqa # pylint: disable=unused-import
 
 
 from moto import mock_cloudformation, mock_datapipeline
@@ -60,11 +59,11 @@ def test_datapipeline():
     dp = boto3.client("datapipeline", region_name="us-east-1")
     data_pipelines = dp.list_pipelines()["pipelineIdList"]
 
-    data_pipelines.should.have.length_of(1)
-    data_pipelines[0]["name"].should.equal("testDataPipeline")
+    assert len(data_pipelines) == 1
+    assert data_pipelines[0]["name"] == "testDataPipeline"
 
     stack_resources = cf.list_stack_resources(StackName="test_stack")[
         "StackResourceSummaries"
     ]
-    stack_resources.should.have.length_of(1)
-    stack_resources[0]["PhysicalResourceId"].should.equal(data_pipelines[0]["id"])
+    assert len(stack_resources) == 1
+    assert stack_resources[0]["PhysicalResourceId"] == data_pipelines[0]["id"]

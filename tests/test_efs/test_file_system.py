@@ -171,8 +171,8 @@ def test_describe_file_systems_using_identifier(efs):
 
     # Describe the file system.
     desc_fs_resp = efs.describe_file_systems(FileSystemId=fs_id)
-    desc_fs_resp.should.have.key("FileSystems").length_of(1)
-    desc_fs_resp["FileSystems"][0].should.have.key("FileSystemId").equals(fs_id)
+    assert len(desc_fs_resp["FileSystems"]) == 1
+    assert desc_fs_resp["FileSystems"][0]["FileSystemId"] == fs_id
     assert desc_fs_resp["FileSystems"][0]["Name"] == ""
 
 
@@ -180,9 +180,9 @@ def test_describe_file_systems_using_unknown_identifier(efs):
     with pytest.raises(ClientError) as exc:
         efs.describe_file_systems(FileSystemId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("FileSystemNotFound")
+    assert err["Code"] == "FileSystemNotFound"
     # Verified against AWS
-    err["Message"].should.equal("File system 'unknown' does not exist.")
+    assert err["Message"] == "File system 'unknown' does not exist."
 
 
 def test_describe_file_systems_minimal_case(efs):

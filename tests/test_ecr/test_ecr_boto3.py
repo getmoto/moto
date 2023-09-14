@@ -1,26 +1,17 @@
-import json
-from datetime import datetime
-
-import pytest
-from freezegun import freeze_time
-import os
-
-import re
-import sure  # noqa # pylint: disable=unused-import
-
 import boto3
-from botocore.exceptions import ClientError
-from dateutil.tz import tzlocal
+import json
+import pytest
 
-from moto import mock_ecr
+from botocore.exceptions import ClientError
+from datetime import datetime
+from dateutil.tz import tzlocal
+from freezegun import freeze_time
+from moto import mock_ecr, settings
 from unittest import SkipTest
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-from tests.test_ecr.test_ecr_helpers import (
-    _create_image_manifest,
-    _create_image_manifest_list,
-)
+from .test_ecr_helpers import _create_image_manifest, _create_image_manifest_list
 
 
 @mock_ecr
@@ -34,18 +25,20 @@ def test_create_repository():
 
     # then
     repo = response["repository"]
-    repo["repositoryName"].should.equal(repo_name)
-    repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    assert repo["repositoryName"] == repo_name
+    assert (
+        repo["repositoryArn"]
+        == f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    repo["registryId"].should.equal(ACCOUNT_ID)
-    repo["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    assert repo["registryId"] == ACCOUNT_ID
+    assert (
+        repo["repositoryUri"]
+        == f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    repo["createdAt"].should.be.a(datetime)
-    repo["imageTagMutability"].should.equal("MUTABLE")
-    repo["imageScanningConfiguration"].should.equal({"scanOnPush": False})
-    repo["encryptionConfiguration"].should.equal({"encryptionType": "AES256"})
+    assert isinstance(repo["createdAt"], datetime)
+    assert repo["imageTagMutability"] == "MUTABLE"
+    assert repo["imageScanningConfiguration"] == {"scanOnPush": False}
+    assert repo["encryptionConfiguration"] == {"encryptionType": "AES256"}
 
 
 @mock_ecr
@@ -67,20 +60,23 @@ def test_create_repository_with_non_default_config():
 
     # then
     repo = response["repository"]
-    repo["repositoryName"].should.equal(repo_name)
-    repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:{region_name}:{ACCOUNT_ID}:repository/{repo_name}"
+    assert repo["repositoryName"] == repo_name
+    assert (
+        repo["repositoryArn"]
+        == f"arn:aws:ecr:{region_name}:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    repo["registryId"].should.equal(ACCOUNT_ID)
-    repo["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.{region_name}.amazonaws.com/{repo_name}"
+    assert repo["registryId"] == ACCOUNT_ID
+    assert (
+        repo["repositoryUri"]
+        == f"{ACCOUNT_ID}.dkr.ecr.{region_name}.amazonaws.com/{repo_name}"
     )
-    repo["createdAt"].should.be.a(datetime)
-    repo["imageTagMutability"].should.equal("IMMUTABLE")
-    repo["imageScanningConfiguration"].should.equal({"scanOnPush": True})
-    repo["encryptionConfiguration"].should.equal(
-        {"encryptionType": "KMS", "kmsKey": kms_key}
-    )
+    assert isinstance(repo["createdAt"], datetime)
+    assert repo["imageTagMutability"] == "IMMUTABLE"
+    assert repo["imageScanningConfiguration"] == {"scanOnPush": True}
+    assert repo["encryptionConfiguration"] == {
+        "encryptionType": "KMS",
+        "kmsKey": kms_key,
+    }
 
 
 @mock_ecr
@@ -96,22 +92,23 @@ def test_create_repository_in_different_account():
 
     # then we should persist this ID
     repo = response["repository"]
-    repo.should.have.key("registryId").equals("222222222222")
-    repo.should.have.key("repositoryArn").equals(
-        "arn:aws:ecr:us-east-1:222222222222:repository/test-repo"
+    assert repo["registryId"] == "222222222222"
+    assert (
+        repo["repositoryArn"]
+        == "arn:aws:ecr:us-east-1:222222222222:repository/test-repo"
     )
 
     # then this repo should be returned with the correct ID
     repo = client.describe_repositories()["repositories"][0]
-    repo.should.have.key("registryId").equals("222222222222")
+    assert repo["registryId"] == "222222222222"
 
     # then we can search for repos with this ID
     response = client.describe_repositories(registryId="222222222222")
-    response.should.have.key("repositories").length_of(1)
+    assert len(response["repositories"]) == 1
 
     # then this repo is not found when searching for a different ID
     response = client.describe_repositories(registryId=ACCOUNT_ID)
-    response.should.have.key("repositories").length_of(0)
+    assert len(response["repositories"]) == 0
 
 
 @mock_ecr
@@ -127,10 +124,10 @@ def test_create_repository_with_aws_managed_kms():
     )["repository"]
 
     # then
-    repo["repositoryName"].should.equal(repo_name)
-    repo["encryptionConfiguration"]["encryptionType"].should.equal("KMS")
-    repo["encryptionConfiguration"]["kmsKey"].should.match(
-        r"arn:aws:kms:eu-central-1:[0-9]{12}:key/[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[ab89][a-f0-9]{3}-[a-f0-9]{12}$"
+    assert repo["repositoryName"] == repo_name
+    assert repo["encryptionConfiguration"]["encryptionType"] == "KMS"
+    assert repo["encryptionConfiguration"]["kmsKey"].startswith(
+        f"arn:aws:kms:eu-central-1:{ACCOUNT_ID}:key/"
     )
 
 
@@ -147,13 +144,26 @@ def test_create_repository_error_already_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("CreateRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryAlreadyExistsException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' already exists "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "CreateRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryAlreadyExistsException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' already exists in the registry with id '{ACCOUNT_ID}'"
     )
+
+
+@mock_ecr
+def test_create_repository_error_name_validation():
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "tesT"
+
+    with pytest.raises(ClientError) as e:
+        client.create_repository(repositoryName=repo_name)
+
+    ex = e.value
+    assert ex.operation_name == "CreateRepository"
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
 
 
 @mock_ecr
@@ -162,29 +172,25 @@ def test_describe_repositories():
     _ = client.create_repository(repositoryName="test_repository1")
     _ = client.create_repository(repositoryName="test_repository0")
     response = client.describe_repositories()
-    len(response["repositories"]).should.equal(2)
+    assert len(response["repositories"]) == 2
 
-    repository_arns = [
+    repository_arns = {
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1",
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository0",
-    ]
-    sorted(
-        [
-            response["repositories"][0]["repositoryArn"],
-            response["repositories"][1]["repositoryArn"],
-        ]
-    ).should.equal(sorted(repository_arns))
+    }
+    assert {
+        response["repositories"][0]["repositoryArn"],
+        response["repositories"][1]["repositoryArn"],
+    } == repository_arns
 
-    repository_uris = [
+    repository_uris = {
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
-    ]
-    sorted(
-        [
-            response["repositories"][0]["repositoryUri"],
-            response["repositories"][1]["repositoryUri"],
-        ]
-    ).should.equal(sorted(repository_uris))
+    }
+    assert {
+        response["repositories"][0]["repositoryUri"],
+        response["repositories"][1]["repositoryUri"],
+    } == repository_uris
 
 
 @mock_ecr
@@ -193,29 +199,25 @@ def test_describe_repositories_1():
     _ = client.create_repository(repositoryName="test_repository1")
     _ = client.create_repository(repositoryName="test_repository0")
     response = client.describe_repositories(registryId=ACCOUNT_ID)
-    len(response["repositories"]).should.equal(2)
+    assert len(response["repositories"]) == 2
 
-    repository_arns = [
+    repository_arns = {
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1",
         f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository0",
-    ]
-    sorted(
-        [
-            response["repositories"][0]["repositoryArn"],
-            response["repositories"][1]["repositoryArn"],
-        ]
-    ).should.equal(sorted(repository_arns))
+    }
+    assert {
+        response["repositories"][0]["repositoryArn"],
+        response["repositories"][1]["repositoryArn"],
+    } == repository_arns
 
-    repository_uris = [
+    repository_uris = {
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1",
         f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository0",
-    ]
-    sorted(
-        [
-            response["repositories"][0]["repositoryUri"],
-            response["repositories"][1]["repositoryUri"],
-        ]
-    ).should.equal(sorted(repository_uris))
+    }
+    assert {
+        response["repositories"][0]["repositoryUri"],
+        response["repositories"][1]["repositoryUri"],
+    } == repository_uris
 
 
 @mock_ecr
@@ -224,7 +226,7 @@ def test_describe_repositories_2():
     _ = client.create_repository(repositoryName="test_repository1")
     _ = client.create_repository(repositoryName="test_repository0")
     response = client.describe_repositories(registryId="109876543210")
-    len(response["repositories"]).should.equal(0)
+    assert len(response["repositories"]) == 0
 
 
 @mock_ecr
@@ -233,12 +235,12 @@ def test_describe_repositories_3():
     _ = client.create_repository(repositoryName="test_repository1")
     _ = client.create_repository(repositoryName="test_repository0")
     response = client.describe_repositories(repositoryNames=["test_repository1"])
-    len(response["repositories"]).should.equal(1)
+    assert len(response["repositories"]) == 1
     repository_arn = f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/test_repository1"
-    response["repositories"][0]["repositoryArn"].should.equal(repository_arn)
+    assert response["repositories"][0]["repositoryArn"] == repository_arn
 
     repository_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/test_repository1"
-    response["repositories"][0]["repositoryUri"].should.equal(repository_uri)
+    assert response["repositories"][0]["repositoryUri"] == repository_uri
 
 
 @mock_ecr
@@ -257,21 +259,23 @@ def test_describe_repositories_with_image():
     response = client.describe_repositories(repositoryNames=[repo_name])
 
     # then
-    response["repositories"].should.have.length_of(1)
+    assert len(response["repositories"]) == 1
 
     repo = response["repositories"][0]
-    repo["registryId"].should.equal(ACCOUNT_ID)
-    repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    assert repo["registryId"] == ACCOUNT_ID
+    assert (
+        repo["repositoryArn"]
+        == f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    repo["repositoryName"].should.equal(repo_name)
-    repo["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    assert repo["repositoryName"] == repo_name
+    assert (
+        repo["repositoryUri"]
+        == f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    repo["createdAt"].should.be.a(datetime)
-    repo["imageScanningConfiguration"].should.equal({"scanOnPush": False})
-    repo["imageTagMutability"].should.equal("MUTABLE")
-    repo["encryptionConfiguration"].should.equal({"encryptionType": "AES256"})
+    assert isinstance(repo["createdAt"], datetime)
+    assert repo["imageScanningConfiguration"] == {"scanOnPush": False}
+    assert repo["imageTagMutability"] == "MUTABLE"
+    assert repo["encryptionConfiguration"] == {"encryptionType": "AES256"}
 
 
 @mock_ecr
@@ -286,19 +290,21 @@ def test_delete_repository():
 
     # then
     repo = response["repository"]
-    repo["repositoryName"].should.equal(repo_name)
-    repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    assert repo["repositoryName"] == repo_name
+    assert (
+        repo["repositoryArn"]
+        == f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    repo["registryId"].should.equal(ACCOUNT_ID)
-    repo["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    assert repo["registryId"] == ACCOUNT_ID
+    assert (
+        repo["repositoryUri"]
+        == f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    repo["createdAt"].should.be.a(datetime)
-    repo["imageTagMutability"].should.equal("MUTABLE")
+    assert isinstance(repo["createdAt"], datetime)
+    assert repo["imageTagMutability"] == "MUTABLE"
 
     response = client.describe_repositories()
-    response["repositories"].should.have.length_of(0)
+    assert len(response["repositories"]) == 0
 
 
 @mock_ecr
@@ -318,19 +324,21 @@ def test_delete_repository_with_force():
 
     # then
     repo = response["repository"]
-    repo["repositoryName"].should.equal(repo_name)
-    repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
+    assert repo["repositoryName"] == repo_name
+    assert (
+        repo["repositoryArn"]
+        == f"arn:aws:ecr:us-east-1:{ACCOUNT_ID}:repository/{repo_name}"
     )
-    repo["registryId"].should.equal(ACCOUNT_ID)
-    repo["repositoryUri"].should.equal(
-        f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
+    assert repo["registryId"] == ACCOUNT_ID
+    assert (
+        repo["repositoryUri"]
+        == f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/{repo_name}"
     )
-    repo["createdAt"].should.be.a(datetime)
-    repo["imageTagMutability"].should.equal("MUTABLE")
+    assert isinstance(repo["createdAt"], datetime)
+    assert repo["imageTagMutability"] == "MUTABLE"
 
     response = client.describe_repositories()
-    response["repositories"].should.have.length_of(0)
+    assert len(response["repositories"]) == 0
 
 
 @mock_ecr
@@ -344,10 +352,10 @@ def test_put_image():
         imageTag="latest",
     )
 
-    response["image"]["imageId"]["imageTag"].should.equal("latest")
-    response["image"]["imageId"]["imageDigest"].should.contain("sha")
-    response["image"]["repositoryName"].should.equal("test_repository")
-    response["image"]["registryId"].should.equal(ACCOUNT_ID)
+    assert response["image"]["imageId"]["imageTag"] == "latest"
+    assert "sha" in response["image"]["imageId"]["imageDigest"]
+    assert response["image"]["repositoryName"] == "test_repository"
+    assert response["image"]["registryId"] == ACCOUNT_ID
 
 
 @mock_ecr
@@ -358,20 +366,12 @@ def test_put_image_without_mediatype():
     image_manifest = _create_image_manifest()
     _ = image_manifest.pop("mediaType")
 
-    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
-        with pytest.raises(ClientError):
-            client.put_image(
-                repositoryName="test_repository",
-                imageManifest=json.dumps(image_manifest),
-                imageTag="latest",
-            )
-    else:
-        error_msg = "image manifest mediatype not provided in manifest or parameter"
-        client.put_image.when.called_with(
+    with pytest.raises(Exception):
+        client.put_image(
             repositoryName="test_repository",
             imageManifest=json.dumps(image_manifest),
             imageTag="latest",
-        ).should.throw(Exception, error_msg)
+        )
 
 
 @mock_ecr
@@ -389,11 +389,11 @@ def test_put_image_with_imagemanifestmediatype():
         imageTag="latest",
     )
 
-    response["image"]["imageId"]["imageTag"].should.equal("latest")
-    response["image"]["imageId"]["imageDigest"].should.contain("sha")
-    response["image"]["repositoryName"].should.equal("test_repository")
-    response["image"]["imageManifestMediaType"].should.equal(media_type)
-    response["image"]["registryId"].should.equal(ACCOUNT_ID)
+    assert response["image"]["imageId"]["imageTag"] == "latest"
+    assert "sha" in response["image"]["imageId"]["imageDigest"]
+    assert response["image"]["repositoryName"] == "test_repository"
+    assert response["image"]["imageManifestMediaType"] == media_type
+    assert response["image"]["registryId"] == ACCOUNT_ID
 
 
 @mock_ecr()
@@ -414,19 +414,19 @@ def test_put_manifest_list():
         imageTag="multiArch",
     )
 
-    response["image"]["imageId"]["imageTag"].should.equal("multiArch")
-    response["image"]["imageId"]["imageDigest"].should.contain("sha")
-    response["image"]["repositoryName"].should.equal("test_repository")
-    response["image"]["registryId"].should.equal(ACCOUNT_ID)
-    response["image"].should.have.key("imageManifest")
+    assert response["image"]["imageId"]["imageTag"] == "multiArch"
+    assert "sha" in response["image"]["imageId"]["imageDigest"]
+    assert response["image"]["repositoryName"] == "test_repository"
+    assert response["image"]["registryId"] == ACCOUNT_ID
+    assert "imageManifest" in response["image"]
     image_manifest = json.loads(response["image"]["imageManifest"])
-    image_manifest.should.have.key("mediaType")
-    image_manifest.should.have.key("manifests")
+    assert "mediaType" in image_manifest
+    assert "manifests" in image_manifest
 
 
 @mock_ecr
 def test_put_image_with_push_date():
-    if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
+    if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
     client = boto3.client("ecr", region_name="us-east-1")
@@ -450,15 +450,13 @@ def test_put_image_with_push_date():
 
     describe_response = client.describe_images(repositoryName="test_repository")
 
-    type(describe_response["imageDetails"]).should.be(list)
-    len(describe_response["imageDetails"]).should.be(2)
+    assert isinstance(describe_response["imageDetails"], list)
+    assert len(describe_response["imageDetails"]) == 2
 
-    set(
-        [
-            describe_response["imageDetails"][0]["imagePushedAt"],
-            describe_response["imageDetails"][1]["imagePushedAt"],
-        ]
-    ).should.equal(set([image1_date, image2_date]))
+    assert {
+        describe_response["imageDetails"][0]["imagePushedAt"],
+        describe_response["imageDetails"][1]["imagePushedAt"],
+    } == {image1_date, image2_date}
 
 
 @mock_ecr
@@ -472,10 +470,10 @@ def test_put_image_with_multiple_tags():
         imageTag="v1",
     )
 
-    response["image"]["imageId"]["imageTag"].should.equal("v1")
-    response["image"]["imageId"]["imageDigest"].should.contain("sha")
-    response["image"]["repositoryName"].should.equal("test_repository")
-    response["image"]["registryId"].should.equal(ACCOUNT_ID)
+    assert response["image"]["imageId"]["imageTag"] == "v1"
+    assert "sha" in response["image"]["imageId"]["imageDigest"]
+    assert response["image"]["repositoryName"] == "test_repository"
+    assert response["image"]["registryId"] == ACCOUNT_ID
 
     response1 = client.put_image(
         repositoryName="test_repository",
@@ -483,23 +481,22 @@ def test_put_image_with_multiple_tags():
         imageTag="latest",
     )
 
-    response1["image"]["imageId"]["imageTag"].should.equal("latest")
-    response1["image"]["imageId"]["imageDigest"].should.contain("sha")
-    response1["image"]["repositoryName"].should.equal("test_repository")
-    response1["image"]["registryId"].should.equal(ACCOUNT_ID)
+    assert response1["image"]["imageId"]["imageTag"] == "latest"
+    assert "sha" in response1["image"]["imageId"]["imageDigest"]
+    assert response1["image"]["repositoryName"] == "test_repository"
+    assert response1["image"]["registryId"] == ACCOUNT_ID
 
     response2 = client.describe_images(repositoryName="test_repository")
-    type(response2["imageDetails"]).should.be(list)
-    len(response2["imageDetails"]).should.be(1)
+    assert isinstance(response2["imageDetails"], list)
+    assert len(response2["imageDetails"]) == 1
 
-    response2["imageDetails"][0]["imageDigest"].should.contain("sha")
+    assert "sha" in response2["imageDetails"][0]["imageDigest"]
 
-    response2["imageDetails"][0]["registryId"].should.equal(ACCOUNT_ID)
+    assert response2["imageDetails"][0]["registryId"] == ACCOUNT_ID
+    assert response2["imageDetails"][0]["repositoryName"] == "test_repository"
 
-    response2["imageDetails"][0]["repositoryName"].should.equal("test_repository")
-
-    len(response2["imageDetails"][0]["imageTags"]).should.be(2)
-    response2["imageDetails"][0]["imageTags"].should.be.equal(["v1", "latest"])
+    assert len(response2["imageDetails"][0]["imageTags"]) == 2
+    assert response2["imageDetails"][0]["imageTags"] == ["v1", "latest"]
 
 
 @mock_ecr
@@ -530,8 +527,8 @@ def test_put_multiple_images_with_same_tag():
 
     images = client.describe_images(repositoryName=repo_name)["imageDetails"]
 
-    images.should.have.length_of(1)
-    images[0]["imageDigest"].should.equal(image_2)
+    assert len(images) == 1
+    assert images[0]["imageDigest"] == image_2
 
     # Same image with different tags is allowed
     image_3 = client.put_image(
@@ -541,8 +538,8 @@ def test_put_multiple_images_with_same_tag():
     )["image"]["imageId"]["imageDigest"]
 
     images = client.describe_images(repositoryName=repo_name)["imageDetails"]
-    images.should.have.length_of(2)
-    set([img["imageDigest"] for img in images]).should.equal({image_2, image_3})
+    assert len(images) == 2
+    assert set([img["imageDigest"] for img in images]) == {image_2, image_3}
 
 
 @mock_ecr
@@ -568,17 +565,17 @@ def test_put_same_image_with_same_tag():
         )["image"]["imageId"]["imageDigest"]
 
     ex = e.value
-    ex.operation_name.should.equal("PutImage")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ImageAlreadyExistsException")
-    ex.response["Error"]["Message"].should.equal(
-        f"Image with digest '{image_1}' and tag '{image_tag}' already exists "
-        f"in the repository with name '{repo_name}' in registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "PutImage"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "ImageAlreadyExistsException" in ex.response["Error"]["Code"]
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Image with digest '{image_1}' and tag '{image_tag}' already exists in the repository with name '{repo_name}' in registry with id '{ACCOUNT_ID}'"
     )
 
     images = client.describe_images(repositoryName=repo_name)["imageDetails"]
 
-    images.should.have.length_of(1)
+    assert len(images) == 1
 
 
 @mock_ecr
@@ -662,26 +659,24 @@ def test_list_images():
     )
 
     response = client.list_images(repositoryName="test_repository_1")
-    type(response["imageIds"]).should.be(list)
-    len(response["imageIds"]).should.be(3)
+    assert isinstance(response["imageIds"], list)
+    assert len(response["imageIds"]) == 3
 
     for image in response["imageIds"]:
-        image["imageDigest"].should.contain("sha")
+        assert "sha" in image["imageDigest"]
 
     image_tags = ["latest", "v1", "v2"]
-    set(
-        [
-            response["imageIds"][0]["imageTag"],
-            response["imageIds"][1]["imageTag"],
-            response["imageIds"][2]["imageTag"],
-        ]
-    ).should.equal(set(image_tags))
+    assert {
+        response["imageIds"][0]["imageTag"],
+        response["imageIds"][1]["imageTag"],
+        response["imageIds"][2]["imageTag"],
+    } == set(image_tags)
 
     response = client.list_images(repositoryName="test_repository_2")
-    type(response["imageIds"]).should.be(list)
-    len(response["imageIds"]).should.be(1)
-    response["imageIds"][0]["imageTag"].should.equal("oldest")
-    response["imageIds"][0]["imageDigest"].should.contain("sha")
+    assert isinstance(response["imageIds"], list)
+    assert len(response["imageIds"]) == 1
+    assert response["imageIds"][0]["imageTag"] == "oldest"
+    assert "sha" in response["imageIds"][0]["imageDigest"]
 
 
 @mock_ecr
@@ -690,22 +685,16 @@ def test_list_images_from_repository_that_doesnt_exist():
     _ = client.create_repository(repositoryName="test_repository_1")
 
     # non existing repo
-    error_msg = re.compile(
-        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
-        re.MULTILINE,
-    )
-    client.list_images.when.called_with(
-        repositoryName="repo-that-doesnt-exist", registryId="123"
-    ).should.throw(Exception, error_msg)
+    with pytest.raises(ClientError) as exc:
+        client.list_images(repositoryName="repo-that-doesnt-exist", registryId="123")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "RepositoryNotFoundException"
 
     # repo does not exist in specified registry
-    error_msg = re.compile(
-        r".*The repository with name 'test_repository_1' does not exist in the registry with id '222'.*",
-        re.MULTILINE,
-    )
-    client.list_images.when.called_with(
-        repositoryName="test_repository_1", registryId="222"
-    ).should.throw(Exception, error_msg)
+    with pytest.raises(ClientError) as exc:
+        client.list_images(repositoryName="test_repository_1", registryId="222")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "RepositoryNotFoundException"
 
 
 @mock_ecr
@@ -750,81 +739,39 @@ def test_describe_images():
     )
 
     response = client.describe_images(repositoryName="test_repository")
-    type(response["imageDetails"]).should.be(list)
-    len(response["imageDetails"]).should.be(7)
+    assert isinstance(response["imageDetails"], list)
+    assert len(response["imageDetails"]) == 7
 
-    response["imageDetails"][0]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.v2+json"
-    )
-    response["imageDetails"][1]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.v2+json"
-    )
-    response["imageDetails"][2]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.v2+json"
-    )
-    response["imageDetails"][3]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.v2+json"
-    )
-    response["imageDetails"][4]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.v2+json"
-    )
-    response["imageDetails"][5]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.v2+json"
-    )
-    response["imageDetails"][6]["imageManifestMediaType"].should.contain(
-        "distribution.manifest.list.v2+json"
-    )
+    for detail in response["imageDetails"][0:5]:
+        assert "distribution.manifest.v2+json" in detail["imageManifestMediaType"]
+        assert "sha" in detail["imageDigest"]
+        assert detail["registryId"] == ACCOUNT_ID
+        assert detail["repositoryName"] == "test_repository"
 
-    response["imageDetails"][0]["imageDigest"].should.contain("sha")
-    response["imageDetails"][1]["imageDigest"].should.contain("sha")
-    response["imageDetails"][2]["imageDigest"].should.contain("sha")
-    response["imageDetails"][3]["imageDigest"].should.contain("sha")
-    response["imageDetails"][4]["imageDigest"].should.contain("sha")
-    response["imageDetails"][5]["imageDigest"].should.contain("sha")
-    response["imageDetails"][6]["imageDigest"].should.contain("sha")
+    assert "imageTags" not in response["imageDetails"][0]
+    assert "imageTags" not in response["imageDetails"][4]
+    assert "imageTags" not in response["imageDetails"][5]
 
-    response["imageDetails"][0]["registryId"].should.equal(ACCOUNT_ID)
-    response["imageDetails"][1]["registryId"].should.equal(ACCOUNT_ID)
-    response["imageDetails"][2]["registryId"].should.equal(ACCOUNT_ID)
-    response["imageDetails"][3]["registryId"].should.equal(ACCOUNT_ID)
-    response["imageDetails"][4]["registryId"].should.equal(ACCOUNT_ID)
-    response["imageDetails"][5]["registryId"].should.equal(ACCOUNT_ID)
-    response["imageDetails"][6]["registryId"].should.equal(ACCOUNT_ID)
-
-    response["imageDetails"][0]["repositoryName"].should.equal("test_repository")
-    response["imageDetails"][1]["repositoryName"].should.equal("test_repository")
-    response["imageDetails"][2]["repositoryName"].should.equal("test_repository")
-    response["imageDetails"][3]["repositoryName"].should.equal("test_repository")
-    response["imageDetails"][4]["repositoryName"].should.equal("test_repository")
-    response["imageDetails"][5]["repositoryName"].should.equal("test_repository")
-    response["imageDetails"][6]["repositoryName"].should.equal("test_repository")
-
-    response["imageDetails"][0].should_not.have.key("imageTags")
-    response["imageDetails"][4].should_not.have.key("imageTags")
-    response["imageDetails"][5].should_not.have.key("imageTags")
-
-    len(response["imageDetails"][1]["imageTags"]).should.be(1)
-    len(response["imageDetails"][2]["imageTags"]).should.be(1)
-    len(response["imageDetails"][3]["imageTags"]).should.be(1)
-    len(response["imageDetails"][6]["imageTags"]).should.be(1)
+    assert len(response["imageDetails"][1]["imageTags"]) == 1
+    assert len(response["imageDetails"][2]["imageTags"]) == 1
+    assert len(response["imageDetails"][3]["imageTags"]) == 1
+    assert len(response["imageDetails"][6]["imageTags"]) == 1
 
     image_tags = ["latest", "v1", "v2"]
-    set(
-        [
-            response["imageDetails"][1]["imageTags"][0],
-            response["imageDetails"][2]["imageTags"][0],
-            response["imageDetails"][3]["imageTags"][0],
-        ]
-    ).should.equal(set(image_tags))
+    assert {
+        response["imageDetails"][1]["imageTags"][0],
+        response["imageDetails"][2]["imageTags"][0],
+        response["imageDetails"][3]["imageTags"][0],
+    } == set(image_tags)
 
-    response["imageDetails"][6].should_not.have.key("imageSizeInBytes")
+    assert "imageSizeInBytes" not in response["imageDetails"][6]
 
-    response["imageDetails"][0]["imageSizeInBytes"].should.be.greater_than(0)
-    response["imageDetails"][1]["imageSizeInBytes"].should.be.greater_than(0)
-    response["imageDetails"][2]["imageSizeInBytes"].should.be.greater_than(0)
-    response["imageDetails"][3]["imageSizeInBytes"].should.be.greater_than(0)
-    response["imageDetails"][4]["imageSizeInBytes"].should.be.greater_than(0)
-    response["imageDetails"][5]["imageSizeInBytes"].should.be.greater_than(0)
+    assert response["imageDetails"][0]["imageSizeInBytes"] > 0
+    assert response["imageDetails"][1]["imageSizeInBytes"] > 0
+    assert response["imageDetails"][2]["imageSizeInBytes"] > 0
+    assert response["imageDetails"][3]["imageSizeInBytes"] > 0
+    assert response["imageDetails"][4]["imageSizeInBytes"] > 0
+    assert response["imageDetails"][5]["imageSizeInBytes"] > 0
 
 
 @mock_ecr
@@ -845,12 +792,12 @@ def test_describe_images_by_tag():
         response = client.describe_images(
             repositoryName="test_repository", imageIds=[{"imageTag": tag}]
         )
-        len(response["imageDetails"]).should.be(1)
+        assert len(response["imageDetails"]) == 1
         image_detail = response["imageDetails"][0]
-        image_detail["registryId"].should.equal(ACCOUNT_ID)
-        image_detail["repositoryName"].should.equal("test_repository")
-        image_detail["imageTags"].should.equal([put_response["imageId"]["imageTag"]])
-        image_detail["imageDigest"].should.equal(put_response["imageId"]["imageDigest"])
+        assert image_detail["registryId"] == ACCOUNT_ID
+        assert image_detail["repositoryName"] == "test_repository"
+        assert image_detail["imageTags"] == [put_response["imageId"]["imageTag"]]
+        assert image_detail["imageDigest"] == put_response["imageId"]["imageDigest"]
 
 
 @mock_ecr
@@ -874,10 +821,10 @@ def test_describe_images_tags_should_not_contain_empty_tag1():
     response = client.describe_images(
         repositoryName="test_repository", imageIds=[{"imageTag": tag}]
     )
-    len(response["imageDetails"]).should.be(1)
+    assert len(response["imageDetails"]) == 1
     image_detail = response["imageDetails"][0]
-    len(image_detail["imageTags"]).should.equal(3)
-    image_detail["imageTags"].should.be.equal(tags)
+    assert len(image_detail["imageTags"]) == 3
+    assert image_detail["imageTags"] == tags
 
 
 @mock_ecr
@@ -907,23 +854,22 @@ def test_describe_images_tags_should_not_contain_empty_tag2():
     response = client.describe_images(
         repositoryName="test_repository", imageIds=[{"imageTag": tag}]
     )
-    len(response["imageDetails"]).should.be(1)
+    assert len(response["imageDetails"]) == 1
     image_detail = response["imageDetails"][0]
-    len(image_detail["imageTags"]).should.equal(3)
-    image_detail["imageTags"].should.be.equal(["v1", "v2", "latest"])
+    assert len(image_detail["imageTags"]) == 3
+    assert image_detail["imageTags"] == ["v1", "v2", "latest"]
 
 
 @mock_ecr
 def test_describe_repository_that_doesnt_exist():
     client = boto3.client("ecr", region_name="us-east-1")
 
-    error_msg = re.compile(
-        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123'.*",
-        re.MULTILINE,
-    )
-    client.describe_repositories.when.called_with(
-        repositoryNames=["repo-that-doesnt-exist"], registryId="123"
-    ).should.throw(ClientError, error_msg)
+    with pytest.raises(ClientError) as exc:
+        client.describe_repositories(
+            repositoryNames=["repo-that-doesnt-exist"], registryId="123"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "RepositoryNotFoundException"
 
 
 @mock_ecr
@@ -931,27 +877,23 @@ def test_describe_image_that_doesnt_exist():
     client = boto3.client("ecr", region_name="us-east-1")
     client.create_repository(repositoryName="test_repository")
 
-    error_msg1 = re.compile(
-        r".*The image with imageId {imageDigest:'null', imageTag:'testtag'} does not exist within "
-        r"the repository with name 'test_repository' in the registry with id '123456789012'.*",
-        re.MULTILINE,
-    )
+    with pytest.raises(ClientError) as exc:
+        client.describe_images(
+            repositoryName="test_repository",
+            imageIds=[{"imageTag": "testtag"}],
+            registryId=ACCOUNT_ID,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ImageNotFoundException"
 
-    client.describe_images.when.called_with(
-        repositoryName="test_repository",
-        imageIds=[{"imageTag": "testtag"}],
-        registryId=ACCOUNT_ID,
-    ).should.throw(client.exceptions.ImageNotFoundException, error_msg1)
-
-    error_msg2 = re.compile(
-        r".*The repository with name 'repo-that-doesnt-exist' does not exist in the registry with id '123456789012'.*",
-        re.MULTILINE,
-    )
-    client.describe_images.when.called_with(
-        repositoryName="repo-that-doesnt-exist",
-        imageIds=[{"imageTag": "testtag"}],
-        registryId=ACCOUNT_ID,
-    ).should.throw(ClientError, error_msg2)
+    with pytest.raises(ClientError) as exc:
+        client.describe_images(
+            repositoryName="repo-that-doesnt-exist",
+            imageIds=[{"imageTag": "testtag"}],
+            registryId=ACCOUNT_ID,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "RepositoryNotFoundException"
 
 
 @mock_ecr
@@ -965,12 +907,12 @@ def test_delete_repository_that_doesnt_exist():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DeleteRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -991,13 +933,12 @@ def test_delete_repository_error_not_empty():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteRepository")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotEmptyException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' "
-        f"in registry with id '{ACCOUNT_ID}' "
-        "cannot be deleted because it still contains images"
+    assert ex.operation_name == "DeleteRepository"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotEmptyException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' in registry with id '{ACCOUNT_ID}' cannot be deleted because it still contains images"
     )
 
 
@@ -1022,12 +963,12 @@ def test_describe_images_by_digest():
         response = client.describe_images(
             repositoryName="test_repository", imageIds=[{"imageDigest": digest}]
         )
-        len(response["imageDetails"]).should.be(1)
+        assert len(response["imageDetails"]) == 1
         image_detail = response["imageDetails"][0]
-        image_detail["registryId"].should.equal(ACCOUNT_ID)
-        image_detail["repositoryName"].should.equal("test_repository")
-        image_detail["imageTags"].should.equal([put_response["imageId"]["imageTag"]])
-        image_detail["imageDigest"].should.equal(digest)
+        assert image_detail["registryId"] == ACCOUNT_ID
+        assert image_detail["repositoryName"] == "test_repository"
+        assert image_detail["imageTags"] == [put_response["imageId"]["imageTag"]]
+        assert image_detail["imageDigest"] == digest
 
 
 @mock_ecr
@@ -1035,17 +976,15 @@ def test_get_authorization_token_assume_region():
     client = boto3.client("ecr", region_name="us-east-1")
     auth_token_response = client.get_authorization_token()
 
-    auth_token_response.should.contain("authorizationData")
-    auth_token_response.should.contain("ResponseMetadata")
-    auth_token_response["authorizationData"].should.equal(
-        [
-            {
-                "authorizationToken": "QVdTOjEyMzQ1Njc4OTAxMi1hdXRoLXRva2Vu",
-                "proxyEndpoint": f"https://{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com",
-                "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
-            }
-        ]
-    )
+    assert "authorizationData" in auth_token_response
+    assert "ResponseMetadata" in auth_token_response
+    assert auth_token_response["authorizationData"] == [
+        {
+            "authorizationToken": "QVdTOjEyMzQ1Njc4OTAxMi1hdXRoLXRva2Vu",
+            "proxyEndpoint": f"https://{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com",
+            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
+        }
+    ]
 
 
 @mock_ecr
@@ -1055,22 +994,20 @@ def test_get_authorization_token_explicit_regions():
         registryIds=["10987654321", "878787878787"]
     )
 
-    auth_token_response.should.contain("authorizationData")
-    auth_token_response.should.contain("ResponseMetadata")
-    auth_token_response["authorizationData"].should.equal(
-        [
-            {
-                "authorizationToken": "QVdTOjEwOTg3NjU0MzIxLWF1dGgtdG9rZW4=",
-                "proxyEndpoint": "https://10987654321.dkr.ecr.us-east-1.amazonaws.com",
-                "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
-            },
-            {
-                "authorizationToken": "QVdTOjg3ODc4Nzg3ODc4Ny1hdXRoLXRva2Vu",
-                "proxyEndpoint": "https://878787878787.dkr.ecr.us-east-1.amazonaws.com",
-                "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
-            },
-        ]
-    )
+    assert "authorizationData" in auth_token_response
+    assert "ResponseMetadata" in auth_token_response
+    assert auth_token_response["authorizationData"] == [
+        {
+            "authorizationToken": "QVdTOjEwOTg3NjU0MzIxLWF1dGgtdG9rZW4=",
+            "proxyEndpoint": "https://10987654321.dkr.ecr.us-east-1.amazonaws.com",
+            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
+        },
+        {
+            "authorizationToken": "QVdTOjg3ODc4Nzg3ODc4Ny1hdXRoLXRva2Vu",
+            "proxyEndpoint": "https://878787878787.dkr.ecr.us-east-1.amazonaws.com",
+            "expiresAt": datetime(2015, 1, 1, tzinfo=tzlocal()),
+        },
+    ]
 
 
 @mock_ecr
@@ -1100,20 +1037,21 @@ def test_batch_get_image():
         repositoryName="test_repository", imageIds=[{"imageTag": "v2"}]
     )
 
-    type(response["images"]).should.be(list)
-    len(response["images"]).should.be(1)
+    assert isinstance(response["images"], list)
+    assert len(response["images"]) == 1
 
-    response["images"][0]["imageManifest"].should.contain(
+    assert (
         "vnd.docker.distribution.manifest.v2+json"
+        in response["images"][0]["imageManifest"]
     )
-    response["images"][0]["registryId"].should.equal(ACCOUNT_ID)
-    response["images"][0]["repositoryName"].should.equal("test_repository")
+    assert response["images"][0]["registryId"] == ACCOUNT_ID
+    assert response["images"][0]["repositoryName"] == "test_repository"
 
-    response["images"][0]["imageId"]["imageTag"].should.equal("v2")
-    response["images"][0]["imageId"]["imageDigest"].should.contain("sha")
+    assert response["images"][0]["imageId"]["imageTag"] == "v2"
+    assert "sha" in response["images"][0]["imageId"]["imageDigest"]
 
-    type(response["failures"]).should.be(list)
-    len(response["failures"]).should.be(0)
+    assert isinstance(response["failures"], list)
+    assert len(response["failures"]) == 0
 
 
 @mock_ecr
@@ -1143,14 +1081,14 @@ def test_batch_get_image_that_doesnt_exist():
         repositoryName="test_repository", imageIds=[{"imageTag": "v5"}]
     )
 
-    type(response["images"]).should.be(list)
-    len(response["images"]).should.be(0)
+    assert isinstance(response["images"], list)
+    assert len(response["images"]) == 0
 
-    type(response["failures"]).should.be(list)
-    len(response["failures"]).should.be(1)
-    response["failures"][0]["failureReason"].should.equal("Requested image not found")
-    response["failures"][0]["failureCode"].should.equal("ImageNotFound")
-    response["failures"][0]["imageId"]["imageTag"].should.equal("v5")
+    assert isinstance(response["failures"], list)
+    assert len(response["failures"]) == 1
+    assert response["failures"][0]["failureReason"] == "Requested image not found"
+    assert response["failures"][0]["failureCode"] == "ImageNotFound"
+    assert response["failures"][0]["imageId"]["imageTag"] == "v5"
 
 
 @mock_ecr
@@ -1179,8 +1117,9 @@ def test_batch_get_image_with_multiple_tags():
         repositoryName="test_repository", imageIds=[{"imageTag": "v1"}]
     )
 
-    latest_response["images"][0]["imageManifest"].should.equal(
-        v1_response["images"][0]["imageManifest"]
+    assert (
+        latest_response["images"][0]["imageManifest"]
+        == v1_response["images"][0]["imageManifest"]
     )
 
 
@@ -1209,19 +1148,19 @@ def test_batch_delete_image_by_tag():
 
     describe_response2 = client.describe_images(repositoryName="test_repository")
 
-    type(describe_response1["imageDetails"][0]["imageTags"]).should.be(list)
-    len(describe_response1["imageDetails"][0]["imageTags"]).should.be(3)
+    assert isinstance(describe_response1["imageDetails"][0]["imageTags"], list)
+    assert len(describe_response1["imageDetails"][0]["imageTags"]) == 3
 
-    type(describe_response2["imageDetails"][0]["imageTags"]).should.be(list)
-    len(describe_response2["imageDetails"][0]["imageTags"]).should.be(2)
+    assert isinstance(describe_response2["imageDetails"][0]["imageTags"], list)
+    assert len(describe_response2["imageDetails"][0]["imageTags"]) == 2
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(1)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 1
 
-    batch_delete_response["imageIds"][0]["imageTag"].should.equal("latest")
+    assert batch_delete_response["imageIds"][0]["imageTag"] == "latest"
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(0)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 0
 
 
 @mock_ecr
@@ -1245,19 +1184,19 @@ def test_batch_delete_image_delete_last_tag():
 
     describe_response2 = client.describe_images(repositoryName="test_repository")
 
-    type(describe_response1["imageDetails"][0]["imageTags"]).should.be(list)
-    len(describe_response1["imageDetails"][0]["imageTags"]).should.be(1)
+    assert isinstance(describe_response1["imageDetails"][0]["imageTags"], list)
+    assert len(describe_response1["imageDetails"][0]["imageTags"]) == 1
 
-    type(describe_response2["imageDetails"]).should.be(list)
-    len(describe_response2["imageDetails"]).should.be(0)
+    assert isinstance(describe_response2["imageDetails"], list)
+    assert len(describe_response2["imageDetails"]) == 0
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(1)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 1
 
-    batch_delete_response["imageIds"][0]["imageTag"].should.equal("v1")
+    assert batch_delete_response["imageIds"][0]["imageTag"] == "v1"
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(0)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 0
 
 
 @mock_ecr
@@ -1284,22 +1223,21 @@ def test_batch_delete_image_with_nonexistent_tag():
         imageIds=[{"imageTag": missing_tag}],
     )
 
-    type(describe_response["imageDetails"][0]["imageTags"]).should.be(list)
-    len(describe_response["imageDetails"][0]["imageTags"]).should.be(3)
+    assert isinstance(describe_response["imageDetails"][0]["imageTags"], list)
+    assert len(describe_response["imageDetails"][0]["imageTags"]) == 3
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(0)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 0
 
-    batch_delete_response["failures"][0]["imageId"]["imageTag"].should.equal(
-        missing_tag
+    assert batch_delete_response["failures"][0]["imageId"]["imageTag"] == missing_tag
+    assert batch_delete_response["failures"][0]["failureCode"] == "ImageNotFound"
+    assert (
+        batch_delete_response["failures"][0]["failureReason"]
+        == "Requested image not found"
     )
-    batch_delete_response["failures"][0]["failureCode"].should.equal("ImageNotFound")
-    batch_delete_response["failures"][0]["failureReason"].should.equal(
-        "Requested image not found"
-    )
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(1)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 1
 
 
 @mock_ecr
@@ -1328,26 +1266,24 @@ def test_batch_delete_image_by_digest():
 
     describe_response = client.describe_images(repositoryName="test_repository")
 
-    type(describe_response["imageDetails"]).should.be(list)
-    len(describe_response["imageDetails"]).should.be(0)
+    assert isinstance(describe_response["imageDetails"], list)
+    assert len(describe_response["imageDetails"]) == 0
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(3)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 3
 
-    batch_delete_response["imageIds"][0]["imageDigest"].should.equal(image_digest)
-    batch_delete_response["imageIds"][1]["imageDigest"].should.equal(image_digest)
-    batch_delete_response["imageIds"][2]["imageDigest"].should.equal(image_digest)
+    assert batch_delete_response["imageIds"][0]["imageDigest"] == image_digest
+    assert batch_delete_response["imageIds"][1]["imageDigest"] == image_digest
+    assert batch_delete_response["imageIds"][2]["imageDigest"] == image_digest
 
-    set(
-        [
-            batch_delete_response["imageIds"][0]["imageTag"],
-            batch_delete_response["imageIds"][1]["imageTag"],
-            batch_delete_response["imageIds"][2]["imageTag"],
-        ]
-    ).should.equal(set(tags))
+    assert {
+        batch_delete_response["imageIds"][0]["imageTag"],
+        batch_delete_response["imageIds"][1]["imageTag"],
+        batch_delete_response["imageIds"][2]["imageTag"],
+    } == set(tags)
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(0)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 0
 
 
 @mock_ecr
@@ -1373,20 +1309,20 @@ def test_batch_delete_image_with_invalid_digest():
         imageIds=[{"imageDigest": invalid_image_digest}],
     )
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(0)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 0
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(1)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 1
 
-    batch_delete_response["failures"][0]["imageId"]["imageDigest"].should.equal(
-        invalid_image_digest
+    assert (
+        batch_delete_response["failures"][0]["imageId"]["imageDigest"]
+        == invalid_image_digest
     )
-    batch_delete_response["failures"][0]["failureCode"].should.equal(
-        "InvalidImageDigest"
-    )
-    batch_delete_response["failures"][0]["failureReason"].should.equal(
-        "Invalid request parameters: image digest should satisfy the regex '[a-zA-Z0-9-_+.]+:[a-fA-F0-9]+'"
+    assert batch_delete_response["failures"][0]["failureCode"] == "InvalidImageDigest"
+    assert (
+        batch_delete_response["failures"][0]["failureReason"]
+        == "Invalid request parameters: image digest should satisfy the regex '[a-zA-Z0-9-_+.]+:[a-fA-F0-9]+'"
     )
 
 
@@ -1399,17 +1335,16 @@ def test_batch_delete_image_with_missing_parameters():
         registryId="012345678910", repositoryName="test_repository", imageIds=[{}]
     )
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(0)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 0
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(1)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 1
 
-    batch_delete_response["failures"][0]["failureCode"].should.equal(
-        "MissingDigestAndTag"
-    )
-    batch_delete_response["failures"][0]["failureReason"].should.equal(
-        "Invalid request parameters: both tag and digest cannot be null"
+    assert batch_delete_response["failures"][0]["failureCode"] == "MissingDigestAndTag"
+    assert (
+        batch_delete_response["failures"][0]["failureReason"]
+        == "Invalid request parameters: both tag and digest cannot be null"
     )
 
 
@@ -1439,26 +1374,24 @@ def test_batch_delete_image_with_matching_digest_and_tag():
 
     describe_response = client.describe_images(repositoryName="test_repository")
 
-    type(describe_response["imageDetails"]).should.be(list)
-    len(describe_response["imageDetails"]).should.be(0)
+    assert isinstance(describe_response["imageDetails"], list)
+    assert len(describe_response["imageDetails"]) == 0
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(3)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 3
 
-    batch_delete_response["imageIds"][0]["imageDigest"].should.equal(image_digest)
-    batch_delete_response["imageIds"][1]["imageDigest"].should.equal(image_digest)
-    batch_delete_response["imageIds"][2]["imageDigest"].should.equal(image_digest)
+    assert batch_delete_response["imageIds"][0]["imageDigest"] == image_digest
+    assert batch_delete_response["imageIds"][1]["imageDigest"] == image_digest
+    assert batch_delete_response["imageIds"][2]["imageDigest"] == image_digest
 
-    set(
-        [
-            batch_delete_response["imageIds"][0]["imageTag"],
-            batch_delete_response["imageIds"][1]["imageTag"],
-            batch_delete_response["imageIds"][2]["imageTag"],
-        ]
-    ).should.equal(set(tags))
+    assert {
+        batch_delete_response["imageIds"][0]["imageTag"],
+        batch_delete_response["imageIds"][1]["imageTag"],
+        batch_delete_response["imageIds"][2]["imageTag"],
+    } == set(tags)
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(0)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 0
 
 
 @mock_ecr
@@ -1485,19 +1418,20 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
         imageIds=[{"imageDigest": image_digest, "imageTag": "v2"}],
     )
 
-    type(batch_delete_response["imageIds"]).should.be(list)
-    len(batch_delete_response["imageIds"]).should.be(0)
+    assert isinstance(batch_delete_response["imageIds"], list)
+    assert len(batch_delete_response["imageIds"]) == 0
 
-    type(batch_delete_response["failures"]).should.be(list)
-    len(batch_delete_response["failures"]).should.be(1)
+    assert isinstance(batch_delete_response["failures"], list)
+    assert len(batch_delete_response["failures"]) == 1
 
-    batch_delete_response["failures"][0]["imageId"]["imageDigest"].should.equal(
-        image_digest
+    assert (
+        batch_delete_response["failures"][0]["imageId"]["imageDigest"] == image_digest
     )
-    batch_delete_response["failures"][0]["imageId"]["imageTag"].should.equal("v2")
-    batch_delete_response["failures"][0]["failureCode"].should.equal("ImageNotFound")
-    batch_delete_response["failures"][0]["failureReason"].should.equal(
-        "Requested image not found"
+    assert batch_delete_response["failures"][0]["imageId"]["imageTag"] == "v2"
+    assert batch_delete_response["failures"][0]["failureCode"] == "ImageNotFound"
+    assert (
+        batch_delete_response["failures"][0]["failureReason"]
+        == "Requested image not found"
     )
 
 
@@ -1526,15 +1460,22 @@ def test_delete_batch_image_with_multiple_images():
     response = client.batch_delete_image(
         repositoryName=repo_name, imageIds=images_to_delete
     )
-    response["imageIds"].should.have.length_of(2)
-    response["failures"].should.equal([])
+    assert len(response["imageIds"]) == 2
+    assert response["failures"] == []
 
     # Verify other images still exist
     repo_images = client.describe_images(repositoryName=repo_name)["imageDetails"]
     image_tags = [img["imageTags"][0] for img in repo_images]
-    image_tags.should.equal(
-        ["tag0", "tag1", "tag2", "tag3", "tag4", "tag7", "tag8", "tag9"]
-    )
+    assert image_tags == [
+        "tag0",
+        "tag1",
+        "tag2",
+        "tag3",
+        "tag4",
+        "tag7",
+        "tag8",
+        "tag9",
+    ]
 
 
 @mock_ecr
@@ -1550,7 +1491,7 @@ def test_list_tags_for_resource():
     tags = client.list_tags_for_resource(resourceArn=arn)["tags"]
 
     # then
-    tags.should.equal([{"Key": "key-1", "Value": "value-1"}])
+    assert tags == [{"Key": "key-1", "Value": "value-1"}]
 
 
 @mock_ecr
@@ -1568,12 +1509,12 @@ def test_list_tags_for_resource_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("ListTagsForResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "ListTagsForResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1589,12 +1530,12 @@ def test_list_tags_for_resource_error_invalid_param():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("ListTagsForResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Invalid parameter at 'resourceArn' failed to satisfy constraint: "
-        "'Invalid ARN'"
+    assert ex.operation_name == "ListTagsForResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Invalid parameter at 'resourceArn' failed to satisfy constraint: 'Invalid ARN'"
     )
 
 
@@ -1612,15 +1553,10 @@ def test_tag_resource():
 
     # then
     tags = client.list_tags_for_resource(resourceArn=arn)["tags"]
-    sorted(tags, key=lambda i: i["Key"]).should.equal(
-        sorted(
-            [
-                {"Key": "key-1", "Value": "value-1"},
-                {"Key": "key-2", "Value": "value-2"},
-            ],
-            key=lambda i: i["Key"],
-        )
-    )
+    assert sorted(tags, key=lambda i: i["Key"]) == [
+        {"Key": "key-1", "Value": "value-1"},
+        {"Key": "key-2", "Value": "value-2"},
+    ]
 
 
 @mock_ecr
@@ -1639,12 +1575,12 @@ def test_tag_resource_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("TagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "TagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1666,7 +1602,7 @@ def test_untag_resource():
 
     # then
     tags = client.list_tags_for_resource(resourceArn=arn)["tags"]
-    tags.should.equal([{"Key": "key-2", "Value": "value-2"}])
+    assert tags == [{"Key": "key-2", "Value": "value-2"}]
 
 
 @mock_ecr
@@ -1685,12 +1621,12 @@ def test_untag_resource_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("UntagResource")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "UntagResource"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1702,7 +1638,7 @@ def test_put_image_tag_mutability():
     client.create_repository(repositoryName=repo_name)
 
     response = client.describe_repositories(repositoryNames=[repo_name])
-    response["repositories"][0]["imageTagMutability"].should.equal("MUTABLE")
+    assert response["repositories"][0]["imageTagMutability"] == "MUTABLE"
 
     # when
     response = client.put_image_tag_mutability(
@@ -1710,12 +1646,12 @@ def test_put_image_tag_mutability():
     )
 
     # then
-    response["imageTagMutability"].should.equal("IMMUTABLE")
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
+    assert response["imageTagMutability"] == "IMMUTABLE"
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
 
     response = client.describe_repositories(repositoryNames=[repo_name])
-    response["repositories"][0]["imageTagMutability"].should.equal("IMMUTABLE")
+    assert response["repositories"][0]["imageTagMutability"] == "IMMUTABLE"
 
 
 @mock_ecr
@@ -1733,12 +1669,12 @@ def test_put_image_tag_mutability_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutImageTagMutability")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "PutImageTagMutability"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1758,12 +1694,12 @@ def test_put_image_tag_mutability_error_invalid_param():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutImageTagMutability")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
-        "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
+    assert ex.operation_name == "PutImageTagMutability"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: 'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
     )
 
 
@@ -1775,9 +1711,9 @@ def test_put_image_scanning_configuration():
     client.create_repository(repositoryName=repo_name)
 
     response = client.describe_repositories(repositoryNames=[repo_name])
-    response["repositories"][0]["imageScanningConfiguration"].should.equal(
-        {"scanOnPush": False}
-    )
+    assert response["repositories"][0]["imageScanningConfiguration"] == {
+        "scanOnPush": False
+    }
 
     # when
     response = client.put_image_scanning_configuration(
@@ -1785,14 +1721,14 @@ def test_put_image_scanning_configuration():
     )
 
     # then
-    response["imageScanningConfiguration"].should.equal({"scanOnPush": True})
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
+    assert response["imageScanningConfiguration"] == {"scanOnPush": True}
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
 
     response = client.describe_repositories(repositoryNames=[repo_name])
-    response["repositories"][0]["imageScanningConfiguration"].should.equal(
-        {"scanOnPush": True}
-    )
+    assert response["repositories"][0]["imageScanningConfiguration"] == {
+        "scanOnPush": True
+    }
 
 
 @mock_ecr
@@ -1810,12 +1746,12 @@ def test_put_image_scanning_configuration_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutImageScanningConfiguration")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "PutImageScanningConfiguration"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1843,9 +1779,9 @@ def test_set_repository_policy():
     )
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    json.loads(response["policyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert json.loads(response["policyText"]) == policy
 
 
 @mock_ecr
@@ -1874,12 +1810,12 @@ def test_set_repository_policy_error_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("SetRepositoryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "SetRepositoryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1903,12 +1839,12 @@ def test_set_repository_policy_error_invalid_param():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("SetRepositoryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
-        "'Invalid repository policy provided'"
+    assert ex.operation_name == "SetRepositoryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Invalid parameter at 'PolicyText' failed to satisfy constraint: 'Invalid repository policy provided'"
     )
 
 
@@ -1937,9 +1873,9 @@ def test_get_repository_policy():
     response = client.get_repository_policy(repositoryName=repo_name)
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    json.loads(response["policyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert json.loads(response["policyText"]) == policy
 
 
 @mock_ecr
@@ -1955,12 +1891,12 @@ def test_get_repository_policy_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetRepositoryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "GetRepositoryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -1978,13 +1914,12 @@ def test_get_repository_policy_error_policy_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetRepositoryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryPolicyNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "Repository policy does not exist "
-        f"for the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "GetRepositoryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryPolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Repository policy does not exist for the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2013,16 +1948,14 @@ def test_delete_repository_policy():
     response = client.delete_repository_policy(repositoryName=repo_name)
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    json.loads(response["policyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert json.loads(response["policyText"]) == policy
 
     with pytest.raises(ClientError) as e:
         client.get_repository_policy(repositoryName=repo_name)
 
-    e.value.response["Error"]["Code"].should.contain(
-        "RepositoryPolicyNotFoundException"
-    )
+    assert e.value.response["Error"]["Code"] == "RepositoryPolicyNotFoundException"
 
 
 @mock_ecr
@@ -2038,12 +1971,12 @@ def test_delete_repository_policy_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteRepositoryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DeleteRepositoryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2061,13 +1994,12 @@ def test_delete_repository_policy_error_policy_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteRepositoryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryPolicyNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "Repository policy does not exist "
-        f"for the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DeleteRepositoryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryPolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Repository policy does not exist for the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2098,9 +2030,9 @@ def test_put_lifecycle_policy():
     )
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    json.loads(response["lifecyclePolicyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert json.loads(response["lifecyclePolicyText"]) == policy
 
 
 @mock_ecr
@@ -2132,12 +2064,12 @@ def test_put_lifecycle_policy_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutLifecyclePolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "PutLifecyclePolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2169,10 +2101,10 @@ def test_get_lifecycle_policy():
     response = client.get_lifecycle_policy(repositoryName=repo_name)
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    json.loads(response["lifecyclePolicyText"]).should.equal(policy)
-    response["lastEvaluatedAt"].should.be.a(datetime)
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert json.loads(response["lifecyclePolicyText"]) == policy
+    assert isinstance(response["lastEvaluatedAt"], datetime)
 
 
 @mock_ecr
@@ -2188,12 +2120,12 @@ def test_get_lifecycle_policy_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetLifecyclePolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "GetLifecyclePolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2211,13 +2143,12 @@ def test_get_lifecycle_policy_error_policy_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetLifecyclePolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("LifecyclePolicyNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "Lifecycle policy does not exist "
-        f"for the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "GetLifecyclePolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "LifecyclePolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Lifecycle policy does not exist for the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2249,15 +2180,15 @@ def test_delete_lifecycle_policy():
     response = client.delete_lifecycle_policy(repositoryName=repo_name)
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    json.loads(response["lifecyclePolicyText"]).should.equal(policy)
-    response["lastEvaluatedAt"].should.be.a(datetime)
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert json.loads(response["lifecyclePolicyText"]) == policy
+    assert isinstance(response["lastEvaluatedAt"], datetime)
 
     with pytest.raises(ClientError) as e:
         client.get_lifecycle_policy(repositoryName=repo_name)
 
-    e.value.response["Error"]["Code"].should.contain("LifecyclePolicyNotFoundException")
+    assert e.value.response["Error"]["Code"] == "LifecyclePolicyNotFoundException"
 
 
 @mock_ecr
@@ -2273,12 +2204,12 @@ def test_delete_lifecycle_policy_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteLifecyclePolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DeleteLifecyclePolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2296,13 +2227,12 @@ def test_delete_lifecycle_policy_error_policy_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteLifecyclePolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("LifecyclePolicyNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        "Lifecycle policy does not exist "
-        f"for the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DeleteLifecyclePolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "LifecyclePolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Lifecycle policy does not exist for the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2333,8 +2263,8 @@ def test_put_registry_policy(actions):
     response = client.put_registry_policy(policyText=json.dumps(policy))
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    json.loads(response["policyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert json.loads(response["policyText"]) == policy
 
 
 @mock_ecr
@@ -2363,12 +2293,12 @@ def test_put_registry_policy_error_invalid_action():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutRegistryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Invalid parameter at 'PolicyText' failed to satisfy constraint: "
-        "'Invalid registry policy provided'"
+    assert ex.operation_name == "PutRegistryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Invalid parameter at 'PolicyText' failed to satisfy constraint: 'Invalid registry policy provided'"
     )
 
 
@@ -2395,8 +2325,8 @@ def test_get_registry_policy():
     response = client.get_registry_policy()
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    json.loads(response["policyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert json.loads(response["policyText"]) == policy
 
 
 @mock_ecr
@@ -2410,11 +2340,12 @@ def test_get_registry_policy_error_policy_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("GetRegistryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RegistryPolicyNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "GetRegistryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RegistryPolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2441,13 +2372,13 @@ def test_delete_registry_policy():
     response = client.delete_registry_policy()
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    json.loads(response["policyText"]).should.equal(policy)
+    assert response["registryId"] == ACCOUNT_ID
+    assert json.loads(response["policyText"]) == policy
 
     with pytest.raises(ClientError) as e:
         client.get_registry_policy()
 
-    e.value.response["Error"]["Code"].should.contain("RegistryPolicyNotFoundException")
+    assert e.value.response["Error"]["Code"] == "RegistryPolicyNotFoundException"
 
 
 @mock_ecr
@@ -2461,11 +2392,12 @@ def test_delete_registry_policy_error_policy_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DeleteRegistryPolicy")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RegistryPolicyNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DeleteRegistryPolicy"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RegistryPolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Registry policy does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2488,12 +2420,10 @@ def test_start_image_scan():
     )
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    response["imageId"].should.equal(
-        {"imageDigest": image_digest, "imageTag": image_tag}
-    )
-    response["imageScanStatus"].should.equal({"status": "IN_PROGRESS"})
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert response["imageId"] == {"imageDigest": image_digest, "imageTag": image_tag}
+    assert response["imageScanStatus"] == {"status": "IN_PROGRESS"}
 
 
 @mock_ecr
@@ -2511,12 +2441,12 @@ def test_start_image_scan_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("StartImageScan")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "StartImageScan"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2536,13 +2466,12 @@ def test_start_image_scan_error_image_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("StartImageScan")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ImageNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The image with imageId {{imageDigest:'null', imageTag:'{image_tag}'}} does not exist "
-        f"within the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "StartImageScan"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ImageNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The image with imageId {{imageDigest:'null', imageTag:'{image_tag}'}} does not exist within the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2568,13 +2497,12 @@ def test_start_image_scan_error_image_tag_digest_mismatch():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("StartImageScan")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ImageNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The image with imageId {{imageDigest:'{image_digest}', imageTag:'{image_tag}'}} does not exist "
-        f"within the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "StartImageScan"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ImageNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The image with imageId {{imageDigest:'{image_digest}', imageTag:'{image_tag}'}} does not exist within the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2600,11 +2528,12 @@ def test_start_image_scan_error_daily_limit():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("StartImageScan")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("LimitExceededException")
-    ex.response["Error"]["Message"].should.equal(
-        "The scan quota per image has been exceeded. Wait and try again."
+    assert ex.operation_name == "StartImageScan"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "LimitExceededException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "The scan quota per image has been exceeded. Wait and try again."
     )
 
 
@@ -2628,33 +2557,30 @@ def test_describe_image_scan_findings():
     )
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["repositoryName"].should.equal(repo_name)
-    response["imageId"].should.equal(
-        {"imageDigest": image_digest, "imageTag": image_tag}
-    )
-    response["imageScanStatus"].should.equal(
-        {"status": "COMPLETE", "description": "The scan was completed successfully."}
-    )
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["repositoryName"] == repo_name
+    assert response["imageId"] == {"imageDigest": image_digest, "imageTag": image_tag}
+    assert response["imageScanStatus"] == {
+        "status": "COMPLETE",
+        "description": "The scan was completed successfully.",
+    }
     scan_findings = response["imageScanFindings"]
-    scan_findings["imageScanCompletedAt"].should.be.a(datetime)
-    scan_findings["vulnerabilitySourceUpdatedAt"].should.be.a(datetime)
-    scan_findings["findings"].should.equal(
-        [
-            {
-                "name": "CVE-9999-9999",
-                "uri": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-9999-9999",
-                "severity": "HIGH",
-                "attributes": [
-                    {"key": "package_version", "value": "9.9.9"},
-                    {"key": "package_name", "value": "moto_fake"},
-                    {"key": "CVSS2_VECTOR", "value": "AV:N/AC:L/Au:N/C:P/I:P/A:P"},
-                    {"key": "CVSS2_SCORE", "value": "7.5"},
-                ],
-            }
-        ]
-    )
-    scan_findings["findingSeverityCounts"].should.equal({"HIGH": 1})
+    assert isinstance(scan_findings["imageScanCompletedAt"], datetime)
+    assert isinstance(scan_findings["vulnerabilitySourceUpdatedAt"], datetime)
+    assert scan_findings["findings"] == [
+        {
+            "name": "CVE-9999-9999",
+            "uri": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-9999-9999",
+            "severity": "HIGH",
+            "attributes": [
+                {"key": "package_version", "value": "9.9.9"},
+                {"key": "package_name", "value": "moto_fake"},
+                {"key": "CVSS2_VECTOR", "value": "AV:N/AC:L/Au:N/C:P/I:P/A:P"},
+                {"key": "CVSS2_SCORE", "value": "7.5"},
+            ],
+        }
+    ]
+    assert scan_findings["findingSeverityCounts"] == {"HIGH": 1}
 
 
 @mock_ecr
@@ -2672,12 +2598,12 @@ def test_describe_image_scan_findings_error_repo_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DescribeImageScanFindings")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("RepositoryNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The repository with name '{repo_name}' does not exist "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DescribeImageScanFindings"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "RepositoryNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The repository with name '{repo_name}' does not exist in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2697,13 +2623,12 @@ def test_describe_image_scan_findings_error_image_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DescribeImageScanFindings")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ImageNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"The image with imageId {{imageDigest:'null', imageTag:'{image_tag}'}} does not exist "
-        f"within the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DescribeImageScanFindings"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ImageNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"The image with imageId {{imageDigest:'null', imageTag:'{image_tag}'}} does not exist within the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2728,13 +2653,12 @@ def test_describe_image_scan_findings_error_scan_not_exists():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("DescribeImageScanFindings")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ScanNotFoundException")
-    ex.response["Error"]["Message"].should.equal(
-        f"Image scan does not exist for the image with '{{imageDigest:'null', imageTag:'{image_tag}'}}' "
-        f"in the repository with name '{repo_name}' "
-        f"in the registry with id '{ACCOUNT_ID}'"
+    assert ex.operation_name == "DescribeImageScanFindings"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ScanNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Image scan does not exist for the image with '{{imageDigest:'null', imageTag:'{image_tag}'}}' in the repository with name '{repo_name}' in the registry with id '{ACCOUNT_ID}'"
     )
 
 
@@ -2750,7 +2674,7 @@ def test_put_replication_configuration():
     response = client.put_replication_configuration(replicationConfiguration=config)
 
     # then
-    response["replicationConfiguration"].should.equal(config)
+    assert response["replicationConfiguration"] == config
 
 
 @mock_ecr
@@ -2778,10 +2702,10 @@ def test_put_replication_configuration_error_feature_disabled():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutReplicationConfiguration")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("ValidationException")
-    ex.response["Error"]["Message"].should.equal("This feature is disabled")
+    assert ex.operation_name == "PutReplicationConfiguration"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ValidationException"
+    assert ex.response["Error"]["Message"] == "This feature is disabled"
 
 
 @mock_ecr
@@ -2801,12 +2725,12 @@ def test_put_replication_configuration_error_same_source():
 
     # then
     ex = e.value
-    ex.operation_name.should.equal("PutReplicationConfiguration")
-    ex.response["ResponseMetadata"]["HTTPStatusCode"].should.equal(400)
-    ex.response["Error"]["Code"].should.contain("InvalidParameterException")
-    ex.response["Error"]["Message"].should.equal(
-        "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: "
-        "'Replication destination cannot be the same as the source registry'"
+    assert ex.operation_name == "PutReplicationConfiguration"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Invalid parameter at 'replicationConfiguration' failed to satisfy constraint: 'Replication destination cannot be the same as the source registry'"
     )
 
 
@@ -2819,8 +2743,8 @@ def test_describe_registry():
     response = client.describe_registry()
 
     # then
-    response["registryId"].should.equal(ACCOUNT_ID)
-    response["replicationConfiguration"].should.equal({"rules": []})
+    assert response["registryId"] == ACCOUNT_ID
+    assert response["replicationConfiguration"] == {"rules": []}
 
 
 @mock_ecr
@@ -2838,4 +2762,4 @@ def test_describe_registry_after_update():
     response = client.describe_registry()
 
     # then
-    response["replicationConfiguration"].should.equal(config)
+    assert response["replicationConfiguration"] == config

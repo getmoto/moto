@@ -20,7 +20,7 @@ for _location_type in listdir(root / offerings_path):
         full_path = offerings_path + "/" + _location_type + "/" + _region
         res = load_resource(__name__, full_path)
         for instance in res:
-            instance["LocationType"] = _location_type  # type: ignore
+            instance["LocationType"] = _location_type
         INSTANCE_TYPE_OFFERINGS[_location_type][_region.replace(".json", "")] = res
 
 

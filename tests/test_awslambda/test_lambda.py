@@ -1,12 +1,12 @@
 import base64
 import json
 import os
-from unittest import SkipTest
+from unittest import SkipTest, mock
 import boto3
 import hashlib
 import pytest
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
 from tests.test_ecr.test_ecr_helpers import _create_image_manifest
 from moto import mock_lambda, mock_s3, mock_ecr, settings
@@ -21,10 +21,12 @@ from .utilities import (
     _process_lambda,
 )
 
+PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
 
+@mock.patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
 @mock_lambda
 def test_lambda_regions(region):
@@ -43,7 +45,7 @@ def test_list_functions():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
@@ -84,7 +86,7 @@ def test_create_based_on_s3_with_missing_bucket():
     with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,
-            Runtime="python2.7",
+            Runtime=PYTHON_VERSION,
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"S3Bucket": "this-bucket-does-not-exist", "S3Key": "test.zip"},
@@ -122,7 +124,7 @@ def test_create_function_from_aws_bucket():
 
     result = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -139,7 +141,7 @@ def test_create_function_from_aws_bucket():
         result["FunctionArn"]
         == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}"
     )
-    assert result["Runtime"] == "python2.7"
+    assert result["Runtime"] == PYTHON_VERSION
     assert result["Handler"] == "lambda_function.lambda_handler"
     assert result["CodeSha256"] == base64.b64encode(
         hashlib.sha256(zip_content).digest()
@@ -155,7 +157,7 @@ def test_create_function_from_zipfile():
     function_name = str(uuid4())[0:6]
     result = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -171,9 +173,11 @@ def test_create_function_from_zipfile():
     result.pop("LastModified")
 
     assert result == {
+        "Architectures": ["x86_64"],
+        "EphemeralStorage": {"Size": 512},
         "FunctionName": function_name,
         "FunctionArn": f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}",
-        "Runtime": "python2.7",
+        "Runtime": PYTHON_VERSION,
         "Role": result["Role"],
         "Handler": "lambda_function.lambda_handler",
         "CodeSize": len(zip_content),
@@ -189,7 +193,151 @@ def test_create_function_from_zipfile():
         "State": "Active",
         "Layers": [],
         "TracingConfig": {"Mode": "PassThrough"},
+        "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
     }
+
+
+@mock_lambda
+def test_create_function_from_image():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+    image_config = {
+        "EntryPoint": [
+            "python",
+        ],
+        "Command": [
+            "/opt/app.py",
+        ],
+        "WorkingDirectory": "/opt",
+    }
+    conn.create_function(
+        FunctionName=function_name,
+        Role=get_role_name(),
+        Code={"ImageUri": image_uri},
+        Description="test lambda function",
+        ImageConfig=image_config,
+        PackageType="Image",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    result = conn.get_function(FunctionName=function_name)
+
+    assert "ImageConfigResponse" in result["Configuration"]
+    assert result["Configuration"]["ImageConfigResponse"]["ImageConfig"] == image_config
+
+
+@mock_lambda
+def test_create_function_from_image_default_working_directory():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+    image_config = {
+        "EntryPoint": [
+            "python",
+        ],
+        "Command": [
+            "/opt/app.py",
+        ],
+    }
+    conn.create_function(
+        FunctionName=function_name,
+        Role=get_role_name(),
+        Code={"ImageUri": image_uri},
+        Description="test lambda function",
+        ImageConfig=image_config,
+        PackageType="Image",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    result = conn.get_function(FunctionName=function_name)
+
+    assert "ImageConfigResponse" in result["Configuration"]
+    assert result["Configuration"]["ImageConfigResponse"]["ImageConfig"] == image_config
+
+
+@mock_lambda
+def test_create_function_error_bad_architecture():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_function(
+            Architectures=["foo"],
+            FunctionName=function_name,
+            Role=get_role_name(),
+            Code={"ImageUri": image_uri},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
+
+    err = exc.value.response
+
+    assert err["Error"]["Code"] == "ValidationException"
+    assert (
+        err["Error"]["Message"]
+        == "1 validation error detected: Value '['foo']' at 'architectures' failed to satisfy"
+        " constraint: Member must satisfy constraint: [Member must satisfy enum value set: "
+        "[x86_64, arm64], Member must not be null]"
+    )
+
+
+@mock_lambda
+def test_create_function_error_ephemeral_too_big():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+
+    with pytest.raises(ClientError) as exc:
+        conn.create_function(
+            FunctionName=function_name,
+            Role=get_role_name(),
+            Code={"ImageUri": image_uri},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+            EphemeralStorage={"Size": 3000000},
+        )
+
+    err = exc.value.response
+
+    assert err["Error"]["Code"] == "ValidationException"
+    assert (
+        err["Error"]["Message"]
+        == "1 validation error detected: Value '3000000' at 'ephemeralStorage.size' "
+        "failed to satisfy constraint: "
+        "Member must have value less than or equal to 10240"
+    )
+
+
+@mock_lambda
+def test_create_function_error_ephemeral_too_small():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+
+    with pytest.raises(ParamValidationError) as exc:
+        conn.create_function(
+            FunctionName=function_name,
+            Role=get_role_name(),
+            Code={"ImageUri": image_uri},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+            EphemeralStorage={"Size": 200},
+        )
+
+    # this one is handled by botocore, not moto
+    assert exc.typename == "ParamValidationError"
 
 
 @mock_lambda
@@ -204,7 +352,7 @@ def test_create_function__with_tracingmode(tracing_mode):
     function_name = str(uuid4())[0:6]
     kwargs = dict(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content},
@@ -389,7 +537,7 @@ def test_get_function():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -423,7 +571,7 @@ def test_get_function():
     assert result["Configuration"]["Handler"] == "lambda_function.lambda_handler"
     assert result["Configuration"]["MemorySize"] == 128
     assert result["Configuration"]["Role"] == get_role_name()
-    assert result["Configuration"]["Runtime"] == "python2.7"
+    assert result["Configuration"]["Runtime"] == PYTHON_VERSION
     assert result["Configuration"]["Timeout"] == 3
     assert result["Configuration"]["Version"] == "$LATEST"
     assert "VpcConfig" in result["Configuration"]
@@ -465,7 +613,7 @@ def test_get_function_configuration(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -489,7 +637,7 @@ def test_get_function_configuration(key):
     assert result["Handler"] == "lambda_function.lambda_handler"
     assert result["MemorySize"] == 128
     assert result["Role"] == get_role_name()
-    assert result["Runtime"] == "python2.7"
+    assert result["Runtime"] == PYTHON_VERSION
     assert result["Timeout"] == 3
     assert result["Version"] == "$LATEST"
     assert "VpcConfig" in result
@@ -530,7 +678,7 @@ def test_get_function_code_signing_config(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -561,7 +709,7 @@ def test_get_function_by_arn():
 
     fnc = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -592,7 +740,7 @@ def test_delete_function():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -632,7 +780,7 @@ def test_delete_function_by_arn():
 
     fnc = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -695,7 +843,7 @@ def test_publish():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -756,11 +904,12 @@ def test_list_create_list_get_delete_list():
     function_name = function_name
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
         Description="test lambda function",
+        EphemeralStorage={"Size": 2500},
         Timeout=3,
         MemorySize=128,
         Publish=True,
@@ -780,7 +929,7 @@ def test_list_create_list_get_delete_list():
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
             "Role": get_role_name(),
-            "Runtime": "python2.7",
+            "Runtime": PYTHON_VERSION,
             "Timeout": 3,
             "Version": "$LATEST",
             "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
@@ -788,6 +937,9 @@ def test_list_create_list_get_delete_list():
             "Layers": [],
             "LastUpdateStatus": "Successful",
             "TracingConfig": {"Mode": "PassThrough"},
+            "Architectures": ["x86_64"],
+            "EphemeralStorage": {"Size": 2500},
+            "SnapStart": {"ApplyOn": "None", "OptimizationStatus": "Off"},
         },
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
@@ -852,7 +1004,7 @@ def test_get_function_created_with_zipfile():
     zip_content = get_test_zip_file1()
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -885,7 +1037,7 @@ def test_get_function_created_with_zipfile():
     assert config["Handler"] == "lambda_function.handler"
     assert config["MemorySize"] == 128
     assert config["Role"] == get_role_name()
-    assert config["Runtime"] == "python2.7"
+    assert config["Runtime"] == PYTHON_VERSION
     assert config["Timeout"] == 3
     assert config["Version"] == "$LATEST"
     assert config["State"] == "Active"
@@ -910,7 +1062,7 @@ def test_list_versions_by_function():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -940,7 +1092,7 @@ def test_list_versions_by_function():
 
     conn.create_function(
         FunctionName="testFunction_2",
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -954,6 +1106,107 @@ def test_list_versions_by_function():
     assert (
         versions["Versions"][0]["FunctionArn"]
         == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:testFunction_2:$LATEST"
+    )
+
+
+@mock_lambda
+@mock_s3
+def test_list_aliases():
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file2()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    function_name2 = str(uuid4())[0:6]
+
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    conn.create_function(
+        FunctionName=function_name2,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    first_version = conn.publish_version(FunctionName=function_name)["Version"]
+
+    conn.create_alias(
+        FunctionName=function_name,
+        Name="alias1",
+        FunctionVersion=first_version,
+    )
+
+    conn.update_function_code(FunctionName=function_name, ZipFile=get_test_zip_file1())
+    second_version = conn.publish_version(FunctionName=function_name)["Version"]
+
+    conn.create_alias(
+        FunctionName=function_name,
+        Name="alias2",
+        FunctionVersion=second_version,
+    )
+
+    conn.create_alias(
+        FunctionName=function_name,
+        Name="alias0",
+        FunctionVersion=second_version,
+    )
+
+    aliases = conn.list_aliases(FunctionName=function_name)
+    assert len(aliases["Aliases"]) == 3
+
+    # should be ordered by their alias name (as per SDK response)
+    assert (
+        aliases["Aliases"][0]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias0"
+    )
+    assert aliases["Aliases"][0]["FunctionVersion"] == second_version
+
+    assert (
+        aliases["Aliases"][1]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias1"
+    )
+    assert aliases["Aliases"][1]["FunctionVersion"] == first_version
+
+    assert (
+        aliases["Aliases"][2]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:alias2"
+    )
+    assert aliases["Aliases"][2]["FunctionVersion"] == second_version
+
+    res = conn.publish_version(FunctionName=function_name2)
+    conn.create_alias(
+        FunctionName=function_name2,
+        Name="alias1",
+        FunctionVersion=res["Version"],
+    )
+
+    aliases = conn.list_aliases(FunctionName=function_name2)
+
+    assert len(aliases["Aliases"]) == 1
+    assert (
+        aliases["Aliases"][0]["AliasArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name2}:alias1"
     )
 
 
@@ -974,7 +1227,7 @@ def test_create_function_with_already_exists():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -984,19 +1237,20 @@ def test_create_function_with_already_exists():
         Publish=True,
     )
 
-    response = conn.create_function(
-        FunctionName=function_name,
-        Runtime="python2.7",
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
+    with pytest.raises(ClientError) as exc:
+        conn.create_function(
+            FunctionName=function_name,
+            Runtime=PYTHON_VERSION,
+            Role=get_role_name(),
+            Handler="lambda_function.lambda_handler",
+            Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+            Description="test lambda function",
+            Timeout=3,
+            MemorySize=128,
+            Publish=True,
+        )
 
-    assert response["FunctionName"] == function_name
+    assert exc.value.response["Error"]["Code"] == "ResourceConflictException"
 
 
 @mock_lambda
@@ -1027,7 +1281,7 @@ def test_update_configuration(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1042,7 +1296,7 @@ def test_update_configuration(key):
     assert fxn["Description"] == "test lambda function"
     assert fxn["Handler"] == "lambda_function.lambda_handler"
     assert fxn["MemorySize"] == 128
-    assert fxn["Runtime"] == "python2.7"
+    assert fxn["Runtime"] == PYTHON_VERSION
     assert fxn["Timeout"] == 3
 
     updated_config = conn.update_function_configuration(
@@ -1081,7 +1335,7 @@ def test_update_function_zip(key):
 
     fxn = conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content_one},
@@ -1163,7 +1417,7 @@ def test_update_function_s3():
 
     conn.create_function(
         FunctionName=function_name,
-        Runtime="python2.7",
+        Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
@@ -1197,6 +1451,62 @@ def test_update_function_s3():
         hashlib.sha256(zip_content_two).digest()
     ).decode("utf-8")
     assert config["CodeSize"] == len(zip_content_two)
+    assert config["Description"] == "test lambda function"
+    assert (
+        config["FunctionArn"]
+        == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:2"
+    )
+    assert config["FunctionName"] == function_name
+    assert config["Version"] == "2"
+    assert config["LastUpdateStatus"] == "Successful"
+
+
+@mock_lambda
+def test_update_function_ecr():
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
+    image_config = {
+        "EntryPoint": [
+            "python",
+        ],
+        "Command": [
+            "/opt/app.py",
+        ],
+        "WorkingDirectory": "/opt",
+    }
+
+    conn.create_function(
+        FunctionName=function_name,
+        Role=get_role_name(),
+        Code={"ImageUri": image_uri},
+        Description="test lambda function",
+        ImageConfig=image_config,
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    new_uri = image_uri.replace("prod", "newer")
+
+    conn.update_function_code(
+        FunctionName=function_name,
+        ImageUri=new_uri,
+        Publish=True,
+    )
+
+    response = conn.get_function(FunctionName=function_name, Qualifier="2")
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(response["Code"]) == 3
+    assert response["Code"]["RepositoryType"] == "ECR"
+    assert response["Code"]["ImageUri"] == new_uri
+    assert response["Code"]["ResolvedImageUri"].endswith(
+        hashlib.sha256(new_uri.encode("utf-8")).hexdigest()
+    )
+
+    config = response["Configuration"]
+    assert config["CodeSize"] == 0
     assert config["Description"] == "test lambda function"
     assert (
         config["FunctionArn"]
@@ -1243,7 +1553,7 @@ def test_remove_unknown_permission_throws_error():
     function_name = str(uuid4())[0:6]
     f = conn.create_function(
         FunctionName=function_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -1265,7 +1575,7 @@ def test_multiple_qualifiers():
     fn_name = str(uuid4())[0:6]
     client.create_function(
         FunctionName=fn_name,
-        Runtime="python3.7",
+        Runtime=PYTHON_VERSION,
         Role=(get_role_name()),
         Handler="lambda_function.handler",
         Code={"ZipFile": zip_content},
@@ -1328,3 +1638,151 @@ def test_get_role_name_utility_race_condition():
     assert len(errors) + len(roles) == num_threads
     assert roles.count(roles[0]) == len(roles)
     assert len(errors) == 0
+
+
+@mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
+def test_put_function_concurrency_success():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=900
+    )
+    assert response["ReservedConcurrentExecutions"] == 900
+
+
+@mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "don't care"})
+def test_put_function_concurrency_not_enforced():
+    del os.environ["MOTO_LAMBDA_CONCURRENCY_QUOTA"]  # i.e. not set by user
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # This works, even though it normally would be disallowed by AWS
+    response = conn.put_function_concurrency(
+        FunctionName=function_name, ReservedConcurrentExecutions=901
+    )
+    assert response["ReservedConcurrentExecutions"] == 901
+
+
+@mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
+def test_put_function_concurrency_failure():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.put_function_concurrency(
+            FunctionName=function_name, ReservedConcurrentExecutions=901
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+
+    # No reservation should have been set
+    response = conn.get_function_concurrency(FunctionName=function_name)
+    assert "ReservedConcurrentExecutions" not in response
+
+
+@mock_lambda
+@mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
+def test_put_function_concurrency_i_can_has_math():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest(
+            "Envars not easily set in server mode, feature off by default, skipping..."
+        )
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name_1 = str(uuid4())[0:6]
+    function_name_2 = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name_1,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+    conn.create_function(
+        FunctionName=function_name_2,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.put_function_concurrency(
+        FunctionName=function_name_1, ReservedConcurrentExecutions=600
+    )
+    assert response["ReservedConcurrentExecutions"] == 600
+    response = conn.put_function_concurrency(
+        FunctionName=function_name_2, ReservedConcurrentExecutions=100
+    )
+    assert response["ReservedConcurrentExecutions"] == 100
+
+    # Increasing function 1's limit should succeed, e.g. 700 + 100 <= 900
+    response = conn.put_function_concurrency(
+        FunctionName=function_name_1, ReservedConcurrentExecutions=700
+    )
+    assert response["ReservedConcurrentExecutions"] == 700
+
+    # Increasing function 2's limit should fail, e.g. 700 + 201 > 900
+    with pytest.raises(ClientError) as exc:
+        conn.put_function_concurrency(
+            FunctionName=function_name_2, ReservedConcurrentExecutions=201
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
+    response = conn.get_function_concurrency(FunctionName=function_name_2)
+    assert response["ReservedConcurrentExecutions"] == 100

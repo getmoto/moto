@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 from moto import mock_route53
 
@@ -21,30 +20,28 @@ def test_create_health_check():
             "FailureThreshold": 2,
         },
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     #
     check = response["HealthCheck"]
-    check.should.have.key("Id")
-    check.should.have.key("CallerReference").being.equal(
-        "test-route53-health-HealthCheck-asdf"
-    )
-    check.should.have.key("HealthCheckConfig")
+    assert "Id" in check
+    assert check["CallerReference"] == "test-route53-health-HealthCheck-asdf"
+    assert "HealthCheckConfig" in check
     #
     config = check["HealthCheckConfig"]
-    config.should.have.key("IPAddress").being.equal("93.184.216.34")
-    config.should.have.key("Port").being.equal(80)
-    config.should.have.key("Type").being.equal("HTTP")
-    config.should.have.key("ResourcePath").being.equal("/")
-    config.should.have.key("FullyQualifiedDomainName").being.equal("example.com")
-    config.should.have.key("RequestInterval").being.equal(10)
-    config.should.have.key("FailureThreshold").being.equal(2)
-    config.should.have.key("MeasureLatency").being.equal(False)
-    config.should.have.key("Inverted").being.equal(False)
-    config.should.have.key("Disabled").being.equal(False)
-    config.should.have.key("EnableSNI").being.equal(False)
+    assert config["IPAddress"] == "93.184.216.34"
+    assert config["Port"] == 80
+    assert config["Type"] == "HTTP"
+    assert config["ResourcePath"] == "/"
+    assert config["FullyQualifiedDomainName"] == "example.com"
+    assert config["RequestInterval"] == 10
+    assert config["FailureThreshold"] == 2
+    assert config["MeasureLatency"] is False
+    assert config["Inverted"] is False
+    assert config["Disabled"] is False
+    assert config["EnableSNI"] is False
 
-    config.shouldnt.have.key("ChildHealthChecks")
-    config.shouldnt.have.key("HealthThreshold")
+    assert "ChildHealthChecks" not in config
+    assert "HealthThreshold" not in config
 
 
 @mock_route53
@@ -68,21 +65,19 @@ def test_create_health_check_with_additional_options():
             "EnableSNI": True,
         },
     )
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(201)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 201
     #
     check = response["HealthCheck"]
-    check.should.have.key("CallerReference").being.equal(
-        "test-route53-health-HealthCheck-asdf"
-    )
-    check.should.have.key("HealthCheckVersion").equal(1)
-    check.should.have.key("HealthCheckConfig")
+    assert check["CallerReference"] == "test-route53-health-HealthCheck-asdf"
+    assert check["HealthCheckVersion"] == 1
+    assert "HealthCheckConfig" in check
     #
     config = check["HealthCheckConfig"]
-    check["HealthCheckConfig"].should.have.key("SearchString").equal("a good response")
-    config.should.have.key("MeasureLatency").being.equal(True)
-    config.should.have.key("Inverted").being.equal(True)
-    config.should.have.key("Disabled").being.equal(True)
-    config.should.have.key("EnableSNI").being.equal(True)
+    assert check["HealthCheckConfig"]["SearchString"] == "a good response"
+    assert config["MeasureLatency"] is True
+    assert config["Inverted"] is True
+    assert config["Disabled"] is True
+    assert config["EnableSNI"] is True
 
 
 @mock_route53
@@ -100,24 +95,22 @@ def test_create_calculated_health_check():
     )
 
     check = response["HealthCheck"]
-    check.should.have.key("Id")
-    check.should.have.key("CallerReference").being.equal(
-        "test-route53-health-HealthCheck-ZHV123"
-    )
+    assert "Id" in check
+    assert check["CallerReference"] == "test-route53-health-HealthCheck-ZHV123"
     #
     config = check["HealthCheckConfig"]
-    config.should.have.key("Type").being.equal("CALCULATED")
-    config.should.have.key("Inverted").being.equal(False)
-    config.should.have.key("Disabled").being.equal(False)
-    config.should.have.key("HealthThreshold").being.equal(1)
+    assert config["Type"] == "CALCULATED"
+    assert config["Inverted"] is False
+    assert config["Disabled"] is False
+    assert config["HealthThreshold"] == 1
     #
-    config.shouldnt.have.key("IPAddress")
-    config.shouldnt.have.key("Port")
-    config.shouldnt.have.key("ResourcePath")
-    config.shouldnt.have.key("FullyQualifiedDomainName")
-    config.shouldnt.have.key("RequestInterval")
-    config.shouldnt.have.key("FailureThreshold")
-    config.shouldnt.have.key("MeasureLatency")
+    assert "IPAddress" not in config
+    assert "Port" not in config
+    assert "ResourcePath" not in config
+    assert "FullyQualifiedDomainName" not in config
+    assert "RequestInterval" not in config
+    assert "FailureThreshold" not in config
+    assert "MeasureLatency" not in config
 
 
 @mock_route53
@@ -159,19 +152,18 @@ def test_create_calculated_health_check_with_children():
     )
 
     check = parent["HealthCheck"]
-    check.should.have.key("Id")
-    check.should.have.key("CallerReference").being.equal(
-        "test-route53-health-HealthCheck-parent"
-    )
+    assert "Id" in check
+    assert check["CallerReference"] == "test-route53-health-HealthCheck-parent"
     #
     config = check["HealthCheckConfig"]
-    config.should.have.key("Type").being.equal("CALCULATED")
-    config.should.have.key("Inverted").being.equal(False)
-    config.should.have.key("Disabled").being.equal(False)
-    config.should.have.key("HealthThreshold").being.equal(1)
-    config.should.have.key("ChildHealthChecks").being.equal(
-        [child1["HealthCheck"]["Id"], child2["HealthCheck"]["Id"]]
-    )
+    assert config["Type"] == "CALCULATED"
+    assert config["Inverted"] is False
+    assert config["Disabled"] is False
+    assert config["HealthThreshold"] == 1
+    assert config["ChildHealthChecks"] == [
+        child1["HealthCheck"]["Id"],
+        child2["HealthCheck"]["Id"],
+    ]
 
 
 @mock_route53
@@ -189,9 +181,9 @@ def test_get_health_check():
     )["HealthCheck"]["Id"]
 
     resp = client.get_health_check(HealthCheckId=hc_id)["HealthCheck"]
-    resp.should.have.key("Id").equals(hc_id)
-    resp.should.have.key("CallerReference").equals("callref")
-    resp.should.have.key("HealthCheckVersion").equals(1)
+    assert resp["Id"] == hc_id
+    assert resp["CallerReference"] == "callref"
+    assert resp["HealthCheckVersion"] == 1
 
 
 @mock_route53
@@ -201,15 +193,15 @@ def test_get_unknown_health_check():
     with pytest.raises(ClientError) as exc:
         client.get_health_check(HealthCheckId="unknown")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("NoSuchHealthCheck")
-    err["Message"].should.equal("A health check with id unknown does not exist.")
+    assert err["Code"] == "NoSuchHealthCheck"
+    assert err["Message"] == "A health check with id unknown does not exist."
 
 
 @mock_route53
 def test_list_health_checks():
     conn = boto3.client("route53", region_name="us-east-1")
 
-    conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
+    assert len(conn.list_health_checks()["HealthChecks"]) == 0
 
     check = conn.create_health_check(
         CallerReference="?",
@@ -225,16 +217,14 @@ def test_list_health_checks():
         },
     )["HealthCheck"]
 
-    checks = conn.list_health_checks()["HealthChecks"]
-    checks.should.have.length_of(1)
-    checks.should.contain(check)
+    assert conn.list_health_checks()["HealthChecks"] == [check]
 
 
 @mock_route53
 def test_delete_health_checks():
     conn = boto3.client("route53", region_name="us-east-1")
 
-    conn.list_health_checks()["HealthChecks"].should.have.length_of(0)
+    assert len(conn.list_health_checks()["HealthChecks"]) == 0
 
     check = conn.create_health_check(
         CallerReference="?",
@@ -253,7 +243,7 @@ def test_delete_health_checks():
     conn.delete_health_check(HealthCheckId=check["Id"])
 
     checks = conn.list_health_checks()["HealthChecks"]
-    checks.should.have.length_of(0)
+    assert len(checks) == 0
 
 
 @mock_route53
@@ -288,11 +278,45 @@ def test_update_health_check():
     config = client.get_health_check(HealthCheckId=hc_id)["HealthCheck"][
         "HealthCheckConfig"
     ]
-    config.should.have.key("Type").equals("CALCULATED")
-    config.should.have.key("ResourcePath").equals("rp")
-    config.should.have.key("FullyQualifiedDomainName").equals("example.com")
-    config.should.have.key("SearchString").equals("search")
-    config.should.have.key("Inverted").equals(False)
-    config.should.have.key("Disabled").equals(False)
-    config.should.have.key("ChildHealthChecks").equals(["child"])
-    config.should.have.key("Regions").equals(["us-east-1", "us-east-2", "us-west-1"])
+    assert config["Type"] == "CALCULATED"
+    assert config["ResourcePath"] == "rp"
+    assert config["FullyQualifiedDomainName"] == "example.com"
+    assert config["SearchString"] == "search"
+    assert config["Inverted"] is False
+    assert config["Disabled"] is False
+    assert config["ChildHealthChecks"] == ["child"]
+    assert config["Regions"] == ["us-east-1", "us-east-2", "us-west-1"]
+
+
+@mock_route53
+def test_health_check_status():
+    client = boto3.client("route53", region_name="us-east-1")
+
+    hc_id = client.create_health_check(
+        CallerReference="callref",
+        HealthCheckConfig={
+            "Type": "CALCULATED",
+            "Inverted": False,
+            "Disabled": False,
+            "HealthThreshold": 1,
+        },
+    )["HealthCheck"]["Id"]
+
+    resp = client.get_health_check_status(HealthCheckId=hc_id)
+    assert len(resp["HealthCheckObservations"]) == 1
+
+    observation = resp["HealthCheckObservations"][0]
+    assert observation["Region"] == "us-east-1"
+    assert observation["IPAddress"] == "127.0.13.37"
+    assert "StatusReport" in observation
+    assert (
+        observation["StatusReport"]["Status"]
+        == "Success: HTTP Status Code: 200. Resolved IP: 127.0.13.37. OK"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_health_check_status(HealthCheckId="bad-id")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchHealthCheck"
+    assert err["Message"] == "A health check with id bad-id does not exist."

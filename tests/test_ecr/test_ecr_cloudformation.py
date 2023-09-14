@@ -1,10 +1,8 @@
 import copy
-from string import Template
-
 import boto3
 import json
 from moto import mock_cloudformation, mock_ecr
-import sure  # noqa # pylint: disable=unused-import
+from string import Template
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -45,12 +43,12 @@ def test_create_repository():
     # then
     repo_arn = f"arn:aws:ecr:eu-central-1:{ACCOUNT_ID}:repository/{name}"
     stack = cfn_client.describe_stacks(StackName=stack_name)["Stacks"][0]
-    stack["Outputs"][0]["OutputValue"].should.equal(repo_arn)
+    assert stack["Outputs"][0]["OutputValue"] == repo_arn
 
     ecr_client = boto3.client("ecr", region_name="eu-central-1")
     response = ecr_client.describe_repositories(repositoryNames=[name])
 
-    response["repositories"][0]["repositoryArn"].should.equal(repo_arn)
+    assert response["repositories"][0]["repositoryArn"] == repo_arn
 
 
 @mock_ecr
@@ -78,10 +76,11 @@ def test_update_repository():
     response = ecr_client.describe_repositories(repositoryNames=[name])
 
     repo = response["repositories"][0]
-    repo["repositoryArn"].should.equal(
-        f"arn:aws:ecr:eu-central-1:{ACCOUNT_ID}:repository/{name}"
+    assert (
+        repo["repositoryArn"]
+        == f"arn:aws:ecr:eu-central-1:{ACCOUNT_ID}:repository/{name}"
     )
-    repo["imageTagMutability"].should.equal("IMMUTABLE")
+    assert repo["imageTagMutability"] == "IMMUTABLE"
 
 
 @mock_ecr
@@ -100,4 +99,4 @@ def test_delete_repository():
     # then
     ecr_client = boto3.client("ecr", region_name="eu-central-1")
     response = ecr_client.describe_repositories()["repositories"]
-    response.should.have.length_of(0)
+    assert len(response) == 0

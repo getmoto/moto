@@ -1,4 +1,3 @@
-import datetime
 import re
 from jinja2 import Template
 from botocore.exceptions import ParamValidationError
@@ -121,6 +120,7 @@ class FakeTargetGroup(CloudFormationModel):
             "deregistration_delay.timeout_seconds": 300,
             "stickiness.enabled": "false",
             "load_balancing.algorithm.type": "round_robin",
+            "load_balancing.cross_zone.enabled": "use_load_balancer_configuration",
             "slow_start.duration_seconds": 0,
             "waf.fail_open.enabled": "false",
         }
@@ -586,7 +586,7 @@ class FakeLoadBalancer(CloudFormationModel):
         loadbalancer_type: Optional[str] = None,
     ):
         self.name = name
-        self.created_time = iso_8601_datetime_with_milliseconds(datetime.datetime.now())
+        self.created_time = iso_8601_datetime_with_milliseconds()
         self.scheme = scheme
         self.security_groups = security_groups
         self.subnets = subnets or []

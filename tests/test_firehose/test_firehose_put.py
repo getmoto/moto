@@ -1,6 +1,5 @@
 """Unit tests verifying put-related delivery stream APIs."""
 import boto3
-import sure  # noqa pylint: disable=unused-import
 
 from moto import mock_firehose
 from moto import mock_s3

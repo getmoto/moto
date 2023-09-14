@@ -1,5 +1,4 @@
 import boto3
-import sure  # noqa # pylint: disable=unused-import
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from unittest import SkipTest
@@ -14,7 +13,7 @@ def test_describe_transit_gateway_peering_attachment_empty():
     all_attachments = ec2.describe_transit_gateway_peering_attachments()[
         "TransitGatewayPeeringAttachments"
     ]
-    all_attachments.should.equal([])
+    assert all_attachments == []
 
 
 @mock_ec2
@@ -32,13 +31,11 @@ def test_create_and_describe_transit_gateway_peering_attachment():
         PeerAccountId=ACCOUNT_ID,
         PeerRegion="us-east-1",
     )
-    response.should.have.key("TransitGatewayPeeringAttachment")
+    assert "TransitGatewayPeeringAttachment" in response
     attachment = response["TransitGatewayPeeringAttachment"]
-    attachment.should.have.key("TransitGatewayAttachmentId").match(
-        "tgw-attach-[a-z0-9]+"
-    )
-    attachment["RequesterTgwInfo"]["TransitGatewayId"].should.equal(gateway_id1)
-    attachment["AccepterTgwInfo"]["TransitGatewayId"].should.equal(gateway_id2)
+    assert attachment["TransitGatewayAttachmentId"].startswith("tgw-attach-")
+    assert attachment["RequesterTgwInfo"]["TransitGatewayId"] == gateway_id1
+    assert attachment["AccepterTgwInfo"]["TransitGatewayId"] == gateway_id2
 
     all_attachments = ec2.describe_transit_gateway_peering_attachments()[
         "TransitGatewayPeeringAttachments"
@@ -48,7 +45,7 @@ def test_create_and_describe_transit_gateway_peering_attachment():
         for att in all_attachments
         if att["TransitGatewayAttachmentId"] == attachment["TransitGatewayAttachmentId"]
     ]
-    our_attachment.should.equal([attachment])
+    assert our_attachment == [attachment]
 
 
 @mock_ec2
@@ -75,36 +72,34 @@ def test_describe_transit_gateway_peering_attachment_by_filters():
         for a in all_attachments
         if a["TransitGatewayAttachmentId"] in [attchmnt1, attchmnt2, attchmnt3]
     ]
-    ours.should.have.length_of(3)
+    assert len(ours) == 3
 
     find_1 = ec2.describe_transit_gateway_peering_attachments(
         TransitGatewayAttachmentIds=[attchmnt1]
     )["TransitGatewayPeeringAttachments"]
-    [a["TransitGatewayAttachmentId"] for a in find_1].should.equal([attchmnt1])
+    assert [a["TransitGatewayAttachmentId"] for a in find_1] == [attchmnt1]
 
     find_1_3 = ec2.describe_transit_gateway_peering_attachments(
         TransitGatewayAttachmentIds=[attchmnt1, attchmnt3]
     )["TransitGatewayPeeringAttachments"]
-    [a["TransitGatewayAttachmentId"] for a in find_1_3].should.equal(
-        [attchmnt1, attchmnt3]
-    )
+    assert [a["TransitGatewayAttachmentId"] for a in find_1_3] == [attchmnt1, attchmnt3]
 
     find_3 = ec2.describe_transit_gateway_peering_attachments(
         Filters=[{"Name": "transit-gateway-attachment-id", "Values": [attchmnt3]}]
     )["TransitGatewayPeeringAttachments"]
-    [a["TransitGatewayAttachmentId"] for a in find_3].should.equal([attchmnt3])
+    assert [a["TransitGatewayAttachmentId"] for a in find_3] == [attchmnt3]
 
     filters = [{"Name": "state", "Values": ["available"]}]
     find_all = retrieve_all_attachments(ec2, filters)
     all_ids = [a["TransitGatewayAttachmentId"] for a in find_all]
-    all_ids.should.contain(attchmnt1)
-    all_ids.should.contain(attchmnt2)
-    all_ids.should.contain(attchmnt3)
+    assert attchmnt1 in all_ids
+    assert attchmnt2 in all_ids
+    assert attchmnt3 in all_ids
 
     find_none = ec2.describe_transit_gateway_peering_attachments(
         Filters=[{"Name": "state", "Values": ["unknown"]}]
     )["TransitGatewayPeeringAttachments"]
-    find_none.should.equal([])
+    assert find_none == []
 
     ec2.reject_transit_gateway_peering_attachment(TransitGatewayAttachmentId=attchmnt2)
 
@@ -112,7 +107,7 @@ def test_describe_transit_gateway_peering_attachment_by_filters():
         TransitGatewayAttachmentIds=[attchmnt1, attchmnt2],
         Filters=[{"Name": "state", "Values": ["available"]}],
     )["TransitGatewayPeeringAttachments"]
-    [a["TransitGatewayAttachmentId"] for a in find_available].should.equal([attchmnt1])
+    assert [a["TransitGatewayAttachmentId"] for a in find_available] == [attchmnt1]
 
 
 @mock_ec2
@@ -133,8 +128,8 @@ def test_create_and_accept_transit_gateway_peering_attachment():
     attachment = ec2.describe_transit_gateway_peering_attachments(
         TransitGatewayAttachmentIds=[attchment_id]
     )["TransitGatewayPeeringAttachments"][0]
-    attachment.should.have.key("TransitGatewayAttachmentId").equal(attchment_id)
-    attachment.should.have.key("State").equal("available")
+    assert attachment["TransitGatewayAttachmentId"] == attchment_id
+    assert attachment["State"] == "available"
 
 
 @mock_ec2
@@ -155,8 +150,8 @@ def test_create_and_reject_transit_gateway_peering_attachment():
     attachment = ec2.describe_transit_gateway_peering_attachments(
         TransitGatewayAttachmentIds=[attchment_id]
     )["TransitGatewayPeeringAttachments"][0]
-    attachment.should.have.key("TransitGatewayAttachmentId").equal(attchment_id)
-    attachment.should.have.key("State").equal("rejected")
+    assert attachment["TransitGatewayAttachmentId"] == attchment_id
+    assert attachment["State"] == "rejected"
 
 
 @mock_ec2
@@ -177,8 +172,8 @@ def test_create_and_delete_transit_gateway_peering_attachment():
     attachment = ec2.describe_transit_gateway_peering_attachments(
         TransitGatewayAttachmentIds=[attchment_id]
     )["TransitGatewayPeeringAttachments"][0]
-    attachment.should.have.key("TransitGatewayAttachmentId").equal(attchment_id)
-    attachment.should.have.key("State").equal("deleted")
+    assert attachment["TransitGatewayAttachmentId"] == attchment_id
+    assert attachment["State"] == "deleted"
 
 
 def create_peering_attachment(ec2, gateway_id1, gateway_id2):

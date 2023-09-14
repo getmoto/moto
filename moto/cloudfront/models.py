@@ -1,6 +1,5 @@
 import string
 
-from datetime import datetime
 from typing import Any, Dict, Iterable, List, Tuple, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -16,6 +15,7 @@ from .exceptions import (
     DistributionAlreadyExists,
     InvalidIfMatchVersion,
     NoSuchDistribution,
+    NoSuchOriginAccessControl,
 )
 
 
@@ -100,13 +100,13 @@ class CustomOriginConfig:
     def __init__(self, config: Dict[str, Any]):
         self.http_port = config.get("HTTPPort")
         self.https_port = config.get("HTTPSPort")
-        self.keep_alive = config.get("OriginKeepaliveTimeout")
+        self.keep_alive = config.get("OriginKeepaliveTimeout") or 5
         self.protocol_policy = config.get("OriginProtocolPolicy")
-        self.read_timeout = config.get("OriginReadTimeout")
-        self.ssl_protocols = (
-            config.get("OriginSslProtocols", {}).get("Items", {}).get("SslProtocol")
-            or []
-        )
+        self.read_timeout = config.get("OriginReadTimeout") or 30
+        protocols = config.get("OriginSslProtocols", {}).get("Items") or {}
+        self.ssl_protocols = protocols.get("SslProtocol") or []
+        if isinstance(self.ssl_protocols, str):
+            self.ssl_protocols = [self.ssl_protocols]
 
 
 class Origin:
@@ -147,6 +147,8 @@ class DistributionConfig:
         self.aliases = ((config.get("Aliases") or {}).get("Items") or {}).get(
             "CNAME"
         ) or []
+        if isinstance(self.aliases, str):
+            self.aliases = [self.aliases]
         self.comment = config.get("Comment") or ""
         self.default_cache_behavior = DefaultCacheBehaviour(
             config["DefaultCacheBehavior"]
@@ -212,6 +214,29 @@ class Distribution(BaseModel, ManagedState):
         return f"https://cloudfront.amazonaws.com/2020-05-31/distribution/{self.distribution_id}"
 
 
+class OriginAccessControl(BaseModel):
+    def __init__(self, config_dict: Dict[str, str]):
+        self.id = Invalidation.random_id()
+        self.name = config_dict.get("Name")
+        self.description = config_dict.get("Description")
+        self.signing_protocol = config_dict.get("SigningProtocol")
+        self.signing_behaviour = config_dict.get("SigningBehavior")
+        self.origin_type = config_dict.get("OriginAccessControlOriginType")
+        self.etag = Invalidation.random_id()
+
+    def update(self, config: Dict[str, str]) -> None:
+        if "Name" in config:
+            self.name = config["Name"]
+        if "Description" in config:
+            self.description = config["Description"]
+        if "SigningProtocol" in config:
+            self.signing_protocol = config["SigningProtocol"]
+        if "SigningBehavior" in config:
+            self.signing_behaviour = config["SigningBehavior"]
+        if "OriginAccessControlOriginType" in config:
+            self.origin_type = config["OriginAccessControlOriginType"]
+
+
 class Invalidation(BaseModel):
     @staticmethod
     def random_id(uppercase: bool = True) -> str:
@@ -226,7 +251,7 @@ class Invalidation(BaseModel):
         self, distribution: Distribution, paths: Dict[str, Any], caller_ref: str
     ):
         self.invalidation_id = Invalidation.random_id()
-        self.create_time = iso_8601_datetime_with_milliseconds(datetime.now())
+        self.create_time = iso_8601_datetime_with_milliseconds()
         self.distribution = distribution
         self.status = "COMPLETED"
 
@@ -243,6 +268,7 @@ class CloudFrontBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.distributions: Dict[str, Distribution] = dict()
         self.invalidations: Dict[str, List[Invalidation]] = dict()
+        self.origin_access_controls: Dict[str, OriginAccessControl] = dict()
         self.tagger = TaggingService()
 
         state_manager.register_default_transition(
@@ -329,15 +355,20 @@ class CloudFrontBackend(BaseBackend):
             raise NoSuchDistribution
         dist = self.distributions[_id]
 
-        aliases = dist_config["Aliases"]["Items"]["CNAME"]
+        if dist_config.get("Aliases", {}).get("Items") is not None:
+            aliases = dist_config["Aliases"]["Items"]["CNAME"]
+            dist.distribution_config.aliases = aliases
         origin = dist_config["Origins"]["Items"]["Origin"]
         dist.distribution_config.config = dist_config
-        dist.distribution_config.aliases = aliases
         dist.distribution_config.origins = (
             [Origin(o) for o in origin]
             if isinstance(origin, list)
             else [Origin(origin)]
         )
+        if dist_config.get("DefaultRootObject") is not None:
+            dist.distribution_config.default_root_object = dist_config[
+                "DefaultRootObject"
+            ]
         self.distributions[_id] = dist
         dist.advance()
         return dist, dist.location, dist.etag
@@ -362,6 +393,40 @@ class CloudFrontBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource: str) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
+
+    def create_origin_access_control(
+        self, config_dict: Dict[str, str]
+    ) -> OriginAccessControl:
+        control = OriginAccessControl(config_dict)
+        self.origin_access_controls[control.id] = control
+        return control
+
+    def get_origin_access_control(self, control_id: str) -> OriginAccessControl:
+        if control_id not in self.origin_access_controls:
+            raise NoSuchOriginAccessControl
+        return self.origin_access_controls[control_id]
+
+    def update_origin_access_control(
+        self, control_id: str, config: Dict[str, str]
+    ) -> OriginAccessControl:
+        """
+        The IfMatch-parameter is not yet implemented
+        """
+        control = self.get_origin_access_control(control_id)
+        control.update(config)
+        return control
+
+    def list_origin_access_controls(self) -> Iterable[OriginAccessControl]:
+        """
+        Pagination is not yet implemented
+        """
+        return self.origin_access_controls.values()
+
+    def delete_origin_access_control(self, control_id: str) -> None:
+        """
+        The IfMatch-parameter is not yet implemented
+        """
+        self.origin_access_controls.pop(control_id)
 
 
 cloudfront_backends = BackendDict(

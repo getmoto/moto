@@ -150,11 +150,11 @@ def parse_expression(
             # hashkey = :id and sortkey = :sk
             #                                ^
             if current_stage == EXPRESSION_STAGES.KEY_VALUE:
-                key_values.append(
-                    expression_attribute_values.get(
-                        current_phrase, {"S": current_phrase}
+                if current_phrase not in expression_attribute_values:
+                    raise MockValidationException(
+                        "Invalid condition in KeyConditionExpression: Multiple attribute names used in one condition"
                     )
-                )
+                key_values.append(expression_attribute_values[current_phrase])
                 results.append((key_name, comparison, key_values))
                 break
         if crnt_char == "(":

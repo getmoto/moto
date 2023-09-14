@@ -16,7 +16,8 @@ from moto.moto_api._internal import mock_random
 
 
 def get_identity_store_id() -> str:
-    return f"d-{random.choices(string.ascii_lowercase, k=10)}"
+    rand = "".join(random.choices(string.ascii_lowercase, k=10))
+    return f"d-{rand}"
 
 
 @mock_identitystore
@@ -90,7 +91,7 @@ def test_create_group_membership():
         Description="description",
     )["GroupId"]
 
-    user_id = __create_and_verify_sparse_user(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
 
     create_response = client.create_group_membership(
         IdentityStoreId=identity_store_id,
@@ -371,11 +372,10 @@ def test_get_group_id():
     # Create a bunch of groups
     for _ in range(1, 10):
         group = __create_test_group(client, identity_store_id)
-        groups[group[0]] = group[1]
+        groups[group[0]] = group[2]
 
     # Make sure we can get their ID
     for name, group_id in groups.items():
-
         response = client.get_group_id(
             IdentityStoreId=identity_store_id,
             AlternateIdentifier={
@@ -414,6 +414,96 @@ def test_get_group_id_does_not_exist():
 
 
 @mock_identitystore
+def test_list_groups():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    start = 0
+    end = 266
+    batch_size = 100
+    next_token = None
+
+    expected_groups = list()
+    for _ in range(end):
+        display_name, description, group_id = __create_test_group(
+            client=client, store_id=identity_store_id
+        )
+        expected_groups.append(
+            {
+                "GroupId": group_id,
+                "DisplayName": display_name,
+                "Description": description,
+                "IdentityStoreId": identity_store_id,
+            }
+        )
+
+    groups = list()
+    for iteration in range(start, end, batch_size):
+        last_iteration = end - iteration <= batch_size
+        expected_size = batch_size if not last_iteration else end - iteration
+
+        if next_token is not None:
+            list_response = client.list_groups(
+                IdentityStoreId=identity_store_id,
+                MaxResults=batch_size,
+                NextToken=next_token,
+            )
+        else:
+            list_response = client.list_groups(
+                IdentityStoreId=identity_store_id,
+                MaxResults=batch_size,
+            )
+
+        assert len(list_response["Groups"]) == expected_size
+        groups.extend(list_response["Groups"])
+        if last_iteration:
+            assert "NextToken" not in list_response
+        else:
+            assert "NextToken" in list_response
+            next_token = list_response["NextToken"]
+
+    assert groups == expected_groups
+
+
+@mock_identitystore
+def test_list_groups_filter():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    display_name, description, group_id = __create_test_group(
+        client=client, store_id=identity_store_id
+    )
+    expected_group = {
+        "GroupId": group_id,
+        "DisplayName": display_name,
+        "Description": description,
+        "IdentityStoreId": identity_store_id,
+    }
+
+    # Create a second test group to see if it is not returned
+    __create_test_group(client=client, store_id=identity_store_id)
+
+    groups = client.list_groups(
+        IdentityStoreId=identity_store_id,
+        Filters=[
+            {"AttributePath": "DisplayName", "AttributeValue": display_name},
+        ],
+    )["Groups"]
+
+    assert len(groups) == 1
+    assert groups[0] == expected_group
+
+    no_groups = client.list_groups(
+        IdentityStoreId=identity_store_id,
+        Filters=[
+            {"AttributePath": "DisplayName", "AttributeValue": "non_existant_group"},
+        ],
+    )["Groups"]
+
+    assert len(no_groups) == 0
+
+
+@mock_identitystore
 def test_list_group_memberships():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -431,7 +521,7 @@ def test_list_group_memberships():
     )["GroupId"]
 
     for _ in range(end):
-        user_id = __create_and_verify_sparse_user(client, identity_store_id)
+        user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
         create_response = client.create_group_membership(
             IdentityStoreId=identity_store_id,
             GroupId=group_id,
@@ -477,6 +567,89 @@ def __check_membership_list_values(members, expected):
 
 
 @mock_identitystore
+def test_list_users():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    start = 0
+    end = 240
+    batch_size = 100
+    next_token = None
+
+    expected_users = list()
+    for _ in range(end):
+        dummy_user = __create_and_verify_sparse_user(client, identity_store_id)
+        expected_users.append(dummy_user)
+
+    users = list()
+    for iteration in range(start, end, batch_size):
+        last_iteration = end - iteration <= batch_size
+        expected_size = batch_size if not last_iteration else end - iteration
+
+        if next_token is not None:
+            list_response = client.list_users(
+                IdentityStoreId=identity_store_id,
+                MaxResults=batch_size,
+                NextToken=next_token,
+            )
+        else:
+            list_response = client.list_users(
+                IdentityStoreId=identity_store_id,
+                MaxResults=batch_size,
+            )
+
+        assert len(list_response["Users"]) == expected_size
+        users.extend(list_response["Users"])
+        if last_iteration:
+            assert "NextToken" not in list_response
+        else:
+            assert "NextToken" in list_response
+            next_token = list_response["NextToken"]
+
+    assert users == expected_users
+
+
+@mock_identitystore
+def test_list_users_filter():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    client.create_user(
+        IdentityStoreId=identity_store_id,
+        UserName="test_username_1",
+        DisplayName="test_display_name_1",
+        Name={"GivenName": "given_name", "FamilyName": "family_name"},
+    )
+
+    # Create a second user to see if it is not returned
+    client.create_user(
+        IdentityStoreId=identity_store_id,
+        UserName="test_username_2",
+        DisplayName="test_display_name_2",
+        Name={"GivenName": "given_name", "FamilyName": "family_name"},
+    )
+
+    users = client.list_users(
+        IdentityStoreId=identity_store_id,
+        Filters=[
+            {"AttributePath": "UserName", "AttributeValue": "test_username_1"},
+        ],
+    )["Users"]
+
+    assert len(users) == 1
+    assert users[0]["UserName"] == "test_username_1"
+
+    no_users = client.list_users(
+        IdentityStoreId=identity_store_id,
+        Filters=[
+            {"AttributePath": "UserName", "AttributeValue": "non_existant_user"},
+        ],
+    )["Users"]
+
+    assert len(no_users) == 0
+
+
+@mock_identitystore
 def test_delete_group():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -484,7 +657,7 @@ def test_delete_group():
     test_group = __create_test_group(client, identity_store_id)
     assert __group_exists(client, test_group[0], identity_store_id)
 
-    resp = client.delete_group(IdentityStoreId=identity_store_id, GroupId=test_group[1])
+    resp = client.delete_group(IdentityStoreId=identity_store_id, GroupId=test_group[2])
     assert "ResponseMetadata" in resp
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
@@ -509,8 +682,8 @@ def test_delete_group_doesnt_exist():
 def test_delete_group_membership():
     client = boto3.client("identitystore", region_name="eu-west-1")
     identity_store_id = get_identity_store_id()
-    user_id = __create_and_verify_sparse_user(client, identity_store_id)
-    _, group_id = __create_test_group(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+    _, _, group_id = __create_test_group(client, identity_store_id)
 
     membership = client.create_group_membership(
         IdentityStoreId=identity_store_id,
@@ -539,7 +712,7 @@ def test_delete_group_membership():
 def test_delete_user():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
-    user_id = __create_and_verify_sparse_user(client, identity_store_id)
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
 
     client.delete_user(IdentityStoreId=identity_store_id, UserId=user_id)
 
@@ -563,14 +736,15 @@ def test_delete_user_doesnt_exist():
 def __create_test_group(client, store_id: str):
     rand = "".join(random.choices(string.ascii_lowercase, k=8))
     group_name = f"test_group_{rand}"
+    description = f"random_description_{rand}"
 
     create_resp = client.create_group(
         IdentityStoreId=store_id,
         DisplayName=group_name,
-        Description="description",
+        Description=description,
     )
 
-    return group_name, create_resp["GroupId"]
+    return group_name, description, create_resp["GroupId"]
 
 
 def __group_exists(client, group_name: str, store_id: str) -> bool:
@@ -592,7 +766,8 @@ def __group_exists(client, group_name: str, store_id: str) -> bool:
 
 
 def __create_and_verify_sparse_user(client, store_id: str):
-    rand = random.choices(string.ascii_lowercase, k=8)
+    """Creates a user, verifies it is unique and returns the response of describe_user"""
+    rand = "".join(random.choices(string.ascii_lowercase, k=8))
     username = f"the_username_{rand}"
     response = client.create_user(
         IdentityStoreId=store_id,
@@ -607,4 +782,7 @@ def __create_and_verify_sparse_user(client, store_id: str):
     )
 
     assert user_resp["UserName"] == username
-    return user_resp["UserId"]
+    del user_resp[
+        "ResponseMetadata"
+    ]  # strip response metadata and just return user info
+    return user_resp

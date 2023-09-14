@@ -2,7 +2,6 @@ from uuid import UUID
 
 import boto3
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from botocore.exceptions import ClientError
 
 from moto import mock_mediaconnect
@@ -67,11 +66,9 @@ def _create_flow_config(name, **kwargs):
 
 def _check_mediaconnect_arn(type_, arn, name):
     _arn_list = str.split(arn, ":")
-    _arn_list[:6].should.equal(
-        ["arn", "aws", "mediaconnect", region, ACCOUNT_ID, type_]
-    )
+    assert _arn_list[:6] == ["arn", "aws", "mediaconnect", region, ACCOUNT_ID, type_]
     UUID(_arn_list[6])
-    _arn_list[-1].should.equal(name)
+    assert _arn_list[-1] == name
 
 
 @mock_mediaconnect
@@ -81,16 +78,16 @@ def test_create_flow_succeeds():
 
     response = client.create_flow(**channel_config)
 
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     _check_mediaconnect_arn(
         type_="flow", arn=response["Flow"]["FlowArn"], name="test-Flow-1"
     )
-    response["Flow"]["Name"].should.equal("test-Flow-1")
-    response["Flow"]["Status"].should.equal("STANDBY")
-    response["Flow"]["Outputs"][0]["Name"].should.equal("Output-1")
-    response["Flow"]["Outputs"][1]["ListenerAddress"].should.equal("1.0.0.0")
-    response["Flow"]["Outputs"][2]["ListenerAddress"].should.equal("2.0.0.0")
-    response["Flow"]["Source"]["IngestIp"].should.equal("127.0.0.0")
+    assert response["Flow"]["Name"] == "test-Flow-1"
+    assert response["Flow"]["Status"] == "STANDBY"
+    assert response["Flow"]["Outputs"][0]["Name"] == "Output-1"
+    assert response["Flow"]["Outputs"][1]["ListenerAddress"] == "1.0.0.0"
+    assert response["Flow"]["Outputs"][2]["ListenerAddress"] == "2.0.0.0"
+    assert response["Flow"]["Source"]["IngestIp"] == "127.0.0.0"
     _check_mediaconnect_arn(
         type_="source", arn=response["Flow"]["Sources"][0]["SourceArn"], name="Source-A"
     )
@@ -113,14 +110,14 @@ def test_create_flow_alternative_succeeds():
 
     response = client.create_flow(**channel_config)
 
-    response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     _check_mediaconnect_arn(
         type_="flow", arn=response["Flow"]["FlowArn"], name="test-Flow-1"
     )
-    response["Flow"]["Name"].should.equal("test-Flow-1")
-    response["Flow"]["Status"].should.equal("STANDBY")
-    response["Flow"]["Sources"][0]["IngestIp"].should.equal("127.0.0.0")
-    response["Flow"]["Sources"][1]["IngestIp"].should.equal("127.0.0.1")
+    assert response["Flow"]["Name"] == "test-Flow-1"
+    assert response["Flow"]["Status"] == "STANDBY"
+    assert response["Flow"]["Sources"][0]["IngestIp"] == "127.0.0.0"
+    assert response["Flow"]["Sources"][1]["IngestIp"] == "127.0.0.1"
     _check_mediaconnect_arn(
         type_="source", arn=response["Flow"]["Sources"][0]["SourceArn"], name="Source-A"
     )
@@ -136,17 +133,17 @@ def test_list_flows_succeeds():
     client.create_flow(**flow_2_config)
 
     response = client.list_flows()
-    len(response["Flows"]).should.equal(2)
+    assert len(response["Flows"]) == 2
 
-    response["Flows"][0]["Name"].should.equal("test-Flow-1")
-    response["Flows"][0]["AvailabilityZone"].should.equal("AZ1")
-    response["Flows"][0]["SourceType"].should.equal("OWNED")
-    response["Flows"][0]["Status"].should.equal("STANDBY")
+    assert response["Flows"][0]["Name"] == "test-Flow-1"
+    assert response["Flows"][0]["AvailabilityZone"] == "AZ1"
+    assert response["Flows"][0]["SourceType"] == "OWNED"
+    assert response["Flows"][0]["Status"] == "STANDBY"
 
-    response["Flows"][1]["Name"].should.equal("test-Flow-2")
-    response["Flows"][1]["AvailabilityZone"].should.equal("AZ1")
-    response["Flows"][1]["SourceType"].should.equal("OWNED")
-    response["Flows"][1]["Status"].should.equal("STANDBY")
+    assert response["Flows"][1]["Name"] == "test-Flow-2"
+    assert response["Flows"][1]["AvailabilityZone"] == "AZ1"
+    assert response["Flows"][1]["SourceType"] == "OWNED"
+    assert response["Flows"][1]["Status"] == "STANDBY"
 
 
 @mock_mediaconnect
@@ -155,11 +152,11 @@ def test_describe_flow_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
     flow_arn = create_response["Flow"]["FlowArn"]
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    describe_response["Flow"]["Name"].should.equal("test-Flow-1")
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert describe_response["Flow"]["Name"] == "test-Flow-1"
 
 
 @mock_mediaconnect
@@ -168,12 +165,12 @@ def test_delete_flow_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
     flow_arn = create_response["Flow"]["FlowArn"]
     delete_response = client.delete_flow(FlowArn=flow_arn)
-    delete_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    delete_response["FlowArn"].should.equal(flow_arn)
-    delete_response["Status"].should.equal("STANDBY")
+    assert delete_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert delete_response["FlowArn"] == flow_arn
+    assert delete_response["Status"] == "STANDBY"
 
 
 @mock_mediaconnect
@@ -182,27 +179,27 @@ def test_start_stop_flow_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     start_response = client.start_flow(FlowArn=flow_arn)
-    start_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    start_response["FlowArn"].should.equal(flow_arn)
-    start_response["Status"].should.equal("STARTING")
+    assert start_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert start_response["FlowArn"] == flow_arn
+    assert start_response["Status"] == "STARTING"
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    describe_response["Flow"]["Status"].should.equal("ACTIVE")
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert describe_response["Flow"]["Status"] == "ACTIVE"
 
     stop_response = client.stop_flow(FlowArn=flow_arn)
-    stop_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    stop_response["FlowArn"].should.equal(flow_arn)
-    stop_response["Status"].should.equal("STOPPING")
+    assert stop_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert stop_response["FlowArn"] == flow_arn
+    assert stop_response["Status"] == "STOPPING"
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    describe_response["Flow"]["Status"].should.equal("STANDBY")
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert describe_response["Flow"]["Status"] == "STANDBY"
 
 
 @mock_mediaconnect
@@ -235,11 +232,11 @@ def test_tag_resource_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
 
     tag_response = client.tag_resource(ResourceArn="some-arn", Tags={"Tag1": "Value1"})
-    tag_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert tag_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     list_response = client.list_tags_for_resource(ResourceArn="some-arn")
-    list_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    list_response["Tags"].should.equal({"Tag1": "Value1"})
+    assert list_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert list_response["Tags"] == {"Tag1": "Value1"}
 
 
 @mock_mediaconnect
@@ -248,8 +245,8 @@ def test_add_flow_vpc_interfaces_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     client.add_flow_vpc_interfaces(
@@ -265,17 +262,15 @@ def test_add_flow_vpc_interfaces_succeeds():
     )
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    describe_response["Flow"]["VpcInterfaces"].should.equal(
-        [
-            {
-                "Name": "VPCInterface",
-                "RoleArn": "",
-                "SecurityGroupIds": [],
-                "SubnetId": "",
-            }
-        ]
-    )
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert describe_response["Flow"]["VpcInterfaces"] == [
+        {
+            "Name": "VPCInterface",
+            "RoleArn": "",
+            "SecurityGroupIds": [],
+            "SubnetId": "",
+        }
+    ]
 
 
 @mock_mediaconnect
@@ -285,8 +280,8 @@ def test_add_flow_vpc_interfaces_fails():
     with pytest.raises(ClientError) as err:
         client.add_flow_vpc_interfaces(FlowArn=flow_arn, VpcInterfaces=[])
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -295,8 +290,8 @@ def test_remove_flow_vpc_interface_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     client.add_flow_vpc_interfaces(
@@ -312,13 +307,13 @@ def test_remove_flow_vpc_interface_succeeds():
     )
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["VpcInterfaces"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["VpcInterfaces"]) == 1
 
     client.remove_flow_vpc_interface(FlowArn=flow_arn, VpcInterfaceName="VPCInterface")
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    len(describe_response["Flow"]["VpcInterfaces"]).should.equal(0)
+    assert len(describe_response["Flow"]["VpcInterfaces"]) == 0
 
 
 @mock_mediaconnect
@@ -330,8 +325,8 @@ def test_remove_flow_vpc_interface_fails():
             FlowArn=flow_arn, VpcInterfaceName="VPCInterface"
         )
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -340,8 +335,8 @@ def test_add_flow_outputs_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     client.add_flow_outputs(
@@ -351,11 +346,10 @@ def test_add_flow_outputs_succeeds():
         ],
     )
 
-    describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    describe_response["Flow"]["Outputs"].should.equal(
-        [{"Description": "string", "Name": "string", "Port": 123}]
-    )
+    response = client.describe_flow(FlowArn=flow_arn)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    outputs = response["Flow"]["Outputs"]
+    assert outputs == [{"Description": "string", "Name": "string", "Port": 123}]
 
 
 @mock_mediaconnect
@@ -365,8 +359,8 @@ def test_add_flow_outputs_fails():
     with pytest.raises(ClientError) as err:
         client.add_flow_outputs(FlowArn=flow_arn, Outputs=[])
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -375,15 +369,15 @@ def test_update_flow_output_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
     output_arn = create_response["Flow"]["Outputs"][0]["OutputArn"]
 
     update_response = client.update_flow_output(
         FlowArn=flow_arn, OutputArn=output_arn, Description="new description"
     )
-    update_response["Output"]["Description"].should.equal("new description")
+    assert update_response["Output"]["Description"] == "new description"
 
 
 @mock_mediaconnect
@@ -397,8 +391,8 @@ def test_update_flow_output_fails():
             Description="new description",
         )
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -409,8 +403,8 @@ def test_remove_flow_output_fails():
     with pytest.raises(ClientError) as err:
         client.remove_flow_output(FlowArn=flow_arn, OutputArn=output_arn)
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -419,8 +413,8 @@ def test_remove_flow_output_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     client.add_flow_outputs(
@@ -431,13 +425,13 @@ def test_remove_flow_output_succeeds():
     )
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Outputs"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Outputs"]) == 1
 
     client.remove_flow_output(FlowArn=flow_arn, OutputArn="string")
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    len(describe_response["Flow"]["Outputs"]).should.equal(0)
+    assert len(describe_response["Flow"]["Outputs"]) == 0
 
 
 @mock_mediaconnect
@@ -447,8 +441,8 @@ def test_add_flow_sources_fails():
     with pytest.raises(ClientError) as err:
         client.add_flow_sources(FlowArn=flow_arn, Sources=[])
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -457,8 +451,8 @@ def test_add_flow_sources_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     client.add_flow_sources(
@@ -474,8 +468,8 @@ def test_add_flow_sources_succeeds():
     )
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Sources"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Sources"]) == 1
 
 
 @mock_mediaconnect
@@ -492,8 +486,8 @@ def test_update_flow_source_fails():
             FlowArn=flow_arn, SourceArn=source_arn, Description="new description"
         )
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -502,8 +496,8 @@ def test_update_flow_source_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     add_response = client.add_flow_sources(
@@ -519,15 +513,15 @@ def test_update_flow_source_succeeds():
     )
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Sources"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Sources"]) == 1
 
     source_arn = add_response["Sources"][0]["SourceArn"]
 
     update_response = client.update_flow_source(
         FlowArn=flow_arn, SourceArn=source_arn, Description="new description"
     )
-    update_response["Source"]["Description"].should.equal("new description")
+    assert update_response["Source"]["Description"] == "new description"
 
 
 @mock_mediaconnect
@@ -553,8 +547,8 @@ def test_grant_flow_entitlements_fails():
             ],
         )
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("flow with arn=unknown-flow not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
 @mock_mediaconnect
@@ -563,13 +557,13 @@ def test_grant_flow_entitlements_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Sources"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Sources"]) == 1
 
     grant_response = client.grant_flow_entitlements(
         FlowArn=flow_arn,
@@ -594,10 +588,10 @@ def test_grant_flow_entitlements_succeeds():
     )
 
     entitlements = grant_response["Entitlements"]
-    len(entitlements).should.equal(2)
+    assert len(entitlements) == 2
     entitlement_names = [entitlement["Name"] for entitlement in entitlements]
-    entitlement_names.should.have("Entitlement-B")
-    entitlement_names.should.have("Entitlement-C")
+    assert "Entitlement-B" in entitlement_names
+    assert "Entitlement-C" in entitlement_names
 
 
 @mock_mediaconnect
@@ -606,21 +600,21 @@ def test_revoke_flow_entitlement_fails():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Entitlements"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Entitlements"]) == 1
 
     with pytest.raises(ClientError) as err:
         client.revoke_flow_entitlement(
             FlowArn=flow_arn, EntitlementArn="some-other-arn"
         )
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("entitlement with arn=some-other-arn not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "entitlement with arn=some-other-arn not found"
 
 
 @mock_mediaconnect
@@ -629,23 +623,23 @@ def test_revoke_flow_entitlement_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
     entitlement_arn = describe_response["Flow"]["Entitlements"][0]["EntitlementArn"]
 
     revoke_response = client.revoke_flow_entitlement(
         FlowArn=flow_arn, EntitlementArn=entitlement_arn
     )
-    revoke_response["FlowArn"].should.equal(flow_arn)
-    revoke_response["EntitlementArn"].should.equal(entitlement_arn)
+    assert revoke_response["FlowArn"] == flow_arn
+    assert revoke_response["EntitlementArn"] == entitlement_arn
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Entitlements"]).should.equal(0)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Entitlements"]) == 0
 
 
 @mock_mediaconnect
@@ -654,13 +648,13 @@ def test_update_flow_entitlement_fails():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    len(describe_response["Flow"]["Entitlements"]).should.equal(1)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(describe_response["Flow"]["Entitlements"]) == 1
 
     with pytest.raises(ClientError) as err:
         client.update_flow_entitlement(
@@ -669,8 +663,8 @@ def test_update_flow_entitlement_fails():
             Description="new description",
         )
     err = err.value.response["Error"]
-    err["Code"].should.equal("NotFoundException")
-    err["Message"].should.equal("entitlement with arn=some-other-arn not found")
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "entitlement with arn=some-other-arn not found"
 
 
 @mock_mediaconnect
@@ -679,12 +673,12 @@ def test_update_flow_entitlement_succeeds():
     channel_config = _create_flow_config("test-Flow-1")
 
     create_response = client.create_flow(**channel_config)
-    create_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
-    create_response["Flow"]["Status"].should.equal("STANDBY")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert create_response["Flow"]["Status"] == "STANDBY"
     flow_arn = create_response["Flow"]["FlowArn"]
 
     describe_response = client.describe_flow(FlowArn=flow_arn)
-    describe_response["ResponseMetadata"]["HTTPStatusCode"].should.equal(200)
+    assert describe_response["ResponseMetadata"]["HTTPStatusCode"] == 200
     entitlement_arn = describe_response["Flow"]["Entitlements"][0]["EntitlementArn"]
 
     update_response = client.update_flow_entitlement(
@@ -692,7 +686,7 @@ def test_update_flow_entitlement_succeeds():
         EntitlementArn=entitlement_arn,
         Description="new description",
     )
-    update_response["FlowArn"].should.equal(flow_arn)
+    assert update_response["FlowArn"] == flow_arn
     entitlement = update_response["Entitlement"]
-    entitlement["EntitlementArn"].should.equal(entitlement_arn)
-    entitlement["Description"].should.equal("new description")
+    assert entitlement["EntitlementArn"] == entitlement_arn
+    assert entitlement["Description"] == "new description"

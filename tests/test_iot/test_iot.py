@@ -1,4 +1,3 @@
-import sure  # noqa # pylint: disable=unused-import
 import boto3
 
 from moto import mock_iot
@@ -14,37 +13,26 @@ def test_endpoints():
 
     # iot:Data
     endpoint = client.describe_endpoint(endpointType="iot:Data")
-    endpoint.should.have.key("endpointAddress").which.should_not.contain("ats")
-    endpoint.should.have.key("endpointAddress").which.should.contain(
-        f"iot.{region_name}.amazonaws.com"
-    )
+    assert "ats" not in endpoint["endpointAddress"]
+    assert f"iot.{region_name}.amazonaws.com" in endpoint["endpointAddress"]
 
     # iot:Data-ATS
     endpoint = client.describe_endpoint(endpointType="iot:Data-ATS")
-    endpoint.should.have.key("endpointAddress").which.should.contain(
-        f"ats.iot.{region_name}.amazonaws.com"
-    )
+    assert f"ats.iot.{region_name}.amazonaws.com" in endpoint["endpointAddress"]
 
     # iot:Data-ATS
     endpoint = client.describe_endpoint(endpointType="iot:CredentialProvider")
-    endpoint.should.have.key("endpointAddress").which.should.contain(
-        f"credentials.iot.{region_name}.amazonaws.com"
-    )
+    assert f"credentials.iot.{region_name}.amazonaws.com" in endpoint["endpointAddress"]
 
     # iot:Data-ATS
     endpoint = client.describe_endpoint(endpointType="iot:Jobs")
-    endpoint.should.have.key("endpointAddress").which.should.contain(
-        f"jobs.iot.{region_name}.amazonaws.com"
-    )
+    assert f"jobs.iot.{region_name}.amazonaws.com" in endpoint["endpointAddress"]
 
     # raise InvalidRequestException
-    try:
+    with pytest.raises(ClientError) as exc:
         client.describe_endpoint(endpointType="iot:Abc")
-    except client.exceptions.InvalidRequestException as exc:
-        error_code = exc.response["Error"]["Code"]
-        error_code.should.equal("InvalidRequestException")
-    else:
-        raise Exception("Should have raised error")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
 
 
 @mock_iot
@@ -59,32 +47,34 @@ def test_principal_policy():
     client.attach_policy(policyName=policy_name, target=cert_arn)
 
     res = client.list_principal_policies(principal=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(1)
+    assert len(res["policies"]) == 1
     for policy in res["policies"]:
-        policy.should.have.key("policyName").which.should_not.be.none
-        policy.should.have.key("policyArn").which.should_not.be.none
+        assert policy["policyName"] is not None
+        assert policy["policyArn"] is not None
 
     # do nothing if policy have already attached to certificate
     client.attach_policy(policyName=policy_name, target=cert_arn)
 
     res = client.list_principal_policies(principal=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(1)
+    assert len(res["policies"]) == 1
     for policy in res["policies"]:
-        policy.should.have.key("policyName").which.should_not.be.none
-        policy.should.have.key("policyArn").which.should_not.be.none
+        assert policy["policyName"] is not None
+        assert policy["policyArn"] is not None
 
     res = client.list_policy_principals(policyName=policy_name)
-    res.should.have.key("principals").length_of(1)
-    res["principals"][0].should.match(f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/")
+    assert len(res["principals"]) == 1
+    assert res["principals"][0].startswith(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/"
+    )
 
     client.detach_policy(policyName=policy_name, target=cert_arn)
     res = client.list_principal_policies(principal=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(0)
+    assert len(res["policies"]) == 0
     res = client.list_policy_principals(policyName=policy_name)
-    res.should.have.key("principals").which.should.have.length_of(0)
+    assert len(res["principals"]) == 0
     with pytest.raises(ClientError) as e:
         client.detach_policy(policyName=policy_name, target=cert_arn)
-    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 @mock_iot
@@ -99,21 +89,24 @@ def test_principal_policy_deprecated():
     client.attach_principal_policy(policyName=policy_name, principal=cert_arn)
 
     res = client.list_principal_policies(principal=cert_arn)
-    res.should.have.key("policies").length_of(1)
-    res["policies"][0].should.have.key("policyName").equal("my-policy")
-    res["policies"][0].should.have.key("policyArn").equal(
-        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:policy/my-policy"
+    assert len(res["policies"]) == 1
+    assert res["policies"][0]["policyName"] == "my-policy"
+    assert (
+        res["policies"][0]["policyArn"]
+        == f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:policy/my-policy"
     )
 
     res = client.list_policy_principals(policyName=policy_name)
-    res.should.have.key("principals").length_of(1)
-    res["principals"][0].should.match(f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/")
+    assert len(res["principals"]) == 1
+    assert res["principals"][0].startswith(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/"
+    )
 
     client.detach_principal_policy(policyName=policy_name, principal=cert_arn)
     res = client.list_principal_policies(principal=cert_arn)
-    res.should.have.key("policies").which.should.have.length_of(0)
+    assert len(res["policies"]) == 0
     res = client.list_policy_principals(policyName=policy_name)
-    res.should.have.key("principals").which.should.have.length_of(0)
+    assert len(res["principals"]) == 0
 
 
 @mock_iot
@@ -127,22 +120,25 @@ def test_principal_thing():
     client.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
     res = client.list_principal_things(principal=cert_arn)
-    res.should.have.key("things").which.should.have.length_of(1)
-    res["things"][0].should.equal(thing_name)
+    assert len(res["things"]) == 1
+    assert res["things"][0] == thing_name
     res = client.list_thing_principals(thingName=thing_name)
-    res.should.have.key("principals").length_of(1)
-    res["principals"][0].should.match(f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/")
+    assert len(res["principals"]) == 1
+    assert res["principals"][0].startswith(
+        f"arn:aws:iot:ap-northeast-1:{ACCOUNT_ID}:cert/"
+    )
 
     client.detach_thing_principal(thingName=thing_name, principal=cert_arn)
     res = client.list_principal_things(principal=cert_arn)
-    res.should.have.key("things").which.should.have.length_of(0)
+    assert len(res["things"]) == 0
     res = client.list_thing_principals(thingName=thing_name)
-    res.should.have.key("principals").which.should.have.length_of(0)
+    assert len(res["principals"]) == 0
 
     with pytest.raises(ClientError) as e:
         client.list_thing_principals(thingName="xxx")
 
-    e.value.response["Error"]["Code"].should.equal("ResourceNotFoundException")
-    e.value.response["Error"]["Message"].should.equal(
-        "Failed to list principals for thing xxx because the thing does not exist in your account"
+    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        e.value.response["Error"]["Message"]
+        == "Failed to list principals for thing xxx because the thing does not exist in your account"
     )

@@ -1,13 +1,11 @@
+import boto3
 import json
 import io
+import pytest
 import zipfile
 
-from decimal import Decimal
-
 from botocore.exceptions import ClientError
-import boto3
-import sure  # noqa # pylint: disable=unused-import
-import pytest
+from decimal import Decimal
 from string import Template
 
 from moto import (
@@ -29,9 +27,6 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
-from tests.helpers import (  # noqa # pylint: disable=unused-import
-    containing_item_with_attributes,
-)
 
 
 @mock_cloudformation
@@ -41,8 +36,8 @@ def test_create_template_without_required_param_boto3():
     with pytest.raises(ClientError) as ex:
         cf.create_stack(StackName="test_stack", TemplateBody=template_json)
     err = ex.value.response["Error"]
-    err.should.have.key("Code").equal("Missing Parameter")
-    err.should.have.key("Message").equal("Missing parameter KeyName")
+    assert err["Code"] == "Missing Parameter"
+    assert err["Message"] == "Missing parameter KeyName"
 
 
 @mock_ec2
@@ -56,7 +51,7 @@ def test_fn_join_boto3():
 
     stack = cf.describe_stacks()["Stacks"][0]
     fn_join_output = stack["Outputs"][0]
-    fn_join_output["OutputValue"].should.equal(f"test eip:{eip['PublicIp']}")
+    assert fn_join_output["OutputValue"] == f"test eip:{eip['PublicIp']}"
 
 
 @mock_cloudformation
@@ -85,14 +80,14 @@ def test_conditional_resources_boto3():
         Parameters=[{"ParameterKey": "EnvType", "ParameterValue": "staging"}],
     )
     sqs = boto3.client("sqs", region_name="us-west-1")
-    sqs.list_queues().shouldnt.have.key("QueueUrls")
+    assert "QueueUrls" not in sqs.list_queues()
 
     cf.create_stack(
         StackName="test_stack_with_queue",
         TemplateBody=sqs_template_json,
         Parameters=[{"ParameterKey": "EnvType", "ParameterValue": "prod"}],
     )
-    sqs.list_queues()["QueueUrls"].should.have.length_of(1)
+    assert len(sqs.list_queues()["QueueUrls"]) == 1
 
 
 @mock_cloudformation
@@ -126,7 +121,7 @@ def test_conditional_if_handling_boto3():
     cf.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
-    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+    assert ec2_instance["ImageId"] == EXAMPLE_AMI_ID2
 
     cf = boto3.client("cloudformation", region_name="us-west-2")
     cf.create_stack(
@@ -136,7 +131,7 @@ def test_conditional_if_handling_boto3():
     )
     ec2 = boto3.client("ec2", region_name="us-west-2")
     ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
-    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    assert ec2_instance["ImageId"] == EXAMPLE_AMI_ID
 
 
 @mock_cloudformation
@@ -172,13 +167,13 @@ def test_cloudformation_mapping_boto3():
     cf.create_stack(StackName="test_stack1", TemplateBody=dummy_template_json)
     ec2 = boto3.client("ec2", region_name="us-east-1")
     ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
-    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID)
+    assert ec2_instance["ImageId"] == EXAMPLE_AMI_ID
 
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack1", TemplateBody=dummy_template_json)
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2_instance = ec2.describe_instances()["Reservations"][0]["Instances"][0]
-    ec2_instance["ImageId"].should.equal(EXAMPLE_AMI_ID2)
+    assert ec2_instance["ImageId"] == EXAMPLE_AMI_ID2
 
 
 @mock_cloudformation
@@ -204,7 +199,7 @@ def lambda_handler(event, context):
                     "Description": "Test function",
                     "MemorySize": 128,
                     "Role": {"Fn::GetAtt": ["MyRole", "Arn"]},
-                    "Runtime": "python2.7",
+                    "Runtime": "python3.11",
                     "Environment": {"Variables": {"TEST_ENV_KEY": "test-env-val"}},
                     "ReservedConcurrentExecutions": 10,
                 },
@@ -232,23 +227,23 @@ def lambda_handler(event, context):
 
     conn = boto3.client("lambda", "us-east-1")
     result = conn.list_functions()
-    result["Functions"].should.have.length_of(1)
-    result["Functions"][0]["Description"].should.equal("Test function")
-    result["Functions"][0]["Handler"].should.equal("index.lambda_handler")
-    result["Functions"][0]["MemorySize"].should.equal(128)
-    result["Functions"][0]["Runtime"].should.equal("python2.7")
-    result["Functions"][0]["Environment"].should.equal(
-        {"Variables": {"TEST_ENV_KEY": "test-env-val"}}
-    )
+    assert len(result["Functions"]) == 1
+    assert result["Functions"][0]["Description"] == "Test function"
+    assert result["Functions"][0]["Handler"] == "index.lambda_handler"
+    assert result["Functions"][0]["MemorySize"] == 128
+    assert result["Functions"][0]["Runtime"] == "python3.11"
+    assert result["Functions"][0]["Environment"] == {
+        "Variables": {"TEST_ENV_KEY": "test-env-val"}
+    }
 
     function_name = result["Functions"][0]["FunctionName"]
     result = conn.get_function(FunctionName=function_name)
 
-    result["Concurrency"]["ReservedConcurrentExecutions"].should.equal(10)
+    assert result["Concurrency"]["ReservedConcurrentExecutions"] == 10
 
     response = conn.invoke(FunctionName=function_name)
     result = json.loads(response["Payload"].read())
-    result.should.equal({"event": "{}"})
+    assert result == {"event": "{}"}
 
 
 def _make_zipfile(func_str):
@@ -302,18 +297,16 @@ def lambda_handler(event, context):
     layer_name = result["Layers"][0]["LayerName"]
     result = lambda_conn.list_layer_versions(LayerName=layer_name)
     result["LayerVersions"][0].pop("CreatedDate")
-    result["LayerVersions"].should.equal(
-        [
-            {
-                "Version": 1,
-                "LayerVersionArn": f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1",
-                "CompatibleRuntimes": ["python2.7", "python3.6"],
-                "Description": "Test Layer",
-                "LicenseInfo": "MIT",
-                "CompatibleArchitectures": [],
-            }
-        ]
-    )
+    assert result["LayerVersions"] == [
+        {
+            "Version": 1,
+            "LayerVersionArn": f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1",
+            "CompatibleRuntimes": ["python2.7", "python3.6"],
+            "Description": "Test Layer",
+            "LicenseInfo": "MIT",
+            "CompatibleArchitectures": [],
+        }
+    ]
 
 
 @mock_cloudformation
@@ -370,14 +363,13 @@ def test_nat_gateway():
             route_resource = resource
 
     result = ec2_conn.describe_nat_gateways()
-    result["NatGateways"].should.have.length_of(1)
-    result["NatGateways"][0]["VpcId"].should.equal(vpc_id)
-    result["NatGateways"][0]["SubnetId"].should.equal(subnet_id)
-    result["NatGateways"][0]["State"].should.equal("available")
-    result["NatGateways"][0]["NatGatewayId"].should.equal(
-        nat_gateway_resource.get("PhysicalResourceId")
-    )
-    route_resource.get("PhysicalResourceId").should.contain("rtb-")
+    assert len(result["NatGateways"]) == 1
+    assert result["NatGateways"][0]["VpcId"] == vpc_id
+    assert result["NatGateways"][0]["SubnetId"] == subnet_id
+    assert result["NatGateways"][0]["State"] == "available"
+    physical_id = nat_gateway_resource.get("PhysicalResourceId")
+    assert result["NatGateways"][0]["NatGatewayId"] == physical_id
+    assert "rtb-" in route_resource["PhysicalResourceId"]
 
 
 @mock_cloudformation()
@@ -403,11 +395,11 @@ def test_stack_kms():
 
     kms_conn = boto3.client("kms", "us-east-1")
     keys = kms_conn.list_keys()["Keys"]
-    len(keys).should.equal(1)
+    assert len(keys) == 1
     result = kms_conn.describe_key(KeyId=keys[0]["KeyId"])
 
-    result["KeyMetadata"]["Enabled"].should.equal(True)
-    result["KeyMetadata"]["KeyUsage"].should.equal("ENCRYPT_DECRYPT")
+    assert result["KeyMetadata"]["Enabled"] is True
+    assert result["KeyMetadata"]["KeyUsage"] == "ENCRYPT_DECRYPT"
 
 
 @mock_cloudformation()
@@ -467,34 +459,32 @@ def test_stack_spot_fleet():
     )["StackId"]
 
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
-    stack_resources["StackResourceSummaries"].should.have.length_of(1)
+    assert len(stack_resources["StackResourceSummaries"]) == 1
     spot_fleet_id = stack_resources["StackResourceSummaries"][0]["PhysicalResourceId"]
 
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    len(spot_fleet_requests).should.equal(1)
+    assert len(spot_fleet_requests) == 1
     spot_fleet_request = spot_fleet_requests[0]
-    spot_fleet_request["SpotFleetRequestState"].should.equal("active")
+    assert spot_fleet_request["SpotFleetRequestState"] == "active"
     spot_fleet_config = spot_fleet_request["SpotFleetRequestConfig"]
 
-    spot_fleet_config["SpotPrice"].should.equal("0.12")
-    spot_fleet_config["TargetCapacity"].should.equal(6)
-    spot_fleet_config["IamFleetRole"].should.equal(
-        f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
-    )
-    spot_fleet_config["AllocationStrategy"].should.equal("diversified")
-    spot_fleet_config["FulfilledCapacity"].should.equal(6.0)
+    assert spot_fleet_config["SpotPrice"] == "0.12"
+    assert spot_fleet_config["TargetCapacity"] == 6
+    assert spot_fleet_config["IamFleetRole"] == f"arn:aws:iam::{ACCOUNT_ID}:role/fleet"
+    assert spot_fleet_config["AllocationStrategy"] == "diversified"
+    assert spot_fleet_config["FulfilledCapacity"] == 6.0
 
-    len(spot_fleet_config["LaunchSpecifications"]).should.equal(2)
+    assert len(spot_fleet_config["LaunchSpecifications"]) == 2
     launch_spec = spot_fleet_config["LaunchSpecifications"][0]
 
-    launch_spec["EbsOptimized"].should.equal(False)
-    launch_spec["ImageId"].should.equal(EXAMPLE_AMI_ID)
-    launch_spec["InstanceType"].should.equal("t2.small")
-    launch_spec["SubnetId"].should.equal(subnet_id)
-    launch_spec["SpotPrice"].should.equal("0.13")
-    launch_spec["WeightedCapacity"].should.equal(2.0)
+    assert launch_spec["EbsOptimized"] is False
+    assert launch_spec["ImageId"] == EXAMPLE_AMI_ID
+    assert launch_spec["InstanceType"] == "t2.small"
+    assert launch_spec["SubnetId"] == subnet_id
+    assert launch_spec["SpotPrice"] == "0.13"
+    assert launch_spec["WeightedCapacity"] == 2.0
 
 
 @mock_cloudformation()
@@ -551,19 +541,19 @@ def test_stack_spot_fleet_should_figure_out_default_price():
     )["StackId"]
 
     stack_resources = cf_conn.list_stack_resources(StackName=stack_id)
-    stack_resources["StackResourceSummaries"].should.have.length_of(1)
+    assert len(stack_resources["StackResourceSummaries"]) == 1
     spot_fleet_id = stack_resources["StackResourceSummaries"][0]["PhysicalResourceId"]
 
     spot_fleet_requests = conn.describe_spot_fleet_requests(
         SpotFleetRequestIds=[spot_fleet_id]
     )["SpotFleetRequestConfigs"]
-    len(spot_fleet_requests).should.equal(1)
+    assert len(spot_fleet_requests) == 1
     spot_fleet_request = spot_fleet_requests[0]
-    spot_fleet_request["SpotFleetRequestState"].should.equal("active")
+    assert spot_fleet_request["SpotFleetRequestState"] == "active"
     spot_fleet_config = spot_fleet_request["SpotFleetRequestConfig"]
 
     assert "SpotPrice" not in spot_fleet_config
-    len(spot_fleet_config["LaunchSpecifications"]).should.equal(2)
+    assert len(spot_fleet_config["LaunchSpecifications"]) == 2
     launch_spec1 = spot_fleet_config["LaunchSpecifications"][0]
     launch_spec2 = spot_fleet_config["LaunchSpecifications"][1]
 
@@ -575,7 +565,6 @@ def test_stack_spot_fleet_should_figure_out_default_price():
 @mock_elbv2
 @mock_cloudformation
 def test_invalid_action_type_listener_rule():
-
     invalid_listener_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -634,9 +623,10 @@ def test_invalid_action_type_listener_rule():
     listener_template_json = json.dumps(invalid_listener_template)
 
     cfn_conn = boto3.client("cloudformation", "us-west-1")
-    cfn_conn.create_stack.when.called_with(
-        StackName="listener_stack", TemplateBody=listener_template_json
-    ).should.throw(ClientError)
+    with pytest.raises(ClientError) as exc:
+        cfn_conn.create_stack(StackName="s", TemplateBody=listener_template_json)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
 
 
 @mock_ec2
@@ -644,7 +634,6 @@ def test_invalid_action_type_listener_rule():
 @mock_cloudformation
 @mock_events
 def test_update_stack_listener_and_rule():
-
     initial_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {
@@ -731,15 +720,11 @@ def test_update_stack_listener_and_rule():
     listeners = elbv2_conn.describe_listeners(
         LoadBalancerArn=load_balancers[0]["LoadBalancerArn"]
     )["Listeners"]
-    listeners[0]["Port"].should.equal(90)
+    assert listeners[0]["Port"] == 90
 
-    listener_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])[
-        "Rules"
-    ]
+    l_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])["Rules"]
 
-    listener_rule[0]["Conditions"].should.equal(
-        [{"Field": "host-header", "Values": ["*"]}]
-    )
+    assert l_rule[0]["Conditions"] == [{"Field": "host-header", "Values": ["*"]}]
 
 
 @mock_ec2
@@ -887,96 +872,88 @@ def test_stack_elbv2_resources_integration():
 
     elbv2_conn = boto3.client("elbv2", "us-west-1")
 
-    load_balancers = elbv2_conn.describe_load_balancers()["LoadBalancers"]
-    len(load_balancers).should.equal(1)
-    load_balancers[0]["LoadBalancerName"].should.equal("myelbv2")
-    load_balancers[0]["Scheme"].should.equal("internet-facing")
-    load_balancers[0]["Type"].should.equal("application")
-    load_balancers[0]["IpAddressType"].should.equal("ipv4")
+    lbs = elbv2_conn.describe_load_balancers()["LoadBalancers"]
+    assert len(lbs) == 1
+    assert lbs[0]["LoadBalancerName"] == "myelbv2"
+    assert lbs[0]["Scheme"] == "internet-facing"
+    assert lbs[0]["Type"] == "application"
+    assert lbs[0]["IpAddressType"] == "ipv4"
 
-    target_groups = sorted(
-        elbv2_conn.describe_target_groups()["TargetGroups"],
-        key=lambda tg: tg["TargetGroupName"],
-    )  # sort to do comparison with indexes
-    len(target_groups).should.equal(2)
-    target_groups[0]["HealthCheckIntervalSeconds"].should.equal(30)
-    target_groups[0]["HealthCheckPath"].should.equal("/status")
-    target_groups[0]["HealthCheckPort"].should.equal("80")
-    target_groups[0]["HealthCheckProtocol"].should.equal("HTTP")
-    target_groups[0]["HealthCheckTimeoutSeconds"].should.equal(5)
-    target_groups[0]["HealthyThresholdCount"].should.equal(30)
-    target_groups[0]["UnhealthyThresholdCount"].should.equal(5)
-    target_groups[0]["Matcher"].should.equal({"HttpCode": "200,201"})
-    target_groups[0]["TargetGroupName"].should.equal("mytargetgroup1")
-    target_groups[0]["Port"].should.equal(80)
-    target_groups[0]["Protocol"].should.equal("HTTP")
-    target_groups[0]["TargetType"].should.equal("instance")
+    target_groups = elbv2_conn.describe_target_groups()["TargetGroups"]
+    # sort to do comparison with indexes
+    target_groups = sorted(target_groups, key=lambda tg: tg["TargetGroupName"])
+    assert len(target_groups) == 2
+    assert target_groups[0]["HealthCheckIntervalSeconds"] == 30
+    assert target_groups[0]["HealthCheckPath"] == "/status"
+    assert target_groups[0]["HealthCheckPort"] == "80"
+    assert target_groups[0]["HealthCheckProtocol"] == "HTTP"
+    assert target_groups[0]["HealthCheckTimeoutSeconds"] == 5
+    assert target_groups[0]["HealthyThresholdCount"] == 30
+    assert target_groups[0]["UnhealthyThresholdCount"] == 5
+    assert target_groups[0]["Matcher"] == {"HttpCode": "200,201"}
+    assert target_groups[0]["TargetGroupName"] == "mytargetgroup1"
+    assert target_groups[0]["Port"] == 80
+    assert target_groups[0]["Protocol"] == "HTTP"
+    assert target_groups[0]["TargetType"] == "instance"
 
-    target_groups[1]["HealthCheckIntervalSeconds"].should.equal(30)
-    target_groups[1]["HealthCheckPath"].should.equal("/status")
-    target_groups[1]["HealthCheckPort"].should.equal("8080")
-    target_groups[1]["HealthCheckProtocol"].should.equal("HTTP")
-    target_groups[1]["HealthCheckTimeoutSeconds"].should.equal(5)
-    target_groups[1]["HealthyThresholdCount"].should.equal(30)
-    target_groups[1]["UnhealthyThresholdCount"].should.equal(5)
-    target_groups[1]["Matcher"].should.equal({"HttpCode": "200"})
-    target_groups[1]["TargetGroupName"].should.equal("mytargetgroup2")
-    target_groups[1]["Port"].should.equal(8080)
-    target_groups[1]["Protocol"].should.equal("HTTP")
-    target_groups[1]["TargetType"].should.equal("instance")
+    assert target_groups[1]["HealthCheckIntervalSeconds"] == 30
+    assert target_groups[1]["HealthCheckPath"] == "/status"
+    assert target_groups[1]["HealthCheckPort"] == "8080"
+    assert target_groups[1]["HealthCheckProtocol"] == "HTTP"
+    assert target_groups[1]["HealthCheckTimeoutSeconds"] == 5
+    assert target_groups[1]["HealthyThresholdCount"] == 30
+    assert target_groups[1]["UnhealthyThresholdCount"] == 5
+    assert target_groups[1]["Matcher"] == {"HttpCode": "200"}
+    assert target_groups[1]["TargetGroupName"] == "mytargetgroup2"
+    assert target_groups[1]["Port"] == 8080
+    assert target_groups[1]["Protocol"] == "HTTP"
+    assert target_groups[1]["TargetType"] == "instance"
 
-    listeners = elbv2_conn.describe_listeners(
-        LoadBalancerArn=load_balancers[0]["LoadBalancerArn"]
-    )["Listeners"]
-    len(listeners).should.equal(1)
-    listeners[0]["LoadBalancerArn"].should.equal(load_balancers[0]["LoadBalancerArn"])
-    listeners[0]["Port"].should.equal(80)
-    listeners[0]["Protocol"].should.equal("HTTP")
-    listeners[0]["DefaultActions"].should.equal(
-        [{"Type": "forward", "TargetGroupArn": target_groups[0]["TargetGroupArn"]}]
-    )
-
-    listener_rule = elbv2_conn.describe_rules(ListenerArn=listeners[0]["ListenerArn"])[
-        "Rules"
+    lstnrs = elbv2_conn.describe_listeners(LoadBalancerArn=lbs[0]["LoadBalancerArn"])[
+        "Listeners"
     ]
-    len(listener_rule).should.equal(3)
-    listener_rule[0]["Priority"].should.equal("2")
-    listener_rule[0]["Actions"].should.equal(
-        [
-            {
-                "Type": "forward",
-                "ForwardConfig": {
-                    "TargetGroups": [
-                        {
-                            "TargetGroupArn": target_groups[1]["TargetGroupArn"],
-                            "Weight": 1,
-                        },
-                        {
-                            "TargetGroupArn": target_groups[0]["TargetGroupArn"],
-                            "Weight": 2,
-                        },
-                    ],
-                    "TargetGroupStickinessConfig": {"Enabled": False},
-                },
-            }
-        ],
-        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}],
-    )
-    listener_rule[0]["Conditions"].should.equal(
-        [{"Field": "path-pattern", "Values": ["/*"]}]
-    )
+    assert len(lstnrs) == 1
+    assert lstnrs[0]["LoadBalancerArn"] == lbs[0]["LoadBalancerArn"]
+    assert lstnrs[0]["Port"] == 80
+    assert lstnrs[0]["Protocol"] == "HTTP"
+    assert lstnrs[0]["DefaultActions"] == [
+        {"Type": "forward", "TargetGroupArn": target_groups[0]["TargetGroupArn"]}
+    ]
 
-    listener_rule[1]["Priority"].should.equal("30")
-    listener_rule[1]["Actions"].should.equal(
-        [{"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}]
-    )
-    listener_rule[1]["Conditions"].should.equal(
-        [{"Field": "host-header", "Values": ["example.com"]}]
-    )
+    rule = elbv2_conn.describe_rules(ListenerArn=lstnrs[0]["ListenerArn"])["Rules"]
+    assert len(rule) == 3
+    assert rule[0]["Priority"] == "2"
+    assert rule[0]["Actions"] == [
+        {
+            "Type": "forward",
+            "ForwardConfig": {
+                "TargetGroups": [
+                    {
+                        "TargetGroupArn": target_groups[1]["TargetGroupArn"],
+                        "Weight": 1,
+                    },
+                    {
+                        "TargetGroupArn": target_groups[0]["TargetGroupArn"],
+                        "Weight": 2,
+                    },
+                ],
+                "TargetGroupStickinessConfig": {"Enabled": False},
+            },
+        }
+    ]
+    assert rule[0]["Conditions"] == [{"Field": "path-pattern", "Values": ["/*"]}]
+
+    assert rule[1]["Priority"] == "30"
+    assert rule[1]["Actions"] == [
+        {"Type": "forward", "TargetGroupArn": target_groups[1]["TargetGroupArn"]}
+    ]
+    assert rule[1]["Conditions"] == [
+        {"Field": "host-header", "Values": ["example.com"]}
+    ]
 
     # test outputs
     stacks = cfn_conn.describe_stacks(StackName="elb_stack")["Stacks"]
-    len(stacks).should.equal(1)
+    assert len(stacks) == 1
 
     dns = list(
         filter(lambda item: item["OutputKey"] == "albdns", stacks[0]["Outputs"])
@@ -985,8 +962,8 @@ def test_stack_elbv2_resources_integration():
         filter(lambda item: item["OutputKey"] == "albname", stacks[0]["Outputs"])
     )[0]
 
-    dns["OutputValue"].should.equal(load_balancers[0]["DNSName"])
-    name["OutputValue"].should.equal(load_balancers[0]["LoadBalancerName"])
+    assert dns["OutputValue"] == lbs[0]["DNSName"]
+    assert name["OutputValue"] == lbs[0]["LoadBalancerName"]
 
 
 @mock_dynamodb
@@ -1073,13 +1050,14 @@ def test_stack_dynamodb_resources_integration():
 
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
     table_desc = dynamodb_client.describe_table(TableName="myTableName")["Table"]
-    table_desc["StreamSpecification"].should.equal(
-        {"StreamEnabled": True, "StreamViewType": "KEYS_ONLY"}
-    )
+    assert table_desc["StreamSpecification"] == {
+        "StreamEnabled": True,
+        "StreamViewType": "KEYS_ONLY",
+    }
 
     dynamodb_conn = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb_conn.Table("myTableName")
-    table.name.should.equal("myTableName")
+    assert table.name == "myTableName"
 
     table.put_item(
         Item={"Album": "myAlbum", "Artist": "myArtist", "Sales": 10, "NumberOfSongs": 5}
@@ -1087,10 +1065,10 @@ def test_stack_dynamodb_resources_integration():
 
     response = table.get_item(Key={"Album": "myAlbum", "Artist": "myArtist"})
 
-    response["Item"]["Album"].should.equal("myAlbum")
-    response["Item"]["Sales"].should.equal(Decimal("10"))
-    response["Item"]["NumberOfSongs"].should.equal(Decimal("5"))
-    response["Item"]["Album"].should.equal("myAlbum")
+    assert response["Item"]["Album"] == "myAlbum"
+    assert response["Item"]["Sales"] == Decimal("10")
+    assert response["Item"]["NumberOfSongs"] == Decimal("5")
+    assert response["Item"]["Album"] == "myAlbum"
 
 
 @mock_cloudformation
@@ -1133,7 +1111,7 @@ def test_create_log_group_using_fntransform():
 
     logs_conn = boto3.client("logs", region_name="us-west-2")
     log_group = logs_conn.describe_log_groups()["logGroups"][0]
-    log_group["logGroupName"].should.equal("some-log-group")
+    assert log_group["logGroupName"] == "some-log-group"
 
 
 @mock_cloudformation
@@ -1188,27 +1166,30 @@ def test_create_cloudwatch_logs_resource_policy():
 
     logs_conn = boto3.client("logs", region_name="us-east-1")
     policies = logs_conn.describe_resource_policies()["resourcePolicies"]
-    policies.should.have.length_of(1)
-    policies.should.be.containing_item_with_attributes(
-        policyName="TestPolicyA", policyDocument=policy_document
-    )
+    assert len(policies) == 1
+
+    assert policies[0]["policyName"] == "TestPolicyA"
+    assert policies[0]["policyDocument"] == policy_document
 
     cf_conn.update_stack(StackName="test_stack", TemplateBody=json.dumps(template2))
     policies = logs_conn.describe_resource_policies()["resourcePolicies"]
-    policies.should.have.length_of(2)
-    policies.should.be.containing_item_with_attributes(
-        policyName="TestPolicyB", policyDocument=policy_document
-    )
-    policies.should.be.containing_item_with_attributes(
-        policyName="TestPolicyC", policyDocument=policy_document
-    )
+    assert len(policies) == 2
+
+    policy_b = [pol for pol in policies if pol["policyName"] == "TestPolicyB"][0][
+        "policyDocument"
+    ]
+    assert policy_b == policy_document
+
+    policy_c = [pol for pol in policies if pol["policyName"] == "TestPolicyC"][0][
+        "policyDocument"
+    ]
+    assert policy_c == policy_document
 
     cf_conn.update_stack(StackName="test_stack", TemplateBody=json.dumps(template1))
     policies = logs_conn.describe_resource_policies()["resourcePolicies"]
-    policies.should.have.length_of(1)
-    policies.should.be.containing_item_with_attributes(
-        policyName="TestPolicyA", policyDocument=policy_document
-    )
+    assert len(policies) == 1
+    assert policies[0]["policyName"] == "TestPolicyA"
+    assert policies[0]["policyDocument"] == policy_document
 
 
 @mock_cloudformation
@@ -1232,11 +1213,11 @@ def test_delete_stack_containing_cloudwatch_logs_resource_policy():
 
     logs_conn = boto3.client("logs", region_name="us-east-1")
     policies = logs_conn.describe_resource_policies()["resourcePolicies"]
-    policies.should.have.length_of(1)
+    assert len(policies) == 1
 
     cf_conn.delete_stack(StackName="test_stack")
     policies = logs_conn.describe_resource_policies()["resourcePolicies"]
-    policies.should.have.length_of(0)
+    assert len(policies) == 0
 
 
 @mock_cloudformation
@@ -1261,12 +1242,10 @@ def test_delete_stack_with_deletion_policy_boto3():
         TemplateBody=sqs_template_json,
     )
     sqs = boto3.client("sqs", region_name="us-west-1")
-    sqs.list_queues()["QueueUrls"].should.have.length_of(1)
+    assert len(sqs.list_queues()["QueueUrls"]) == 1
 
-    cf.delete_stack(
-        StackName="test_stack",
-    )
-    sqs.list_queues()["QueueUrls"].should.have.length_of(1)
+    cf.delete_stack(StackName="test_stack")
+    assert len(sqs.list_queues()["QueueUrls"]) == 1
 
 
 @mock_cloudformation
@@ -1291,10 +1270,10 @@ def test_stack_events_create_rule_integration():
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
-    rules["Rules"].should.have.length_of(1)
-    rules["Rules"][0]["Name"].should.equal("quick-fox")
-    rules["Rules"][0]["State"].should.equal("ENABLED")
-    rules["Rules"][0]["ScheduleExpression"].should.equal("rate(5 minutes)")
+    assert len(rules["Rules"]) == 1
+    assert rules["Rules"][0]["Name"] == "quick-fox"
+    assert rules["Rules"][0]["State"] == "ENABLED"
+    assert rules["Rules"][0]["ScheduleExpression"] == "rate(5 minutes)"
 
 
 @mock_cloudformation
@@ -1319,12 +1298,12 @@ def test_stack_events_delete_rule_integration():
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
-    rules["Rules"].should.have.length_of(1)
+    assert len(rules["Rules"]) == 1
 
     cf_conn.delete_stack(StackName="test_stack")
 
     rules = boto3.client("events", "us-west-2").list_rules()
-    rules["Rules"].should.have.length_of(0)
+    assert len(rules["Rules"]) == 0
 
 
 @mock_cloudformation
@@ -1348,7 +1327,7 @@ def test_stack_events_create_rule_without_name_integration():
     )
 
     rules = boto3.client("events", "us-west-2").list_rules()
-    rules["Rules"][0]["Name"].should.contain("test_stack-Event-")
+    assert "test_stack-Event-" in rules["Rules"][0]["Name"]
 
 
 @mock_cloudformation
@@ -1382,10 +1361,10 @@ def test_stack_events_create_rule_as_target():
     rules = boto3.client("events", "us-west-2").list_rules()
     log_groups = boto3.client("logs", "us-west-2").describe_log_groups()
 
-    rules["Rules"][0]["Name"].should.contain("test_stack-Event-")
+    assert "test_stack-Event-" in rules["Rules"][0]["Name"]
 
-    log_groups["logGroups"][0]["logGroupName"].should.equal(rules["Rules"][0]["Arn"])
-    log_groups["logGroups"][0]["retentionInDays"].should.equal(3)
+    assert log_groups["logGroups"][0]["logGroupName"] == rules["Rules"][0]["Arn"]
+    assert log_groups["logGroups"][0]["retentionInDays"] == 3
 
 
 @mock_cloudformation
@@ -1413,18 +1392,18 @@ def test_stack_events_update_rule_integration():
     cf_conn.create_stack(StackName="test_stack", TemplateBody=original_template)
 
     rules = boto3.client("events", "us-west-2").list_rules()
-    rules["Rules"].should.have.length_of(1)
-    rules["Rules"][0]["Name"].should.equal("Foo")
-    rules["Rules"][0]["State"].should.equal("ENABLED")
+    assert len(rules["Rules"]) == 1
+    assert rules["Rules"][0]["Name"] == "Foo"
+    assert rules["Rules"][0]["State"] == "ENABLED"
 
     update_template = events_template.substitute(Name="Bar", State="DISABLED")
     cf_conn.update_stack(StackName="test_stack", TemplateBody=update_template)
 
     rules = boto3.client("events", "us-west-2").list_rules()
 
-    rules["Rules"].should.have.length_of(1)
-    rules["Rules"][0]["Name"].should.equal("Bar")
-    rules["Rules"][0]["State"].should.equal("DISABLED")
+    assert len(rules["Rules"]) == 1
+    assert rules["Rules"][0]["Name"] == "Bar"
+    assert rules["Rules"][0]["State"] == "DISABLED"
 
 
 @mock_cloudformation
@@ -1519,8 +1498,8 @@ def test_stack_eventbus_create_from_cfn_integration():
         NamePrefix="MyCustom"
     )
 
-    event_buses["EventBuses"].should.have.length_of(1)
-    event_buses["EventBuses"][0]["Name"].should.equal("MyCustomEventBus")
+    assert len(event_buses["EventBuses"]) == 1
+    assert event_buses["EventBuses"][0]["Name"] == "MyCustomEventBus"
 
 
 @mock_cloudformation
@@ -1543,14 +1522,14 @@ def test_stack_events_delete_eventbus_integration():
     event_buses = boto3.client("events", "us-west-2").list_event_buses(
         NamePrefix="MyCustom"
     )
-    event_buses["EventBuses"].should.have.length_of(1)
+    assert len(event_buses["EventBuses"]) == 1
 
     cf_conn.delete_stack(StackName="test_stack")
 
     event_buses = boto3.client("events", "us-west-2").list_event_buses(
         NamePrefix="MyCustom"
     )
-    event_buses["EventBuses"].should.have.length_of(0)
+    assert len(event_buses["EventBuses"]) == 0
 
 
 @mock_cloudformation
@@ -1580,7 +1559,7 @@ def test_stack_events_delete_from_cfn_integration():
     original_event_buses = boto3.client("events", "us-west-2").list_event_buses(
         NamePrefix="MyCustom"
     )
-    original_event_buses["EventBuses"].should.have.length_of(1)
+    assert len(original_event_buses["EventBuses"]) == 1
 
     original_eventbus = original_event_buses["EventBuses"][0]
 
@@ -1592,8 +1571,8 @@ def test_stack_events_delete_from_cfn_integration():
     update_event_buses = boto3.client("events", "us-west-2").list_event_buses(
         NamePrefix="AnotherEventBus"
     )
-    update_event_buses["EventBuses"].should.have.length_of(1)
-    update_event_buses["EventBuses"][0]["Arn"].shouldnt.equal(original_eventbus["Arn"])
+    assert len(update_event_buses["EventBuses"]) == 1
+    assert update_event_buses["EventBuses"][0]["Arn"] != original_eventbus["Arn"]
 
 
 @mock_cloudformation
@@ -1621,7 +1600,7 @@ def test_stack_events_update_from_cfn_integration():
     original_event_buses = boto3.client("events", "us-west-2").list_event_buses(
         NamePrefix="MyCustom"
     )
-    original_event_buses["EventBuses"].should.have.length_of(1)
+    assert len(original_event_buses["EventBuses"]) == 1
 
     original_eventbus = original_event_buses["EventBuses"][0]
 
@@ -1631,9 +1610,9 @@ def test_stack_events_update_from_cfn_integration():
     update_event_buses = boto3.client("events", "us-west-2").list_event_buses(
         NamePrefix="NewEventBus"
     )
-    update_event_buses["EventBuses"].should.have.length_of(1)
-    update_event_buses["EventBuses"][0]["Name"].should.equal("NewEventBus")
-    update_event_buses["EventBuses"][0]["Arn"].shouldnt.equal(original_eventbus["Arn"])
+    assert len(update_event_buses["EventBuses"]) == 1
+    assert update_event_buses["EventBuses"][0]["Name"] == "NewEventBus"
+    assert update_event_buses["EventBuses"][0]["Arn"] != original_eventbus["Arn"]
 
 
 @mock_cloudformation
@@ -1668,8 +1647,8 @@ def test_stack_events_get_attribute_integration():
 
     event_bus = events.list_event_buses(NamePrefix="MyEventBus")["EventBuses"][0]
 
-    output_arn["OutputValue"].should.equal(event_bus["Arn"])
-    output_name["OutputValue"].should.equal(event_bus["Name"])
+    assert output_arn["OutputValue"] == event_bus["Arn"]
+    assert output_name["OutputValue"] == event_bus["Name"]
 
 
 @mock_cloudformation
@@ -1699,13 +1678,13 @@ def test_dynamodb_table_creation():
     # Verify the TableName is part of the outputs
     stack = cfn.describe_stacks(StackName=stack_name)["Stacks"][0]
     outputs = stack["Outputs"]
-    outputs.should.have.length_of(1)
-    outputs[0]["OutputKey"].should.equal("MyTableName")
-    outputs[0]["OutputValue"].should.contain("foobar")
+    assert len(outputs) == 1
+    assert outputs[0]["OutputKey"] == "MyTableName"
+    assert "foobar" in outputs[0]["OutputValue"]
     # Assert the table is created
     ddb = boto3.client("dynamodb", "us-west-2")
     table_names = ddb.list_tables()["TableNames"]
-    table_names.should.equal([outputs[0]["OutputValue"]])
+    assert table_names == [outputs[0]["OutputValue"]]
 
 
 @mock_cloudformation
@@ -1735,15 +1714,15 @@ def test_ssm_parameter():
 
     stack_resources = cfn.list_stack_resources(StackName=stack_name)
     ssm_resource = stack_resources.get("StackResourceSummaries")[0]
-    ssm_resource.get("PhysicalResourceId").should.equal("test_ssm")
+    assert ssm_resource.get("PhysicalResourceId") == "test_ssm"
 
     ssm_client = boto3.client("ssm", region_name="us-west-2")
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(1)
-    parameters[0]["Name"].should.equal("test_ssm")
-    parameters[0]["Value"].should.equal("Test SSM Parameter")
+    assert len(parameters) == 1
+    assert parameters[0]["Name"] == "test_ssm"
+    assert parameters[0]["Value"] == "Test SSM Parameter"
 
 
 @mock_cloudformation
@@ -1775,9 +1754,9 @@ def test_ssm_parameter_update_stack():
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(1)
-    parameters[0]["Name"].should.equal("test_ssm")
-    parameters[0]["Value"].should.equal("Test SSM Parameter")
+    assert len(parameters) == 1
+    assert parameters[0]["Name"] == "test_ssm"
+    assert parameters[0]["Value"] == "Test SSM Parameter"
 
     parameter_template["Resources"]["BasicParameter"]["Properties"][
         "Value"
@@ -1788,9 +1767,9 @@ def test_ssm_parameter_update_stack():
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(1)
-    parameters[0]["Name"].should.equal("test_ssm")
-    parameters[0]["Value"].should.equal("Test SSM Parameter Updated")
+    assert len(parameters) == 1
+    assert parameters[0]["Name"] == "test_ssm"
+    assert parameters[0]["Value"] == "Test SSM Parameter Updated"
 
 
 @mock_cloudformation
@@ -1822,9 +1801,9 @@ def test_ssm_parameter_update_stack_and_remove_resource():
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(1)
-    parameters[0]["Name"].should.equal("test_ssm")
-    parameters[0]["Value"].should.equal("Test SSM Parameter")
+    assert len(parameters) == 1
+    assert parameters[0]["Name"] == "test_ssm"
+    assert parameters[0]["Value"] == "Test SSM Parameter"
 
     parameter_template["Resources"].pop("BasicParameter")
     cfn.update_stack(StackName=stack_name, TemplateBody=json.dumps(parameter_template))
@@ -1833,7 +1812,7 @@ def test_ssm_parameter_update_stack_and_remove_resource():
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(0)
+    assert len(parameters) == 0
 
 
 @mock_cloudformation
@@ -1851,7 +1830,7 @@ def test_ssm_parameter_update_stack_and_add_resource():
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(0)
+    assert len(parameters) == 0
 
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1874,6 +1853,6 @@ def test_ssm_parameter_update_stack_and_add_resource():
     parameters = ssm_client.get_parameters(Names=["test_ssm"], WithDecryption=False)[
         "Parameters"
     ]
-    parameters.should.have.length_of(1)
-    parameters[0]["Name"].should.equal("test_ssm")
-    parameters[0]["Value"].should.equal("Test SSM Parameter")
+    assert len(parameters) == 1
+    assert parameters[0]["Name"] == "test_ssm"
+    assert parameters[0]["Value"] == "Test SSM Parameter"

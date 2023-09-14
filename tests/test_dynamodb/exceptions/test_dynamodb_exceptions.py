@@ -1,7 +1,6 @@
 import boto3
 import botocore
 import pytest
-import sure  # noqa # pylint: disable=unused-import
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from unittest import SkipTest
@@ -51,10 +50,8 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
             IndexName="GSI-K1",
         )["Items"]
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Query condition missed key schema element: gsiK1SortKey"
-    )
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: gsiK1SortKey"
 
     # check using wrong name for partition key throws exception
     with pytest.raises(ClientError) as exc:
@@ -64,9 +61,9 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
             IndexName="GSI-K1",
         )["Items"]
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Query condition missed key schema element: gsiK1PartitionKey"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "Query condition missed key schema element: gsiK1PartitionKey"
     )
 
     # verify same behaviour for begins_with
@@ -77,10 +74,8 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
             IndexName="GSI-K1",
         )["Items"]
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Query condition missed key schema element: gsiK1SortKey"
-    )
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: gsiK1SortKey"
 
     # verify same behaviour for between
     with pytest.raises(ClientError) as exc:
@@ -94,10 +89,8 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
             IndexName="GSI-K1",
         )["Items"]
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Query condition missed key schema element: gsiK1SortKey"
-    )
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: gsiK1SortKey"
 
 
 @mock_dynamodb
@@ -121,10 +114,8 @@ def test_query_table_with_wrong_key_attribute_names_throws_exception():
             ExpressionAttributeValues={":pk": "pk"},
         )["Items"]
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Query condition missed key schema element: partitionKey"
-    )
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: partitionKey"
 
 
 @mock_dynamodb
@@ -137,9 +128,10 @@ def test_empty_expressionattributenames():
     with pytest.raises(ClientError) as exc:
         table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "ExpressionAttributeNames can only be specified when using expressions"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "ExpressionAttributeNames can only be specified when using expressions"
     )
 
 
@@ -152,11 +144,11 @@ def test_empty_expressionattributenames_with_empty_projection():
     table = ddb.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
-            Key={"id": "my_id"}, ProjectionExpression="", ExpressionAttributeNames={}
+            Key={"id": "my_id"}, ProjectionExpression="a", ExpressionAttributeNames={}
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("ExpressionAttributeNames must not be empty")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
 @mock_dynamodb
@@ -171,8 +163,8 @@ def test_empty_expressionattributenames_with_projection():
             Key={"id": "my_id"}, ProjectionExpression="id", ExpressionAttributeNames={}
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("ExpressionAttributeNames must not be empty")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
 @mock_dynamodb
@@ -191,9 +183,10 @@ def test_update_item_range_key_set():
             ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
     )
 
 
@@ -204,8 +197,8 @@ def test_batch_get_item_non_existing_table():
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
         client.batch_get_item(RequestItems={"my-table": {"Keys": [{"id": {"N": "0"}}]}})
     err = exc.value.response["Error"]
-    assert err["Code"].should.equal("ResourceNotFoundException")
-    assert err["Message"].should.equal("Requested resource not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -218,8 +211,8 @@ def test_batch_write_item_non_existing_table():
             RequestItems={"my-table": [{"PutRequest": {"Item": {}}}]}
         )
     err = exc.value.response["Error"]
-    assert err["Code"].should.equal("ResourceNotFoundException")
-    assert err["Message"].should.equal("Requested resource not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -238,9 +231,10 @@ def test_create_table_with_redundant_attributes():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Number of attributes in KeySchema does not exactly match number of attributes defined in AttributeDefinitions"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Number of attributes in KeySchema does not exactly match number of attributes defined in AttributeDefinitions"
     )
 
     with pytest.raises(ClientError) as exc:
@@ -263,9 +257,10 @@ def test_create_table_with_redundant_attributes():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Some AttributeDefinitions are not used. AttributeDefinitions: [created_at, id, user], keys used: [id, user]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Some AttributeDefinitions are not used. AttributeDefinitions: [created_at, id, user], keys used: [id, user]"
     )
 
 
@@ -285,9 +280,10 @@ def test_create_table_with_missing_attributes():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Invalid KeySchema: Some index key attribute have no definition"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid KeySchema: Some index key attribute have no definition"
     )
 
     with pytest.raises(ClientError) as exc:
@@ -306,9 +302,10 @@ def test_create_table_with_missing_attributes():
         )
 
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [id]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [id]"
     )
 
 
@@ -326,9 +323,10 @@ def test_create_table_with_redundant_and_missing_attributes():
             BillingMode="PAY_PER_REQUEST",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [id], AttributeDefinitions: [created_at]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [id], AttributeDefinitions: [created_at]"
     )
 
     with pytest.raises(ClientError) as exc:
@@ -349,9 +347,10 @@ def test_create_table_with_redundant_and_missing_attributes():
             BillingMode="PAY_PER_REQUEST",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [created_at, id]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Some index key attributes are not defined in AttributeDefinitions. Keys: [user], AttributeDefinitions: [created_at, id]"
     )
 
 
@@ -381,9 +380,10 @@ def test_put_item_wrong_attribute_type():
     with pytest.raises(ClientError) as exc:
         dynamodb.put_item(TableName="test-table", Item=item)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Type mismatch for key id expected: S actual: N"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Type mismatch for key id expected: S actual: N"
     )
 
     item = {
@@ -395,9 +395,10 @@ def test_put_item_wrong_attribute_type():
     with pytest.raises(ClientError) as exc:
         dynamodb.put_item(TableName="test-table", Item=item)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Type mismatch for key created_at expected: N actual: S"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Type mismatch for key created_at expected: N actual: S"
     )
 
 
@@ -425,10 +426,8 @@ def test_hash_key_cannot_use_begins_with_operations():
     table = dynamodb.Table("test-table")
     with pytest.raises(ClientError) as ex:
         table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
-    ex.value.response["Error"]["Code"].should.equal("ValidationException")
-    ex.value.response["Error"]["Message"].should.equal(
-        "Query key condition not supported"
-    )
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["Error"]["Message"] == "Query key condition not supported"
 
 
 # Test this again, but with manually supplying an operator
@@ -450,8 +449,8 @@ def test_hash_key_can_only_use_equals_operations(operator):
             ExpressionAttributeValues={":pk": "p"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal("Query key condition not supported")
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query key condition not supported"
 
 
 @mock_dynamodb
@@ -467,9 +466,10 @@ def test_creating_table_with_0_local_indexes():
             LocalSecondaryIndexes=[],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty"
     )
 
 
@@ -486,9 +486,10 @@ def test_creating_table_with_0_global_indexes():
             GlobalSecondaryIndexes=[],
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty"
     )
 
 
@@ -524,9 +525,10 @@ def test_multiple_transactions_on_same_item():
             ]
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Transaction request cannot include multiple operations on one item"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Transaction request cannot include multiple operations on one item"
     )
 
 
@@ -558,10 +560,10 @@ def test_transact_write_items__too_many_transactions():
             ]
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.match(
-        "1 validation error detected at 'transactItems' failed to satisfy constraint: "
-        "Member must have length less than or equal to 100."
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected at 'transactItems' failed to satisfy constraint: Member must have length less than or equal to 100."
     )
 
 
@@ -576,8 +578,8 @@ def test_update_item_non_existent_table():
             ExpressionAttributeValues={":Body": {"S": ""}},
         )
     err = exc.value.response["Error"]
-    assert err["Code"].should.equal("ResourceNotFoundException")
-    assert err["Message"].should.equal("Requested resource not found")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Requested resource not found"
 
 
 @mock_dynamodb
@@ -609,14 +611,15 @@ def test_update_item_with_duplicate_expressions(expression):
             ExpressionAttributeValues={":example_column": "test"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [example_column], path two: [example_column]"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [example_column], path two: [example_column]"
     )
 
     # The item is not updated
     item = table.get_item(Key={"pk": "example_id"})["Item"]
-    item.should.equal({"pk": "example_id", "example_column": "example"})
+    assert item == {"pk": "example_id", "example_column": "example"}
 
 
 @mock_dynamodb
@@ -635,8 +638,8 @@ def test_put_item_wrong_datatype():
     with pytest.raises(ClientError) as exc:
         client.put_item(TableName="test2", Item={"mykey": {"N": 123}})
     err = exc.value.response["Error"]
-    err["Code"].should.equal("SerializationException")
-    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+    assert err["Code"] == "SerializationException"
+    assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
     # Same thing - but with a non-key, and nested
     with pytest.raises(ClientError) as exc:
@@ -645,8 +648,8 @@ def test_put_item_wrong_datatype():
             Item={"mykey": {"N": "123"}, "nested": {"M": {"sth": {"N": 5}}}},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("SerializationException")
-    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+    assert err["Code"] == "SerializationException"
+    assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
 
 @mock_dynamodb
@@ -663,9 +666,10 @@ def test_put_item_empty_set():
     with pytest.raises(ClientError) as exc:
         table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: An number set  may not be empty"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: An number set  may not be empty"
     )
 
 
@@ -689,9 +693,10 @@ def test_update_expression_with_trailing_comma():
             ExpressionAttributeValues={":val1": 3, ":val2": 4},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        'Invalid UpdateExpression: Syntax error; token: "<EOF>", near: ","'
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == 'Invalid UpdateExpression: Syntax error; token: "<EOF>", near: ","'
     )
 
 
@@ -717,20 +722,22 @@ def test_batch_put_item_with_empty_value():
         with table.batch_writer() as batch:
             batch.put_item(Item={"pk": "", "sk": "sth"})
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: pk"
+    assert (
+        err["Message"]
+        == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: pk"
     )
-    err["Code"].should.equal("ValidationException")
+    assert err["Code"] == "ValidationException"
 
     # Empty SortKey throws an error
     with pytest.raises(botocore.exceptions.ClientError) as exc:
         with table.batch_writer() as batch:
             batch.put_item(Item={"pk": "sth", "sk": ""})
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: sk"
+    assert (
+        err["Message"]
+        == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: sk"
     )
-    err["Code"].should.equal("ValidationException")
+    assert err["Code"] == "ValidationException"
 
     # Empty regular parameter workst just fine though
     with table.batch_writer() as batch:
@@ -759,10 +766,8 @@ def test_query_begins_with_without_brackets():
             ExpressionAttributeValues={":pk": {"S": "test1"}, ":sk": {"S": "test2"}},
         )
     err = exc.value.response["Error"]
-    err["Message"].should.equal(
-        'Invalid KeyConditionExpression: Syntax error; token: "sk"'
-    )
-    err["Code"].should.equal("ValidationException")
+    assert err["Message"] == 'Invalid KeyConditionExpression: Syntax error; token: "sk"'
+    assert err["Code"] == "ValidationException"
 
 
 @mock_dynamodb
@@ -834,9 +839,10 @@ def test_transact_write_items_with_empty_gsi_key():
     with pytest.raises(ClientError) as exc:
         client.transact_write_items(TransactItems=transact_items)
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values are not valid. A value specified for a secondary index key is not supported. The AttributeValue for a key attribute cannot contain an empty string value. IndexName: gsi_index, IndexKey: unique_id"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values are not valid. A value specified for a secondary index key is not supported. The AttributeValue for a key attribute cannot contain an empty string value. IndexName: gsi_index, IndexKey: unique_id"
     )
 
 
@@ -869,14 +875,14 @@ def test_update_primary_key_with_sortkey():
             ExpressionAttributeValues={":val1": "different"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
     )
 
-    table.get_item(Key={"pk": "testchangepk", "sk": "else"})["Item"].should.equal(
-        {"pk": "testchangepk", "sk": "else"}
-    )
+    item = table.get_item(Key={"pk": "testchangepk", "sk": "else"})["Item"]
+    assert item == {"pk": "testchangepk", "sk": "else"}
 
 
 @mock_dynamodb
@@ -902,14 +908,14 @@ def test_update_primary_key():
             ExpressionAttributeValues={":val1": "different"},
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Cannot update attribute pk. This attribute is part of the key"
     )
 
-    table.get_item(Key={"pk": "testchangepk"})["Item"].should.equal(
-        {"pk": "testchangepk"}
-    )
+    item = table.get_item(Key={"pk": "testchangepk"})["Item"]
+    assert item == {"pk": "testchangepk"}
 
 
 @mock_dynamodb
@@ -928,15 +934,15 @@ def test_put_item__string_as_integer_value():
     with pytest.raises(ClientError) as exc:
         client.put_item(TableName="without_sk", Item={"pk": {"S": 123}})
     err = exc.value.response["Error"]
-    err["Code"].should.equal("SerializationException")
-    err["Message"].should.equal("NUMBER_VALUE cannot be converted to String")
+    assert err["Code"] == "SerializationException"
+    assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
     # A primary key cannot be of type S, but then point to a dictionary
     with pytest.raises(ClientError) as exc:
         client.put_item(TableName="without_sk", Item={"pk": {"S": {"S": "asdf"}}})
     err = exc.value.response["Error"]
-    err["Code"].should.equal("SerializationException")
-    err["Message"].should.equal("Start of structure or map found where not expected")
+    assert err["Code"] == "SerializationException"
+    assert err["Message"] == "Start of structure or map found where not expected"
 
     # Note that a normal attribute name can be an 'S', which follows the same pattern
     # Nested 'S'-s like this are allowed for non-key attributes
@@ -981,9 +987,10 @@ def test_gsi_key_cannot_be_empty():
             },
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "One or more parameter values were invalid: Type mismatch for Index Key hello Expected: S Actual: NULL IndexName: hello-index"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: Type mismatch for Index Key hello Expected: S Actual: NULL IndexName: hello-index"
     )
 
 
@@ -1013,9 +1020,10 @@ def test_list_append_errors_for_unknown_attribute_value():
             ReturnValues="UPDATED_NEW",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "The provided expression refers to an attribute that does not exist in the item"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "The provided expression refers to an attribute that does not exist in the item"
     )
 
     # append to unknown list via ExpressionAttributeNames
@@ -1029,9 +1037,10 @@ def test_list_append_errors_for_unknown_attribute_value():
             ReturnValues="UPDATED_NEW",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "The provided expression refers to an attribute that does not exist in the item"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "The provided expression refers to an attribute that does not exist in the item"
     )
 
     # append to unknown list, even though end result is known
@@ -1044,9 +1053,10 @@ def test_list_append_errors_for_unknown_attribute_value():
             ReturnValues="UPDATED_NEW",
         )
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ValidationException")
-    err["Message"].should.equal(
-        "The provided expression refers to an attribute that does not exist in the item"
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "The provided expression refers to an attribute that does not exist in the item"
     )
 
     # We can append to a known list, into an unknown/new list
@@ -1056,4 +1066,50 @@ def test_list_append_errors_for_unknown_attribute_value():
         UpdateExpression="SET uk = list_append(crontab, :i)",
         ExpressionAttributeValues={":i": {"L": [{"S": "bar2"}]}},
         ReturnValues="UPDATED_NEW",
+    )
+
+
+@mock_dynamodb
+def test_query_with_empty_filter_expression():
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+    ddb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    table = ddb.Table("test-table")
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="partitionKey = sth", ProjectionExpression=""
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid ProjectionExpression: The expression can not be empty;"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        table.query(KeyConditionExpression="partitionKey = sth", FilterExpression="")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "Invalid FilterExpression: The expression can not be empty;"
+    )
+
+
+@mock_dynamodb
+def test_query_with_missing_expression_attribute():
+    ddb = boto3.resource("dynamodb", region_name="us-west-2")
+    ddb.create_table(TableName="test", BillingMode="PAY_PER_REQUEST", **table_schema)
+    client = boto3.client("dynamodb", region_name="us-west-2")
+    with pytest.raises(ClientError) as exc:
+        client.query(
+            TableName="test",
+            KeyConditionExpression="#part_key=some_value",
+            ExpressionAttributeNames={"#part_key": "partitionKey"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid condition in KeyConditionExpression: Multiple attribute names used in one condition"
     )

@@ -73,8 +73,8 @@ def test_get_compatible_versions_unknown_domain():
     with pytest.raises(ClientError) as exc:
         client.get_compatible_versions(DomainName="testdn")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Domain not found: testdn")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Domain not found: testdn"
 
 
 @mock_opensearch
@@ -84,8 +84,8 @@ def test_describe_unknown_domain():
     with pytest.raises(ClientError) as exc:
         client.describe_domain(DomainName="testdn")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Domain not found: testdn")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Domain not found: testdn"
 
 
 @mock_opensearch
@@ -108,8 +108,8 @@ def test_delete_domain():
     with pytest.raises(ClientError) as exc:
         client.describe_domain(DomainName="testdn")
     err = exc.value.response["Error"]
-    err["Code"].should.equal("ResourceNotFoundException")
-    err["Message"].should.equal("Domain not found: testdn")
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Domain not found: testdn"
 
 
 @mock_opensearch

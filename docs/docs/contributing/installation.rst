@@ -40,7 +40,7 @@ To verify all tests pass for a specific service, for example for `s3`, run these
 
 .. code-block:: bash
 
-  flake8 moto/s3
+  ruff moto/s3
   black --check moto/s3 tests/test_s3
   pylint tests/test_s3
   pytest -sv tests/test_s3
@@ -52,3 +52,31 @@ If black fails, you can run the following command to automatically format the of
   make format
 
 If any of these steps fail, please see our :ref:`contributing faq` or open an issue on Github.
+
+Development within a Devcontainer
+==================================
+
+Moto is equipped with a `devcontainer.json` for use in VSCode Devcontainers and/or GitHub Codespaces.
+
+Launching the Devcontainer or Codespace:
+
+ - Configures Docker-in-Docker.
+ - Sets up a Virtual Environment in `${workspaceFolder}/.venv`.
+ - Runs `make init`.
+
+Be patient while the Devcontainer or Codespace launches as dependencies automatically installed. 
+
+Once both `postCreateCommand` and `postStartCommand` have run, open a Terminal session in VSCode and run:
+
+.. code-block:: bash
+
+  source .venv/bin/activate
+
+Then standard development on Moto can proceed, for example:
+
+.. code-block:: bash
+
+  ruff moto/s3
+  black --check moto/s3 tests/test_s3
+  pylint tests/test_s3
+  pytest -sv tests/test_s3
