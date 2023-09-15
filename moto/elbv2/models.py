@@ -822,6 +822,13 @@ class ELBv2Backend(BaseBackend):
                 raise PriorityInUseError()
 
         self._validate_actions(fake_actions)
+        for action in fake_actions:
+            if action.type == "forward":
+                found_arns = self._get_target_group_arns_from(action_data=action.data)
+                for arn in found_arns:
+                    target_group = self.target_groups[arn]
+                    target_group.load_balancer_arns.append(listener.load_balancer_arn)
+
         arn = listener_arn.replace(":listener/", ":listener-rule/")
         arn += f"/{mock_random.get_random_hex(16)}"
 

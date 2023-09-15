@@ -518,3 +518,10 @@ def test_create_rule_action_forward_target_group():
     assert rule["Priority"] == "99"
     assert rule["Conditions"] == []
     assert rule["Actions"][0] == action
+
+    # assert describe_target_group by loadbalancer_arn response
+    load_balancer_arn = conn.describe_listeners(ListenerArns=[http_listener_arn])[
+        "Listeners"
+    ][0]["LoadBalancerArn"]
+    response = conn.describe_target_groups(LoadBalancerArn=load_balancer_arn)
+    assert len(response.get("TargetGroups")) == 1
