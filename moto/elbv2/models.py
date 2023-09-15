@@ -1104,6 +1104,14 @@ Member must satisfy regular expression pattern: {expression}"
                     param = "VPC ID" if param == "vpc_id" else param.lower()
                     raise ValidationError(f"A {param} must be specified")
 
+        if target_type == "lambda":
+            for param in ["protocol", "port", "vpc_id"]:
+                if kwargs.get(param) is not None:
+                    param = "VPC ID" if param == "vpc_id" else param.capitalize()
+                    raise ValidationError(
+                        f"{param} cannot be specified for target groups with target type 'lambda'"
+                    )
+
         if kwargs.get("vpc_id"):
             from moto.ec2.exceptions import InvalidVPCIdError
 
@@ -1568,10 +1576,10 @@ Member must satisfy regular expression pattern: {expression}"
         return modified_rules
 
     def set_ip_address_type(self, arn: str, ip_type: str) -> None:
-        if ip_type not in ("internal", "dualstack"):
+        if ip_type not in ("ipv4", "dualstack"):
             raise RESTError(
-                "InvalidParameterValue",
-                "IpAddressType must be either internal | dualstack",
+                "ValidationError",
+                f"1 validation error detected: Value '{ip_type}' at 'ipAddressType' failed to satisfy constraint: Member must satisfy enum value set: [ipv4, dualstack]",
             )
 
         balancer = self.load_balancers.get(arn)
