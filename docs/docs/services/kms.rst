@@ -78,9 +78,8 @@ kms
 - [X] revoke_grant
 - [X] schedule_key_deletion
 - [X] sign
-  Sign message using generated private key.
-
-        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+  
+        Sign message using generated private key.
 
         - grant_tokens are not implemented
         
@@ -92,9 +91,8 @@ kms
 - [X] update_key_description
 - [ ] update_primary_region
 - [X] verify
-  Verify message using public key from generated private key.
-
-        - signing_algorithm is ignored and hardcoded to RSASSA_PSS_SHA_256
+  
+        Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
         

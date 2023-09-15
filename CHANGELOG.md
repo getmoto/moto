@@ -1,6 +1,49 @@
 Moto Changelog
 ==============
 
+4.2.3
+-----
+Docker Digest for 4.2.3: <autopopulateddigest>
+
+    New Services:
+        * RoboMaker:
+            * create_robot_application()
+            * delete_robot_application()
+            * describe_robot_application()
+            * list_robot_applications()
+
+    New Methods:
+        * ElasticBeanstalk:
+            * delete_application()
+
+        * Events:
+            * create_partner_event_source()
+            * delete_partner_event_source()
+            * describe_event_source()
+            * describe_partner_event_source()
+            * put_partner_events()
+
+    Miscellaneous:
+        * Core: The mocked ACCESS_KEY has been changed from `foobar_key` to `FOOBARKEY`, to align with AWS guidelines
+        * Core: set_initial_no_auth_action_count() now supports SSM actions
+        * Core: Fixed a memory leak when comparing requests (introduced in 4.1.13)
+        * Athena: get_query_execution() now returns a StatementType dependent on the provided query
+        * DynamoDB: query() now throws an exception when the KeyConditionExpression contains a literal value
+        * EBS: put_snapshot_block() now supports random bytes
+        * EC2: describe_transit_gateways() now supports filtering by tags
+        * ELBv2: describe_target_groups() now throws an exception for invalid input parameters
+        * ELBv2: describe_target_groups() now sorts the result before returning it
+        * ELBv2: create_target_group() now has improved validation and default values
+        * ELBv2: create_rule() now creates links between the TargetGroups and LoadBalancers
+        * Events: put_events() now support HTTP targets
+        * IAM policy validation now takes the provided Resource-argument into account when validating access to STS-resources
+        * IAM: get_role() now returns the LastUsed-parameter, provided the role was assumed and used
+        * KMS: sign/verify now uses the original message when signing, not the base64-version
+        * Lambda: invoke() now loads any Layers provided in the create_function()
+        * S3: put_bucket_logging() now supports bucket policies (as well as ACP's)
+        * S3: Range requests are now more permissive (following AWS' behaviour)
+        * SFN: list_executions() now returns the StopDate-attribute
+
 4.2.2
 ------
 Docker Digest for 4.2.2: <autopopulateddigest>

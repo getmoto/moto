@@ -375,6 +375,7 @@ def test_target_group_attributes():
 
     # check if Names filter works
     response = conn.describe_target_groups(Names=[])
+    assert len(response["TargetGroups"]) == 1
     response = conn.describe_target_groups(Names=["a-target"])
     assert len(response["TargetGroups"]) == 1
     target_group_arn = target_group["TargetGroupArn"]
@@ -466,7 +467,6 @@ def test_describe_target_groups():
     response, vpc, _, _, _, conn = create_load_balancer()
 
     lb_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
-    assert "LoadBalancerArn" in response["LoadBalancers"][0]
 
     groups = conn.describe_target_groups()["TargetGroups"]
     assert len(groups) == 0
@@ -562,6 +562,20 @@ def test_describe_target_groups():
     assert len(groups) == 2
     assert groups[0]["TargetGroupName"] == "a-target"
     assert groups[1]["TargetGroupName"] == "d-target"
+
+
+@mock_elbv2
+@mock_ec2
+def test_describe_target_groups_with_empty_load_balancer():
+    response, _, _, _, _, conn = create_load_balancer()
+
+    lb_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.describe_target_groups(LoadBalancerArn=lb_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "TargetGroupNotFound"
+    assert err["Message"] == "One or more target groups not found"
 
 
 @mock_elbv2
