@@ -122,7 +122,7 @@ def test_create_target_group_and_listeners():
     http_listener_arn = listener["ListenerArn"]
 
     response = conn.describe_target_groups(
-        LoadBalancerArn=load_balancer_arn, Names=["a-target"]
+        LoadBalancerArn=load_balancer_arn,
     )
     assert len(response["TargetGroups"]) == 1
 
@@ -455,7 +455,7 @@ def test_describe_invalid_target_group():
         conn.describe_target_groups(Names=["invalid"])
     err = exc.value.response["Error"]
     assert err["Code"] == "TargetGroupNotFound"
-    assert err["Message"] == "The specified target group does not exist."
+    assert err["Message"] == "One or more target groups not found"
 
 
 @mock_elbv2
@@ -471,7 +471,7 @@ def test_describe_target_groups():
     groups = conn.describe_target_groups()["TargetGroups"]
     assert len(groups) == 0
 
-    conn.create_target_group(
+    response = conn.create_target_group(
         Name="a-target",
         Protocol="HTTP",
         Port=8080,
@@ -484,6 +484,14 @@ def test_describe_target_groups():
         HealthyThresholdCount=5,
         UnhealthyThresholdCount=2,
         Matcher={"HttpCode": "201"},
+    )
+    arn_a = response["TargetGroups"][0]["TargetGroupArn"]
+
+    conn.create_listener(
+        LoadBalancerArn=lb_arn,
+        Protocol="HTTP",
+        Port=80,
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": arn_a}],
     )
 
     groups = conn.describe_target_groups()["TargetGroups"]
@@ -537,11 +545,18 @@ def test_describe_target_groups():
     assert len(groups) == 1
     assert groups[0]["TargetGroupName"] == "a-target"
 
-    conn.create_target_group(
+    response = conn.create_target_group(
         Name="d-target",
         Protocol="HTTP",
         Port=8082,
         VpcId=vpc.id,
+    )
+    arn_d = response["TargetGroups"][0]["TargetGroupArn"]
+    conn.create_listener(
+        LoadBalancerArn=lb_arn,
+        Protocol="HTTP",
+        Port=80,
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": arn_d}],
     )
     groups = conn.describe_target_groups(LoadBalancerArn=lb_arn)["TargetGroups"]
     assert len(groups) == 2

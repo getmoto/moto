@@ -1378,8 +1378,6 @@ Member must satisfy regular expression pattern: {expression}"
                 "Target group names, target group ARNs, and a load balancer ARN cannot be specified at the same time"
             )
 
-        target_groups = []
-
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
                 raise LoadBalancerNotFoundError()
@@ -1388,25 +1386,30 @@ Member must satisfy regular expression pattern: {expression}"
                 for tg in self.target_groups.values()
                 if load_balancer_arn in tg.load_balancer_arns
             ]
+            if target_groups is None or len(target_groups) == 0:
+                raise TargetGroupNotFoundError()
+            return sorted(target_groups, key=lambda tg: tg.name)
 
         if target_group_arns:
             try:
                 target_groups = [self.target_groups[arn] for arn in target_group_arns]
+                return sorted(target_groups, key=lambda tg: tg.name)
             except KeyError:
                 raise TargetGroupNotFoundError()
 
         if names:
-            target_groups = [
-                next((tg for tg in self.target_groups.values() if tg.name == name))
-                for name in names
-            ]
-            if None in target_groups:
-                raise TargetGroupNotFoundError()
+            matched = []
+            for name in names:
+                found = None
+                for target_group in self.target_groups.values():
+                    if target_group.name == name:
+                        found = target_group
+                if not found:
+                    raise TargetGroupNotFoundError()
+                matched.append(found)
+            return sorted(matched, key=lambda tg: tg.name)
 
-        if len(target_groups) == 0:
-            target_groups = list(self.target_groups.values())
-
-        return sorted(target_groups, key=lambda tg: tg.name)
+        return sorted(self.target_groups.values(), key=lambda tg: tg.name)
 
     def describe_listeners(
         self, load_balancer_arn: Optional[str], listener_arns: List[str]
