@@ -4,6 +4,7 @@ from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.types import Binary
 import re
 from moto import mock_dynamodb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -5725,6 +5726,30 @@ def test_projection_expression_execution_order():
         ProjectionExpression="#a",
         ExpressionAttributeNames={"#a": "hashKey"},
     )
+
+
+@mock_dynamodb
+def test_projection_expression_with_binary_attr():
+    dynamo_resource = boto3.resource("dynamodb", region_name="us-east-1")
+    dynamo_resource.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = dynamo_resource.Table("test")
+    table.put_item(Item={"pk": "pk", "sk": "sk", "key": b"value\xbf"})
+    assert table.get_item(
+        Key={"pk": "pk", "sk": "sk"},
+        ExpressionAttributeNames={"#key": "key"},
+        ProjectionExpression="#key",
+    )["Item"] == {"key": Binary(b"value\xbf")}
 
 
 @mock_dynamodb

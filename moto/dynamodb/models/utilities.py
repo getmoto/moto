@@ -14,7 +14,7 @@ def dynamo_json_dump(dynamo_object: Any) -> str:
 
 
 def bytesize(val: str) -> int:
-    return len(val.encode("utf-8"))
+    return len(val if isinstance(val, bytes) else val.encode("utf-8"))
 
 
 def find_nested_key(
