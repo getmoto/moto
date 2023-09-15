@@ -51,7 +51,7 @@ def test_complete_snapshot():
 
 @mock_ebs
 def test_put_snapshot_block():
-    data = b"data for this specific block"
+    data = b"data for this specific block\xbf"
     checksum = hashlib.sha256(data).hexdigest()
     client = boto3.client("ebs", region_name="eu-west-1")
     snapshot_id = client.start_snapshot(VolumeSize=720)["SnapshotId"]

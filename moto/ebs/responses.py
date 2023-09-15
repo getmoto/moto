@@ -24,7 +24,7 @@ class EBSResponse(BaseResponse):
             return self.start_snapshot()
 
     def snapshot_block(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
+        self.setup_class(request, full_url, headers, use_raw_body=True)
         if request.method == "PUT":
             return self.put_snapshot_block(full_url, headers)
         if request.method == "GET":
@@ -59,7 +59,7 @@ class EBSResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         snapshot_id = full_url.split("/")[-1]
         status = self.ebs_backend.complete_snapshot(snapshot_id=snapshot_id)
-        return 200, {}, json.dumps(status)
+        return 202, {}, json.dumps(status)
 
     def put_snapshot_block(self, full_url: str, headers: Any) -> TYPE_RESPONSE:
         """
@@ -82,7 +82,7 @@ class EBSResponse(BaseResponse):
             data_length=data_length,
         )
         return (
-            200,
+            201,
             {
                 "x-amz-Checksum": checksum,
                 "x-amz-Checksum-Algorithm": checksum_algorithm,
