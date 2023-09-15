@@ -1,3 +1,4 @@
+import base64
 import copy
 import decimal
 
@@ -195,6 +196,10 @@ class DynamoType(object):
 
     def to_json(self) -> Dict[str, Any]:
         # Returns a regular JSON object where the value can still be/contain a DynamoType
+        if self.is_binary():
+            # Binary data cannot be represented in JSON
+            # AWS returns a base64-encoded value - the SDK's then convert that back
+            return {self.type: base64.b64encode(self.value).decode("utf-8")}
         return {self.type: self.value}
 
     def to_regular_json(self) -> Dict[str, Any]:
@@ -212,6 +217,8 @@ class DynamoType(object):
                 val.to_regular_json() if isinstance(val, DynamoType) else val
                 for val in value
             ]
+        if self.is_binary():
+            value = base64.b64decode(value)
         return {self.type: value}
 
     def compare(self, range_comparison: str, range_objs: List[Any]) -> bool:
@@ -235,6 +242,9 @@ class DynamoType(object):
 
     def is_map(self) -> bool:
         return self.type == DDBType.MAP
+
+    def is_binary(self) -> bool:
+        return self.type == DDBType.BINARY
 
     def same_type(self, other: "DynamoType") -> bool:
         return self.type == other.type
