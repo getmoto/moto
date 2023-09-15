@@ -1159,6 +1159,11 @@ def test_set_ip_address_type():
 
     client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="dualstack")
 
+    with pytest.raises(ClientError) as ex:
+        client.set_ip_address_type(LoadBalancerArn=arn, IpAddressType="internal")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+
 
 @mock_elbv2
 @mock_ec2
