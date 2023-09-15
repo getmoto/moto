@@ -934,3 +934,36 @@ def test_create_target_group_validation_error():
     )["TargetGroups"][0]
     assert group["HealthCheckIntervalSeconds"] == 30
     assert group["HealthCheckTimeoutSeconds"] == 30
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(Name="a-target", TargetType="lambda", Port=8080)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Port cannot be specified for target groups with target type 'lambda'"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target", TargetType="lambda", VpcId="non-existing"
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "VPC ID cannot be specified for target groups with target type 'lambda'"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        elbv2.create_target_group(
+            Name="a-target",
+            TargetType="lambda",
+            Protocol="HTTP",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert (
+        err["Message"]
+        == "Protocol cannot be specified for target groups with target type 'lambda'"
+    )
