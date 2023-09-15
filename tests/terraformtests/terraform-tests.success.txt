@@ -269,6 +269,12 @@ elbv2:
   - TestAccELBV2ListenerCertificate
   - TestAccELBV2TargetGroupAttachment
   - TestAccELBV2TargetGroupDataSource
+  - TestAccELBV2TargetGroup_ALBAlias
+  - TestAccELBV2TargetGroup_networkLB
+  - TestAccELBV2TargetGroup_NetworkLB
+  - TestAccELBV2TargetGroup_Stickiness_defaultALB
+  - TestAccELBV2TargetGroup_Stickiness_valid
+  - TestAccELBV2TargetGroup_Stickiness_update
 events:
   - TestAccEventsAPIDestination
   - TestAccEventsArchive
