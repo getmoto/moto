@@ -380,9 +380,9 @@ def test_target_group_attributes():
     assert len(response["TargetGroups"]) == 1
     target_group_arn = target_group["TargetGroupArn"]
 
-    # The attributes should start with the two defaults
+    # The attributes should start with the defaults
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    assert len(response["Attributes"]) == 6
+    assert len(response["Attributes"]) == 7
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["deregistration_delay.timeout_seconds"] == "300"
     assert attributes["stickiness.enabled"] == "false"
@@ -397,21 +397,21 @@ def test_target_group_attributes():
         TargetGroupArn=target_group_arn,
         Attributes=[
             {"Key": "stickiness.enabled", "Value": "true"},
-            {"Key": "stickiness.type", "Value": "lb_cookie"},
+            {"Key": "stickiness.type", "Value": "app_cookie"},
         ],
     )
 
     # The response should have only the keys updated
     assert len(response["Attributes"]) == 2
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
-    assert attributes["stickiness.type"] == "lb_cookie"
+    assert attributes["stickiness.type"] == "app_cookie"
     assert attributes["stickiness.enabled"] == "true"
 
     # These new values should be in the full attribute list
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
     assert len(response["Attributes"]) == 7
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
-    assert attributes["stickiness.type"] == "lb_cookie"
+    assert attributes["stickiness.type"] == "app_cookie"
     assert attributes["stickiness.enabled"] == "true"
 
 
@@ -828,9 +828,11 @@ def test_delete_target_group_while_listener_still_exists():
     client.delete_target_group(TargetGroupArn=target_group_arn1)
 
 
+@mock_ec2
 @mock_elbv2
 def test_create_target_group_validation_error():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
+    _, vpc, _, _, _, _ = create_load_balancer()
 
     with pytest.raises(ClientError) as ex:
         elbv2.create_target_group(
@@ -895,6 +897,43 @@ def test_create_target_group_validation_error():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationError"
     assert err["Message"] == "Health check interval must be greater than the timeout."
+
+    # When providing both values:
+    # Health check timeout '5' must be smaller than the interval '5'
+    #
+    # When only the Interval is supplied, it can be the same value as the default
+    group = elbv2.create_target_group(
+        Name="target1",
+        Port=443,
+        Protocol="TLS",
+        VpcId=vpc.id,
+        TargetType="ip",
+        IpAddressType="ipv6",
+        HealthCheckIntervalSeconds=10,
+        HealthCheckPort="traffic-port",
+        HealthCheckProtocol="TCP",
+        HealthyThresholdCount=3,
+        UnhealthyThresholdCount=3,
+    )["TargetGroups"][0]
+    assert group["HealthCheckIntervalSeconds"] == 10
+    assert group["HealthCheckTimeoutSeconds"] == 10
+
+    # Same idea goes the other way around
+    group = elbv2.create_target_group(
+        Name="target2",
+        Port=443,
+        Protocol="TLS",
+        VpcId=vpc.id,
+        TargetType="ip",
+        IpAddressType="ipv6",
+        HealthCheckTimeoutSeconds=30,
+        HealthCheckPort="traffic-port",
+        HealthCheckProtocol="TCP",
+        HealthyThresholdCount=3,
+        UnhealthyThresholdCount=3,
+    )["TargetGroups"][0]
+    assert group["HealthCheckIntervalSeconds"] == 30
+    assert group["HealthCheckTimeoutSeconds"] == 30
 
     with pytest.raises(ClientError) as ex:
         elbv2.create_target_group(Name="a-target", TargetType="lambda", Port=8080)
