@@ -13,6 +13,7 @@ jobs:
     name: Release Moto
     permissions:
       contents: write
+      packages: write
     env:
       VERSION: 0.0.0
     steps:
