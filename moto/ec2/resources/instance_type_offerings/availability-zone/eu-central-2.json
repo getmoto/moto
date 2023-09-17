@@ -204,6 +204,38 @@
   "Location": "eu-central-2a"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "eu-central-2a"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "eu-central-2a"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "eu-central-2a"
  },
@@ -820,6 +852,38 @@
   "Location": "eu-central-2b"
  },
  {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "eu-central-2b"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "eu-central-2b"
  },
@@ -1393,6 +1457,38 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "eu-central-2c"
  },
  {

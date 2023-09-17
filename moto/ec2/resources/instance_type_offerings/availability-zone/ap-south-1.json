@@ -584,6 +584,30 @@
   "Location": "ap-south-1a"
  },
  {
+  "InstanceType": "is4gen.2xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
+  "InstanceType": "is4gen.4xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
+  "InstanceType": "is4gen.8xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
+  "InstanceType": "is4gen.large",
+  "Location": "ap-south-1a"
+ },
+ {
+  "InstanceType": "is4gen.medium",
+  "Location": "ap-south-1a"
+ },
+ {
+  "InstanceType": "is4gen.xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
   "InstanceType": "m4.10xlarge",
   "Location": "ap-south-1a"
  },
@@ -3873,6 +3897,30 @@
  },
  {
   "InstanceType": "inf1.xlarge",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "is4gen.2xlarge",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "is4gen.4xlarge",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "is4gen.8xlarge",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "is4gen.large",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "is4gen.medium",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "is4gen.xlarge",
   "Location": "ap-south-1c"
  },
  {

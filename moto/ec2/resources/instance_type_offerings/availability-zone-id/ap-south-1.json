@@ -584,6 +584,30 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "is4gen.2xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "is4gen.4xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "is4gen.8xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "is4gen.large",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "is4gen.medium",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "is4gen.xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "m4.10xlarge",
   "Location": "aps1-az1"
  },
@@ -2173,6 +2197,30 @@
  },
  {
   "InstanceType": "inf1.xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "is4gen.2xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "is4gen.4xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "is4gen.8xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "is4gen.large",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "is4gen.medium",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "is4gen.xlarge",
   "Location": "aps1-az2"
  },
  {
