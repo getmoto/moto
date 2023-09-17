@@ -11875,6 +11875,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -11909,6 +11918,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "drs": {
@@ -23515,6 +23533,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "stepfunctions": {
                 "Value": "stepfunctions",
                 "endpoint": {
@@ -24795,6 +24822,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27887,6 +27923,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -28551,6 +28596,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32352,6 +32406,15 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40274,6 +40337,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "chatbot": {
+                "Value": "chatbot"
+              },
               "chime-sdk": {
                 "Value": "chime-sdk"
               },
@@ -40434,6 +40500,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "drs": {
+                "Value": "drs",
+                "endpoint": {
+                  "Value": "drs.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40615,6 +40690,15 @@
               },
               "fsx-lustre": {
                 "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
                 "endpoint": {
                   "Value": "fsx.il-central-1.amazonaws.com"
                 },
@@ -41488,6 +41572,15 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
