@@ -47,7 +47,10 @@ import requests
 
 MANAGED_RULES_OUTPUT_FILENAME = "../moto/config/resources/aws_managed_rules.json"
 
-AWS_MARKDOWN_URL_START = "https://raw.githubusercontent.com/awsdocs/aws-config-developer-guide/main/doc_source/"
+AWS_MARKDOWN_URL_START = (
+    "https://raw.githubusercontent.com/awsdocs/aws-config-developer-guide/"
+    "main/doc_source/"
+)
 
 LIST_OF_MARKDOWNS_URL = "managed-rules-by-aws-config.md"
 
@@ -126,7 +129,7 @@ def extract_managed_rule_info(lines):
         # Parameters values aren't on the same line as labels.
         label = matches.group("label")
         value = matches.group("value")
-        if label in ["Identifier", "Trigger type", "AWS Region"]:
+        if label in ["Identifier", "Trigger type", "AWS Region", "Resource Types"]:
             rule_info[label] = value
         elif label == "Parameters":
             collecting_params = True
