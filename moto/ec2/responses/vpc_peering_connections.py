@@ -202,7 +202,6 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
         <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
         <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
       </peeringOptions>
-      <region>{{ vpc_pcx.peer_vpc.ec2_backend.region_name }}</region>
     </accepterVpcInfo>
     <status>
       <code>{{ vpc_pcx._status.code }}</code>
