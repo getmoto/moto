@@ -294,6 +294,33 @@ def test_register_task_definition():
 
 
 @mock_ecs
+def test_register_task_definition_fargate_with_pid_mode():
+    client = boto3.client("ecs", region_name="us-east-1")
+    definition = dict(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {"name": "hello_world", "image": "hello-world:latest", "memory": 400}
+        ],
+        requiresCompatibilities=["FARGATE"],
+        pidMode="host",
+        networkMode="awsvpc",
+        cpu="256",
+        memory="512",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.register_task_definition(**definition)
+    ex = exc.value
+    assert ex.operation_name == "RegisterTaskDefinition"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ClientException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Tasks using the Fargate launch type do not support pidMode 'host'. The supported value for pidMode is 'task'."
+    )
+
+
+@mock_ecs
 def test_list_task_definitions():
     client = boto3.client("ecs", region_name="us-east-1")
     client.register_task_definition(
