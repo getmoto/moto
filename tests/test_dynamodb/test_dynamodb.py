@@ -5745,11 +5745,19 @@ def test_projection_expression_with_binary_attr():
     )
     table = dynamo_resource.Table("test")
     table.put_item(Item={"pk": "pk", "sk": "sk", "key": b"value\xbf"})
-    assert table.get_item(
+
+    item = table.get_item(
         Key={"pk": "pk", "sk": "sk"},
         ExpressionAttributeNames={"#key": "key"},
         ProjectionExpression="#key",
-    )["Item"] == {"key": Binary(b"value\xbf")}
+    )["Item"]
+    assert item == {"key": Binary(b"value\xbf")}
+
+    item = table.scan()["Items"][0]
+    assert item["key"] == Binary(b"value\xbf")
+
+    item = table.query(KeyConditionExpression=Key("pk").eq("pk"))["Items"][0]
+    assert item["key"] == Binary(b"value\xbf")
 
 
 @mock_dynamodb
