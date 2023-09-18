@@ -1139,7 +1139,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         ephemeral_storage: Optional[Dict[str, int]] = None,
     ) -> TaskDefinition:
 
-        if "FARGATE" in requires_compatibilities:
+        if requires_compatibilities and "FARGATE" in requires_compatibilities:
             # TODO need more validation for Fargate
             if pid_mode != "task":
                 raise EcsClientException(
