@@ -333,7 +333,10 @@ class OpenSearchServiceBackend(BaseBackend):
             if engine_type:
                 if engine_type in domain.engine_version:
                     domains.append(
-                        {"DomainName": domain.domain_name, "EngineType": engine_type}
+                        {
+                            "DomainName": domain.domain_name,
+                            "EngineType": engine_type.split("_")[0],
+                        }
                     )
                 else:
                     raise EngineTypeNotFoundException(domain.domain_name)
