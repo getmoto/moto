@@ -61,7 +61,7 @@ opensearch
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
-- [ ] list_domain_names
+- [x] list_domain_names
 - [ ] list_domains_for_package
 - [ ] list_instance_type_details
 - [ ] list_packages_for_domain
