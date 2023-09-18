@@ -196,7 +196,7 @@ class DynamoType(object):
 
     def to_json(self) -> Dict[str, Any]:
         # Returns a regular JSON object where the value can still be/contain a DynamoType
-        if self.is_binary():
+        if self.is_binary() and isinstance(self.value, bytes):
             # Binary data cannot be represented in JSON
             # AWS returns a base64-encoded value - the SDK's then convert that back
             return {self.type: base64.b64encode(self.value).decode("utf-8")}

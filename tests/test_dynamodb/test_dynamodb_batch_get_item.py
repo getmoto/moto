@@ -14,7 +14,7 @@ def _create_user_table():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
     client.put_item(
-        TableName="users", Item={"username": {"S": "user1"}, "foo": {"S": "bar"}}
+        TableName="users", Item={"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}}
     )
     client.put_item(
         TableName="users", Item={"username": {"S": "user2"}, "foo": {"S": "bar"}}
@@ -42,11 +42,9 @@ def test_batch_items_returns_all():
         }
     )["Responses"]["users"]
     assert len(returned_items) == 3
-    assert [item["username"]["S"] for item in returned_items] == [
-        "user1",
-        "user2",
-        "user3",
-    ]
+    assert {"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}} in returned_items
+    assert {"username": {"S": "user2"}, "foo": {"S": "bar"}} in returned_items
+    assert {"username": {"S": "user3"}, "foo": {"S": "bar"}} in returned_items
 
 
 @mock_dynamodb
@@ -137,12 +135,10 @@ def test_batch_items_with_basic_projection_expression():
         }
     )["Responses"]["users"]
 
-    assert [item["username"]["S"] for item in returned_items] == [
-        "user1",
-        "user2",
-        "user3",
-    ]
-    assert [item["foo"]["S"] for item in returned_items] == ["bar", "bar", "bar"]
+    assert len(returned_items) == 3
+    assert {"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}} in returned_items
+    assert {"username": {"S": "user2"}, "foo": {"S": "bar"}} in returned_items
+    assert {"username": {"S": "user3"}, "foo": {"S": "bar"}} in returned_items
 
 
 @mock_dynamodb
@@ -165,12 +161,9 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
     )["Responses"]["users"]
 
     assert len(returned_items) == 3
-    assert [item["username"]["S"] for item in returned_items] == [
-        "user1",
-        "user2",
-        "user3",
-    ]
-    assert [item.get("foo") for item in returned_items] == [None, None, None]
+    assert {"username": {"S": "user1"}} in returned_items
+    assert {"username": {"S": "user2"}} in returned_items
+    assert {"username": {"S": "user3"}} in returned_items
 
 
 @mock_dynamodb
