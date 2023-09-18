@@ -1,8 +1,9 @@
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_opensearch
+
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -139,3 +140,67 @@ def test_update_domain_config():
             "CustomEndpointEnabled": False,
         }
     }
+
+
+@mock_opensearch
+def test_list_domain_names():
+    client = boto3.client("opensearch", region_name="ap-southeast-1")
+
+    test_domain_names_list_exist = False
+
+    opensearch_domain_name = "testdn"
+    opensearch_engine_version = "OpenSearch_1.0"
+    client.create_domain(
+        DomainName=opensearch_domain_name, EngineVersion=opensearch_engine_version
+    )
+
+    resp = client.list_domain_names()
+    domain_names = resp["DomainNames"]
+
+    for domain_name in domain_names:
+        if domain_name["DomainName"] == opensearch_domain_name:
+            test_domain_names_list_exist = True
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert test_domain_names_list_exist
+
+
+@mock_opensearch
+def test_list_filtered_domain_names():
+    client = boto3.client("opensearch", region_name="ap-southeast-1")
+
+    test_domain_names_list_exist = False
+
+    opensearch_domain_name = "testdn"
+    opensearch_engine_version = "OpenSearch_1.0"
+    client.create_domain(
+        DomainName=opensearch_domain_name, EngineVersion=opensearch_engine_version
+    )
+
+    resp = client.list_domain_names(EngineType="OpenSearch")
+    domain_names = resp["DomainNames"]
+
+    for domain_name in domain_names:
+        if domain_name["DomainName"] == opensearch_domain_name:
+            if domain_name["EngineType"] == opensearch_engine_version.split("_")[0]:
+                test_domain_names_list_exist = True
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert test_domain_names_list_exist
+
+
+@mock_opensearch
+def test_list_unknown_domain_names_engine_type():
+    client = boto3.client("opensearch", region_name="ap-southeast-1")
+
+    opensearch_domain_name = "testdn"
+    opensearch_engine_version = "OpenSearch_1.0"
+    client.create_domain(
+        DomainName=opensearch_domain_name, EngineVersion=opensearch_engine_version
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.list_domain_names(EngineType="unknown")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EngineTypeNotFoundException"
+    assert err["Message"] == "Engine Type not found: testdn"

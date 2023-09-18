@@ -2,9 +2,9 @@ from typing import Any, Dict, List, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
-from .data import compatible_versions
-from .exceptions import ResourceNotFoundException
 
+from .data import compatible_versions
+from .exceptions import ResourceNotFoundException, EngineTypeNotFoundException
 
 default_cluster_config = {
     "InstanceType": "t3.small.search",
@@ -326,6 +326,25 @@ class OpenSearchServiceBackend(BaseBackend):
 
     def remove_tags(self, arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
+    def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
+        domains = []
+        for domain in self.domains.values():
+            if engine_type:
+                if engine_type in domain.engine_version:
+                    domains.append(
+                        {"DomainName": domain.domain_name, "EngineType": engine_type}
+                    )
+                else:
+                    raise EngineTypeNotFoundException(domain.domain_name)
+            else:
+                domains.append(
+                    {
+                        "DomainName": domain.domain_name,
+                        "EngineType": domain.engine_version.split("_")[0],
+                    }
+                )
+        return domains
 
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")
