@@ -6,7 +6,7 @@ import pytest
 
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_ec2, settings
 
 
 def create_vpx_pcx(ec2, client):
@@ -126,6 +126,9 @@ def test_vpc_peering_connections_delete_boto3():
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
 )
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
+)
 def test_vpc_peering_connections_cross_region(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
@@ -190,6 +193,9 @@ def test_vpc_peering_connections_cross_region(account1, account2):
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
 )
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
+)
 def test_modify_vpc_peering_connections_accepter_only(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
@@ -238,6 +244,9 @@ def test_modify_vpc_peering_connections_accepter_only(account1, account2):
         pytest.param("111111111111", "111111111111", id="within account"),
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
+)
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
 )
 def test_modify_vpc_peering_connections_requester_only(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
@@ -288,6 +297,9 @@ def test_modify_vpc_peering_connections_requester_only(account1, account2):
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
 )
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
+)
 def test_modify_vpc_peering_connections_unknown_vpc(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
@@ -326,6 +338,9 @@ def test_modify_vpc_peering_connections_unknown_vpc(account1, account2):
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
 )
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
+)
 def test_vpc_peering_connections_cross_region_fail(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
@@ -355,6 +370,9 @@ def test_vpc_peering_connections_cross_region_fail(account1, account2):
         pytest.param("111111111111", "111111111111", id="within account"),
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
+)
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
 )
 def test_describe_vpc_peering_connections_only_returns_requested_id(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
@@ -407,6 +425,9 @@ def test_describe_vpc_peering_connections_only_returns_requested_id(account1, ac
         pytest.param("111111111111", "111111111111", id="within account"),
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
+)
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
 )
 def test_vpc_peering_connections_cross_region_accept(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
@@ -480,6 +501,9 @@ def test_vpc_peering_connections_cross_region_accept(account1, account2):
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
 )
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
+)
 def test_vpc_peering_connections_cross_region_reject(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
@@ -526,6 +550,9 @@ def test_vpc_peering_connections_cross_region_reject(account1, account2):
         pytest.param("111111111111", "111111111111", id="within account"),
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
+)
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
 )
 def test_vpc_peering_connections_cross_region_delete(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
@@ -577,6 +604,9 @@ def test_vpc_peering_connections_cross_region_delete(account1, account2):
         pytest.param("111111111111", "111111111111", id="within account"),
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
+)
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
 )
 def test_vpc_peering_connections_cross_region_accept_wrong_region(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
@@ -633,6 +663,9 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region(account1, acco
         pytest.param("111111111111", "111111111111", id="within account"),
         pytest.param("111111111111", "222222222222", id="across accounts"),
     ],
+)
+@pytest.mark.skipif(
+    settings.TEST_SERVER_MODE, reason="Cannot set account ID in server mode"
 )
 def test_vpc_peering_connections_cross_region_reject_wrong_region(account1, account2):
     # create vpc in us-west-1 and ap-northeast-1
