@@ -43,7 +43,7 @@ def test_vpc_peering_connections_get_all_boto3():
         if vpc_pcx["VpcPeeringConnectionId"] == vpc_pcx_id
     ][0]
     assert my_vpc_pcx["Status"]["Code"] == "pending-acceptance"
-    assert my_vpc_pcx["Status"]["Message"] == 'Pending Acceptance by 123456789012'
+    assert my_vpc_pcx["Status"]["Message"] == "Pending Acceptance by 123456789012"
 
 
 @mock_ec2
@@ -152,15 +152,38 @@ def test_vpc_peering_connections_cross_region(account1, account2):
     assert (
         vpc_pcx_usw1["VpcPeeringConnection"]["Status"]["Code"] == "initiating-request"
     )
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["Status"]["Message"] == f"Initiating Request to {account2}"
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["VpcId"] == vpc_usw1.id
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["CidrBlock"] == '10.90.0.0/16'
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["OwnerId"] == account1
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["Region"] == 'us-west-1'
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["VpcId"] == vpc_apn1.id
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["CidrBlock"] == '10.20.0.0/16'
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["OwnerId"] == account2
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["Region"] == 'ap-northeast-1'
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["Status"]["Message"]
+        == f"Initiating Request to {account2}"
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["VpcId"] == vpc_usw1.id
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["CidrBlock"]
+        == "10.90.0.0/16"
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["OwnerId"] == account1
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["Region"]
+        == "us-west-1"
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["VpcId"] == vpc_apn1.id
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["CidrBlock"]
+        == "10.20.0.0/16"
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["OwnerId"] == account2
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["Region"]
+        == "ap-northeast-1"
+    )
 
     # test cross region vpc peering connection exist
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
@@ -591,10 +614,16 @@ def test_vpc_peering_connections_cross_region_delete(account1, account2):
 
     assert del_pcx_apn1["Return"] is True
     assert des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Code"] == "deleted"
-    assert des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Message"] == f"Deleted by {account2}"
+    assert (
+        des_pcx_apn1["VpcPeeringConnections"][0]["Status"]["Message"]
+        == f"Deleted by {account2}"
+    )
 
     assert des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"] == "deleted"
-    assert des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Message"] == f"Deleted by {account2}"
+    assert (
+        des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Message"]
+        == f"Deleted by {account2}"
+    )
 
 
 @mock_ec2
