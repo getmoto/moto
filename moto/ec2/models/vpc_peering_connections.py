@@ -150,7 +150,7 @@ class VPCPeeringConnectionBackend:
 
     def delete_vpc_peering_connection(self, vpc_pcx_id: str) -> VPCPeeringConnection:
         deleted = self.get_vpc_peering_connection(vpc_pcx_id)
-        deleted._status.deleted(deleter_id=self.account_id)
+        deleted._status.deleted(deleter_id=self.account_id)  # type: ignore[attr-defined]
         return deleted
 
     def accept_vpc_peering_connection(self, vpc_pcx_id: str) -> VPCPeeringConnection:
@@ -159,8 +159,8 @@ class VPCPeeringConnectionBackend:
         # validate cross-account acceptance
         req_account_id = vpc_pcx.vpc.owner_id
         acp_account_id = vpc_pcx.peer_vpc.owner_id
-        if req_account_id != acp_account_id and self.account_id != acp_account_id:
-            raise OperationNotPermitted5(self.account_id, vpc_pcx_id, "accept")
+        if req_account_id != acp_account_id and self.account_id != acp_account_id:  # type: ignore[attr-defined]
+            raise OperationNotPermitted5(self.account_id, vpc_pcx_id, "accept")  # type: ignore[attr-defined]
 
         # validate cross-region acceptance
         pcx_req_region = vpc_pcx.vpc.region
@@ -179,8 +179,8 @@ class VPCPeeringConnectionBackend:
         # validate cross-account rejection
         req_account_id = vpc_pcx.vpc.owner_id
         acp_account_id = vpc_pcx.peer_vpc.owner_id
-        if req_account_id != acp_account_id and self.account_id != acp_account_id:
-            raise OperationNotPermitted5(self.account_id, vpc_pcx_id, "reject")
+        if req_account_id != acp_account_id and self.account_id != acp_account_id:  # type: ignore[attr-defined]
+            raise OperationNotPermitted5(self.account_id, vpc_pcx_id, "reject")  # type: ignore[attr-defined]
 
         # validate cross-region acceptance
         pcx_req_region = vpc_pcx.vpc.region

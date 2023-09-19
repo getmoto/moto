@@ -95,7 +95,7 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
             "region": region_name,
             "transitGatewayId": transit_gateway_id,
         }
-        self.status = PeeringConnectionStatus()
+        self.status = PeeringConnectionStatus(accepter_id=peer_account_id)
 
 
 class TransitGatewayAttachmentBackend:
