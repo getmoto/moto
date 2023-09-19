@@ -2,6 +2,7 @@
 import json
 
 from moto.core.responses import BaseResponse
+
 from .models import opensearch_backends, OpenSearchServiceBackend
 
 
@@ -138,3 +139,10 @@ class OpenSearchServiceResponse(BaseResponse):
         tag_keys = self._get_param("TagKeys")
         self.opensearch_backend.remove_tags(arn, tag_keys)
         return "{}"
+
+    def list_domain_names(self) -> str:
+        engine_type = self._get_param("engineType")
+        domain_names = self.opensearch_backend.list_domain_names(
+            engine_type=engine_type,
+        )
+        return json.dumps(dict(DomainNames=domain_names))
