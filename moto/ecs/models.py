@@ -1138,6 +1138,14 @@ class EC2ContainerServiceBackend(BaseBackend):
         pid_mode: Optional[str] = None,
         ephemeral_storage: Optional[Dict[str, int]] = None,
     ) -> TaskDefinition:
+
+        if requires_compatibilities and "FARGATE" in requires_compatibilities:
+            # TODO need more validation for Fargate
+            if pid_mode and pid_mode != "task":
+                raise EcsClientException(
+                    f"Tasks using the Fargate launch type do not support pidMode '{pid_mode}'. The supported value for pidMode is 'task'."
+                )
+
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
             revision = (last_id or 0) + 1
