@@ -1141,9 +1141,9 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         if requires_compatibilities and "FARGATE" in requires_compatibilities:
             # TODO need more validation for Fargate
-            if pid_mode != "task":
+            if pid_mode and pid_mode != "task":
                 raise EcsClientException(
-                    "Tasks using the Fargate launch type do not support pidMode 'host'. The supported value for pidMode is 'task'."
+                    f"Tasks using the Fargate launch type do not support pidMode '{pid_mode}'. The supported value for pidMode is 'task'."
                 )
 
         if family in self.task_definitions:
