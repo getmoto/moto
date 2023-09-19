@@ -11,7 +11,7 @@ from moto.s3.responses import DEFAULT_REGION_NAME
 
 @mock_s3
 def test_cross_account_region_access():
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Multi-accounts env config only works serverside")
 
     client1 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

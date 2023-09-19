@@ -12,7 +12,7 @@ BASE_URL = f"http://localhost:{SERVER_PORT}/"
 
 class TestAccountIdResolution:
     def setup_method(self):
-        if settings.TEST_SERVER_MODE:
+        if not settings.TEST_DECORATOR_MODE:
             raise SkipTest(
                 "No point in testing this in ServerMode, as we already start our own server"
             )

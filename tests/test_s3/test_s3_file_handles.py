@@ -48,7 +48,7 @@ class TestS3FileHandleClosures(TestCase):
     """
 
     def setUp(self) -> None:
-        if settings.TEST_SERVER_MODE:
+        if not settings.TEST_DECORATOR_MODE:
             raise SkipTest("No point in testing ServerMode, we're not using boto3")
         self.s3_client = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
         self.s3_client.create_bucket(TEST_BUCKET, "us-west-1")

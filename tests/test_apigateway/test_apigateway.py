@@ -851,7 +851,7 @@ def test_update_authorizer_configuration():
                 {"op": "add", "path": "/notasetting", "value": "eu-west-1"}
             ],
         )
-    if not settings.TEST_SERVER_MODE:
+    if settings.TEST_DECORATOR_MODE:
         assert 'Patch operation "add" not implemented' in str(exc.value)
 
 

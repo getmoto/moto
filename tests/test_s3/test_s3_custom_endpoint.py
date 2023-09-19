@@ -15,7 +15,7 @@ CUSTOM_ENDPOINT_2 = "https://caf-o.s3-ext.jc.rl.ac.uk"
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_create_and_list_buckets(url):
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
@@ -32,7 +32,7 @@ def test_create_and_list_buckets(url):
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(
@@ -53,7 +53,7 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 @mock_s3
 def test_put_and_get_object(url):
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_s3():
@@ -74,7 +74,7 @@ def test_put_and_get_object(url):
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 @mock_s3
 def test_put_and_list_objects(url):
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_s3():
