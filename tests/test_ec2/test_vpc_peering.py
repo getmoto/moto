@@ -145,15 +145,26 @@ def test_vpc_peering_connections_cross_region(account1, account2):
             PeerOwnerId=account2,
         )
 
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["Status"]["Code"] == "initiating-request"
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["VpcId"] == vpc_usw1.id
-    assert vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["VpcId"] == vpc_apn1.id
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["Status"]["Code"] == "initiating-request"
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["RequesterVpcInfo"]["VpcId"] == vpc_usw1.id
+    )
+    assert (
+        vpc_pcx_usw1["VpcPeeringConnection"]["AccepterVpcInfo"]["VpcId"] == vpc_apn1.id
+    )
     # TODO add more assertions
 
     # test cross region vpc peering connection exist
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
-        vpc_pcx_apn1 = ec2_apn1.VpcPeeringConnection(vpc_pcx_usw1["VpcPeeringConnection"]["VpcPeeringConnectionId"])
-        assert vpc_pcx_apn1.id == vpc_pcx_usw1["VpcPeeringConnection"]["VpcPeeringConnectionId"]
+        vpc_pcx_apn1 = ec2_apn1.VpcPeeringConnection(
+            vpc_pcx_usw1["VpcPeeringConnection"]["VpcPeeringConnectionId"]
+        )
+        assert (
+            vpc_pcx_apn1.id
+            == vpc_pcx_usw1["VpcPeeringConnection"]["VpcPeeringConnectionId"]
+        )
         assert vpc_pcx_apn1.requester_vpc.id == vpc_usw1.id
         assert vpc_pcx_apn1.accepter_vpc.id == vpc_apn1.id
 
@@ -355,10 +366,16 @@ def test_describe_vpc_peering_connections_only_returns_requested_id(account1, ac
     # create peering
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
         vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2,
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
         vpc_pcx_usw2 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2,
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
 
         # describe peering
@@ -401,7 +418,10 @@ def test_vpc_peering_connections_cross_region_accept(account1, account2):
     # create peering
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
         vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
 
     # accept peering from ap-northeast-1
@@ -470,7 +490,10 @@ def test_vpc_peering_connections_cross_region_reject(account1, account2):
     # create peering
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
         vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
 
     # reject peering from ap-northeast-1
@@ -514,7 +537,10 @@ def test_vpc_peering_connections_cross_region_delete(account1, account2):
     # create peering
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
         vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
 
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
@@ -559,7 +585,10 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region(account1, acco
     # create peering
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
         vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
 
     # accept wrong peering from us-west-1 which will raise error
@@ -568,7 +597,9 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region(account1, acco
         with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
             ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
             with pytest.raises(ClientError) as cm:
-                ec2_usw1.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
+                ec2_usw1.accept_vpc_peering_connection(
+                    VpcPeeringConnectionId=vpc_pcx_usw1.id
+                )
 
         assert cm.value.response["Error"]["Code"] == "OperationNotPermitted"
         exp_msg = f"Incorrect region (us-west-1) specified for this request. VPC peering connection {vpc_pcx_usw1.id} must be accepted in region ap-northeast-1"
@@ -580,7 +611,9 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region(account1, acco
         with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
             ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
             with pytest.raises(ClientError) as cm:
-                ec2_usw1.accept_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
+                ec2_usw1.accept_vpc_peering_connection(
+                    VpcPeeringConnectionId=vpc_pcx_usw1.id
+                )
 
         assert cm.value.response["Error"]["Code"] == "OperationNotPermitted"
         exp_msg = f"User ({account1}) cannot accept peering {vpc_pcx_usw1.id}"
@@ -608,7 +641,10 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region(account1, acco
     # create peering
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
         vpc_pcx_usw1 = ec2_usw1.create_vpc_peering_connection(
-            VpcId=vpc_usw1.id, PeerVpcId=vpc_apn1.id, PeerRegion="ap-northeast-1", PeerOwnerId=account2
+            VpcId=vpc_usw1.id,
+            PeerVpcId=vpc_apn1.id,
+            PeerRegion="ap-northeast-1",
+            PeerOwnerId=account2,
         )
 
     # reject wrong peering from us-west-1 which will raise error.
@@ -617,7 +653,9 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region(account1, acco
         with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
             ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
             with pytest.raises(ClientError) as cm:
-                ec2_usw1.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
+                ec2_usw1.reject_vpc_peering_connection(
+                    VpcPeeringConnectionId=vpc_pcx_usw1.id
+                )
 
         assert cm.value.response["Error"]["Code"] == "OperationNotPermitted"
         exp_msg = f"Incorrect region (us-west-1) specified for this request. VPC peering connection {vpc_pcx_usw1.id} must be accepted or rejected in region ap-northeast-1"
@@ -629,7 +667,9 @@ def test_vpc_peering_connections_cross_region_reject_wrong_region(account1, acco
         with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
             ec2_usw1 = boto3.client("ec2", region_name="us-west-1")
             with pytest.raises(ClientError) as cm:
-                ec2_usw1.reject_vpc_peering_connection(VpcPeeringConnectionId=vpc_pcx_usw1.id)
+                ec2_usw1.reject_vpc_peering_connection(
+                    VpcPeeringConnectionId=vpc_pcx_usw1.id
+                )
 
         assert cm.value.response["Error"]["Code"] == "OperationNotPermitted"
         exp_msg = f"User ({account1}) cannot reject peering {vpc_pcx_usw1.id}"
