@@ -61,37 +61,53 @@ LIST_OF_RULES_URL = "managed-rules-by-aws-config.html"
 def extract_param_info(page_content):
     """Return dict containing parameter info extracted from page.
 
-    The info for each parameter is contained within a "dl" tag, with "dt"
-    tags providing the details.
+    The info for all (not each) parameters is contained within a "dl" tag,
+    with "dt" tags providing the details.  A "dt" tag without a colon
+    provides the parameter name and indicates that the "dt" tags that follow
+    provide details for that parameter up until the next "dt" tag without a
+    colon or the end of the "dl" tag.
     """
-    param_info = []
     dl_tags = page_content.xpath('//div[@class="variablelist"]//dl')
-    for dl_tag in dl_tags:
-        dt_tags = dl_tag.xpath(".//dt")
+    if len(dl_tags) > 1:
+        print(
+            f"ERROR: Found {len(dl_tags)} 'dl' tags for parameters; "
+            "only expecting one.  Ignoring extra 'dl' tag.",
+            file=sys.stderr
+        )
 
-        params = {}
-        for dt_tag in dt_tags:
-            text = dt_tag.text_content()
-            if not text or text == "None":
-                continue
+    dt_tags = dl_tags[0].xpath(".//dt")
 
-            # This is the parameter name and not a key, value pair.
-            if ": " not in text:
-                if "Optional" in text:
-                    text = text.split()[0]
-                    params["Optional"] = True
-                else:
-                    params["Optional"] = False
-                params["Name"] = text
-                continue
+    all_params = []
+    param_details = {}
+    for dt_tag in dt_tags:
+        text = dt_tag.text_content()
+        if not text or text == "None":
+            continue
 
-            key, value = text.split(": ")
-            params[key] = value
+        # If a colon is NOT present, this is the parameter name and not
+        # a key, value pair.
+        if ": " not in text:
+            # If parameter info has been collected, save it and start a
+            # collection for this new parameter.
+            if param_details:
+                all_params.append(param_details)
+                param_details = {}
+            if "Optional" in text:
+                text = text.split()[0]
+                param_details["Optional"] = True
+            else:
+                param_details["Optional"] = False
+            param_details["Name"] = text
+            continue
 
-        if params:
-            param_info.append(params)
+        key, value = text.split(": ")
+        param_details[key] = value
 
-    return param_info
+    # Collect the last parameter found.
+    if param_details:
+        all_params.append(param_details)
+
+    return all_params
 
 
 def extract_managed_rule_info(page_content):
