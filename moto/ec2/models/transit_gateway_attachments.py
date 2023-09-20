@@ -342,5 +342,5 @@ class TransitGatewayAttachmentBackend:
             transit_gateway_attachment_id
         ]
         transit_gateway_attachment.state = "deleted"
-        transit_gateway_attachment.status.deleted()  # type: ignore[attr-defined]
+        transit_gateway_attachment.status.deleted(deleter_id=self.account_id)  # type: ignore[attr-defined]
         return transit_gateway_attachment
