@@ -205,6 +205,10 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
     def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
+    @property
+    def region(self) -> str:
+        return self.ec2_backend.region_name
+
     @staticmethod
     def cloudformation_name_type() -> str:
         return ""

@@ -95,7 +95,7 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
             "region": region_name,
             "transitGatewayId": transit_gateway_id,
         }
-        self.status = PeeringConnectionStatus()
+        self.status = PeeringConnectionStatus(accepter_id=peer_account_id)
 
 
 class TransitGatewayAttachmentBackend:
@@ -342,5 +342,5 @@ class TransitGatewayAttachmentBackend:
             transit_gateway_attachment_id
         ]
         transit_gateway_attachment.state = "deleted"
-        transit_gateway_attachment.status.deleted()  # type: ignore[attr-defined]
+        transit_gateway_attachment.status.deleted(deleter_id=self.account_id)  # type: ignore[attr-defined]
         return transit_gateway_attachment

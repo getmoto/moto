@@ -7,6 +7,7 @@ from ..exceptions import (
     InvalidVPCPeeringConnectionStateTransitionError,
     OperationNotPermitted2,
     OperationNotPermitted3,
+    OperationNotPermitted5,
 )
 from .core import TaggedEC2Resource
 from .vpcs import VPC
@@ -14,21 +15,24 @@ from ..utils import random_vpc_peering_connection_id
 
 
 class PeeringConnectionStatus:
-    def __init__(self, code: str = "initiating-request", message: str = ""):
+    def __init__(
+        self, accepter_id: str, code: str = "initiating-request", message: str = ""
+    ):
+        self.accepter_id = accepter_id
         self.code = code
         self.message = message
 
-    def deleted(self) -> None:
+    def deleted(self, deleter_id: str) -> None:
         self.code = "deleted"
-        self.message = "Deleted by {deleter ID}"
+        self.message = f"Deleted by {deleter_id}"
 
     def initiating(self) -> None:
         self.code = "initiating-request"
-        self.message = "Initiating Request to {accepter ID}"
+        self.message = f"Initiating Request to {self.accepter_id}"
 
     def pending(self) -> None:
         self.code = "pending-acceptance"
-        self.message = "Pending Acceptance by {accepter ID}"
+        self.message = f"Pending Acceptance by {self.accepter_id}"
 
     def accept(self) -> None:
         self.code = "active"
@@ -61,7 +65,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         self.requester_options = self.DEFAULT_OPTIONS.copy()
         self.accepter_options = self.DEFAULT_OPTIONS.copy()
         self.add_tags(tags or {})
-        self._status = PeeringConnectionStatus()
+        self._status = PeeringConnectionStatus(accepter_id=peer_vpc.owner_id)
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -79,7 +83,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "VPCPeeringConnection":
         from ..models import ec2_backends
 
@@ -120,11 +124,15 @@ class VPCPeeringConnectionBackend:
         vpc_pcx = VPCPeeringConnection(self, vpc_pcx_id, vpc, peer_vpc, tags)
         vpc_pcx._status.pending()
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
-        # insert cross region peering info
-        if vpc.ec2_backend.region_name != peer_vpc.ec2_backend.region_name:
-            for vpc_pcx_cx in peer_vpc.ec2_backend.get_vpc_pcx_refs():
-                if vpc_pcx_cx.region_name == peer_vpc.ec2_backend.region_name:
-                    vpc_pcx_cx.vpc_pcxs[vpc_pcx_id] = vpc_pcx
+        # insert cross-account/cross-region peering info
+        if vpc.owner_id != peer_vpc.owner_id or vpc.region != peer_vpc.region:
+            for backend in peer_vpc.ec2_backend.get_vpc_pcx_refs():
+                if (
+                    backend.account_id == peer_vpc.owner_id
+                    and backend.region_name == peer_vpc.region
+                ):
+                    backend.vpc_pcxs[vpc_pcx_id] = vpc_pcx
+
         return vpc_pcx
 
     def describe_vpc_peering_connections(
@@ -142,16 +150,24 @@ class VPCPeeringConnectionBackend:
 
     def delete_vpc_peering_connection(self, vpc_pcx_id: str) -> VPCPeeringConnection:
         deleted = self.get_vpc_peering_connection(vpc_pcx_id)
-        deleted._status.deleted()
+        deleted._status.deleted(deleter_id=self.account_id)  # type: ignore[attr-defined]
         return deleted
 
     def accept_vpc_peering_connection(self, vpc_pcx_id: str) -> VPCPeeringConnection:
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
-        # if cross region need accepter from another region
-        pcx_req_region = vpc_pcx.vpc.ec2_backend.region_name
-        pcx_acp_region = vpc_pcx.peer_vpc.ec2_backend.region_name
+
+        # validate cross-account acceptance
+        req_account_id = vpc_pcx.vpc.owner_id
+        acp_account_id = vpc_pcx.peer_vpc.owner_id
+        if req_account_id != acp_account_id and self.account_id != acp_account_id:  # type: ignore[attr-defined]
+            raise OperationNotPermitted5(self.account_id, vpc_pcx_id, "accept")  # type: ignore[attr-defined]
+
+        # validate cross-region acceptance
+        pcx_req_region = vpc_pcx.vpc.region
+        pcx_acp_region = vpc_pcx.peer_vpc.region
         if pcx_req_region != pcx_acp_region and self.region_name == pcx_req_region:  # type: ignore[attr-defined]
             raise OperationNotPermitted2(self.region_name, vpc_pcx.id, pcx_acp_region)  # type: ignore[attr-defined]
+
         if vpc_pcx._status.code != "pending-acceptance":
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.accept()
@@ -159,11 +175,19 @@ class VPCPeeringConnectionBackend:
 
     def reject_vpc_peering_connection(self, vpc_pcx_id: str) -> VPCPeeringConnection:
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
-        # if cross region need accepter from another region
-        pcx_req_region = vpc_pcx.vpc.ec2_backend.region_name
-        pcx_acp_region = vpc_pcx.peer_vpc.ec2_backend.region_name
+
+        # validate cross-account rejection
+        req_account_id = vpc_pcx.vpc.owner_id
+        acp_account_id = vpc_pcx.peer_vpc.owner_id
+        if req_account_id != acp_account_id and self.account_id != acp_account_id:  # type: ignore[attr-defined]
+            raise OperationNotPermitted5(self.account_id, vpc_pcx_id, "reject")  # type: ignore[attr-defined]
+
+        # validate cross-region acceptance
+        pcx_req_region = vpc_pcx.vpc.region
+        pcx_acp_region = vpc_pcx.peer_vpc.region
         if pcx_req_region != pcx_acp_region and self.region_name == pcx_req_region:  # type: ignore[attr-defined]
             raise OperationNotPermitted3(self.region_name, vpc_pcx.id, pcx_acp_region)  # type: ignore[attr-defined]
+
         if vpc_pcx._status.code != "pending-acceptance":
             raise InvalidVPCPeeringConnectionStateTransitionError(vpc_pcx.id)
         vpc_pcx._status.reject()
