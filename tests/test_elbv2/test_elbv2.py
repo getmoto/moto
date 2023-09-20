@@ -1120,7 +1120,7 @@ def test_describe_ssl_policies():
     client = boto3.client("elbv2", region_name="eu-central-1")
 
     resp = client.describe_ssl_policies()
-    assert len(resp["SslPolicies"]) == 6
+    assert len(resp["SslPolicies"]) == 7
 
     resp = client.describe_ssl_policies(
         Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08"]
