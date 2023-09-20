@@ -146,7 +146,7 @@ SSL_POLICIES = [
             {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 9},
             {"name": "ECDHE-ECDSA-AES256-SHA384", "priority": 10},
             {"name": "ECDHE-RSA-AES256-SHA384", "priority": 11},
-            ],
+        ],
     },
 ]
 
