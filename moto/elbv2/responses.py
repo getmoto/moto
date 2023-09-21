@@ -131,6 +131,23 @@ SSL_POLICIES = [
             {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 4},
         ],
     },
+    {
+        "name": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
+        "ciphers": [
+            {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
+            {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
+            {"name": "TLS_CHACHA20_POLY1305_SHA256", "priority": 3},
+            {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 4},
+            {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 5},
+            {"name": "ECDHE-ECDSA-AES128-SHA256", "priority": 6},
+            {"name": "ECDHE-RSA-AES128-SHA256", "priority": 7},
+            {"name": "ECDHE-ECDSA-AES256-GCM-SHA384", "priority": 8},
+            {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 9},
+            {"name": "ECDHE-ECDSA-AES256-SHA384", "priority": 10},
+            {"name": "ECDHE-RSA-AES256-SHA384", "priority": 11},
+        ],
+    },
 ]
 
 
