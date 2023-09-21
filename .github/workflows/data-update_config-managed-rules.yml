@@ -1,0 +1,43 @@
+# Data Update:
+#   Config Managed Rules
+#
+# This Github Action:
+#   - executes the script that updates the Config Managed Rules that come bundled with Moto
+#   - creates a PR
+#
+name: "DataUpdate_ConfigManagedRules"
+
+on:
+  schedule:
+    - cron: '00 6 1 * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Update Config Managed Rules
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Pull Config managed rules from AWS
+      run: |
+        pip install boto3
+        scripts/pull_down_aws_managed_rules.py
+    - name: Create PR
+      uses: peter-evans/create-pull-request@v5
+      with:
+        branch: 'chore-update-config-managed-rules-${{ github.run_number }}'
+        title: 'chore: update Config Managed Rules'
+        commit-message: 'chore: update Config Managed Rules'
