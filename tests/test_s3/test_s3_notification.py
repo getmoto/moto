@@ -58,3 +58,26 @@ def test_put_bucket_notification_sns_sqs():
     # Get S3 notification from SNS message
     s3_message_body = json.loads(sns_message["Message"])
     assert s3_message_body["Records"][0]["eventName"] == "ObjectCreated:Put"
+
+
+@mock_s3
+def test_put_bucket_notification_sns_error():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="bucket")
+
+    # Set S3 to send ObjectCreated to SNS
+    s3_client.put_bucket_notification_configuration(
+        Bucket="bucket",
+        NotificationConfiguration={
+            "TopicConfigurations": [
+                {
+                    "Id": "SomeID",
+                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:notexistingtopic",
+                    "Events": ["s3:ObjectCreated:*"],
+                }
+            ]
+        },
+    )
+
+    # This should not throw an exception
+    s3_client.put_object(Bucket="bucket", Key="myfile", Body=b"asdf1324")
