@@ -5,7 +5,7 @@ class TransitGateways(EC2BaseResponse):
     def create_transit_gateway(self) -> str:
         description = self._get_param("Description") or None
         options = self._get_multi_param_dict("Options")
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         if tags:
             tags = tags[0].get("Tag")
 

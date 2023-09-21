@@ -9,7 +9,7 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         if not gateway_lbs and not network_lbs:
             raise NoLoadBalancersProvided
 
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         if tags:
             tags = tags[0].get("Tag")
         acceptance_required = (

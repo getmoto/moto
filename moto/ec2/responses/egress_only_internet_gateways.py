@@ -5,7 +5,7 @@ from moto.ec2.utils import add_tag_specification
 class EgressOnlyInternetGateway(EC2BaseResponse):
     def create_egress_only_internet_gateway(self) -> str:
         vpc_id = self._get_param("VpcId")
-        tag_param = self._get_multi_param("TagSpecification")
+        tag_param = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         tags = add_tag_specification(tag_param)
 
         egress_only_igw = self.ec2_backend.create_egress_only_internet_gateway(

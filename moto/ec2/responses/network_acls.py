@@ -4,7 +4,7 @@ from ._base_response import EC2BaseResponse
 class NetworkACLs(EC2BaseResponse):
     def create_network_acl(self) -> str:
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         if tags:
             tags = tags[0].get("Tag")
         network_acl = self.ec2_backend.create_network_acl(vpc_id, tags=tags)

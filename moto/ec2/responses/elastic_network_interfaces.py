@@ -14,7 +14,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         groups = self._get_multi_param("SecurityGroupId")
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_multi_param("TagSpecification", skip_result_conversion=True))
 
         self.error_on_dryrun()
 

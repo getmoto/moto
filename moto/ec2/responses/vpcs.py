@@ -19,7 +19,7 @@ class VPCs(EC2BaseResponse):
 
     def create_vpc(self) -> str:
         cidr_block = self._get_param("CidrBlock")
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
         amazon_provided_ipv6_cidr_block = self._get_param(
             "AmazonProvidedIpv6CidrBlock"
@@ -201,7 +201,7 @@ class VPCs(EC2BaseResponse):
         private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
         security_group_ids = self._get_multi_param("SecurityGroupId")
 
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_multi_param("TagSpecification", skip_result_conversion=True))
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
