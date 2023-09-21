@@ -1,5 +1,4 @@
 import io
-import os
 import re
 from typing import Any, Dict, List, Iterator, Union, Tuple, Optional, Type
 
@@ -1075,19 +1074,11 @@ class S3Response(BaseResponse):
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
-        # POST to bucket-url should create file from form
-        form = request.form
+        key = self.querystring["key"][0]
+        f = self.body
 
-        key = form["key"]
-        if "file" in form:
-            f = form["file"]
-        else:
-            fobj = request.files["file"]
-            f = fobj.stream.read()
-            key = key.replace("${filename}", os.path.basename(fobj.filename))
-
-        if "success_action_redirect" in form:
-            redirect = form["success_action_redirect"]
+        if "success_action_redirect" in self.querystring:
+            redirect = self.querystring["success_action_redirect"][0]
             parts = urlparse(redirect)
             queryargs: Dict[str, Any] = parse_qs(parts.query)
             queryargs["key"] = key
@@ -1105,21 +1096,21 @@ class S3Response(BaseResponse):
 
             response_headers["Location"] = fixed_redirect
 
-        if "success_action_status" in form:
-            status_code = form["success_action_status"]
-        elif "success_action_redirect" in form:
+        if "success_action_status" in self.querystring:
+            status_code = self.querystring["success_action_status"][0]
+        elif "success_action_redirect" in self.querystring:
             status_code = 303
         else:
             status_code = 204
 
         new_key = self.backend.put_object(bucket_name, key, f)
 
-        if form.get("acl"):
-            acl = get_canned_acl(form.get("acl"))
+        if self.querystring.get("acl"):
+            acl = get_canned_acl(self.querystring["acl"][0])  # type: ignore
             new_key.set_acl(acl)
 
         # Metadata
-        metadata = metadata_from_headers(form)
+        metadata = metadata_from_headers(self.form_data)
         new_key.set_metadata(metadata)
 
         return status_code, response_headers, ""
@@ -1315,28 +1306,7 @@ class S3Response(BaseResponse):
             if self._invalid_headers(request.url, dict(request.headers)):
                 return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
 
-        if hasattr(request, "body"):
-            # Boto
-            body = request.body
-            if hasattr(body, "read"):
-                body = body.read()
-        else:
-            # Flask server
-            body = request.data
-            if not body:
-                # when the data is being passed as a file
-                if request.files:
-                    for _, value in request.files.items():
-                        body = value.stream.read()
-                elif hasattr(request, "form"):
-                    # Body comes through as part of the form, if no content-type is set on the PUT-request
-                    # form = ImmutableMultiDict([('some data 123 321', '')])
-                    form = request.form
-                    for k, _ in form.items():
-                        body = k
-
-        if body is None:
-            body = b""
+        body = self.body or b""
 
         if (
             request.headers.get("x-amz-content-sha256", None)
