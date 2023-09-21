@@ -45,7 +45,9 @@ class Fleets(EC2BaseResponse):
         valid_from = self._get_param("ValidFrom")
         valid_until = self._get_param("ValidUntil")
 
-        tag_specifications = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        tag_specifications = self._get_multi_param(
+            "TagSpecification", skip_result_conversion=True
+        )
 
         request = self.ec2_backend.create_fleet(
             on_demand_options=on_demand_options,

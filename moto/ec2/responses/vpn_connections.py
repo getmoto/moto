@@ -10,7 +10,9 @@ class VPNConnections(EC2BaseResponse):
         vgw_id = self._get_param("VpnGatewayId")
         tgw_id = self._get_param("TransitGatewayId")
         static_routes = self._get_param("StaticRoutesOnly")
-        tags = add_tag_specification(self._get_multi_param("TagSpecification", skip_result_conversion=True))
+        tags = add_tag_specification(
+            self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        )
         vpn_connection = self.ec2_backend.create_vpn_connection(
             vpn_conn_type,
             cgw_id,

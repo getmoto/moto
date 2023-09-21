@@ -7,7 +7,9 @@ class AmisResponse(EC2BaseResponse):
         name = self.querystring.get("Name")[0]  # type: ignore[index]
         description = self._get_param("Description", if_none="")
         instance_id = self._get_param("InstanceId")
-        tag_specifications = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        tag_specifications = self._get_multi_param(
+            "TagSpecification", skip_result_conversion=True
+        )
 
         self.error_on_dryrun()
 

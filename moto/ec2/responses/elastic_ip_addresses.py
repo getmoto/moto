@@ -6,7 +6,9 @@ class ElasticIPAddresses(EC2BaseResponse):
     def allocate_address(self) -> str:
         domain = self._get_param("Domain", if_none=None)
         reallocate_address = self._get_param("Address", if_none=None)
-        tag_param = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        tag_param = self._get_multi_param(
+            "TagSpecification", skip_result_conversion=True
+        )
         tags = add_tag_specification(tag_param)
 
         self.error_on_dryrun()
