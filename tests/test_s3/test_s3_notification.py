@@ -42,6 +42,26 @@ def test_put_bucket_notification_sns_sqs():
         },
     )
 
+    # We should receive a test message
+    messages = sqs_client.receive_message(
+        QueueUrl=sqs_queue["QueueUrl"], MaxNumberOfMessages=10
+    )
+    assert len(messages["Messages"]) == 1
+
+    sqs_client.delete_message(
+        QueueUrl=sqs_queue["QueueUrl"],
+        ReceiptHandle=messages["Messages"][0]["ReceiptHandle"],
+    )
+
+    message_body = messages["Messages"][0]["Body"]
+    sns_message = json.loads(message_body)
+    assert sns_message["Type"] == "Notification"
+
+    # Get S3 notification from SNS message
+    s3_message_body = json.loads(sns_message["Message"])
+    assert s3_message_body["Event"] == "s3:TestEvent"
+
+    # Upload file to trigger notification
     s3_client.put_object(Bucket="bucket", Key="myfile", Body=b"asdf1324")
 
     # Verify queue not empty

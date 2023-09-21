@@ -137,3 +137,9 @@ def send_test_event(account_id: str, bucket: Any) -> None:
         queue_name = arn.split(":")[-1]
         message_body = _get_test_event(bucket.name)
         _send_sqs_message(account_id, message_body, queue_name, region_name)
+
+    arns = [n.arn for n in bucket.notification_configuration.topic]
+    for arn in set(arns):
+        region_name = _get_region_from_arn(arn)
+        message_body = _get_test_event(bucket.name)
+        _send_sns_message(account_id, message_body, arn, region_name)
