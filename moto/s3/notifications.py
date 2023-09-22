@@ -60,6 +60,14 @@ def send_event(account_id: str, event_name: str, bucket: Any, key: Any) -> None:
 
             _send_sqs_message(account_id, event_body, queue_name, region_name)
 
+    for notification in bucket.notification_configuration.topic:
+        if notification.matches(event_name, key.name):
+            event_body = _get_s3_event(event_name, bucket, key, notification.id)
+            region_name = _get_region_from_arn(notification.arn)
+            topic_arn = notification.arn
+
+            _send_sns_message(account_id, event_body, topic_arn, region_name)
+
 
 def _send_sqs_message(
     account_id: str, event_body: Any, queue_name: str, region_name: str
@@ -76,6 +84,22 @@ def _send_sqs_message(
         # Even if this part fails, the calling function should pass, so catch all errors
         # Possible exceptions that could be thrown:
         # - Queue does not exist
+        pass
+
+
+def _send_sns_message(
+    account_id: str, event_body: Any, topic_arn: str, region_name: str
+) -> None:
+    try:
+        from moto.sns.models import sns_backends
+
+        sns_backend = sns_backends[account_id][region_name]
+        sns_backend.publish(arn=topic_arn, message=json.dumps(event_body))
+    except:  # noqa
+        # This is an async action in AWS.
+        # Even if this part fails, the calling function should pass, so catch all errors
+        # Possible exceptions that could be thrown:
+        # - Topic does not exist
         pass
 
 
@@ -113,3 +137,9 @@ def send_test_event(account_id: str, bucket: Any) -> None:
         queue_name = arn.split(":")[-1]
         message_body = _get_test_event(bucket.name)
         _send_sqs_message(account_id, message_body, queue_name, region_name)
+
+    arns = [n.arn for n in bucket.notification_configuration.topic]
+    for arn in set(arns):
+        region_name = _get_region_from_arn(arn)
+        message_body = _get_test_event(bucket.name)
+        _send_sns_message(account_id, message_body, arn, region_name)

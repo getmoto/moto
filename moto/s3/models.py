@@ -2202,6 +2202,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         The configuration can be persisted, but at the moment we only send notifications to the following targets:
 
          - AWSLambda
+         - SNS
          - SQS
 
         For the following events:
