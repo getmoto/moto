@@ -35,6 +35,7 @@ servicediscovery
 - [X] delete_service
 - [ ] deregister_instance
 - [ ] discover_instances
+- [ ] discover_instances_revision
 - [ ] get_instance
 - [ ] get_instances_health_status
 - [X] get_namespace

@@ -89,9 +89,11 @@ medialive
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer
 - [X] start_channel
+- [ ] start_input_device
 - [ ] start_input_device_maintenance_window
 - [ ] start_multiplex
 - [X] stop_channel
+- [ ] stop_input_device
 - [ ] stop_multiplex
 - [ ] transfer_input_device
 - [ ] update_account_configuration

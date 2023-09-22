@@ -431,6 +431,7 @@ ec2
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
+- [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
@@ -457,6 +458,7 @@ ec2
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
+- [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
@@ -483,6 +485,7 @@ ec2
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
+- [ ] get_image_block_public_access_state
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
