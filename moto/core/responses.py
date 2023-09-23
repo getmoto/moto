@@ -282,9 +282,33 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             # definition for back-compatibility
             self.body = request.data
 
-            querystring = OrderedDict()
+        if hasattr(request, "form"):
+            self.form_data = request.form
             for key, value in request.form.items():
                 querystring[key] = [value]
+        else:
+            self.form_data = {}
+
+        if hasattr(request, "form") and "key" in request.form:
+            if "file" in request.form:
+                self.body = request.form["file"]
+            else:
+                # Body comes through as part of the form, if no content-type is set on the PUT-request
+                # form = ImmutableMultiDict([('some data 123 321', '')])
+                form = request.form
+                for k, _ in form.items():
+                    self.body = k
+        if hasattr(request, "files") and request.files:
+            for _, value in request.files.items():
+                self.body = value.stream
+            if querystring.get("key"):
+                filename = os.path.basename(request.files["file"].filename)
+                querystring["key"] = [
+                    querystring["key"][0].replace("${filename}", filename)
+                ]
+
+        if hasattr(self.body, "read"):
+            self.body = self.body.read()
 
         raw_body = self.body
 
