@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.4
 -----
-Docker Digest for 4.2.4: <autopopulateddigest>
+Docker Digest for 4.2.4: _sha256:4cdda5b0245a28ae2ebf5f1d5d93425226fe00ace65819a9fa02c8aa77a7e0b6_
 
     New Methods:
         * OpenSearch:
