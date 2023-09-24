@@ -4356,6 +4356,10 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "mac2-m2pro.metal",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "us-east-2b"
  },
@@ -6957,6 +6961,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "mac2-m2pro.metal",
   "Location": "us-east-2c"
  },
  {

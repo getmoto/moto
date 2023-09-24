@@ -4356,6 +4356,10 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "mac2-m2pro.metal",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "use2-az2"
  },
@@ -6957,6 +6961,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "use2-az3"
+ },
+ {
+  "InstanceType": "mac2-m2pro.metal",
   "Location": "use2-az3"
  },
  {

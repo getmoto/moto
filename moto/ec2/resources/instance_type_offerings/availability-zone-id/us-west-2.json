@@ -1800,6 +1800,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "mac2-m2pro.metal",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "usw2-az1"
  },
@@ -7477,6 +7481,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "mac2-m2pro.metal",
   "Location": "usw2-az3"
  },
  {
