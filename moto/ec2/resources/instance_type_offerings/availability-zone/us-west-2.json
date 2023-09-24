@@ -1800,6 +1800,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "mac2-m2pro.metal",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "us-west-2a"
  },
@@ -7477,6 +7481,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "mac2-m2pro.metal",
   "Location": "us-west-2c"
  },
  {
