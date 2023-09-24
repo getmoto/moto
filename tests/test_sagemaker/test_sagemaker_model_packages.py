@@ -15,11 +15,15 @@ def test_list_model_packages():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
         ModelPackageName="test-model-package",
-        ModelPackageDescription="test-model-package-description",
+        ModelPackageDescription="test-model-package-description-v1",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageDescription="test-model-package-description-v2",
     )
     client.create_model_package(
         ModelPackageName="test-model-package-2",
-        ModelPackageDescription="test-model-package-description-2",
+        ModelPackageDescription="test-model-package-description-v1-2",
     )
     resp = client.list_model_packages()
 
@@ -29,7 +33,7 @@ def test_list_model_packages():
     assert "ModelPackageDescription" in resp["ModelPackageSummaryList"][0]
     assert (
         resp["ModelPackageSummaryList"][0]["ModelPackageDescription"]
-        == "test-model-package-description"
+        == "test-model-package-description-v2"
     )
     assert (
         resp["ModelPackageSummaryList"][1]["ModelPackageName"] == "test-model-package-2"
@@ -37,7 +41,7 @@ def test_list_model_packages():
     assert "ModelPackageDescription" in resp["ModelPackageSummaryList"][1]
     assert (
         resp["ModelPackageSummaryList"][1]["ModelPackageDescription"]
-        == "test-model-package-description-2"
+        == "test-model-package-description-v1-2"
     )
 
 
@@ -128,13 +132,22 @@ def test_list_model_packages_model_package_group_name():
         ModelPackageGroupName="test-model-package-group",
     )
     client.create_model_package(
-        ModelPackageName="test-model-package-2",
+        ModelPackageName="test-model-package",
         ModelPackageDescription="test-model-package-description-2",
         ModelPackageGroupName="test-model-package-group",
     )
+    client.create_model_package(
+        ModelPackageName="test-model-package-2",
+        ModelPackageDescription="test-model-package-description-3",
+        ModelPackageGroupName="test-model-package-group",
+    )
+    client.create_model_package(
+        ModelPackageName="test-model-package-without-group",
+        ModelPackageDescription="test-model-package-description-without-group",
+    )
     resp = client.list_model_packages(ModelPackageGroupName="test-model-package-group")
 
-    assert len(resp["ModelPackageSummaryList"]) == 2
+    assert len(resp["ModelPackageSummaryList"]) == 3
 
 
 @mock_sagemaker
@@ -222,16 +235,24 @@ def test_create_model_package():
 
 
 @mock_sagemaker
-def test_create_model_package_group():
-    client = boto3.client("sagemaker", region_name="us-east-2")
-    resp = client.create_model_package_group(
+def test_create_model_package_in_model_package_group():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
+    resp_version_1 = client.create_model_package(
+        ModelPackageName="test-model-package",
         ModelPackageGroupName="test-model-package-group",
-        ModelPackageGroupDescription="test-model-package-group-description",
-        Tags=[
-            {"Key": "test-key", "Value": "test-value"},
-        ],
+        ModelPackageDescription="test-model-package-description",
+    )
+    resp_version_2 = client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageGroupName="test-model-package-group",
+        ModelPackageDescription="test-model-package-description",
     )
     assert (
-        resp["ModelPackageGroupArn"]
-        == "arn:aws:sagemaker:us-east-2:123456789012:model-package-group/test-model-package-group"
+        resp_version_1["ModelPackageArn"]
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1"
+    )
+    assert (
+        resp_version_2["ModelPackageArn"]
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/2"
     )
