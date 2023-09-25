@@ -88,6 +88,11 @@ jobs:
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_servermode.yml
 
+  testproxy:
+    needs: [lint]
+    if: "!contains(github.event.pull_request.labels.*.name, 'java')"
+    uses: ./.github/workflows/tests_proxymode.yml
+
   release:
     name: Release
     runs-on: ubuntu-latest

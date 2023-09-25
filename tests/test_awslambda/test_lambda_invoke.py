@@ -16,6 +16,7 @@ from .utilities import (
     get_lambda_using_environment_port,
     get_lambda_using_network_mode,
     get_test_zip_largeresponse,
+    get_proxy_zip_file,
 )
 from ..markers import requires_docker
 
@@ -339,3 +340,39 @@ def test_invoke_function_large_response():
     # Absolutely fine when invoking async
     resp = conn.invoke(FunctionName=fxn["FunctionArn"], InvocationType="Event")
     assert "FunctionError" not in resp
+
+
+@mock_lambda
+def test_invoke_lambda_with_proxy():
+    if not settings.test_proxy_mode():
+        raise SkipTest("We only want to test this in ProxyMode")
+
+    conn = boto3.resource("ec2", _lambda_region)
+    vol = conn.create_volume(Size=99, AvailabilityZone=_lambda_region)
+    vol = conn.Volume(vol.id)
+
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_proxy_zip_file()},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    in_data = {"volume_id": vol.id}
+    result = conn.invoke(
+        FunctionName=function_name,
+        InvocationType="RequestResponse",
+        Payload=json.dumps(in_data),
+    )
+    assert result["StatusCode"] == 200
+    payload = result["Payload"].read().decode("utf-8")
+
+    expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
+    assert json.loads(payload) == expected_payload

@@ -6,8 +6,12 @@ from functools import lru_cache
 from typing import List, Optional
 
 
+def test_proxy_mode() -> bool:
+    return os.environ.get("TEST_PROXY_MODE", "0").lower() == "true"
+
+
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
-TEST_DECORATOR_MODE = not TEST_SERVER_MODE
+TEST_DECORATOR_MODE = not TEST_SERVER_MODE and not test_proxy_mode()
 
 INITIAL_NO_AUTH_ACTION_COUNT = float(
     os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", float("inf"))
@@ -100,6 +104,10 @@ def moto_server_port() -> str:
     return os.environ.get("MOTO_PORT") or "5000"
 
 
+def moto_proxy_port() -> str:
+    return os.environ.get("MOTO_PROXY_PORT") or "5005"
+
+
 @lru_cache()
 def moto_server_host() -> str:
     if is_docker():
@@ -123,6 +131,12 @@ def moto_network_mode() -> Optional[str]:
 def test_server_mode_endpoint() -> str:
     return os.environ.get(
         "TEST_SERVER_MODE_ENDPOINT", f"http://localhost:{moto_server_port()}"
+    )
+
+
+def test_proxy_mode_endpoint() -> str:
+    return os.environ.get(
+        "TEST_PROXY_MODE_ENDPOINT", f"http://localhost:{moto_proxy_port()}"
     )
 
 

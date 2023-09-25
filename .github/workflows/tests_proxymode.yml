@@ -1,0 +1,57 @@
+name: Unit tests in Proxy Mode
+on: [workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Get pip cache dir
+      id: pip-cache
+      run: |
+        echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+    - name: pip cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pip-cache.outputs.dir }}
+        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
+    - name: Update pip
+      run: |
+        python -m pip install --upgrade pip
+    - name: Install project dependencies
+      run: |
+        pip install -r requirements-tests.txt
+        pip install .[all,server]
+    - name: Start MotoProxy
+      run: |
+        moto_proxy -h > moto_proxy.log
+        moto_proxy -H 0.0.0.0 -v > moto_proxy.log &
+    - name: Test ProxyMode
+      env:
+        TEST_PROXY_MODE: ${{ true }}
+      run: |
+        pytest -sv tests/test_acmpca tests/test_awslambda tests/test_apigateway tests/test_s3
+    - name: "Stop MotoProxy"
+      if: always()
+      run: |
+        pwd
+        ls -la
+        kill $(lsof -t -i:5005)
+    - name: Archive Proxy logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: motoproxy-${{ matrix.python-version }}
+        path: |
+          moto_proxy.log

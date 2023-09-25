@@ -7,7 +7,8 @@ import requests
 
 from botocore.exceptions import ClientError
 from botocore.handlers import disable_signing
-from moto import mock_s3
+from moto import mock_s3, settings
+from .test_s3 import add_proxy_details
 
 DEFAULT_REGION_NAME = "us-east-1"
 
@@ -116,8 +117,11 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
     presigned_url = boto3.client("s3").generate_presigned_url(
         "get_object", params, ExpiresIn=900
     )
+    kwargs = {}
+    if settings.test_proxy_mode():
+        add_proxy_details(kwargs)
     for i in range(1, 10):
-        response = requests.get(presigned_url)
+        response = requests.get(presigned_url, **kwargs)
         assert response.status_code == 200, f"Failed on req number {i}"
 
 
@@ -263,8 +267,10 @@ def test_object_acl_with_presigned_post():
     )
 
     with open(object_name, "rb") as fhandle:
-        files = {"file": (object_name, fhandle)}
-        requests.post(response["url"], data=response["fields"], files=files)
+        kwargs = {"files": {"file": (object_name, fhandle)}}
+        if settings.test_proxy_mode():
+            add_proxy_details(kwargs)
+        requests.post(response["url"], data=response["fields"], **kwargs)
 
     response = s3_client.get_object_acl(Bucket=bucket_name, Key=object_name)
 
