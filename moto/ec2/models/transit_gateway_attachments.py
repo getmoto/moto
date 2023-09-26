@@ -297,11 +297,11 @@ class TransitGatewayAttachmentBackend:
         ] = transit_gateway_peering_attachment
 
         # If the peer is not same as the current account or region, create attachment in peer backend
-        if self.account_id != peer_account_id or self.region_name != peer_region:
+        if self.account_id != peer_account_id or self.region_name != peer_region:  # type: ignore[attr-defined]
             for backend in self._get_peering_attachment_backend_refs():
                 if (
-                    backend.account_id == peer_account_id
-                    and backend.region_name == peer_region
+                    backend.account_id == peer_account_id  # type: ignore[attr-defined]
+                    and backend.region_name == peer_region  # type: ignore[attr-defined]
                 ):
                     backend.transit_gateway_attachments[
                         transit_gateway_peering_attachment.id
@@ -348,10 +348,10 @@ class TransitGatewayAttachmentBackend:
             transit_gateway_attachment_id
         ]
 
-        requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]
-        requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]
-        accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]
-        accepter_region_name = transit_gateway_attachment.accepter_tgw_info["region"]
+        requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]  # type: ignore[attr-defined]
+        requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]  # type: ignore[attr-defined]
+        accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]  # type: ignore[attr-defined]
+        accepter_region_name = transit_gateway_attachment.accepter_tgw_info["region"]  # type: ignore[attr-defined]
 
         if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
             raise InvalidParameterValueErrorPeeringAttachment(
@@ -372,15 +372,14 @@ class TransitGatewayAttachmentBackend:
     def reject_transit_gateway_peering_attachment(
         self, transit_gateway_attachment_id: str
     ) -> TransitGatewayAttachment:
-        # TODO: validate cross-account/cross-region acceptance
         transit_gateway_attachment = self.transit_gateway_attachments[
             transit_gateway_attachment_id
         ]
 
-        requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]
-        requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]
-        accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]
-        accepter_region_name = transit_gateway_attachment.requester_tgw_info["region"]
+        requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]  # type: ignore[attr-defined]
+        requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]  # type: ignore[attr-defined]
+        accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]  # type: ignore[attr-defined]
+        accepter_region_name = transit_gateway_attachment.requester_tgw_info["region"]  # type: ignore[attr-defined]
 
         if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
             raise InvalidParameterValueErrorPeeringAttachment(

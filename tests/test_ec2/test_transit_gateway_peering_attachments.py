@@ -220,35 +220,12 @@ def test_transit_gateway_peering_attachments_cross_region(account1, account2):
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account2}):
         response = ec2_eu.describe_transit_gateway_peering_attachments(
             TransitGatewayAttachmentIds=[attachment_id]
-        )
-        assert (
-            response["TransitGatewayPeeringAttachments"][0][
-                "TransitGatewayAttachmentId"
-            ]
-            == attachment_id
-        )
-        assert (
-            response["TransitGatewayPeeringAttachments"][0]["RequesterTgwInfo"][
-                "OwnerId"
-            ]
-            == account1
-        )
-        assert (
-            response["TransitGatewayPeeringAttachments"][0]["RequesterTgwInfo"][
-                "Region"
-            ]
-            == "us-west-1"
-        )
-        assert (
-            response["TransitGatewayPeeringAttachments"][0]["AccepterTgwInfo"][
-                "OwnerId"
-            ]
-            == account2
-        )
-        assert (
-            response["TransitGatewayPeeringAttachments"][0]["AccepterTgwInfo"]["Region"]
-            == "eu-central-1"
-        )
+        )["TransitGatewayPeeringAttachments"][0]
+        assert response["TransitGatewayAttachmentId"] == attachment_id
+        assert response["RequesterTgwInfo"]["OwnerId"] == account1
+        assert response["RequesterTgwInfo"]["Region"] == "us-west-1"
+        assert response["AccepterTgwInfo"]["OwnerId"] == account2
+        assert response["AccepterTgwInfo"]["Region"] == "eu-central-1"
 
     # ensure accepting in requester account/region raises
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account1}):
@@ -267,12 +244,13 @@ def test_transit_gateway_peering_attachments_cross_region(account1, account2):
         response = ec2_eu.accept_transit_gateway_peering_attachment(
             TransitGatewayAttachmentId=attachment_id
         )
-        assert response
+        assert response["TransitGatewayPeeringAttachment"]["State"] == "available"
 
         # ensure peering can be deleted by the accepter
-        ec2_eu.delete_transit_gateway_peering_attachment(
+        response = ec2_eu.delete_transit_gateway_peering_attachment(
             TransitGatewayAttachmentId=attachment_id
         )
+        assert response["TransitGatewayPeeringAttachment"]["State"] == "deleted"
 
 
 def create_peering_attachment(
