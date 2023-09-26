@@ -799,6 +799,36 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"EndpointArn": endpoint_arn})
 
+    def list_model_package_groups(self) -> str:
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        next_token = self._get_param("NextToken")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        (
+            model_package_group_summary_list,
+            next_token,
+        ) = self.sagemaker_backend.list_model_package_groups(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            max_results=max_results,
+            name_contains=name_contains,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        model_package_group_summary_list_response_object = [
+            x.gen_response_object() for x in model_package_group_summary_list
+        ]
+        return json.dumps(
+            dict(
+                ModelPackageGroupSummaryList=model_package_group_summary_list_response_object,
+                NextToken=next_token,
+            )
+        )
+
     def list_model_packages(self) -> str:
         creation_time_after = self._get_param("CreationTimeAfter")
         creation_time_before = self._get_param("CreationTimeBefore")
