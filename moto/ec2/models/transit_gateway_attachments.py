@@ -1,8 +1,11 @@
-from typing import Any, Dict, List, Optional
+from collections import defaultdict
+import weakref
+from typing import Any, Dict, List, Optional, Iterator
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import merge_multiple_dicts, filter_resources
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
+from ..exceptions import InvalidParameterValueErrorPeeringAttachment
 from ..utils import random_transit_gateway_attachment_id, describe_tag_filter
 
 
@@ -99,8 +102,20 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
 
 
 class TransitGatewayAttachmentBackend:
+    backend_refs = defaultdict(set)  # type: ignore
+
     def __init__(self) -> None:
         self.transit_gateway_attachments: Dict[str, TransitGatewayAttachment] = {}
+        self.backend_refs[self.__class__].add(weakref.ref(self))
+
+    @classmethod
+    def _get_peering_attachment_backend_refs(
+        cls,
+    ) -> Iterator["TransitGatewayAttachmentBackend"]:
+        for backend_ref in cls.backend_refs[cls]:
+            backend = backend_ref()
+            if backend is not None:
+                yield backend
 
     def create_transit_gateway_vpn_attachment(
         self,
@@ -276,11 +291,24 @@ class TransitGatewayAttachmentBackend:
             tags=tags,
             region_name=self.region_name,  # type: ignore[attr-defined]
         )
-        transit_gateway_peering_attachment.status.accept()
-        transit_gateway_peering_attachment.state = "available"
+
         self.transit_gateway_attachments[
             transit_gateway_peering_attachment.id
         ] = transit_gateway_peering_attachment
+
+        # If the peer is not same as the current account or region, create attachment in peer backend
+        if self.account_id != peer_account_id or self.region_name != peer_region:
+            for backend in self._get_peering_attachment_backend_refs():
+                if (
+                    backend.account_id == peer_account_id
+                    and backend.region_name == peer_region
+                ):
+                    backend.transit_gateway_attachments[
+                        transit_gateway_peering_attachment.id
+                    ] = transit_gateway_peering_attachment
+
+        transit_gateway_peering_attachment.status.pending()
+        transit_gateway_peering_attachment.state = "initiatingRequest"
         return transit_gateway_peering_attachment
 
     def describe_transit_gateway_peering_attachments(
@@ -319,6 +347,22 @@ class TransitGatewayAttachmentBackend:
         transit_gateway_attachment = self.transit_gateway_attachments[
             transit_gateway_attachment_id
         ]
+
+        requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]
+        requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]
+        accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]
+        accepter_region_name = transit_gateway_attachment.accepter_tgw_info["region"]
+
+        if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
+            raise InvalidParameterValueErrorPeeringAttachment(
+                "accept", transit_gateway_attachment_id
+            )
+
+        if requester_region_name != accepter_region_name and self.region_name != accepter_region_name:  # type: ignore[attr-defined]
+            raise InvalidParameterValueErrorPeeringAttachment(
+                "accept", transit_gateway_attachment_id
+            )
+
         transit_gateway_attachment.state = "available"
         # Bit dodgy - we just assume that we act on a TransitGatewayPeeringAttachment
         # We could just as easily have another sub-class of TransitGatewayAttachment on our hands, which does not have a status-attribute
@@ -328,9 +372,26 @@ class TransitGatewayAttachmentBackend:
     def reject_transit_gateway_peering_attachment(
         self, transit_gateway_attachment_id: str
     ) -> TransitGatewayAttachment:
+        # TODO: validate cross-account/cross-region acceptance
         transit_gateway_attachment = self.transit_gateway_attachments[
             transit_gateway_attachment_id
         ]
+
+        requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]
+        requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]
+        accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]
+        accepter_region_name = transit_gateway_attachment.requester_tgw_info["region"]
+
+        if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
+            raise InvalidParameterValueErrorPeeringAttachment(
+                "reject", transit_gateway_attachment_id
+            )
+
+        if requester_region_name != accepter_region_name and self.region_name != accepter_region_name:  # type: ignore[attr-defined]
+            raise InvalidParameterValueErrorPeeringAttachment(
+                "reject", transit_gateway_attachment_id
+            )
+
         transit_gateway_attachment.state = "rejected"
         transit_gateway_attachment.status.reject()  # type: ignore[attr-defined]
         return transit_gateway_attachment
