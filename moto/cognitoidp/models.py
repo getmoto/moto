@@ -833,7 +833,7 @@ class CognitoIdpUser(BaseModel):
         user_mfa_setting_list = []
         if self.software_token_mfa_enabled:
             user_mfa_setting_list.append("SOFTWARE_TOKEN_MFA")
-        elif self.sms_mfa_enabled:
+        if self.sms_mfa_enabled:
             user_mfa_setting_list.append("SMS_MFA")
         user_json = self._base_json()
         if extended:
@@ -1981,26 +1981,13 @@ class CognitoIdpBackend(BaseBackend):
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
-                user = self.admin_get_user(user_pool.id, username)
 
-                if software_token_mfa_settings and software_token_mfa_settings.get(
-                    "Enabled"
-                ):
-                    if user.token_verified:
-                        user.software_token_mfa_enabled = True
-                    else:
-                        raise InvalidParameterException(
-                            "User has not verified software token mfa"
-                        )
-
-                    if software_token_mfa_settings.get("PreferredMfa"):
-                        user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
-                elif sms_mfa_settings and sms_mfa_settings["Enabled"]:
-                    user.sms_mfa_enabled = True
-
-                    if sms_mfa_settings.get("PreferredMfa"):
-                        user.preferred_mfa_setting = "SMS_MFA"
-                return None
+                return self.admin_set_user_mfa_preference(
+                    user_pool.id,
+                    username,
+                    software_token_mfa_settings,
+                    sms_mfa_settings,
+                )
 
         raise NotAuthorizedError(access_token)
 
@@ -2013,21 +2000,33 @@ class CognitoIdpBackend(BaseBackend):
     ) -> None:
         user = self.admin_get_user(user_pool_id, username)
 
-        if software_token_mfa_settings and software_token_mfa_settings.get("Enabled"):
-            if user.token_verified:
-                user.software_token_mfa_enabled = True
+        if software_token_mfa_settings:
+            if software_token_mfa_settings.get("Enabled"):
+                if user.token_verified:
+                    user.software_token_mfa_enabled = True
+                else:
+                    raise InvalidParameterException(
+                        "User has not verified software token mfa"
+                    )
             else:
-                raise InvalidParameterException(
-                    "User has not verified software token mfa"
-                )
+                user.software_token_mfa_enabled = False
 
             if software_token_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SOFTWARE_TOKEN_MFA"
-        elif sms_mfa_settings and sms_mfa_settings.get("Enabled"):
-            user.sms_mfa_enabled = True
+            elif user.preferred_mfa_setting != "SMS_MFA":
+                user.preferred_mfa_setting = ""
+
+        if sms_mfa_settings:
+            if sms_mfa_settings.get("Enabled"):
+                user.sms_mfa_enabled = True
+            else:
+                user.sms_mfa_enabled = False
 
             if sms_mfa_settings.get("PreferredMfa"):
                 user.preferred_mfa_setting = "SMS_MFA"
+            elif user.preferred_mfa_setting != "SOFTWARE_TOKEN_MFA":
+                user.preferred_mfa_setting = ""
+
         return None
 
     def _validate_password(self, user_pool_id: str, password: str) -> None:

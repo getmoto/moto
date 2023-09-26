@@ -4235,6 +4235,8 @@ def test_setting_mfa():
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
         result = authentication_flow(conn, auth_flow)
+
+        # Set MFA method
         conn.associate_software_token(AccessToken=result["access_token"])
         conn.verify_software_token(
             AccessToken=result["access_token"], UserCode="123456"
@@ -4243,12 +4245,24 @@ def test_setting_mfa():
             AccessToken=result["access_token"],
             SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
         )
-        result = conn.admin_get_user(
+        user = conn.admin_get_user(
             UserPoolId=result["user_pool_id"], Username=result["username"]
         )
 
-        assert len(result["UserMFASettingList"]) == 1
-        assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
+        assert len(user["UserMFASettingList"]) == 1
+        assert user["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
+
+        # Unset MFA method
+        conn.set_user_mfa_preference(
+            AccessToken=result["access_token"],
+            SoftwareTokenMfaSettings={"Enabled": False, "PreferredMfa": False},
+        )
+        user = conn.admin_get_user(
+            UserPoolId=result["user_pool_id"], Username=result["username"]
+        )
+
+        assert len(user["UserMFASettingList"]) == 0
+        assert user["PreferredMfaSetting"] == ""
 
 
 @mock_cognitoidp
@@ -4269,7 +4283,7 @@ def test_setting_mfa_when_token_not_verified():
 
 
 @mock_cognitoidp
-def test_admin_setting_mfa():
+def test_admin_setting_single_mfa():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     user_pool_id = conn.create_user_pool(
@@ -4278,6 +4292,7 @@ def test_admin_setting_mfa():
     username = "test@example.com"
     conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
 
+    # Set MFA SMS method
     conn.admin_set_user_mfa_preference(
         Username=username,
         UserPoolId=user_pool_id,
@@ -4286,6 +4301,50 @@ def test_admin_setting_mfa():
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     assert len(result["UserMFASettingList"]) == 1
     assert result["PreferredMfaSetting"] == "SMS_MFA"
+
+    # Unset MFA SMS method
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": False, "PreferredMfa": False},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 0
+    assert result["PreferredMfaSetting"] == ""
+
+
+@mock_cognitoidp
+def test_admin_setting_mfa_totp_and_sms():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    access_token = result["access_token"]
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    conn.associate_software_token(AccessToken=access_token)
+    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+
+    # Set MFA TOTP and SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": False},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 2
+    assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
+
+    # Unset MFA TOTP and SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaSettings={"Enabled": False, "PreferredMfa": False},
+        SMSMfaSettings={"Enabled": False, "PreferredMfa": False},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 0
+    assert result["PreferredMfaSetting"] == ""
 
 
 @mock_cognitoidp
