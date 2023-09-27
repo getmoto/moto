@@ -11,6 +11,7 @@ from unittest import mock, SkipTest
 from uuid import UUID
 
 from moto import mock_ecs, mock_ec2, settings
+from moto.moto_api import state_manager
 from tests import EXAMPLE_AMI_ID
 
 
@@ -1843,6 +1844,73 @@ def test_run_task():
     assert task["startedBy"] == "moto"
     assert task["stoppedReason"] == ""
     assert task["tags"][0].get("value") == "tagValue0"
+
+
+@mock_ec2
+@mock_ecs
+def test_wait_tasks_stopped():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    state_manager.set_transition(
+        model_name="ecs::task",
+        transition={"progression": "immediate"},
+    )
+
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    test_cluster_name = "test_ecs_cluster"
+
+    client.create_cluster(clusterName=test_cluster_name)
+
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document,
+    )
+
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+    )
+    task_arn = response["tasks"][0]["taskArn"]
+
+    assert len(response["tasks"]) == 1
+    client.get_waiter("tasks_stopped").wait(
+        cluster="test_ecs_cluster",
+        tasks=[task_arn],
+    )
+
+    response = client.describe_tasks(cluster="test_ecs_cluster", tasks=[task_arn])
+    assert response["tasks"][0]["lastStatus"] == "STOPPED"
+
+    state_manager.unset_transition("ecs::task")
 
 
 @mock_ec2
