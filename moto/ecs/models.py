@@ -373,7 +373,6 @@ class Task(BaseObject, ManagedState):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
         self.container_instance_arn = container_instance_arn
-        self.last_status = self.status  # managed state
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
         self.overrides = overrides or {}
@@ -423,6 +422,10 @@ class Task(BaseObject, ManagedState):
             )
 
     @property
+    def last_status(self) -> str:
+        return self.status  # managed state
+
+    @property
     def task_arn(self) -> str:
         if self._backend.enable_long_arn_for_name(name="taskLongArnFormat"):
             return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.cluster_name}/{self.id}"
@@ -432,6 +435,7 @@ class Task(BaseObject, ManagedState):
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response_object["taskArn"] = self.task_arn
+        response_object["lastStatus"] = self.last_status
         return response_object
 
 
@@ -952,7 +956,7 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         state_manager.register_default_transition(
             model_name="ecs::task",
-            transition={"progression": "manual", "times": 3},
+            transition={"progression": "manual", "times": 1},
         )
 
     @staticmethod
@@ -1464,6 +1468,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     or task.task_arn in tasks
                     or any(task_id in task for task in tasks)
                 ):
+                    task.advance()
                     response.append(task)
         if "TAGS" in (include or []):
             return response
@@ -1545,7 +1550,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tasks[task].resource_requirements,  # type: ignore[arg-type]
                         removing=True,
                     )
-                tasks[task].last_status = "STOPPED"
+                tasks[task].status = "STOPPED"
                 tasks[task].desired_status = "STOPPED"
                 tasks[task].stopped_reason = reason
                 return tasks[task]

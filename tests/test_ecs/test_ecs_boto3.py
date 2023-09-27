@@ -1915,6 +1915,74 @@ def test_wait_tasks_stopped():
 
 @mock_ec2
 @mock_ecs
+def test_task_state_transitions():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    state_manager.set_transition(
+        model_name="ecs::task",
+        # transition={"progression": "immediate"},
+        transition={"progression": "manual", "times": 1},
+    )
+
+    client = boto3.client("ecs", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    test_cluster_name = "test_ecs_cluster"
+
+    client.create_cluster(clusterName=test_cluster_name)
+
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+
+    response = client.register_container_instance(
+        cluster=test_cluster_name,
+        instanceIdentityDocument=instance_id_document,
+    )
+
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+    )
+    task_arn = response["tasks"][0]["taskArn"]
+    assert len(response["tasks"]) == 1
+
+    task_status = response["tasks"][0]["lastStatus"]
+    assert task_status == "RUNNING"
+
+    for status in ("DEACTIVATING", "STOPPING", "DEPROVISIONING", "STOPPED"):
+        response = client.describe_tasks(cluster="test_ecs_cluster", tasks=[task_arn])
+        assert response["tasks"][0]["lastStatus"] == status
+
+    state_manager.unset_transition("ecs::task")
+
+
+@mock_ec2
+@mock_ecs
 def test_run_task_awsvpc_network():
     # Setup
     client = boto3.client("ecs", region_name="us-east-1")
