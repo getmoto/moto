@@ -1921,7 +1921,6 @@ def test_task_state_transitions():
 
     state_manager.set_transition(
         model_name="ecs::task",
-        # transition={"progression": "immediate"},
         transition={"progression": "manual", "times": 1},
     )
 
