@@ -741,6 +741,14 @@ class GenericInvalidParameterValueError(EC2ClientError):
         )
 
 
+class InvalidParameter(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidParameter",
+            message,
+        )
+
+
 class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
     def __init__(self, association_id: str):
         super().__init__(

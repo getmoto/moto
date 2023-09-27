@@ -468,6 +468,56 @@ def test_retrieve_resource_with_multiple_tags():
     assert blue_instances == [blue]
 
 
+@mock_ec2
+def test_ec2_validate_subnet_tags():
+    client = boto3.client("ec2")
+
+    # create vpc
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+
+    with pytest.raises(ClientError) as ex:
+        client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.0.1/24",
+            TagSpecifications=[{"Tags": [{"Key": "TEST_TAG", "Value": "TEST_VALUE"}]}],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Tag specification resource type must have a value"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.0.1/24",
+            TagSpecifications=[{"ResourceType": "subnet"}],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Tag specification must have at least one tag"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_subnet(
+            VpcId=vpc_id,
+            CidrBlock="10.0.0.1/24",
+            TagSpecifications=[
+                {
+                    "ResourceType": "snapshot",
+                    "Tags": [{"Key": "TEST_TAG", "Value": "TEST_VALUE"}],
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "'snapshot' is not a valid taggable resource type for this operation."
+    )
+
+
 def get_filter(tag_val):
     return [
         {"Name": "tag-key", "Values": ["application"]},

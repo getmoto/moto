@@ -13,6 +13,7 @@ from ..exceptions import (
     InvalidAvailabilityZoneError,
     InvalidCIDRBlockParameterError,
     InvalidParameterValueError,
+    InvalidParameter,
     InvalidSubnetConflictError,
     InvalidSubnetIdError,
     InvalidSubnetRangeError,
@@ -310,6 +311,19 @@ class SubnetBackend:
             if subnet.default_for_az
         ][0]
 
+    def validate_tags(self, tags: List[dict[str, Any]]) -> None:
+        tags_dict = (
+            tags[0] if isinstance(tags, list) else tags
+        )  # awscli allows for a json string to be passed in
+        if "ResourceType" not in tags_dict:
+            raise InvalidParameter("Tag specification resource type must have a value")
+        if tags_dict["ResourceType"] != "subnet":
+            raise InvalidParameter(
+                f"'{tags_dict['ResourceType']}' is not a valid taggable resource type for this operation."
+            )
+        if "Tags" not in tags_dict:
+            raise InvalidParameter("Tag specification must have at least one tag")
+
     def create_subnet(
         self,
         vpc_id: str,
@@ -317,8 +331,13 @@ class SubnetBackend:
         ipv6_cidr_block: Optional[str] = None,
         availability_zone: Optional[str] = None,
         availability_zone_id: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[List[dict[str, Any]]] = None,
     ) -> Subnet:
+
+        if tags:
+            self.validate_tags(tags)
+            tags = tags[0].get("Tags")
+
         subnet_id = random_subnet_id()
         # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
         vpc = self.get_vpc(vpc_id)  # type: ignore[attr-defined]
