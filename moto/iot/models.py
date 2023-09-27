@@ -176,9 +176,11 @@ class FakeCertificate(BaseModel):
         region_name: str,
         ca_certificate_id: Optional[str] = None,
     ):
-        m = hashlib.sha256()
-        m.update(certificate_pem.encode("utf-8"))
-        self.certificate_id = m.hexdigest()
+        self.certificate_id = hashlib.sha256(
+            x509.load_pem_x509_certificate(
+                certificate_pem.encode("utf-8")
+            ).public_bytes(serialization.Encoding.DER)
+        ).hexdigest()
         self.arn = f"arn:aws:iot:{region_name}:{account_id}:cert/{self.certificate_id}"
         self.certificate_pem = certificate_pem
         self.status = status
