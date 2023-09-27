@@ -308,7 +308,7 @@ class TransitGatewayAttachmentBackend:
                     ] = transit_gateway_peering_attachment
 
         transit_gateway_peering_attachment.status.pending()
-        transit_gateway_peering_attachment.state = "initiatingRequest"
+        transit_gateway_peering_attachment.state = "pendingAcceptance"
         return transit_gateway_peering_attachment
 
     def describe_transit_gateway_peering_attachments(
@@ -353,6 +353,7 @@ class TransitGatewayAttachmentBackend:
         accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]  # type: ignore[attr-defined]
         accepter_region_name = transit_gateway_attachment.accepter_tgw_info["region"]  # type: ignore[attr-defined]
 
+        # For cross-account peering, must be accepted by the accepter
         if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
             raise InvalidParameterValueErrorPeeringAttachment(
                 "accept", transit_gateway_attachment_id

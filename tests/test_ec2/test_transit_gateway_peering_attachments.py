@@ -94,7 +94,7 @@ def test_describe_transit_gateway_peering_attachment_by_filters():
     )["TransitGatewayPeeringAttachments"]
     assert [a["TransitGatewayAttachmentId"] for a in find_3] == [attchmnt3]
 
-    filters = [{"Name": "state", "Values": ["available"]}]
+    filters = [{"Name": "state", "Values": ["pendingAcceptance"]}]
     find_all = retrieve_all_attachments(ec2, filters)
     all_ids = [a["TransitGatewayAttachmentId"] for a in find_all]
     assert attchmnt1 in all_ids
@@ -110,7 +110,7 @@ def test_describe_transit_gateway_peering_attachment_by_filters():
 
     find_available = ec2.describe_transit_gateway_peering_attachments(
         TransitGatewayAttachmentIds=[attchmnt1, attchmnt2],
-        Filters=[{"Name": "state", "Values": ["available"]}],
+        Filters=[{"Name": "state", "Values": ["pendingAcceptance"]}],
     )["TransitGatewayPeeringAttachments"]
     assert [a["TransitGatewayAttachmentId"] for a in find_available] == [attchmnt1]
 
@@ -124,7 +124,9 @@ def test_create_and_accept_transit_gateway_peering_attachment():
     gateway_id2 = ec2.create_transit_gateway(Description="my second gateway")[
         "TransitGateway"
     ]["TransitGatewayId"]
-    attchment_id = create_peering_attachment(ec2, gateway_id1, gateway_id2)
+    attchment_id = create_peering_attachment(
+        ec2, gateway_id1, gateway_id2, peer_region="us-west-1"
+    )
 
     ec2.accept_transit_gateway_peering_attachment(
         TransitGatewayAttachmentId=attchment_id
