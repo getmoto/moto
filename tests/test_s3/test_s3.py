@@ -24,6 +24,8 @@ from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
 
+from . import s3_aws_verified
+
 
 class MyModel:
     def __init__(self, name, value, metadata=None):
@@ -1669,13 +1671,11 @@ def test_delete_versioned_bucket():
     client.delete_bucket(Bucket="blah")
 
 
-@mock_s3
-def test_delete_versioned_bucket_returns_metadata():
-    # Verified against AWS
-    name = str(uuid4())
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_delete_versioned_bucket_returns_metadata(name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    client.create_bucket(Bucket=name)
     client.put_bucket_versioning(
         Bucket=name, VersioningConfiguration={"Status": "Enabled"}
     )
@@ -2033,11 +2033,11 @@ def test_get_bucket_cors():
     assert len(resp["CORSRules"]) == 2
 
 
-@mock_s3
-def test_delete_bucket_cors():
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_delete_bucket_cors(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    s3_client.create_bucket(Bucket=bucket_name)
+
     s3_client.put_bucket_cors(
         Bucket=bucket_name,
         CORSConfiguration={
