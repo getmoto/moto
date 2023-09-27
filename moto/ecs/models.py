@@ -425,6 +425,10 @@ class Task(BaseObject, ManagedState):
     def last_status(self) -> str:
         return self.status  # managed state
 
+    @last_status.setter
+    def last_status(self, value: str) -> None:
+        self.status = value
+
     @property
     def task_arn(self) -> str:
         if self._backend.enable_long_arn_for_name(name="taskLongArnFormat"):
@@ -1550,7 +1554,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tasks[task].resource_requirements,  # type: ignore[arg-type]
                         removing=True,
                     )
-                tasks[task].status = "STOPPED"
+                tasks[task].last_status = "STOPPED"
                 tasks[task].desired_status = "STOPPED"
                 tasks[task].stopped_reason = reason
                 return tasks[task]
