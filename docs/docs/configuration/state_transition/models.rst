@@ -134,3 +134,16 @@ Transition type: Manual - describe the resource 1 time before the state advances
 Advancement:
 
     Call `boto3.client("transcribe").get_medical_transcription_job(..)`
+
+Service: ECS
+--------------
+
+**Model**: `ecs::task`   :raw-html:`<br />`
+Available states:
+
+    "RUNNING" --> "DEACTIVATING" --> "STOPPING" --> "DEPROVISIONING" --> "STOPPED"
+
+Transition type: Manual - describe the resource 1 time before the state advances  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("ecs").describe_tasks(..)`
