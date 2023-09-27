@@ -23,7 +23,11 @@ def load_resource(package: str, resource: str) -> Any:
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
-    return pkgutil.get_data(package, resource).decode("utf-8")  # type: ignore
+    return load_resource_as_bytes(package, resource).decode("utf-8")  # type: ignore
+
+
+def load_resource_as_bytes(package: str, resource: str) -> bytes:
+    return pkgutil.get_data(package, resource)  # type: ignore
 
 
 def merge_multiple_dicts(*args: Any) -> Dict[str, Any]:

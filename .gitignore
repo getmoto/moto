@@ -29,6 +29,9 @@ htmlcov/
 .coverage*
 docs/_build
 moto_recording
+moto/moto_proxy/certs/*.crt
+moto/moto_proxy/certs/*.csr
+moto/moto_proxy/certs/*.conf
 .hypothesis
 other_langs/tests_java/target
 other_langs/tests_dotnet/ExampleTestProject/bin

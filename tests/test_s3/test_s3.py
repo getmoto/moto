@@ -21,6 +21,7 @@ import requests
 from moto import settings, mock_s3, mock_config
 from moto.moto_api import state_manager
 from moto.core.utils import utcnow
+from moto import moto_proxy
 from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
 
@@ -113,7 +114,7 @@ def test_key_save_to_missing_bucket():
 @mock_s3
 def test_missing_key_request():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Only test status code in non-ServerMode")
+        raise SkipTest("Only test status code in DecoratorMode")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="foobar")
 
@@ -460,6 +461,8 @@ def test_bucket_name_with_special_chars(name):
 )
 @mock_s3
 def test_key_with_special_characters(key):
+    if settings.test_proxy_mode():
+        raise SkipTest("Keys starting with a / don't work well in ProxyMode")
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("testname")
@@ -774,7 +777,10 @@ def test_streaming_upload_from_file_to_presigned_url():
         "put_object", params, ExpiresIn=900
     )
     with open(__file__, "rb") as fhandle:
-        response = requests.get(presigned_url, data=fhandle)
+        get_kwargs = {"data": fhandle}
+        if settings.test_proxy_mode():
+            add_proxy_details(get_kwargs)
+        response = requests.get(presigned_url, **get_kwargs)
     assert response.status_code == 200
 
 
@@ -793,7 +799,10 @@ def test_upload_from_file_to_presigned_url():
     file.close()
     files = {"upload_file": open("text.txt", "rb")}
 
-    requests.put(presigned_url, files=files)
+    put_kwargs = {"files": files}
+    if settings.test_proxy_mode():
+        add_proxy_details(put_kwargs)
+    requests.put(presigned_url, **put_kwargs)
     resp = s3_client.get_object(Bucket="mybucket", Key="file_upload")
     data = resp["Body"].read()
     assert data == b"test"
@@ -2837,6 +2846,8 @@ def test_root_dir_with_empty_name_works():
 @mock_s3
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
+    if settings.test_proxy_mode():
+        raise SkipTest("Doesn't quite work right with the Proxy")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
 
@@ -3020,9 +3031,14 @@ def test_creating_presigned_post():
         Conditions=conditions,
         ExpiresIn=1000,
     )
-    resp = requests.post(
-        data["url"], data=data["fields"], files={"file": fdata}, allow_redirects=False
-    )
+    kwargs = {
+        "data": data["fields"],
+        "files": {"file": fdata},
+        "allow_redirects": False,
+    }
+    if settings.test_proxy_mode():
+        add_proxy_details(kwargs)
+    resp = requests.post(data["url"], **kwargs)
     assert resp.status_code == 303
     redirect = resp.headers["Location"]
     assert redirect.startswith(success_url)
@@ -3051,7 +3067,10 @@ def test_presigned_put_url_with_approved_headers():
     )
 
     # Verify S3 throws an error when the header is not provided
-    response = requests.put(url, data=content)
+    kwargs = {"data": content}
+    if settings.test_proxy_mode():
+        add_proxy_details(kwargs)
+    response = requests.put(url, **kwargs)
     assert response.status_code == 403
     assert "<Code>SignatureDoesNotMatch</Code>" in str(response.content)
     assert (
@@ -3060,9 +3079,10 @@ def test_presigned_put_url_with_approved_headers():
     ) in str(response.content)
 
     # Verify S3 throws an error when the header has the wrong value
-    response = requests.put(
-        url, data=content, headers={"Content-Type": "application/unknown"}
-    )
+    kwargs = {"data": content, "headers": {"Content-Type": "application/unknown"}}
+    if settings.test_proxy_mode():
+        add_proxy_details(kwargs)
+    response = requests.put(url, **kwargs)
     assert response.status_code == 403
     assert "<Code>SignatureDoesNotMatch</Code>" in str(response.content)
     assert (
@@ -3071,9 +3091,10 @@ def test_presigned_put_url_with_approved_headers():
     ) in str(response.content)
 
     # Verify S3 uploads correctly when providing the meta data
-    response = requests.put(
-        url, data=content, headers={"Content-Type": expected_contenttype}
-    )
+    kwargs = {"data": content, "headers": {"Content-Type": expected_contenttype}}
+    if settings.test_proxy_mode():
+        add_proxy_details(kwargs)
+    response = requests.put(url, **kwargs)
     assert response.status_code == 200
 
     # Assert the object exists
@@ -3103,7 +3124,10 @@ def test_presigned_put_url_with_custom_headers():
     )
 
     # Verify S3 uploads correctly when providing the meta data
-    response = requests.put(url, data=content)
+    kwargs = {"data": content}
+    if settings.test_proxy_mode():
+        add_proxy_details(kwargs)
+    response = requests.put(url, **kwargs)
     assert response.status_code == 200
 
     # Assert the object exists
@@ -3430,3 +3454,8 @@ def test_checksum_response(algorithm):
             ChecksumAlgorithm=algorithm,
         )
         assert f"Checksum{algorithm}" in response
+
+
+def add_proxy_details(kwargs):
+    kwargs["proxies"] = {"https": "http://localhost:5005"}
+    kwargs["verify"] = moto_proxy.__file__.replace("__init__.py", "ca.crt")

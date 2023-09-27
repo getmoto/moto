@@ -10,6 +10,9 @@ include moto/ec2/resources/ecs/optimized_amis/*.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
 include moto/moto_api/_internal/*
+include moto/moto_proxy/*
+include moto/moto_proxy/certs/__init__.py
+include moto/moto_proxy/certs/req.conf.tmpl
 include moto/rds/resources/cluster_options/*.json
 include moto/servicequotas/resources/*/*.json
 include moto/ssm/resources/*.json

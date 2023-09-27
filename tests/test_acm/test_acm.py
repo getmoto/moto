@@ -581,7 +581,7 @@ def test_request_certificate_issued_status():
     assert resp["Certificate"]["CertificateArn"] == arn
     assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
 
-    if not settings.TEST_SERVER_MODE:
+    if settings.TEST_DECORATOR_MODE:
         # Move time to get it issued.
         with freeze_time("2012-01-01 12:02:00"):
             resp = client.describe_certificate(CertificateArn=arn)
@@ -593,7 +593,7 @@ def test_request_certificate_issued_status():
 @mock_acm
 def test_request_certificate_issued_status_with_wait_in_envvar():
     # After requesting a certificate, it should then auto-validate after 3 seconds
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
     client = boto3.client("acm", region_name="eu-central-1")
@@ -621,7 +621,7 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
 
 @mock_acm
 def test_request_certificate_with_mutiple_times():
-    if settings.TEST_SERVER_MODE:
+    if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
     # After requesting a certificate, it should then auto-validate after 1 minute
