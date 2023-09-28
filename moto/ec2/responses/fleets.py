@@ -4,7 +4,7 @@ from ._base_response import EC2BaseResponse
 class Fleets(EC2BaseResponse):
     def delete_fleets(self) -> str:
         fleet_ids = self._get_multi_param("FleetId.")
-        terminate_instances = self._get_param("TerminateInstances")
+        terminate_instances = self._get_bool_param("TerminateInstances")
         fleets = self.ec2_backend.delete_fleets(fleet_ids, terminate_instances)
         template = self.response_template(DELETE_FLEETS_TEMPLATE)
         return template.render(fleets=fleets)

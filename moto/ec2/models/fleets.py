@@ -308,12 +308,19 @@ class FleetsBackend:
     def delete_fleets(
         self, fleet_ids: List[str], terminate_instances: bool
     ) -> List[Fleet]:
+
         fleets = []
         for fleet_id in fleet_ids:
             fleet = self.fleets[fleet_id]
             if terminate_instances:
+                # State indicates the fleet is in the process of being terminated
+                # AWS will change the state to `deleted` after a few seconds/minutes
+                # Note that it will stay in the `deleted`-state for at least a few hours
+                fleet.state = "deleted_terminating"
                 fleet.target_capacity = 0
                 fleet.terminate_instances()
+            else:
+                # State is different, and indicates that instances are still running
+                fleet.state = "deleted_running"
             fleets.append(fleet)
-            fleet.state = "deleted"
         return fleets
