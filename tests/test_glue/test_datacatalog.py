@@ -27,7 +27,8 @@ def test_create_database():
     response = helpers.get_database(client, database_name)
     database = response["Database"]
 
-    assert database.get("Name") == database_name
+    assert database["Name"] == database_name
+    assert database["CatalogId"] == ACCOUNT_ID
     assert database.get("Description") == database_input.get("Description")
     assert database.get("LocationUri") == database_input.get("LocationUri")
     assert database.get("Parameters") == database_input.get("Parameters")
@@ -67,14 +68,11 @@ def test_get_database_not_exits():
 
 
 @mock_glue
-def test_get_databases_empty():
+def test_get_databases():
     client = boto3.client("glue", region_name="us-east-1")
     response = client.get_databases()
     assert len(response["DatabaseList"]) == 0
 
-
-@mock_glue
-def test_get_databases_several_items():
     client = boto3.client("glue", region_name="us-east-1")
     database_name_1, database_name_2 = "firstdatabase", "seconddatabase"
 
@@ -86,7 +84,9 @@ def test_get_databases_several_items():
     )
     assert len(database_list) == 2
     assert database_list[0]["Name"] == database_name_1
+    assert database_list[0]["CatalogId"] == ACCOUNT_ID
     assert database_list[1]["Name"] == database_name_2
+    assert database_list[1]["CatalogId"] == ACCOUNT_ID
 
 
 @mock_glue
@@ -222,6 +222,7 @@ def test_get_tables():
             table["StorageDescriptor"] == table_inputs[table_name]["StorageDescriptor"]
         )
         assert table["PartitionKeys"] == table_inputs[table_name]["PartitionKeys"]
+        assert table["CatalogId"] == ACCOUNT_ID
 
 
 @mock_glue
@@ -319,6 +320,7 @@ def test_get_table_versions():
     table = client.get_table(DatabaseName=database_name, Name=table_name)["Table"]
     assert table["StorageDescriptor"]["Columns"] == []
     assert table["VersionId"] == "1"
+    assert table["CatalogId"] == ACCOUNT_ID
 
     columns = [{"Name": "country", "Type": "string"}]
     table_input = helpers.create_table_input(database_name, table_name, columns=columns)

@@ -131,7 +131,9 @@ class GlueBackend(BaseBackend):
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()
 
-        database = FakeDatabase(database_name, database_input)
+        database = FakeDatabase(
+            database_name, database_input, catalog_id=self.account_id
+        )
         self.databases[database_name] = database
         return database
 
@@ -165,7 +167,9 @@ class GlueBackend(BaseBackend):
         if table_name in database.tables:
             raise TableAlreadyExistsException()
 
-        table = FakeTable(database_name, table_name, table_input)
+        table = FakeTable(
+            database_name, table_name, table_input, catalog_id=self.account_id
+        )
         database.tables[table_name] = table
         return table
 
@@ -1041,9 +1045,12 @@ class GlueBackend(BaseBackend):
 
 
 class FakeDatabase(BaseModel):
-    def __init__(self, database_name: str, database_input: Dict[str, Any]):
+    def __init__(
+        self, database_name: str, database_input: Dict[str, Any], catalog_id: str
+    ):
         self.name = database_name
         self.input = database_input
+        self.catalog_id = catalog_id
         self.created_time = utcnow()
         self.tables: Dict[str, FakeTable] = OrderedDict()
 
@@ -1058,16 +1065,21 @@ class FakeDatabase(BaseModel):
                 "CreateTableDefaultPermissions"
             ),
             "TargetDatabase": self.input.get("TargetDatabase"),
-            "CatalogId": self.input.get("CatalogId"),
+            "CatalogId": self.input.get("CatalogId") or self.catalog_id,
         }
 
 
 class FakeTable(BaseModel):
     def __init__(
-        self, database_name: str, table_name: str, table_input: Dict[str, Any]
+        self,
+        database_name: str,
+        table_name: str,
+        table_input: Dict[str, Any],
+        catalog_id: str,
     ):
         self.database_name = database_name
         self.name = table_name
+        self.catalog_id = catalog_id
         self.partitions: Dict[str, FakePartition] = OrderedDict()
         self.created_time = utcnow()
         self.updated_time: Optional[datetime] = None
@@ -1104,6 +1116,7 @@ class FakeTable(BaseModel):
             **self.get_version(str(version)),
             # Add VersionId after we get the version-details, just to make sure that it's a valid version (int)
             "VersionId": str(version),
+            "CatalogId": self.catalog_id,
         }
         if self.updated_time is not None:
             obj["UpdateTime"] = unix_time(self.updated_time)
