@@ -517,6 +517,17 @@ def test_ec2_validate_subnet_tags():
         == "'snapshot' is not a valid taggable resource type for this operation."
     )
 
+    client.create_subnet(
+        VpcId=vpc_id,
+        CidrBlock="10.0.0.1/24",
+        TagSpecifications=[
+            {
+                "ResourceType": "subnet",
+                "Tags": [{"Key": "TEST_TAG", "Value": "TEST_VALUE"}],
+            }
+        ],
+    )
+
 
 def get_filter(tag_val):
     return [
