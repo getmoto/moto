@@ -281,6 +281,11 @@ class EmailResponse(BaseResponse):
         template = self.response_template(RENDER_TEMPLATE)
         return template.render(template=rendered_template)
 
+    def delete_template(self) -> str:
+        name = self._get_param("TemplateName")
+        self.backend.delete_template(name)
+        return self.response_template(DELETE_TEMPLATE).render()
+
     def create_receipt_rule_set(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
         self.backend.create_receipt_rule_set(rule_set_name)
@@ -626,6 +631,14 @@ RENDER_TEMPLATE = """
     </ResponseMetadata>
 </TestRenderTemplateResponse>
 """
+
+DELETE_TEMPLATE = """<DeleteTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+    <DeleteTemplateResult>
+    </DeleteTemplateResult>
+    <ResponseMetadata>
+        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
+    </ResponseMetadata>
+</DeleteTemplateResponse>"""
 
 CREATE_RECEIPT_RULE_SET = """<CreateReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <CreateReceiptRuleSetResult/>

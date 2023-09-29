@@ -38,6 +38,14 @@ class GenericTokenizer:
                 return ""
             raise StopIteration
 
+    def read_until(self, phrase: str) -> str:
+        chars_read = ""
+        for char in self:
+            chars_read += char
+            if self.peek(len(phrase)) == phrase:
+                return chars_read
+        return chars_read
+
     def skip_characters(self, phrase: str, case_sensitive: bool = False) -> None:
         """
         Skip the characters in the supplied phrase.
