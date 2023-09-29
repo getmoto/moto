@@ -157,6 +157,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         self.restored_from_snapshot = restored_from_snapshot
         self.kms_key_id = kms_key_id
         self.cluster_snapshot_copy_status: Optional[Dict[str, Any]] = None
+        self.total_storage_capacity = 0
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -313,6 +314,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
                 for iam_role_arn in self.iam_roles_arn
             ],
             "KmsKeyId": self.kms_key_id,
+            "TotalStorageCapacityInMegaBytes": self.total_storage_capacity,
         }
         if self.restored_from_snapshot:
             json_response["RestoreStatus"] = {
