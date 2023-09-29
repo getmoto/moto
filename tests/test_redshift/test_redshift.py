@@ -219,6 +219,7 @@ def test_create_cluster_all_attributes():
     assert cluster["ClusterVersion"] == "1.0"
     assert cluster["AllowVersionUpgrade"] is True
     assert cluster["NumberOfNodes"] == 3
+    assert cluster["TotalStorageCapacityInMegaBytes"] == 0
 
 
 @mock_redshift
