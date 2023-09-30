@@ -518,6 +518,9 @@ class SESBackend(BaseBackend):
         )
         return rendered_template
 
+    def delete_template(self, name: str) -> None:
+        self.templates.pop(name)
+
     def create_receipt_rule_set(self, rule_set_name: str) -> None:
         if self.receipt_rule_set.get(rule_set_name) is not None:
             raise RuleSetNameAlreadyExists("Duplicate Receipt Rule Set Name.")

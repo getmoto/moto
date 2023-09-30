@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from botocore.exceptions import ParamValidationError
 import pytest
 from moto import mock_ses
+from . import ses_aws_verified
 
 
 @mock_ses
@@ -1296,8 +1297,8 @@ def test_render_template():
     )
 
 
-@mock_ses
-def test_render_template__with_foreach():
+@ses_aws_verified
+def test_render_template__advanced():
     conn = boto3.client("ses", region_name="us-east-1")
 
     kwargs = {
@@ -1305,24 +1306,27 @@ def test_render_template__with_foreach():
         "TemplateData": json.dumps(
             {
                 "items": [
-                    {"type": "dog", "name": "bobby"},
-                    {"type": "cat", "name": "pedro"},
+                    {"type": "dog", "name": "bobby", "best": True},
+                    {"type": "cat", "name": "pedro", "best": False},
                 ]
             }
         ),
     }
 
-    conn.create_template(
-        Template={
-            "TemplateName": "MTT",
-            "SubjectPart": "..",
-            "TextPart": "..",
-            "HtmlPart": "{{#each items}} {{name}} is a {{type}}, {{/each}}",
-        }
-    )
-    result = conn.test_render_template(**kwargs)
-    assert "bobby is a dog" in result["RenderedTemplate"]
-    assert "pedro is a cat" in result["RenderedTemplate"]
+    try:
+        conn.create_template(
+            Template={
+                "TemplateName": "MTT",
+                "SubjectPart": "..",
+                "TextPart": "..",
+                "HtmlPart": "{{#each items}} {{name}} is {{#if best}}the best{{else}}a {{type}}{{/if}}, {{/each}}",
+            }
+        )
+        result = conn.test_render_template(**kwargs)
+        assert "bobby is the best" in result["RenderedTemplate"]
+        assert "pedro is a cat" in result["RenderedTemplate"]
+    finally:
+        conn.delete_template(TemplateName="MTT")
 
 
 @mock_ses
