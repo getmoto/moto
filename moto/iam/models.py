@@ -675,6 +675,8 @@ class Role(CloudFormationModel):
         self.managed_policies: Dict[str, ManagedPolicy] = {}
         self.create_date = utcnow()
         self.tags = tags
+        # last_used should be treated as part of the public API
+        # https://github.com/getmoto/moto/issues/6859
         self.last_used = None
         self.last_used_region = None
         self.description = description
@@ -1274,6 +1276,8 @@ class User(CloudFormationModel):
         self.access_keys: List[AccessKey] = []
         self.ssh_public_keys: List[SshPublicKey] = []
         self.password: Optional[str] = None
+        # last_used should be treated as part of the public API
+        # https://github.com/getmoto/moto/issues/5927
         self.password_last_used = None
         self.password_reset_required = False
         self.signing_certificates: Dict[str, SigningCertificate] = {}
