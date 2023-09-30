@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.5
 -----
-Docker Digest for 4.2.5: <autopopulateddigest>
+Docker Digest for 4.2.5: _sha256:076cecca9b8ba35b545d23eb5bf780902fbf23eb3610f332eef7adea1f4d2ef7_
 
     General:
         * Introducing: MotoProxy! An alternative to the MotoServer.
