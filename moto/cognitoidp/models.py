@@ -399,22 +399,7 @@ class CognitoIdpUserPool(BaseModel):
         self.name = name
         self.status = None
 
-        self.extended_config = DEFAULT_USER_POOL_CONFIG.copy()
-        self.extended_config.update(extended_config or {})
-
-        message_template = self.extended_config.get("VerificationMessageTemplate")
-        if message_template and "SmsVerificationMessage" not in extended_config:
-            self.extended_config["SmsVerificationMessage"] = message_template.get(
-                "SmsMessage"
-            )
-        if message_template and "EmailVerificationSubject" not in extended_config:
-            self.extended_config["EmailVerificationSubject"] = message_template.get(
-                "EmailSubject"
-            )
-        if message_template and "EmailVerificationMessage" not in extended_config:
-            self.extended_config["EmailVerificationMessage"] = message_template.get(
-                "EmailMessage"
-            )
+        self.update_extended_config(extended_config)
 
         self.creation_date = utcnow()
         self.last_modified_date = utcnow()
@@ -471,6 +456,24 @@ class CognitoIdpUserPool(BaseModel):
             ),
             None,
         )
+
+    def update_extended_config(self, extended_config: Dict[str, Any]) -> None:
+        self.extended_config = DEFAULT_USER_POOL_CONFIG.copy()
+        self.extended_config.update(extended_config or {})
+
+        message_template = self.extended_config.get("VerificationMessageTemplate")
+        if message_template and "SmsVerificationMessage" not in extended_config:
+            self.extended_config["SmsVerificationMessage"] = message_template.get(
+                "SmsMessage"
+            )
+        if message_template and "EmailVerificationSubject" not in extended_config:
+            self.extended_config["EmailVerificationSubject"] = message_template.get(
+                "EmailSubject"
+            )
+        if message_template and "EmailVerificationMessage" not in extended_config:
+            self.extended_config["EmailVerificationMessage"] = message_template.get(
+                "EmailMessage"
+            )
 
     def _base_json(self) -> Dict[str, Any]:
         return {
@@ -978,7 +981,7 @@ class CognitoIdpBackend(BaseBackend):
         self, user_pool_id: str, extended_config: Dict[str, Any]
     ) -> None:
         user_pool = self.describe_user_pool(user_pool_id)
-        user_pool.extended_config = extended_config
+        user_pool.update_extended_config(extended_config)
 
     def delete_user_pool(self, user_pool_id: str) -> None:
         self.describe_user_pool(user_pool_id)

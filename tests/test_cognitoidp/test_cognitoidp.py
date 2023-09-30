@@ -885,6 +885,12 @@ def test_update_user_pool():
         UserPoolId=user_pool_details["UserPool"]["Id"]
     )
     assert updated_user_pool_details["UserPool"]["Policies"] == new_policies
+    assert updated_user_pool_details["UserPool"]["AdminCreateUserConfig"] is not None
+    assert updated_user_pool_details["UserPool"]["EmailConfiguration"] is not None
+    assert (
+        updated_user_pool_details["UserPool"]["VerificationMessageTemplate"] is not None
+    )
+    assert updated_user_pool_details["UserPool"]["AccountRecoverySetting"] is not None
 
 
 @mock_cognitoidp
