@@ -1,6 +1,29 @@
 Moto Changelog
 ==============
 
+4.2.5
+-----
+Docker Digest for 4.2.5: <autopopulateddigest>
+
+    General:
+        * Introducing: MotoProxy! An alternative to the MotoServer.
+          See the docs: http://docs.getmoto.org/en/latest/docs/proxy_mode.html
+
+    New Methods:
+        * Sagemaker:
+            * list_model_package_groups()
+
+    Miscellaneous:
+        * CognitoIDP: update_user_pool() no longer overrides default settings
+        * CognitoIDP: set_user_mfa_preference() now allows the settings to be cleared
+        * EC2: Transit Gateway Peering Attachments are now supported across accounts
+        * EC2: delete_fleets() now sets the correct status
+        * ECS: The Task-statuses now automatically advance
+        * Glue: get_databases/get_tables() now return the CatalogId
+        * IAM: list_groups() now returns the CreateDate-attribute
+        * Redshift: describe_clusters() now returns the TotalStorageCapacityInMegabytes
+        * SES: Templates now support if/else constructs
+
 4.2.4
 -----
 Docker Digest for 4.2.4: _sha256:4cdda5b0245a28ae2ebf5f1d5d93425226fe00ace65819a9fa02c8aa77a7e0b6_

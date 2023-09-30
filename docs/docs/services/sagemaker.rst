@@ -239,7 +239,7 @@ sagemaker
 - [ ] list_model_cards
 - [ ] list_model_explainability_job_definitions
 - [ ] list_model_metadata
-- [ ] list_model_package_groups
+- [X] list_model_package_groups
 - [X] list_model_packages
 - [ ] list_model_quality_job_definitions
 - [X] list_models

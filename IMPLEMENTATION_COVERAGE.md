@@ -4246,7 +4246,7 @@
 
 ## lakeformation
 <details>
-<summary>34% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
@@ -4255,8 +4255,10 @@
 - [ ] cancel_transaction
 - [ ] commit_transaction
 - [ ] create_data_cells_filter
+- [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
 - [ ] delete_data_cells_filter
+- [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
 - [ ] delete_objects_on_cancel
 - [X] deregister_resource
@@ -4277,6 +4279,7 @@
 - [ ] get_work_units
 - [X] grant_permissions
 - [X] list_data_cells_filter
+- [ ] list_lake_formation_opt_ins
 - [X] list_lf_tags
 - [X] list_permissions
 - [X] list_resources
@@ -6197,7 +6200,7 @@
 
 ## sagemaker
 <details>
-<summary>19% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -6636,7 +6639,7 @@
 
 ## ses
 <details>
-<summary>39% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -6656,7 +6659,7 @@
 - [ ] delete_receipt_filter
 - [ ] delete_receipt_rule
 - [ ] delete_receipt_rule_set
-- [ ] delete_template
+- [X] delete_template
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
 - [X] describe_configuration_set
@@ -7389,6 +7392,8 @@
 - backup
 - backup-gateway
 - backupstorage
+- bedrock
+- bedrock-runtime
 - billingconductor
 - braket
 - chime
