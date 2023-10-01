@@ -540,14 +540,6 @@
   "Location": "apne1-az1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "apne1-az1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "apne1-az1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "apne1-az1"
  },
@@ -4788,14 +4780,6 @@
   "Location": "apne1-az4"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "apne1-az4"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "apne1-az4"
  },
@@ -4889,6 +4873,18 @@
  },
  {
   "InstanceType": "g5.xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "hpc7g.16xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "hpc7g.4xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "hpc7g.8xlarge",
   "Location": "apne1-az4"
  },
  {

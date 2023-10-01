@@ -524,14 +524,6 @@
   "Location": "apse1-az1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "apse1-az1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "apse1-az1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "apse1-az1"
  },
@@ -2733,14 +2725,6 @@
  },
  {
   "InstanceType": "d3en.xlarge",
-  "Location": "apse1-az2"
- },
- {
-  "InstanceType": "g2.2xlarge",
-  "Location": "apse1-az2"
- },
- {
-  "InstanceType": "g2.8xlarge",
   "Location": "apse1-az2"
  },
  {

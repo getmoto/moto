@@ -564,14 +564,6 @@
   "Location": "ap-northeast-1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "ap-northeast-1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "ap-northeast-1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "ap-northeast-1"
  },
@@ -689,6 +681,18 @@
  },
  {
   "InstanceType": "g5g.xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "hpc7g.16xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "hpc7g.4xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "hpc7g.8xlarge",
   "Location": "ap-northeast-1"
  },
  {

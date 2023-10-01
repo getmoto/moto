@@ -556,14 +556,6 @@
   "Location": "ap-southeast-1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "ap-southeast-1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "ap-southeast-1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "ap-southeast-1"
  },

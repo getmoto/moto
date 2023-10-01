@@ -384,14 +384,6 @@
   "Location": "us-west-1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "us-west-1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "us-west-1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "us-west-1"
  },
