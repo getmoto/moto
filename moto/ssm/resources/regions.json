@@ -784,6 +784,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -1989,6 +1998,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "drs": {
@@ -3494,6 +3512,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-meetings": {
+                "Value": "chime-sdk-meetings",
+                "endpoint": {
+                  "Value": "meetings-chime.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-voice": {
                 "Value": "chime-sdk-voice",
@@ -6074,6 +6101,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-meetings": {
+                "Value": "chime-sdk-meetings",
+                "endpoint": {
+                  "Value": "meetings-chime.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-voice": {
                 "Value": "chime-sdk-voice",
@@ -8694,6 +8730,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -9731,6 +9776,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-meetings": {
+                "Value": "chime-sdk-meetings",
+                "endpoint": {
+                  "Value": "meetings-chime.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "cloud9": {
                 "Value": "cloud9",
@@ -12250,6 +12304,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -13011,6 +13074,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock": {
+                "Value": "bedrock"
               },
               "budgets": {
                 "Value": "budgets",
@@ -15540,6 +15606,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-meetings": {
+                "Value": "chime-sdk-meetings",
+                "endpoint": {
+                  "Value": "meetings-chime.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "cleanrooms": {
                 "Value": "cleanrooms",
@@ -18440,6 +18515,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -19542,6 +19626,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -19645,6 +19738,15 @@
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
                   "Value": "license-manager-linux-subscriptions.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20409,6 +20511,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-meetings": {
+                "Value": "chime-sdk-meetings",
+                "endpoint": {
+                  "Value": "meetings-chime.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-voice": {
                 "Value": "chime-sdk-voice",
@@ -22169,6 +22280,15 @@
                 "Value": "textract",
                 "endpoint": {
                   "Value": "textract.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "tnb": {
+                "Value": "tnb",
+                "endpoint": {
+                  "Value": "tnb.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24600,6 +24720,15 @@
                 "Value": "polly",
                 "endpoint": {
                   "Value": "polly.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pricing": {
+                "Value": "pricing",
+                "endpoint": {
+                  "Value": "api.pricing.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28196,6 +28325,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -28245,6 +28383,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28317,6 +28464,15 @@
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
                   "Value": "license-manager-linux-subscriptions.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32702,6 +32858,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -36288,6 +36453,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-meetings": {
+                "Value": "chime-sdk-meetings",
+                "endpoint": {
+                  "Value": "meetings-chime.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-voice": {
                 "Value": "chime-sdk-voice",
@@ -40769,6 +40943,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -40943,6 +41126,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -40951,6 +41143,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "omics": {
+                "Value": "omics"
               },
               "organizations": {
                 "Value": "organizations",
@@ -46375,6 +46570,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock": {
+                "Value": "bedrock"
               },
               "billingconductor": {
                 "Value": "billingconductor",
@@ -56764,6 +56962,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock": {
+                "Value": "bedrock"
               },
               "braket": {
                 "Value": "braket",
