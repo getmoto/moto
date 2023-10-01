@@ -9592,14 +9592,14 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 15.0,
+     "BaselineBandwidthInGbps": 25.0,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
-     "NetworkPerformance": "Up to 25 Gigabit",
+     "NetworkPerformance": "25 Gigabit",
      "PeakBandwidthInGbps": 25.0
     }
    ],
-   "NetworkPerformance": "Up to 25 Gigabit"
+   "NetworkPerformance": "25 Gigabit"
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmSupport": "unsupported",
