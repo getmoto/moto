@@ -4392,6 +4392,10 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "use2-az2"
  },

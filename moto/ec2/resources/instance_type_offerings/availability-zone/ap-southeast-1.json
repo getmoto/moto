@@ -556,14 +556,6 @@
   "Location": "ap-southeast-1a"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "ap-southeast-1a"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "ap-southeast-1a"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "ap-southeast-1a"
  },
@@ -2729,14 +2721,6 @@
  },
  {
   "InstanceType": "d3en.xlarge",
-  "Location": "ap-southeast-1b"
- },
- {
-  "InstanceType": "g2.2xlarge",
-  "Location": "ap-southeast-1b"
- },
- {
-  "InstanceType": "g2.8xlarge",
   "Location": "ap-southeast-1b"
  },
  {

@@ -628,14 +628,6 @@
   "Location": "eu-central-1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "eu-central-1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "eu-central-1"
  },

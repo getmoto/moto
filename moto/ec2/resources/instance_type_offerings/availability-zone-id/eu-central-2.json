@@ -1100,6 +1100,46 @@
   "Location": "euc2-az2"
  },
  {
+  "InstanceType": "m6i.12xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.16xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.24xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.2xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.32xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.4xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.8xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.large",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.metal",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6i.xlarge",
+  "Location": "euc2-az2"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "euc2-az2"
  },
