@@ -1,13 +1,14 @@
 import json
 import random
 import unittest
+import warnings
 from datetime import datetime, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs
+from moto import mock_logs, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.events import mock_events
@@ -681,6 +682,12 @@ def test_put_events():
     # Boto3 would error if it didn't return 200 OK
     assert response["FailedEntryCount"] == 0
     assert len(response["Entries"]) == 1
+
+    if settings.TEST_DECORATOR_MODE:
+        event["Detail"] = json.dumps([{"Key": "k", "Value": "v"}])
+        with warnings.catch_warnings(record=True) as w:
+            client.put_events(Entries=[event])
+        assert "EventDetail should be of type dict" in str(w[0].message)
 
 
 @mock_events
