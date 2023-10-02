@@ -2619,10 +2619,10 @@ class S3BackendDict(BackendDict):
         self,
         backend: Any,
         service_name: str,
-        use_boto3_regions: bool = True,
+        use_ssm_regions: bool = True,
         additional_regions: Optional[List[str]] = None,
     ):
-        super().__init__(backend, service_name, use_boto3_regions, additional_regions)
+        super().__init__(backend, service_name, use_ssm_regions, additional_regions)
 
         # Maps bucket names to account IDs. This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
@@ -2630,5 +2630,5 @@ class S3BackendDict(BackendDict):
 
 
 s3_backends = S3BackendDict(
-    S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
+    S3Backend, service_name="s3", use_ssm_regions=False, additional_regions=["global"]
 )

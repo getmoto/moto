@@ -142,6 +142,6 @@ class S3ControlBackend(BaseBackend):
 s3control_backends = BackendDict(
     S3ControlBackend,
     "s3control",
-    use_boto3_regions=False,
+    use_ssm_regions=False,
     additional_regions=["global"],
 )

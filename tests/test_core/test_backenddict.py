@@ -57,7 +57,7 @@ def test_backend_dict_can_retrieve_for_specific_account():
 
 
 def test_backend_dict_can_ignore_boto3_regions():
-    backend_dict = BackendDict(ExampleBackend, "ec2", use_boto3_regions=False)
+    backend_dict = BackendDict(ExampleBackend, "ec2", use_ssm_regions=False)
     assert backend_dict["account"].get("us-east-1") is None
 
 
@@ -143,7 +143,7 @@ def _create_asb(account_id, backend=None, use_boto3_regions=False, regions=None)
         service_name="ec2",
         account_id=account_id,
         backend=backend or ExampleBackend,
-        use_boto3_regions=use_boto3_regions,
+        use_ssm_regions=use_boto3_regions,
         additional_regions=regions,
     )
 

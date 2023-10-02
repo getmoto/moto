@@ -1,4 +1,3 @@
-from boto3 import Session
 import re
 import string
 from functools import lru_cache
@@ -6,8 +5,12 @@ from threading import RLock
 from typing import Any, List, Dict, Optional, ClassVar, TypeVar, Iterator
 from uuid import uuid4
 from moto.settings import allow_unknown_region, enable_iso_regions
+from moto.utilities.utils import load_resource
 from .model_instances import model_data
 from .utils import convert_regex_to_flask_path
+
+
+regions_by_service = load_resource(__name__, "regions.json")
 
 
 class InstanceTrackerMeta(type):
@@ -191,19 +194,17 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         service_name: str,
         account_id: str,
         backend: type,
-        use_boto3_regions: bool,
+        use_ssm_regions: bool,
         additional_regions: Optional[List[str]],
     ):
         self.service_name = service_name
         self.account_id = account_id
         self.backend = backend
         self.regions = []
-        if use_boto3_regions:
-            sess = Session()
-            for partition in sess.get_available_partitions():
-                self.regions.extend(
-                    sess.get_available_regions(service_name, partition_name=partition)
-                )
+        if use_ssm_regions:
+            self.regions.extend(
+                regions_by_service.get(service_name) or regions_by_service["__all"]
+            )
         self.regions.extend(additional_regions or [])
         self._id = str(uuid4())
 
@@ -268,12 +269,12 @@ class BackendDict(Dict[str, AccountSpecificBackend]):  # type: ignore[type-arg]
         self,
         backend: Any,
         service_name: str,
-        use_boto3_regions: bool = True,
+        use_ssm_regions: bool = True,
         additional_regions: Optional[List[str]] = None,
     ):
         self.backend = backend
         self.service_name = service_name
-        self._use_boto3_regions = use_boto3_regions
+        self._use_ssm_regions = use_ssm_regions
         self._additional_regions = additional_regions
         self._id = str(uuid4())
 
@@ -312,6 +313,6 @@ class BackendDict(Dict[str, AccountSpecificBackend]):  # type: ignore[type-arg]
                     service_name=self.service_name,
                     account_id=account_id,
                     backend=self.backend,
-                    use_boto3_regions=self._use_boto3_regions,
+                    use_ssm_regions=self._use_ssm_regions,
                     additional_regions=self._additional_regions,
                 )
