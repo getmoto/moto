@@ -41,11 +41,8 @@ class EC2BaseResponse(BaseResponse):
                 f"'{tags_dict['ResourceType']}' is not a valid taggable resource type for this operation."
             )
         if "Tag" not in tags_dict:
-            raise InvalidParameter("Tag specification must have at least one tag")
-
-        if isinstance(tag_spec_set, list) and any(
-            [isinstance(spec, str) for spec in tag_spec_set]
-        ):
+            if tags_dict.get("ResourceType") == "subnet":
+                raise InvalidParameter("Tag specification must have at least one tag")
             raise EmptyTagSpecError
-        # {_type: {k: v, ..}}
+
         return convert_tag_spec(tag_spec_set)

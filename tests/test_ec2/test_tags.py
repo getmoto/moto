@@ -470,7 +470,7 @@ def test_retrieve_resource_with_multiple_tags():
 
 @mock_ec2
 def test_ec2_validate_subnet_tags():
-    client = boto3.client("ec2")
+    client = boto3.client("ec2", region_name="us-west-1")
 
     # create vpc
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")
