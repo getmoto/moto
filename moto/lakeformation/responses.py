@@ -1,5 +1,6 @@
 """Handles incoming lakeformation requests, invokes methods, returns responses."""
 import json
+from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
 from .models import lakeformation_backends, LakeFormationBackend
@@ -122,6 +123,14 @@ class LakeFormationResponse(BaseResponse):
             }
         )
 
+    def update_lf_tag(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        tag_key = self._get_param("TagKey")
+        to_delete = self._get_param("TagValuesToDelete")
+        to_add = self._get_param("TagValuesToAdd")
+        self.lakeformation_backend.update_lf_tag(catalog_id, tag_key, to_delete, to_add)
+        return "{}"
+
     def list_data_cells_filter(self) -> str:
         data_cells = self.lakeformation_backend.list_data_cells_filter()
         return json.dumps({"DataCellsFilters": data_cells})
@@ -137,3 +146,36 @@ class LakeFormationResponse(BaseResponse):
         entries = self._get_param("Entries")
         self.lakeformation_backend.batch_revoke_permissions(catalog_id, entries)
         return json.dumps({"Failures": []})
+
+    def add_lf_tags_to_resource(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        resource = self._get_param("Resource")
+        tags = self._get_param("LFTags")
+        failures = self.lakeformation_backend.add_lf_tags_to_resource(
+            catalog_id, resource, tags
+        )
+        return json.dumps({"Failures": failures})
+
+    def get_resource_lf_tags(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        resource = self._get_param("Resource")
+        db, table, columns = self.lakeformation_backend.get_resource_lf_tags(
+            catalog_id, resource
+        )
+        resp: Dict[str, Any] = {}
+        if db:
+            resp["LFTagOnDatabase"] = db
+        if table:
+            resp["LFTagsOnTable"] = table
+        if columns:
+            resp["LFTagsOnColumns"] = columns
+        return json.dumps(resp)
+
+    def remove_lf_tags_from_resource(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        resource = self._get_param("Resource")
+        tags = self._get_param("LFTags")
+        self.lakeformation_backend.remove_lf_tags_from_resource(
+            catalog_id, resource, tags
+        )
+        return "{}"
