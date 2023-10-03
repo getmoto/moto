@@ -317,8 +317,9 @@ class SubnetBackend:
         ipv6_cidr_block: Optional[str] = None,
         availability_zone: Optional[str] = None,
         availability_zone_id: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> Subnet:
+
         subnet_id = random_subnet_id()
         # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
         vpc = self.get_vpc(vpc_id)  # type: ignore[attr-defined]
@@ -400,8 +401,8 @@ class SubnetBackend:
             assign_ipv6_address_on_creation=False,
         )
 
-        for tag in tags or []:
-            subnet.add_tag(tag["Key"], tag["Value"])
+        for k, v in tags.get("subnet", {}).items() if tags else []:
+            subnet.add_tag(k, v)
 
         # AWS associates a new subnet with the default Network ACL
         self.associate_default_network_acl_with_subnet(subnet_id, vpc_id)  # type: ignore[attr-defined]
