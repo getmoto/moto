@@ -317,7 +317,7 @@ class SubnetBackend:
         ipv6_cidr_block: Optional[str] = None,
         availability_zone: Optional[str] = None,
         availability_zone_id: Optional[str] = None,
-        tags: Optional[dict[str, dict[str, str]]] = None,
+        tags: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> Subnet:
 
         subnet_id = random_subnet_id()
