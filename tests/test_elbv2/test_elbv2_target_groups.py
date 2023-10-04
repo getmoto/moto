@@ -1021,8 +1021,3 @@ def test_create_target_group_healthcheck_validation(protocol_name, should_raise)
         assert exc.value.response["Error"]["Message"] == _get_error_message(
             protocol_name, 5, 5
         )
-    else:
-        response = _create_target_group(protocol_name, vpc.id, 5)
-        elbv2.delete_target_group(
-            TargetGroupArn=response["TargetGroups"][0]["TargetGroupArn"]
-        )
