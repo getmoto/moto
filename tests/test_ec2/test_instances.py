@@ -1327,6 +1327,23 @@ def test_run_instance_with_specified_private_ipv4():
 
 
 @mock_ec2
+def test_run_instance_with_placement():
+    client = boto3.client("ec2", region_name="eu-central-1")
+    host_id = "h-asdfasdfasdf"
+
+    instance = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, Placement={"HostId": host_id}
+    )["Instances"][0]
+    instance_id = instance["InstanceId"]
+    assert instance["Placement"]["HostId"] == host_id
+
+    resp = client.describe_instances(InstanceIds=[instance_id])["Reservations"][0][
+        "Instances"
+    ][0]
+    assert resp["Placement"]["HostId"] == host_id
+
+
+@mock_ec2
 def test_run_instance_mapped_public_ipv4():
     client = boto3.client("ec2", region_name="eu-central-1")
 

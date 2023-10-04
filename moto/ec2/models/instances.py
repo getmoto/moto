@@ -111,6 +111,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.instance_type: str = kwargs.get("instance_type", "m1.small")
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
+        self.placement_hostid = kwargs.get("placement_hostid")
         self.subnet_id = kwargs.get("subnet_id")
         if not self.subnet_id:
             self.subnet_id = next(

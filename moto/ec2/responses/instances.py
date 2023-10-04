@@ -61,6 +61,7 @@ class InstanceResponse(EC2BaseResponse):
             "instance_type": self._get_param("InstanceType", if_none="m1.small"),
             "is_instance_type_default": not self._get_param("InstanceType"),
             "placement": self._get_param("Placement.AvailabilityZone"),
+            "placement_hostid": self._get_param("Placement.HostId"),
             "region_name": self.region,
             "subnet_id": self._get_param("SubnetId"),
             "owner_id": owner_id,
@@ -470,6 +471,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
           {% endif %}
           <placement>
+            {% if instance.placement_hostid %}<hostId>{{ instance.placement_hostid }}</hostId>{% endif %}
             <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
             <tenancy>default</tenancy>
@@ -627,6 +629,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
                     <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
                     {% endif %}
                     <placement>
+                      {% if instance.placement_hostid %}<hostId>{{ instance.placement_hostid }}</hostId>{% endif %}
                       <availabilityZone>{{ instance.placement }}</availabilityZone>
                       <groupName/>
                       <tenancy>default</tenancy>
