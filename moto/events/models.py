@@ -1327,7 +1327,11 @@ class EventsBackend(BaseBackend):
                 )
             else:
                 try:
-                    json.loads(event["Detail"])
+                    detail = json.loads(event["Detail"])
+                    if not isinstance(detail, dict):
+                        warnings.warn(
+                            f"EventDetail should be of type dict - types such as {type(detail)} are ignored by AWS"
+                        )
                 except ValueError:  # json.JSONDecodeError exists since Python 3.5
                     entries.append(
                         {

@@ -45,7 +45,7 @@ ses
 - [ ] delete_receipt_filter
 - [ ] delete_receipt_rule
 - [ ] delete_receipt_rule_set
-- [ ] delete_template
+- [X] delete_template
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
 - [X] describe_configuration_set

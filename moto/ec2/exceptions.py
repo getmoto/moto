@@ -436,6 +436,14 @@ class InvalidParameterValueError(EC2ClientError):
         )
 
 
+class InvalidParameterValueErrorPeeringAttachment(EC2ClientError):
+    def __init__(self, operation: str, transit_gateway_attachment_id: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"Cannot {operation} {transit_gateway_attachment_id} as the source of the peering request.",
+        )
+
+
 class InvalidParameterValueErrorTagSpotFleetRequest(EC2ClientError):
     def __init__(self, resource_type: str):
         super().__init__(
@@ -738,6 +746,14 @@ class GenericInvalidParameterValueError(EC2ClientError):
         super().__init__(
             "InvalidParameterValue",
             f"invalid value for parameter {attribute}: {value}",
+        )
+
+
+class InvalidParameter(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidParameter",
+            message,
         )
 
 

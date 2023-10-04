@@ -30,6 +30,8 @@ boto3.setup_default_session(region_name=_lambda_region)
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
 @mock_lambda
 def test_lambda_regions(region):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only set EnvironVars in DecoratorMode")
     client = boto3.client("lambda", region_name=region)
     resp = client.list_functions()
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200

@@ -955,7 +955,6 @@ class S3Response(BaseResponse):
             if self.body:
                 if self._create_bucket_configuration_is_empty(self.body):
                     raise MalformedXML()
-
                 try:
                     forced_region = xmltodict.parse(self.body)[
                         "CreateBucketConfiguration"
@@ -1519,6 +1518,7 @@ class S3Response(BaseResponse):
                 )
                 response = ""
             response_headers.update(key.response_dict)
+            response_headers["content-length"] = len(response)
             return 200, response_headers, response
 
         storage_class = request.headers.get("x-amz-storage-class", "STANDARD")
@@ -1700,7 +1700,9 @@ class S3Response(BaseResponse):
 
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
-            return 200, response_headers, template.render(key=new_key)
+            response = template.render(key=new_key)
+            response_headers["content-length"] = len(response)
+            return 200, response_headers, response
 
         # Initial data
         new_key = self.backend.put_object(
@@ -1729,6 +1731,8 @@ class S3Response(BaseResponse):
         self.backend.set_key_tags(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
+        # Remove content-length - the response body is empty for this request
+        response_headers.pop("content-length", None)
         return 200, response_headers, ""
 
     def _key_response_head(

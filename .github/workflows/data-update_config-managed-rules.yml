@@ -33,8 +33,9 @@ jobs:
 
     - name: Pull Config managed rules from AWS
       run: |
-        pip install boto3
-        scripts/pull_down_aws_managed_rules.py
+        pip install -r requirements-dev.txt
+        cd scripts
+        ./pull_down_aws_managed_rules.py
     - name: Create PR
       uses: peter-evans/create-pull-request@v5
       with:

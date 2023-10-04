@@ -48,6 +48,12 @@ PAGINATION_MODEL = {
         "limit_default": 50,
         "unique_attribute": "Key",
     },
+    "list_model_package_groups": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "ModelPackageGroupArn",
+    },
     "list_model_packages": {
         "input_token": "next_token",
         "limit_key": "max_results",
@@ -943,10 +949,11 @@ class ModelPackageGroup(BaseObject):
             account_id=account_id,
             region_name=region_name,
         )
+        datetime_now = datetime.now(tzutc())
         self.model_package_group_name = model_package_group_name
         self.model_package_group_arn = model_package_group_arn
         self.model_package_group_description = model_package_group_description
-        self.creation_time = datetime.now()
+        self.creation_time = datetime_now
         self.created_by = {
             "UserProfileArn": fake_user_profile_arn,
             "UserProfileName": fake_user_profile_name,
@@ -954,6 +961,20 @@ class ModelPackageGroup(BaseObject):
         }
         self.model_package_group_status = "Completed"
         self.tags = tags
+
+    def gen_response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        for k, v in response_object.items():
+            if isinstance(v, datetime):
+                response_object[k] = v.isoformat()
+        response_values = [
+            "ModelPackageGroupName",
+            "ModelPackageGroupArn",
+            "ModelPackageGroupDescription",
+            "CreationTime",
+            "ModelPackageGroupStatus",
+        ]
+        return {k: v for k, v in response_object.items() if k in response_values}
 
 
 class ModelPackage(BaseObject):
@@ -994,7 +1015,9 @@ class ModelPackage(BaseObject):
             region_name=region_name,
             account_id=account_id,
             _type="model-package",
-            _id=model_package_name,
+            _id=f"{model_package_name}/{model_package_version}"
+            if model_package_version
+            else model_package_name,
         )
         datetime_now = datetime.now(tzutc())
         self.model_package_name = model_package_name
@@ -2911,6 +2934,53 @@ class SageMakerModelBackend(BaseBackend):
         elif model_package_type == "Both":
             return True
         raise ValueError(f"Invalid model package type: {model_package_type}")
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_model_package_groups(  # type: ignore[misc]
+        self,
+        creation_time_after: Optional[int],
+        creation_time_before: Optional[int],
+        name_contains: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+    ) -> List[ModelPackageGroup]:
+        if isinstance(creation_time_before, int):
+            creation_time_before_datetime = datetime.fromtimestamp(
+                creation_time_before, tz=tzutc()
+            )
+        if isinstance(creation_time_after, int):
+            creation_time_after_datetime = datetime.fromtimestamp(
+                creation_time_after, tz=tzutc()
+            )
+        model_package_group_summary_list = list(
+            filter(
+                lambda x: (
+                    creation_time_after is None
+                    or x.creation_time > creation_time_after_datetime
+                )
+                and (
+                    creation_time_before is None
+                    or x.creation_time < creation_time_before_datetime
+                )
+                and (
+                    name_contains is None
+                    or x.model_package_group_name.find(name_contains) != -1
+                ),
+                self.model_package_groups.values(),
+            )
+        )
+        model_package_group_summary_list = list(
+            sorted(
+                model_package_group_summary_list,
+                key={
+                    "Name": lambda x: x.model_package_group_name,
+                    "CreationTime": lambda x: x.creation_time,
+                    None: lambda x: x.creation_time,
+                }[sort_by],
+                reverse=sort_order == "Descending",
+            )
+        )
+        return model_package_group_summary_list
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_model_packages(  # type: ignore[misc]

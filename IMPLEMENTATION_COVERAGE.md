@@ -4246,17 +4246,19 @@
 
 ## lakeformation
 <details>
-<summary>34% implemented</summary>
+<summary>40% implemented</summary>
 
-- [ ] add_lf_tags_to_resource
+- [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
 - [X] batch_grant_permissions
 - [X] batch_revoke_permissions
 - [ ] cancel_transaction
 - [ ] commit_transaction
 - [ ] create_data_cells_filter
+- [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
 - [ ] delete_data_cells_filter
+- [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
 - [ ] delete_objects_on_cancel
 - [X] deregister_resource
@@ -4269,7 +4271,7 @@
 - [X] get_lf_tag
 - [ ] get_query_state
 - [ ] get_query_statistics
-- [ ] get_resource_lf_tags
+- [X] get_resource_lf_tags
 - [ ] get_table_objects
 - [ ] get_temporary_glue_partition_credentials
 - [ ] get_temporary_glue_table_credentials
@@ -4277,6 +4279,7 @@
 - [ ] get_work_units
 - [X] grant_permissions
 - [X] list_data_cells_filter
+- [ ] list_lake_formation_opt_ins
 - [X] list_lf_tags
 - [X] list_permissions
 - [X] list_resources
@@ -4284,14 +4287,14 @@
 - [ ] list_transactions
 - [X] put_data_lake_settings
 - [X] register_resource
-- [ ] remove_lf_tags_from_resource
+- [X] remove_lf_tags_from_resource
 - [X] revoke_permissions
 - [ ] search_databases_by_lf_tags
 - [ ] search_tables_by_lf_tags
 - [ ] start_query_planning
 - [ ] start_transaction
 - [ ] update_data_cells_filter
-- [ ] update_lf_tag
+- [X] update_lf_tag
 - [ ] update_resource
 - [ ] update_table_objects
 - [ ] update_table_storage_optimizer
@@ -6197,7 +6200,7 @@
 
 ## sagemaker
 <details>
-<summary>19% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -6413,7 +6416,7 @@
 - [ ] list_model_cards
 - [ ] list_model_explainability_job_definitions
 - [ ] list_model_metadata
-- [ ] list_model_package_groups
+- [X] list_model_package_groups
 - [X] list_model_packages
 - [ ] list_model_quality_job_definitions
 - [X] list_models
@@ -6636,7 +6639,7 @@
 
 ## ses
 <details>
-<summary>39% implemented</summary>
+<summary>40% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -6656,7 +6659,7 @@
 - [ ] delete_receipt_filter
 - [ ] delete_receipt_rule
 - [ ] delete_receipt_rule_set
-- [ ] delete_template
+- [X] delete_template
 - [ ] delete_verified_email_address
 - [ ] describe_active_receipt_rule_set
 - [X] describe_configuration_set
@@ -7389,6 +7392,8 @@
 - backup
 - backup-gateway
 - backupstorage
+- bedrock
+- bedrock-runtime
 - billingconductor
 - braket
 - chime

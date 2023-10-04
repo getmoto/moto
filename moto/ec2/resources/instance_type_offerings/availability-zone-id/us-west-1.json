@@ -384,14 +384,6 @@
   "Location": "usw1-az1"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "usw1-az1"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "usw1-az1"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "usw1-az1"
  },
@@ -1845,14 +1837,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "usw1-az3"
- },
- {
-  "InstanceType": "g2.2xlarge",
-  "Location": "usw1-az3"
- },
- {
-  "InstanceType": "g2.8xlarge",
   "Location": "usw1-az3"
  },
  {

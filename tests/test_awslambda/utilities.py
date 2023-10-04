@@ -85,6 +85,21 @@ def lambda_handler(event, context):
     return _process_lambda(func_str)
 
 
+def get_proxy_zip_file():
+    func_str = """
+import boto3
+
+def lambda_handler(event, context):
+    ec2 = boto3.resource('ec2', region_name='us-west-2')
+
+    volume_id = event.get('volume_id')
+    vol = ec2.Volume(volume_id)
+
+    return {'id': vol.id, 'state': vol.state, 'size': vol.size}
+"""
+    return _process_lambda(func_str)
+
+
 def get_test_zip_file3():
     pfunc = """
 def lambda_handler(event, context):

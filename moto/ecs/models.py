@@ -11,7 +11,10 @@ from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
 
 from ..ec2.utils import random_private_ip
 from moto.ec2 import ec2_backends
+from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
+from moto.moto_api._internal.managed_state_model import ManagedState
+
 from .exceptions import (
     EcsClientException,
     ServiceNotFoundException,
@@ -334,7 +337,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             return original_resource
 
 
-class Task(BaseObject):
+class Task(BaseObject, ManagedState):
     def __init__(
         self,
         cluster: Cluster,
@@ -348,11 +351,28 @@ class Task(BaseObject):
         tags: Optional[List[Dict[str, str]]] = None,
         networking_configuration: Optional[Dict[str, Any]] = None,
     ):
+        # Configure ManagedState
+        # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-lifecycle.html
+        super().__init__(
+            model_name="ecs::task",
+            transitions=[
+                # We start in RUNNING state in order not to break existing tests.
+                # ("PROVISIONING", "PENDING"),
+                # ("PENDING", "ACTIVATING"),
+                # ("ACTIVATING", "RUNNING"),
+                ("RUNNING", "DEACTIVATING"),
+                ("DEACTIVATING", "STOPPING"),
+                ("STOPPING", "DEPROVISIONING"),
+                ("DEPROVISIONING", "STOPPED"),
+                # There seems to be race condition, where the waiter expects the task to be in
+                # STOPPED state, but it is already in DELETED state.
+                # ("STOPPED", "DELETED"),
+            ],
+        )
         self.id = str(mock_random.uuid4())
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
         self.container_instance_arn = container_instance_arn
-        self.last_status = "RUNNING"
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
         self.overrides = overrides or {}
@@ -402,6 +422,14 @@ class Task(BaseObject):
             )
 
     @property
+    def last_status(self) -> Optional[str]:
+        return self.status  # managed state
+
+    @last_status.setter
+    def last_status(self, value: Optional[str]) -> None:
+        self.status = value
+
+    @property
     def task_arn(self) -> str:
         if self._backend.enable_long_arn_for_name(name="taskLongArnFormat"):
             return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.cluster_name}/{self.id}"
@@ -411,6 +439,7 @@ class Task(BaseObject):
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response_object["taskArn"] = self.task_arn
+        response_object["lastStatus"] = self.last_status
         return response_object
 
 
@@ -929,6 +958,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services: Dict[str, Service] = {}
         self.container_instances: Dict[str, Dict[str, ContainerInstance]] = {}
 
+        state_manager.register_default_transition(
+            model_name="ecs::task",
+            transition={"progression": "manual", "times": 1},
+        )
+
     @staticmethod
     def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Default VPC endpoint service."""
@@ -1438,6 +1472,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     or task.task_arn in tasks
                     or any(task_id in task for task in tasks)
                 ):
+                    task.advance()
                     response.append(task)
         if "TAGS" in (include or []):
             return response

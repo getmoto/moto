@@ -58,7 +58,7 @@ AWS_CONFIG_MANAGED_RULES_URL_START = (
 LIST_OF_RULES_URL = "managed-rules-by-aws-config.html"
 
 
-def extract_param_info(page_content):
+def extract_param_info(page_content, rule_name):
     """Return dict containing parameter info extracted from page.
 
     The info for all (not each) parameters is contained within a "dl" tag,
@@ -70,12 +70,16 @@ def extract_param_info(page_content):
     dl_tags = page_content.xpath('//div[@class="variablelist"]//dl')
     if len(dl_tags) > 1:
         print(
-            f"ERROR: Found {len(dl_tags)} 'dl' tags for parameters; "
-            "only expecting one.  Ignoring extra 'dl' tag.",
-            file=sys.stderr
+            f"ERROR: '{rule_name}' has {len(dl_tags)} 'dl' tags for "
+            "rule parameters; only expecting one.",
+            file=sys.stderr,
         )
+        sys.exit(1)
 
     dt_tags = dl_tags[0].xpath(".//dt")
+    if len(dt_tags) < 1:
+        print(f"ERROR: '{rule_name}' has no rule parameters.", file=sys.stderr)
+        sys.exit(1)
 
     all_params = []
     param_details = {}
@@ -110,7 +114,7 @@ def extract_param_info(page_content):
     return all_params
 
 
-def extract_managed_rule_info(page_content):
+def extract_managed_rule_info(page_content, rule_name):
     """Return dict of qualifiers/rules extracted from web page.
 
     An example of the html that's being processed:
@@ -141,6 +145,13 @@ def extract_managed_rule_info(page_content):
     """
     rule_info = {}
     paragraphs = page_content.xpath('//div[@id="main-content"]/descendant::p')
+    if len(paragraphs) < 1:
+        print(
+            f"ERROR: '{rule_name}' has no managed rule details (i.e., "
+            "Identifier, AWS Region).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     for paragraph in paragraphs:
         text = paragraph.text_content()
@@ -155,7 +166,7 @@ def extract_managed_rule_info(page_content):
             rule_info[parts[0]] = parts[1]
 
     # The parameters are in their own "div", so handle them separately.
-    rule_info["Parameters"] = extract_param_info(page_content)
+    rule_info["Parameters"] = extract_param_info(page_content, rule_name)
     return rule_info
 
 
@@ -180,7 +191,16 @@ def main():
     # Get the list of links for all the services.
     page = requests.get(AWS_CONFIG_MANAGED_RULES_URL_START + LIST_OF_RULES_URL)
     tree = html.fromstring(page.content)
-    links = [x.lstrip("./") for x in tree.xpath('//div[@class="highlights"]//ul//a/@href')]
+    links = [
+        x.lstrip("./") for x in tree.xpath('//div[@class="highlights"]//ul//a/@href')
+    ]
+    if len(links) < 300:
+        print(
+            f"ERROR: Found {len(links)} links to managed rules, expected "
+            "over 300 links",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # From each linked page, extract the id, region, trigger type and parameter
     # information.
@@ -189,7 +209,8 @@ def main():
         if args.verbose:
             print(f"Extracting from {link} ...")
         page = requests.get(AWS_CONFIG_MANAGED_RULES_URL_START + link)
-        rules = extract_managed_rule_info(html.fromstring(page.content))
+        rule_name = link.rstrip(".html")
+        rules = extract_managed_rule_info(html.fromstring(page.content), rule_name)
 
         rule_id = rules.pop("Identifier")
         managed_rules["ManagedRules"][rule_id] = rules

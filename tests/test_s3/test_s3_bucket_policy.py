@@ -5,12 +5,16 @@ import requests
 import pytest
 
 from botocore.exceptions import ClientError
+from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+from unittest import SkipTest
 
 
 class TestBucketPolicy:
     @classmethod
     def setup_class(cls):
+        if not settings.TEST_DECORATOR_MODE:
+            raise SkipTest("No point testing the ThreadedServer in Server/Proxy-mode")
         cls.server = ThreadedMotoServer(port="6000", verbose=False)
         cls.server.start()
 

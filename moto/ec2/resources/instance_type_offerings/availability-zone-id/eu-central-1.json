@@ -2768,14 +2768,6 @@
   "Location": "euc1-az2"
  },
  {
-  "InstanceType": "g2.2xlarge",
-  "Location": "euc1-az2"
- },
- {
-  "InstanceType": "g2.8xlarge",
-  "Location": "euc1-az2"
- },
- {
   "InstanceType": "g3.16xlarge",
   "Location": "euc1-az2"
  },
@@ -4885,14 +4877,6 @@
  },
  {
   "InstanceType": "f1.4xlarge",
-  "Location": "euc1-az3"
- },
- {
-  "InstanceType": "g2.2xlarge",
-  "Location": "euc1-az3"
- },
- {
-  "InstanceType": "g2.8xlarge",
   "Location": "euc1-az3"
  },
  {

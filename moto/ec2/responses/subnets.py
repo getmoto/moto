@@ -11,9 +11,7 @@ class Subnets(EC2BaseResponse):
         ipv6_cidr_block = self._get_param("Ipv6CidrBlock")
         availability_zone = self._get_param("AvailabilityZone")
         availability_zone_id = self._get_param("AvailabilityZoneId")
-        tags = self._get_multi_param("TagSpecification")
-        if tags:
-            tags = tags[0].get("Tag")
+        tags = self._parse_tag_specification("subnet")
 
         if not availability_zone and not availability_zone_id:
             availability_zone = random.choice(

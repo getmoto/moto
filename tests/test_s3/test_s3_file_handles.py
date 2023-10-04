@@ -230,6 +230,8 @@ class TestS3FileHandleClosures(TestCase):
 
 class TestS3FileHandleClosuresUsingMocks(TestCase):
     def setUp(self) -> None:
+        if not settings.TEST_DECORATOR_MODE:
+            raise SkipTest("No point in testing ServerMode, we're not using boto3")
         self.s3_client = boto3.client("s3", "us-east-1")
 
     @verify_zero_warnings

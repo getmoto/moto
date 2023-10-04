@@ -1761,6 +1761,7 @@ LIST_GROUPS_TEMPLATE = """<ListGroupsResponse>
             <GroupName>{{ group.name }}</GroupName>
             <GroupId>{{ group.id }}</GroupId>
             <Arn>{{ group.arn }}</Arn>
+            <CreateDate>{{ group.created_iso_8601 }}</CreateDate>
         </member>
         {% endfor %}
     </Groups>
