@@ -881,7 +881,7 @@ class SageMakerResponse(BaseResponse):
         inference_specification = self._get_param("InferenceSpecification")
         validation_specification = self._get_param("ValidationSpecification")
         source_algorithm_specification = self._get_param("SourceAlgorithmSpecification")
-        certify_for_marketplace = self._get_param("CertifyForMarketplace")
+        certify_for_marketplace = self._get_param("CertifyForMarketplace", False)
         tags = self._get_param("Tags")
         model_approval_status = self._get_param("ModelApprovalStatus")
         metadata_properties = self._get_param("MetadataProperties")

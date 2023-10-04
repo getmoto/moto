@@ -19,9 +19,9 @@ from .utils import (
     get_pipeline_from_name,
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
+    validate_model_approval_status,
 )
 from .utils import load_pipeline_definition_from_s3, arn_formatter
-
 
 PAGINATION_MODEL = {
     "list_experiments": {
@@ -988,10 +988,10 @@ class ModelPackage(BaseObject):
         source_algorithm_specification: Any,
         validation_specification: Any,
         certify_for_marketplace: bool,
-        model_approval_status: str,
+        model_approval_status: Optional[str],
         metadata_properties: Any,
         model_metrics: Any,
-        approval_description: str,
+        approval_description: Optional[str],
         customer_metadata_properties: Any,
         drift_check_baselines: Any,
         domain: str,
@@ -1029,22 +1029,20 @@ class ModelPackage(BaseObject):
         self.inference_specification = inference_specification
         self.source_algorithm_specification = source_algorithm_specification
         self.validation_specification = validation_specification
-        self.model_package_status_details = (
-            {
-                "ValidationStatuses": [
-                    {
-                        "Name": model_package_arn,
-                        "Status": "Completed",
-                    }
-                ],
-                "ImageScanStatuses": [
-                    {
-                        "Name": model_package_arn,
-                        "Status": "Completed",
-                    }
-                ],
-            },
-        )
+        self.model_package_status_details = {
+            "ValidationStatuses": [
+                {
+                    "Name": model_package_arn,
+                    "Status": "Completed",
+                }
+            ],
+            "ImageScanStatuses": [
+                {
+                    "Name": model_package_arn,
+                    "Status": "Completed",
+                }
+            ],
+        }
         self.certify_for_marketplace = certify_for_marketplace
         self.model_approval_status = model_approval_status
         self.created_by = {
@@ -1054,7 +1052,7 @@ class ModelPackage(BaseObject):
         }
         self.metadata_properties = metadata_properties
         self.model_metrics = model_metrics
-        self.last_modified_time = datetime_now
+        self.last_modified_time = None
         self.approval_description = approval_description
         self.customer_metadata_properties = customer_metadata_properties
         self.drift_check_baselines = drift_check_baselines
@@ -1083,10 +1081,28 @@ class ModelPackage(BaseObject):
             "ModelPackageArn",
             "ModelPackageDescription",
             "CreationTime",
+            "InferenceSpecification",
+            "SourceAlgorithmSpecification",
+            "ValidationSpecification",
             "ModelPackageStatus",
+            "ModelPackageStatusDetails",
+            "CertifyForMarketplace",
             "ModelApprovalStatus",
+            "CreatedBy",
+            "MetadataProperties",
+            "ModelMetrics",
+            "LastModifiedTime",
+            "LastModifiedBy",
+            "ApprovalDescription",
+            "CustomerMetadataProperties",
+            "DriftCheckBaselines",
+            "Domain",
+            "Task",
+            "SamplePayloadUrl",
+            "AdditionalInferenceSpecifications",
+            "SkipModelValidation",
         ]
-        return {k: v for k, v in response_object.items() if k in response_values}
+        return {k: v for k, v in response_object.items() if k in response_values if v is not None}
 
 
 class VpcConfig(BaseObject):
@@ -3062,9 +3078,9 @@ class SageMakerModelBackend(BaseBackend):
         inference_specification: Any,
         validation_specification: Any,
         source_algorithm_specification: Any,
-        certify_for_marketplace: Any,
+        certify_for_marketplace: Optional[bool],
         tags: Any,
-        model_approval_status: str,
+        model_approval_status: Optional[str],
         metadata_properties: Any,
         model_metrics: Any,
         client_token: Any,
@@ -3083,6 +3099,7 @@ class SageMakerModelBackend(BaseBackend):
                 if x.model_package_group_name == model_package_group_name
             ]
             model_package_version = len(model_packages_for_group) + 1
+        validate_model_approval_status(model_approval_status)
         model_package = ModelPackage(
             model_package_name=model_package_name,
             model_package_group_name=model_package_group_name,
@@ -3102,7 +3119,7 @@ class SageMakerModelBackend(BaseBackend):
             sample_payload_url=sample_payload_url,
             additional_inference_specifications=additional_inference_specifications,
             model_package_version=model_package_version,
-            approval_description=model_approval_status,
+            approval_description=None,
             region_name=self.region_name,
             account_id=self.account_id,
             client_token=client_token,
