@@ -1223,9 +1223,10 @@ Member must satisfy regular expression pattern: {expression}"
         ):
 
             if healthcheck_interval_seconds < healthcheck_timeout_seconds:
-                raise ValidationError(
-                    "Health check interval must be greater than the timeout."
-                )
+                message = f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than or equal to the interval '{healthcheck_interval_seconds}'"
+                if protocol in ("HTTP", "HTTPS"):
+                    message = f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than the interval '{healthcheck_interval_seconds}'"
+                raise ValidationError(message)
             both_values_supplied = (
                 original_kwargs.get("healthcheck_timeout_seconds") is not None
                 and original_kwargs.get("healthcheck_interval_seconds") is not None
@@ -1233,6 +1234,7 @@ Member must satisfy regular expression pattern: {expression}"
             if (
                 both_values_supplied
                 and healthcheck_interval_seconds == healthcheck_timeout_seconds
+                and protocol in ("HTTP", "HTTPS")
             ):
                 raise ValidationError(
                     f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than the interval '{healthcheck_interval_seconds}'"
