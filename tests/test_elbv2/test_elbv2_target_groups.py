@@ -1028,7 +1028,7 @@ def test_create_target_group_healthcheck_validation(protocol_name, should_raise)
             "source_ip",
             "'source_ip' must be one of [source_ip_dest_ip_proto, source_ip_dest_ip]",
         ),
-        # # stickiness.type = "lb_cookie"
+        # stickiness.type = "lb_cookie"
         ("HTTP", False, "lb_cookie", ""),
         ("HTTPS", False, "lb_cookie", ""),
         (
