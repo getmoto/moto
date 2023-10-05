@@ -187,3 +187,8 @@ class InvalidLoadBalancerActionException(ELBClientError):
 class ValidationError(ELBClientError):
     def __init__(self, msg: str):
         super().__init__("ValidationError", msg)
+
+
+class InvalidConfigurationRequest(ELBClientError):
+    def __init__(self, msg: str):
+        super().__init__("InvalidConfigurationRequest", msg)

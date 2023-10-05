@@ -36,6 +36,7 @@ from .exceptions import (
     InvalidStatusCodeActionTypeError,
     InvalidLoadBalancerActionException,
     ValidationError,
+    InvalidConfigurationRequest,
 )
 
 ALLOWED_ACTIONS = [
@@ -1256,6 +1257,72 @@ Member must satisfy regular expression pattern: {expression}"
         target_group = self.target_groups.get(target_group_arn)
         if not target_group:
             raise TargetGroupNotFoundError()
+
+        deregistration_delay_timeout_seconds = attributes.get(
+            "deregistration_delay.timeout_seconds"
+        )
+        if deregistration_delay_timeout_seconds:
+            if int(deregistration_delay_timeout_seconds) not in range(0, 3600):
+                raise ValidationError(
+                    f"'deregistration_delay.timeout_seconds' value '{deregistration_delay_timeout_seconds}' must be between '0-3600' inclusive"
+                )
+            if target_group.target_type == "lambda":
+                raise InvalidConfigurationRequest(
+                    "A target group with target type 'lambda' does not support the attribute deregistration_delay.timeout_seconds"
+                )
+
+        stickiness_type = attributes.get("stickiness.type")
+        # TODO: strict type checking for app_cookie
+        stickiness_cookie_name = attributes.get("stickiness.app_cookie.cookie_name")
+        if stickiness_type:
+            if target_group.protocol == "GENEVE":
+                if stickiness_cookie_name:
+                    # TODO: generalise error message
+                    raise ValidationError(
+                        "Target group attribute key 'stickiness.app_cookie.cookie_name' is not recognized"
+                    )
+                elif stickiness_type not in [
+                    "source_ip_dest_ip_proto",
+                    "source_ip_dest_ip",
+                ]:
+                    raise ValidationError(
+                        f"'{stickiness_type}' must be one of [source_ip_dest_ip_proto, source_ip_dest_ip]"
+                    )
+            if stickiness_type == "source_ip":
+                if target_group.protocol in ["HTTP", "HTTPS"]:
+                    raise InvalidConfigurationRequest(
+                        f"Stickiness type 'source_ip' is not supported for target groups with the {target_group.protocol} protocol"
+                    )
+                elif target_group.protocol == "TLS":
+                    raise InvalidConfigurationRequest(
+                        "You cannot enable stickiness on target groups with the TLS protocol"
+                    )
+            elif stickiness_type == "lb_cookie":
+                if target_group.protocol in ["TCP", "TLS", "UDP", "TCP_UDP"]:
+                    raise InvalidConfigurationRequest(
+                        f"Stickiness type 'lb_cookie' is not supported for target groups with the {target_group.protocol} protocol"
+                    )
+            elif stickiness_type == "app_cookie":
+                if not stickiness_cookie_name:
+                    raise InvalidConfigurationRequest(
+                        "You must set an application cookie name to enable stickiness of type 'app_cookie'"
+                    )
+                if target_group.protocol in ["TCP", "TLS", "UDP", "TCP_UDP", "GENEVE"]:
+                    raise InvalidConfigurationRequest(
+                        f"Stickiness type 'app_cookie' is not supported for target groups with the {target_group.protocol} protocol"
+                    )
+            elif stickiness_type in ["source_ip_dest_ip", "source_ip_dest_ip_proto"]:
+                if target_group.protocol in [
+                    "HTTP",
+                    "HTTPS",
+                    "TCP",
+                    "TLS",
+                    "UDP",
+                    "TCP_UDP",
+                ]:
+                    raise ValidationError(
+                        "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]"
+                    )
 
         target_group.attributes.update(attributes)
 
