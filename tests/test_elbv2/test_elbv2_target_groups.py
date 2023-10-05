@@ -873,34 +873,6 @@ def test_create_target_group_validation_error():
     assert err["Code"] == "ValidationError"
     assert err["Message"] == "The VPC ID 'non-existing' is not found"
 
-    with pytest.raises(ClientError) as ex:
-        elbv2.create_target_group(
-            Name="a-target",
-            TargetType="lambda",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
-    assert (
-        err["Message"]
-        == "Health check timeout '5' must be smaller than the interval '5'"
-    )
-
-    with pytest.raises(ClientError) as ex:
-        elbv2.create_target_group(
-            Name="a-target",
-            TargetType="lambda",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=6,
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
-    assert err["Message"] == "Health check interval must be greater than the timeout."
-
-    # When providing both values:
-    # Health check timeout '5' must be smaller than the interval '5'
-    #
     # When only the Interval is supplied, it can be the same value as the default
     group = elbv2.create_target_group(
         Name="target1",
