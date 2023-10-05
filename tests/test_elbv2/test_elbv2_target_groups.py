@@ -873,34 +873,6 @@ def test_create_target_group_validation_error():
     assert err["Code"] == "ValidationError"
     assert err["Message"] == "The VPC ID 'non-existing' is not found"
 
-    with pytest.raises(ClientError) as ex:
-        elbv2.create_target_group(
-            Name="a-target",
-            TargetType="lambda",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
-    assert (
-        err["Message"]
-        == "Health check timeout '5' must be smaller than the interval '5'"
-    )
-
-    with pytest.raises(ClientError) as ex:
-        elbv2.create_target_group(
-            Name="a-target",
-            TargetType="lambda",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=6,
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
-    assert err["Message"] == "Health check interval must be greater than the timeout."
-
-    # When providing both values:
-    # Health check timeout '5' must be smaller than the interval '5'
-    #
     # When only the Interval is supplied, it can be the same value as the default
     group = elbv2.create_target_group(
         Name="target1",
@@ -967,3 +939,57 @@ def test_create_target_group_validation_error():
         err["Message"]
         == "Protocol cannot be specified for target groups with target type 'lambda'"
     )
+
+
+@mock_ec2
+@mock_elbv2
+@pytest.mark.parametrize(
+    "protocol_name, should_raise",
+    [
+        ("HTTP", True),
+        ("HTTPS", True),
+        ("TCP", False),
+        ("TLS", False),
+        ("UDP", False),
+        ("TCP_UDP", False),
+    ],
+)
+def test_create_target_group_healthcheck_validation(protocol_name, should_raise):
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+
+    _, vpc, _, _, _, _ = create_load_balancer()
+
+    def _create_target_group(protocol_name, vpc, health_check_timeout_seconds):
+        return elbv2.create_target_group(
+            Name="a-target",
+            Protocol=protocol_name,
+            Port=80,
+            VpcId=vpc,
+            HealthCheckProtocol="HTTP",
+            HealthCheckPath="/",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=health_check_timeout_seconds,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+        )
+
+    def _get_error_message(protocol_name, timeout, interval):
+        if protocol_name in ["HTTP", "HTTPS"]:
+            return f"Health check timeout '{timeout}' must be smaller than the interval '{interval}'"
+        else:
+            return f"Health check timeout '{timeout}' must be smaller than or equal to the interval '{interval}'"
+
+    with pytest.raises(ClientError) as exc:
+        _create_target_group(protocol_name, vpc.id, 6)
+    assert exc.value.response["Error"]["Code"] == "ValidationError"
+    assert exc.value.response["Error"]["Message"] == _get_error_message(
+        protocol_name, 6, 5
+    )
+
+    if should_raise:
+        with pytest.raises(ClientError) as exc:
+            _create_target_group(protocol_name, vpc.id, 5)
+        assert exc.value.response["Error"]["Code"] == "ValidationError"
+        assert exc.value.response["Error"]["Message"] == _get_error_message(
+            protocol_name, 5, 5
+        )
