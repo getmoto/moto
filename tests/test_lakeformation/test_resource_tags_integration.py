@@ -1,10 +1,12 @@
 import boto3
+import pytest
 
 from uuid import uuid4
 
 from . import lakeformation_aws_verified
 
 
+@pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_add_unknown_lf_tags(
     bucket_name=None,  # pylint: disable=unused-argument
@@ -32,6 +34,7 @@ def test_add_unknown_lf_tags(
     }
 
 
+@pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_tag_lakeformation_database(
     bucket_name=None,  # pylint: disable=unused-argument
@@ -115,6 +118,7 @@ def test_tag_lakeformation_database(
     )
 
 
+@pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_tag_lakeformation_table(
     bucket_name=None,  # pylint: disable=unused-argument
@@ -198,6 +202,7 @@ def test_tag_lakeformation_table(
     )
 
 
+@pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_tag_lakeformation_columns(
     bucket_name=None,  # pylint: disable=unused-argument
@@ -361,6 +366,7 @@ def test_tag_lakeformation_columns(
     )
 
 
+@pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_lf_tags(
     bucket_name=None, db_name=None, table_name=None, column_name=None
