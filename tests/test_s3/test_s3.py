@@ -1684,6 +1684,9 @@ def test_delete_versioned_bucket():
 @s3_aws_verified
 def test_delete_versioned_bucket_returns_metadata(name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = resource.Bucket(name)
+    versions = bucket.object_versions
 
     client.put_bucket_versioning(
         Bucket=name, VersioningConfiguration={"Status": "Enabled"}
@@ -1696,11 +1699,29 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
 
     # Delete the object
     del_file = client.delete_object(Bucket=name, Key="test1")
+    deleted_version_id = del_file["VersionId"]
     assert del_file["DeleteMarker"] is True
-    assert del_file["VersionId"] is not None
+    assert deleted_version_id is not None
 
     # We now have one DeleteMarker
     assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+
+    # list_object_versions returns the object itself, and a DeleteMarker
+    # object.head() returns a 'x-amz-delete-marker' header
+    # delete_marker.head() returns a 405
+    for version in versions.filter(Prefix="test1"):
+        if version.version_id == deleted_version_id:
+            with pytest.raises(ClientError) as exc:
+                version.head()
+            err = exc.value.response
+            assert err["Error"] == {"Code": "405", "Message": "Method Not Allowed"}
+            assert err["ResponseMetadata"]["HTTPStatusCode"] == 405
+            assert (
+                err["ResponseMetadata"]["HTTPHeaders"]["x-amz-delete-marker"] == "true"
+            )
+            assert err["ResponseMetadata"]["HTTPHeaders"]["allow"] == "DELETE"
+        else:
+            assert version.head()["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # Delete the same object gives a new version id
     del_mrk1 = client.delete_object(Bucket=name, Key="test1")
@@ -1717,6 +1738,20 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     assert del_mrk2["DeleteMarker"] is True
     assert del_mrk2["VersionId"] == del_mrk1["VersionId"]
 
+    for version in versions.filter(Prefix="test1"):
+        if version.version_id == deleted_version_id:
+            with pytest.raises(ClientError) as exc:
+                version.head()
+            err = exc.value.response
+            assert err["Error"] == {"Code": "405", "Message": "Method Not Allowed"}
+            assert err["ResponseMetadata"]["HTTPStatusCode"] == 405
+            assert (
+                err["ResponseMetadata"]["HTTPHeaders"]["x-amz-delete-marker"] == "true"
+            )
+            assert err["ResponseMetadata"]["HTTPHeaders"]["allow"] == "DELETE"
+        else:
+            assert version.head()["ResponseMetadata"]["HTTPStatusCode"] == 200
+
     # We now have only one DeleteMarker
     assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
 
@@ -1731,6 +1766,13 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     # We still have one DeleteMarker, but zero objects
     assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
     assert "Versions" not in client.list_object_versions(Bucket=name)
+
+    # Because we only have DeleteMarkers, we can not call `head()` on any of othem
+    for version in versions.filter(Prefix="test1"):
+        with pytest.raises(ClientError) as exc:
+            version.head()
+        err = exc.value.response
+        assert err["Error"] == {"Code": "405", "Message": "Method Not Allowed"}
 
     # Delete the last marker
     del_mrk4 = client.delete_object(
