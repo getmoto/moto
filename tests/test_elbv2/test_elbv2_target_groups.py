@@ -398,21 +398,24 @@ def test_target_group_attributes():
         Attributes=[
             {"Key": "stickiness.enabled", "Value": "true"},
             {"Key": "stickiness.type", "Value": "app_cookie"},
+            {"Key": "stickiness.app_cookie.cookie_name", "Value": "my_cookie"},
         ],
     )
 
     # The response should have only the keys updated
-    assert len(response["Attributes"]) == 2
+    assert len(response["Attributes"]) == 3
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["stickiness.type"] == "app_cookie"
     assert attributes["stickiness.enabled"] == "true"
+    assert attributes["stickiness.app_cookie.cookie_name"] == "my_cookie"
 
     # These new values should be in the full attribute list
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    assert len(response["Attributes"]) == 7
+    assert len(response["Attributes"]) == 8
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["stickiness.type"] == "app_cookie"
     assert attributes["stickiness.enabled"] == "true"
+    assert attributes["stickiness.app_cookie.cookie_name"] == "my_cookie"
 
 
 @mock_elbv2
