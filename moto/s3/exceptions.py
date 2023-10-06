@@ -559,3 +559,10 @@ class ObjectLockConfigurationNotFoundError(S3ClientError):
             "ObjectLockConfigurationNotFoundError",
             "Object Lock configuration does not exist for this bucket",
         )
+
+
+class MethodNotAllowed(S3ClientError):
+    code = 405
+
+    def __init__(self) -> None:
+        super().__init__("MethodNotAllowed", "Method Not Allowed")
