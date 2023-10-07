@@ -1,6 +1,6 @@
 """Unit tests for sagemaker-supported APIs."""
 from datetime import datetime
-from unittest import SkipTest
+from unittest import SkipTest, TestCase
 
 import boto3
 from freezegun import freeze_time
@@ -13,6 +13,7 @@ import pytest
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 from moto.sagemaker.exceptions import ValidationError
+from moto.sagemaker.models import ModelPackage
 from moto.sagemaker.utils import validate_model_approval_status
 
 
@@ -232,8 +233,8 @@ def test_describe_model_package_default():
     assert resp["ModelPackageGroupName"] == "test-model-package-group"
     assert resp["ModelPackageDescription"] == "test-model-package-description"
     assert (
-            resp["ModelPackageArn"]
-            == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1"
+        resp["ModelPackageArn"]
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1"
     )
     assert resp["CreationTime"] == datetime(2015, 1, 1, 0, 0, 0, tzinfo=tzutc())
     assert (
@@ -244,8 +245,18 @@ def test_describe_model_package_default():
     assert resp["CreatedBy"]["DomainId"] == "fake-domain-id"
     assert resp["ModelPackageStatus"] == "Completed"
     assert resp.get("ModelPackageStatusDetails") is not None
-    assert resp["ModelPackageStatusDetails"]["ValidationStatuses"] == [{'Name': 'arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1', 'Status': 'Completed'}]
-    assert resp["ModelPackageStatusDetails"]["ImageScanStatuses"] == [{'Name': 'arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1', 'Status': 'Completed'}]
+    assert resp["ModelPackageStatusDetails"]["ValidationStatuses"] == [
+        {
+            "Name": "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1",
+            "Status": "Completed",
+        }
+    ]
+    assert resp["ModelPackageStatusDetails"]["ImageScanStatuses"] == [
+        {
+            "Name": "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1",
+            "Status": "Completed",
+        }
+    ]
     assert resp["CertifyForMarketplace"] is False
 
 
@@ -275,6 +286,125 @@ def test_describe_model_package_with_create_model_package_arguments():
     assert resp["MetadataProperties"]["GeneratedBy"] == "test-user"
     assert resp["MetadataProperties"]["ProjectId"] == "test-project-id"
     assert resp["MetadataProperties"]["Repository"] == "test-repo"
+
+
+@mock_sagemaker
+def test_update_model_package():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
+    model_package_arn = client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageGroupName="test-model-package-group",
+        ModelPackageDescription="test-model-package-description",
+        CustomerMetadataProperties={
+            "test-key-to-remove": "test-value-to-remove",
+        },
+    )["ModelPackageArn"]
+    client.update_model_package(
+        ModelPackageArn=model_package_arn,
+        ModelApprovalStatus="Approved",
+        ApprovalDescription="test-approval-description",
+        CustomerMetadataProperties={"test-key": "test-value"},
+        CustomerMetadataPropertiesToRemove=["test-key-to-remove"],
+    )
+    resp = client.describe_model_package(ModelPackageName="test-model-package")
+    assert resp["ModelApprovalStatus"] == "Approved"
+    assert resp["ApprovalDescription"] == "test-approval-description"
+    assert resp["CustomerMetadataProperties"] is not None
+    assert resp["CustomerMetadataProperties"]["test-key"] == "test-value"
+    assert resp["CustomerMetadataProperties"].get("test-key-to-remove") is None
+
+
+@mock_sagemaker
+def test_update_model_package_given_additional_inference_specifications_to_add():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
+    model_package_arn = client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageGroupName="test-model-package-group",
+        ModelPackageDescription="test-model-package-description",
+    )["ModelPackageArn"]
+    additional_inference_specifications_to_add = {
+        "Name": "test-inference-specification-name",
+        "Description": "test-inference-specification-description",
+        "Containers": [
+            {
+                "ContainerHostname": "test-container-hostname",
+                "Image": "test-image",
+                "ImageDigest": "test-image-digest",
+                "ModelDataUrl": "test-model-data-url",
+                "ProductId": "test-product-id",
+                "Environment": {"test-key": "test-value"},
+                "ModelInput": {"DataInputConfig": "test-data-input-config"},
+                "Framework": "test-framework",
+                "FrameworkVersion": "test-framework-version",
+                "NearestModelName": "test-nearest-model-name",
+            },
+        ],
+        "SupportedTransformInstanceTypes": ["ml.m4.xlarge", "ml.m4.2xlarge"],
+        "SupportedRealtimeInferenceInstanceTypes": ["ml.t2.medium", "ml.t2.large"],
+        "SupportedContentTypes": [
+            "test-content-type-1",
+        ],
+        "SupportedResponseMIMETypes": [
+            "test-response-mime-type-1",
+        ],
+    }
+    client.update_model_package(
+        ModelPackageArn=model_package_arn,
+        AdditionalInferenceSpecificationsToAdd=[
+            additional_inference_specifications_to_add
+        ],
+    )
+    resp = client.describe_model_package(ModelPackageName="test-model-package")
+    assert resp["AdditionalInferenceSpecifications"] is not None
+    TestCase().assertDictEqual(
+        resp["AdditionalInferenceSpecifications"][0],
+        additional_inference_specifications_to_add,
+    )
+
+
+@mock_sagemaker
+def test_update_model_package_shoudl_update_last_modified_information():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
+    model_package_arn = client.create_model_package(
+        ModelPackageName="test-model-package",
+        ModelPackageGroupName="test-model-package-group",
+    )["ModelPackageArn"]
+    with freeze_time("2020-01-01 12:00:00"):
+        client.update_model_package(
+            ModelPackageArn=model_package_arn,
+            ModelApprovalStatus="Approved",
+        )
+    resp = client.describe_model_package(ModelPackageName="test-model-package")
+    assert resp.get("LastModifiedTime") is not None
+    assert resp["LastModifiedTime"] == datetime(2020, 1, 1, 12, 0, 0, tzinfo=tzutc())
+    assert resp.get("LastModifiedBy") is not None
+    assert (
+        resp["LastModifiedBy"]["UserProfileArn"]
+        == "arn:aws:sagemaker:eu-west-1:123456789012:user-profile/fake-domain-id/fake-user-profile-name"
+    )
+    assert resp["LastModifiedBy"]["UserProfileName"] == "fake-user-profile-name"
+    assert resp["LastModifiedBy"]["DomainId"] == "fake-domain-id"
+
+
+def test_validate_supported_transform_instance_types_should_raise_error_for_wrong_supported_transform_instance_types():
+    with pytest.raises(ValidationError) as exc:
+        ModelPackage.validate_supported_transform_instance_types(
+            ["ml.m4.2xlarge", "not-a-supported-transform-instances-types"]
+        )
+    assert "not-a-supported-transform-instances-types" in str(exc.value)
+
+
+def test_validate_supported_realtime_inference_instance_types_should_raise_error_for_wrong_supported_transform_instance_types():
+    with pytest.raises(ValidationError) as exc:
+        ModelPackage.validate_supported_realtime_inference_instance_types(
+            ["ml.m4.2xlarge", "not-a-supported-realtime-inference-instances-types"]
+        )
+    assert "not-a-supported-realtime-inference-instances-types" in str(exc.value)
 
 
 @mock_sagemaker

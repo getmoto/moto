@@ -874,6 +874,27 @@ class SageMakerResponse(BaseResponse):
             model_package.gen_response_object(),
         )
 
+    def update_model_package(self) -> str:
+        model_package_arn = self._get_param("ModelPackageArn")
+        model_approval_status = self._get_param("ModelApprovalStatus")
+        approval_dexcription = self._get_param("ApprovalDescription")
+        customer_metadata_properties = self._get_param("CustomerMetadataProperties")
+        customer_metadata_properties_to_remove = self._get_param(
+            "CustomerMetadataPropertiesToRemove", []
+        )
+        additional_inference_specification_to_add = self._get_param(
+            "AdditionalInferenceSpecificationsToAdd"
+        )
+        updated_model_package_arn = self.sagemaker_backend.update_model_package(
+            model_package_arn=model_package_arn,
+            model_approval_status=model_approval_status,
+            approval_description=approval_dexcription,
+            customer_metadata_properties=customer_metadata_properties,
+            customer_metadata_properties_to_remove=customer_metadata_properties_to_remove,
+            additional_inference_specifications_to_add=additional_inference_specification_to_add,
+        )
+        return json.dumps(dict(ModelPackageArn=updated_model_package_arn))
+
     def create_model_package(self) -> str:
         model_package_name = self._get_param("ModelPackageName")
         model_package_group_name = self._get_param("ModelPackageGroupName")
@@ -893,7 +914,7 @@ class SageMakerResponse(BaseResponse):
         task = self._get_param("Task")
         sample_payload_url = self._get_param("SamplePayloadUrl")
         additional_inference_specifications = self._get_param(
-            "AdditionalInferenceSpecifications"
+            "AdditionalInferenceSpecifications", None
         )
         model_package_arn = self.sagemaker_backend.create_model_package(
             model_package_name=model_package_name,
