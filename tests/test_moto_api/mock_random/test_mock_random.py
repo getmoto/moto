@@ -31,7 +31,7 @@ def test_semi_random_hex_strings():
     # Ensure they are different
     assert fixed_hex != random_hex
 
-    # Retrieving another 'fixed' UUID should not return a known UUID
-    second_hex = mock_random.uuid4()
+    # Retrieving another 'fixed' HEX should not return a known HEX
+    second_hex = mock_random.get_random_hex()
     assert second_hex != random_hex
     assert second_hex != fixed_hex
