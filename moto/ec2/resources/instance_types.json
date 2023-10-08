@@ -13353,6 +13353,1181 @@
    ]
   }
  },
+ "c7a.12xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 15000,
+    "BaselineIops": 60000,
+    "BaselineThroughputInMBps": 1875.0,
+    "MaximumBandwidthInMbps": 15000,
+    "MaximumIops": 60000,
+    "MaximumThroughputInMBps": 1875.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.12xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 98304
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 18.75,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "18.75 Gigabit",
+     "PeakBandwidthInGbps": 18.75
+    }
+   ],
+   "NetworkPerformance": "18.75 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 48,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 48,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    12,
+    18,
+    24,
+    30,
+    36,
+    42,
+    48
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.16xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 20000,
+    "BaselineIops": 80000,
+    "BaselineThroughputInMBps": 2500.0,
+    "MaximumBandwidthInMbps": 20000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.16xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 131072
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 25.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "25 Gigabit",
+     "PeakBandwidthInGbps": 25.0
+    }
+   ],
+   "NetworkPerformance": "25 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 64,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 64,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    16,
+    24,
+    32,
+    40,
+    48,
+    56,
+    64
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.24xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 30000,
+    "BaselineIops": 120000,
+    "BaselineThroughputInMBps": 3750.0,
+    "MaximumBandwidthInMbps": 30000,
+    "MaximumIops": 120000,
+    "MaximumThroughputInMBps": 3750.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.24xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 196608
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 37.5,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "37.5 Gigabit",
+     "PeakBandwidthInGbps": 37.5
+    }
+   ],
+   "NetworkPerformance": "37.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 96,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 96,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    24,
+    36,
+    48,
+    60,
+    72,
+    84,
+    96
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.2xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 2500,
+    "BaselineIops": 12000,
+    "BaselineThroughputInMBps": 312.5,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.2xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 16384
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 15,
+   "Ipv6AddressesPerInterface": 15,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 4,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 3.125,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "Up to 12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 8,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 8,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.32xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 160000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 160000,
+    "MaximumThroughputInMBps": 5000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.32xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 50.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "50 Gigabit",
+     "PeakBandwidthInGbps": 50.0
+    }
+   ],
+   "NetworkPerformance": "50 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 128,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 128,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    32,
+    48,
+    64,
+    80,
+    96,
+    112,
+    128
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.48xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 240000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 240000,
+    "MaximumThroughputInMBps": 5000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 393216
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 50.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "50 Gigabit",
+     "PeakBandwidthInGbps": 50.0
+    }
+   ],
+   "NetworkPerformance": "50 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    48,
+    72,
+    96,
+    120,
+    144,
+    168,
+    192
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.4xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 5000,
+    "BaselineIops": 20000,
+    "BaselineThroughputInMBps": 625.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.4xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 32768
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 6.25,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "Up to 12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 16,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 16,
+   "ValidCores": [
+    1,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.8xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 40000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.8xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 65536
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 12.5,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 32,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 32,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    28,
+    32
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.large": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 650,
+    "BaselineIops": 3600,
+    "BaselineThroughputInMBps": 81.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.large",
+  "MemoryInfo": {
+   "SizeInMiB": 4096
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 10,
+   "Ipv6AddressesPerInterface": 10,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 3,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 0.781,
+     "MaximumNetworkInterfaces": 3,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "Up to 12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 2,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 2,
+   "ValidCores": [
+    1,
+    2
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
+ "c7a.medium": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 325,
+    "BaselineIops": 2500,
+    "BaselineThroughputInMBps": 40.625,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.medium",
+  "MemoryInfo": {
+   "SizeInMiB": 2048
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 4,
+   "Ipv6AddressesPerInterface": 4,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 2,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 0.39,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "Up to 12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 1,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 1
+  }
+ },
+ "c7a.metal-48xl": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 240000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 240000,
+    "MaximumThroughputInMBps": 5000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.metal-48xl",
+  "MemoryInfo": {
+   "SizeInMiB": 393216
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 50.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "50 Gigabit",
+     "PeakBandwidthInGbps": 50.0
+    }
+   ],
+   "NetworkPerformance": "50 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192
+  }
+ },
+ "c7a.xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 1250,
+    "BaselineIops": 6000,
+    "BaselineThroughputInMBps": 156.25,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 40000,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7a.xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 8192
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 15,
+   "Ipv6AddressesPerInterface": 15,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 4,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 1.562,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "Up to 12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 4,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 4,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
  "c7g.12xlarge": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
@@ -19233,240 +20408,6 @@
     6,
     7,
     8
-   ],
-   "ValidThreadsPerCore": [
-    1,
-    2
-   ]
-  }
- },
- "g2.2xlarge": {
-  "AutoRecoverySupported": false,
-  "BareMetal": false,
-  "BurstablePerformanceSupported": false,
-  "CurrentGeneration": false,
-  "DedicatedHostsSupported": true,
-  "EbsInfo": {
-   "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1000,
-    "BaselineIops": 8000,
-    "BaselineThroughputInMBps": 125.0,
-    "MaximumBandwidthInMbps": 1000,
-    "MaximumIops": 8000,
-    "MaximumThroughputInMBps": 125.0
-   },
-   "EbsOptimizedSupport": "supported",
-   "EncryptionSupport": "supported",
-   "NvmeSupport": "unsupported"
-  },
-  "FreeTierEligible": false,
-  "GpuInfo": {
-   "Gpus": [
-    {
-     "Count": 1,
-     "Manufacturer": "NVIDIA",
-     "MemoryInfo": {
-      "SizeInMiB": 4096
-     },
-     "Name": "K520"
-    }
-   ],
-   "TotalGpuMemoryInMiB": 4096
-  },
-  "HibernationSupported": false,
-  "Hypervisor": "xen",
-  "InstanceStorageInfo": {
-   "Disks": [
-    {
-     "Count": 1,
-     "SizeInGB": 60,
-     "Type": "ssd"
-    }
-   ],
-   "EncryptionSupport": "unsupported",
-   "NvmeSupport": "unsupported",
-   "TotalSizeInGB": 60
-  },
-  "InstanceStorageSupported": true,
-  "InstanceType": "g2.2xlarge",
-  "MemoryInfo": {
-   "SizeInMiB": 15360
-  },
-  "NetworkInfo": {
-   "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
-   "EnaSrdSupported": false,
-   "EnaSupport": "unsupported",
-   "EncryptionInTransitSupported": false,
-   "Ipv4AddressesPerInterface": 15,
-   "Ipv6AddressesPerInterface": 0,
-   "Ipv6Supported": false,
-   "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 4,
-   "NetworkCards": [
-    {
-     "BaselineBandwidthInGbps": 1.0,
-     "MaximumNetworkInterfaces": 4,
-     "NetworkCardIndex": 0,
-     "NetworkPerformance": "Moderate",
-     "PeakBandwidthInGbps": 10.0
-    }
-   ],
-   "NetworkPerformance": "Moderate"
-  },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
-  "PlacementGroupInfo": {
-   "SupportedStrategies": [
-    "cluster",
-    "partition",
-    "spread"
-   ]
-  },
-  "ProcessorInfo": {
-   "SupportedArchitectures": [
-    "x86_64"
-   ],
-   "SustainedClockSpeedInGhz": 2.6
-  },
-  "SupportedBootModes": [
-   "legacy-bios"
-  ],
-  "SupportedRootDeviceTypes": [
-   "ebs",
-   "instance-store"
-  ],
-  "SupportedUsageClasses": [
-   "on-demand",
-   "spot"
-  ],
-  "SupportedVirtualizationTypes": [
-   "hvm"
-  ],
-  "VCpuInfo": {
-   "DefaultCores": 4,
-   "DefaultThreadsPerCore": 2,
-   "DefaultVCpus": 8,
-   "ValidCores": [
-    1,
-    2,
-    3,
-    4
-   ],
-   "ValidThreadsPerCore": [
-    1,
-    2
-   ]
-  }
- },
- "g2.8xlarge": {
-  "AutoRecoverySupported": false,
-  "BareMetal": false,
-  "BurstablePerformanceSupported": false,
-  "CurrentGeneration": false,
-  "DedicatedHostsSupported": true,
-  "EbsInfo": {
-   "EbsOptimizedSupport": "unsupported",
-   "EncryptionSupport": "supported",
-   "NvmeSupport": "unsupported"
-  },
-  "FreeTierEligible": false,
-  "GpuInfo": {
-   "Gpus": [
-    {
-     "Count": 4,
-     "Manufacturer": "NVIDIA",
-     "MemoryInfo": {
-      "SizeInMiB": 4096
-     },
-     "Name": "K520"
-    }
-   ],
-   "TotalGpuMemoryInMiB": 16384
-  },
-  "HibernationSupported": false,
-  "Hypervisor": "xen",
-  "InstanceStorageInfo": {
-   "Disks": [
-    {
-     "Count": 2,
-     "SizeInGB": 120,
-     "Type": "ssd"
-    }
-   ],
-   "EncryptionSupport": "unsupported",
-   "NvmeSupport": "unsupported",
-   "TotalSizeInGB": 240
-  },
-  "InstanceStorageSupported": true,
-  "InstanceType": "g2.8xlarge",
-  "MemoryInfo": {
-   "SizeInMiB": 61440
-  },
-  "NetworkInfo": {
-   "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
-   "EnaSrdSupported": false,
-   "EnaSupport": "unsupported",
-   "EncryptionInTransitSupported": false,
-   "Ipv4AddressesPerInterface": 30,
-   "Ipv6AddressesPerInterface": 0,
-   "Ipv6Supported": false,
-   "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 8,
-   "NetworkCards": [
-    {
-     "BaselineBandwidthInGbps": 2.0,
-     "MaximumNetworkInterfaces": 8,
-     "NetworkCardIndex": 0,
-     "NetworkPerformance": "High",
-     "PeakBandwidthInGbps": 10.0
-    }
-   ],
-   "NetworkPerformance": "High"
-  },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
-  "PlacementGroupInfo": {
-   "SupportedStrategies": [
-    "cluster",
-    "partition",
-    "spread"
-   ]
-  },
-  "ProcessorInfo": {
-   "SupportedArchitectures": [
-    "x86_64"
-   ],
-   "SustainedClockSpeedInGhz": 2.6
-  },
-  "SupportedBootModes": [
-   "legacy-bios"
-  ],
-  "SupportedRootDeviceTypes": [
-   "ebs",
-   "instance-store"
-  ],
-  "SupportedUsageClasses": [
-   "on-demand",
-   "spot"
-  ],
-  "SupportedVirtualizationTypes": [
-   "hvm"
-  ],
-  "VCpuInfo": {
-   "DefaultCores": 16,
-   "DefaultThreadsPerCore": 2,
-   "DefaultVCpus": 32,
-   "ValidCores": [
-    2,
-    4,
-    6,
-    8,
-    10,
-    12,
-    14,
-    16
    ],
    "ValidThreadsPerCore": [
     1,
@@ -68311,6 +69252,91 @@
    "DefaultCores": 1,
    "DefaultThreadsPerCore": 1,
    "DefaultVCpus": 1
+  }
+ },
+ "r7a.metal-48xl": {
+  "AutoRecoverySupported": true,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 40000,
+    "BaselineIops": 240000,
+    "BaselineThroughputInMBps": 5000.0,
+    "MaximumBandwidthInMbps": 40000,
+    "MaximumIops": 240000,
+    "MaximumThroughputInMBps": 5000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageSupported": false,
+  "InstanceType": "r7a.metal-48xl",
+  "MemoryInfo": {
+   "SizeInMiB": 1572864
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 50.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "50 Gigabit",
+     "PeakBandwidthInGbps": 50.0
+    }
+   ],
+   "NetworkPerformance": "50 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.7
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192
   }
  },
  "r7a.xlarge": {
