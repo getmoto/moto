@@ -6491,7 +6491,7 @@
 - [ ] update_image_version
 - [ ] update_inference_experiment
 - [ ] update_model_card
-- [ ] update_model_package
+- [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
