@@ -106,6 +106,7 @@ mock_iam = lazy_load(".iam", "mock_iam")
 mock_identitystore = lazy_load(".identitystore", "mock_identitystore")
 mock_iot = lazy_load(".iot", "mock_iot")
 mock_iotdata = lazy_load(".iotdata", "mock_iotdata", boto3_name="iot-data")
+mock_ivs = lazy_load(".ivs", "mock_ivs", boto3_name="ivs")
 mock_kinesis = lazy_load(".kinesis", "mock_kinesis")
 mock_kinesisvideo = lazy_load(".kinesisvideo", "mock_kinesisvideo")
 mock_kinesisvideoarchivedmedia = lazy_load(
