@@ -70,7 +70,7 @@
                   "Value": "acm-pca.af-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -1619,7 +1619,7 @@
                   "Value": "acm-pca.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -3234,7 +3234,7 @@
                   "Value": "acm-pca.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -3494,6 +3494,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock": {
+                "Value": "bedrock"
               },
               "budgets": {
                 "Value": "budgets",
@@ -3847,6 +3850,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-northeast-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5853,7 +5865,7 @@
                   "Value": "acm-pca.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -8100,7 +8112,7 @@
                   "Value": "acm-pca.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -9516,7 +9528,7 @@
                   "Value": "acm-pca.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "ahl": {
@@ -11722,7 +11734,7 @@
                   "Value": "acm-pca.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -12295,6 +12307,15 @@
               "launchwizard": {
                 "Value": "launchwizard"
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
@@ -12823,7 +12844,7 @@
                   "Value": "acm-pca.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -13448,6 +13469,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-southeast-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15337,7 +15367,7 @@
                   "Value": "acm-pca.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -15968,6 +15998,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-southeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -17774,7 +17813,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -17957,7 +18002,7 @@
                   "Value": "acm-pca.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -18770,6 +18815,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-southeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -19209,7 +19263,7 @@
                   "Value": "acm-pca.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -19729,6 +19783,15 @@
                 "Value": "lambda",
                 "endpoint": {
                   "Value": "lambda.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20260,7 +20323,7 @@
                   "Value": "acm-pca.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -20810,6 +20873,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ca-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22334,7 +22406,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -25187,7 +25265,7 @@
                   "Value": "acm-pca.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -25836,6 +25914,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.eu-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27681,7 +27768,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -27863,7 +27956,7 @@
                   "Value": "acm-pca.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -28460,6 +28553,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
@@ -29001,7 +29103,7 @@
                   "Value": "acm-pca.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -29449,6 +29551,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.eu-north-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30928,7 +31039,7 @@
                   "Value": "acm-pca.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -32414,7 +32525,7 @@
                   "Value": "acm-pca.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -33489,7 +33600,7 @@
                   "Value": "acm-pca.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -34066,6 +34177,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.eu-west-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36010,7 +36130,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -36193,7 +36319,7 @@
                   "Value": "acm-pca.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -38390,7 +38516,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -38581,7 +38713,7 @@
                   "Value": "acm-pca.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -40460,7 +40592,7 @@
                   "Value": "acm-pca.il-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -41601,7 +41733,7 @@
                   "Value": "acm-pca.me-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -42228,6 +42360,15 @@
               "launchwizard": {
                 "Value": "launchwizard"
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
@@ -42769,7 +42910,7 @@
                   "Value": "acm-pca.me-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -43873,6 +44014,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.me-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -44357,7 +44507,7 @@
                   "Value": "acm-pca.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -44796,6 +44946,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.sa-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46113,7 +46272,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -46298,7 +46463,7 @@
                   "Value": "acm-pca.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "ahl": {
@@ -47028,6 +47193,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.us-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49137,7 +49311,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -49379,7 +49559,7 @@
                   "Value": "acm-pca.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "ahl": {
@@ -49929,6 +50109,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.us-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51666,7 +51855,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -51792,7 +51987,7 @@
                   "Value": "acm-pca.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -52036,6 +52231,15 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codestar-connections": {
+                "Value": "codestar-connections",
+                "endpoint": {
+                  "Value": "codestar-connections.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52549,6 +52753,15 @@
                 "Value": "logs",
                 "endpoint": {
                   "Value": "logs.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53116,7 +53329,7 @@
                   "Value": "acm-pca.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "amazonlocationservice": {
@@ -54019,6 +54232,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "managedblockchain": {
                 "Value": "managedblockchain",
                 "endpoint": {
@@ -54710,7 +54932,7 @@
                   "Value": "acm-pca.us-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "aiq": {
@@ -56550,7 +56772,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -56702,7 +56930,7 @@
                   "Value": "acm-pca.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "ahl": {
@@ -57381,6 +57609,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.us-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59403,7 +59640,13 @@
                 "Value": "trustedadvisor"
               },
               "verified-access": {
-                "Value": "verified-access"
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
