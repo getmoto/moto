@@ -35,3 +35,9 @@ def test_semi_random_hex_strings():
     second_hex = mock_random.get_random_hex()
     assert second_hex != random_hex
     assert second_hex != fixed_hex
+
+
+def test_semi_random_token_urlsafe():
+    mock_random.seed(42)
+    token = mock_random.token_urlsafe(32)
+    assert token == "nXmxo38xgBzRGmcG-0DWvVdSaEaQO7E-3lYkOenBuCM"
