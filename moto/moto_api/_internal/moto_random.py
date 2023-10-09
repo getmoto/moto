@@ -33,5 +33,5 @@ class MotoRandom(Random):
         return random_str.lower() if lower_case else random_str
 
     # Based on https://github.com/python/cpython/blob/main/Lib/secrets.py
-    def token_urlsafe(self, nbytes: int):
+    def token_urlsafe(self, nbytes: int) -> str:
         return urlsafe_b64encode(self.randbytes(nbytes)).rstrip(b"=").decode("ascii")

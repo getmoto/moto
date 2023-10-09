@@ -1,21 +1,21 @@
 """Handles incoming ivs requests, invokes methods, returns responses."""
 import json
 from moto.core.responses import BaseResponse
-from .models import ivs_backends
+from .models import IVSBackend, ivs_backends
 
 
 class IVSResponse(BaseResponse):
     """Handler for IVS requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="ivs")
 
     @property
-    def ivs_backend(self):
+    def ivs_backend(self) -> IVSBackend:
         """Return backend instance specific for this region."""
         return ivs_backends[self.current_account][self.region]
 
-    def create_channel(self):
+    def create_channel(self) -> str:
         authorized = self._get_param("authorized", False)
         insecure_ingest = self._get_param("insecureIngest", False)
         latency_mode = self._get_param("latencyMode", "LOW")
@@ -36,7 +36,7 @@ class IVSResponse(BaseResponse):
         )
         return json.dumps(dict(channel=channel, streamKey=stream_key))
 
-    def list_channels(self):
+    def list_channels(self) -> str:
         filter_by_name = self._get_param("filterByName")
         filter_by_recording_configuration_arn = self._get_param(
             "filterByRecordingConfigurationArn"
@@ -51,21 +51,21 @@ class IVSResponse(BaseResponse):
         )
         return json.dumps(dict(channels=channels, nextToken=next_token))
 
-    def get_channel(self):
+    def get_channel(self) -> str:
         arn = self._get_param("arn")
         channel = self.ivs_backend.get_channel(
             arn=arn,
         )
         return json.dumps(dict(channel=channel))
 
-    def batch_get_channel(self):
+    def batch_get_channel(self) -> str:
         arns = self._get_param("arns")
         channels, errors = self.ivs_backend.batch_get_channel(
             arns=arns,
         )
         return json.dumps(dict(channels=channels, errors=errors))
 
-    def update_channel(self):
+    def update_channel(self) -> str:
         arn = self._get_param("arn")
         authorized = self._get_param("authorized")
         insecure_ingest = self._get_param("insecureIngest")
@@ -86,7 +86,7 @@ class IVSResponse(BaseResponse):
         )
         return json.dumps(dict(channel=channel))
 
-    def delete_channel(self):
+    def delete_channel(self) -> None:
         arn = self._get_param("arn")
         self.ivs_backend.delete_channel(
             arn=arn,
