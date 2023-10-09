@@ -17,8 +17,8 @@ def test_create_channel_with_name():
 def test_create_channel_defaults():
     client = boto3.client("ivs")
     create_response = client.create_channel(name="foo")
-    assert create_response["channel"]["authorized"] == False
-    assert create_response["channel"]["insecureIngest"] == False
+    assert create_response["channel"]["authorized"] is False
+    assert create_response["channel"]["insecureIngest"] is False
     assert create_response["channel"]["latencyMode"] == "LOW"
     assert create_response["channel"]["preset"] == ""
     assert create_response["channel"]["recordingConfigurationArn"] == ""

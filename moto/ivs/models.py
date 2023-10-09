@@ -30,7 +30,7 @@ class IVSBackend(BaseBackend):
         preset,
         recording_configuration_arn,
         tags,
-        type,
+        channel_type,
     ):
         channel_id = mock_random.get_random_string(12)
         channel_arn = (
@@ -47,7 +47,7 @@ class IVSBackend(BaseBackend):
             "preset": preset,
             "recordingConfigurationArn": recording_configuration_arn,
             "tags": tags,
-            "type": type,
+            "type": channel_type,
         }
         self.channels.append(channel)
         stream_key_id = mock_random.get_random_string(12)
@@ -104,7 +104,7 @@ class IVSBackend(BaseBackend):
         name,
         preset,
         recording_configuration_arn,
-        type,
+        channel_type,
     ):
         channel = self._find_channel(arn)
         if authorized is not None:
@@ -119,8 +119,8 @@ class IVSBackend(BaseBackend):
             channel["preset"] = preset
         if recording_configuration_arn is not None:
             channel["recordingConfigurationArn"] = recording_configuration_arn
-        if type is not None:
-            channel["type"] = type
+        if channel_type is not None:
+            channel["type"] = channel_type
         return channel
 
     def delete_channel(self, arn):

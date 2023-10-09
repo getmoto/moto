@@ -23,7 +23,7 @@ class IVSResponse(BaseResponse):
         preset = self._get_param("preset", "")
         recording_configuration_arn = self._get_param("recordingConfigurationArn", "")
         tags = self._get_param("tags", {})
-        type = self._get_param("type", "STANDARD")
+        channel_type = self._get_param("type", "STANDARD")
         channel, stream_key = self.ivs_backend.create_channel(
             authorized=authorized,
             insecure_ingest=insecure_ingest,
@@ -32,7 +32,7 @@ class IVSResponse(BaseResponse):
             preset=preset,
             recording_configuration_arn=recording_configuration_arn,
             tags=tags,
-            type=type,
+            channel_type=channel_type,
         )
         return json.dumps(dict(channel=channel, streamKey=stream_key))
 
@@ -73,7 +73,7 @@ class IVSResponse(BaseResponse):
         name = self._get_param("name")
         preset = self._get_param("preset")
         recording_configuration_arn = self._get_param("recordingConfigurationArn")
-        type = self._get_param("type")
+        channel_type = self._get_param("type")
         channel = self.ivs_backend.update_channel(
             arn=arn,
             authorized=authorized,
@@ -82,7 +82,7 @@ class IVSResponse(BaseResponse):
             name=name,
             preset=preset,
             recording_configuration_arn=recording_configuration_arn,
-            type=type,
+            channel_type=channel_type,
         )
         return json.dumps(dict(channel=channel))
 
