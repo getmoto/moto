@@ -1790,13 +1790,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         delimiter: Optional[str] = None,
         key_marker: Optional[str] = None,
+        max_keys: Optional[int] = 1000,
         prefix: str = "",
-    ) -> Tuple[List[FakeKey], List[str], List[FakeDeleteMarker]]:
+        version_id_marker: Optional[str] = None,
+    ) -> Tuple[
+        List[FakeKey], List[str], List[FakeDeleteMarker], Optional[str], Optional[str]
+    ]:
         bucket = self.get_bucket(bucket_name)
 
         common_prefixes: List[str] = []
         requested_versions: List[FakeKey] = []
         delete_markers: List[FakeDeleteMarker] = []
+        next_key_marker: Optional[str] = None
+        next_version_id_marker: Optional[str] = None
         all_versions = list(
             itertools.chain(
                 *(
@@ -1807,16 +1813,21 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         # sort by name, revert last-modified-date
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
-        last_name = None
-        for version in all_versions:
+
+        def key_or_version_match(ver: FakeKey | FakeDeleteMarker) -> bool:
+            if key_marker is None:
+                return True
+
+            if version_id_marker is None:
+                return key_marker == ver.name
+
+            return key_marker == ver.name and version_id_marker == ver.version_id
+
+        for version in itertools.dropwhile(
+            lambda ver: not key_or_version_match(ver),
+            all_versions,
+        ):
             name = version.name
-            # guaranteed to be sorted - so the first key with this name will be the latest
-            version.is_latest = name != last_name
-            if version.is_latest:
-                last_name = name
-            # skip all keys that alphabetically come before keymarker
-            if key_marker and name < key_marker:
-                continue
             # Filter for keys that start with prefix
             if not name.startswith(prefix):
                 continue
@@ -1829,6 +1840,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 common_prefixes.append(prefix_including_delimiter)
                 continue
 
+            # Only return max_keys items.
+            if (
+                max_keys is not None
+                and len(requested_versions) + len(delete_markers) >= max_keys
+            ):
+                next_key_marker = version.name
+                next_version_id_marker = version.version_id
+                break
+
             # Differentiate between FakeKey and FakeDeleteMarkers
             if not isinstance(version, FakeKey):
                 delete_markers.append(version)
@@ -1838,7 +1858,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         common_prefixes = sorted(set(common_prefixes))
 
-        return requested_versions, common_prefixes, delete_markers
+        return (
+            requested_versions,
+            common_prefixes,
+            delete_markers,
+            next_key_marker,
+            next_version_id_marker,
+        )
 
     def get_bucket_policy(self, bucket_name: str) -> Optional[bytes]:
         return self.get_bucket(bucket_name).policy

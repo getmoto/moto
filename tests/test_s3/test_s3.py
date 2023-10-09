@@ -2614,6 +2614,47 @@ def test_list_object_versions_with_versioning_enabled_late():
 
 
 @mock_s3
+def test_list_object_versions_with_paging():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "000" + str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    versions = (
+        s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver1"),
+        s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver2"),
+        s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver3"),
+    )
+
+    # First page should have the two most recent versions.
+    page1 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+    )
+    assert len(page1["Versions"]) == 2
+    assert page1["Versions"][0]["VersionId"] == versions[2]["VersionId"]
+    assert page1["Versions"][1]["VersionId"] == versions[1]["VersionId"]
+    assert page1["IsTruncated"] is True
+    assert "NextKeyMarker" in page1
+    assert "NextVersionIdMarker" in page1
+
+    # Second page should be the last page and have the oldest version.
+    page2 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+        KeyMarker=page1["NextKeyMarker"],
+        VersionIdMarker=page1["NextVersionIdMarker"],
+    )
+    assert len(page2["Versions"]) == 1
+    assert page2["Versions"][0]["VersionId"] == versions[0]["VersionId"]
+    assert page2["IsTruncated"] is False
+    assert "NextKeyMarker" not in page2
+    assert "NextVersionIdMarker" not in page2
+
+
+@mock_s3
 def test_bad_prefix_list_object_versions():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
