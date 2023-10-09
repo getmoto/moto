@@ -1,5 +1,5 @@
 """IVSBackend class with methods for supported APIs."""
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict, Tuple
 from moto.core import BaseBackend, BackendDict
 from moto.ivs.exceptions import ResourceNotFoundException
 from moto.utilities.paginator import paginate
@@ -20,7 +20,7 @@ class IVSBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.channels: list[dict[str, Any]] = []
+        self.channels: List[Dict[str, Any]] = []
 
     def create_channel(
         self,
@@ -30,9 +30,9 @@ class IVSBackend(BaseBackend):
         name: str,
         preset: str,
         recording_configuration_arn: str,
-        tags: dict[str, str],
+        tags: Dict[str, str],
         channel_type: str,
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         channel_id = mock_random.get_random_string(12)
         channel_arn = (
             f"arn:aws:ivs:{self.region_name}:{self.account_id}:channel/{channel_id}"
@@ -66,7 +66,7 @@ class IVSBackend(BaseBackend):
         self,
         filter_by_name: Optional[str],
         filter_by_recording_configuration_arn: Optional[str],
-    ) -> list[dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         if filter_by_name is not None:
             channels = [
                 channel
@@ -84,18 +84,18 @@ class IVSBackend(BaseBackend):
             channels = self.channels
         return channels
 
-    def _find_channel(self, arn: str) -> dict[str, Any]:
+    def _find_channel(self, arn: str) -> Dict[str, Any]:
         try:
             return next(channel for channel in self.channels if channel["arn"] == arn)
         except StopIteration:
             raise ResourceNotFoundException(f"Resource: {arn} not found")
 
-    def get_channel(self, arn: str) -> dict[str, Any]:
+    def get_channel(self, arn: str) -> Dict[str, Any]:
         return self._find_channel(arn)
 
     def batch_get_channel(
-        self, arns: list[str]
-    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+        self, arns: List[str]
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
         return [channel for channel in self.channels if channel["arn"] in arns], []
 
     def update_channel(
@@ -108,7 +108,7 @@ class IVSBackend(BaseBackend):
         preset: Optional[str],
         recording_configuration_arn: Optional[str],
         channel_type: Optional[str],
-    ) -> dict[str, Any]:
+    ) -> Dict[str, Any]:
         channel = self._find_channel(arn)
         if authorized is not None:
             channel["authorized"] = authorized
