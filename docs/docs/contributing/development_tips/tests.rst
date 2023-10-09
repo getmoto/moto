@@ -33,7 +33,7 @@ To verify whether your tests pass in ServerMode, you can run the following comma
 
 .. sourcecode:: bash
 
-  moto_server
+  python moto/server.py
   TEST_SERVER_MODE=true pytest -sv tests/test_service/..
 
 
