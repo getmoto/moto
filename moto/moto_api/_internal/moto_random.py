@@ -34,4 +34,5 @@ class MotoRandom(Random):
 
     # Based on https://github.com/python/cpython/blob/main/Lib/secrets.py
     def token_urlsafe(self, nbytes: int) -> str:
-        return urlsafe_b64encode(self.randbytes(nbytes)).rstrip(b"=").decode("ascii")
+        randbytes = self.getrandbits(nbytes * 8).to_bytes(nbytes, "little")
+        return urlsafe_b64encode(randbytes).rstrip(b"=").decode("ascii")
