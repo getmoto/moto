@@ -1500,11 +1500,11 @@ class S3Response(BaseResponse):
                         bucket_name,
                         upload_id,
                         part_number,
-                        src_bucket,
-                        src_key,
-                        src_version_id,
-                        start_byte,
-                        end_byte,
+                        src_bucket_name=src_bucket,
+                        src_key_name=src_key,
+                        src_version_id=src_version_id,
+                        start_byte=start_byte,
+                        end_byte=end_byte,
                     )
                 else:
                     return 404, response_headers, ""

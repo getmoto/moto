@@ -878,7 +878,7 @@ class EventPattern:
         event = json.loads(json.dumps(event))
         return self._does_event_match(event, self._pattern)
 
-    def _does_event_match(self, event: Dict[str, Any], pattern: Dict[str, str]) -> bool:
+    def _does_event_match(self, event: Dict[str, Any], pattern: Dict[str, Any]) -> bool:
         items_and_filters = [(event.get(k, UNDEFINED), v) for k, v in pattern.items()]
         nested_filter_matches = [
             self._does_event_match(item, nested_filter)
