@@ -22,7 +22,7 @@ def dynamodb_aws_verified(func):
     @wraps(func)
     def pagination_wrapper():
         client = boto3.client("dynamodb", region_name="us-east-1")
-        table_name = str(uuid4())[0:6]
+        table_name = "t" + str(uuid4())[0:6]
 
         allow_aws_request = (
             os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
