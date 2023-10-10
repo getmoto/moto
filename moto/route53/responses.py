@@ -250,8 +250,8 @@ class Route53(BaseResponse):
                 is_truncated,
             ) = self.backend.list_resource_record_sets(
                 zoneid,
-                start_type=start_type,
-                start_name=start_name,
+                start_type=start_type,  # type: ignore
+                start_name=start_name,  # type: ignore
                 max_items=max_items,
             )
             r_template = template.render(

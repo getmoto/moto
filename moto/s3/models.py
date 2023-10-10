@@ -2328,7 +2328,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         part_id: int,
         src_bucket_name: str,
         src_key_name: str,
-        src_version_id: str,
+        src_version_id: Optional[str],
         start_byte: int,
         end_byte: int,
     ) -> FakeKey:
