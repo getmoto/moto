@@ -1297,6 +1297,7 @@ def test_render_template():
     )
 
 
+@pytest.mark.aws_verified
 @ses_aws_verified
 def test_render_template__advanced():
     conn = boto3.client("ses", region_name="us-east-1")
