@@ -10,6 +10,13 @@ from unittest import SkipTest
 from .helpers import rsa_check_private_key
 
 
+ED25519_PUBLIC_KEY_OPENSSH = b"""\
+ssh-ed25519 \
+AAAAC3NzaC1lZDI1NTE5AAAAIEwsSB9HbTeKCdkSlMZeTq9jZggaPJUwAsUi/7wakB+B \
+moto@getmoto"""
+
+ED25519_PUBLIC_KEY_FINGERPRINT = "6c:d9:cf:90:d7:f7:bc:46:83:9e:f5:56:aa:e1:13:38"
+
 RSA_PUBLIC_KEY_OPENSSH = b"""\
 ssh-rsa \
 AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H\
@@ -145,13 +152,22 @@ def test_key_pairs_delete_exist_boto3():
 
 
 @mock_ec2
-def test_key_pairs_import_boto3():
+@pytest.mark.parametrize(
+    "public_key,fingerprint",
+    [
+        (RSA_PUBLIC_KEY_OPENSSH, RSA_PUBLIC_KEY_FINGERPRINT),
+        (RSA_PUBLIC_KEY_RFC4716, RSA_PUBLIC_KEY_FINGERPRINT),
+        (ED25519_PUBLIC_KEY_OPENSSH, ED25519_PUBLIC_KEY_FINGERPRINT),
+    ],
+    ids=["rsa-openssh", "rsa-rfc4716", "ed25519"],
+)
+def test_key_pairs_import_boto3(public_key, fingerprint):
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
     with pytest.raises(ClientError) as ex:
         client.import_key_pair(
-            KeyName=key_name, PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH, DryRun=True
+            KeyName=key_name, PublicKeyMaterial=public_key, DryRun=True
         )
     assert ex.value.response["Error"]["Code"] == "DryRunOperation"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
@@ -160,26 +176,15 @@ def test_key_pairs_import_boto3():
         == "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    kp1 = client.import_key_pair(
-        KeyName=key_name, PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH
-    )
+    kp1 = client.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key)
 
     assert "KeyPairId" in kp1
     assert kp1["KeyName"] == key_name
-    assert kp1["KeyFingerprint"] == RSA_PUBLIC_KEY_FINGERPRINT
-
-    key_name2 = str(uuid4())
-    kp2 = client.import_key_pair(
-        KeyName=key_name2, PublicKeyMaterial=RSA_PUBLIC_KEY_RFC4716
-    )
-    assert "KeyPairId" in kp2
-    assert kp2["KeyName"] == key_name2
-    assert kp2["KeyFingerprint"] == RSA_PUBLIC_KEY_FINGERPRINT
+    assert kp1["KeyFingerprint"] == fingerprint
 
     all_kps = client.describe_key_pairs()["KeyPairs"]
     all_names = [kp["KeyName"] for kp in all_kps]
     assert kp1["KeyName"] in all_names
-    assert kp2["KeyName"] in all_names
 
 
 @mock_ec2

@@ -8,6 +8,10 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.primitives.serialization import load_ssh_public_key
+
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
@@ -561,10 +565,10 @@ def random_key_pair() -> Dict[str, str]:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    public_key_fingerprint = rsa_public_key_fingerprint(private_key.public_key())
+    fingerprint = public_key_fingerprint(private_key.public_key())
 
     return {
-        "fingerprint": public_key_fingerprint,
+        "fingerprint": fingerprint,
         "material": private_key_material.decode("ascii"),
     }
 
@@ -645,8 +649,9 @@ def generate_instance_identity_document(instance: Any) -> Dict[str, Any]:
     return document
 
 
-def rsa_public_key_parse(key_material: Any) -> Any:
+def public_key_parse(key_material: str) -> Union[RSAPublicKey, Ed25519PublicKey]:
     # These imports take ~.5s; let's keep them local
+    # TODO remove sshpubkeys dep
     import sshpubkeys.exceptions
     from sshpubkeys.keys import SSHKey
 
@@ -659,14 +664,17 @@ def rsa_public_key_parse(key_material: Any) -> Any:
     except (sshpubkeys.exceptions.InvalidKeyException, UnicodeDecodeError):
         raise ValueError("bad key")
 
-    if not public_key.rsa:
-        raise ValueError("bad key")
+    if public_key.rsa:
+        return public_key.rsa
 
-    return public_key.rsa
+    if public_key.key_type == b"ssh-ed25519":
+        return load_ssh_public_key(bytes(decoded_key, "ascii"))
+
+    raise ValueError("bad key")
 
 
-def rsa_public_key_fingerprint(rsa_public_key: Any) -> str:
-    key_data = rsa_public_key.public_bytes(
+def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:
+    key_data = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )

@@ -9,8 +9,8 @@ from ..exceptions import (
 )
 from ..utils import (
     random_key_pair,
-    rsa_public_key_fingerprint,
-    rsa_public_key_parse,
+    public_key_fingerprint,
+    public_key_parse,
     generic_filter,
     random_key_pair_id,
 )
@@ -77,11 +77,11 @@ class KeyPairBackend:
             raise InvalidKeyPairDuplicateError(key_name)
 
         try:
-            rsa_public_key = rsa_public_key_parse(public_key_material)
+            public_key = public_key_parse(public_key_material)
         except ValueError:
             raise InvalidKeyPairFormatError()
 
-        fingerprint = rsa_public_key_fingerprint(rsa_public_key)
+        fingerprint = public_key_fingerprint(public_key)
         keypair = KeyPair(
             key_name, material=public_key_material, fingerprint=fingerprint
         )
