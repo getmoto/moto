@@ -69,6 +69,11 @@ class DHCPOptionsSetBackend:
         dhcp_options.vpc = vpc
         vpc.dhcp_options = dhcp_options
 
+    def disassociate_dhcp_options(self, vpc: Any) -> None:
+        if vpc.dhcp_options:
+            vpc.dhcp_options.vpc = None
+        vpc.dhcp_options = None
+
     def create_dhcp_options(
         self,
         domain_name_servers: Optional[List[str]] = None,
