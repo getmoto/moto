@@ -67,6 +67,34 @@ def test_dhcp_options_associate_invalid_vpc_id():
 
 
 @mock_ec2
+def test_dhcp_options_disassociation():
+    """Ensure that VPCs can be set to the 'default' DHCP options set for disassociation."""
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+    dhcp_options = ec2.create_dhcp_options(
+        DhcpConfigurations=[
+            {"Key": "domain-name", "Values": [SAMPLE_DOMAIN_NAME]},
+            {"Key": "domain-name-servers", "Values": SAMPLE_NAME_SERVERS},
+        ]
+    )
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    # Ensure newly created VPCs without any DHCP options can be disassociated
+    client.associate_dhcp_options(DhcpOptionsId="default", VpcId=vpc.id)
+    vpc.reload()
+    assert vpc.dhcp_options_id == "default"
+
+    client.associate_dhcp_options(DhcpOptionsId=dhcp_options.id, VpcId=vpc.id)
+    vpc.reload()
+    assert vpc.dhcp_options_id == dhcp_options.id
+
+    # Ensure VPCs with already associated DHCP options can be disassociated
+    client.associate_dhcp_options(DhcpOptionsId="default", VpcId=vpc.id)
+    vpc.reload()
+    assert vpc.dhcp_options_id == "default"
+
+
+@mock_ec2
 def test_dhcp_options_delete_with_vpc():
     """Test deletion of dhcp options with vpc"""
     ec2 = boto3.resource("ec2", region_name="us-west-1")

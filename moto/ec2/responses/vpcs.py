@@ -374,7 +374,7 @@ CREATE_VPC_RESPONSE = """
               {% endfor %}
           </ipv6CidrBlockAssociationSet>
         {% endif %}
-      <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-1a2b3c4d2{% endif %}</dhcpOptionsId>
+      <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}default{% endif %}</dhcpOptionsId>
       <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
       <ownerId> {{ vpc.owner_id }}</ownerId>
       <tagSet>
@@ -475,7 +475,7 @@ DESCRIBE_VPCS_RESPONSE = """
               {% endfor %}
             </ipv6CidrBlockAssociationSet>
         {% endif %}
-        <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}dopt-7a8b9c2d{% endif %}</dhcpOptionsId>
+        <dhcpOptionsId>{% if vpc.dhcp_options %}{{ vpc.dhcp_options.id }}{% else %}default{% endif %}</dhcpOptionsId>
         <instanceTenancy>{{ vpc.instance_tenancy }}</instanceTenancy>
         <isDefault>{{ vpc.is_default }}</isDefault>
         <ownerId> {{ vpc.owner_id }}</ownerId>
