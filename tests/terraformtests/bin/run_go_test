@@ -20,8 +20,8 @@ PATCH="etc/0001-Patch-Hardcode-endpoints-to-local-server.patch"
 cd terraform-provider-aws || exit
 echo "Running tests $2 for service $1..."
 TF_ACC=1 \
-  AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-west-1 \
-  AWS_ALTERNATE_ACCESS_KEY_ID=test AWS_ALTERNATE_SECRET_ACCESS_KEY=test AWS_ALTERNATE_REGION=us-east-2 \
-  AWS_THIRD_SECRET_ACCESS_KEY=test AWS_THIRD_ACCESS_KEY_ID=test AWS_THIRD_REGION=eu-west-1 \
+  AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+  AWS_ALTERNATE_ACCESS_KEY_ID=test AWS_ALTERNATE_SECRET_ACCESS_KEY=test AWS_ALTERNATE_REGION=us-east-1 \
+  AWS_THIRD_SECRET_ACCESS_KEY=test AWS_THIRD_ACCESS_KEY_ID=test AWS_THIRD_REGION=us-east-1 \
   go test ./internal/service/$1/ -v -timeout 60m -run $2
 )
