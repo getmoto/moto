@@ -484,6 +484,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         all_jobs: Dict[str, "Job"],
         timeout: Optional[Dict[str, int]],
         array_properties: Dict[str, Any],
+        provided_job_id: Optional[str] = None,
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -494,7 +495,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         )
 
         self.job_name = name
-        self.job_id = str(mock_random.uuid4())
+        self.job_id = provided_job_id or str(mock_random.uuid4())
         self.job_definition = job_def
         self.container_overrides: Dict[str, Any] = container_overrides or {}
         self.job_queue = job_queue
@@ -527,6 +528,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
 
         self.attempts: List[Dict[str, Any]] = []
         self.latest_attempt: Optional[Dict[str, Any]] = None
+        self._child_jobs: Optional[List[Job]] = None
 
     def describe_short(self) -> Dict[str, Any]:
         result = {
@@ -564,20 +566,26 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         if self.timeout:
             result["timeout"] = self.timeout
         result["attempts"] = self.attempts
-        if self.array_properties:
-            size = self.array_properties["size"]
-            result["arrayProperties"] = {
-                "statusSummary": {
-                    "STARTING": 0,
-                    "FAILED": 0,
-                    "RUNNING": 0,
-                    "SUCCEEDED": size,
-                    "RUNNABLE": 0,
-                    "SUBMITTED": 0,
-                    "PENDING": 0,
-                },
-                "size": size,
+        if self._child_jobs:
+            child_statuses = {
+                "STARTING": 0,
+                "FAILED": 0,
+                "RUNNING": 0,
+                "SUCCEEDED": 0,
+                "RUNNABLE": 0,
+                "SUBMITTED": 0,
+                "PENDING": 0,
             }
+            for child_job in self._child_jobs:
+                if child_job.status is not None:
+                    child_statuses[child_job.status] += 1
+            result["arrayProperties"] = {
+                "statusSummary": child_statuses,
+                "size": len(self._child_jobs),
+            }
+            if len(self._child_jobs) == child_statuses["SUCCEEDED"]:
+                self.status = "SUCCEEDED"
+                result["status"] = self.status
         return result
 
     def _container_details(self) -> Dict[str, Any]:
@@ -693,7 +701,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                             )
                             for m in self._get_container_property("mountPoints", [])
                         ],
-                        "name": f"{self.job_name}-{self.job_id}",
+                        "name": f"{self.job_name}-{self.job_id.replace(':', '-')}",
                     }
                 )
             else:
@@ -1722,7 +1730,7 @@ class BatchBackend(BaseBackend):
         job_name: str,
         job_def_id: str,
         job_queue: str,
-        array_properties: Optional[Dict[str, int]],
+        array_properties: Dict[str, int],
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
@@ -1755,8 +1763,32 @@ class BatchBackend(BaseBackend):
         )
         self._jobs[job.job_id] = job
 
-        # Here comes the fun
-        job.start()
+        if "size" in array_properties:
+            child_jobs = []
+            for array_index in range(array_properties["size"]):
+                provided_job_id = f"{job.job_id}:{array_index}"
+                child_job = Job(
+                    job_name,
+                    job_def,
+                    queue,
+                    log_backend=self.logs_backend,
+                    container_overrides=container_overrides,
+                    depends_on=depends_on,
+                    all_jobs=self._jobs,
+                    timeout=timeout,
+                    array_properties={"statusSummary": {}, "index": array_index},
+                    provided_job_id=provided_job_id,
+                )
+                child_jobs.append(child_job)
+                self._jobs[child_job.job_id] = child_job
+                child_job.start()
+
+            # The 'parent' job doesn't need to be executed
+            # it just needs to keep track of it's children
+            job._child_jobs = child_jobs
+        else:
+            # Here comes the fun
+            job.start()
         return job_name, job.job_id
 
     def describe_jobs(self, jobs: Optional[List[str]]) -> List[Dict[str, Any]]:
@@ -1766,24 +1798,12 @@ class BatchBackend(BaseBackend):
 
         result = []
         for key, job in self._jobs.items():
-            if len(job_filter) > 0:
-                for f in job_filter:
-                    # account for array job
-                    if ":" in f:
-                        real_f, job_index = f.split(":")
-                        if (
-                            real_f == key
-                            and int(job_index) >= 0
-                            and int(job_index) < job.array_properties["size"]
-                        ):
-                            child_job = job.describe()
-                            child_job["jobArn"] = f"{child_job['jobArn']}:{job_index}"
-                            child_job["jobId"] = f"{child_job['jobId']}:{job_index}"
-                            result.append(child_job)
-
-                if key not in job_filter and job.arn not in job_filter:
-                    # didn't find our job, skip
-                    continue
+            if (
+                len(job_filter) > 0
+                and key not in job_filter
+                and job.arn not in job_filter
+            ):
+                continue
 
             result.append(job.describe())
 

@@ -86,7 +86,6 @@ def test_submit_job_by_name():
     assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
 
 
-@mock_logs
 @mock_ec2
 @mock_ecs
 @mock_iam
@@ -110,23 +109,25 @@ def test_submit_job_array_size():
     # Verify
     job_id = resp["jobId"]
     child_job_1_id = f"{job_id}:0"
-    child_job_2_id = f"{job_id}:1"
-    non_existent_child_job_3_id = f"{job_id}:2"
 
-    resp_main_job = batch_client.describe_jobs(jobs=[job_id])
-    resp_child_job_1_id = batch_client.describe_jobs(jobs=[child_job_1_id])
-    resp_child_job_2_id = batch_client.describe_jobs(jobs=[child_job_2_id])
-    resp_non_existent_child_job_3_id = batch_client.describe_jobs(
-        jobs=[non_existent_child_job_3_id]
-    )
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
 
-    job = resp_main_job["jobs"][0]
-
-    assert "arrayProperties" in job
     assert job["arrayProperties"]["size"] == 2
-    assert resp_child_job_1_id["jobs"]
-    assert resp_child_job_2_id["jobs"]
-    assert not resp_non_existent_child_job_3_id["jobs"]
+    assert job["attempts"] == []
+
+    _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
+
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
+    # If the main job is successful, that means that all child jobs are successful
+    assert job["arrayProperties"]["size"] == 2
+    assert job["arrayProperties"]["statusSummary"]["SUCCEEDED"] == 2
+    # Main job still has no attempts - because only the child jobs are executed
+    assert job["attempts"] == []
+
+    child_job_1 = batch_client.describe_jobs(jobs=[child_job_1_id])["jobs"][0]
+    assert child_job_1["status"] == "SUCCEEDED"
+    # Child job was executed
+    assert len(child_job_1["attempts"]) == 1
 
 
 # SLOW TESTS

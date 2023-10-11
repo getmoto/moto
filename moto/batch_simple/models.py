@@ -42,7 +42,7 @@ class BatchSimpleBackend(BaseBackend):
             "url_bases",
         ]:
             return object.__getattribute__(self, name)
-        if name in ["submit_job"]:
+        if name in ["submit_job", "_mark_job_as_finished"]:
 
             def newfunc(*args: Any, **kwargs: Any) -> Any:
                 attr = object.__getattribute__(self, name)
@@ -57,7 +57,7 @@ class BatchSimpleBackend(BaseBackend):
         job_name: str,
         job_def_id: str,
         job_queue: str,
-        array_properties: Optional[Dict[str, int]],
+        array_properties: Dict[str, Any],
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
@@ -80,14 +80,40 @@ class BatchSimpleBackend(BaseBackend):
             depends_on=depends_on,
             all_jobs=self._jobs,
             timeout=timeout,
-            array_properties=array_properties or {},
+            array_properties=array_properties,
         )
-        self.backend._jobs[job.job_id] = job
 
+        if "size" in array_properties:
+            child_jobs: List[Job] = []
+            for array_index in range(array_properties.get("size", 0)):
+                provided_job_id = f"{job.job_id}:{array_index}"
+                child_job = Job(
+                    job_name,
+                    job_def,
+                    queue,
+                    log_backend=self.logs_backend,
+                    container_overrides=container_overrides,
+                    depends_on=depends_on,
+                    all_jobs=self._jobs,
+                    timeout=timeout,
+                    array_properties={"statusSummary": {}, "index": array_index},
+                    provided_job_id=provided_job_id,
+                )
+                self._mark_job_as_finished(include_start_attempt=True, job=child_job)
+                child_jobs.append(child_job)
+            self._mark_job_as_finished(include_start_attempt=False, job=job)
+            job._child_jobs = child_jobs
+        else:
+            self._mark_job_as_finished(include_start_attempt=True, job=job)
+
+        return job_name, job.job_id
+
+    def _mark_job_as_finished(self, include_start_attempt: bool, job: Job) -> None:
+        self.backend._jobs[job.job_id] = job
         job.job_started_at = datetime.datetime.now()
         job.log_stream_name = job._stream_name
-        job._start_attempt()
-
+        if include_start_attempt:
+            job._start_attempt()
         # We don't want to actually run the job - just mark it as succeeded or failed
         # depending on whether env var MOTO_SIMPLE_BATCH_FAIL_AFTER is set
         # if MOTO_SIMPLE_BATCH_FAIL_AFTER is set to an integer then batch will
@@ -105,8 +131,6 @@ class BatchSimpleBackend(BaseBackend):
             job._mark_stopped(success=False)
         else:
             job._mark_stopped(success=True)
-
-        return job_name, job.job_id
 
 
 batch_simple_backends = BackendDict(BatchSimpleBackend, "batch")
