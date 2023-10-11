@@ -267,14 +267,58 @@ elb:
   - TestAccELBSSLNegotiationPolicy
 elbv2:
   - TestAccELBV2ListenerCertificate
-  - TestAccELBV2TargetGroupAttachment
-  - TestAccELBV2TargetGroupDataSource
-  - TestAccELBV2TargetGroup_ALBAlias
-  - TestAccELBV2TargetGroup_networkLB
-  - TestAccELBV2TargetGroup_NetworkLB
+  - TestAccELBV2TargetGroup_backwardsCompatibility
+  - TestAccELBV2TargetGroup_ProtocolVersion_grpcHealthCheck
+  - TestAccELBV2TargetGroup_ProtocolVersion_grpcUpdate
+  - TestAccELBV2TargetGroup_ipAddressType
+  - TestAccELBV2TargetGroup_tls
+  - TestAccELBV2TargetGroup_HealthCheck_tcpHTTPS
+  - TestAccELBV2TargetGroup_attrsOnCreate
+  - TestAccELBV2TargetGroup_basic
+  - TestAccELBV2TargetGroup_udp
+  - TestAccELBV2TargetGroup_ForceNew_name
+  - TestAccELBV2TargetGroup_ForceNew_vpc
+  - TestAccELBV2TargetGroup_Defaults_application
+  - TestAccELBV2TargetGroup_Defaults_network
+  - TestAccELBV2TargetGroup_HealthCheck_enable
+  - TestAccELBV2TargetGroup_Name_generated
+  - TestAccELBV2TargetGroup_Name_prefix
+  - TestAccELBV2TargetGroup_NetworkLB_tcpHealthCheckUpdated
+  - TestAccELBV2TargetGroup_networkLB_TargetGroupWithConnectionTermination
+  - TestAccELBV2TargetGroup_NetworkLB_targetGroupWithProxy
+  - TestAccELBV2TargetGroup_preserveClientIPValid
+  - TestAccELBV2TargetGroup_Geneve_basic
+  - TestAccELBV2TargetGroup_Geneve_notSticky
+  - TestAccELBV2TargetGroup_Geneve_Sticky
+  - TestAccELBV2TargetGroup_Geneve_targetFailover
   - TestAccELBV2TargetGroup_Stickiness_defaultALB
-  - TestAccELBV2TargetGroup_Stickiness_valid
-  - TestAccELBV2TargetGroup_Stickiness_update
+  - TestAccELBV2TargetGroup_Stickiness_defaultNLB
+  - TestAccELBV2TargetGroup_Stickiness_invalidALB
+  - TestAccELBV2TargetGroup_Stickiness_invalidNLB
+  - TestAccELBV2TargetGroup_Stickiness_validALB
+  - TestAccELBV2TargetGroup_Stickiness_validNLB
+  - TestAccELBV2TargetGroup_tags
+  - TestAccELBV2TargetGroup_Stickiness_updateAppEnabled
+  - TestAccELBV2TargetGroup_HealthCheck_update
+  - TestAccELBV2TargetGroup_Stickiness_updateEnabled
+  - TestAccELBV2TargetGroup_HealthCheck_without
+  - TestAccELBV2TargetGroup_ALBAlias_basic
+  - TestAccELBV2TargetGroup_ALBAlias_changeNameForceNew
+  - TestAccELBV2TargetGroup_ALBAlias_changePortForceNew
+  - TestAccELBV2TargetGroup_ALBAlias_changeProtocolForceNew
+  - TestAccELBV2TargetGroup_ALBAlias_changeVPCForceNew
+  - TestAccELBV2TargetGroup_ALBAlias_generatedName
+  - TestAccELBV2TargetGroup_ALBAlias_lambda
+  - TestAccELBV2TargetGroup_ALBAlias_lambdaMultiValueHeadersEnabled
+  - TestAccELBV2TargetGroup_ALBAlias_missingPortProtocolVPC
+  - TestAccELBV2TargetGroup_ALBAlias_namePrefix
+  - TestAccELBV2TargetGroup_ALBAlias_setAndUpdateSlowStart
+  - TestAccELBV2TargetGroup_ALBAlias_tags
+  - TestAccELBV2TargetGroup_ALBAlias_updateHealthCheck
+  - TestAccELBV2TargetGroup_ALBAlias_updateLoadBalancingAlgorithmType
+  - TestAccELBV2TargetGroup_ALBAlias_updateLoadBalancingCrossZoneEnabled
+  - TestAccELBV2TargetGroup_ALBAlias_updateStickinessEnabled
+  - TestAccELBV2TargetGroup_Name_noDuplicates
 events:
   - TestAccEventsAPIDestination
   - TestAccEventsArchive
