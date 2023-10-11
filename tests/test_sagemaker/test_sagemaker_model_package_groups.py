@@ -1,8 +1,10 @@
 """Unit tests for sagemaker-supported APIs."""
 from unittest import SkipTest
+from datetime import datetime
 
 import boto3
 from freezegun import freeze_time
+from dateutil.tz import tzutc  # type: ignore
 
 from moto import mock_sagemaker, settings
 
@@ -163,3 +165,28 @@ def test_list_model_package_groups_sort_order():
         resp["ModelPackageGroupSummaryList"][1]["ModelPackageGroupName"]
         == "test-model-package-group-1"
     )
+
+
+@mock_sagemaker
+def test_describe_model_package_group():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    with freeze_time("2020-01-01 00:00:00"):
+        client.create_model_package_group(
+            ModelPackageGroupName="test-model-package-group",
+            ModelPackageGroupDescription="test-model-package-group-description",
+        )
+    resp = client.describe_model_package_group(
+        ModelPackageGroupName="test-model-package-group"
+    )
+    assert resp["ModelPackageGroupName"] == "test-model-package-group"
+    assert (
+        resp["ModelPackageGroupDescription"] == "test-model-package-group-description"
+    )
+    assert (
+        resp["ModelPackageGroupArn"]
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package-group/test-model-package-group"
+    )
+    assert resp["ModelPackageGroupStatus"] == "Completed"
+    assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc())

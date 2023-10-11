@@ -3260,6 +3260,16 @@ class SageMakerModelBackend(BaseBackend):
         )
         return model_package_group_summary_list
 
+    def describe_model_package_group(
+        self, model_package_group_name: str
+    ) -> ModelPackageGroup:
+        model_package_group = self.model_package_groups.get(model_package_group_name)
+        if model_package_group is None:
+            raise ValidationError(
+                f"Model package group {model_package_group_name} not found"
+            )
+        return model_package_group
+
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_model_packages(  # type: ignore[misc]
         self,
