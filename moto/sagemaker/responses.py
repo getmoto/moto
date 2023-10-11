@@ -874,6 +874,15 @@ class SageMakerResponse(BaseResponse):
             model_package.gen_response_object(),
         )
 
+    def describe_model_package_group(self) -> str:
+        model_package_group_name = self._get_param("ModelPackageGroupName")
+        model_package_group = self.sagemaker_backend.describe_model_package_group(
+            model_package_group_name=model_package_group_name,
+        )
+        return json.dumps(
+            model_package_group.gen_response_object(),
+        )
+
     def update_model_package(self) -> str:
         model_package_arn = self._get_param("ModelPackageArn")
         model_approval_status = self._get_param("ModelApprovalStatus")

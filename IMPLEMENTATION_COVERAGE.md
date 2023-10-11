@@ -6380,7 +6380,7 @@
 - [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
 - [X] describe_model_package
-- [ ] describe_model_package_group
+- [X] describe_model_package_group
 - [ ] describe_model_quality_job_definition
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
