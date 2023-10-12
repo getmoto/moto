@@ -2616,6 +2616,25 @@ def test_instance_iam_instance_profile():
     assert "Id" in instance.iam_instance_profile
     assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
 
+    tag_key = str(uuid4())[0:6]
+    with pytest.raises(ClientError) as exc:
+        ec2_resource.create_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            MinCount=1,
+            MaxCount=1,
+            IamInstanceProfile={"Arn": "unknown:instance:profile"},
+            TagSpecifications=[
+                {"ResourceType": "instance", "Tags": [{"Key": tag_key, "Value": "val"}]}
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchEntity"
+    assert err["Message"] == "Instance profile unknown:instance:profile not found"
+
+    ec2_client = boto3.client("ec2", "us-west-1")
+    filters = [{"Name": "tag-key", "Values": [tag_key]}]
+    assert retrieve_all_instances(ec2_client, filters) == []
+
 
 def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
     resp = client.describe_instances(Filters=filters)
