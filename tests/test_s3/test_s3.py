@@ -2622,23 +2622,32 @@ def test_list_object_versions_with_paging():
         Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
     )
 
-    versions = (
-        s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver1"),
-        s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver2"),
-        s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver3"),
-    )
+    obj1ver1 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver1")
+    obj1ver2 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver2")
+    obj1ver3 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver3")
 
-    # First page should have the two most recent versions.
     page1 = s3_client.list_object_versions(
         Bucket=bucket_name,
         MaxKeys=2,
     )
+
+    # Page should have two versions only, and should be truncated.
     assert len(page1["Versions"]) == 2
-    assert page1["Versions"][0]["VersionId"] == versions[2]["VersionId"]
-    assert page1["Versions"][1]["VersionId"] == versions[1]["VersionId"]
+    assert "DeleteMarkers" not in page1
     assert page1["IsTruncated"] is True
+
+    # This should be obj1 ver3 (latest).
+    assert page1["Versions"][0]["VersionId"] == obj1ver3["VersionId"]
+    assert page1["Versions"][0]["IsLatest"] is True
+
+    # This should be obj1 ver2.
+    assert page1["Versions"][1]["VersionId"] == obj1ver2["VersionId"]
+
+    # The next key/version markers should point to obj1 ver1.
     assert "NextKeyMarker" in page1
+    assert page1["NextKeyMarker"] == "obj1"
     assert "NextVersionIdMarker" in page1
+    assert page1["NextVersionIdMarker"] == obj1ver1["VersionId"]
 
     # Second page should be the last page and have the oldest version.
     page2 = s3_client.list_object_versions(
@@ -2647,11 +2656,16 @@ def test_list_object_versions_with_paging():
         KeyMarker=page1["NextKeyMarker"],
         VersionIdMarker=page1["NextVersionIdMarker"],
     )
+
+    # Page should have one version only, and not be truncated.
     assert len(page2["Versions"]) == 1
-    assert page2["Versions"][0]["VersionId"] == versions[0]["VersionId"]
+    assert "DeleteMarkers" not in page2
     assert page2["IsTruncated"] is False
     assert "NextKeyMarker" not in page2
     assert "NextVersionIdMarker" not in page2
+
+    # This should be obj1 ver1.
+    assert page2["Versions"][0]["VersionId"] == obj1ver1["VersionId"]
 
 
 @mock_s3
