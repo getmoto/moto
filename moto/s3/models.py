@@ -1815,7 +1815,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
         last_name = None
 
-        def key_or_version_match(ver: FakeKey | FakeDeleteMarker) -> bool:
+        def key_or_version_match(ver: Union[FakeKey, FakeDeleteMarker]) -> bool:
             if key_marker is None:
                 return True
 
