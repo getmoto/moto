@@ -6,11 +6,12 @@ import ipaddress
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
-from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
-
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PublicKey,
+    Ed25519PrivateKey,
+)
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.hazmat.primitives.serialization import load_ssh_public_key
+from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
 
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
@@ -556,7 +557,22 @@ def simple_aws_filter_to_re(filter_string: str) -> str:
     return tmp_filter
 
 
-def random_key_pair() -> Dict[str, str]:
+def random_ed25519_key_pair() -> Dict[str, str]:
+    private_key = Ed25519PrivateKey.generate()
+    private_key_material = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.OpenSSH,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    fingerprint = public_key_fingerprint(private_key.public_key())
+
+    return {
+        "fingerprint": fingerprint,
+        "material": private_key_material.decode("ascii"),
+    }
+
+
+def random_rsa_key_pair() -> Dict[str, str]:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -649,9 +665,10 @@ def generate_instance_identity_document(instance: Any) -> Dict[str, Any]:
     return document
 
 
-def public_key_parse(key_material: str) -> Union[RSAPublicKey, Ed25519PublicKey]:
+def public_key_parse(
+    key_material: Union[str, bytes]
+) -> Union[RSAPublicKey, Ed25519PublicKey]:
     # These imports take ~.5s; let's keep them local
-    # TODO remove sshpubkeys dep
     import sshpubkeys.exceptions
     from sshpubkeys.keys import SSHKey
 
@@ -659,21 +676,25 @@ def public_key_parse(key_material: str) -> Union[RSAPublicKey, Ed25519PublicKey]
         if not isinstance(key_material, bytes):
             key_material = key_material.encode("ascii")
 
-        decoded_key = base64.b64decode(key_material).decode("ascii")
-        public_key = SSHKey(decoded_key)
+        decoded_key = base64.b64decode(key_material)
+        public_key = SSHKey(decoded_key.decode("ascii"))
     except (sshpubkeys.exceptions.InvalidKeyException, UnicodeDecodeError):
         raise ValueError("bad key")
 
     if public_key.rsa:
         return public_key.rsa
 
+    # `cryptography` currently does not support RSA RFC4716/SSH2 format, otherwise we could get rid of `sshpubkeys` and
+    # simply use `load_ssh_public_key()`
     if public_key.key_type == b"ssh-ed25519":
-        return load_ssh_public_key(bytes(decoded_key, "ascii"))
+        return serialization.load_ssh_public_key(decoded_key)  # type: ignore[return-value]
 
     raise ValueError("bad key")
 
 
 def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:
+    # TODO: Use different fingerprint calculation methods based on key type and source
+    # see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html#how-ec2-key-fingerprints-are-calculated
     key_data = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,

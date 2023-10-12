@@ -7,7 +7,7 @@ from moto import mock_ec2, settings
 from uuid import uuid4
 from unittest import SkipTest
 
-from .helpers import rsa_check_private_key
+from .helpers import check_private_key
 
 
 ED25519_PUBLIC_KEY_OPENSSH = b"""\
@@ -84,17 +84,18 @@ def test_key_pairs_create_dryrun_boto3():
 
 
 @mock_ec2
-def test_key_pairs_create_boto3():
+@pytest.mark.parametrize("key_type", ["rsa", "ed25519"])
+def test_key_pairs_create_boto3(key_type):
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
-    kp = ec2.create_key_pair(KeyName=key_name)
-    rsa_check_private_key(kp.key_material)
+    kp = ec2.create_key_pair(KeyName=key_name, KeyType=key_type)
+    check_private_key(kp.key_material, key_type)
     # Verify the client can create a key_pair as well - should behave the same
     key_name2 = str(uuid4())
-    kp2 = client.create_key_pair(KeyName=key_name2)
-    rsa_check_private_key(kp2["KeyMaterial"])
+    kp2 = client.create_key_pair(KeyName=key_name2, KeyType=key_type)
+    check_private_key(kp2["KeyMaterial"], key_type)
 
     assert kp.key_material != kp2["KeyMaterial"]
 

@@ -5,16 +5,19 @@ from pytest import raises
 
 from moto.ec2 import utils
 
-from .helpers import rsa_check_private_key
+from .helpers import check_private_key
 
 
 def test_random_key_pair():
-    key_pair = utils.random_key_pair()
-    rsa_check_private_key(key_pair["material"])
+    key_pair = utils.random_rsa_key_pair()
+    check_private_key(key_pair["material"], "rsa")
 
     # AWS uses MD5 fingerprints, which are 47 characters long, *not* SHA1
     # fingerprints with 59 characters.
     assert len(key_pair["fingerprint"]) == 47
+
+    key_pair = utils.random_ed25519_key_pair()
+    check_private_key(key_pair["material"], "ed25519")
 
 
 def test_random_ipv6_cidr():
