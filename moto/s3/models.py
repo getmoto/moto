@@ -1813,6 +1813,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         # sort by name, revert last-modified-date
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
+        last_name = None
 
         def key_or_version_match(ver: FakeKey | FakeDeleteMarker) -> bool:
             if key_marker is None:
@@ -1828,6 +1829,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             all_versions,
         ):
             name = version.name
+            # guaranteed to be sorted - so the first key with this name will be the latest
+            version.is_latest = name != last_name
+            if version.is_latest:
+                last_name = name
+
             # Filter for keys that start with prefix
             if not name.startswith(prefix):
                 continue
