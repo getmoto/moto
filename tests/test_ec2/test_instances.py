@@ -1192,6 +1192,7 @@ def test_run_instance_with_security_group_id():
 @mock_ec2
 @pytest.mark.parametrize("hibernate", [True, False])
 def test_run_instance_with_additional_args(hibernate):
+    client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID,
@@ -1205,6 +1206,10 @@ def test_run_instance_with_additional_args(hibernate):
     assert instance.instance_type == "t1.micro"
     assert instance.placement["AvailabilityZone"] == "us-east-1b"
     assert instance.hibernation_options == {"Configured": hibernate}
+
+    reservations = client.describe_instances(InstanceIds=[instance.id])["Reservations"]
+    instance = reservations[0]["Instances"][0]
+    assert instance["HibernationOptions"] == {"Configured": hibernate}
 
 
 @mock_ec2
