@@ -4,9 +4,9 @@ from ._base_response import EC2BaseResponse
 class KeyPairs(EC2BaseResponse):
     def create_key_pair(self) -> str:
         name = self._get_param("KeyName")
+        key_type = self._get_param("KeyType")
         self.error_on_dryrun()
-
-        keypair = self.ec2_backend.create_key_pair(name)
+        keypair = self.ec2_backend.create_key_pair(name, key_type)
         return self.response_template(CREATE_KEY_PAIR_RESPONSE).render(keypair=keypair)
 
     def delete_key_pair(self) -> str:
