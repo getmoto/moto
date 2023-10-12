@@ -5,6 +5,7 @@ from moto.ec2.exceptions import (
     InvalidParameterCombination,
     InvalidRequest,
 )
+from moto.ec2.utils import filter_iam_instance_profiles
 
 from copy import deepcopy
 
@@ -98,20 +99,31 @@ class InstanceResponse(EC2BaseResponse):
         if mappings:
             kwargs["block_device_mappings"] = mappings
 
+        iam_instance_profile_name = kwargs.get("iam_instance_profile_name")
+        iam_instance_profile_arn = kwargs.get("iam_instance_profile_arn")
+        if iam_instance_profile_arn or iam_instance_profile_name:
+            # Validate the profile exists, before we error_on_dryrun and add_instances
+            filter_iam_instance_profiles(
+                self.current_account,
+                iam_instance_profile_arn=iam_instance_profile_arn,
+                iam_instance_profile_name=iam_instance_profile_name,
+            )
+
         self.error_on_dryrun()
 
         new_reservation = self.ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names, **kwargs
         )
-        if kwargs.get("iam_instance_profile_name"):
+        if iam_instance_profile_name:
             self.ec2_backend.associate_iam_instance_profile(
                 instance_id=new_reservation.instances[0].id,
-                iam_instance_profile_name=kwargs.get("iam_instance_profile_name"),
+                iam_instance_profile_name=iam_instance_profile_name,
             )
-        if kwargs.get("iam_instance_profile_arn"):
+
+        if iam_instance_profile_arn:
             self.ec2_backend.associate_iam_instance_profile(
                 instance_id=new_reservation.instances[0].id,
-                iam_instance_profile_arn=kwargs.get("iam_instance_profile_arn"),
+                iam_instance_profile_arn=iam_instance_profile_arn,
             )
 
         template = self.response_template(EC2_RUN_INSTANCES)
