@@ -54,6 +54,15 @@ def test_update_thing():
     assert res["things"][0]["thingArn"] is not None
     assert res["things"][0]["attributes"]["k1"] == "v1"
 
+    client.update_thing(
+        thingName=name, attributePayload={"attributes": {"k1": ""}, "merge": True}
+    )
+    res = client.list_things()
+    assert len(res["things"]) == 1
+    assert res["things"][0]["thingName"] is not None
+    assert res["things"][0]["thingArn"] is not None
+    assert res["things"][0]["attributes"] == {}
+
 
 @mock_iot
 def test_describe_thing():
