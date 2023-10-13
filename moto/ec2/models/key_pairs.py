@@ -8,11 +8,12 @@ from ..exceptions import (
     InvalidKeyPairFormatError,
 )
 from ..utils import (
-    random_key_pair,
-    rsa_public_key_fingerprint,
-    rsa_public_key_parse,
     generic_filter,
+    public_key_fingerprint,
+    public_key_parse,
     random_key_pair_id,
+    random_ed25519_key_pair,
+    random_rsa_key_pair,
 )
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
@@ -42,10 +43,14 @@ class KeyPairBackend:
     def __init__(self) -> None:
         self.keypairs: Dict[str, KeyPair] = {}
 
-    def create_key_pair(self, name: str) -> KeyPair:
+    def create_key_pair(self, name: str, key_type: str = "rsa") -> KeyPair:
         if name in self.keypairs:
             raise InvalidKeyPairDuplicateError(name)
-        keypair = KeyPair(name, **random_key_pair())
+        if key_type == "ed25519":
+            keypair = KeyPair(name, **random_ed25519_key_pair())
+        else:
+            keypair = KeyPair(name, **random_rsa_key_pair())
+
         self.keypairs[name] = keypair
         return keypair
 
@@ -77,11 +82,11 @@ class KeyPairBackend:
             raise InvalidKeyPairDuplicateError(key_name)
 
         try:
-            rsa_public_key = rsa_public_key_parse(public_key_material)
+            public_key = public_key_parse(public_key_material)
         except ValueError:
             raise InvalidKeyPairFormatError()
 
-        fingerprint = rsa_public_key_fingerprint(rsa_public_key)
+        fingerprint = public_key_fingerprint(public_key)
         keypair = KeyPair(
             key_name, material=public_key_material, fingerprint=fingerprint
         )

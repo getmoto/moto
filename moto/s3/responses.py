@@ -34,6 +34,7 @@ from .exceptions import (
     InvalidContentMD5,
     InvalidContinuationToken,
     S3ClientError,
+    MethodNotAllowed,
     MissingBucket,
     MissingKey,
     MissingVersion,
@@ -1190,7 +1191,7 @@ class S3Response(BaseResponse):
 
         response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
         content = response_content[begin : end + 1]
-        response_headers["content-length"] = len(content)
+        response_headers["content-length"] = str(len(content))
         return 206, response_headers, content
 
     def _handle_v4_chunk_signatures(self, body: bytes, content_length: int) -> bytes:
@@ -1499,11 +1500,11 @@ class S3Response(BaseResponse):
                         bucket_name,
                         upload_id,
                         part_number,
-                        src_bucket,
-                        src_key,
-                        src_version_id,
-                        start_byte,
-                        end_byte,
+                        src_bucket_name=src_bucket,
+                        src_key_name=src_key,
+                        src_version_id=src_version_id,
+                        start_byte=start_byte,
+                        end_byte=end_byte,
                     )
                 else:
                     return 404, response_headers, ""
@@ -1518,7 +1519,7 @@ class S3Response(BaseResponse):
                 )
                 response = ""
             response_headers.update(key.response_dict)
-            response_headers["content-length"] = len(response)
+            response_headers["content-length"] = str(len(response))
             return 200, response_headers, response
 
         storage_class = request.headers.get("x-amz-storage-class", "STANDARD")
@@ -1701,7 +1702,7 @@ class S3Response(BaseResponse):
             template = self.response_template(S3_OBJECT_COPY_RESPONSE)
             response_headers.update(new_key.response_dict)
             response = template.render(key=new_key)
-            response_headers["content-length"] = len(response)
+            response_headers["content-length"] = str(len(response))
             return 200, response_headers, response
 
         # Initial data
@@ -1761,9 +1762,18 @@ class S3Response(BaseResponse):
         if_none_match = headers.get("If-None-Match", None)
         if_unmodified_since = headers.get("If-Unmodified-Since", None)
 
-        key = self.backend.head_object(
-            bucket_name, key_name, version_id=version_id, part_number=part_number
-        )
+        try:
+            key = self.backend.head_object(
+                bucket_name, key_name, version_id=version_id, part_number=part_number
+            )
+        except MethodNotAllowed:
+            headers = {
+                "x-amz-delete-marker": "true",
+                "x-amz-version-id": version_id,
+                "allow": "DELETE",
+                "content-type": "application/xml",
+            }
+            return 405, headers, "Method Not Allowed"
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)

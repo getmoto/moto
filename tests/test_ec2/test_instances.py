@@ -1192,6 +1192,7 @@ def test_run_instance_with_security_group_id():
 @mock_ec2
 @pytest.mark.parametrize("hibernate", [True, False])
 def test_run_instance_with_additional_args(hibernate):
+    client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID,
@@ -1205,6 +1206,10 @@ def test_run_instance_with_additional_args(hibernate):
     assert instance.instance_type == "t1.micro"
     assert instance.placement["AvailabilityZone"] == "us-east-1b"
     assert instance.hibernation_options == {"Configured": hibernate}
+
+    reservations = client.describe_instances(InstanceIds=[instance.id])["Reservations"]
+    instance = reservations[0]["Instances"][0]
+    assert instance["HibernationOptions"] == {"Configured": hibernate}
 
 
 @mock_ec2
@@ -1324,6 +1329,23 @@ def test_run_instance_with_specified_private_ipv4():
     instance = resp["Instances"][0]
     assert instance["SubnetId"] == subnet_id
     assert instance["PrivateIpAddress"] == "192.168.42.5"
+
+
+@mock_ec2
+def test_run_instance_with_placement():
+    client = boto3.client("ec2", region_name="eu-central-1")
+    host_id = "h-asdfasdfasdf"
+
+    instance = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MaxCount=1, MinCount=1, Placement={"HostId": host_id}
+    )["Instances"][0]
+    instance_id = instance["InstanceId"]
+    assert instance["Placement"]["HostId"] == host_id
+
+    resp = client.describe_instances(InstanceIds=[instance_id])["Reservations"][0][
+        "Instances"
+    ][0]
+    assert resp["Placement"]["HostId"] == host_id
 
 
 @mock_ec2
@@ -2598,6 +2620,25 @@ def test_instance_iam_instance_profile():
     assert "Arn" in instance.iam_instance_profile
     assert "Id" in instance.iam_instance_profile
     assert profile["InstanceProfile"]["Arn"] == instance.iam_instance_profile["Arn"]
+
+    tag_key = str(uuid4())[0:6]
+    with pytest.raises(ClientError) as exc:
+        ec2_resource.create_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            MinCount=1,
+            MaxCount=1,
+            IamInstanceProfile={"Arn": "unknown:instance:profile"},
+            TagSpecifications=[
+                {"ResourceType": "instance", "Tags": [{"Key": tag_key, "Value": "val"}]}
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchEntity"
+    assert err["Message"] == "Instance profile unknown:instance:profile not found"
+
+    ec2_client = boto3.client("ec2", "us-west-1")
+    filters = [{"Name": "tag-key", "Values": [tag_key]}]
+    assert retrieve_all_instances(ec2_client, filters) == []
 
 
 def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102

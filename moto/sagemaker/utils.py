@@ -5,7 +5,6 @@ import json
 from typing import Any, Dict
 from .exceptions import ValidationError
 
-
 if typing.TYPE_CHECKING:
     from .models import FakePipeline, FakePipelineExecution
 
@@ -51,3 +50,15 @@ def load_pipeline_definition_from_s3(
 
 def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:
     return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
+
+
+def validate_model_approval_status(model_approval_status: typing.Optional[str]) -> None:
+    if model_approval_status is not None and model_approval_status not in [
+        "Approved",
+        "Rejected",
+        "PendingManualApproval",
+    ]:
+        raise ValidationError(
+            f"Value '{model_approval_status}' at 'modelApprovalStatus' failed to satisfy constraint: "
+            "Member must satisfy enum value set: [PendingManualApproval, Approved, Rejected]"
+        )

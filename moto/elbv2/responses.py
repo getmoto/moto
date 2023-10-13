@@ -844,7 +844,8 @@ CREATE_TARGET_GROUP_TEMPLATE = """<CreateTargetGroupResponse xmlns="http://elast
         <HealthCheckEnabled>{{ target_group.healthcheck_enabled and 'true' or 'false' }}</HealthCheckEnabled>
         {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
+          {% if target_group.matcher.get("HttpCode") %}<HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>{% endif %}
+          {% if target_group.matcher.get("GrpcCode") %}<GrpcCode>{{ target_group.matcher['GrpcCode'] }}</GrpcCode>{% endif %}
         </Matcher>
         {% endif %}
         {% if target_group.target_type %}
@@ -1098,7 +1099,8 @@ DESCRIBE_TARGET_GROUPS_TEMPLATE = """<DescribeTargetGroupsResponse xmlns="http:/
         <UnhealthyThresholdCount>{{ target_group.unhealthy_threshold_count }}</UnhealthyThresholdCount>
         {% if target_group.matcher %}
         <Matcher>
-          <HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>
+            {% if target_group.matcher.get("HttpCode") %}<HttpCode>{{ target_group.matcher['HttpCode'] }}</HttpCode>{% endif %}
+            {% if target_group.matcher.get("GrpcCode") %}<GrpcCode>{{ target_group.matcher['GrpcCode'] }}</GrpcCode>{% endif %}
         </Matcher>
         {% endif %}
         {% if target_group.target_type %}

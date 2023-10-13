@@ -19,9 +19,9 @@ from .utils import (
     get_pipeline_from_name,
     get_pipeline_execution_from_arn,
     get_pipeline_name_from_execution_arn,
+    validate_model_approval_status,
 )
 from .utils import load_pipeline_definition_from_s3, arn_formatter
-
 
 PAGINATION_MODEL = {
     "list_experiments": {
@@ -988,10 +988,10 @@ class ModelPackage(BaseObject):
         source_algorithm_specification: Any,
         validation_specification: Any,
         certify_for_marketplace: bool,
-        model_approval_status: str,
+        model_approval_status: Optional[str],
         metadata_properties: Any,
         model_metrics: Any,
-        approval_description: str,
+        approval_description: Optional[str],
         customer_metadata_properties: Any,
         drift_check_baselines: Any,
         domain: str,
@@ -1029,24 +1029,23 @@ class ModelPackage(BaseObject):
         self.inference_specification = inference_specification
         self.source_algorithm_specification = source_algorithm_specification
         self.validation_specification = validation_specification
-        self.model_package_status_details = (
-            {
-                "ValidationStatuses": [
-                    {
-                        "Name": model_package_arn,
-                        "Status": "Completed",
-                    }
-                ],
-                "ImageScanStatuses": [
-                    {
-                        "Name": model_package_arn,
-                        "Status": "Completed",
-                    }
-                ],
-            },
-        )
+        self.model_package_status_details = {
+            "ValidationStatuses": [
+                {
+                    "Name": model_package_arn,
+                    "Status": "Completed",
+                }
+            ],
+            "ImageScanStatuses": [
+                {
+                    "Name": model_package_arn,
+                    "Status": "Completed",
+                }
+            ],
+        }
         self.certify_for_marketplace = certify_for_marketplace
-        self.model_approval_status = model_approval_status
+        self.model_approval_status: Optional[str] = None
+        self.set_model_approval_status(model_approval_status)
         self.created_by = {
             "UserProfileArn": fake_user_profile_arn,
             "UserProfileName": fake_user_profile_name,
@@ -1054,21 +1053,20 @@ class ModelPackage(BaseObject):
         }
         self.metadata_properties = metadata_properties
         self.model_metrics = model_metrics
-        self.last_modified_time = datetime_now
+        self.last_modified_time: Optional[datetime] = None
         self.approval_description = approval_description
         self.customer_metadata_properties = customer_metadata_properties
         self.drift_check_baselines = drift_check_baselines
         self.domain = domain
         self.task = task
         self.sample_payload_url = sample_payload_url
-        self.additional_inference_specifications = additional_inference_specifications
+        self.additional_inference_specifications: Optional[List[Any]] = None
+        self.add_additional_inference_specifications(
+            additional_inference_specifications
+        )
         self.tags = tags
         self.model_package_status = "Completed"
-        self.last_modified_by = {
-            "UserProfileArn": fake_user_profile_arn,
-            "UserProfileName": fake_user_profile_name,
-            "DomainId": fake_domain_id,
-        }
+        self.last_modified_by: Optional[Dict[str, str]] = None
         self.client_token = client_token
 
     def gen_response_object(self) -> Dict[str, Any]:
@@ -1083,10 +1081,290 @@ class ModelPackage(BaseObject):
             "ModelPackageArn",
             "ModelPackageDescription",
             "CreationTime",
+            "InferenceSpecification",
+            "SourceAlgorithmSpecification",
+            "ValidationSpecification",
             "ModelPackageStatus",
+            "ModelPackageStatusDetails",
+            "CertifyForMarketplace",
             "ModelApprovalStatus",
+            "CreatedBy",
+            "MetadataProperties",
+            "ModelMetrics",
+            "LastModifiedTime",
+            "LastModifiedBy",
+            "ApprovalDescription",
+            "CustomerMetadataProperties",
+            "DriftCheckBaselines",
+            "Domain",
+            "Task",
+            "SamplePayloadUrl",
+            "AdditionalInferenceSpecifications",
+            "SkipModelValidation",
         ]
-        return {k: v for k, v in response_object.items() if k in response_values}
+        return {
+            k: v
+            for k, v in response_object.items()
+            if k in response_values
+            if v is not None
+        }
+
+    def modifications_done(self) -> None:
+        self.last_modified_time = datetime.now(tzutc())
+        self.last_modified_by = self.created_by
+
+    def set_model_approval_status(self, model_approval_status: Optional[str]) -> None:
+        if model_approval_status is not None:
+            validate_model_approval_status(model_approval_status)
+        self.model_approval_status = model_approval_status
+
+    def remove_customer_metadata_property(
+        self, customer_metadata_properties_to_remove: List[str]
+    ) -> None:
+        if customer_metadata_properties_to_remove is not None:
+            for customer_metadata_property in customer_metadata_properties_to_remove:
+                self.customer_metadata_properties.pop(customer_metadata_property, None)
+
+    def add_additional_inference_specifications(
+        self, additional_inference_specifications_to_add: Optional[List[Any]]
+    ) -> None:
+        self.validate_additional_inference_specifications(
+            additional_inference_specifications_to_add
+        )
+        if (
+            self.additional_inference_specifications is not None
+            and additional_inference_specifications_to_add is not None
+        ):
+            self.additional_inference_specifications.extend(
+                additional_inference_specifications_to_add
+            )
+        else:
+            self.additional_inference_specifications = (
+                additional_inference_specifications_to_add
+            )
+
+    def validate_additional_inference_specifications(
+        self, additional_inference_specifications: Optional[List[Dict[str, Any]]]
+    ) -> None:
+        specifications_to_validate = additional_inference_specifications or []
+        for additional_inference_specification in specifications_to_validate:
+            if "SupportedTransformInstanceTypes" in additional_inference_specification:
+                self.validate_supported_transform_instance_types(
+                    additional_inference_specification[
+                        "SupportedTransformInstanceTypes"
+                    ]
+                )
+            if (
+                "SupportedRealtimeInferenceInstanceTypes"
+                in additional_inference_specification
+            ):
+                self.validate_supported_realtime_inference_instance_types(
+                    additional_inference_specification[
+                        "SupportedRealtimeInferenceInstanceTypes"
+                    ]
+                )
+
+    @staticmethod
+    def validate_supported_transform_instance_types(instance_types: List[str]) -> None:
+        VALID_TRANSFORM_INSTANCE_TYPES = [
+            "ml.m4.xlarge",
+            "ml.m4.2xlarge",
+            "ml.m4.4xlarge",
+            "ml.m4.10xlarge",
+            "ml.m4.16xlarge",
+            "ml.c4.xlarge",
+            "ml.c4.2xlarge",
+            "ml.c4.4xlarge",
+            "ml.c4.8xlarge",
+            "ml.p2.xlarge",
+            "ml.p2.8xlarge",
+            "ml.p2.16xlarge",
+            "ml.p3.2xlarge",
+            "ml.p3.8xlarge",
+            "ml.p3.16xlarge",
+            "ml.c5.xlarge",
+            "ml.c5.2xlarge",
+            "ml.c5.4xlarge",
+            "ml.c5.9xlarge",
+            "ml.c5.18xlarge",
+            "ml.m5.large",
+            "ml.m5.xlarge",
+            "ml.m5.2xlarge",
+            "ml.m5.4xlarge",
+            "ml.m5.12xlarge",
+            "ml.m5.24xlarge",
+            "ml.g4dn.xlarge",
+            "ml.g4dn.2xlarge",
+            "ml.g4dn.4xlarge",
+            "ml.g4dn.8xlarge",
+            "ml.g4dn.12xlarge",
+            "ml.g4dn.16xlarge",
+        ]
+        for instance_type in instance_types:
+            if not validators.is_one_of(instance_type, VALID_TRANSFORM_INSTANCE_TYPES):
+                message = f"Value '{instance_type}' at 'SupportedTransformInstanceTypes' failed to satisfy constraint: Member must satisfy enum value set: {VALID_TRANSFORM_INSTANCE_TYPES}"
+                raise ValidationError(message=message)
+
+    @staticmethod
+    def validate_supported_realtime_inference_instance_types(
+        instance_types: List[str],
+    ) -> None:
+        VALID_REALTIME_INFERENCE_INSTANCE_TYPES = [
+            "ml.t2.medium",
+            "ml.t2.large",
+            "ml.t2.xlarge",
+            "ml.t2.2xlarge",
+            "ml.m4.xlarge",
+            "ml.m4.2xlarge",
+            "ml.m4.4xlarge",
+            "ml.m4.10xlarge",
+            "ml.m4.16xlarge",
+            "ml.m5.large",
+            "ml.m5.xlarge",
+            "ml.m5.2xlarge",
+            "ml.m5.4xlarge",
+            "ml.m5.12xlarge",
+            "ml.m5.24xlarge",
+            "ml.m5d.large",
+            "ml.m5d.xlarge",
+            "ml.m5d.2xlarge",
+            "ml.m5d.4xlarge",
+            "ml.m5d.12xlarge",
+            "ml.m5d.24xlarge",
+            "ml.c4.large",
+            "ml.c4.xlarge",
+            "ml.c4.2xlarge",
+            "ml.c4.4xlarge",
+            "ml.c4.8xlarge",
+            "ml.p2.xlarge",
+            "ml.p2.8xlarge",
+            "ml.p2.16xlarge",
+            "ml.p3.2xlarge",
+            "ml.p3.8xlarge",
+            "ml.p3.16xlarge",
+            "ml.c5.large",
+            "ml.c5.xlarge",
+            "ml.c5.2xlarge",
+            "ml.c5.4xlarge",
+            "ml.c5.9xlarge",
+            "ml.c5.18xlarge",
+            "ml.c5d.large",
+            "ml.c5d.xlarge",
+            "ml.c5d.2xlarge",
+            "ml.c5d.4xlarge",
+            "ml.c5d.9xlarge",
+            "ml.c5d.18xlarge",
+            "ml.g4dn.xlarge",
+            "ml.g4dn.2xlarge",
+            "ml.g4dn.4xlarge",
+            "ml.g4dn.8xlarge",
+            "ml.g4dn.12xlarge",
+            "ml.g4dn.16xlarge",
+            "ml.r5.large",
+            "ml.r5.xlarge",
+            "ml.r5.2xlarge",
+            "ml.r5.4xlarge",
+            "ml.r5.12xlarge",
+            "ml.r5.24xlarge",
+            "ml.r5d.large",
+            "ml.r5d.xlarge",
+            "ml.r5d.2xlarge",
+            "ml.r5d.4xlarge",
+            "ml.r5d.12xlarge",
+            "ml.r5d.24xlarge",
+            "ml.inf1.xlarge",
+            "ml.inf1.2xlarge",
+            "ml.inf1.6xlarge",
+            "ml.inf1.24xlarge",
+            "ml.c6i.large",
+            "ml.c6i.xlarge",
+            "ml.c6i.2xlarge",
+            "ml.c6i.4xlarge",
+            "ml.c6i.8xlarge",
+            "ml.c6i.12xlarge",
+            "ml.c6i.16xlarge",
+            "ml.c6i.24xlarge",
+            "ml.c6i.32xlarge",
+            "ml.g5.xlarge",
+            "ml.g5.2xlarge",
+            "ml.g5.4xlarge",
+            "ml.g5.8xlarge",
+            "ml.g5.12xlarge",
+            "ml.g5.16xlarge",
+            "ml.g5.24xlarge",
+            "ml.g5.48xlarge",
+            "ml.p4d.24xlarge",
+            "ml.c7g.large",
+            "ml.c7g.xlarge",
+            "ml.c7g.2xlarge",
+            "ml.c7g.4xlarge",
+            "ml.c7g.8xlarge",
+            "ml.c7g.12xlarge",
+            "ml.c7g.16xlarge",
+            "ml.m6g.large",
+            "ml.m6g.xlarge",
+            "ml.m6g.2xlarge",
+            "ml.m6g.4xlarge",
+            "ml.m6g.8xlarge",
+            "ml.m6g.12xlarge",
+            "ml.m6g.16xlarge",
+            "ml.m6gd.large",
+            "ml.m6gd.xlarge",
+            "ml.m6gd.2xlarge",
+            "ml.m6gd.4xlarge",
+            "ml.m6gd.8xlarge",
+            "ml.m6gd.12xlarge",
+            "ml.m6gd.16xlarge",
+            "ml.c6g.large",
+            "ml.c6g.xlarge",
+            "ml.c6g.2xlarge",
+            "ml.c6g.4xlarge",
+            "ml.c6g.8xlarge",
+            "ml.c6g.12xlarge",
+            "ml.c6g.16xlarge",
+            "ml.c6gd.large",
+            "ml.c6gd.xlarge",
+            "ml.c6gd.2xlarge",
+            "ml.c6gd.4xlarge",
+            "ml.c6gd.8xlarge",
+            "ml.c6gd.12xlarge",
+            "ml.c6gd.16xlarge",
+            "ml.c6gn.large",
+            "ml.c6gn.xlarge",
+            "ml.c6gn.2xlarge",
+            "ml.c6gn.4xlarge",
+            "ml.c6gn.8xlarge",
+            "ml.c6gn.12xlarge",
+            "ml.c6gn.16xlarge",
+            "ml.r6g.large",
+            "ml.r6g.xlarge",
+            "ml.r6g.2xlarge",
+            "ml.r6g.4xlarge",
+            "ml.r6g.8xlarge",
+            "ml.r6g.12xlarge",
+            "ml.r6g.16xlarge",
+            "ml.r6gd.large",
+            "ml.r6gd.xlarge",
+            "ml.r6gd.2xlarge",
+            "ml.r6gd.4xlarge",
+            "ml.r6gd.8xlarge",
+            "ml.r6gd.12xlarge",
+            "ml.r6gd.16xlarge",
+            "ml.p4de.24xlarge",
+            "ml.trn1.2xlarge",
+            "ml.trn1.32xlarge",
+            "ml.inf2.xlarge",
+            "ml.inf2.8xlarge",
+            "ml.inf2.24xlarge",
+            "ml.inf2.48xlarge",
+            "ml.p5.48xlarge",
+        ]
+        for instance_type in instance_types:
+            if not validators.is_one_of(
+                instance_type, VALID_REALTIME_INFERENCE_INSTANCE_TYPES
+            ):
+                message = f"Value '{instance_type}' at 'SupportedRealtimeInferenceInstanceTypes' failed to satisfy constraint: Member must satisfy enum value set: {VALID_REALTIME_INFERENCE_INSTANCE_TYPES}"
+                raise ValidationError(message=message)
 
 
 class VpcConfig(BaseObject):
@@ -2982,6 +3260,16 @@ class SageMakerModelBackend(BaseBackend):
         )
         return model_package_group_summary_list
 
+    def describe_model_package_group(
+        self, model_package_group_name: str
+    ) -> ModelPackageGroup:
+        model_package_group = self.model_package_groups.get(model_package_group_name)
+        if model_package_group is None:
+            raise ValidationError(
+                f"Model package group {model_package_group_name} not found"
+            )
+        return model_package_group
+
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_model_packages(  # type: ignore[misc]
         self,
@@ -3054,6 +3342,36 @@ class SageMakerModelBackend(BaseBackend):
             raise ValidationError(f"Model package {model_package_name} not found")
         return model_package
 
+    def update_model_package(
+        self,
+        model_package_arn: str,
+        model_approval_status: Optional[str],
+        approval_description: Optional[str],
+        customer_metadata_properties: Optional[Dict[str, str]],
+        customer_metadata_properties_to_remove: List[str],
+        additional_inference_specifications_to_add: Optional[List[Any]],
+    ) -> str:
+        model_package_name_mapped = self.model_package_name_mapping.get(
+            model_package_arn, model_package_arn
+        )
+        model_package = self.model_packages.get(model_package_name_mapped)
+
+        if model_package is None:
+            raise ValidationError(f"Model package {model_package_arn} not found")
+
+        model_package.set_model_approval_status(model_approval_status)
+        model_package.approval_description = approval_description
+        model_package.customer_metadata_properties = customer_metadata_properties
+        model_package.remove_customer_metadata_property(
+            customer_metadata_properties_to_remove
+        )
+        model_package.add_additional_inference_specifications(
+            additional_inference_specifications_to_add
+        )
+        model_package.modifications_done()
+
+        return model_package.model_package_arn
+
     def create_model_package(
         self,
         model_package_name: str,
@@ -3062,9 +3380,9 @@ class SageMakerModelBackend(BaseBackend):
         inference_specification: Any,
         validation_specification: Any,
         source_algorithm_specification: Any,
-        certify_for_marketplace: Any,
+        certify_for_marketplace: bool,
         tags: Any,
-        model_approval_status: str,
+        model_approval_status: Optional[str],
         metadata_properties: Any,
         model_metrics: Any,
         client_token: Any,
@@ -3102,7 +3420,7 @@ class SageMakerModelBackend(BaseBackend):
             sample_payload_url=sample_payload_url,
             additional_inference_specifications=additional_inference_specifications,
             model_package_version=model_package_version,
-            approval_description=model_approval_status,
+            approval_description=None,
             region_name=self.region_name,
             account_id=self.account_id,
             client_token=client_token,

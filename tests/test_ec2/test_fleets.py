@@ -57,6 +57,7 @@ class launch_template_context:
         self.ec2.delete_launch_template(LaunchTemplateId=self.lt_id)
 
 
+@pytest.mark.aws_verified
 @ec2_aws_verified
 def test_launch_template_is_created_properly():
     with launch_template_context() as ctxt:
@@ -379,6 +380,7 @@ def test_create_fleet_using_launch_template_config__overrides():
     assert instance["SubnetId"] == subnet_id
 
 
+@pytest.mark.aws_verified
 @ec2_aws_verified
 def test_delete_fleet():
     with launch_template_context() as ctxt:

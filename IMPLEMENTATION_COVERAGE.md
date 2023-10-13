@@ -4105,6 +4105,42 @@
 - [X] update_thing_shadow
 </details>
 
+## ivs
+<details>
+<summary>20% implemented</summary>
+
+- [X] batch_get_channel
+- [ ] batch_get_stream_key
+- [ ] batch_start_viewer_session_revocation
+- [X] create_channel
+- [ ] create_recording_configuration
+- [ ] create_stream_key
+- [X] delete_channel
+- [ ] delete_playback_key_pair
+- [ ] delete_recording_configuration
+- [ ] delete_stream_key
+- [X] get_channel
+- [ ] get_playback_key_pair
+- [ ] get_recording_configuration
+- [ ] get_stream
+- [ ] get_stream_key
+- [ ] get_stream_session
+- [ ] import_playback_key_pair
+- [X] list_channels
+- [ ] list_playback_key_pairs
+- [ ] list_recording_configurations
+- [ ] list_stream_keys
+- [ ] list_stream_sessions
+- [ ] list_streams
+- [ ] list_tags_for_resource
+- [ ] put_metadata
+- [ ] start_viewer_session_revocation
+- [ ] stop_stream
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_channel
+</details>
+
 ## kinesis
 <details>
 <summary>93% implemented</summary>
@@ -6344,7 +6380,7 @@
 - [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
 - [X] describe_model_package
-- [ ] describe_model_package_group
+- [X] describe_model_package_group
 - [ ] describe_model_quality_job_definition
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
@@ -6491,7 +6527,7 @@
 - [ ] update_image_version
 - [ ] update_inference_experiment
 - [ ] update_model_card
-- [ ] update_model_package
+- [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
@@ -7481,7 +7517,6 @@
 - iotthingsgraph
 - iottwinmaker
 - iotwireless
-- ivs
 - ivs-realtime
 - ivschat
 - kafka

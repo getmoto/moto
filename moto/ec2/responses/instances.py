@@ -5,6 +5,7 @@ from moto.ec2.exceptions import (
     InvalidParameterCombination,
     InvalidRequest,
 )
+from moto.ec2.utils import filter_iam_instance_profiles
 
 from copy import deepcopy
 
@@ -46,6 +47,7 @@ class InstanceResponse(EC2BaseResponse):
                 account_id=self.current_account,
                 reservations=reservations_resp,
                 next_token=next_token,
+                run_instances=False,
             )
             .replace("True", "true")
             .replace("False", "false")
@@ -61,6 +63,7 @@ class InstanceResponse(EC2BaseResponse):
             "instance_type": self._get_param("InstanceType", if_none="m1.small"),
             "is_instance_type_default": not self._get_param("InstanceType"),
             "placement": self._get_param("Placement.AvailabilityZone"),
+            "placement_hostid": self._get_param("Placement.HostId"),
             "region_name": self.region,
             "subnet_id": self._get_param("SubnetId"),
             "owner_id": owner_id,
@@ -97,25 +100,38 @@ class InstanceResponse(EC2BaseResponse):
         if mappings:
             kwargs["block_device_mappings"] = mappings
 
+        iam_instance_profile_name = kwargs.get("iam_instance_profile_name")
+        iam_instance_profile_arn = kwargs.get("iam_instance_profile_arn")
+        if iam_instance_profile_arn or iam_instance_profile_name:
+            # Validate the profile exists, before we error_on_dryrun and add_instances
+            filter_iam_instance_profiles(
+                self.current_account,
+                iam_instance_profile_arn=iam_instance_profile_arn,
+                iam_instance_profile_name=iam_instance_profile_name,
+            )
+
         self.error_on_dryrun()
 
         new_reservation = self.ec2_backend.add_instances(
             image_id, min_count, user_data, security_group_names, **kwargs
         )
-        if kwargs.get("iam_instance_profile_name"):
+        if iam_instance_profile_name:
             self.ec2_backend.associate_iam_instance_profile(
                 instance_id=new_reservation.instances[0].id,
-                iam_instance_profile_name=kwargs.get("iam_instance_profile_name"),
+                iam_instance_profile_name=iam_instance_profile_name,
             )
-        if kwargs.get("iam_instance_profile_arn"):
+
+        if iam_instance_profile_arn:
             self.ec2_backend.associate_iam_instance_profile(
                 instance_id=new_reservation.instances[0].id,
-                iam_instance_profile_arn=kwargs.get("iam_instance_profile_arn"),
+                iam_instance_profile_arn=iam_instance_profile_arn,
             )
 
         template = self.response_template(EC2_RUN_INSTANCES)
         return template.render(
-            account_id=self.current_account, reservation=new_reservation
+            account_id=self.current_account,
+            reservation=new_reservation,
+            run_instances=True,
         )
 
     def terminate_instances(self) -> str:
@@ -430,25 +446,20 @@ BLOCK_DEVICE_MAPPING_TEMPLATE = {
     },
 }
 
-EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <reservationId>{{ reservation.id }}</reservationId>
-  <ownerId>{{ account_id }}</ownerId>
-  <groupSet>
-    <item>
-      <groupId>sg-245f6a01</groupId>
-      <groupName>default</groupName>
-    </item>
-  </groupSet>
-  <instancesSet>
-    {% for instance in reservation.instances %}
-        <item>
+INSTANCE_TEMPLATE = """<item>
           <instanceId>{{ instance.id }}</instanceId>
           <imageId>{{ instance.image_id }}</imageId>
+          {% if run_instances %}
           <instanceState>
             <code>0</code>
             <name>pending</name>
          </instanceState>
+          {% else %}
+          <instanceState>
+            <code>{{ instance._state.code }}</code>
+            <name>{{ instance._state.name }}</name>
+         </instanceState>
+         {% endif %}
           <privateDnsName>{{ instance.private_dns }}</privateDnsName>
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <dnsName>{{ instance.public_dns }}</dnsName>
@@ -470,6 +481,7 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
           {% endif %}
           <placement>
+            {% if instance.placement_hostid %}<hostId>{{ instance.placement_hostid }}</hostId>{% endif %}
             <availabilityZone>{{ instance.placement}}</availabilityZone>
             <groupName/>
             <tenancy>default</tenancy>
@@ -495,8 +507,12 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <groupSet>
              {% for group in instance.dynamic_group_list %}
              <item>
+               {% if group.id %}
                 <groupId>{{ group.id }}</groupId>
                 <groupName>{{ group.name }}</groupName>
+                {% else %}
+                  <groupId>{{ group }}</groupId>
+                {% endif %}
              </item>
              {% endfor %}
           </groupSet>
@@ -504,24 +520,47 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
           <platform>{{ instance.platform }}</platform>
           {% endif %}
           <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
+          <stateReason>
+              <code>{{ instance._state_reason.code }}</code>
+              <message>{{ instance._state_reason.message }}</message>
+          </stateReason>
           <architecture>{{ instance.architecture }}</architecture>
           <kernelId>{{ instance.kernel }}</kernelId>
-          <clientToken/>
+          <rootDeviceType>ebs</rootDeviceType>
+          <rootDeviceName>/dev/sda1</rootDeviceName>
+          <blockDeviceMapping>
+              {% for device_name,deviceobject in instance.get_block_device_mapping %}
+              <item>
+                 <deviceName>{{ device_name }}</deviceName>
+                  <ebs>
+                     <volumeId>{{ deviceobject.volume_id }}</volumeId>
+                     <status>{{ deviceobject.status }}</status>
+                     <attachTime>{{ deviceobject.attach_time }}</attachTime>
+                     <deleteOnTermination>{{ deviceobject.delete_on_termination }}</deleteOnTermination>
+                     <size>{{deviceobject.size}}</size>
+                </ebs>
+              </item>
+             {% endfor %}
+          </blockDeviceMapping>
+          <clientToken>ABCDE{{ account_id }}3</clientToken>
           <hypervisor>xen</hypervisor>
-          <ebsOptimized>false</ebsOptimized>
           {% if instance.hibernation_options %}
           <hibernationOptions>
             <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
           </hibernationOptions>
           {% endif %}
+          {% if instance.get_tags() %}
           <tagSet>
             {% for tag in instance.get_tags() %}
               <item>
+                <resourceId>{{ tag.resource_id }}</resourceId>
+                <resourceType>{{ tag.resource_type }}</resourceType>
                 <key>{{ tag.key }}</key>
                 <value>{{ tag.value }}</value>
               </item>
             {% endfor %}
           </tagSet>
+          {% endif %}
           <networkInterfaceSet>
             {% for nic in instance.nics.values() %}
               <item>
@@ -539,8 +578,12 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
                 <groupSet>
                   {% for group in nic.group_set %}
                   <item>
-                    <groupId>{{ group.id }}</groupId>
-                    <groupName>{{ group.name }}</groupName>
+                    {% if group.id %}
+                      <groupId>{{ group.id }}</groupId>
+                      <groupName>{{ group.name }}</groupName>
+                    {% else %}
+                      <groupId>{{ group }}</groupId>
+                    {% endif %}
                   </item>
                   {% endfor %}
                 </groupSet>
@@ -572,12 +615,31 @@ EC2_RUN_INSTANCES = """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc
               </item>
             {% endfor %}
           </networkInterfaceSet>
-        </item>
+        </item>"""
+
+EC2_RUN_INSTANCES = (
+    """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <reservationId>{{ reservation.id }}</reservationId>
+  <ownerId>{{ account_id }}</ownerId>
+  <groupSet>
+    <item>
+      <groupId>sg-245f6a01</groupId>
+      <groupName>default</groupName>
+    </item>
+  </groupSet>
+  <instancesSet>
+    {% for instance in reservation.instances %}
+        """
+    + INSTANCE_TEMPLATE
+    + """
     {% endfor %}
   </instancesSet>
   </RunInstancesResponse>"""
+)
 
-EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+EC2_DESCRIBE_INSTANCES = (
+    """<DescribeInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>fdcdcab1-ae5c-489e-9c33-4637c5dda355</requestId>
       <reservationSet>
         {% for reservation in reservations %}
@@ -598,164 +660,9 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
             </groupSet>
             <instancesSet>
                 {% for instance in reservation.instances %}
-                  <item>
-                    <instanceId>{{ instance.id }}</instanceId>
-                    <imageId>{{ instance.image_id }}</imageId>
-                    <instanceState>
-                      <code>{{ instance._state.code }}</code>
-                      <name>{{ instance._state.name }}</name>
-                    </instanceState>
-                    <privateDnsName>{{ instance.private_dns }}</privateDnsName>
-                    <publicDnsName>{{ instance.public_dns }}</publicDnsName>
-                    <dnsName>{{ instance.public_dns }}</dnsName>
-                    <reason>{{ instance._reason }}</reason>
-                    {% if instance.key_name is not none %}
-                        <keyName>{{ instance.key_name }}</keyName>
-                    {% endif %}
-                    <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
-                    <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
-                    <productCodes/>
-                    <instanceType>{{ instance.instance_type }}</instanceType>
-                    {% if instance.iam_instance_profile %}
-                    <iamInstanceProfile>
-                        <arn>{{ instance.iam_instance_profile['Arn'] }}</arn>
-                        <id>{{ instance.iam_instance_profile['Id'] }}</id>
-                    </iamInstanceProfile>
-                    {% endif %}
-                    <launchTime>{{ instance.launch_time }}</launchTime>
-                    {% if instance.lifecycle %}
-                    <instanceLifecycle>{{ instance.lifecycle }}</instanceLifecycle>
-                    {% endif %}
-                    <placement>
-                      <availabilityZone>{{ instance.placement }}</availabilityZone>
-                      <groupName/>
-                      <tenancy>default</tenancy>
-                    </placement>
-                    {% if instance.platform %}
-                    <platform>{{ instance.platform }}</platform>
-                    {% endif %}
-                    <monitoring>
-                      <state>{{ instance.monitoring_state }}</state>
-                    </monitoring>
-                    {% if instance.subnet_id %}
-                      <subnetId>{{ instance.subnet_id }}</subnetId>
-                    {% elif instance.nics[0].subnet.id %}
-                      <subnetId>{{ instance.nics[0].subnet.id }}</subnetId>
-                    {% endif %}
-                    {% if instance.vpc_id %}
-                      <vpcId>{{ instance.vpc_id }}</vpcId>
-                    {% elif instance.nics[0].subnet.vpc_id %}
-                      <vpcId>{{ instance.nics[0].subnet.vpc_id }}</vpcId>
-                    {% endif %}
-                    <privateIpAddress>{{ instance.private_ip }}</privateIpAddress>
-                    {% if instance.nics[0].public_ip %}
-                        <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
-                    {% endif %}
-                    <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
-                    <groupSet>
-                      {% for group in instance.dynamic_group_list %}
-                      <item>
-                      {% if group.id %}
-                      <groupId>{{ group.id }}</groupId>
-                      <groupName>{{ group.name }}</groupName>
-                      {% else %}
-                      <groupId>{{ group }}</groupId>
-                      {% endif %}
-                      </item>
-                      {% endfor %}
-                    </groupSet>
-                    <stateReason>
-                      <code>{{ instance._state_reason.code }}</code>
-                      <message>{{ instance._state_reason.message }}</message>
-                    </stateReason>
-                    <architecture>{{ instance.architecture }}</architecture>
-                    <kernelId>{{ instance.kernel }}</kernelId>
-                    <rootDeviceType>ebs</rootDeviceType>
-                    <rootDeviceName>/dev/sda1</rootDeviceName>
-                    <blockDeviceMapping>
-                        {% for device_name,deviceobject in instance.get_block_device_mapping %}
-                      <item>
-                         <deviceName>{{ device_name }}</deviceName>
-                          <ebs>
-                             <volumeId>{{ deviceobject.volume_id }}</volumeId>
-                             <status>{{ deviceobject.status }}</status>
-                             <attachTime>{{ deviceobject.attach_time }}</attachTime>
-                             <deleteOnTermination>{{ deviceobject.delete_on_termination }}</deleteOnTermination>
-                             <size>{{deviceobject.size}}</size>
-                        </ebs>
-                      </item>
-                     {% endfor %}
-                    </blockDeviceMapping>
-                    <virtualizationType>{{ instance.virtualization_type }}</virtualizationType>
-                    <clientToken>ABCDE{{ account_id }}3</clientToken>
-                    {% if instance.get_tags() %}
-                    <tagSet>
-                      {% for tag in instance.get_tags() %}
-                        <item>
-                          <resourceId>{{ tag.resource_id }}</resourceId>
-                          <resourceType>{{ tag.resource_type }}</resourceType>
-                          <key>{{ tag.key }}</key>
-                          <value>{{ tag.value }}</value>
-                        </item>
-                      {% endfor %}
-                    </tagSet>
-                    {% endif %}
-                    <hypervisor>xen</hypervisor>
-                    <networkInterfaceSet>
-                      {% for nic in instance.nics.values() %}
-                        <item>
-                          <networkInterfaceId>{{ nic.id }}</networkInterfaceId>
-                          {% if nic.subnet %}
-                            <subnetId>{{ nic.subnet.id }}</subnetId>
-                            <vpcId>{{ nic.subnet.vpc_id }}</vpcId>
-                          {% endif %}
-                          <description>Primary network interface</description>
-                          <ownerId>{{ account_id }}</ownerId>
-                          <status>in-use</status>
-                          <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
-                          <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
-                          <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
-                          <groupSet>
-                            {% for group in nic.group_set %}
-                            <item>
-               {% if group.id %}
-               <groupId>{{ group.id }}</groupId>
-               <groupName>{{ group.name }}</groupName>
-               {% else %}
-               <groupId>{{ group }}</groupId>
-               {% endif %}
-                            </item>
-                            {% endfor %}
-                          </groupSet>
-                          <attachment>
-                            <attachmentId>{{ nic.attachment_id }}</attachmentId>
-                            <deviceIndex>{{ nic.device_index }}</deviceIndex>
-                            <status>attached</status>
-                            <attachTime>2015-01-01T00:00:00Z</attachTime>
-                            <deleteOnTermination>true</deleteOnTermination>
-                          </attachment>
-                          {% if nic.public_ip %}
-                            <association>
-                              <publicIp>{{ nic.public_ip }}</publicIp>
-                              <ipOwnerId>{{ account_id }}</ipOwnerId>
-                            </association>
-                          {% endif %}
-                          <privateIpAddressesSet>
-                            <item>
-                              <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
-                              <primary>true</primary>
-                              {% if nic.public_ip %}
-                                <association>
-                                  <publicIp>{{ nic.public_ip }}</publicIp>
-                                  <ipOwnerId>{{ account_id }}</ipOwnerId>
-                                </association>
-                              {% endif %}
-                            </item>
-                          </privateIpAddressesSet>
-                        </item>
-                      {% endfor %}
-                    </networkInterfaceSet>
-                  </item>
+                  """
+    + INSTANCE_TEMPLATE
+    + """
                 {% endfor %}
             </instancesSet>
           </item>
@@ -765,6 +672,7 @@ EC2_DESCRIBE_INSTANCES = """<DescribeInstancesResponse xmlns="http://ec2.amazona
       <nextToken>{{ next_token }}</nextToken>
       {% endif %}
 </DescribeInstancesResponse>"""
+)
 
 EC2_TERMINATE_INSTANCES = """
 <TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

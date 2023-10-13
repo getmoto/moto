@@ -398,21 +398,24 @@ def test_target_group_attributes():
         Attributes=[
             {"Key": "stickiness.enabled", "Value": "true"},
             {"Key": "stickiness.type", "Value": "app_cookie"},
+            {"Key": "stickiness.app_cookie.cookie_name", "Value": "my_cookie"},
         ],
     )
 
     # The response should have only the keys updated
-    assert len(response["Attributes"]) == 2
+    assert len(response["Attributes"]) == 3
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["stickiness.type"] == "app_cookie"
     assert attributes["stickiness.enabled"] == "true"
+    assert attributes["stickiness.app_cookie.cookie_name"] == "my_cookie"
 
     # These new values should be in the full attribute list
     response = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
-    assert len(response["Attributes"]) == 7
+    assert len(response["Attributes"]) == 8
     attributes = {attr["Key"]: attr["Value"] for attr in response["Attributes"]}
     assert attributes["stickiness.type"] == "app_cookie"
     assert attributes["stickiness.enabled"] == "true"
+    assert attributes["stickiness.app_cookie.cookie_name"] == "my_cookie"
 
 
 @mock_elbv2
@@ -873,34 +876,6 @@ def test_create_target_group_validation_error():
     assert err["Code"] == "ValidationError"
     assert err["Message"] == "The VPC ID 'non-existing' is not found"
 
-    with pytest.raises(ClientError) as ex:
-        elbv2.create_target_group(
-            Name="a-target",
-            TargetType="lambda",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=5,
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
-    assert (
-        err["Message"]
-        == "Health check timeout '5' must be smaller than the interval '5'"
-    )
-
-    with pytest.raises(ClientError) as ex:
-        elbv2.create_target_group(
-            Name="a-target",
-            TargetType="lambda",
-            HealthCheckIntervalSeconds=5,
-            HealthCheckTimeoutSeconds=6,
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationError"
-    assert err["Message"] == "Health check interval must be greater than the timeout."
-
-    # When providing both values:
-    # Health check timeout '5' must be smaller than the interval '5'
-    #
     # When only the Interval is supplied, it can be the same value as the default
     group = elbv2.create_target_group(
         Name="target1",
@@ -967,3 +942,267 @@ def test_create_target_group_validation_error():
         err["Message"]
         == "Protocol cannot be specified for target groups with target type 'lambda'"
     )
+
+
+@mock_ec2
+@mock_elbv2
+@pytest.mark.parametrize(
+    "protocol_name, should_raise",
+    [
+        ("HTTP", True),
+        ("HTTPS", True),
+        ("TCP", False),
+        ("TLS", False),
+        ("UDP", False),
+        ("TCP_UDP", False),
+    ],
+)
+def test_create_target_group_healthcheck_validation(protocol_name, should_raise):
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+
+    _, vpc, _, _, _, _ = create_load_balancer()
+
+    def _create_target_group(protocol_name, vpc, health_check_timeout_seconds):
+        return elbv2.create_target_group(
+            Name="a-target",
+            Protocol=protocol_name,
+            Port=80,
+            VpcId=vpc,
+            HealthCheckProtocol="HTTP",
+            HealthCheckPath="/",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=health_check_timeout_seconds,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+        )
+
+    def _get_error_message(protocol_name, timeout, interval):
+        if protocol_name in ["HTTP", "HTTPS"]:
+            return f"Health check timeout '{timeout}' must be smaller than the interval '{interval}'"
+        else:
+            return f"Health check timeout '{timeout}' must be smaller than or equal to the interval '{interval}'"
+
+    with pytest.raises(ClientError) as exc:
+        _create_target_group(protocol_name, vpc.id, 6)
+    assert exc.value.response["Error"]["Code"] == "ValidationError"
+    assert exc.value.response["Error"]["Message"] == _get_error_message(
+        protocol_name, 6, 5
+    )
+
+    if should_raise:
+        with pytest.raises(ClientError) as exc:
+            _create_target_group(protocol_name, vpc.id, 5)
+        assert exc.value.response["Error"]["Code"] == "ValidationError"
+        assert exc.value.response["Error"]["Message"] == _get_error_message(
+            protocol_name, 5, 5
+        )
+
+
+@mock_ec2
+@mock_elbv2
+@pytest.mark.parametrize(
+    "protocol, should_raise, stickiness_type, error_message",
+    [
+        # stickiness.type = "source_ip"
+        (
+            "HTTP",
+            True,
+            "source_ip",
+            "Stickiness type 'source_ip' is not supported for target groups with the HTTP protocol",
+        ),
+        (
+            "HTTPS",
+            True,
+            "source_ip",
+            "Stickiness type 'source_ip' is not supported for target groups with the HTTPS protocol",
+        ),
+        ("TCP", False, "source_ip", ""),
+        (
+            "TLS",
+            True,
+            "source_ip",
+            "You cannot enable stickiness on target groups with the TLS protocol",
+        ),
+        ("UDP", False, "source_ip", ""),
+        ("TCP_UDP", False, "source_ip", ""),
+        (
+            "GENEVE",
+            True,
+            "source_ip",
+            "'source_ip' must be one of [source_ip_dest_ip_proto, source_ip_dest_ip]",
+        ),
+        # stickiness.type = "lb_cookie"
+        ("HTTP", False, "lb_cookie", ""),
+        ("HTTPS", False, "lb_cookie", ""),
+        (
+            "TCP",
+            True,
+            "lb_cookie",
+            "Stickiness type 'lb_cookie' is not supported for target groups with the TCP protocol",
+        ),
+        (
+            "TLS",
+            True,
+            "lb_cookie",
+            "Stickiness type 'lb_cookie' is not supported for target groups with the TLS protocol",
+        ),
+        (
+            "UDP",
+            True,
+            "lb_cookie",
+            "Stickiness type 'lb_cookie' is not supported for target groups with the UDP protocol",
+        ),
+        (
+            "TCP_UDP",
+            True,
+            "lb_cookie",
+            "Stickiness type 'lb_cookie' is not supported for target groups with the TCP_UDP protocol",
+        ),
+        (
+            "GENEVE",
+            True,
+            "lb_cookie",
+            "'lb_cookie' must be one of [source_ip_dest_ip_proto, source_ip_dest_ip]",
+        ),
+        # stickiness.type = "app_cookie"
+        ("HTTP", False, "app_cookie", ""),
+        ("HTTPS", False, "app_cookie", ""),
+        (
+            "TCP",
+            True,
+            "app_cookie",
+            "Stickiness type 'app_cookie' is not supported for target groups with the TCP protocol",
+        ),
+        (
+            "TLS",
+            True,
+            "app_cookie",
+            "Stickiness type 'app_cookie' is not supported for target groups with the TLS protocol",
+        ),
+        (
+            "UDP",
+            True,
+            "app_cookie",
+            "Stickiness type 'app_cookie' is not supported for target groups with the UDP protocol",
+        ),
+        (
+            "TCP_UDP",
+            True,
+            "app_cookie",
+            "Stickiness type 'app_cookie' is not supported for target groups with the TCP_UDP protocol",
+        ),
+        (
+            "GENEVE",
+            True,
+            "app_cookie",
+            "Target group attribute key 'stickiness.app_cookie.cookie_name' is not recognized",
+        ),
+        # stickiness.type = "source_ip_dest_ip"
+        (
+            "HTTP",
+            True,
+            "source_ip_dest_ip",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "HTTPS",
+            True,
+            "source_ip_dest_ip",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "TCP",
+            True,
+            "source_ip_dest_ip",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "TLS",
+            True,
+            "source_ip_dest_ip",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "UDP",
+            True,
+            "source_ip_dest_ip",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "TCP_UDP",
+            True,
+            "source_ip_dest_ip",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        ("GENEVE", False, "source_ip_dest_ip", ""),
+        # stickiness.type = "source_ip_dest_ip_proto"
+        (
+            "HTTPS",
+            True,
+            "source_ip_dest_ip_proto",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "HTTP",
+            True,
+            "source_ip_dest_ip_proto",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "TCP",
+            True,
+            "source_ip_dest_ip_proto",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "TLS",
+            True,
+            "source_ip_dest_ip_proto",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "UDP",
+            True,
+            "source_ip_dest_ip_proto",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        (
+            "TCP_UDP",
+            True,
+            "source_ip_dest_ip_proto",
+            "'Stickiness type' must be one of [app_cookie, lb_cookie, source_ip]",
+        ),
+        ("GENEVE", False, "source_ip_dest_ip_proto", ""),
+    ],
+)
+def test_target_group_attributes_stickiness(
+    protocol, should_raise, stickiness_type, error_message
+):
+    elbv2 = boto3.client("elbv2", region_name="us-east-1")
+    _, vpc, _, _, _, _ = create_load_balancer()
+
+    response = elbv2.create_target_group(
+        Name="a-target",
+        Protocol=protocol,
+        Port=6081 if protocol == "GENEVE" else 80,
+        VpcId=vpc.id,
+    )
+    target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
+    attributes = [
+        {"Key": "stickiness.enabled", "Value": "true"},
+        {"Key": "stickiness.type", "Value": stickiness_type},
+    ]
+    if stickiness_type == "app_cookie":
+        attributes.append(
+            {"Key": "stickiness.app_cookie.cookie_name", "Value": "localstack"}
+        )
+    if should_raise:
+        with pytest.raises(ClientError) as exc:
+            elbv2.modify_target_group_attributes(
+                TargetGroupArn=target_group_arn, Attributes=attributes
+            )
+        assert exc.value.response["Error"]["Message"] == error_message
+    else:
+        elbv2.modify_target_group_attributes(
+            TargetGroupArn=target_group_arn, Attributes=attributes
+        )

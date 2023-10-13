@@ -1,6 +1,7 @@
 from random import Random
 import string
 from uuid import UUID
+from base64 import urlsafe_b64encode
 
 
 HEX_CHARS = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
@@ -30,3 +31,8 @@ class MotoRandom(Random):
             pool += string.digits
         random_str = "".join([self.choice(pool) for i in range(length)])
         return random_str.lower() if lower_case else random_str
+
+    # Based on https://github.com/python/cpython/blob/main/Lib/secrets.py
+    def token_urlsafe(self, nbytes: int) -> str:
+        randbytes = self.getrandbits(nbytes * 8).to_bytes(nbytes, "little")
+        return urlsafe_b64encode(randbytes).rstrip(b"=").decode("ascii")

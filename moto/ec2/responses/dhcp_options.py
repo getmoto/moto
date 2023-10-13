@@ -6,10 +6,13 @@ class DHCPOptions(EC2BaseResponse):
         dhcp_opt_id = self._get_param("DhcpOptionsId")
         vpc_id = self._get_param("VpcId")
 
-        dhcp_opt = self.ec2_backend.describe_dhcp_options([dhcp_opt_id])[0]
         vpc = self.ec2_backend.get_vpc(vpc_id)
 
-        self.ec2_backend.associate_dhcp_options(dhcp_opt, vpc)
+        if dhcp_opt_id == "default":
+            self.ec2_backend.disassociate_dhcp_options(vpc)
+        else:
+            dhcp_opt = self.ec2_backend.describe_dhcp_options([dhcp_opt_id])[0]
+            self.ec2_backend.associate_dhcp_options(dhcp_opt, vpc)
 
         template = self.response_template(ASSOCIATE_DHCP_OPTIONS_RESPONSE)
         return template.render()

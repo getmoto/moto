@@ -88,6 +88,7 @@ backend_url_patterns = [
     ("iot", re.compile("https?://iot\\.(.+)\\.amazonaws\\.com")),
     ("iot-data", re.compile("https?://data\\.iot\\.(.+)\\.amazonaws.com")),
     ("iot-data", re.compile("https?://data-ats\\.iot\\.(.+)\\.amazonaws.com")),
+    ("ivs", re.compile("https?://ivs\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.control-kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.data-kinesis\\.(.+)\\.amazonaws\\.com")),

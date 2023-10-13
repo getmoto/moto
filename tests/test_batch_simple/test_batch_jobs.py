@@ -23,7 +23,9 @@ def test_submit_job_by_name():
     )
 
     resp = batch_client.submit_job(
-        jobName="test1", jobQueue=queue_arn, jobDefinition=job_definition_name
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
     )
     job_id = resp["jobId"]
 
@@ -39,6 +41,44 @@ def test_submit_job_by_name():
     assert "container" in job
     assert "command" in job["container"]
     assert "logStreamName" in job["container"]
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch_simple
+def test_submit_job_array_size():
+    # Setup
+    job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
+    batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
+
+    # Execute
+    resp = batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        arrayProperties={"size": 2},
+    )
+
+    # Verify
+    job_id = resp["jobId"]
+    child_job_1_id = f"{job_id}:0"
+
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
+
+    assert job["arrayProperties"]["size"] == 2
+    assert job["attempts"] == []
+
+    # If the main job is successful, that means that all child jobs are successful
+    assert job["arrayProperties"]["size"] == 2
+    assert job["arrayProperties"]["statusSummary"]["SUCCEEDED"] == 2
+    # Main job still has no attempts - because only the child jobs are executed
+    assert job["attempts"] == []
+
+    child_job_1 = batch_client.describe_jobs(jobs=[child_job_1_id])["jobs"][0]
+    assert child_job_1["status"] == "SUCCEEDED"
+    # Child job was executed
+    assert len(child_job_1["attempts"]) == 1
 
 
 @mock_batch_simple
