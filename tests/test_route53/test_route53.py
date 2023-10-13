@@ -33,6 +33,19 @@ def test_create_hosted_zone():
 
 
 @mock_route53
+def test_get_hosted_zone():
+    conn = boto3.client("route53", region_name="us-east-1")
+    name = "testdns.aws.com."
+    caller_ref = str(hash("foo"))
+
+    zone = conn.create_hosted_zone(Name=name, CallerReference=caller_ref)["HostedZone"]
+
+    res = conn.get_hosted_zone(Id=zone["Id"])
+    assert res["HostedZone"]["Name"] == name
+    assert res["HostedZone"]["CallerReference"] == caller_ref
+
+
+@mock_route53
 def test_list_hosted_zones():
     conn = boto3.client("route53", region_name="us-east-1")
 

@@ -310,6 +310,7 @@ class FakeZone(CloudFormationModel):
         name: str,
         id_: str,
         private_zone: bool,
+        caller_reference: str,
         comment: Optional[str] = None,
         delegation_set: Optional[DelegationSet] = None,
     ):
@@ -318,6 +319,7 @@ class FakeZone(CloudFormationModel):
         self.vpcs: List[Dict[str, Any]] = []
         if comment is not None:
             self.comment = comment
+        self.caller_reference = caller_reference
         self.private_zone = private_zone
         self.rrsets: List[RecordSet] = []
         self.delegation_set = delegation_set
@@ -503,6 +505,7 @@ class Route53Backend(BaseBackend):
         self,
         name: str,
         private_zone: bool,
+        caller_reference: str,
         vpcid: Optional[str] = None,
         vpcregion: Optional[str] = None,
         comment: Optional[str] = None,
@@ -518,6 +521,7 @@ class Route53Backend(BaseBackend):
         new_zone = FakeZone(
             name,
             new_id,
+            caller_reference=caller_reference,
             private_zone=private_zone,
             comment=comment,
             delegation_set=delegation_set,

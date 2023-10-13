@@ -66,6 +66,7 @@ class Route53(BaseResponse):
                     vpcregion = zone_request["VPC"].get("VPCRegion", None)
 
             name = zone_request["Name"]
+            caller_reference = zone_request["CallerReference"]
 
             if name[-1] != ".":
                 name += "."
@@ -75,6 +76,7 @@ class Route53(BaseResponse):
                 name,
                 comment=comment,
                 private_zone=private_zone,
+                caller_reference=caller_reference,
                 vpcid=vpcid,
                 vpcregion=vpcregion,
                 delegation_set_id=delegation_set_id,
@@ -619,6 +621,7 @@ GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amaz
    <HostedZone>
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
+        <CallerReference>{{ zone.caller_reference }}</CallerReference>
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         {% if zone.comment %}
