@@ -46,7 +46,7 @@ class SESV2Response(BaseResponse):
                 source=from_email_address,
                 destinations=destination,
                 subject=content["Simple"]["Subject"]["Data"],
-                body=content["Simple"]["Subject"]["Data"],
+                body=content["Simple"]["Body"]["Text"]["Data"],
             )
         elif "Template" in content:
             raise NotImplementedError("Template functionality not ready")

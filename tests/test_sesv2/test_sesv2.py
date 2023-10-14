@@ -46,6 +46,12 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
     sent_count = int(send_quota["SentLast24Hours"])
     assert sent_count == 3
 
+    if not settings.TEST_SERVER_MODE:
+        backend = ses_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        msg: RawMessage = backend.sent_messages[0]
+        assert msg.subject == "test subject"
+        assert msg.body == "test body"
+
 
 @mock_sesv2
 def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
