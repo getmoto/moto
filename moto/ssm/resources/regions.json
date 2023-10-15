@@ -5676,6 +5676,15 @@
               "trustedadvisor": {
                 "Value": "trustedadvisor"
               },
+              "verified-access": {
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
                 "endpoint": {
@@ -15187,6 +15196,15 @@
               "trustedadvisor": {
                 "Value": "trustedadvisor"
               },
+              "verified-access": {
+                "Value": "verified-access",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
                 "endpoint": {
@@ -17888,6 +17906,15 @@
                 "Value": "wellarchitectedtool",
                 "endpoint": {
                   "Value": "wellarchitected.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "wickr": {
+                "Value": "wickr",
+                "endpoint": {
+                  "Value": "api.messaging.wickr.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33997,6 +34024,15 @@
                 "Value": "codebuild",
                 "endpoint": {
                   "Value": "codebuild.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codecatalyst": {
+                "Value": "codecatalyst",
+                "endpoint": {
+                  "Value": "codecatalyst.global.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
