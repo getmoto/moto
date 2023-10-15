@@ -254,3 +254,51 @@ def test_key_pair_filters_boto3():
         Filters=[{"Name": "fingerprint", "Values": [kp3.key_fingerprint]}]
     )["KeyPairs"]
     assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp3.name])
+
+
+@mock_ec2
+def test_key_pair_with_tags():
+    client = boto3.client("ec2", "us-east-1")
+
+    key_name_1 = str(uuid4())[0:6]
+    key_name_2 = str(uuid4())[0:6]
+    key_name_3 = str(uuid4())[0:6]
+    key_name_4 = str(uuid4())[0:6]
+    resp = client.create_key_pair(
+        KeyName=key_name_1,
+        TagSpecifications=[
+            {"ResourceType": "key-pair", "Tags": [{"Key": "key", "Value": "val1"}]}
+        ],
+    )
+    assert resp["Tags"] == [{"Key": "key", "Value": "val1"}]
+    kp1 = resp["KeyPairId"]
+
+    kp2 = client.create_key_pair(
+        KeyName=key_name_2,
+        TagSpecifications=[
+            {"ResourceType": "key-pair", "Tags": [{"Key": "key", "Value": "val2"}]}
+        ],
+    )["KeyPairId"]
+
+    assert "Tags" not in client.create_key_pair(KeyName=key_name_3)
+
+    key_pairs = client.describe_key_pairs(
+        Filters=[{"Name": "tag-key", "Values": ["key"]}]
+    )["KeyPairs"]
+    assert [kp["KeyPairId"] for kp in key_pairs] == [kp1, kp2]
+
+    key_pairs = client.describe_key_pairs(
+        Filters=[{"Name": "tag:key", "Values": ["val1"]}]
+    )["KeyPairs"]
+    assert len(key_pairs) == 1
+    assert key_pairs[0]["KeyPairId"] == kp1
+    assert key_pairs[0]["Tags"] == [{"Key": "key", "Value": "val1"}]
+
+    resp = client.import_key_pair(
+        KeyName=key_name_4,
+        PublicKeyMaterial=RSA_PUBLIC_KEY_OPENSSH,
+        TagSpecifications=[
+            {"ResourceType": "key-pair", "Tags": [{"Key": "key", "Value": "val4"}]}
+        ],
+    )
+    assert resp["Tags"] == [{"Key": "key", "Value": "val4"}]
