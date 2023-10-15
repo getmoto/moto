@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.6
 -----
-Docker Digest for 4.2.6: <autopopulateddigest>
+Docker Digest for 4.2.6: _sha256:ad3265531405fd48489ddee7e1fa7301b4d0f46b55daca7ba5039e73eaf70ac1_
 
     New Services:
         * IVS:
