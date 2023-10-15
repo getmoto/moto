@@ -883,7 +883,8 @@ class IoTBackend(BaseBackend):
             if not do_merge:
                 thing.attributes = attributes
             else:
-                thing.attributes = {k: v for k, v in attributes.items() if v}
+                thing.attributes.update(attributes)
+            thing.attributes = {k: v for k, v in thing.attributes.items() if v}
 
     def create_keys_and_certificate(
         self, set_as_active: bool
