@@ -500,6 +500,38 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "c7gd.12xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.16xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.2xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.4xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.8xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.large",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "c7gd.xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "ap-southeast-1"
  },
@@ -1372,6 +1404,38 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "m7gd.12xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.16xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.2xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.4xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.8xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.large",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "m7gd.xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-southeast-1"
  },
@@ -1957,6 +2021,38 @@
  },
  {
   "InstanceType": "r7g.xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.12xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.16xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.2xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.4xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.8xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.large",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.xlarge",
   "Location": "ap-southeast-1"
  },
  {
