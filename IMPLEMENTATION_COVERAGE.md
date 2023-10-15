@@ -2272,6 +2272,7 @@
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
+- [ ] disable_image
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -2299,6 +2300,7 @@
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
+- [ ] enable_image
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -7258,21 +7260,33 @@
 
 ## textract
 <details>
-<summary>15% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] analyze_document
 - [ ] analyze_expense
 - [ ] analyze_id
+- [ ] create_adapter
+- [ ] create_adapter_version
+- [ ] delete_adapter
+- [ ] delete_adapter_version
 - [ ] detect_document_text
+- [ ] get_adapter
+- [ ] get_adapter_version
 - [ ] get_document_analysis
 - [X] get_document_text_detection
 - [ ] get_expense_analysis
 - [ ] get_lending_analysis
 - [ ] get_lending_analysis_summary
+- [ ] list_adapter_versions
+- [ ] list_adapters
+- [ ] list_tags_for_resource
 - [ ] start_document_analysis
 - [X] start_document_text_detection
 - [ ] start_expense_analysis
 - [ ] start_lending_analysis
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_adapter
 </details>
 
 ## timestream-write
@@ -7468,6 +7482,7 @@
 - cur
 - customer-profiles
 - dataexchange
+- datazone
 - detective
 - devicefarm
 - devops-guru

@@ -167,7 +167,7 @@ sagemaker
 - [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
 - [X] describe_model_package
-- [ ] describe_model_package_group
+- [X] describe_model_package_group
 - [ ] describe_model_quality_job_definition
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
@@ -319,7 +319,7 @@ sagemaker
 - [ ] update_image_version
 - [ ] update_inference_experiment
 - [ ] update_model_card
-- [ ] update_model_package
+- [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
