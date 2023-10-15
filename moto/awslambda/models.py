@@ -371,6 +371,11 @@ class LayerVersion(CloudFormationModel):
                     self.code_sha_256,
                     self.code_digest,
                 ) = _s3_content(key)
+            else:
+                self.code_bytes = b""
+                self.code_size = 0
+                self.code_sha_256 = ""
+                self.code_digest = ""
 
     @property
     def arn(self) -> str:
