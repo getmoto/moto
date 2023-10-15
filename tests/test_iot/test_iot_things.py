@@ -52,7 +52,32 @@ def test_update_thing():
     assert len(res["things"]) == 1
     assert res["things"][0]["thingName"] is not None
     assert res["things"][0]["thingArn"] is not None
-    assert res["things"][0]["attributes"]["k1"] == "v1"
+    assert res["things"][0]["attributes"] == {"k1": "v1"}
+
+    client.update_thing(thingName=name, attributePayload={"attributes": {"k2": "v2"}})
+    res = client.list_things()
+    assert len(res["things"]) == 1
+    assert res["things"][0]["thingName"] is not None
+    assert res["things"][0]["thingArn"] is not None
+    assert res["things"][0]["attributes"] == {"k2": "v2"}
+
+    client.update_thing(
+        thingName=name, attributePayload={"attributes": {"k1": "v1"}, "merge": True}
+    )
+    res = client.list_things()
+    assert len(res["things"]) == 1
+    assert res["things"][0]["thingName"] is not None
+    assert res["things"][0]["thingArn"] is not None
+    assert res["things"][0]["attributes"] == {"k1": "v1", "k2": "v2"}
+
+    client.update_thing(
+        thingName=name, attributePayload={"attributes": {"k1": "v1.1"}, "merge": True}
+    )
+    res = client.list_things()
+    assert len(res["things"]) == 1
+    assert res["things"][0]["thingName"] is not None
+    assert res["things"][0]["thingArn"] is not None
+    assert res["things"][0]["attributes"] == {"k1": "v1.1", "k2": "v2"}
 
     client.update_thing(
         thingName=name, attributePayload={"attributes": {"k1": ""}, "merge": True}
@@ -61,7 +86,7 @@ def test_update_thing():
     assert len(res["things"]) == 1
     assert res["things"][0]["thingName"] is not None
     assert res["things"][0]["thingArn"] is not None
-    assert res["things"][0]["attributes"] == {}
+    assert res["things"][0]["attributes"] == {"k2": "v2"}
 
 
 @mock_iot
