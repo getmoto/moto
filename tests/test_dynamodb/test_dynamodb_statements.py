@@ -11,6 +11,7 @@ item1 = {
     "pk": {"S": "msg1"},
     "body": {"S": "some text"},
     "nested_attrs": {"M": {"some": {"S": "key"}}},
+    "price": {"N": "123.4"},
     "list_attrs": {"L": [{"BOOL": True}, {"BOOL": False}]},
     "bool_attr": {"BOOL": True},
 }
@@ -35,7 +36,7 @@ def test_execute_statement_select_star(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified
-def test_execute_statement_select_unique(table_name=None):
+def test_execute_statement_select_attr(table_name=None):
     client = boto3.client("dynamodb", "us-east-1")
     create_items(table_name)
     items = client.execute_statement(Statement=f"select unique_key from {table_name}")[
@@ -43,6 +44,16 @@ def test_execute_statement_select_unique(table_name=None):
     ]
     assert {} in items
     assert {"unique_key": {"S": "key"}} in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified
+def test_execute_statement_with_quoted_table(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    create_items(table_name)
+    items = client.execute_statement(Statement=f'select * from "{table_name}"')["Items"]
+    assert item1 in items
+    assert item2 in items
 
 
 @pytest.mark.aws_verified
