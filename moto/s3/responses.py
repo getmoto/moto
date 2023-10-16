@@ -34,7 +34,7 @@ from .exceptions import (
     InvalidContentMD5,
     InvalidContinuationToken,
     S3ClientError,
-    MethodNotAllowed,
+    HeadOnDeleteMarker,
     MissingBucket,
     MissingKey,
     MissingVersion,
@@ -1766,14 +1766,18 @@ class S3Response(BaseResponse):
             key = self.backend.head_object(
                 bucket_name, key_name, version_id=version_id, part_number=part_number
             )
-        except MethodNotAllowed:
+        except HeadOnDeleteMarker as exc:
             headers = {
                 "x-amz-delete-marker": "true",
                 "x-amz-version-id": version_id,
-                "allow": "DELETE",
                 "content-type": "application/xml",
             }
-            return 405, headers, "Method Not Allowed"
+            if version_id:
+                headers["allow"] = "DELETE"
+                return 405, headers, "Method Not Allowed"
+            else:
+                headers["x-amz-version-id"] = exc.marker.version_id
+                return 404, headers, "Not Found"
         if key:
             response_headers.update(key.metadata)
             response_headers.update(key.response_dict)
