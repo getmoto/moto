@@ -3,7 +3,7 @@ import json
 import re
 from collections import namedtuple
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Iterable, Optional
+from typing import Any, Dict, List, Iterable, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
@@ -93,6 +93,13 @@ class Repository(BaseObject, CloudFormationModel):
         self.policy: Optional[str] = None
         self.lifecycle_policy: Optional[str] = None
         self.images: List[Image] = []
+        self.scanning_config = {
+            "repositoryArn": self.arn,
+            "repositoryName": self.name,
+            "scanOnPush": False,
+            "scanFrequency": "MANUAL",
+            "appliedScanFilters": [],
+        }
 
     def _determine_encryption_config(
         self, encryption_config: Optional[Dict[str, str]]
@@ -789,6 +796,20 @@ class ECRBackend(BaseBackend):
 
         return response
 
+    def batch_get_repository_scanning_configuration(
+        self, names: List[str]
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
+        configs = []
+        failing = []
+        for name in names:
+            try:
+                configs.append(
+                    self._get_repository(name=name, registry_id=None).scanning_config
+                )
+            except RepositoryNotFoundException:
+                failing.append(name)
+        return configs, failing
+
     def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
         resource = self._parse_resource_arn(arn)
         repo = self._get_repository(resource.repo_name, resource.account_id)
@@ -1092,6 +1113,17 @@ class ECRBackend(BaseBackend):
         self.replication_config = replication_config
 
         return {"replicationConfiguration": replication_config}
+
+    def put_registry_scanning_configuration(self, rules: List[Dict[str, Any]]) -> None:
+        for rule in rules:
+            for repo_filter in rule["repositoryFilters"]:
+                for repo in self.repositories.values():
+                    if repo_filter["filter"] == repo.name or re.match(
+                        repo_filter["filter"], repo.name
+                    ):
+                        repo.scanning_config["scanFrequency"] = rule["scanFrequency"]
+                        # AWS testing seems to indicate that this is always overwritten
+                        repo.scanning_config["appliedScanFilters"] = [repo_filter]
 
     def describe_registry(self) -> Dict[str, Any]:
         return {
