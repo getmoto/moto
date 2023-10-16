@@ -2510,12 +2510,12 @@
 
 ## ecr
 <details>
-<summary>63% implemented</summary>
+<summary>68% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
-- [ ] batch_get_repository_scanning_configuration
+- [X] batch_get_repository_scanning_configuration
 - [ ] complete_layer_upload
 - [ ] create_pull_through_cache_rule
 - [X] create_repository
@@ -2545,7 +2545,7 @@
 - [X] put_image_tag_mutability
 - [X] put_lifecycle_policy
 - [X] put_registry_policy
-- [ ] put_registry_scanning_configuration
+- [X] put_registry_scanning_configuration
 - [X] put_replication_configuration
 - [X] set_repository_policy
 - [X] start_image_scan
