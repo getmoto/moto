@@ -1708,7 +1708,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
 
     # list_object_versions returns the object itself, and a DeleteMarker
     # object.head() returns a 'x-amz-delete-marker' header
-    # delete_marker.head() returns a 405
+    # delete_marker_version.head() returns a 405
     for version in versions.filter(Prefix="test1"):
         if version.version_id == deleted_version_id:
             with pytest.raises(ClientError) as exc:
@@ -1722,6 +1722,18 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
             assert err["ResponseMetadata"]["HTTPHeaders"]["allow"] == "DELETE"
         else:
             assert version.head()["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Note that delete_marker.head() returns a regular 404
+    # i.e., without specifying the versionId
+    with pytest.raises(ClientError) as exc:
+        client.head_object(Bucket=name, Key="test1")
+    err = exc.value.response
+    assert err["Error"] == {"Code": "404", "Message": "Not Found"}
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert err["ResponseMetadata"]["HTTPHeaders"]["x-amz-delete-marker"] == "true"
+    assert (
+        err["ResponseMetadata"]["HTTPHeaders"]["x-amz-version-id"] == deleted_version_id
+    )
 
     # Delete the same object gives a new version id
     del_mrk1 = client.delete_object(Bucket=name, Key="test1")
