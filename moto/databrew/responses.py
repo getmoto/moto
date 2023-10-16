@@ -1,5 +1,6 @@
 import json
 from typing import Any, Dict, Union
+from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -39,7 +40,7 @@ class DataBrewResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DeleteRecipeVersion.html
         if request.method == "DELETE":
-            split_path = self.parsed_url.path.strip("/").split("/")
+            split_path = self._get_path().strip("/").split("/")
             recipe_name = split_path[1]
             recipe_version = split_path[3]
             self.databrew_backend.delete_recipe_version(recipe_name, recipe_version)
@@ -48,6 +49,9 @@ class DataBrewResponse(BaseResponse):
                 {},
                 json.dumps({"Name": recipe_name, "RecipeVersion": recipe_version}),
             )
+
+    def _get_path(self) -> str:
+        return unquote(self.parsed_url.path)
 
     @amzn_request_id
     def list_recipes(self) -> str:
@@ -98,7 +102,7 @@ class DataBrewResponse(BaseResponse):
     def publish_recipe(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
-            recipe_name = self.parsed_url.path.strip("/").split("/", 2)[1]
+            recipe_name = self._get_path().strip("/").split("/", 2)[1]
             recipe_description = self.parameters.get("Description")
             self.databrew_backend.publish_recipe(recipe_name, recipe_description)
             return 200, {}, json.dumps({"Name": recipe_name})
@@ -126,7 +130,7 @@ class DataBrewResponse(BaseResponse):
     def recipe_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
-        recipe_name = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        recipe_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "PUT":
             return self.put_recipe_response(recipe_name)
@@ -177,7 +181,7 @@ class DataBrewResponse(BaseResponse):
     def ruleset_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
-        ruleset_name = self.parsed_url.path.split("/")[-1]
+        ruleset_name = self._get_path().split("/")[-1]
 
         if request.method == "PUT":
             response = self.put_ruleset_response(ruleset_name)
@@ -281,7 +285,7 @@ class DataBrewResponse(BaseResponse):
     def dataset_response(self, request: Any, full_url: str, headers: Any) -> Union[str, TYPE_RESPONSE]:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
-        dataset_name = self.parsed_url.path.split("/")[-1]
+        dataset_name = self._get_path().split("/")[-1]
 
         if request.method == "POST":
             return self.create_dataset()
@@ -334,7 +338,7 @@ class DataBrewResponse(BaseResponse):
     def job_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
-        job_name = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        job_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "GET":
             return self.get_job_response(job_name)
@@ -424,7 +428,7 @@ class DataBrewResponse(BaseResponse):
     def profile_job_response(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
-        job_name = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        job_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "PUT":
             return self.update_profile_job_response(job_name)
@@ -433,7 +437,7 @@ class DataBrewResponse(BaseResponse):
     def recipe_job_response(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
 
-        job_name = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        job_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
 
         if request.method == "PUT":
             return self.update_recipe_job_response(job_name)
