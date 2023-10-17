@@ -640,6 +640,7 @@ class S3Response(BaseResponse):
                     max_keys=max_keys,
                     delimiter=delimiter,
                     key_marker=key_marker,
+                    version_id_marker=version_id_marker,
                     is_truncated=is_truncated,
                     next_key_marker=next_key_marker,
                     next_version_id_marker=next_version_id_marker,
@@ -2595,11 +2596,14 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% endif %}
     <Delimiter>{{ delimiter }}</Delimiter>
     <KeyMarker>{{ key_marker or "" }}</KeyMarker>
+    <VersionIdMarker>{{ version_id_marker or "" }}</VersionIdMarker>
     <MaxKeys>{{ max_keys }}</MaxKeys>
     {% if is_truncated %}
     <IsTruncated>true</IsTruncated>
     <NextKeyMarker>{{ next_key_marker }}</NextKeyMarker>
+    {% if next_version_id_marker %}
     <NextVersionIdMarker>{{ next_version_id_marker }}</NextVersionIdMarker>
+    {% endif %}
     {% else %}
     <IsTruncated>false</IsTruncated>
     {% endif %}
