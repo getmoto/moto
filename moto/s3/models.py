@@ -1798,7 +1798,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ]:
         bucket = self.get_bucket(bucket_name)
 
-        common_prefixes: List[str] = []
+        common_prefixes: Set[str] = set()
         requested_versions: List[FakeKey] = []
         delete_markers: List[FakeDeleteMarker] = []
         next_key_marker: Optional[str] = None
@@ -1819,10 +1819,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             if key_marker is None:
                 return True
 
-            if version_id_marker is None:
-                return key_marker == ver.name
+            if version_id_marker is None or version_id_marker == "":
+                return ver.name >= key_marker
 
-            return key_marker == ver.name and version_id_marker == ver.version_id
+            return ver.name == key_marker and ver.version_id == version_id_marker
 
         for version in itertools.dropwhile(
             lambda ver: not key_or_version_match(ver),
@@ -1838,35 +1838,44 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             if not name.startswith(prefix):
                 continue
             # separate keys that contain the same string between the prefix and the first occurrence of the delimiter
+            is_common_prefix = False
             if delimiter and delimiter in name[len(prefix) :]:
                 end_of_delimiter = (
                     len(prefix) + name[len(prefix) :].index(delimiter) + len(delimiter)
                 )
                 prefix_including_delimiter = name[0:end_of_delimiter]
-                common_prefixes.append(prefix_including_delimiter)
-                continue
+
+                # Skip already-processed common prefix.
+                if prefix_including_delimiter == key_marker:
+                    continue
+
+                common_prefixes.add(prefix_including_delimiter)
+                name = prefix_including_delimiter
+                is_common_prefix = True
 
             # Only return max_keys items.
             if (
                 max_keys is not None
-                and len(requested_versions) + len(delete_markers) >= max_keys
+                and len(requested_versions) + len(delete_markers) + len(common_prefixes)
+                >= max_keys
             ):
-                next_key_marker = version.name
-                next_version_id_marker = version.version_id
+                next_key_marker = name
+                next_version_id_marker = (
+                    version.version_id if not is_common_prefix else None
+                )
                 break
 
-            # Differentiate between FakeKey and FakeDeleteMarkers
-            if not isinstance(version, FakeKey):
-                delete_markers.append(version)
-                continue
+            if not is_common_prefix:
+                # Differentiate between FakeKey and FakeDeleteMarkers
+                if not isinstance(version, FakeKey):
+                    delete_markers.append(version)
+                    continue
 
-            requested_versions.append(version)
-
-        common_prefixes = sorted(set(common_prefixes))
+                requested_versions.append(version)
 
         return (
             requested_versions,
-            common_prefixes,
+            sorted(common_prefixes),
             delete_markers,
             next_key_marker,
             next_version_id_marker,

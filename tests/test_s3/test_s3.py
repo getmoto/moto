@@ -2757,6 +2757,102 @@ def test_list_object_versions_with_paging_and_delete_markers():
 
 
 @mock_s3
+def test_list_object_versions_with_paging_and_delimiter():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "000" + str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    # Copied from test_list_object_versions_with_delimiter.
+    for key_index in list(range(1, 5)) + list(range(10, 14)):
+        for version_index in range(1, 4):
+            body = f"data-{version_index}".encode("UTF-8")
+            s3_client.put_object(
+                Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
+            )
+            s3_client.put_object(
+                Bucket=bucket_name, Key=f"key{key_index}-without-data", Body=b""
+            )
+
+    page1 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Delimiter="with-",
+        Prefix="key1",
+        KeyMarker="key11",
+        MaxKeys=5,
+    )
+
+    assert "Versions" in page1
+    assert len(page1["Versions"]) == 3
+    assert [v["Key"] for v in page1["Versions"]] == [
+        "key11-without-data",
+        "key11-without-data",
+        "key11-without-data",
+    ]
+
+    assert "CommonPrefixes" in page1
+    assert [p["Prefix"] for p in page1["CommonPrefixes"]] == [
+        "key11-with-",
+        "key12-with-",
+    ]
+
+    assert page1["IsTruncated"] is True
+    assert page1["NextKeyMarker"] == "key12-with-"
+    assert "NextVersionIdMarker" not in page1
+
+    page2 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Delimiter="with-",
+        Prefix="key1",
+        KeyMarker="key12-with-",
+        VersionIdMarker="",
+        MaxKeys=5,
+    )
+
+    assert "Versions" in page2
+    assert len(page2["Versions"]) == 4
+    assert [v["Key"] for v in page2["Versions"]] == [
+        "key12-without-data",
+        "key12-without-data",
+        "key12-without-data",
+        "key13-without-data",
+    ]
+
+    assert "CommonPrefixes" in page2
+    assert [p["Prefix"] for p in page2["CommonPrefixes"]] == [
+        "key13-with-",
+    ]
+
+    assert page2["IsTruncated"] is True
+    assert page2["NextKeyMarker"] == "key13-without-data"
+    assert "NextVersionIdMarker" in page2  # FIXME check VersionId?
+
+    page3 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Delimiter="with-",
+        Prefix="key1",
+        KeyMarker="key13-without-data",
+        VersionIdMarker=page2["NextVersionIdMarker"],
+        MaxKeys=5,
+    )
+
+    assert "Versions" in page3
+    assert len(page3["Versions"]) == 2
+    assert [v["Key"] for v in page3["Versions"]] == [
+        "key13-without-data",
+        "key13-without-data",
+    ]
+
+    assert "CommonPrefixes" not in page3
+
+    assert page3["IsTruncated"] is False
+    assert "NextKeyMarker" not in page3
+    assert "NextVersionIdMarker" not in page3
+
+
+@mock_s3
 def test_bad_prefix_list_object_versions():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
