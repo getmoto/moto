@@ -83,5 +83,16 @@ class MotoAPIBackend(BaseBackend):
             )
         )
 
+    def set_inspector2_findings_result(
+        self,
+        results: Optional[List[List[Dict[str, Any]]]],
+        account_id: str,
+        region: str,
+    ) -> None:
+        from moto.inspector2.models import inspector2_backends
+
+        backend = inspector2_backends[account_id][region]
+        backend.findings_queue.append(results)
+
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)
