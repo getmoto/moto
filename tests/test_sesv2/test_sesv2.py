@@ -2,7 +2,7 @@ import boto3
 from botocore.exceptions import ClientError
 import pytest
 from moto import mock_sesv2, mock_ses, settings
-from moto.ses.models import ses_backends, RawMessage
+from moto.ses.models import ses_backends, RawMessage, Message
 from tests import DEFAULT_ACCOUNT_ID
 from ..test_ses.test_ses_boto3 import get_raw_email
 
@@ -48,9 +48,42 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
 
     if not settings.TEST_SERVER_MODE:
         backend = ses_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
-        msg: RawMessage = backend.sent_messages[0]
+        msg: Message = backend.sent_messages[0]
         assert msg.subject == "test subject"
         assert msg.body == "test body"
+
+
+@mock_sesv2
+def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
+    # Setup
+    conn = boto3.client("sesv2", region_name="us-east-1")
+    ses_v1.verify_domain_identity(Domain="example.com")
+    kwargs = dict(
+        FromEmailAddress="test@example.com",
+        Destination={
+            "ToAddresses": ["test_to@example.com"],
+        },
+        Content={
+            "Simple": {
+                "Subject": {"Data": "test subject"},
+                "Body": {"Html": {"Data": "<h1>Test HTML</h1>"}},
+            },
+        },
+    )
+
+    # Execute
+    conn.send_email(**kwargs)
+
+    # Verify
+    send_quota = ses_v1.get_send_quota()
+    sent_count = int(send_quota["SentLast24Hours"])
+    assert sent_count == 1
+
+    if not settings.TEST_SERVER_MODE:
+        backend = ses_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        msg: Message = backend.sent_messages[0]
+        assert msg.subject == "test subject"
+        assert msg.body == "<h1>Test HTML</h1>"
 
 
 @mock_sesv2
