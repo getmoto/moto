@@ -85,6 +85,7 @@ backend_url_patterns = [
     ("guardduty", re.compile("https?://guardduty\\.(.+)\\.amazonaws\\.com")),
     ("iam", re.compile("https?://iam\\.(.*\\.)?amazonaws\\.com")),
     ("identitystore", re.compile("https?://identitystore\\.(.+)\\.amazonaws\\.com")),
+    ("inspector2", re.compile("https?://inspector2\\.(.+)\\.amazonaws\\.com")),
     ("iot", re.compile("https?://iot\\.(.+)\\.amazonaws\\.com")),
     ("iot-data", re.compile("https?://data\\.iot\\.(.+)\\.amazonaws.com")),
     ("iot-data", re.compile("https?://data-ats\\.iot\\.(.+)\\.amazonaws.com")),

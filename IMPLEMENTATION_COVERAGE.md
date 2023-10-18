@@ -3838,6 +3838,58 @@
 - [ ] update_user
 </details>
 
+## inspector2
+<details>
+<summary>41% implemented</summary>
+
+- [X] associate_member
+- [X] batch_get_account_status
+- [ ] batch_get_code_snippet
+- [ ] batch_get_finding_details
+- [ ] batch_get_free_trial_info
+- [ ] batch_get_member_ec2_deep_inspection_status
+- [ ] batch_update_member_ec2_deep_inspection_status
+- [ ] cancel_findings_report
+- [ ] cancel_sbom_export
+- [X] create_filter
+- [ ] create_findings_report
+- [ ] create_sbom_export
+- [X] delete_filter
+- [X] describe_organization_configuration
+- [X] disable
+- [X] disable_delegated_admin_account
+- [X] disassociate_member
+- [X] enable
+- [X] enable_delegated_admin_account
+- [ ] get_configuration
+- [ ] get_delegated_admin_account
+- [ ] get_ec2_deep_inspection_configuration
+- [ ] get_encryption_key
+- [ ] get_findings_report_status
+- [X] get_member
+- [ ] get_sbom_export
+- [ ] list_account_permissions
+- [ ] list_coverage
+- [ ] list_coverage_statistics
+- [X] list_delegated_admin_accounts
+- [X] list_filters
+- [ ] list_finding_aggregations
+- [X] list_findings
+- [X] list_members
+- [X] list_tags_for_resource
+- [ ] list_usage_totals
+- [ ] reset_encryption_key
+- [ ] search_vulnerabilities
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_configuration
+- [ ] update_ec2_deep_inspection_configuration
+- [ ] update_encryption_key
+- [ ] update_filter
+- [ ] update_org_ec2_deep_inspection_configuration
+- [X] update_organization_configuration
+</details>
+
 ## iot
 <details>
 <summary>32% implemented</summary>
@@ -7515,7 +7567,6 @@
 - imagebuilder
 - importexport
 - inspector
-- inspector2
 - internetmonitor
 - iot-jobs-data
 - iot-roborunner
