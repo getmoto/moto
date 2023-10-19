@@ -1762,20 +1762,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             account_id = s3_backends.bucket_accounts[bucket_name]
             return s3_backends[account_id]["global"].get_bucket(bucket_name)
 
-        # when access point is used the url that's passed is of following format:
-        # AccessPointName-AccountId.s3-accesspoint.*Region*.amazonaws.com
-        # only the first part is passed as bucket name: AccessPointName-AccountId
-        if bucket_name.endswith(f"-{self.account_id}"):
-
-            # import here to avoid circular dependency error
-            from moto.s3control import s3control_backends
-
-            ap_name = bucket_name[: -(len(self.account_id) + 1)]
-            ap = s3control_backends[self.account_id]["global"].get_access_point(
-                self.account_id, ap_name
-            )
-            return self.buckets[ap.bucket]
-
         raise MissingBucket(bucket=bucket_name)
 
     def head_bucket(self, bucket_name: str) -> FakeBucket:
