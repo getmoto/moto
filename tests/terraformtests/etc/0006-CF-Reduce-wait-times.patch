@@ -1,29 +1,42 @@
-From c2981f42629c1dcb3756c13f243c8c52391f3677 Mon Sep 17 00:00:00 2001
+From 787080f8c3cac8d7c982843d3470b6ad1dc12985 Mon Sep 17 00:00:00 2001
 From: Bert Blommers <info@bertblommers.nl>
-Date: Sun, 13 Aug 2023 21:43:26 +0000
-Subject: [PATCH] Patch: CloudFront timings
+Date: Fri, 20 Oct 2023 18:31:37 +0000
+Subject: [PATCH] Patch CloudFront delays
 
 ---
- internal/service/cloudfront/distribution.go | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ internal/service/cloudfront/distribution.go | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/internal/service/cloudfront/distribution.go b/internal/service/cloudfront/distribution.go
-index 4870ca0f6d..8190b12231 100644
+index 7d66d22860..ac1c83b8e4 100644
 --- a/internal/service/cloudfront/distribution.go
 +++ b/internal/service/cloudfront/distribution.go
-@@ -1120,9 +1120,9 @@ func DistributionWaitUntilDeployed(ctx context.Context, id string, meta interfac
+@@ -1148,9 +1148,9 @@ func WaitDistributionDeployed(ctx context.Context, conn *cloudfront.CloudFront,
  		Pending:    []string{"InProgress"},
  		Target:     []string{"Deployed"},
- 		Refresh:    resourceWebDistributionStateRefreshFunc(ctx, id, meta),
+ 		Refresh:    distributionDeployRefreshFunc(ctx, conn, id),
 -		Timeout:    90 * time.Minute,
 -		MinTimeout: 15 * time.Second,
--		Delay:      1 * time.Minute,
+-		Delay:      30 * time.Second,
 +		Timeout:    90 * time.Second,
 +		MinTimeout: 2 * time.Second,
 +		Delay:      2 * time.Second,
  	}
 
  	_, err := stateConf.WaitForStateContext(ctx)
--- 
-2.25.1
+@@ -1162,9 +1162,9 @@ func WaitDistributionDeleted(ctx context.Context, conn *cloudfront.CloudFront, i
+ 		Pending:    []string{"InProgress", "Deployed"},
+ 		Target:     []string{},
+ 		Refresh:    distributionDeleteRefreshFunc(ctx, conn, id),
+-		Timeout:    90 * time.Minute,
+-		MinTimeout: 15 * time.Second,
+-		Delay:      15 * time.Second,
++		Timeout:    90 * time.Second,
++		MinTimeout: 2 * time.Second,
++		Delay:      2 * time.Second,
+ 	}
+
+ 	_, err := stateConf.WaitForStateContext(ctx)
+--
+2.34.1
 

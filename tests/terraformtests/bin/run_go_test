@@ -14,6 +14,7 @@ PATCH="etc/0001-Patch-Hardcode-endpoints-to-local-server.patch"
 (git apply $pwd/etc/0006-CF-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched CF") || echo "!! Not able to patch CF"
 (git apply $pwd/etc/0007-Comprehend-Reduce-wait-times.patch > /dev/null 2>&1 && echo "Patched Comprehend") || echo "!! Not able to patch Comprehend"
 (git apply $pwd/etc/0008-Patch-RDS-improvements.patch > /dev/null 2>&1 && echo "Patched RDS") || echo "!! Not able to patch RDS"
+(git apply $pwd/etc/0009-Patch-CloudFormation-delays.patch > /dev/null 2>&1 && echo "Patched CloudFormation") || echo "!! Not able to patch CloudFormation"
 )
 
 (
@@ -23,5 +24,5 @@ TF_ACC=1 \
   AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
   AWS_ALTERNATE_ACCESS_KEY_ID=test AWS_ALTERNATE_SECRET_ACCESS_KEY=test \
   AWS_THIRD_SECRET_ACCESS_KEY=test AWS_THIRD_ACCESS_KEY_ID=test \
-  go test ./internal/service/$1/ -v -timeout 60m -run $2
+  go test ./internal/service/$1/ -v -timeout 240m -run $2
 )

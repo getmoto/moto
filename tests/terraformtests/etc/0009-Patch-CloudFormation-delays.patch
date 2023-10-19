@@ -1,0 +1,43 @@
+From dc6ca47bf4fe94083559b8a3c824ab387bccebe6 Mon Sep 17 00:00:00 2001
+From: Bert Blommers <info@bertblommers.nl>
+Date: Fri, 20 Oct 2023 18:28:08 +0000
+Subject: [PATCH] Patch CloudFormation delays
+
+---
+ internal/service/cloudformation/stack.go | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/internal/service/cloudformation/stack.go b/internal/service/cloudformation/stack.go
+index e7ba19db9c..c18e5358c0 100644
+--- a/internal/service/cloudformation/stack.go
++++ b/internal/service/cloudformation/stack.go
+@@ -473,7 +473,7 @@ func WaitStackCreated(ctx context.Context, conn *cloudformation.CloudFormation,
+ 		},
+ 		Timeout:    timeout,
+ 		MinTimeout: minTimeout,
+-		Delay:      10 * time.Second,
++		Delay:      2 * time.Second,
+ 		Refresh:    statusStack(ctx, conn, name),
+ 	}
+ 
+@@ -535,7 +535,7 @@ func WaitStackUpdated(ctx context.Context, conn *cloudformation.CloudFormation,
+ 		},
+ 		Timeout:    timeout,
+ 		MinTimeout: minTimeout,
+-		Delay:      10 * time.Second,
++		Delay:      2 * time.Second,
+ 		Refresh:    statusStack(ctx, conn, name),
+ 	}
+ 
+@@ -576,7 +576,7 @@ func WaitStackDeleted(ctx context.Context, conn *cloudformation.CloudFormation,
+ 		},
+ 		Timeout:    timeout,
+ 		MinTimeout: minTimeout,
+-		Delay:      10 * time.Second,
++		Delay:      2 * time.Second,
+ 		Refresh:    statusStack(ctx, conn, name),
+ 	}
+ 
+-- 
+2.34.1
+

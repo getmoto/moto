@@ -1,21 +1,22 @@
-From 83f8df495c5fc187d925a7dd61f93d1fdc4f405b Mon Sep 17 00:00:00 2001
+From bf15437c8a30fc8b0afebf97a509d22d45da1e94 Mon Sep 17 00:00:00 2001
 From: Bert Blommers <info@bertblommers.nl>
-Date: Sun, 13 Aug 2023 21:16:30 +0000
-Subject: [PATCH] Patch endpoints to localhost:4566
+Date: Thu, 19 Oct 2023 22:22:07 +0000
+Subject: [PATCH] Patch hardcoded endpoints
 
 ---
- internal/conns/config.go      | 14 ++++++++++++++
+ internal/conns/config.go      | 16 ++++++++++++++++
  internal/provider/provider.go |  4 ++--
- 2 files changed, 16 insertions(+), 2 deletions(-)
+ 2 files changed, 18 insertions(+), 2 deletions(-)
 
 diff --git a/internal/conns/config.go b/internal/conns/config.go
-index 72c9cabde0..1f2e0d00e9 100644
+index b376ffacae..f41d4fee3f 100644
 --- a/internal/conns/config.go
 +++ b/internal/conns/config.go
-@@ -55,10 +55,24 @@ type Config struct {
+@@ -58,12 +58,28 @@ type Config struct {
  	UseFIPSEndpoint                bool
  }
 
++
 +// XXX: added by bblommers
 +func GetLocalEndpoints() map[string]string {
 +	const localEndpoint = "http://localhost:4566"
@@ -26,22 +27,25 @@ index 72c9cabde0..1f2e0d00e9 100644
 +	return localEndpoints
 +}
 +
++
  // ConfigureProvider configures the provided provider Meta (instance data).
  func (c *Config) ConfigureProvider(ctx context.Context, client *AWSClient) (*AWSClient, diag.Diagnostics) {
  	var diags diag.Diagnostics
 
-+    // XXX: added by bblommers
+ 	ctx, logger := logging.NewTfLogger(ctx)
+
++	// XXX: added by bblommers
 +	// insert custom endpoints
 +	c.Endpoints = GetLocalEndpoints()
 +
  	awsbaseConfig := awsbase.Config{
  		AccessKey:                     c.AccessKey,
- 		APNInfo:                       StdUserAgentProducts(c.TerraformVersion),
+ 		AllowedAccountIds:             c.AllowedAccountIds,
 diff --git a/internal/provider/provider.go b/internal/provider/provider.go
-index 88c6ea9538..cfe78c5549 100644
+index 0bcb6d6a98..78b088c68e 100644
 --- a/internal/provider/provider.go
 +++ b/internal/provider/provider.go
-@@ -452,13 +452,13 @@ func configure(ctx context.Context, provider *schema.Provider, d *schema.Resourc
+@@ -462,13 +462,13 @@ func configure(ctx context.Context, provider *schema.Provider, d *schema.Resourc
  		CustomCABundle:                 d.Get("custom_ca_bundle").(string),
  		EC2MetadataServiceEndpoint:     d.Get("ec2_metadata_service_endpoint").(string),
  		EC2MetadataServiceEndpointMode: d.Get("ec2_metadata_service_endpoint_mode").(string),
@@ -58,4 +62,5 @@ index 88c6ea9538..cfe78c5549 100644
  		SkipCredsValidation:            d.Get("skip_credentials_validation").(bool),
  		SkipRegionValidation:           d.Get("skip_region_validation").(bool),
 --
-2.25.1
+2.34.1
+

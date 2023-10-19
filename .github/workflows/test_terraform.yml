@@ -11,6 +11,9 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
   test_service:
     needs: prepare_list
+    permissions:
+      actions: read
+      contents: read
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     strategy:
       fail-fast: false
@@ -27,6 +30,11 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
         cache-dependency-path: tests/terraformtests/terraform-provider-aws/go.sum
+    - name: Go Dependencies
+      run: |
+        cd tests/terraformtests/terraform-provider-aws
+        go list -m -u all
+        cd ../../..
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -43,6 +51,10 @@ jobs:
     - name: Get original AWS service name
       id: get-service-name
       run: echo "servicename=$(python -c "print('${{ matrix.service }}'[:'${{ matrix.service }}'.index('|') if '|' in '${{ matrix.service }}' else len('${{ matrix.service }}')])")" >> $GITHUB_OUTPUT
+    - name: Collect Workflow Telemetry
+      uses: runforesight/workflow-telemetry-action@v1
     - name: Execute tests
+      env:
+        TF_LOG: "debug"
       run: |
         make terraformtests SERVICE_NAME=${{ steps.get-service-name.outputs.servicename }} TEST_NAMES=${{ steps.get-list.outputs.testlist }}
