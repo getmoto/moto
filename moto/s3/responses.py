@@ -174,6 +174,10 @@ class S3Response(BaseResponse):
             return unquote(part)
 
     @property
+    def is_access_point(self) -> bool:
+        return ".s3-accesspoint." in self.headers["host"]
+
+    @property
     def backend(self) -> S3Backend:
         return s3_backends[self.current_account]["global"]
 
@@ -247,10 +251,23 @@ class S3Response(BaseResponse):
         return "delete" in qs
 
     def parse_bucket_name_from_url(self, request: Any, url: str) -> str:
+        bucket_name = ""
         if self.subdomain_based_buckets(request):
-            return bucket_name_from_url(url)  # type: ignore
+            bucket_name = bucket_name_from_url(url)  # type: ignore
         else:
-            return bucketpath_bucket_name_from_url(url)  # type: ignore
+            bucket_name = bucketpath_bucket_name_from_url(url)  # type: ignore
+
+        if self.is_access_point:
+            # import here to avoid circular dependency error
+            from moto.s3control import s3control_backends
+
+            ap_name = bucket_name[: -(len(self.current_account) + 1)]
+            ap = s3control_backends[self.current_account]["global"].get_access_point(
+                self.current_account, ap_name
+            )
+            bucket_name = ap.bucket
+
+        return bucket_name
 
     def parse_key_name(self, request: Any, url: str) -> str:
         if self.subdomain_based_buckets(request):
