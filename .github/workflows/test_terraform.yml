@@ -1,4 +1,4 @@
-on: [pull_request]
+on: [workflow_dispatch]
 name: TestTerraform
 jobs:
   prepare_list:
