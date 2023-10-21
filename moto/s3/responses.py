@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Iterator, Union, Tuple, Optional, Type
 import urllib.parse
 
 from moto import settings
-from moto.core.versions import is_werkzeug_2_3_x
 from moto.core.utils import (
     extract_region_from_aws_authorization,
     str_to_rfc_1123_datetime,
@@ -1153,10 +1152,6 @@ class S3Response(BaseResponse):
             objects = [objects]
         if len(objects) == 0:
             raise MalformedXML()
-        if self.is_werkzeug_request and is_werkzeug_2_3_x():
-            for obj in objects:
-                if "Key" in obj:
-                    obj["Key"] = self.get_safe_path(obj["Key"])
 
         if authenticated:
             deleted_objects = self.backend.delete_objects(bucket_name, objects)

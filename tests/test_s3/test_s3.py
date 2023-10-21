@@ -3414,6 +3414,34 @@ def test_delete_objects_with_empty_keyname():
 
 
 @mock_s3
+def test_delete_objects_percent_encoded():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket-encoded"
+    client.create_bucket(Bucket=bucket_name)
+
+    object_key_1 = "a%2Fb"
+    object_key_2 = "a/%F0%9F%98%80"
+    client.put_object(Bucket=bucket_name, Key=object_key_1, Body="percent encoding")
+    client.put_object(
+        Bucket=bucket_name, Key=object_key_2, Body="percent encoded emoji"
+    )
+    assert len(client.list_objects(Bucket=bucket_name)["Contents"]) == 2
+
+    delete_objects = client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": object_key_1},
+                {"Key": object_key_2},
+            ],
+        },
+    )
+    assert delete_objects["Deleted"][0] == {"Key": object_key_1}
+    assert delete_objects["Deleted"][1] == {"Key": object_key_2}
+    assert "Contents" not in client.list_objects(Bucket=bucket_name)
+
+
+@mock_s3
 def test_head_object_should_return_default_content_type():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     s3_resource.create_bucket(Bucket="testbucket")
