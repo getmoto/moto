@@ -640,6 +640,42 @@
   "Location": "eus2-az1"
  },
  {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
+  "Location": "eus2-az1"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "eus2-az1"
  },
@@ -1289,6 +1325,42 @@
  },
  {
   "InstanceType": "r7g.xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
   "Location": "eus2-az2"
  },
  {
@@ -1977,6 +2049,42 @@
  },
  {
   "InstanceType": "r7g.xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
   "Location": "eus2-az3"
  },
  {

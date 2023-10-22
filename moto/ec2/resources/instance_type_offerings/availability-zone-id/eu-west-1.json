@@ -2528,6 +2528,42 @@
   "Location": "euw1-az1"
  },
  {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
+  "Location": "euw1-az1"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "euw1-az1"
  },
@@ -5380,6 +5416,42 @@
   "Location": "euw1-az2"
  },
  {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
+  "Location": "euw1-az2"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "euw1-az2"
  },
@@ -8189,6 +8261,42 @@
  },
  {
   "InstanceType": "r7gd.xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
   "Location": "euw1-az3"
  },
  {
