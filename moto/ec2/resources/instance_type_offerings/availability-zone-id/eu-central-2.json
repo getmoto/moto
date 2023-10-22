@@ -456,6 +456,46 @@
   "Location": "euc2-az1"
  },
  {
+  "InstanceType": "m6id.12xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.16xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.24xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.2xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.32xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.4xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.8xlarge",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.large",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.metal",
+  "Location": "euc2-az1"
+ },
+ {
+  "InstanceType": "m6id.xlarge",
+  "Location": "euc2-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "euc2-az1"
  },
@@ -1140,6 +1180,46 @@
   "Location": "euc2-az2"
  },
  {
+  "InstanceType": "m6id.12xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.16xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.24xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.2xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.32xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.4xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.8xlarge",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.large",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.metal",
+  "Location": "euc2-az2"
+ },
+ {
+  "InstanceType": "m6id.xlarge",
+  "Location": "euc2-az2"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "euc2-az2"
  },
@@ -1785,6 +1865,46 @@
  },
  {
   "InstanceType": "m6i.xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.12xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.16xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.24xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.2xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.32xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.4xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.8xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.large",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.metal",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "m6id.xlarge",
   "Location": "euc2-az3"
  },
  {
