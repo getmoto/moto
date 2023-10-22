@@ -1482,9 +1482,9 @@ class S3Response(BaseResponse):
                 if isinstance(copy_source, bytes):
                     copy_source = copy_source.decode("utf-8")
                 copy_source_parsed = urlparse(copy_source)
-                url_path = copy_source_parsed.path
-                # this path should not be decoded, as it is not encoded in the headers
-                src_bucket, src_key = url_path.lstrip("/").split("/", 1)
+                src_bucket, src_key = (
+                    unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
+                )
                 src_version_id = parse_qs(copy_source_parsed.query).get(
                     "versionId", [None]  # type: ignore
                 )[0]
