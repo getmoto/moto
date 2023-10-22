@@ -3425,7 +3425,10 @@ def test_delete_objects_percent_encoded():
     client.put_object(
         Bucket=bucket_name, Key=object_key_2, Body="percent encoded emoji"
     )
-    assert len(client.list_objects(Bucket=bucket_name)["Contents"]) == 2
+    list_objs = client.list_objects(Bucket=bucket_name)
+    assert len(list_objs["Contents"]) == 2
+    assert list_objs["Contents"][0]["Key"] == object_key_1
+    assert list_objs["Contents"][1]["Key"] == object_key_2
 
     delete_objects = client.delete_objects(
         Bucket=bucket_name,
