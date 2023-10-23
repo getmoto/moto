@@ -1,7 +1,7 @@
 coverage
 pytest
 pytest-cov
-pytest-ordering
+pytest-order
 pytest-xdist
 freezegun
 pylint
