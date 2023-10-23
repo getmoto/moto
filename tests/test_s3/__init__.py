@@ -1,7 +1,7 @@
 import boto3
 import os
 from functools import wraps
-from moto import mock_s3
+from moto import mock_s3, mock_sts, mock_s3control
 from moto.s3.responses import DEFAULT_REGION_NAME
 from uuid import uuid4
 
@@ -33,7 +33,7 @@ def s3_aws_verified(func):
             print(f"Test {func} will create {bucket_name}")
             resp = create_bucket_and_test(bucket_name, client)
         else:
-            with mock_s3():
+            with mock_s3(), mock_sts(), mock_s3control():
                 resp = create_bucket_and_test(bucket_name, client)
         return resp
 
