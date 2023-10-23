@@ -5,14 +5,11 @@ from typing import Any, Dict, List, Iterator, Union, Tuple, Optional, Type
 import urllib.parse
 
 from moto import settings
-from moto.core.versions import is_werkzeug_2_3_x
 from moto.core.utils import (
     extract_region_from_aws_authorization,
     str_to_rfc_1123_datetime,
-    normalize_werkzeug_path,
 )
 from urllib.parse import parse_qs, urlparse, unquote, urlencode, urlunparse
-from urllib.parse import ParseResult
 
 import xmltodict
 
@@ -164,14 +161,8 @@ class S3Response(BaseResponse):
         # Taking the naive approach to never decompress anything from S3 for now
         self.allow_request_decompression = False
 
-    def get_safe_path_from_url(self, url: ParseResult) -> str:
-        return self.get_safe_path(url.path)
-
-    def get_safe_path(self, part: str) -> str:
-        if self.is_werkzeug_request:
-            return normalize_werkzeug_path(part)
-        else:
-            return unquote(part)
+    def get_safe_path(self) -> str:
+        return unquote(self.raw_path)
 
     @property
     def is_access_point(self) -> bool:
@@ -1153,10 +1144,6 @@ class S3Response(BaseResponse):
             objects = [objects]
         if len(objects) == 0:
             raise MalformedXML()
-        if self.is_werkzeug_request and is_werkzeug_2_3_x():
-            for obj in objects:
-                if "Key" in obj:
-                    obj["Key"] = self.get_safe_path(obj["Key"])
 
         if authenticated:
             deleted_objects = self.backend.delete_objects(bucket_name, objects)
@@ -1273,7 +1260,7 @@ class S3Response(BaseResponse):
         self, request: Any, full_url: str, headers: Dict[str, Any]
     ) -> TYPE_RESPONSE:
         parsed_url = urlparse(full_url)
-        url_path = self.get_safe_path_from_url(parsed_url)
+        url_path = self.get_safe_path()
         query = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
 
@@ -1495,8 +1482,9 @@ class S3Response(BaseResponse):
                 if isinstance(copy_source, bytes):
                     copy_source = copy_source.decode("utf-8")
                 copy_source_parsed = urlparse(copy_source)
-                url_path = self.get_safe_path_from_url(copy_source_parsed)
-                src_bucket, src_key = url_path.lstrip("/").split("/", 1)
+                src_bucket, src_key = (
+                    unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
+                )
                 src_version_id = parse_qs(copy_source_parsed.query).get(
                     "versionId", [None]  # type: ignore
                 )[0]
