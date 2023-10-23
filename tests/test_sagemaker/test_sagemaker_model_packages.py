@@ -411,12 +411,12 @@ def test_validate_supported_realtime_inference_instance_types_should_raise_error
 def test_create_model_package():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     resp = client.create_model_package(
-        ModelPackageName="test-model-package",
+        ModelPackageName="TestModelPackage",
         ModelPackageDescription="test-model-package-description",
     )
     assert (
         resp["ModelPackageArn"]
-        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package"
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/testmodelpackage"
     )
 
 
@@ -446,20 +446,20 @@ def test_create_model_package_in_model_package_group():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
     resp_version_1 = client.create_model_package(
-        ModelPackageName="test-model-package",
+        ModelPackageName="TestModelPackage",
         ModelPackageGroupName="test-model-package-group",
         ModelPackageDescription="test-model-package-description",
     )
     resp_version_2 = client.create_model_package(
-        ModelPackageName="test-model-package",
+        ModelPackageName="TestModelPackage",
         ModelPackageGroupName="test-model-package-group",
         ModelPackageDescription="test-model-package-description",
     )
     assert (
         resp_version_1["ModelPackageArn"]
-        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/1"
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/testmodelpackage/1"
     )
     assert (
         resp_version_2["ModelPackageArn"]
-        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/test-model-package/2"
+        == "arn:aws:sagemaker:eu-west-1:123456789012:model-package/testmodelpackage/2"
     )

@@ -1015,9 +1015,9 @@ class ModelPackage(BaseObject):
             region_name=region_name,
             account_id=account_id,
             _type="model-package",
-            _id=f"{model_package_name}/{model_package_version}"
+            _id=f"{model_package_name.lower()}/{model_package_version}"
             if model_package_version
-            else model_package_name,
+            else model_package_name.lower(),
         )
         datetime_now = datetime.now(tzutc())
         self.model_package_name = model_package_name
