@@ -61,7 +61,7 @@ class BatchSimpleBackend(BaseBackend):
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
-    ) -> Tuple[str, str]:
+    ) -> Tuple[str, str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
@@ -106,7 +106,7 @@ class BatchSimpleBackend(BaseBackend):
         else:
             self._mark_job_as_finished(include_start_attempt=True, job=job)
 
-        return job_name, job.job_id
+        return job_name, job.job_id, job.arn
 
     def _mark_job_as_finished(self, include_start_attempt: bool, job: Job) -> None:
         self.backend._jobs[job.job_id] = job
