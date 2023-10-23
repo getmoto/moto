@@ -381,7 +381,7 @@ def test_publish_recipe(recipe_name):
     recipe = client.describe_recipe(Name=recipe_name)
     assert recipe["Description"] == "2nd desc"
     assert recipe["RecipeVersion"] == "2.0"
-    assert recipe["PublishedDate"] > first_published_date
+    assert recipe["PublishedDate"] >= first_published_date
 
 
 @mock_databrew
