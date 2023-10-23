@@ -91,15 +91,17 @@ class FakeThingType(BaseModel):
         self,
         thing_type_name: str,
         thing_type_properties: Optional[Dict[str, Any]],
+        account_id: str,
         region_name: str,
     ):
+        self.account_id = account_id
         self.region_name = region_name
         self.thing_type_name = thing_type_name
         self.thing_type_properties = thing_type_properties
         self.thing_type_id = str(random.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {"deprecated": False, "creationDate": int(t * 1000) / 1000.0}
-        self.arn = f"arn:aws:iot:{self.region_name}:1:thingtype/{thing_type_name}"
+        self.arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:thingtype/{thing_type_name}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -117,9 +119,11 @@ class FakeThingGroup(BaseModel):
         thing_group_name: str,
         parent_group_name: str,
         thing_group_properties: Dict[str, str],
+        account_id: str,
         region_name: str,
         thing_groups: Dict[str, "FakeThingGroup"],
     ):
+        self.account_id = account_id
         self.region_name = region_name
         self.thing_group_name = thing_group_name
         self.thing_group_id = str(random.uuid4())  # I don't know the rule of id
@@ -153,7 +157,7 @@ class FakeThingGroup(BaseModel):
                         }
                     ]
                 )
-        self.arn = f"arn:aws:iot:{self.region_name}:1:thinggroup/{thing_group_name}"
+        self.arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:thinggroup/{thing_group_name}"
         self.things: Dict[str, FakeThing] = OrderedDict()
 
     def to_dict(self) -> Dict[str, Any]:
@@ -345,14 +349,16 @@ class FakeJob(BaseModel):
         target_selection: str,
         job_executions_rollout_config: Dict[str, Any],
         document_parameters: Dict[str, str],
+        account_id: str,
         region_name: str,
     ):
         if not self._job_id_matcher(self.JOB_ID_REGEX, job_id):
             raise InvalidRequestException()
 
+        self.account_id = account_id
         self.region_name = region_name
         self.job_id = job_id
-        self.job_arn = f"arn:aws:iot:{self.region_name}:1:job/{job_id}"
+        self.job_arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:job/{job_id}"
         self.targets = targets
         self.document_source = document_source
         self.document = document
@@ -508,8 +514,10 @@ class FakeRule(BaseModel):
         error_action: Dict[str, Any],
         sql: str,
         aws_iot_sql_version: str,
+        account_id: str,
         region_name: str,
     ):
+        self.account_id = account_id
         self.region_name = region_name
         self.rule_name = rule_name
         self.description = description or ""
@@ -520,7 +528,7 @@ class FakeRule(BaseModel):
         self.error_action = error_action or {}
         self.sql = sql
         self.aws_iot_sql_version = aws_iot_sql_version or "2016-03-23"
-        self.arn = f"arn:aws:iot:{self.region_name}:1:rule/{rule_name}"
+        self.arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:rule/{rule_name}"
 
     def to_get_dict(self) -> Dict[str, Any]:
         return {
@@ -550,6 +558,7 @@ class FakeRule(BaseModel):
 class FakeDomainConfiguration(BaseModel):
     def __init__(
         self,
+        account_id: str,
         region_name: str,
         domain_configuration_name: str,
         domain_name: str,
@@ -565,7 +574,7 @@ class FakeDomainConfiguration(BaseModel):
                 f"operation: Service type {service_type} not recognized."
             )
         self.domain_configuration_name = domain_configuration_name
-        self.domain_configuration_arn = f"arn:aws:iot:{region_name}:1:domainconfiguration/{domain_configuration_name}/{random.get_random_string(length=5)}"
+        self.domain_configuration_arn = f"arn:aws:iot:{region_name}:{account_id}:domainconfiguration/{domain_configuration_name}/{random.get_random_string(length=5)}"
         self.domain_name = domain_name
         self.server_certificates = []
         if server_certificate_arns:
@@ -721,7 +730,7 @@ class IoTBackend(BaseBackend):
         if thing_type_properties is None:
             thing_type_properties = {}
         thing_type = FakeThingType(
-            thing_type_name, thing_type_properties, self.region_name
+            thing_type_name, thing_type_properties, self.account_id, self.region_name
         )
         self.thing_types[thing_type.arn] = thing_type
         return thing_type.thing_type_name, thing_type.arn
@@ -884,6 +893,7 @@ class IoTBackend(BaseBackend):
                 thing.attributes = attributes
             else:
                 thing.attributes.update(attributes)
+            thing.attributes = {k: v for k, v in thing.attributes.items() if v}
 
     def create_keys_and_certificate(
         self, set_as_active: bool
@@ -1307,7 +1317,6 @@ class IoTBackend(BaseBackend):
         return thing_names
 
     def list_thing_principals(self, thing_name: str) -> List[str]:
-
         things = [_ for _ in self.things.values() if _.thing_name == thing_name]
         if len(things) == 0:
             raise ResourceNotFoundException(
@@ -1340,6 +1349,7 @@ class IoTBackend(BaseBackend):
             thing_group_name,
             parent_group_name,
             thing_group_properties,
+            self.account_id,
             self.region_name,
             self.thing_groups,
         )
@@ -1576,6 +1586,7 @@ class IoTBackend(BaseBackend):
             target_selection,
             job_executions_rollout_config,
             document_parameters,
+            self.account_id,
             self.region_name,
         )
         self.jobs[job_id] = job
@@ -1772,6 +1783,7 @@ class IoTBackend(BaseBackend):
             created_at=int(time.time()),
             topic_pattern=topic,
             sql=sql,
+            account_id=self.account_id,
             region_name=self.region_name,
             **kwargs,
         )
@@ -1817,6 +1829,7 @@ class IoTBackend(BaseBackend):
                 ].domain_configuration_arn,
             )
         self.domain_configurations[domain_configuration_name] = FakeDomainConfiguration(
+            self.account_id,
             self.region_name,
             domain_configuration_name,
             domain_name,

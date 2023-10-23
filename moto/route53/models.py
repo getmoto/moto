@@ -4,6 +4,8 @@ import itertools
 import re
 import string
 from collections import defaultdict
+from datetime import datetime
+
 from jinja2 import Template
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -34,6 +36,12 @@ ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 def create_route53_zone_id() -> str:
     # New ID's look like this Z1RWWTK7Y8UDDQ
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
+
+
+def create_route53_caller_reference() -> str:
+    timestamp = datetime.now().strftime("%H:%M:%S.%f")
+    random_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
+    return f"{random_string} {timestamp}"
 
 
 class DelegationSet(BaseModel):
@@ -310,6 +318,7 @@ class FakeZone(CloudFormationModel):
         name: str,
         id_: str,
         private_zone: bool,
+        caller_reference: str,
         comment: Optional[str] = None,
         delegation_set: Optional[DelegationSet] = None,
     ):
@@ -318,6 +327,7 @@ class FakeZone(CloudFormationModel):
         self.vpcs: List[Dict[str, Any]] = []
         if comment is not None:
             self.comment = comment
+        self.caller_reference = caller_reference
         self.private_zone = private_zone
         self.rrsets: List[RecordSet] = []
         self.delegation_set = delegation_set
@@ -503,12 +513,14 @@ class Route53Backend(BaseBackend):
         self,
         name: str,
         private_zone: bool,
+        caller_reference: Optional[str] = None,
         vpcid: Optional[str] = None,
         vpcregion: Optional[str] = None,
         comment: Optional[str] = None,
         delegation_set_id: Optional[str] = None,
     ) -> FakeZone:
         new_id = create_route53_zone_id()
+        caller_reference = caller_reference or create_route53_caller_reference()
         delegation_set = self.create_reusable_delegation_set(
             caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
         )
@@ -518,6 +530,7 @@ class Route53Backend(BaseBackend):
         new_zone = FakeZone(
             name,
             new_id,
+            caller_reference=caller_reference,
             private_zone=private_zone,
             comment=comment,
             delegation_set=delegation_set,

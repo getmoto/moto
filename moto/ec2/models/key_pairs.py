@@ -1,8 +1,7 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from moto.core import BaseModel
+from .core import TaggedEC2Resource
 from ..exceptions import (
-    FilterNotImplementedError,
     InvalidKeyPairNameError,
     InvalidKeyPairDuplicateError,
     InvalidKeyPairFormatError,
@@ -18,38 +17,55 @@ from ..utils import (
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
 
-class KeyPair(BaseModel):
-    def __init__(self, name: str, fingerprint: str, material: str):
+class KeyPair(TaggedEC2Resource):
+    def __init__(
+        self,
+        name: str,
+        fingerprint: str,
+        material: str,
+        tags: Dict[str, str],
+        ec2_backend: Any,
+    ):
         self.id = random_key_pair_id()
         self.name = name
         self.fingerprint = fingerprint
         self.material = material
         self.create_time = utcnow()
+        self.ec2_backend = ec2_backend
+        self.add_tags(tags or {})
 
     @property
     def created_iso_8601(self) -> str:
         return iso_8601_datetime_with_milliseconds(self.create_time)
 
-    def get_filter_value(self, filter_name: str) -> str:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> str:
         if filter_name == "key-name":
             return self.name
         elif filter_name == "fingerprint":
             return self.fingerprint
         else:
-            raise FilterNotImplementedError(filter_name, "DescribeKeyPairs")
+            return super().get_filter_value(filter_name, "DescribeKeyPairs")
 
 
 class KeyPairBackend:
     def __init__(self) -> None:
         self.keypairs: Dict[str, KeyPair] = {}
 
-    def create_key_pair(self, name: str, key_type: str = "rsa") -> KeyPair:
+    def create_key_pair(
+        self, name: str, key_type: str, tags: Dict[str, str]
+    ) -> KeyPair:
         if name in self.keypairs:
             raise InvalidKeyPairDuplicateError(name)
         if key_type == "ed25519":
-            keypair = KeyPair(name, **random_ed25519_key_pair())
+            keypair = KeyPair(
+                name, **random_ed25519_key_pair(), tags=tags, ec2_backend=self
+            )
         else:
-            keypair = KeyPair(name, **random_rsa_key_pair())
+            keypair = KeyPair(
+                name, **random_rsa_key_pair(), tags=tags, ec2_backend=self
+            )
 
         self.keypairs[name] = keypair
         return keypair
@@ -77,7 +93,9 @@ class KeyPairBackend:
         else:
             return results
 
-    def import_key_pair(self, key_name: str, public_key_material: str) -> KeyPair:
+    def import_key_pair(
+        self, key_name: str, public_key_material: str, tags: Dict[str, str]
+    ) -> KeyPair:
         if key_name in self.keypairs:
             raise InvalidKeyPairDuplicateError(key_name)
 
@@ -88,7 +106,11 @@ class KeyPairBackend:
 
         fingerprint = public_key_fingerprint(public_key)
         keypair = KeyPair(
-            key_name, material=public_key_material, fingerprint=fingerprint
+            key_name,
+            material=public_key_material,
+            fingerprint=fingerprint,
+            tags=tags,
+            ec2_backend=self,
         )
         self.keypairs[key_name] = keypair
         return keypair

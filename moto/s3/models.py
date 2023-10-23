@@ -42,7 +42,7 @@ from moto.s3.exceptions import (
     MissingKey,
     InvalidNotificationDestination,
     MalformedXML,
-    MethodNotAllowed,
+    HeadOnDeleteMarker,
     InvalidStorageClass,
     InvalidTargetBucketForLogging,
     CrossLocationLoggingProhibitted,
@@ -2107,7 +2107,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket_name, key_name, version_id, part_number, return_delete_marker=True
         )
         if isinstance(obj, FakeDeleteMarker):
-            raise MethodNotAllowed
+            raise HeadOnDeleteMarker(obj)
         return obj
 
     def get_object_acl(self, key: FakeKey) -> Optional[FakeAcl]:

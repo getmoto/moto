@@ -4,6 +4,7 @@ import pkgutil
 from moto import mock_lambda
 from uuid import uuid4
 
+from tests.markers import requires_docker
 from .utilities import get_role_name, _process_lambda
 
 PYTHON_VERSION = "python3.11"
@@ -20,6 +21,7 @@ def lambda_handler(event, context):
     return _process_lambda(pfunc)
 
 
+@requires_docker
 @mock_lambda
 def test_invoke_local_lambda_layers():
     conn = boto3.client("lambda", _lambda_region)

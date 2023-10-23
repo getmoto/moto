@@ -431,6 +431,7 @@ ec2
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
+- [ ] disable_image
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -458,6 +459,7 @@ ec2
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
+- [ ] enable_image
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account

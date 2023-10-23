@@ -1,10 +1,12 @@
 import boto3
+import os
 import pytest
 
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-from moto import mock_lambda, mock_s3
+from moto import mock_lambda, mock_s3, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from unittest import mock, SkipTest
 from uuid import uuid4
 
 from .utilities import get_role_name, get_test_zip_file1
@@ -29,6 +31,20 @@ def test_publish_lambda_layers__without_content():
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValueException"
     assert err["Message"] == "Missing Content"
+
+
+@mock_lambda
+@mock.patch.dict(os.environ, {"VALIDATE_LAMBDA_S3": "false"})
+def test_publish_layer_with_unknown_s3_file():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only set env var in DecoratorMode")
+    conn = boto3.client("lambda", _lambda_region)
+    content = conn.publish_layer_version(
+        LayerName=str(uuid4())[0:6],
+        Content=dict(S3Bucket="my-bucket", S3Key="my-key.zip"),
+    )["Content"]
+    assert content["CodeSha256"] == ""
+    assert content["CodeSize"] == 0
 
 
 @mock_lambda

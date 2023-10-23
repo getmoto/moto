@@ -2272,6 +2272,7 @@
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
+- [ ] disable_image
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
@@ -2299,6 +2300,7 @@
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
+- [ ] enable_image
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
 - [ ] enable_ipam_organization_admin_account
@@ -2508,12 +2510,12 @@
 
 ## ecr
 <details>
-<summary>63% implemented</summary>
+<summary>68% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
 - [X] batch_get_image
-- [ ] batch_get_repository_scanning_configuration
+- [X] batch_get_repository_scanning_configuration
 - [ ] complete_layer_upload
 - [ ] create_pull_through_cache_rule
 - [X] create_repository
@@ -2543,7 +2545,7 @@
 - [X] put_image_tag_mutability
 - [X] put_lifecycle_policy
 - [X] put_registry_policy
-- [ ] put_registry_scanning_configuration
+- [X] put_registry_scanning_configuration
 - [X] put_replication_configuration
 - [X] set_repository_policy
 - [X] start_image_scan
@@ -3834,6 +3836,58 @@
 - [X] list_users
 - [ ] update_group
 - [ ] update_user
+</details>
+
+## inspector2
+<details>
+<summary>41% implemented</summary>
+
+- [X] associate_member
+- [X] batch_get_account_status
+- [ ] batch_get_code_snippet
+- [ ] batch_get_finding_details
+- [ ] batch_get_free_trial_info
+- [ ] batch_get_member_ec2_deep_inspection_status
+- [ ] batch_update_member_ec2_deep_inspection_status
+- [ ] cancel_findings_report
+- [ ] cancel_sbom_export
+- [X] create_filter
+- [ ] create_findings_report
+- [ ] create_sbom_export
+- [X] delete_filter
+- [X] describe_organization_configuration
+- [X] disable
+- [X] disable_delegated_admin_account
+- [X] disassociate_member
+- [X] enable
+- [X] enable_delegated_admin_account
+- [ ] get_configuration
+- [ ] get_delegated_admin_account
+- [ ] get_ec2_deep_inspection_configuration
+- [ ] get_encryption_key
+- [ ] get_findings_report_status
+- [X] get_member
+- [ ] get_sbom_export
+- [ ] list_account_permissions
+- [ ] list_coverage
+- [ ] list_coverage_statistics
+- [X] list_delegated_admin_accounts
+- [X] list_filters
+- [ ] list_finding_aggregations
+- [X] list_findings
+- [X] list_members
+- [X] list_tags_for_resource
+- [ ] list_usage_totals
+- [ ] reset_encryption_key
+- [ ] search_vulnerabilities
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_configuration
+- [ ] update_ec2_deep_inspection_configuration
+- [ ] update_encryption_key
+- [ ] update_filter
+- [ ] update_org_ec2_deep_inspection_configuration
+- [X] update_organization_configuration
 </details>
 
 ## iot
@@ -7258,21 +7312,33 @@
 
 ## textract
 <details>
-<summary>15% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] analyze_document
 - [ ] analyze_expense
 - [ ] analyze_id
+- [ ] create_adapter
+- [ ] create_adapter_version
+- [ ] delete_adapter
+- [ ] delete_adapter_version
 - [ ] detect_document_text
+- [ ] get_adapter
+- [ ] get_adapter_version
 - [ ] get_document_analysis
 - [X] get_document_text_detection
 - [ ] get_expense_analysis
 - [ ] get_lending_analysis
 - [ ] get_lending_analysis_summary
+- [ ] list_adapter_versions
+- [ ] list_adapters
+- [ ] list_tags_for_resource
 - [ ] start_document_analysis
 - [X] start_document_text_detection
 - [ ] start_expense_analysis
 - [ ] start_lending_analysis
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_adapter
 </details>
 
 ## timestream-write
@@ -7468,6 +7534,7 @@
 - cur
 - customer-profiles
 - dataexchange
+- datazone
 - detective
 - devicefarm
 - devops-guru
@@ -7500,7 +7567,6 @@
 - imagebuilder
 - importexport
 - inspector
-- inspector2
 - internetmonitor
 - iot-jobs-data
 - iot-roborunner

@@ -728,6 +728,86 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "m6idn.12xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.16xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.24xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.2xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.32xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.4xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.8xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.large",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.metal",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6idn.xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.12xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.16xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.24xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.2xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.32xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.4xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.8xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.large",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.metal",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "m6in.xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "m7g.12xlarge",
   "Location": "eu-north-1"
  },
@@ -1149,6 +1229,42 @@
  },
  {
   "InstanceType": "r7g.xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.12xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.16xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.24xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.2xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.48xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.4xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.8xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.large",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "r7i.xlarge",
   "Location": "eu-north-1"
  },
  {

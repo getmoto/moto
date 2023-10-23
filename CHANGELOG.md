@@ -1,6 +1,43 @@
 Moto Changelog
 ==============
 
+4.2.6
+-----
+Docker Digest for 4.2.6: _sha256:ad3265531405fd48489ddee7e1fa7301b4d0f46b55daca7ba5039e73eaf70ac1_
+
+    New Services:
+        * IVS:
+            * batch_get_channel()
+            * create_channel()
+            * delete_channel()
+            * get_channel()
+            * list_channels()
+            * update_channel()
+
+    New Methods:
+        * LakeFormation:
+            * add_lf_tags_to_resource()
+            * get_resource_lf_tags()
+            * remove_lf_tags_from_resource()
+            * update_lf_tag()
+
+        * Sagemaker:
+            * describe_model_package_group()
+            * update_model_package()
+
+    Miscellaneous:
+        * Batch: submit_job() now behaves correctly when passing the arrayProperties-parameter
+        * DynamoDB: Improved PartiQL parser, with support for different types (Decimals/Booleans) and queries with quoted table-names
+        * EC2: TagSpecifications now throw an error if the ResourceType is not provided
+        * EC2: run_instances()/describe_instances() now always return the same attributes (before, both operations were missing different fields)
+        * EC2: associate_dhcp_options() now supports DhcpOptionsId=default
+        * EC2: create_key_pair() now supports the KeyType-parameter
+        * EC2: run_instances() now returns the Placement.HostId attribute
+        * ELBv2: modify_target_group_attributes() now has additional validations
+        * Events: put_events() now throws a warning when Detail field is not a dict
+        * IOT: update_thing() now behaves correctly with empty attributes
+        * S3: head_object() now raises a MethodNotAllowed for DeleteMarkers
+
 4.2.5
 -----
 Docker Digest for 4.2.5: _sha256:076cecca9b8ba35b545d23eb5bf780902fbf23eb3610f332eef7adea1f4d2ef7_

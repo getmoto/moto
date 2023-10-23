@@ -5,8 +5,9 @@ class KeyPairs(EC2BaseResponse):
     def create_key_pair(self) -> str:
         name = self._get_param("KeyName")
         key_type = self._get_param("KeyType")
+        tags = self._parse_tag_specification("key-pair").get("key-pair", {})
         self.error_on_dryrun()
-        keypair = self.ec2_backend.create_key_pair(name, key_type)
+        keypair = self.ec2_backend.create_key_pair(name, key_type, tags=tags)
         return self.response_template(CREATE_KEY_PAIR_RESPONSE).render(keypair=keypair)
 
     def delete_key_pair(self) -> str:
@@ -26,9 +27,10 @@ class KeyPairs(EC2BaseResponse):
     def import_key_pair(self) -> str:
         name = self._get_param("KeyName")
         material = self._get_param("PublicKeyMaterial")
+        tags = self._parse_tag_specification("key-pair").get("key-pair", {})
         self.error_on_dryrun()
 
-        keypair = self.ec2_backend.import_key_pair(name, material)
+        keypair = self.ec2_backend.import_key_pair(name, material, tags=tags)
         return self.response_template(IMPORT_KEYPAIR_RESPONSE).render(keypair=keypair)
 
 
@@ -41,6 +43,16 @@ DESCRIBE_KEY_PAIRS_RESPONSE = """<DescribeKeyPairsResponse xmlns="http://ec2.ama
            <keyPairId>{{ keypair.id }}</keyPairId>
            <keyName>{{ keypair.name }}</keyName>
            <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
+           {% if keypair.get_tags() %}
+             <tagSet>
+               {% for tag in keypair.get_tags() %}
+                 <item>
+                   <key>{{ tag.key }}</key>
+                   <value>{{ tag.value }}</value>
+                 </item>
+               {% endfor %}
+             </tagSet>
+           {% endif %}
       </item>
     {% endfor %}
     </keySet>
@@ -52,6 +64,16 @@ CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws
    <keyName>{{ keypair.name }}</keyName>
    <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
    <keyMaterial>{{ keypair.material }}</keyMaterial>
+   {% if keypair.get_tags() %}
+   <tagSet>
+     {% for tag in keypair.get_tags() %}
+       <item>
+         <key>{{ tag.key }}</key>
+         <value>{{ tag.value }}</value>
+       </item>
+     {% endfor %}
+   </tagSet>
+   {% endif %}
 </CreateKeyPairResponse>"""
 
 
@@ -66,4 +88,14 @@ IMPORT_KEYPAIR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <keyPairId>{{ keypair.id }}</keyPairId>
     <keyName>{{ keypair.name }}</keyName>
     <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
+    {% if keypair.get_tags() %}
+   <tagSet>
+     {% for tag in keypair.get_tags() %}
+       <item>
+         <key>{{ tag.key }}</key>
+         <value>{{ tag.value }}</value>
+       </item>
+     {% endfor %}
+   </tagSet>
+   {% endif %}
   </ImportKeyPairResponse>"""
