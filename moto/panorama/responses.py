@@ -1,4 +1,5 @@
 import json
+import urllib
 
 from moto.core.responses import BaseResponse
 from .models import panorama_backends, PanoramaBackend
@@ -26,6 +27,6 @@ class PanoramaResponse(BaseResponse):
         return json.dumps(device.response_provision)
 
     def describe_device(self) -> str:
-        device_id = self._get_param("DeviceId")
+        device_id = urllib.parse.unquote(self._get_param("DeviceId"))
         device = self.panorama_backend.describe_device(device_id=device_id)
-        return json.dumps(device.response_object)
+        return json.dumps(device.response_object())

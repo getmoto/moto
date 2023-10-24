@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import json
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
@@ -7,6 +6,7 @@ from typing import Dict, Any, Optional, Union
 from typing_extensions import Literal
 
 from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
 
 
 class BaseObject(BaseModel):
@@ -30,15 +30,8 @@ class BaseObject(BaseModel):
                 response_object[key[0].upper() + key[1:]] = value
         return response_object
 
-    @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         return self.gen_response_object()
-
-
-def hash_device_name(name: str) -> str:
-    digest = hashlib.md5(name.encode("utf-8")).digest()
-    token = base64.b64encode(digest)
-    return str(token)
 
 
 class Device(BaseObject):
@@ -111,26 +104,28 @@ class Device(BaseObject):
             "PANORAMA_APPLIANCE_DEVELOPER_KIT", "PANORAMA_APPLIANCE"
         ] = "PANORAMA_APPLIANCE"
 
+    def response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        response_object = deep_convert_datetime_to_isoformat(response_object)
+        return {k: v for k, v in response_object.items() if k is not None}
+
     @property
     def response_provision(self) -> Dict[str, Union[str, bytes]]:
         return {
             "Arn": self.arn,
-            "Certificates": b"bytes",
+            "Certificates": base64.b64encode("certificate".encode("utf-8")).decode(
+                "utf-8"
+            ),
             "DeviceId": self.device_id,
             "IotThingName": self.iot_thing_name,
             "Status": "AWAITING_PROVISIONING",
         }
 
 
-class ApplicationInstance(BaseObject):
-    pass
-
-
 class PanoramaBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.devices_memory: Dict[str, Device] = {}
-        self.application_instances: Dict[str, ApplicationInstance] = {}
 
     def provision_device(
         self,
@@ -155,5 +150,16 @@ class PanoramaBackend(BaseBackend):
         return self.devices_memory[device_id]
 
 
-# panorama_backends = BackendDict(PanoramaBackend, "panorama", False, additional_regions=["us-east-1", "us-west-2", "ca-central-1", "eu-west-1", "ap-southeast-2", "ap-southeast-1"])
-panorama_backends = BackendDict(PanoramaBackend, "panorama")
+panorama_backends = BackendDict(
+    PanoramaBackend,
+    "panorama",
+    False,
+    additional_regions=[
+        "us-east-1",
+        "us-west-2",
+        "ca-central-1",
+        "eu-west-1",
+        "ap-southeast-2",
+        "ap-southeast-1",
+    ],
+)
