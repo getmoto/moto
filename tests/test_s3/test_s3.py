@@ -3413,11 +3413,10 @@ def test_delete_objects_with_empty_keyname():
     assert "Contents" not in client.list_objects(Bucket=bucket_name)
 
 
-@mock_s3
-def test_delete_objects_percent_encoded():
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_delete_objects_percent_encoded(bucket_name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "testbucket-encoded"
-    client.create_bucket(Bucket=bucket_name)
 
     object_key_1 = "a%2Fb"
     object_key_2 = "a/%F0%9F%98%80"
@@ -3427,8 +3426,9 @@ def test_delete_objects_percent_encoded():
     )
     list_objs = client.list_objects(Bucket=bucket_name)
     assert len(list_objs["Contents"]) == 2
-    assert list_objs["Contents"][0]["Key"] == object_key_1
-    assert list_objs["Contents"][1]["Key"] == object_key_2
+    keys = [o["Key"] for o in list_objs["Contents"]]
+    assert object_key_1 in keys
+    assert object_key_2 in keys
 
     delete_objects = client.delete_objects(
         Bucket=bucket_name,
@@ -3439,8 +3439,10 @@ def test_delete_objects_percent_encoded():
             ],
         },
     )
-    assert delete_objects["Deleted"][0] == {"Key": object_key_1}
-    assert delete_objects["Deleted"][1] == {"Key": object_key_2}
+    assert len(delete_objects["Deleted"]) == 2
+    deleted_keys = [o for o in delete_objects["Deleted"]]
+    assert {"Key": object_key_1} in deleted_keys
+    assert {"Key": object_key_2} in deleted_keys
     assert "Contents" not in client.list_objects(Bucket=bucket_name)
 
 
