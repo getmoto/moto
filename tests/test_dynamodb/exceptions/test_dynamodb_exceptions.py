@@ -5,6 +5,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from unittest import SkipTest
 from moto import mock_dynamodb, settings
+from .. import dynamodb_aws_verified
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -1113,3 +1114,53 @@ def test_query_with_missing_expression_attribute():
         err["Message"]
         == "Invalid condition in KeyConditionExpression: Multiple attribute names used in one condition"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified
+def test_update_item_returns_old_item(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+    table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "mark"},
+            UpdateExpression="set #lock = :lock",
+            ExpressionAttributeNames={
+                "#lock": "lock",
+                "#acquired_at": "acquired_at",
+            },
+            ExpressionAttributeValues={":lock": {"acquired_at": 124}},
+            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
+        )
+    resp = exc.value.response
+    assert resp["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert resp["message"] == "The conditional request failed"
+    assert "Item" not in resp
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "mark"},
+            UpdateExpression="set #lock = :lock",
+            ExpressionAttributeNames={
+                "#lock": "lock",
+                "#acquired_at": "acquired_at",
+            },
+            ExpressionAttributeValues={":lock": {"acquired_at": 123}},
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
+        )
+    resp = exc.value.response
+    assert resp["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert "message" not in resp
+    assert resp["Item"] == {
+        "lock": {"M": {"acquired_at": {"N": "123"}}},
+        "pk": {"S": "mark"},
+    }
