@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
@@ -195,10 +195,31 @@ class IncorrectDataType(MockValidationException):
 class ConditionalCheckFailed(DynamodbException):
     error_type = ERROR_TYPE_PREFIX + "ConditionalCheckFailedException"
 
-    def __init__(self, msg: Optional[str] = None):
-        super().__init__(
-            ConditionalCheckFailed.error_type, msg or "The conditional request failed"
-        )
+    def __init__(
+        self, msg: Optional[str] = None, item: Optional[Dict[str, Any]] = None
+    ):
+        _msg = msg or "The conditional request failed"
+        super().__init__(ConditionalCheckFailed.error_type, _msg)
+        if item:
+            self.description = json.dumps(
+                {
+                    "__type": ConditionalCheckFailed.error_type,
+                    # Note the uppercase Message
+                    # This ensures the message is only part of the 'error': {'message': .., 'code': ..}
+                    "Message": _msg,
+                    "Item": item,
+                }
+            )
+        else:
+            self.description = json.dumps(
+                {
+                    "__type": ConditionalCheckFailed.error_type,
+                    # Note that lowercase 'message'
+                    # This ensures that 'message' is a top-level field in the response
+                    # (in addition to being part of the 'error': {'message': .., 'code': ..}
+                    "message": _msg,
+                }
+            )
 
 
 class TransactionCanceledException(DynamodbException):
@@ -212,10 +233,13 @@ class TransactionCanceledException(DynamodbException):
         super().__init__(
             error_type=TransactionCanceledException.error_type, message=msg
         )
-        reasons = [
-            {"Code": code, "Message": message, **item} if code else {"Code": "None"}
-            for code, message, item in errors
-        ]
+        reasons = []
+        for code, message, item in errors:
+            r = {"Code": code, "Message": message} if code else {"Code": "None"}
+            if item:
+                r["Item"] = item
+            reasons.append(r)
+
         self.description = json.dumps(
             {
                 "__type": TransactionCanceledException.error_type,

@@ -851,6 +851,9 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException(
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
             )
+        return_values_on_condition_check_failure = self.body.get(
+            "ReturnValuesOnConditionCheckFailure"
+        )
         # We need to copy the item in order to avoid it being modified by the update_item operation
         existing_item = copy.deepcopy(self.dynamodb_backend.get_item(name, key))
         if existing_item:
@@ -887,6 +890,7 @@ class DynamoHandler(BaseResponse):
             expression_attribute_values=expression_attribute_values,
             expected=expected,
             condition_expression=condition_expression,
+            return_values_on_condition_check_failure=return_values_on_condition_check_failure,
         )
 
         item_dict = item.to_json()
