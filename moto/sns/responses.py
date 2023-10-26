@@ -558,6 +558,7 @@ class SNSResponse(BaseResponse):
 
     def list_endpoints_by_platform_application(self) -> str:
         application_arn = self._get_param("PlatformApplicationArn")
+        self.backend.get_application(application_arn)
         endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
 
         if self.request_json:
