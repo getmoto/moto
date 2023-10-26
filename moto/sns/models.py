@@ -364,7 +364,7 @@ class PlatformEndpoint(BaseModel):
 
     def publish(self, message: str) -> str:
         if not self.enabled:
-            raise SnsEndpointDisabled(f"Endpoint {self.id} disabled")
+            raise SnsEndpointDisabled("Endpoint is disabled")
 
         # This is where we would actually send a message
         message_id = str(mock_random.uuid4())
@@ -646,7 +646,7 @@ class SNSBackend(BaseBackend):
         try:
             return self.applications[arn]
         except KeyError:
-            raise SNSNotFoundError(f"Application with arn {arn} not found")
+            raise SNSNotFoundError("PlatformApplication does not exist")
 
     def set_platform_application_attributes(
         self, arn: str, attributes: Dict[str, Any]
@@ -673,13 +673,16 @@ class SNSBackend(BaseBackend):
     ) -> PlatformEndpoint:
         for endpoint in self.platform_endpoints.values():
             if token == endpoint.token:
-                if (
+                same_user_data = custom_user_data == endpoint.custom_user_data
+                same_attrs = (
                     attributes.get("Enabled", "").lower()
                     == endpoint.attributes["Enabled"]
-                ):
+                )
+
+                if same_user_data and same_attrs:
                     return endpoint
                 raise DuplicateSnsEndpointError(
-                    f"Duplicate endpoint token with different attributes: {token}"
+                    f"Invalid parameter: Token Reason: Endpoint {endpoint.arn} already exists with the same Token, but different attributes."
                 )
         platform_endpoint = PlatformEndpoint(
             self.account_id,

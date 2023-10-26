@@ -31,7 +31,7 @@ class DuplicateSnsEndpointError(SNSException):
     code = 400
 
     def __init__(self, message: str):
-        super().__init__("DuplicateEndpoint", message)
+        super().__init__("InvalidParameter", message)
 
 
 class SnsEndpointDisabled(SNSException):
