@@ -23,12 +23,12 @@ class KinesisVideoArchivedMediaBackend(BaseBackend):
         return f"{data_endpoint}{relative_path}?SessionToken={session_token}"
 
     def get_hls_streaming_session_url(self, stream_name: str, stream_arn: str) -> str:
-        # Ignore option paramters as the format of hls_url doesn't depend on them
+        # Ignore option parameters as the format of hls_url doesn't depend on them
         api_name = "GET_HLS_STREAMING_SESSION_URL"
         return self._get_streaming_url(stream_name, stream_arn, api_name)
 
     def get_dash_streaming_session_url(self, stream_name: str, stream_arn: str) -> str:
-        # Ignore option paramters as the format of hls_url doesn't depend on them
+        # Ignore option parameters as the format of hls_url doesn't depend on them
         api_name = "GET_DASH_STREAMING_SESSION_URL"
         return self._get_streaming_url(stream_name, stream_arn, api_name)
 
