@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.7
 -----
-Docker Digest for 4.2.7: <autopopulateddigest>
+Docker Digest for 4.2.7: _sha256:9149597856f5ce195ef451df1a1b96aa8db0692c4b8ed1f7952fc02952733103_
 
     New Services:
         * Inspector2:
