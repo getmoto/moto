@@ -19,7 +19,7 @@ https://docs.getmoto.org/en/latest/docs/contributing
 Moto has a [Makefile](./Makefile) which has some helpful commands for getting set up.
 You should be able to run `make init` to install the dependencies and then `make test` to run the tests.
 
-*NB. On first run, some tests might take a while to execute, especially the Lambda ones, because they may need to download a Docker image before they can execute.*
+*NB. On first run, some tests might take a while to execute, especially the Lambda ones, because they may need to download a Docker image before they can be executed.*
 
 ## Linting
 
