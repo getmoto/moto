@@ -1429,7 +1429,7 @@ Docker Digest for 3.1.10: _sha256:18c6367dbb843850a5b52bc2b74cde9fd2a03719da667a
         * AWSLamba:publish_layer_version() now supports the CompatibleArchitectures-parameter
         * DAX:create_cluster() now supports the ClusterEndpointEncryptionType-parameter
         * EC2:describe_route_tables() now supports the filter `route.gateway-id`
-        * EC2:run_instances() now validates whether the Placement-parameter has a valid availabilty zone
+        * EC2:run_instances() now validates whether the Placement-parameter has a valid availability zone
         * ECS:list_services() now supports the launchType-parameter
         * ELB:describe_instance_health() now returns the OutOfService-status when appropriate
         * Organizations:list_accounts_for_parent() now supports pagination
@@ -2072,7 +2072,7 @@ Docker Digest for 3.0.4: _sha256:320e1d2ab89729d5580dbe08d8c2153a28db4c28023c577
             * pause_cluster()
             * resume_cluster()
 
-    Miscellanous:
+    Miscellaneous:
         * ELBv2: create_listener now supports the DefaultActions.ForwardConfig parameter
         * Redshift: restore_from_cluster_snapshot() now supports the NodeType and NumberOfNodes-parameters
         * Sagemaker: list_experiments() now supports pagination
