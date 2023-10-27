@@ -1,6 +1,48 @@
 Moto Changelog
 ==============
 
+4.2.7
+-----
+Docker Digest for 4.2.7: <autopopulateddigest>
+
+    New Services:
+        * Inspector2:
+            * associate_member()
+            * batch_get_account_status()
+            * create_filter()
+            * delete_filter()
+            * describe_organization_configuration()
+            * disable()
+            * disable_delegated_admin_account()
+            * disassociate_member()
+            * enable()
+            * enable_delegated_admin_account()
+            * get_member()
+            * list_delegated_admin_accounts()
+            * list_filters()
+            * list_findings()
+            * list_members()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_organization_configuration()
+
+    New Methods:
+        * ECR:
+            * batch_get_repository_scanning_configuration()
+            * put_registry_scanning_configuration()
+
+    Miscellaneous:
+        * Batch: submit_job() now returns the jobArn-attribute
+        * DynamoDB: execute_statement() has now support for nested WHERE-clauses with functions
+        * DynamoDB: update_item() now returns item for ConditionalCheckFailed-exceptions
+        * EC2: create_key_pair() and describe_key_pair(s)() now support tags
+        * Route53: get_hosted_zone() now returns the CallerReference
+        * S3: get_object/put_object() now accepts AccessPoint ARN's
+        * S3Control: create_access_point() now returns the correct Alias
+        * SES: list_identities() now supports the IdentityType-parameter
+        * SNS: create_platform_application has improved error handling
+
 4.2.6
 -----
 Docker Digest for 4.2.6: _sha256:ad3265531405fd48489ddee7e1fa7301b4d0f46b55daca7ba5039e73eaf70ac1_

@@ -57,6 +57,7 @@ ssm
         Assumes the provided WindowId exists. No error handling has been implemented yet.
         
 
+- [ ] delete_ops_item
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
