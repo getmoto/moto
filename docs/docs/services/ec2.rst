@@ -503,6 +503,7 @@ ec2
 - [ ] get_network_insights_access_scope_content
 - [X] get_password_data
 - [ ] get_reserved_instances_exchange_quote
+- [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
 - [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations

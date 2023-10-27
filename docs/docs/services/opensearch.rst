@@ -58,9 +58,11 @@ opensearch
 - [ ] describe_vpc_endpoints
 - [ ] dissociate_package
 - [X] get_compatible_versions
+- [ ] get_domain_maintenance_status
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
+- [ ] list_domain_maintenances
 - [X] list_domain_names
 - [ ] list_domains_for_package
 - [ ] list_instance_type_details
@@ -75,6 +77,7 @@ opensearch
 - [ ] reject_inbound_connection
 - [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
+- [ ] start_domain_maintenance
 - [ ] start_service_software_update
 - [X] update_domain_config
 - [ ] update_package

@@ -65,6 +65,7 @@ redshift
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
 - [ ] delete_partner
+- [ ] delete_resource_policy
 - [ ] delete_scheduled_action
 - [X] delete_snapshot_copy_grant
 - [ ] delete_snapshot_schedule
@@ -93,6 +94,7 @@ redshift
 - [ ] describe_events
 - [ ] describe_hsm_client_certificates
 - [ ] describe_hsm_configurations
+- [ ] describe_inbound_integrations
 - [ ] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
@@ -117,6 +119,7 @@ redshift
 - [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
+- [ ] get_resource_policy
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
 - [X] modify_cluster
@@ -136,6 +139,7 @@ redshift
 - [ ] modify_usage_limit
 - [X] pause_cluster
 - [ ] purchase_reserved_node_offering
+- [ ] put_resource_policy
 - [ ] reboot_cluster
 - [ ] reject_data_share
 - [ ] reset_cluster_parameter_group
