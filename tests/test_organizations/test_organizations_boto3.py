@@ -683,8 +683,10 @@ def test_describe_policy_exception():
         client.describe_policy(PolicyId=policy_id)
     ex = e.value
     assert ex.operation_name == "DescribePolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "PolicyNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "PolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"] == "You specified a policy that doesn't exist."
+    )
     with pytest.raises(ClientError) as e:
         client.describe_policy(PolicyId="meaninglessstring")
     ex = e.value
@@ -896,8 +898,11 @@ def test_delete_policy_exception():
         client.delete_policy(PolicyId=non_existent_policy_id)
     ex = e.value
     assert ex.operation_name == "DeletePolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "PolicyNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "PolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "We can't find a policy with the PolicyId that you specified."
+    )
 
     # Attempt to delete an attached policy
     policy_id = client.create_policy(
@@ -993,8 +998,11 @@ def test_update_policy_exception():
         client.update_policy(PolicyId=non_existent_policy_id)
     ex = e.value
     assert ex.operation_name == "UpdatePolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "PolicyNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "PolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "We can't find a policy with the PolicyId that you specified."
+    )
 
 
 @mock_organizations
@@ -1145,8 +1153,10 @@ def test_list_targets_for_policy_exception():
         client.list_targets_for_policy(PolicyId=policy_id)
     ex = e.value
     assert ex.operation_name == "ListTargetsForPolicy"
-    assert ex.response["Error"]["Code"] == "400"
-    assert "PolicyNotFoundException" in ex.response["Error"]["Message"]
+    assert ex.response["Error"]["Code"] == "PolicyNotFoundException"
+    assert (
+        ex.response["Error"]["Message"] == "You specified a policy that doesn't exist."
+    )
     with pytest.raises(ClientError) as e:
         client.list_targets_for_policy(PolicyId="meaninglessstring")
     ex = e.value

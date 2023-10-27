@@ -109,3 +109,10 @@ class TargetNotFoundException(JsonRESTError):
         super().__init__(
             "TargetNotFoundException", "You specified a target that doesn't exist."
         )
+
+
+class PolicyNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str) -> None:
+        super().__init__("PolicyNotFoundException", message)

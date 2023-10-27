@@ -16,6 +16,7 @@ from moto.organizations.exceptions import (
     AWSOrganizationsNotInUseException,
     AccountNotRegisteredException,
     RootNotFoundException,
+    PolicyNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
     TargetNotFoundException,
@@ -599,8 +600,7 @@ class OrganizationsBackend(BaseBackend):
                 (p for p in self.policies if p.id == kwargs["PolicyId"]), None
             )
             if policy is None:
-                raise RESTError(
-                    "PolicyNotFoundException",
+                raise PolicyNotFoundException(
                     "You specified a policy that doesn't exist.",
                 )
         else:
@@ -612,8 +612,7 @@ class OrganizationsBackend(BaseBackend):
             (policy for policy in self.policies if policy.id == policy_id), None
         )
         if policy is None:
-            raise RESTError(
-                "PolicyNotFoundException",
+            raise PolicyNotFoundException(
                 "We can't find a policy with the PolicyId that you specified.",
             )
         return policy
@@ -668,8 +667,7 @@ class OrganizationsBackend(BaseBackend):
                     )
                 del self.policies[idx]
                 return
-        raise RESTError(
-            "PolicyNotFoundException",
+        raise PolicyNotFoundException(
             "We can't find a policy with the PolicyId that you specified.",
         )
 
@@ -735,8 +733,7 @@ class OrganizationsBackend(BaseBackend):
                 (p for p in self.policies if p.id == kwargs["PolicyId"]), None
             )
             if policy is None:
-                raise RESTError(
-                    "PolicyNotFoundException",
+                raise PolicyNotFoundException(
                     "You specified a policy that doesn't exist.",
                 )
         else:
