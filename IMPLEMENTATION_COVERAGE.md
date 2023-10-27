@@ -6904,7 +6904,7 @@
 
 ## signer
 <details>
-<summary>21% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] add_profile_permission
 - [X] cancel_signing_profile
@@ -6916,15 +6916,15 @@
 - [ ] list_signing_jobs
 - [X] list_signing_platforms
 - [ ] list_signing_profiles
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] put_signing_profile
 - [ ] remove_profile_permission
 - [ ] revoke_signature
 - [ ] revoke_signing_profile
 - [ ] sign_payload
 - [ ] start_signing_job
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 </details>
 
 ## sns

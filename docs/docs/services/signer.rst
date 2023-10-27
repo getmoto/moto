@@ -41,10 +41,10 @@ signer
         
 
 - [ ] list_signing_profiles
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] put_signing_profile
   
-        The following parameters are not yet implemented: SigningMaterial, Overrides, SigningParamaters
+        The following parameters are not yet implemented: Overrides, SigningParameters
         
 
 - [ ] remove_profile_permission
@@ -52,6 +52,6 @@ signer
 - [ ] revoke_signing_profile
 - [ ] sign_payload
 - [ ] start_signing_job
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 
