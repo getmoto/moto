@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import utcnow
+from .exceptions import ValidationError
 from .models import ses_backends, SESBackend
 
 
@@ -27,7 +28,12 @@ class EmailResponse(BaseResponse):
         return template.render()
 
     def list_identities(self) -> str:
-        identities = self.backend.list_identities()
+        identity_type = self._get_param("IdentityType")
+        if identity_type not in [None, "EmailAddress", "Domain"]:
+            raise ValidationError(
+                f"Value '{identity_type}' at 'identityType' failed to satisfy constraint: Member must satisfy enum value set: [Domain, EmailAddress]"
+            )
+        identities = self.backend.list_identities(identity_type)
         template = self.response_template(LIST_IDENTITIES_RESPONSE)
         return template.render(identities=identities)
 

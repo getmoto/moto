@@ -182,7 +182,11 @@ class SESBackend(BaseBackend):
         if domain.lower() not in self.domains:
             self.domains.append(domain.lower())
 
-    def list_identities(self) -> List[str]:
+    def list_identities(self, identity_type: str) -> List[str]:
+        if identity_type == "Domain":
+            return self.domains
+        if identity_type == "EmailAddress":
+            return self.addresses
         return self.domains + self.addresses
 
     def list_verified_email_addresses(self) -> List[str]:

@@ -11,13 +11,32 @@ from . import ses_aws_verified
 
 
 @mock_ses
-def test_verify_email_identity():
+def test_list_verified_identities():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_email_identity(EmailAddress="test@example.com")
 
-    identities = conn.list_identities()
-    address = identities["Identities"][0]
-    assert address == "test@example.com"
+    identities = conn.list_identities()["Identities"]
+    assert identities == ["test@example.com"]
+
+    conn.verify_domain_dkim(Domain="domain1.com")
+    conn.verify_domain_identity(Domain="domain2.com")
+
+    identities = conn.list_identities()["Identities"]
+    assert identities == ["domain1.com", "domain2.com", "test@example.com"]
+
+    identities = conn.list_identities(IdentityType="EmailAddress")["Identities"]
+    assert identities == ["test@example.com"]
+
+    identities = conn.list_identities(IdentityType="Domain")["Identities"]
+    assert identities == ["domain1.com", "domain2.com"]
+
+    with pytest.raises(ClientError) as exc:
+        conn.list_identities(IdentityType="Unknown")
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Value 'Unknown' at 'identityType' failed to satisfy constraint: Member must satisfy enum value set: [Domain, EmailAddress]"
+    )
 
 
 @mock_ses
@@ -48,18 +67,6 @@ def test_verify_email_address():
     email_addresses = conn.list_verified_email_addresses()
     email = email_addresses["VerifiedEmailAddresses"][0]
     assert email == "test@example.com"
-
-
-@mock_ses
-def test_domain_verify():
-    conn = boto3.client("ses", region_name="us-east-1")
-
-    conn.verify_domain_dkim(Domain="domain1.com")
-    conn.verify_domain_identity(Domain="domain2.com")
-
-    identities = conn.list_identities()
-    domains = list(identities["Identities"])
-    assert domains == ["domain1.com", "domain2.com"]
 
 
 @mock_ses
