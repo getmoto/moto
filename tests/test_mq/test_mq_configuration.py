@@ -36,22 +36,6 @@ def test_create_configuration_minimal():
 
 
 @mock_mq
-def test_create_configuration_for_rabbitmq():
-    client = boto3.client("mq", region_name="us-east-1")
-
-    with pytest.raises(ClientError) as exc:
-        client.create_configuration(
-            EngineType="RABBITMQ", EngineVersion="rabbit1", Name="myconfig"
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "BadRequestException"
-    assert (
-        err["Message"]
-        == "Broker engine type [RABBITMQ] does not support configuration."
-    )
-
-
-@mock_mq
 def test_create_configuration_for_unknown_engine():
     client = boto3.client("mq", region_name="us-east-1")
 

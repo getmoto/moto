@@ -25,6 +25,11 @@ def test_create_broker_minimal():
     assert "BrokerId" in resp
     assert resp["BrokerArn"].startswith("arn:aws")
 
+    # Should create default Configuration, if not specified
+    broker = client.describe_broker(BrokerId=resp["BrokerId"])
+    assert "Current" in broker["Configurations"]
+    assert "Id" in broker["Configurations"]["Current"]
+
 
 @mock_mq
 def test_create_with_tags():
@@ -269,7 +274,6 @@ def test_describe_multiple_rabbits():
         == "https://0000.mq.us-east-2.amazonaws.com"
     )
     assert len(resp["BrokerInstances"][0]["Endpoints"]) == 1
-    assert "Configurations" not in resp
     assert resp["Logs"] == {"General": False}
     assert len(resp["SubnetIds"]) == 4
 
