@@ -60,7 +60,7 @@ def test_my_model_save():
     assert body == "is awesome"
 ```
 
-With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps the state of the buckets and keys.
+With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps track of the state of the buckets and keys.
 
 For a full list of which services and features are covered, please see our [implementation coverage](https://github.com/getmoto/moto/blob/master/IMPLEMENTATION_COVERAGE.md).
 
@@ -72,7 +72,7 @@ The full documentation can be found here:
 
 
 ### Financial Contributions
-Support this project and continued development, by sponsoring us!
+Support this project and its continued development, by sponsoring us!
 
 Click the `Sponsor`-button at the top of the page for more information.
 
