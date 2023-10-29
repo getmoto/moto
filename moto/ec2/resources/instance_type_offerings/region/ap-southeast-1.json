@@ -732,7 +732,15 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "ap-southeast-1"
  },
  {

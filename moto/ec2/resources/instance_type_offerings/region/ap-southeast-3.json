@@ -300,7 +300,15 @@
   "Location": "ap-southeast-3"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "ap-southeast-3"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "ap-southeast-3"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "ap-southeast-3"
  },
  {
