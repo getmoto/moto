@@ -804,7 +804,15 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "ap-northeast-1"
  },
  {

@@ -236,7 +236,15 @@
   "Location": "me-central-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "me-central-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "me-central-1"
  },
  {

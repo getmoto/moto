@@ -332,7 +332,15 @@
   "Location": "ap-east-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "ap-east-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "ap-east-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "ap-east-1"
  },
  {
