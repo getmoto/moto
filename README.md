@@ -41,7 +41,7 @@ class MyModel:
 
 Take a minute to think how you would have tested that in the past.
 
-Now see how you could test it with Moto:
+Now, see how you could test it with Moto:
 
 ```python
 import boto3
@@ -62,7 +62,7 @@ def test_my_model_save():
 
 With the decorator wrapping the test, all the calls to s3 are automatically mocked out. The mock keeps track of the state of the buckets and keys.
 
-For a full list of which services and features are covered, please see our [implementation coverage](https://github.com/getmoto/moto/blob/master/IMPLEMENTATION_COVERAGE.md).
+For a complete list of which services and features are covered, please see our [implementation coverage](https://github.com/getmoto/moto/blob/master/IMPLEMENTATION_COVERAGE.md).
 
 
 ### Documentation
@@ -72,7 +72,7 @@ The full documentation can be found here:
 
 
 ### Financial Contributions
-Support this project and its continued development, by sponsoring us!
+Support this project and its continued development by sponsoring us!
 
 Click the `Sponsor`-button at the top of the page for more information.
 
