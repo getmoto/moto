@@ -43,6 +43,12 @@ mock_autoscaling = lazy_load(".autoscaling", "mock_autoscaling")
 mock_lambda = lazy_load(
     ".awslambda", "mock_lambda", boto3_name="lambda", backend="lambda_backends"
 )
+mock_lambda_simple = lazy_load(
+    ".awslambda_simple",
+    "mock_lambda_simple",
+    boto3_name="lambda",
+    backend="lambda_simple_backends",
+)
 mock_batch = lazy_load(".batch", "mock_batch")
 mock_batch_simple = lazy_load(
     ".batch_simple",

@@ -40,7 +40,9 @@ class LambdaSimpleBackend(BaseBackend):
             "url_bases",
         ]:
             return object.__getattribute__(self, name)
-        if name in ["_invoke_lambda", ]:
+        if name in [
+            "_invoke_lambda", "invoke"
+        ]:
 
             def newfunc(*args: Any, **kwargs: Any) -> Any:
                 attr = object.__getattribute__(self, name)
@@ -53,37 +55,33 @@ class LambdaSimpleBackend(BaseBackend):
     def _invoke_lambda(self, event: Optional[str] = None) -> Tuple[str, bool, str]:
         # Create the LogGroup if necessary, to write the result to
         self.logs_backend.ensure_log_group(self.logs_group_name)
-        # TODO: context not yet implemented
-        if event is None:
-            event = dict()  # type: ignore[assignment]
-        output = None
 
-            env_vars = {
-                "_HANDLER": self.handler,
-                "AWS_EXECUTION_ENV": f"AWS_Lambda_{self.run_time}",
-                "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
-                "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
-                "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
-                "AWS_LAMBDA_FUNCTION_VERSION": self.version,
-                "AWS_REGION": self.region,
-                "AWS_ACCESS_KEY_ID": "role-account-id",
-                "AWS_SECRET_ACCESS_KEY": "role-secret-key",
-                "AWS_SESSION_TOKEN": "session-token",
-            }
+        env_vars = {
+            "_HANDLER": self.handler,
+            "AWS_EXECUTION_ENV": f"AWS_Lambda_{self.run_time}",
+            "AWS_LAMBDA_FUNCTION_TIMEOUT": self.timeout,
+            "AWS_LAMBDA_FUNCTION_NAME": self.function_name,
+            "AWS_LAMBDA_FUNCTION_MEMORY_SIZE": self.memory_size,
+            "AWS_LAMBDA_FUNCTION_VERSION": self.version,
+            "AWS_REGION": self.region,
+            "AWS_ACCESS_KEY_ID": "role-account-id",
+            "AWS_SECRET_ACCESS_KEY": "role-secret-key",
+            "AWS_SESSION_TOKEN": "session-token",
+        }
 
-            env_vars.update(self.environment_vars)
-            env_vars["MOTO_HOST"] = settings.moto_server_host()
-            moto_port = settings.moto_server_port()
-            env_vars["MOTO_PORT"] = moto_port
-            env_vars["MOTO_HTTP_ENDPOINT"] = f'{env_vars["MOTO_HOST"]}:{moto_port}'
+        env_vars.update(self.environment_vars)
+        env_vars["MOTO_HOST"] = settings.moto_server_host()
+        moto_port = settings.moto_server_port()
+        env_vars["MOTO_PORT"] = moto_port
+        env_vars["MOTO_HTTP_ENDPOINT"] = f'{env_vars["MOTO_HOST"]}:{moto_port}'
 
-            if settings.test_proxy_mode():
-                env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
-                env_vars["AWS_CA_BUNDLE"] = "/var/task/ca.crt"
+        if settings.test_proxy_mode():
+            env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
+            env_vars["AWS_CA_BUNDLE"] = "/var/task/ca.crt"
 
-            invocation_error = False
-            return "Happy lambda response", invocation_error, "Lambda logs say it's a-ok"
-            # log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
+        invocation_error = False
+        return "Happy lambda response", invocation_error, "Lambda logs say it's a-ok"
+        # log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
 
         #     with _DockerDataVolumeContext(
         #             self

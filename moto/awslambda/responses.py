@@ -11,8 +11,8 @@ from .models import lambda_backends, LambdaBackend
 
 
 class LambdaResponse(BaseResponse):
-    def __init__(self) -> None:
-        super().__init__(service_name="awslambda")
+    def __init__(self, service_name="awslambda") -> None:
+        super().__init__(service_name=service_name)
 
     @property
     def json_body(self) -> Dict[str, Any]:  # type: ignore[misc]

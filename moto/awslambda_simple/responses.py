@@ -1,12 +1,12 @@
-from ..batch.responses import BatchResponse
-from .models import batch_simple_backends, BatchBackend
+from moto.core.responses import BaseResponse
+from ..awslambda.responses import LambdaResponse
+from .models import lambda_simple_backends, LambdaBackend
 
 
-class BatchSimpleResponse(BatchResponse):
+class LambdaSimpleResponse(BaseResponse):
+    def __init__(self) -> None:
+        super().__init__(service_name="awslambda_simple")
+
     @property
-    def batch_backend(self) -> BatchBackend:
-        """
-        :return: Batch Backend
-        :rtype: moto.batch.models.BatchBackend
-        """
-        return batch_simple_backends[self.current_account][self.region]
+    def backend(self) -> LambdaBackend:
+        return lambda_simple_backends[self.current_account][self.region]
