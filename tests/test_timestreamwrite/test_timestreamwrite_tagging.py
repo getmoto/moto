@@ -1,6 +1,10 @@
 import boto3
+import pytest
+from uuid import uuid4
 
 from moto import mock_timestreamwrite
+
+from . import timestreamwrite_aws_verified
 
 
 @mock_timestreamwrite
@@ -62,26 +66,33 @@ def test_list_tagging_for_database_with_tags():
     assert resp["Tags"] == [{"Key": "k1", "Value": "v1"}]
 
 
-@mock_timestreamwrite
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_tag_and_untag_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
-    db_arn = ts.create_database(
-        DatabaseName="mydatabase", Tags=[{"Key": "k1", "Value": "v1"}]
-    )["Database"]["Arn"]
+    db_name = "db_" + str(uuid4())[0:6]
 
-    ts.tag_resource(
-        ResourceARN=db_arn,
-        Tags=[{"Key": "k2", "Value": "v2"}, {"Key": "k3", "Value": "v3"}],
-    )
+    try:
+        db_arn = ts.create_database(
+            DatabaseName=db_name, Tags=[{"Key": "k1", "Value": "v1"}]
+        )["Database"]["Arn"]
 
-    resp = ts.list_tags_for_resource(ResourceARN=db_arn)
-    assert resp["Tags"] == [
-        {"Key": "k1", "Value": "v1"},
-        {"Key": "k2", "Value": "v2"},
-        {"Key": "k3", "Value": "v3"},
-    ]
+        ts.tag_resource(
+            ResourceARN=db_arn,
+            Tags=[{"Key": "k2", "Value": "v2"}, {"Key": "k3", "Value": "v3"}],
+        )
 
-    ts.untag_resource(ResourceARN=db_arn, TagKeys=["k2"])
+        tags = ts.list_tags_for_resource(ResourceARN=db_arn)["Tags"]
+        assert len(tags) == 3
+        assert {"Key": "k1", "Value": "v1"} in tags
+        assert {"Key": "k2", "Value": "v2"} in tags
+        assert {"Key": "k3", "Value": "v3"} in tags
 
-    resp = ts.list_tags_for_resource(ResourceARN=db_arn)
-    assert resp["Tags"] == [{"Key": "k1", "Value": "v1"}, {"Key": "k3", "Value": "v3"}]
+        ts.untag_resource(ResourceARN=db_arn, TagKeys=["k2"])
+
+        tags = ts.list_tags_for_resource(ResourceARN=db_arn)["Tags"]
+        assert len(tags) == 2
+        assert {"Key": "k1", "Value": "v1"} in tags
+        assert {"Key": "k3", "Value": "v3"} in tags
+    finally:
+        ts.delete_database(DatabaseName=db_name)
