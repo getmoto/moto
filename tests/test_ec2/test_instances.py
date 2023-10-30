@@ -2383,13 +2383,16 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
         LaunchTemplateName=str(uuid4()), LaunchTemplateData={"ImageId": EXAMPLE_AMI_ID}
     )["LaunchTemplate"]
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
+    with warnings.catch_warnings(record=True) as ws:
         resource.create_instances(
             MinCount=1,
             MaxCount=1,
             LaunchTemplate={launch_template_kind: template[launch_template_kind]},
         )
+    # We could have other warnings in this method, coming from botocore for instance
+    # But we should not receive a warning that the AMI could not be found
+    messages = [str(w.message) for w in ws]
+    assert all(["Could not find AMI" not in msg for msg in messages])
 
 
 @mock_ec2
