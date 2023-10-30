@@ -133,28 +133,39 @@ def test_list_model_packages_approval_status():
 @mock_sagemaker
 def test_list_model_packages_model_package_group_name():
     client = boto3.client("sagemaker", region_name="eu-west-1")
+    group1 = "test-model-package-group"
     client.create_model_package(
         ModelPackageName="test-model-package",
         ModelPackageDescription="test-model-package-description",
-        ModelPackageGroupName="test-model-package-group",
+        ModelPackageGroupName=group1,
     )
     client.create_model_package(
         ModelPackageName="test-model-package",
         ModelPackageDescription="test-model-package-description-2",
-        ModelPackageGroupName="test-model-package-group",
+        ModelPackageGroupName=group1,
     )
     client.create_model_package(
         ModelPackageName="test-model-package-2",
         ModelPackageDescription="test-model-package-description-3",
-        ModelPackageGroupName="test-model-package-group",
+        ModelPackageGroupName=group1,
     )
     client.create_model_package(
         ModelPackageName="test-model-package-without-group",
-        ModelPackageDescription="test-model-package-description-without-group",
+        ModelPackageDescription="diff_group",
     )
-    resp = client.list_model_packages(ModelPackageGroupName="test-model-package-group")
+    resp = client.list_model_packages(ModelPackageGroupName=group1)
 
     assert len(resp["ModelPackageSummaryList"]) == 3
+
+    # Pagination
+    resp = client.list_model_packages(ModelPackageGroupName=group1, MaxResults=2)
+    assert len(resp["ModelPackageSummaryList"]) == 2
+
+    resp = client.list_model_packages(
+        ModelPackageGroupName=group1, MaxResults=2, NextToken=resp["NextToken"]
+    )
+    assert len(resp["ModelPackageSummaryList"]) == 1
+    assert "NextToken" not in resp
 
 
 @mock_sagemaker
