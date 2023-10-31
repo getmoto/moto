@@ -3,7 +3,7 @@ from ..awslambda.responses import LambdaResponse
 from .models import lambda_simple_backends, LambdaBackend
 
 
-class LambdaSimpleResponse(BaseResponse):
+class LambdaSimpleResponse(LambdaResponse):
     def __init__(self) -> None:
         super().__init__(service_name="awslambda_simple")
 

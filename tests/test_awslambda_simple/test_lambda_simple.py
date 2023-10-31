@@ -1,6 +1,14 @@
 import boto3
 
-from moto import mock_iam, mock_s3, mock_ecs, mock_logs, settings, mock_lambda_simple
+from moto import (
+    mock_iam,
+    mock_s3,
+    mock_ecs,
+    mock_logs,
+    settings,
+    mock_lambda_simple,
+    mock_lambda,
+)
 from uuid import uuid4
 from unittest import mock, SkipTest
 import pytest
@@ -10,8 +18,8 @@ from ..test_awslambda.utilities import (
     get_test_zip_file1,
 )
 
-LAMBDA_REGION = 'us-west-2'
-PYTHON_VERSION='3.11'
+LAMBDA_REGION = "us-west-2"
+PYTHON_VERSION = "3.11"
 FUNCTION_NAME = "test-function-123"
 
 
@@ -31,6 +39,8 @@ def get_role_name():
                     )["Role"]["Arn"]
                 except ClientError:
                     pass
+
+
 @mock_s3
 @mock_logs
 @mock_iam
@@ -54,8 +64,11 @@ def test_run_function():
 
     # client = boto3.client('lambda')
     response = client.invoke(
-        FunctionName=FUNCTION_NAME, Payload=json.dumps({}), LogType="Tail",
+        FunctionName=FUNCTION_NAME,
+        Payload=json.dumps({}),
+        LogType="Tail",
     )
+
 
 # @mock_s3
 # @mock_logs
