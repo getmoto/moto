@@ -98,8 +98,8 @@ This is stored in two different repositories:
 
 .. code-block:: bash
 
-    docker run motoserver/moto:latest
-    docker run ghcr.io/getmoto/motoserver:latest
+    docker run --rm -p 5000:5000 --name moto motoserver/moto:latest
+    docker run --rm -p 5000:5000 --name moto ghcr.io/getmoto/motoserver:latest
 
 Example docker-compose.yaml 
  Look at `server.py <https://github.com/getmoto/moto/blob/master/moto/server.py>`_ to find more environment variables.
