@@ -485,7 +485,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         # service response class should have 'SERVICE_NAME' class member,
         # if you want to get action from method and url
-        if self.service_name == "awslambda_simple":
+        if self.service_name in ("awslambda_simple" or "awslambda"):
             self.service_name = "lambda"
         conn = boto3.client(self.service_name, region_name=self.region)
 
@@ -535,6 +535,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
+        if action == "create_function":
+            action = "_create_function"
         if action in method_names:
             method = getattr(self, action)
             try:

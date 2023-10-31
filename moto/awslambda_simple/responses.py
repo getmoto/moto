@@ -1,11 +1,10 @@
-from moto.core.responses import BaseResponse
 from ..awslambda.responses import LambdaResponse
 from .models import lambda_simple_backends, LambdaBackend
 
 
 class LambdaSimpleResponse(LambdaResponse):
     def __init__(self) -> None:
-        super().__init__(service_name="awslambda_simple")
+        super().__init__()
 
     @property
     def backend(self) -> LambdaBackend:

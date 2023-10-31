@@ -45,6 +45,7 @@ def get_role_name():
 @mock_logs
 @mock_iam
 @mock_lambda_simple
+# @mock_lambda
 def test_run_function():
     client = boto3.client("lambda", LAMBDA_REGION)
     zip_content = get_test_zip_file1()

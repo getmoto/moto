@@ -126,9 +126,19 @@ class LambdaResponse(BaseResponse):
     @amz_crc32
     @amzn_request_id
     def invoke(
-        self, request: Any, full_url: str, headers: Any
+        self, request=object, full_url=object, headers=object
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
-        self.setup_class(request, full_url, headers)
+        if (
+            str(type(self))
+            == "<class 'moto.awslambda_simple.responses.LambdaSimpleResponse'>"
+        ) and self.method == "POST":
+
+            class TempReq:
+                headers = self.headers
+
+            return self._invoke(TempReq)
+        else:
+            self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self._invoke(request)
         else:
