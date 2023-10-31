@@ -1409,6 +1409,13 @@ class LambdaStorage(object):
     def get_function_by_name(
         self, name: str, qualifier: Optional[str] = None
     ) -> Optional[LambdaFunction]:
+        # Function name may contain an alias
+        # <fn_name>:<alias_name>
+        # but be careful not to confuse it with an ARN
+        if name.count(":") == 1:
+            # Prefer qualifier in name over qualifier arg
+            [name, qualifier] = name.split(":")
+
         if name not in self._functions:
             return None
 
