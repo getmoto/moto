@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Iterable
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import ResourceNotFound
 
@@ -19,8 +20,8 @@ class TimestreamTable(BaseModel):
         self.name = table_name
         self.db_name = db_name
         self.retention_properties = retention_properties or {
-            "MemoryStoreRetentionPeriodInHours": 123,
-            "MagneticStoreRetentionPeriodInDays": 123,
+            "MemoryStoreRetentionPeriodInHours": 6,
+            "MagneticStoreRetentionPeriodInDays": 73000,
         }
         self.magnetic_store_write_properties = magnetic_store_write_properties or {}
         self.schema = schema or {
@@ -75,6 +76,8 @@ class TimestreamDatabase(BaseModel):
         self.arn = (
             f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.name}"
         )
+        self.created_on = unix_time()
+        self.updated_on = unix_time()
         self.tables: Dict[str, TimestreamTable] = dict()
 
     def update(self, kms_key_id: str) -> None:
@@ -131,6 +134,8 @@ class TimestreamDatabase(BaseModel):
             "DatabaseName": self.name,
             "TableCount": len(self.tables.keys()),
             "KmsKeyId": self.kms_key_id,
+            "CreationTime": self.created_on,
+            "LastUpdatedTime": self.updated_on,
         }
 
 
