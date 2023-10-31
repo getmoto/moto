@@ -119,6 +119,12 @@ Example Usage
 
 To use Moto in your tests, pass the `endpoint_url`-parameter to the SDK of your choice.
 
+In shell:
+
+.. code-block:: bash
+
+   alias aws='aws --endpoint-url http://localhost:5000'
+
 In Python:
 
 .. code-block:: python
