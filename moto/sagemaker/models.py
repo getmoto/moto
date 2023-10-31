@@ -52,13 +52,13 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "ModelPackageGroupArn",
+        "unique_attribute": "model_package_group_arn",
     },
     "list_model_packages": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "ModelPackageArn",
+        "unique_attribute": "model_package_arn",
     },
     "list_notebook_instances": {
         "input_token": "next_token",
