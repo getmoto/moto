@@ -5175,10 +5175,8 @@
 
 ## panorama
 <details>
-<summary>0% implemented</summary>
+<summary>14% implemented</summary>
 
-- [ ] can_paginate
-- [ ] close
 - [ ] create_application_instance
 - [ ] create_job_for_devices
 - [ ] create_node_from_template_job
@@ -5196,8 +5194,6 @@
 - [ ] describe_package
 - [ ] describe_package_import_job
 - [ ] describe_package_version
-- [ ] get_paginator
-- [ ] get_waiter
 - [ ] list_application_instance_dependencies
 - [ ] list_application_instance_node_instances
 - [ ] list_application_instances
