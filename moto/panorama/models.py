@@ -11,6 +11,10 @@ from moto.panorama.type import DEVICE_AGGREGATED_STATUS_TYPE, PROVISIONING_STATU
 from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
 from moto.utilities.paginator import paginate
 
+from .exceptions import (
+    ValidationError,
+)
+
 PAGINATION_MODEL = {
     "list_devices": {
         "input_token": "next_token",
@@ -203,6 +207,10 @@ class Device(BaseObject):
     def response_updated(self) -> Dict[str, str]:
         return {"DeviceId": self.device_id}
 
+    @property
+    def response_deleted(self) -> Dict[str, str]:
+        return {"DeviceId": self.device_id}
+
 
 class PanoramaBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
@@ -229,7 +237,12 @@ class PanoramaBackend(BaseBackend):
         return device_obj
 
     def describe_device(self, device_id: str) -> Device:
-        return self.devices_memory[device_id]
+        device = self.devices_memory.get(device_id)
+        if device is None:
+            raise ValidationError(
+                f"Device {device_id} not found"
+            )
+        return device
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_devices(
@@ -270,6 +283,10 @@ class PanoramaBackend(BaseBackend):
     def update_device_metadata(self, device_id: str, description: str) -> Device:
         self.devices_memory[device_id].description = description
         return self.devices_memory[device_id]
+
+    def delete_device(self, device_id: str) -> Device:
+        return self.devices_memory.pop(device_id)
+
 
 
 panorama_backends = BackendDict(

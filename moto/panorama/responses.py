@@ -53,3 +53,8 @@ class PanoramaResponse(BaseResponse):
         description = self._get_param("Description")
         device = self.panorama_backend.update_device_metadata(device_id=device_id, description=description)
         return json.dumps(device.response_updated)
+
+    def delete_device(self) -> str:
+        device_id = urllib.parse.unquote(self._get_param("DeviceId"))
+        device = self.panorama_backend.delete_device(device_id=device_id)
+        return json.dumps(device.response_deleted)

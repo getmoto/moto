@@ -10,6 +10,7 @@ from freezegun import freeze_time
 
 from moto import mock_panorama, settings
 from moto.moto_api import state_manager
+from botocore.exceptions import ClientError
 
 
 @mock_panorama
@@ -400,3 +401,21 @@ def test_update_device_metadata() -> None:
     resp_updated = client.describe_device(DeviceId=resp["DeviceId"])
 
     assert resp_updated["Description"] == "updated device description"
+
+
+@mock_panorama
+def test_delete_device() -> None:
+    client = boto3.client("panorama", region_name="eu-west-1")
+    resp = client.provision_device(
+        Description="test device description",
+        Name="test-device-name"
+    )
+
+    client.delete_device(DeviceId=resp["DeviceId"])
+
+    with pytest.raises(ClientError) as ex:
+        client.describe_device(DeviceId=resp["DeviceId"])
+    err = ex.value.response
+    assert err["Error"]["Code"] == "ValidationException"
+    assert f"Device {resp['DeviceId']} not found" in err["Error"]["Message"]
+    assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
