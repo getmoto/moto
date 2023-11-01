@@ -608,7 +608,15 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "ap-south-1"
  },
  {

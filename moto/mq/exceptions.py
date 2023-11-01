@@ -52,21 +52,6 @@ class UnknownUser(MQError):
         return json.dumps(body)
 
 
-class UnsupportedEngineType(MQError):
-    def __init__(self, engine_type: str):
-        super().__init__("BadRequestException", "")
-        self.engine_type = engine_type
-
-    def get_body(
-        self, *args: Any, **kwargs: Any
-    ) -> str:  # pylint: disable=unused-argument
-        body = {
-            "errorAttribute": "engineType",
-            "message": f"Broker engine type [{self.engine_type}] does not support configuration.",
-        }
-        return json.dumps(body)
-
-
 class UnknownEngineType(MQError):
     def __init__(self, engine_type: str):
         super().__init__("BadRequestException", "")

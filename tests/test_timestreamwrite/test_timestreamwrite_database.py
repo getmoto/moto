@@ -1,23 +1,39 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
+from uuid import uuid4
 
 from moto import mock_timestreamwrite
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
+from . import timestreamwrite_aws_verified
 
-@mock_timestreamwrite
+
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_create_database_simple():
     ts = boto3.client("timestream-write", region_name="us-east-1")
-    resp = ts.create_database(DatabaseName="mydatabase")
-    database = resp["Database"]
+    db_name = "db_" + str(uuid4())[0:6]
 
-    assert database["Arn"] == (
-        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase"
-    )
-    assert database["DatabaseName"] == "mydatabase"
-    assert database["TableCount"] == 0
-    assert database["KmsKeyId"] == f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:key/default_key"
+    identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
+    account_id = identity["Account"]
+
+    try:
+        database = ts.create_database(DatabaseName=db_name)["Database"]
+
+        assert (
+            database["Arn"]
+            == f"arn:aws:timestream:us-east-1:{account_id}:database/{db_name}"
+        )
+        assert db_name == db_name
+        assert database["TableCount"] == 0
+        assert database["KmsKeyId"].startswith(
+            f"arn:aws:kms:us-east-1:{account_id}:key/"
+        )
+        assert "CreationTime" in database
+        assert "LastUpdatedTime" in database
+    finally:
+        ts.delete_database(DatabaseName=db_name)
 
 
 @mock_timestreamwrite
@@ -53,7 +69,8 @@ def test_describe_database():
     assert database["KmsKeyId"] == "mykey"
 
 
-@mock_timestreamwrite
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_describe_unknown_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -72,6 +89,11 @@ def test_list_databases():
     resp = ts.list_databases()
     databases = resp["Databases"]
     assert len(databases) == 2
+
+    for db in databases:
+        db.pop("CreationTime")
+        db.pop("LastUpdatedTime")
+
     assert {
         "Arn": f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/db_with",
         "DatabaseName": "db_with",

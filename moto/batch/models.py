@@ -1734,7 +1734,7 @@ class BatchBackend(BaseBackend):
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
-    ) -> Tuple[str, str]:
+    ) -> Tuple[str, str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
         """
@@ -1789,7 +1789,7 @@ class BatchBackend(BaseBackend):
         else:
             # Here comes the fun
             job.start()
-        return job_name, job.job_id
+        return job_name, job.job_id, job.arn
 
     def describe_jobs(self, jobs: Optional[List[str]]) -> List[Dict[str, Any]]:
         job_filter = set()

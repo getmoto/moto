@@ -6,15 +6,17 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
-from openapi_spec_validator import validate_spec
 import requests
 import responses
 
 try:
-    from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
+    # Recommended as of 0.7.x
+    from openapi_spec_validator import validate  # type: ignore
 except ImportError:
-    # OpenAPI Spec Validator < 0.5.0
-    from openapi_spec_validator.exceptions import OpenAPIValidationError  # type: ignore
+    # Only used in < 0.7.x
+    # (Also exists in 0.7.0, but throws a warning)
+    from openapi_spec_validator import validate_spec as validate  # type: ignore
+from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url
@@ -1571,7 +1573,7 @@ class APIGatewayBackend(BaseBackend):
         """
         if fail_on_warnings:
             try:
-                validate_spec(api_doc)  # type: ignore[arg-type]
+                validate(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
             except AttributeError:
@@ -1646,7 +1648,7 @@ class APIGatewayBackend(BaseBackend):
 
         if fail_on_warnings:
             try:
-                validate_spec(api_doc)  # type: ignore[arg-type]
+                validate(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
             except AttributeError:

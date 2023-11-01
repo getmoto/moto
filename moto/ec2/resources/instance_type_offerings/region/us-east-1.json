@@ -1008,7 +1008,15 @@
   "Location": "us-east-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "us-east-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "us-east-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "us-east-1"
  },
  {
@@ -1873,6 +1881,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "us-east-1"
+ },
+ {
+  "InstanceType": "mac2-m2.metal",
   "Location": "us-east-1"
  },
  {

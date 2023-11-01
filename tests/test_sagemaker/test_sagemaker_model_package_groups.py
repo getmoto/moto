@@ -31,34 +31,34 @@ def test_create_model_package_group():
 @mock_sagemaker
 def test_list_model_package_groups():
     client = boto3.client("sagemaker", region_name="eu-west-1")
+    group1 = "test-model-package-group-1"
+    desc1 = "test-model-package-group-description-1"
     client.create_model_package_group(
-        ModelPackageGroupName="test-model-package-group-1",
-        ModelPackageGroupDescription="test-model-package-group-description-1",
+        ModelPackageGroupName=group1, ModelPackageGroupDescription=desc1
     )
-    client.create_model_package_group(
-        ModelPackageGroupName="test-model-package-group-2",
-        ModelPackageGroupDescription="test-model-package-group-description-2",
-    )
-    resp = client.list_model_package_groups()
 
-    assert (
-        resp["ModelPackageGroupSummaryList"][0]["ModelPackageGroupName"]
-        == "test-model-package-group-1"
+    group2 = "test-model-package-group-2"
+    desc2 = "test-model-package-group-description-2"
+    client.create_model_package_group(
+        ModelPackageGroupName=group2,
+        ModelPackageGroupDescription=desc2,
     )
-    assert "ModelPackageGroupDescription" in resp["ModelPackageGroupSummaryList"][0]
-    assert (
-        resp["ModelPackageGroupSummaryList"][0]["ModelPackageGroupDescription"]
-        == "test-model-package-group-description-1"
-    )
-    assert (
-        resp["ModelPackageGroupSummaryList"][1]["ModelPackageGroupName"]
-        == "test-model-package-group-2"
-    )
-    assert "ModelPackageGroupDescription" in resp["ModelPackageGroupSummaryList"][1]
-    assert (
-        resp["ModelPackageGroupSummaryList"][1]["ModelPackageGroupDescription"]
-        == "test-model-package-group-description-2"
-    )
+
+    summary = client.list_model_package_groups()["ModelPackageGroupSummaryList"]
+
+    assert summary[0]["ModelPackageGroupName"] == group1
+    assert summary[0]["ModelPackageGroupDescription"] == desc1
+
+    assert summary[1]["ModelPackageGroupName"] == group2
+    assert summary[1]["ModelPackageGroupDescription"] == desc2
+
+    # Pagination
+    resp = client.list_model_package_groups(MaxResults=1)
+    assert len(resp["ModelPackageGroupSummaryList"]) == 1
+
+    resp = client.list_model_package_groups(MaxResults=1, NextToken=resp["NextToken"])
+    assert len(resp["ModelPackageGroupSummaryList"]) == 1
+    assert "NextToken" not in resp
 
 
 @mock_sagemaker

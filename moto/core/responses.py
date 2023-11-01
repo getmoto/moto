@@ -363,6 +363,11 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.uri = full_url
 
         self.path = self.parsed_url.path
+        if self.is_werkzeug_request and "RAW_URI" in request.environ:
+            self.raw_path = urlparse(request.environ.get("RAW_URI")).path
+        else:
+            self.raw_path = self.path
+
         self.querystring = querystring
         self.data = querystring
         self.method = request.method

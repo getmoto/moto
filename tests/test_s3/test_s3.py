@@ -3413,6 +3413,39 @@ def test_delete_objects_with_empty_keyname():
     assert "Contents" not in client.list_objects(Bucket=bucket_name)
 
 
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_delete_objects_percent_encoded(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    object_key_1 = "a%2Fb"
+    object_key_2 = "a/%F0%9F%98%80"
+    client.put_object(Bucket=bucket_name, Key=object_key_1, Body="percent encoding")
+    client.put_object(
+        Bucket=bucket_name, Key=object_key_2, Body="percent encoded emoji"
+    )
+    list_objs = client.list_objects(Bucket=bucket_name)
+    assert len(list_objs["Contents"]) == 2
+    keys = [o["Key"] for o in list_objs["Contents"]]
+    assert object_key_1 in keys
+    assert object_key_2 in keys
+
+    delete_objects = client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": object_key_1},
+                {"Key": object_key_2},
+            ],
+        },
+    )
+    assert len(delete_objects["Deleted"]) == 2
+    deleted_keys = [o for o in delete_objects["Deleted"]]
+    assert {"Key": object_key_1} in deleted_keys
+    assert {"Key": object_key_2} in deleted_keys
+    assert "Contents" not in client.list_objects(Bucket=bucket_name)
+
+
 @mock_s3
 def test_head_object_should_return_default_content_type():
     s3_resource = boto3.resource("s3", region_name="us-east-1")

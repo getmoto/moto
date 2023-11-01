@@ -12,7 +12,6 @@ from .exceptions import (
     UnknownBroker,
     UnknownConfiguration,
     UnknownUser,
-    UnsupportedEngineType,
     UnknownEngineType,
 )
 
@@ -236,14 +235,7 @@ class Broker(BaseModel):
                 console_access=user.get("consoleAccess", False),
             )
 
-        if self.engine_type.upper() == "RABBITMQ":
-            self.configurations: Optional[Dict[str, Any]] = None
-        else:
-            current_config = configuration or {
-                "id": f"c-{mock_random.get_random_hex(6)}",
-                "revision": 1,
-            }
-            self.configurations = {"current": current_config, "history": []}
+        self.configurations: Dict[str, Any] = {"current": configuration, "history": []}
         if self.engine_type.upper() == "RABBITMQ":
             console_url = f"https://0000.mq.{region}.amazonaws.com"
             endpoints = ["amqps://mockmq:5671"]
@@ -290,8 +282,8 @@ class Broker(BaseModel):
         if auto_minor_version_upgrade is not None:
             self.auto_minor_version_upgrade = auto_minor_version_upgrade
         if configuration:
-            self.configurations["history"].append(self.configurations["current"])  # type: ignore[index]
-            self.configurations["current"] = configuration  # type: ignore[index]
+            self.configurations["history"].append(self.configurations["current"])
+            self.configurations["current"] = configuration
         if engine_version:
             self.engine_version = engine_version
         if host_instance_type:
@@ -386,7 +378,7 @@ class MQBackend(BaseBackend):
         authentication_strategy: str,
         auto_minor_version_upgrade: bool,
         broker_name: str,
-        configuration: Dict[str, Any],
+        configuration: Optional[Dict[str, Any]],
         deployment_mode: str,
         encryption_options: Dict[str, Any],
         engine_type: str,
@@ -402,6 +394,15 @@ class MQBackend(BaseBackend):
         tags: Dict[str, str],
         users: List[Dict[str, Any]],
     ) -> Tuple[str, str]:
+        if configuration is None:
+            # create default configuration
+            default_config = self.create_configuration(
+                name=f"{broker_name}-configuration",
+                engine_type=engine_type,
+                engine_version=engine_version,
+                tags={},
+            )
+            configuration = {"id": default_config.id, "revision": 1}
         broker = Broker(
             name=broker_name,
             account_id=self.account_id,
@@ -471,9 +472,7 @@ class MQBackend(BaseBackend):
     def create_configuration(
         self, name: str, engine_type: str, engine_version: str, tags: Dict[str, str]
     ) -> Configuration:
-        if engine_type.upper() == "RABBITMQ":
-            raise UnsupportedEngineType(engine_type)
-        if engine_type.upper() != "ACTIVEMQ":
+        if engine_type.upper() not in ["ACTIVEMQ", "RABBITMQ"]:
             raise UnknownEngineType(engine_type)
         config = Configuration(
             account_id=self.account_id,

@@ -348,7 +348,15 @@
   "Location": "af-south-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "af-south-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "af-south-1"
  },
  {

@@ -2344,6 +2344,7 @@
 - [ ] get_network_insights_access_scope_content
 - [X] get_password_data
 - [ ] get_reserved_instances_exchange_quote
+- [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
 - [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations
@@ -4857,7 +4858,7 @@
 
 ## opensearch
 <details>
-<summary>18% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] accept_inbound_connection
 - [X] add_tags
@@ -4890,9 +4891,11 @@
 - [ ] describe_vpc_endpoints
 - [ ] dissociate_package
 - [X] get_compatible_versions
+- [ ] get_domain_maintenance_status
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
+- [ ] list_domain_maintenances
 - [X] list_domain_names
 - [ ] list_domains_for_package
 - [ ] list_instance_type_details
@@ -4907,6 +4910,7 @@
 - [ ] reject_inbound_connection
 - [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
+- [ ] start_domain_maintenance
 - [ ] start_service_software_update
 - [X] update_domain_config
 - [ ] update_package
@@ -5643,7 +5647,7 @@
 
 ## redshift
 <details>
-<summary>24% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -5685,6 +5689,7 @@
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
 - [ ] delete_partner
+- [ ] delete_resource_policy
 - [ ] delete_scheduled_action
 - [X] delete_snapshot_copy_grant
 - [ ] delete_snapshot_schedule
@@ -5713,6 +5718,7 @@
 - [ ] describe_events
 - [ ] describe_hsm_client_certificates
 - [ ] describe_hsm_configurations
+- [ ] describe_inbound_integrations
 - [ ] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
@@ -5737,6 +5743,7 @@
 - [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
+- [ ] get_resource_policy
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
 - [X] modify_cluster
@@ -5756,6 +5763,7 @@
 - [ ] modify_usage_limit
 - [X] pause_cluster
 - [ ] purchase_reserved_node_offering
+- [ ] put_resource_policy
 - [ ] reboot_cluster
 - [ ] reject_data_share
 - [ ] reset_cluster_parameter_group
@@ -5828,6 +5836,7 @@
 - [ ] get_face_liveness_session_results
 - [X] get_face_search
 - [ ] get_label_detection
+- [ ] get_media_analysis_job
 - [ ] get_person_tracking
 - [ ] get_segment_detection
 - [X] get_text_detection
@@ -5836,6 +5845,7 @@
 - [ ] list_dataset_entries
 - [ ] list_dataset_labels
 - [ ] list_faces
+- [ ] list_media_analysis_jobs
 - [ ] list_project_policies
 - [ ] list_stream_processors
 - [ ] list_tags_for_resource
@@ -5851,6 +5861,7 @@
 - [ ] start_face_detection
 - [X] start_face_search
 - [ ] start_label_detection
+- [ ] start_media_analysis_job
 - [ ] start_person_tracking
 - [ ] start_project_version
 - [ ] start_segment_detection
@@ -6904,7 +6915,7 @@
 
 ## signer
 <details>
-<summary>21% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] add_profile_permission
 - [X] cancel_signing_profile
@@ -6916,15 +6927,15 @@
 - [ ] list_signing_jobs
 - [X] list_signing_platforms
 - [ ] list_signing_profiles
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] put_signing_profile
 - [ ] remove_profile_permission
 - [ ] revoke_signature
 - [ ] revoke_signing_profile
 - [ ] sign_payload
 - [ ] start_signing_job
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 </details>
 
 ## sns
@@ -7026,6 +7037,7 @@
 - [X] delete_document
 - [ ] delete_inventory
 - [X] delete_maintenance_window
+- [ ] delete_ops_item
 - [ ] delete_ops_metadata
 - [X] delete_parameter
 - [X] delete_parameters
@@ -7556,7 +7568,6 @@
 - frauddetector
 - fsx
 - gamelift
-- gamesparks
 - globalaccelerator
 - grafana
 - greengrassv2

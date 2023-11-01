@@ -685,9 +685,10 @@ def test_put_events():
 
     if settings.TEST_DECORATOR_MODE:
         event["Detail"] = json.dumps([{"Key": "k", "Value": "v"}])
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings(record=True) as ws:
             client.put_events(Entries=[event])
-        assert "EventDetail should be of type dict" in str(w[0].message)
+        messages = [str(w.message) for w in ws]
+        assert any(["EventDetail should be of type dict" in msg for msg in messages])
 
 
 @mock_events

@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 @requires_docker
-@pytest.mark.run(order=0)
+@pytest.mark.order(0)
 def test_docker_package_is_available():
     try:
         import docker  # noqa: F401   # pylint: disable=unused-import
@@ -21,7 +21,7 @@ def test_docker_package_is_available():
 
 
 @requires_docker
-@pytest.mark.run(order=0)
+@pytest.mark.order(0)
 def test_docker_is_running_and_available():
     import docker
     from docker.errors import DockerException

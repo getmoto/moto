@@ -4,18 +4,9 @@ import boto3
 import pytest
 
 from botocore.client import ClientError
+from uuid import uuid4
 from moto import mock_s3control
-
-
-@mock_s3control
-def test_create_access_point():
-    client = boto3.client("s3control", region_name="eu-west-1")
-    resp = client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
-    )
-
-    assert "AccessPointArn" in resp
-    assert resp["Alias"] == "ap_name"
+from tests.test_s3 import s3_aws_verified
 
 
 @mock_s3control
@@ -96,17 +87,31 @@ def test_get_access_point_full():
     }
 
 
-@mock_s3control
-def test_delete_access_point():
-    client = boto3.client("s3control", region_name="ap-southeast-1")
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_delete_access_point(bucket_name=None):
+    sts = boto3.client("sts", "us-east-1")
+    account_id = sts.get_caller_identity()["Account"]
 
-    client.create_access_point(
-        AccountId="111111111111", Name="ap_name", Bucket="mybucket"
+    client = boto3.client("s3control", region_name="us-east-1")
+    ap_name = "ap-" + str(uuid4())[0:6]
+    expected_arn = f"arn:aws:s3:us-east-1:{account_id}:accesspoint/{ap_name}"
+
+    create = client.create_access_point(
+        AccountId=account_id, Name=ap_name, Bucket=bucket_name
     )
+    assert create["Alias"].startswith(ap_name)
+    assert create["Alias"].endswith("-s3alias")
+    assert create["AccessPointArn"] == expected_arn
 
-    client.delete_access_point(AccountId="111111111111", Name="ap_name")
+    get = client.get_access_point(AccountId=account_id, Name=ap_name)
+    assert get["Alias"] == create["Alias"]
+    assert get["AccessPointArn"] == expected_arn
+
+    client.delete_access_point(AccountId=account_id, Name=ap_name)
 
     with pytest.raises(ClientError) as exc:
-        client.get_access_point(AccountId="111111111111", Name="ap_name")
+        client.get_access_point(AccountId=account_id, Name=ap_name)
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchAccessPoint"
+    assert err["Message"] == "The specified accesspoint does not exist"

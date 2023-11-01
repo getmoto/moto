@@ -536,7 +536,15 @@
   "Location": "us-west-1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "us-west-1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "us-west-1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "us-west-1"
  },
  {

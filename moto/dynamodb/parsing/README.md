@@ -20,4 +20,4 @@ validation all the values will be resolved.
 ## 4) Update Expression gets executed using the validated AST
 Finally the AST is used to execute the update expression. There should be no reason for this step to fail
 since validation has completed. Due to this we have the update expressions behaving atomically (i.e. all the
-actions of the update expresion are performed or none of them are performed).
+actions of the update expression are performed or none of them are performed).

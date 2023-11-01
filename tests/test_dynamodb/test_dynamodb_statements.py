@@ -198,3 +198,65 @@ class TestBatchExecuteStatement(TestCase):
             "TableName": "table1",
         } in items
         assert {"TableName": "table2", "Item": self.item1} in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified
+def test_execute_statement_with_all_clauses(table_name=None):
+    dynamodb_client = boto3.client("dynamodb", "us-east-1")
+
+    items = [
+        {
+            "pk": {"S": "0"},
+            "Name": {"S": "Lambda"},
+            "NameLower": {"S": "lambda"},
+            "Description": {"S": "Run code in under 15 minutes"},
+            "DescriptionLower": {"S": "run code in under 15 minutes"},
+            "Price": {"N": "2E-7"},
+            "Unit": {"S": "invocation"},
+            "Category": {"S": "free"},
+            "FreeTier": {"N": "1E+6"},
+        },
+        {
+            "pk": {"S": "1"},
+            "Name": {"S": "Auto Scaling"},
+            "NameLower": {"S": "auto scaling"},
+            "Description": {
+                "S": "Automatically scale the number of EC2 instances with demand",
+            },
+            "DescriptionLower": {
+                "S": "automatically scale the number of ec2 instances with demand"
+            },
+            "Price": {"N": "0"},
+            "Unit": {"S": "group"},
+            "Category": {"S": "free"},
+            "FreeTier": {"NULL": True},
+        },
+        {
+            "pk": {"S": "2"},
+            "Name": {"S": "EC2"},
+            "NameLower": {"S": "ec2"},
+            "Description": {"S": "Servers in the cloud"},
+            "DescriptionLower": {"S": "servers in the cloud"},
+            "Price": {"N": "7.2"},
+            "Unit": {"S": "instance"},
+            "Category": {"S": "trial"},
+        },
+        {
+            "pk": {"S": "3"},
+            "Name": {"S": "Config"},
+            "NameLower": {"S": "config"},
+            "Description": {"S": "Audit the configuration of AWS resources"},
+            "DescriptionLower": {"S": "audit the configuration of aws resources"},
+            "Price": {"N": "0.003"},
+            "Unit": {"S": "configuration item"},
+            "Category": {"S": "paid"},
+        },
+    ]
+
+    for item in items:
+        dynamodb_client.put_item(TableName=table_name, Item=item)
+
+    partiql_statement = f"SELECT pk FROM \"{table_name}\" WHERE (contains(\"NameLower\", 'code') OR contains(\"DescriptionLower\", 'code')) AND Category = 'free' AND Price >= 0 AND Price <= 1 AND FreeTier IS NOT MISSING AND attribute_type(\"FreeTier\", 'N')"
+    items = dynamodb_client.execute_statement(Statement=partiql_statement)["Items"]
+    assert items == [{"pk": {"S": "0"}}]

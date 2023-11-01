@@ -536,7 +536,15 @@
   "Location": "usw1-az1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "usw1-az1"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "usw1-az1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "usw1-az1"
  },
  {
@@ -2144,7 +2152,15 @@
   "Location": "usw1-az3"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "usw1-az3"
+ },
+ {
   "InstanceType": "i4i.16xlarge",
+  "Location": "usw1-az3"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
   "Location": "usw1-az3"
  },
  {

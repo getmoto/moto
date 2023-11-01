@@ -159,7 +159,7 @@ CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
-  <Alias>{{ access_point.name }}</Alias>
+  <Alias>{{ access_point.alias }}</Alias>
   <AccessPointArn>{{ access_point.arn }}</AccessPointArn>
 </CreateAccessPointResult>
 """
