@@ -45,7 +45,7 @@ def test_provision_device() -> None:
         Tags={"Key": "test-key", "Value": "test-value"},
     )
     assert (
-            resp["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
+        resp["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp["Certificates"] == b"certificate"
     assert resp["DeviceId"] == "device-RsozEWjZpeNe3SXHidX3mg=="
@@ -92,7 +92,7 @@ def test_describe_device() -> None:
 
     assert resp["AlternateSoftwares"] == [{"Version": "0.2.1"}]
     assert (
-            resp["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
+        resp["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp["Brand"] == "AWS_PANORAMA"
     assert resp["CreatedTime"] == datetime(2020, 1, 1, 12, 0, tzinfo=tzutc())
@@ -135,11 +135,11 @@ def test_provision_device_aggregated_status_lifecycle() -> None:
     given_device_name = "test-device-name"
     state_manager.set_transition(
         model_name=f"panorama::device_{given_device_name}_aggregated_status",
-        transition={"progression": "manual", "times": 1}
+        transition={"progression": "manual", "times": 1},
     )
     state_manager.set_transition(
         model_name=f"panorama::device_{given_device_name}_provisioning_status",
-        transition={"progression": "manual", "times": 2}
+        transition={"progression": "manual", "times": 2},
     )
     device_id = client.provision_device(
         Description="test device description",
@@ -172,21 +172,24 @@ def test_provision_device_aggregated_status_lifecycle() -> None:
 
     resp_1 = client.describe_device(DeviceId=device_id)
     assert (
-            resp_1["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
+        resp_1["Arn"]
+        == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp_1["DeviceAggregatedStatus"] == "AWAITING_PROVISIONING"
     assert resp_1["ProvisioningStatus"] == "AWAITING_PROVISIONING"
 
     resp_2 = client.describe_device(DeviceId=device_id)
     assert (
-            resp_2["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
+        resp_2["Arn"]
+        == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp_2["DeviceAggregatedStatus"] == "PENDING"
     assert resp_2["ProvisioningStatus"] == "AWAITING_PROVISIONING"
 
     resp_3 = client.describe_device(DeviceId=device_id)
     assert (
-            resp_3["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
+        resp_3["Arn"]
+        == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp_3["DeviceAggregatedStatus"] == "ONLINE"
     assert resp_3["ProvisioningStatus"] == "PENDING"
@@ -319,22 +322,23 @@ def test_list_devices_sort_order(sort_order: str, indexes: List[int]) -> None:
     assert resp["Devices"][indexes[1]]["DeviceId"] == resp_2["DeviceId"]
 
 
-
 @pytest.mark.parametrize(
     "sort_by, indexes",
     [
         ("DEVICE_ID", [0, 1]),
         ("CREATED_TIME", [1, 0]),
         ("NAME", [0, 1]),
-        ("DEVICE_AGGREGATED_STATUS", [1, 0])
+        ("DEVICE_AGGREGATED_STATUS", [1, 0]),
     ],
 )
 @mock_panorama
 def test_list_devices_sort_by(sort_by: str, indexes: List[int]) -> None:
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",
-        transition={"progression": "manual", "times": 1}
+        transition={"progression": "manual", "times": 1},
     )
     with freeze_time("2021-01-01 12:00:00"):
         resp_1 = client.provision_device(
@@ -357,11 +361,11 @@ def test_list_devices_sort_by(sort_by: str, indexes: List[int]) -> None:
 
 
 @mock_panorama
-def test_list_devices_sort_by() -> None:
+def test_list_devices_device_aggregated_status_filter() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",
-        transition={"progression": "manual", "times": 0}
+        transition={"progression": "manual", "times": 0},
     )
     _ = client.provision_device(
         Description="test device description 1",
@@ -376,7 +380,7 @@ def test_list_devices_sort_by() -> None:
     client.describe_device(DeviceId=resp_2["DeviceId"])
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",
-        transition={"progression": "manual", "times": 10}
+        transition={"progression": "manual", "times": 10},
     )
 
     resp = client.list_devices(DeviceAggregatedStatusFilter="PENDING")
@@ -389,8 +393,7 @@ def test_list_devices_sort_by() -> None:
 def test_update_device_metadata() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp = client.provision_device(
-        Description="test device description",
-        Name="test-device-name"
+        Description="test device description", Name="test-device-name"
     )
 
     client.update_device_metadata(
@@ -407,8 +410,7 @@ def test_update_device_metadata() -> None:
 def test_delete_device() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp = client.provision_device(
-        Description="test device description",
-        Name="test-device-name"
+        Description="test device description", Name="test-device-name"
     )
 
     client.delete_device(DeviceId=resp["DeviceId"])

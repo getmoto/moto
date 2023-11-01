@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from typing import Dict, Any, Optional, Union, List
-from typing_extensions import Literal, cast
+from typing_extensions import Literal
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -52,26 +52,23 @@ class BaseObject(BaseModel):
 
 class Device(BaseObject):
     def __init__(
-            self,
-            account_id: str,
-            region_name: str,
-            description: Optional[str],
-            name: str,
-            network_configuration: Optional[Dict[str, Any]],
-            tags: Optional[Dict[str, str]],
+        self,
+        account_id: str,
+        region_name: str,
+        description: Optional[str],
+        name: str,
+        network_configuration: Optional[Dict[str, Any]],
+        tags: Optional[Dict[str, str]],
     ) -> None:
         self.__device_aggregated_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_aggregated_status",
-            transitions=[
-                ("AWAITING_PROVISIONING", "PENDING"),
-                ("PENDING", "ONLINE")
-            ],
+            transitions=[("AWAITING_PROVISIONING", "PENDING"), ("PENDING", "ONLINE")],
         )
         self.__device_provisioning_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_provisioning_status",
             transitions=[
                 ("AWAITING_PROVISIONING", "PENDING"),
-                ("PENDING", "SUCCEEDED")
+                ("PENDING", "SUCCEEDED"),
             ],
         )
         self.account_id = account_id
@@ -125,13 +122,13 @@ class Device(BaseObject):
 
     @property
     def device_aggregated_status(self) -> DEVICE_AGGREGATED_STATUS_TYPE:
-        _device_aggregated_status = cast(DEVICE_AGGREGATED_STATUS_TYPE, self.__device_aggregated_status_manager.status)
+        _device_aggregated_status: DEVICE_AGGREGATED_STATUS_TYPE = self.__device_aggregated_status_manager.status  # type: ignore[assignment]
         self.__device_aggregated_status_manager.advance()
         return _device_aggregated_status
 
     @property
     def provisioning_status(self) -> PROVISIONING_STATUS_TYPE:
-        _provisioning_status = cast(PROVISIONING_STATUS_TYPE, self.__device_provisioning_status_manager.status)
+        _provisioning_status: PROVISIONING_STATUS_TYPE = self.__device_provisioning_status_manager.status  # type: ignore[assignment]
         self.__device_provisioning_status_manager.advance()
         return _provisioning_status
 
@@ -159,14 +156,17 @@ class Device(BaseObject):
             "Type",
         ]
         return {
-            **{k: v for k, v in response_object.items() if v is not None and k in static_response_fields},
+            **{
+                k: v
+                for k, v in response_object.items()
+                if v is not None and k in static_response_fields
+            },
             **{
                 "DeviceAggregatedStatus": self.device_aggregated_status,
                 "ProvisioningStatus": self.provisioning_status,
-            }
+            },
         }
 
-    @property
     def response_listed(self) -> Dict[str, Any]:
         response_object = super().gen_response_object()
         response_object = deep_convert_datetime_to_isoformat(response_object)
@@ -181,14 +181,18 @@ class Device(BaseObject):
             "LeaseExpirationTime",
             "Name",
             "Tags",
-            "Type"
+            "Type",
         ]
         return {
-            **{k: v for k, v in response_object.items() if v is not None and k in static_response_fields},
+            **{
+                k: v
+                for k, v in response_object.items()
+                if v is not None and k in static_response_fields
+            },
             **{
                 "DeviceAggregatedStatus": self.device_aggregated_status,
                 "ProvisioningStatus": self.provisioning_status,
-            }
+            },
         }
 
     @property
@@ -218,11 +222,11 @@ class PanoramaBackend(BaseBackend):
         self.devices_memory: Dict[str, Device] = {}
 
     def provision_device(
-            self,
-            description: Optional[str],
-            name: str,
-            networking_configuration: Optional[Dict[str, Any]],
-            tags: Optional[Dict[str, str]],
+        self,
+        description: Optional[str],
+        name: str,
+        networking_configuration: Optional[Dict[str, Any]],
+        tags: Optional[Dict[str, str]],
     ) -> Device:
         device_obj = Device(
             account_id=self.account_id,
@@ -239,29 +243,26 @@ class PanoramaBackend(BaseBackend):
     def describe_device(self, device_id: str) -> Device:
         device = self.devices_memory.get(device_id)
         if device is None:
-            raise ValidationError(
-                f"Device {device_id} not found"
-            )
+            raise ValidationError(f"Device {device_id} not found")
         return device
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_devices(
-            self,
-            device_aggregated_status_filter: DEVICE_AGGREGATED_STATUS_TYPE,
-            name_filter: str,
-            sort_by: Literal["DEVICE_ID", "CREATED_TIME", "NAME", "DEVICE_AGGREGATED_STATUS"],
-            sort_order: Literal["ASCENDING", "DESCENDING"],
+        self,
+        device_aggregated_status_filter: DEVICE_AGGREGATED_STATUS_TYPE,
+        name_filter: str,
+        sort_by: Literal[
+            "DEVICE_ID", "CREATED_TIME", "NAME", "DEVICE_AGGREGATED_STATUS"
+        ],
+        sort_order: Literal["ASCENDING", "DESCENDING"],
     ) -> List[Device]:
         devices_list = list(
             filter(
-                lambda x: (
-                                  name_filter is None
-                                  or x.name.startswith(name_filter)
-                          )
-                          and (
-                                  device_aggregated_status_filter is None
-                                  or x.device_aggregated_status == device_aggregated_status_filter
-                          ),
+                lambda x: (name_filter is None or x.name.startswith(name_filter))
+                and (
+                    device_aggregated_status_filter is None
+                    or x.device_aggregated_status == device_aggregated_status_filter
+                ),
                 self.devices_memory.values(),
             )
         )
@@ -286,7 +287,6 @@ class PanoramaBackend(BaseBackend):
 
     def delete_device(self, device_id: str) -> Device:
         return self.devices_memory.pop(device_id)
-
 
 
 panorama_backends = BackendDict(

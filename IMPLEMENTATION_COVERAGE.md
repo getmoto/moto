@@ -5184,12 +5184,12 @@
 - [ ] create_node_from_template_job
 - [ ] create_package
 - [ ] create_package_import_job
-- [ ] delete_device
+- [X] delete_device
 - [ ] delete_package
 - [ ] deregister_package_version
 - [ ] describe_application_instance
 - [ ] describe_application_instance_details
-- [ ] describe_device
+- [X] describe_device
 - [ ] describe_device_job
 - [ ] describe_node
 - [ ] describe_node_from_template_job
@@ -5201,20 +5201,20 @@
 - [ ] list_application_instance_dependencies
 - [ ] list_application_instance_node_instances
 - [ ] list_application_instances
-- [ ] list_devices
+- [X] list_devices
 - [ ] list_devices_jobs
 - [ ] list_node_from_template_jobs
 - [ ] list_nodes
 - [ ] list_package_import_jobs
 - [ ] list_packages
 - [ ] list_tags_for_resource
-- [ ] provision_device
+- [X] provision_device
 - [ ] register_package_version
 - [ ] remove_application_instance
 - [ ] signal_application_instance_node_instances
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_device_metadata
+- [X] update_device_metadata
 </details>
 
 ## personalize
