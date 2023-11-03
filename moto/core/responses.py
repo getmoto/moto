@@ -535,6 +535,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
+
+        # for awslambda_simple error
+        # NotImplementedError: The create_function action has not been implemented
         if action == "create_function":
             action = "_create_function"
         if action in method_names:
