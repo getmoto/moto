@@ -1,7 +1,7 @@
 from unittest import SkipTest
 import boto3
 
-from moto import mock_iam, mock_s3, mock_logs, mock_lambda_simple, settings
+from moto import mock_iam, mock_lambda_simple, settings
 from ..test_awslambda.utilities import get_test_zip_file1, get_role_name
 
 LAMBDA_REGION = "us-west-2"
@@ -12,8 +12,6 @@ if settings.TEST_SERVER_MODE:
     raise SkipTest("No point in testing batch_simple in ServerMode")
 
 
-@mock_s3
-@mock_logs
 @mock_iam
 @mock_lambda_simple
 def test_run_function():
