@@ -129,6 +129,8 @@ class LambdaResponse(BaseResponse):
         self, request=None, full_url="", headers=None
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         if (
+            # use string comparison to avoid circular dependency error
+            # on importing LambdaSimpleResponse
             str(type(self))
             == "<class 'moto.awslambda_simple.responses.LambdaSimpleResponse'>"
         ) and self.method == "POST":
