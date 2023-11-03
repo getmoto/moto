@@ -25,7 +25,7 @@ def create_items(table_name):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_execute_statement_select_star(table_name=None):
     client = boto3.client("dynamodb", "us-east-1")
     create_items(table_name)
@@ -35,7 +35,7 @@ def test_execute_statement_select_star(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_execute_statement_select_attr(table_name=None):
     client = boto3.client("dynamodb", "us-east-1")
     create_items(table_name)
@@ -47,7 +47,7 @@ def test_execute_statement_select_attr(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_execute_statement_with_quoted_table(table_name=None):
     client = boto3.client("dynamodb", "us-east-1")
     create_items(table_name)
@@ -57,7 +57,7 @@ def test_execute_statement_with_quoted_table(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_execute_statement_with_parameter(table_name=None):
     client = boto3.client("dynamodb", "us-east-1")
     create_items(table_name)
@@ -77,7 +77,7 @@ def test_execute_statement_with_parameter(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_execute_statement_with_no_results(table_name=None):
     client = boto3.client("dynamodb", "us-east-1")
     create_items(table_name)
@@ -201,7 +201,7 @@ class TestBatchExecuteStatement(TestCase):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_execute_statement_with_all_clauses(table_name=None):
     dynamodb_client = boto3.client("dynamodb", "us-east-1")
 

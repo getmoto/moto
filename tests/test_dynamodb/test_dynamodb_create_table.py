@@ -3,9 +3,10 @@ from botocore.exceptions import ClientError
 from datetime import datetime
 import pytest
 
-from moto import mock_dynamodb, settings
+from moto import mock_dynamodb
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.dynamodb.models import dynamodb_backends
+
+from . import dynamodb_aws_verified
 
 
 @mock_dynamodb
@@ -399,36 +400,94 @@ def test_create_table_with_ssespecification__custom_kms_key():
     assert actual["SSEDescription"]["KMSMasterKeyArn"] == "custom-kms-key"
 
 
-@mock_dynamodb
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(create_table=False)
 def test_create_table__specify_non_key_column():
-    client = boto3.client("dynamodb", "us-east-2")
-    client.create_table(
-        TableName="tab",
-        KeySchema=[
-            {"AttributeName": "PK", "KeyType": "HASH"},
-            {"AttributeName": "SomeColumn", "KeyType": "N"},
-        ],
-        BillingMode="PAY_PER_REQUEST",
-        AttributeDefinitions=[
-            {"AttributeName": "PK", "AttributeType": "S"},
-            {"AttributeName": "SomeColumn", "AttributeType": "N"},
-        ],
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="unknown-key-type",
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "SORT"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
+            ],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'SORT' at 'keySchema.2.member.keyType' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
     )
 
-    actual = client.describe_table(TableName="tab")["Table"]
-    assert actual["KeySchema"] == [
-        {"AttributeName": "PK", "KeyType": "HASH"},
-        {"AttributeName": "SomeColumn", "KeyType": "N"},
-    ]
+    # Verify we get the same message for Global Secondary Indexes
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="unknown-key-type",
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
+            ],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "TestGSI",
+                    # Note that the attributes are not declared, which is also invalid
+                    # But AWS trips over the KeyType=SORT first
+                    "KeySchema": [
+                        {"AttributeName": "n/a", "KeyType": "HASH"},
+                        {"AttributeName": "sth", "KeyType": "SORT"},
+                    ],
+                    "Projection": {"ProjectionType": "ALL"},
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": 5,
+                        "WriteCapacityUnits": 5,
+                    },
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'SORT' at 'globalSecondaryIndexes.1.member.keySchema.2.member.keyType' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
+    )
 
-    if not settings.TEST_SERVER_MODE:
-        ddb = dynamodb_backends[ACCOUNT_ID]["us-east-2"]
-        assert {"AttributeName": "PK", "AttributeType": "S"} in ddb.tables["tab"].attr
-        assert {"AttributeName": "SomeColumn", "AttributeType": "N"} in ddb.tables[
-            "tab"
-        ].attr
-        # It should recognize PK is the Hash Key
-        assert ddb.tables["tab"].hash_key_attr == "PK"
-        # It should recognize that SomeColumn is not a Range Key
-        assert ddb.tables["tab"].has_range_key is False
-        assert ddb.tables["tab"].range_key_names == []
+    # Verify we get the same message for Local Secondary Indexes
+    with pytest.raises(ClientError) as exc:
+        dynamodb.create_table(
+            TableName="unknown-key-type",
+            KeySchema=[
+                {"AttributeName": "pk", "KeyType": "HASH"},
+                {"AttributeName": "sk", "KeyType": "RANGE"},
+            ],
+            AttributeDefinitions=[
+                {"AttributeName": "pk", "AttributeType": "S"},
+                {"AttributeName": "sk", "AttributeType": "S"},
+            ],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+            LocalSecondaryIndexes=[
+                {
+                    "IndexName": "test_lsi",
+                    "KeySchema": [
+                        {"AttributeName": "pk", "KeyType": "HASH"},
+                        {"AttributeName": "lsi_range_key", "KeyType": "SORT"},
+                    ],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value 'SORT' at 'localSecondaryIndexes.1.member.keySchema.2.member.keyType' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
+    )

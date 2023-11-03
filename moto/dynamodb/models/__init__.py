@@ -317,7 +317,7 @@ class DynamoDBBackend(BaseBackend):
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
         expr_names: Optional[Dict[str, str]] = None,
-        expr_values: Optional[Dict[str, str]] = None,
+        expr_values: Optional[Dict[str, Dict[str, str]]] = None,
         filter_expression: Optional[str] = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:

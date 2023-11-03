@@ -3686,7 +3686,7 @@ def test_transact_write_items_put():
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_transact_write_items_put_conditional_expressions(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -3731,7 +3731,7 @@ def test_transact_write_items_put_conditional_expressions(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_transact_write_items_failure__return_item(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.put_item(TableName=table_name, Item={"pk": {"S": "foo2"}})
