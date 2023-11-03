@@ -9,11 +9,8 @@ from typing import Any, Optional, Union
 
 class LambdaSimpleBackend(BaseBackend):
     """
-    Implements a Lambda-Backend that does not use Docker containers. Submitted Jobs are marked as Success by default.
-
-    Set the environment variable MOTO_SIMPLE_BATCH_FAIL_AFTER=0 to fail jobs immediately, or set this variable to a positive integer to control after how many seconds the job fails.
-
-    Annotate your tests with `@mock_batch_simple`-decorator to use this Batch-implementation.
+    Implements a Lambda-Backend that does not use Docker containers, will always succeed.
+    Annotate your tests with `@mock_lambda_simple`-decorator to use this Lambda-implementation.
     """
 
     @property
@@ -44,6 +41,7 @@ class LambdaSimpleBackend(BaseBackend):
         else:
             return object.__getattribute__(self.backend, name)
 
+    # pylint: disable=unused-argument
     def invoke(
         self,
         function_name: str,
@@ -53,7 +51,7 @@ class LambdaSimpleBackend(BaseBackend):
         response_headers: Any,
     ) -> Optional[Union[str, bytes]]:
 
-        return b"Happy lambda response"
+        return b"Simple Lambda happy path OK"
 
 
 lambda_simple_backends = BackendDict(LambdaSimpleBackend, "lambda")
