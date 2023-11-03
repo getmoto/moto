@@ -11,7 +11,7 @@ from .models import lambda_backends, LambdaBackend
 
 
 class LambdaResponse(BaseResponse):
-    def __init__(self, service_name="awslambda") -> None:
+    def __init__(self, service_name="awslambda") -> None:  # type: ignore
         super().__init__(service_name=service_name)
 
     @property
@@ -125,8 +125,8 @@ class LambdaResponse(BaseResponse):
 
     @amz_crc32
     @amzn_request_id
-    def invoke(
-        self, request=object, full_url=object, headers=object
+    def invoke(  # type: ignore
+        self, request=None, full_url="", headers=None
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         if (
             str(type(self))

@@ -485,7 +485,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         # service response class should have 'SERVICE_NAME' class member,
         # if you want to get action from method and url
-        if self.service_name in ("awslambda_simple" or "awslambda"):
+        if self.service_name in ("awslambda_simple" or "awslambda"):  # type: ignore
             self.service_name = "lambda"
         conn = boto3.client(self.service_name, region_name=self.region)
 
