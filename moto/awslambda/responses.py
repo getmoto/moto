@@ -125,8 +125,8 @@ class LambdaResponse(BaseResponse):
 
     @amz_crc32
     @amzn_request_id
-    def invoke(
-        self, request: Any, full_url: str, headers: Any
+    def invoke(  # type: ignore
+        self, request=None, full_url="", headers=None
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
