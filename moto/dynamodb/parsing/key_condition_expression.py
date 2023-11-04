@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Dict, Tuple, Optional
+from typing import Any, List, Dict, Tuple, Optional, Union
 from moto.dynamodb.exceptions import MockValidationException
 from moto.utilities.tokenizer import GenericTokenizer
 
@@ -19,7 +19,7 @@ def get_key(schema: List[Dict[str, str]], key_type: str) -> Optional[str]:
 
 def parse_expression(
     key_condition_expression: str,
-    expression_attribute_values: Dict[str, str],
+    expression_attribute_values: Dict[str, Dict[str, str]],
     expression_attribute_names: Dict[str, str],
     schema: List[Dict[str, str]],
 ) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
@@ -35,7 +35,7 @@ def parse_expression(
     current_stage: Optional[EXPRESSION_STAGES] = None
     current_phrase = ""
     key_name = comparison = ""
-    key_values = []
+    key_values: List[Union[Dict[str, str], str]] = []
     results: List[Tuple[str, str, Any]] = []
     tokenizer = GenericTokenizer(key_condition_expression)
     for crnt_char in tokenizer:

@@ -368,3 +368,9 @@ class TransactWriteSingleOpException(MockValidationException):
 class SerializationException(DynamodbException):
     def __init__(self, msg: str):
         super().__init__(error_type="SerializationException", message=msg)
+
+
+class UnknownKeyType(MockValidationException):
+    def __init__(self, key_type: str, position: str):
+        msg = f"1 validation error detected: Value '{key_type}' at '{position}' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
+        super().__init__(msg)
