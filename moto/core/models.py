@@ -302,6 +302,23 @@ def patch_resource(resource: Any) -> None:
         raise Exception(f"Argument {resource} should be of type boto3.resource")
 
 
+def override_responses_real_send(user_mock: Optional[responses.RequestsMock]) -> None:
+    """
+    Moto creates it's own Responses-object responsible for intercepting AWS requests
+    If a custom Responses-object is created by the user, Moto will hijack any of the pass-thru's set
+
+    Call this method to ensure any requests unknown to Moto are passed through the custom Responses-object.
+
+    Set the user_mock argument to None to reset this behaviour.
+
+    Note that this is only supported from Responses>=0.24.0
+    """
+    if user_mock is None:
+        responses_mock._real_send = responses._real_send
+    else:
+        responses_mock._real_send = user_mock.unbound_on_send()
+
+
 class BotocoreEventMockAWS(BaseMockAWS):
     def reset(self) -> None:
         botocore_stubber.reset()
