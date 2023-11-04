@@ -6,8 +6,7 @@ click
 inflection
 lxml
 mypy
-typing-extensions<=4.5.0; python_version < '3.8'
-typing-extensions; python_version >= '3.8'
+typing-extensions
 packaging
 build
 prompt_toolkit

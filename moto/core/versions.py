@@ -1,12 +1,7 @@
 import sys
+from importlib.metadata import version
 
 from moto.utilities.distutils_version import LooseVersion
-
-try:
-    from importlib.metadata import version
-except ImportError:
-    from importlib_metadata import version  # type: ignore[no-redef]
-
 
 PYTHON_VERSION_INFO = sys.version_info
 PYTHON_311 = sys.version_info >= (3, 11)
