@@ -21,7 +21,7 @@ def test_add_instance_as_cluster_member():
         DBInstanceIdentifier="dbi",
         DBClusterIdentifier="dbci",
         DBInstanceClass="db.r5.large",
-        Engine="aurora-postgresql",
+        Engine="mysql",
     )
 
     cluster = client.describe_db_clusters()["DBClusters"][0]
@@ -53,7 +53,7 @@ def test_remove_instance_from_cluster():
         DBInstanceIdentifier="dbi",
         DBClusterIdentifier="dbci",
         DBInstanceClass="db.r5.large",
-        Engine="aurora-postgresql",
+        Engine="mysql",
     )
 
     client.delete_db_instance(

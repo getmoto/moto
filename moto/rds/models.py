@@ -27,6 +27,7 @@ from .exceptions import (
     DBClusterParameterGroupNotFoundError,
     OptionGroupNotFoundFaultError,
     InvalidDBClusterStateFaultError,
+    InvalidDBInstanceEngine,
     InvalidDBInstanceStateError,
     SnapshotQuotaExceededError,
     DBSnapshotAlreadyExistsError,
@@ -1592,6 +1593,10 @@ class RDSBackend(BaseBackend):
                 if cluster.engine == "aurora" and cluster.engine_mode == "serverless":
                     raise InvalidParameterValue(
                         "Instances cannot be added to Aurora Serverless clusters."
+                    )
+                if database.engine != cluster.engine:
+                    raise InvalidDBInstanceEngine(
+                        str(database.engine), str(cluster.engine)
                     )
                 cluster.cluster_members.append(database_id)
         self.databases[database_id] = database
