@@ -7,7 +7,7 @@ from moto.core.utils import path_url
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from moto.core.responses import BaseResponse, TYPE_RESPONSE
 from .exceptions import FunctionAlreadyExists, UnknownFunctionException
-from .models import lambda_backends, LambdaBackend
+from .models import lambda_backends, LambdaBackend, LambdaFunction
 
 
 class LambdaResponse(BaseResponse):
@@ -397,7 +397,15 @@ class LambdaResponse(BaseResponse):
         return 204, {}, ""
 
     @staticmethod
-    def _set_configuration_qualifier(configuration: Dict[str, Any], qualifier: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _set_configuration_qualifier(configuration: Dict[str, Any], function_name: str, qualifier: str) -> Dict[str, Any]:  # type: ignore[misc]
+        # Extract qualifier from function_name if present
+        if function_name.startswith("arn:aws"):
+            if ":" in function_name.split(":function:")[-1]:
+                qualifier = function_name.split(":")[-1]
+        else:
+            if ":" in function_name:
+                qualifier = function_name.split(":")[1]
+
         if qualifier is None or qualifier == "$LATEST":
             configuration["Version"] = "$LATEST"
         if qualifier == "$LATEST":
@@ -412,7 +420,7 @@ class LambdaResponse(BaseResponse):
 
         code = fn.get_code()
         code["Configuration"] = self._set_configuration_qualifier(
-            code["Configuration"], qualifier
+            code["Configuration"], function_name, qualifier
         )
         return 200, {}, json.dumps(code)
 
@@ -423,7 +431,7 @@ class LambdaResponse(BaseResponse):
         fn = self.backend.get_function(function_name, qualifier)
 
         configuration = self._set_configuration_qualifier(
-            fn.get_configuration(), qualifier
+            fn.get_configuration(), function_name, qualifier
         )
         return 200, {}, json.dumps(configuration)
 
