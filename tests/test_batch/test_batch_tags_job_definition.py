@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from moto import mock_batch
+from moto import mock_aws
 
 from . import _get_clients
 
@@ -12,7 +12,7 @@ container_properties = {
 }
 
 
-@mock_batch
+@mock_aws
 def test_list_tags_with_job_definition():
     _, _, _, _, batch_client = _get_clients()
 
@@ -29,7 +29,7 @@ def test_list_tags_with_job_definition():
     assert my_queue["tags"] == {"foo": "123", "bar": "456"}
 
 
-@mock_batch
+@mock_aws
 def test_tag_job_definition():
     _, _, _, _, batch_client = _get_clients()
 
@@ -47,7 +47,7 @@ def test_tag_job_definition():
     assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
-@mock_batch
+@mock_aws
 def test_untag_job_queue():
     _, _, _, _, batch_client = _get_clients()
 

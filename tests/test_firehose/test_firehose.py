@@ -1,4 +1,3 @@
-"""Unit tests specific to basic Firehose Delivery Stream-related APIs."""
 import warnings
 from unittest import SkipTest
 
@@ -6,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_firehose, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.firehose.models import DeliveryStream
 from moto.moto_api._internal import mock_random
@@ -22,7 +21,7 @@ def sample_s3_dest_config():
     }
 
 
-@mock_firehose
+@mock_aws
 def test_warnings():
     """Test features that raise a warning as they're unimplemented."""
     if settings.TEST_SERVER_MODE:
@@ -69,7 +68,7 @@ def test_warnings():
     )
 
 
-@mock_firehose
+@mock_aws
 def test_create_delivery_stream_failures():
     """Test errors invoking create_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -159,7 +158,7 @@ def test_create_delivery_stream_failures():
     )
 
 
-@mock_firehose
+@mock_aws
 def test_delete_delivery_stream():
     """Test successful and failed invocations of delete_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -195,7 +194,7 @@ def test_delete_delivery_stream():
     assert hoses["DeliveryStreamNames"] == []
 
 
-@mock_firehose
+@mock_aws
 def test_describe_delivery_stream():
     """Test successful, failed invocations of describe_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -353,7 +352,7 @@ def test_describe_delivery_stream():
     )
 
 
-@mock_firehose
+@mock_aws
 def test_list_delivery_streams():
     """Test successful and failed invocations of list_delivery_streams()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -431,7 +430,7 @@ def test_list_delivery_streams():
     assert hoses["HasMoreDeliveryStreams"] is False
 
 
-@mock_firehose
+@mock_aws
 def test_update_destination():
     """Test successful, failed invocations of update_destination()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -492,7 +491,7 @@ def test_update_destination():
     ) in err["Message"]
 
 
-@mock_firehose
+@mock_aws
 def test_lookup_name_from_arn():
     """Test delivery stream instance can be retrieved given ARN.
 

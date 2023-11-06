@@ -4,7 +4,7 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
 
-from .models import StepFunctionBackend, stepfunction_backends
+from .models import StepFunctionBackend, stepfunctions_backends
 
 
 class StepFunctionResponse(BaseResponse):
@@ -13,7 +13,7 @@ class StepFunctionResponse(BaseResponse):
 
     @property
     def stepfunction_backend(self) -> StepFunctionBackend:
-        return stepfunction_backends[self.current_account][self.region]
+        return stepfunctions_backends[self.current_account][self.region]
 
     @amzn_request_id
     def create_state_machine(self) -> TYPE_RESPONSE:

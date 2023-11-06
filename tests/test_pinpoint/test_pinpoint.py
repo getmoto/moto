@@ -3,13 +3,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_pinpoint
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_pinpoint
+@mock_aws
 def test_create_app():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -21,7 +21,7 @@ def test_create_app():
     assert "CreationDate" in resp["ApplicationResponse"]
 
 
-@mock_pinpoint
+@mock_aws
 def test_delete_app():
     client = boto3.client("pinpoint", region_name="ap-southeast-1")
     creation = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})[
@@ -39,7 +39,7 @@ def test_delete_app():
     assert err["Message"] == "Application not found"
 
 
-@mock_pinpoint
+@mock_aws
 def test_get_app():
     client = boto3.client("pinpoint", region_name="eu-west-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -54,7 +54,7 @@ def test_get_app():
     assert "CreationDate" in resp["ApplicationResponse"]
 
 
-@mock_pinpoint
+@mock_aws
 def test_get_apps_initial():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.get_apps()
@@ -63,7 +63,7 @@ def test_get_apps_initial():
     assert resp["ApplicationsResponse"] == {"Item": []}
 
 
-@mock_pinpoint
+@mock_aws
 def test_get_apps():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -78,7 +78,7 @@ def test_get_apps():
     assert "CreationDate" in resp["ApplicationsResponse"]["Item"][0]
 
 
-@mock_pinpoint
+@mock_aws
 def test_update_application_settings():
     client = boto3.client("pinpoint", region_name="eu-west-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -102,7 +102,7 @@ def test_update_application_settings():
     assert "LastModifiedDate" in app_settings
 
 
-@mock_pinpoint
+@mock_aws
 def test_get_application_settings():
     client = boto3.client("pinpoint", region_name="ap-southeast-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})

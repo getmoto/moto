@@ -3,13 +3,13 @@ import freezegun
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_greengrass
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.settings import TEST_SERVER_MODE
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_core_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -35,7 +35,7 @@ def test_create_core_definition():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_core_definitions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -64,7 +64,7 @@ def test_list_core_definitions():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_core_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -99,7 +99,7 @@ def test_get_core_definition():
         assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_core_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -126,7 +126,7 @@ def test_delete_core_definition():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_core_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -148,7 +148,7 @@ def test_update_core_definition():
     assert get_res["Name"] == updated_core_name
 
 
-@mock_greengrass
+@mock_aws
 def test_update_core_definition_with_empty_name():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -172,7 +172,7 @@ def test_update_core_definition_with_empty_name():
     assert err["Code"] == "InvalidContainerDefinitionException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_core_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -185,7 +185,7 @@ def test_update_core_definition_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_core_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_cores = [
@@ -223,7 +223,7 @@ def test_create_core_definition_version():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_core_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     initial_version = {
@@ -255,7 +255,7 @@ def test_get_core_definition_version():
     assert "Version" in core_def_ver_res
 
 
-@mock_greengrass
+@mock_aws
 def test_get_core_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -269,7 +269,7 @@ def test_get_core_definition_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_core_definition_version_with_invalid_version_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     core_def_res = client.create_core_definition(
@@ -299,7 +299,7 @@ def test_get_core_definition_version_with_invalid_version_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_core_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     initial_version = {
@@ -331,7 +331,7 @@ def test_list_core_definition_version():
     assert "Version" in core_def_ver
 
 
-@mock_greengrass
+@mock_aws
 def test_list_core_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:

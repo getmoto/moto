@@ -1,13 +1,13 @@
 import boto3
 import requests
 
-from moto import mock_sagemakerruntime, settings
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_sagemakerruntime
+@mock_aws
 def test_invoke_endpoint__default_results():
     client = boto3.client("sagemaker-runtime", region_name="ap-southeast-1")
     body = client.invoke_endpoint(
@@ -18,7 +18,7 @@ def test_invoke_endpoint__default_results():
     assert body["CustomAttributes"] == "custom_attributes"
 
 
-@mock_sagemakerruntime
+@mock_aws
 def test_invoke_endpoint():
     client = boto3.client("sagemaker-runtime", region_name="us-east-1")
     base_url = (

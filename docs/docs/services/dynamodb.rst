@@ -12,17 +12,6 @@
 dynamodb
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_dynamodb
-            def test_dynamodb_behaviour:
-                boto3.client("dynamodb")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_execute_statement

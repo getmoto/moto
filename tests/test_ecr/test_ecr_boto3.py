@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
-from moto import mock_ecr, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_ecr_helpers import _create_image_manifest, _create_image_manifest_list
@@ -18,7 +18,7 @@ ECR_REPO = "test-repo"
 ECR_REPO_NOT_EXIST = "does-not-exist"
 
 
-@mock_ecr
+@mock_aws
 def test_create_repository():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -44,7 +44,7 @@ def test_create_repository():
     assert repo["encryptionConfiguration"] == {"encryptionType": "AES256"}
 
 
-@mock_ecr
+@mock_aws
 def test_create_repository_with_non_default_config():
     # given
     region_name = "eu-central-1"
@@ -81,7 +81,7 @@ def test_create_repository_with_non_default_config():
     }
 
 
-@mock_ecr
+@mock_aws
 def test_create_repository_in_different_account():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -112,7 +112,7 @@ def test_create_repository_in_different_account():
     assert len(response["repositories"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_create_repository_with_aws_managed_kms():
     # given
     region_name = "eu-central-1"
@@ -131,7 +131,7 @@ def test_create_repository_with_aws_managed_kms():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_create_repository_error_already_exists():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -152,7 +152,7 @@ def test_create_repository_error_already_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_create_repository_error_name_validation():
     client = boto3.client("ecr", region_name=ECR_REGION)
     repo_name = "tesT"
@@ -165,7 +165,7 @@ def test_create_repository_error_name_validation():
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
 
 
-@mock_ecr
+@mock_aws
 def test_describe_repositories():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository1")
@@ -192,7 +192,7 @@ def test_describe_repositories():
     } == repository_uris
 
 
-@mock_ecr
+@mock_aws
 def test_describe_repositories_1():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository1")
@@ -219,7 +219,7 @@ def test_describe_repositories_1():
     } == repository_uris
 
 
-@mock_ecr
+@mock_aws
 def test_describe_repositories_2():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository1")
@@ -228,7 +228,7 @@ def test_describe_repositories_2():
     assert len(response["repositories"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_describe_repositories_3():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository1")
@@ -242,7 +242,7 @@ def test_describe_repositories_3():
     assert response["repositories"][0]["repositoryUri"] == repository_uri
 
 
-@mock_ecr
+@mock_aws
 def test_describe_repositories_with_image():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -276,7 +276,7 @@ def test_describe_repositories_with_image():
     assert repo["encryptionConfiguration"] == {"encryptionType": "AES256"}
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -304,7 +304,7 @@ def test_delete_repository():
     assert len(response["repositories"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository_with_force():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName=ECR_REPO)
@@ -337,7 +337,7 @@ def test_delete_repository_with_force():
     assert len(response["repositories"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_put_image():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -354,7 +354,7 @@ def test_put_image():
     assert response["image"]["registryId"] == ACCOUNT_ID
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_without_mediatype():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -375,7 +375,7 @@ def test_put_image_without_mediatype():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_with_imagemanifestmediatype():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -397,7 +397,7 @@ def test_put_image_with_imagemanifestmediatype():
     assert response["image"]["registryId"] == ACCOUNT_ID
 
 
-@mock_ecr()
+@mock_aws()
 def test_put_manifest_list():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -425,7 +425,7 @@ def test_put_manifest_list():
     assert "manifests" in image_manifest
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_with_push_date():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -460,7 +460,7 @@ def test_put_image_with_push_date():
     } == {image1_date, image2_date}
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_with_multiple_tags():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -500,7 +500,7 @@ def test_put_image_with_multiple_tags():
     assert response2["imageDetails"][0]["imageTags"] == ["v1", "latest"]
 
 
-@mock_ecr
+@mock_aws
 def test_put_multiple_images_with_same_tag():
     image_tag = "my-tag"
     manifest = json.dumps(_create_image_manifest())
@@ -542,7 +542,7 @@ def test_put_multiple_images_with_same_tag():
     assert set([img["imageDigest"] for img in images]) == {image_2, image_3}
 
 
-@mock_ecr
+@mock_aws
 def test_put_same_image_with_same_tag():
     image_tag = "my-tag"
     manifest = json.dumps(_create_image_manifest())
@@ -577,7 +577,7 @@ def test_put_same_image_with_same_tag():
     assert len(images) == 1
 
 
-@mock_ecr
+@mock_aws
 def test_multiple_tags__ensure_tags_exist_only_on_one_image():
     tag_to_move = "mock-tag"
     image_manifests = {
@@ -625,7 +625,7 @@ def test_multiple_tags__ensure_tags_exist_only_on_one_image():
     assert new_image["imageManifest"] == image_manifests["image_002"]
 
 
-@mock_ecr
+@mock_aws
 def test_list_images():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository_1")
@@ -677,7 +677,7 @@ def test_list_images():
     assert "sha" in response["imageIds"][0]["imageDigest"]
 
 
-@mock_ecr
+@mock_aws
 def test_list_images_from_repository_that_doesnt_exist():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository_1")
@@ -695,7 +695,7 @@ def test_list_images_from_repository_that_doesnt_exist():
     assert err["Code"] == "RepositoryNotFoundException"
 
 
-@mock_ecr
+@mock_aws
 def test_describe_images():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -772,7 +772,7 @@ def test_describe_images():
     assert response["imageDetails"][5]["imageSizeInBytes"] > 0
 
 
-@mock_ecr
+@mock_aws
 def test_describe_images_by_tag():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -798,7 +798,7 @@ def test_describe_images_by_tag():
         assert image_detail["imageDigest"] == put_response["imageId"]["imageDigest"]
 
 
-@mock_ecr
+@mock_aws
 def test_describe_images_tags_should_not_contain_empty_tag1():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -825,7 +825,7 @@ def test_describe_images_tags_should_not_contain_empty_tag1():
     assert image_detail["imageTags"] == tags
 
 
-@mock_ecr
+@mock_aws
 def test_describe_images_tags_should_not_contain_empty_tag2():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -858,7 +858,7 @@ def test_describe_images_tags_should_not_contain_empty_tag2():
     assert image_detail["imageTags"] == ["v1", "v2", "latest"]
 
 
-@mock_ecr
+@mock_aws
 def test_describe_repository_that_doesnt_exist():
     client = boto3.client("ecr", region_name=ECR_REGION)
 
@@ -870,7 +870,7 @@ def test_describe_repository_that_doesnt_exist():
     assert err["Code"] == "RepositoryNotFoundException"
 
 
-@mock_ecr
+@mock_aws
 def test_describe_image_that_doesnt_exist():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -894,7 +894,7 @@ def test_describe_image_that_doesnt_exist():
     assert err["Code"] == "RepositoryNotFoundException"
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository_that_doesnt_exist():
     client = boto3.client("ecr", region_name=ECR_REGION)
 
@@ -913,7 +913,7 @@ def test_delete_repository_that_doesnt_exist():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository_error_not_empty():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName=ECR_REPO)
@@ -938,7 +938,7 @@ def test_delete_repository_error_not_empty():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_describe_images_by_digest():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -967,7 +967,7 @@ def test_describe_images_by_digest():
         assert image_detail["imageDigest"] == digest
 
 
-@mock_ecr
+@mock_aws
 def test_get_authorization_token_assume_region():
     client = boto3.client("ecr", region_name=ECR_REGION)
     auth_token_response = client.get_authorization_token()
@@ -983,7 +983,7 @@ def test_get_authorization_token_assume_region():
     ]
 
 
-@mock_ecr
+@mock_aws
 def test_get_authorization_token_explicit_regions():
     client = boto3.client("ecr", region_name=ECR_REGION)
     auth_token_response = client.get_authorization_token(
@@ -1006,7 +1006,7 @@ def test_get_authorization_token_explicit_regions():
     ]
 
 
-@mock_ecr
+@mock_aws
 def test_batch_get_image():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -1050,7 +1050,7 @@ def test_batch_get_image():
     assert len(response["failures"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_batch_get_image_that_doesnt_exist():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -1087,7 +1087,7 @@ def test_batch_get_image_that_doesnt_exist():
     assert response["failures"][0]["imageId"]["imageTag"] == "v5"
 
 
-@mock_ecr
+@mock_aws
 def test_batch_get_image_with_multiple_tags():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")
@@ -1119,7 +1119,7 @@ def test_batch_get_image_with_multiple_tags():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_by_tag():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1159,7 +1159,7 @@ def test_batch_delete_image_by_tag():
     assert len(batch_delete_response["failures"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_delete_last_tag():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1195,7 +1195,7 @@ def test_batch_delete_image_delete_last_tag():
     assert len(batch_delete_response["failures"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_with_nonexistent_tag():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1236,7 +1236,7 @@ def test_batch_delete_image_with_nonexistent_tag():
     assert len(batch_delete_response["failures"]) == 1
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_by_digest():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1282,7 +1282,7 @@ def test_batch_delete_image_by_digest():
     assert len(batch_delete_response["failures"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_with_invalid_digest():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1322,7 +1322,7 @@ def test_batch_delete_image_with_invalid_digest():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_with_missing_parameters():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1344,7 +1344,7 @@ def test_batch_delete_image_with_missing_parameters():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_with_matching_digest_and_tag():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1390,7 +1390,7 @@ def test_batch_delete_image_with_matching_digest_and_tag():
     assert len(batch_delete_response["failures"]) == 0
 
 
-@mock_ecr
+@mock_aws
 def test_batch_delete_image_with_mismatched_digest_and_tag():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName="test_repository")
@@ -1431,7 +1431,7 @@ def test_batch_delete_image_with_mismatched_digest_and_tag():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_batch_image_with_multiple_images():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(repositoryName=ECR_REPO)
@@ -1473,7 +1473,7 @@ def test_delete_batch_image_with_multiple_images():
     ]
 
 
-@mock_ecr
+@mock_aws
 def test_list_tags_for_resource():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1488,7 +1488,7 @@ def test_list_tags_for_resource():
     assert tags == [{"Key": "key-1", "Value": "value-1"}]
 
 
-@mock_ecr
+@mock_aws
 def test_list_tags_for_resource_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1511,7 +1511,7 @@ def test_list_tags_for_resource_error_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_list_tags_for_resource_error_invalid_param():
     # given
     region_name = "eu-central-1"
@@ -1532,7 +1532,7 @@ def test_list_tags_for_resource_error_invalid_param():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_tag_resource():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1551,7 +1551,7 @@ def test_tag_resource():
     ]
 
 
-@mock_ecr
+@mock_aws
 def test_tag_resource_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1575,7 +1575,7 @@ def test_tag_resource_error_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_untag_resource():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1595,7 +1595,7 @@ def test_untag_resource():
     assert tags == [{"Key": "key-2", "Value": "value-2"}]
 
 
-@mock_ecr
+@mock_aws
 def test_untag_resource_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1619,7 +1619,7 @@ def test_untag_resource_error_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_tag_mutability():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1642,7 +1642,7 @@ def test_put_image_tag_mutability():
     assert response["repositories"][0]["imageTagMutability"] == "IMMUTABLE"
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_tag_mutability_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1665,7 +1665,7 @@ def test_put_image_tag_mutability_error_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_tag_mutability_error_invalid_param():
     # given
     region_name = "eu-central-1"
@@ -1689,7 +1689,7 @@ def test_put_image_tag_mutability_error_invalid_param():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_scanning_configuration():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1716,7 +1716,7 @@ def test_put_image_scanning_configuration():
     }
 
 
-@mock_ecr
+@mock_aws
 def test_put_image_scanning_configuration_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1740,7 +1740,7 @@ def test_put_image_scanning_configuration_error_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_set_repository_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1768,7 +1768,7 @@ def test_set_repository_policy():
     assert json.loads(response["policyText"]) == policy
 
 
-@mock_ecr
+@mock_aws
 def test_set_repository_policy_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1802,7 +1802,7 @@ def test_set_repository_policy_error_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_set_repository_policy_error_invalid_param():
     # given
     region_name = "eu-central-1"
@@ -1830,7 +1830,7 @@ def test_set_repository_policy_error_invalid_param():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_get_repository_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1857,7 +1857,7 @@ def test_get_repository_policy():
     assert json.loads(response["policyText"]) == policy
 
 
-@mock_ecr
+@mock_aws
 def test_get_repository_policy_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1878,7 +1878,7 @@ def test_get_repository_policy_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_get_repository_policy_error_policy_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1900,7 +1900,7 @@ def test_get_repository_policy_error_policy_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -1932,7 +1932,7 @@ def test_delete_repository_policy():
     assert e.value.response["Error"]["Code"] == "RepositoryPolicyNotFoundException"
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository_policy_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1953,7 +1953,7 @@ def test_delete_repository_policy_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_repository_policy_error_policy_not_exists():
     # given
     region_name = "eu-central-1"
@@ -1975,7 +1975,7 @@ def test_delete_repository_policy_error_policy_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_put_lifecycle_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2006,7 +2006,7 @@ def test_put_lifecycle_policy():
     assert json.loads(response["lifecyclePolicyText"]) == policy
 
 
-@mock_ecr
+@mock_aws
 def test_put_lifecycle_policy_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2043,7 +2043,7 @@ def test_put_lifecycle_policy_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_get_lifecycle_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2076,7 +2076,7 @@ def test_get_lifecycle_policy():
     assert isinstance(response["lastEvaluatedAt"], datetime)
 
 
-@mock_ecr
+@mock_aws
 def test_get_lifecycle_policy_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2097,7 +2097,7 @@ def test_get_lifecycle_policy_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_get_lifecycle_policy_error_policy_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2119,7 +2119,7 @@ def test_get_lifecycle_policy_error_policy_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_lifecycle_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2157,7 +2157,7 @@ def test_delete_lifecycle_policy():
     assert e.value.response["Error"]["Code"] == "LifecyclePolicyNotFoundException"
 
 
-@mock_ecr
+@mock_aws
 def test_delete_lifecycle_policy_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2178,7 +2178,7 @@ def test_delete_lifecycle_policy_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_lifecycle_policy_error_policy_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2200,7 +2200,7 @@ def test_delete_lifecycle_policy_error_policy_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 @pytest.mark.parametrize(
     "actions",
     ["ecr:CreateRepository", ["ecr:CreateRepository", "ecr:ReplicateImage"]],
@@ -2231,7 +2231,7 @@ def test_put_registry_policy(actions):
     assert json.loads(response["policyText"]) == policy
 
 
-@mock_ecr
+@mock_aws
 def test_put_registry_policy_error_invalid_action():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2266,7 +2266,7 @@ def test_put_registry_policy_error_invalid_action():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_get_registry_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2293,7 +2293,7 @@ def test_get_registry_policy():
     assert json.loads(response["policyText"]) == policy
 
 
-@mock_ecr
+@mock_aws
 def test_get_registry_policy_error_policy_not_exists():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2313,7 +2313,7 @@ def test_get_registry_policy_error_policy_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_delete_registry_policy():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2345,7 +2345,7 @@ def test_delete_registry_policy():
     assert e.value.response["Error"]["Code"] == "RegistryPolicyNotFoundException"
 
 
-@mock_ecr
+@mock_aws
 def test_delete_registry_policy_error_policy_not_exists():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2365,7 +2365,7 @@ def test_delete_registry_policy_error_policy_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_start_image_scan():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2389,7 +2389,7 @@ def test_start_image_scan():
     assert response["imageScanStatus"] == {"status": "IN_PROGRESS"}
 
 
-@mock_ecr
+@mock_aws
 def test_start_image_scan_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2412,7 +2412,7 @@ def test_start_image_scan_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_start_image_scan_error_image_not_exists():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2436,7 +2436,7 @@ def test_start_image_scan_error_image_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_start_image_scan_error_image_tag_digest_mismatch():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2466,7 +2466,7 @@ def test_start_image_scan_error_image_tag_digest_mismatch():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_start_image_scan_error_daily_limit():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2496,7 +2496,7 @@ def test_start_image_scan_error_daily_limit():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_describe_image_scan_findings():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2541,7 +2541,7 @@ def test_describe_image_scan_findings():
     assert scan_findings["findingSeverityCounts"] == {"HIGH": 1}
 
 
-@mock_ecr
+@mock_aws
 def test_describe_image_scan_findings_error_repo_not_exists():
     # given
     region_name = "eu-central-1"
@@ -2564,7 +2564,7 @@ def test_describe_image_scan_findings_error_repo_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_describe_image_scan_findings_error_image_not_exists():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2588,7 +2588,7 @@ def test_describe_image_scan_findings_error_image_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_describe_image_scan_findings_error_scan_not_exists():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2617,7 +2617,7 @@ def test_describe_image_scan_findings_error_scan_not_exists():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_put_replication_configuration():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2632,7 +2632,7 @@ def test_put_replication_configuration():
     assert response["replicationConfiguration"] == config
 
 
-@mock_ecr
+@mock_aws
 def test_put_replication_configuration_error_feature_disabled():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2663,7 +2663,7 @@ def test_put_replication_configuration_error_feature_disabled():
     assert ex.response["Error"]["Message"] == "This feature is disabled"
 
 
-@mock_ecr
+@mock_aws
 def test_put_replication_configuration_error_same_source():
     # given
     region_name = "eu-central-1"
@@ -2689,7 +2689,7 @@ def test_put_replication_configuration_error_same_source():
     )
 
 
-@mock_ecr
+@mock_aws
 def test_describe_registry():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2702,7 +2702,7 @@ def test_describe_registry():
     assert response["replicationConfiguration"] == {"rules": []}
 
 
-@mock_ecr
+@mock_aws
 def test_describe_registry_after_update():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)
@@ -2720,7 +2720,7 @@ def test_describe_registry_after_update():
     assert response["replicationConfiguration"] == config
 
 
-@mock_ecr
+@mock_aws
 def test_ecr_image_digest():
     # given
     client = boto3.client("ecr", region_name=ECR_REGION)

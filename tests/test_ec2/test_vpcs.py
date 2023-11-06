@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 
 from .test_tags import retrieve_all_tagged
 
@@ -15,7 +15,7 @@ SAMPLE_DOMAIN_NAME = "example.com"
 SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
 
 
-@mock_ec2
+@mock_aws
 def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Lets not start deleting VPC's while other tests are using it")
@@ -32,7 +32,7 @@ def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     assert all_vpcs[0]["IsDefault"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_create_default_vpc():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Lets not start deleting VPC's while other tests are using it")
@@ -49,7 +49,7 @@ def test_create_default_vpc():
     assert all_vpcs[0]["IsDefault"] is True
 
 
-@mock_ec2
+@mock_aws
 def test_create_multiple_default_vpcs():
     client = boto3.client("ec2", region_name="eu-north-1")
     with pytest.raises(ClientError) as exc:
@@ -62,7 +62,7 @@ def test_create_multiple_default_vpcs():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_delete_vpc():
     ec2 = boto3.resource("ec2", region_name="eu-north-1")
     client = boto3.client("ec2", region_name="eu-north-1")
@@ -84,7 +84,7 @@ def test_create_and_delete_vpc():
     assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_defaults():
     ec2 = boto3.resource("ec2", region_name="eu-north-1")
     client = boto3.client("ec2", region_name="eu-north-1")
@@ -101,7 +101,7 @@ def test_vpc_defaults():
     assert len(client.describe_security_groups(Filters=filters)["SecurityGroups"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_isdefault_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -119,7 +119,7 @@ def test_vpc_isdefault_filter():
     assert len(default_vpcs) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_multiple_vpcs_default_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -132,7 +132,7 @@ def test_multiple_vpcs_default_filter():
     assert "172.31.0.0/16" in [v["CidrBlock"] for v in default_vpcs]
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_state_available_filter():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -161,7 +161,7 @@ def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
     return all_vpcs
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_tagging():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -179,7 +179,7 @@ def test_vpc_tagging():
     assert vpc["Tags"] == [{"Key": "a key", "Value": "some value"}]
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_id():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -200,7 +200,7 @@ def test_vpc_get_by_id():
     assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_cidr_block():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -216,7 +216,7 @@ def test_vpc_get_by_cidr_block():
     assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_dhcp_options_id():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -242,7 +242,7 @@ def test_vpc_get_by_dhcp_options_id():
     assert vpc2.id in vpc_ids
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_tag():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -262,7 +262,7 @@ def test_vpc_get_by_tag():
     assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_tag_key_superset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -284,7 +284,7 @@ def test_vpc_get_by_tag_key_superset():
     assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_tag_key_subset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -307,7 +307,7 @@ def test_vpc_get_by_tag_key_subset():
     assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_tag_value_superset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -329,7 +329,7 @@ def test_vpc_get_by_tag_value_superset():
     assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_get_by_tag_value_subset():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -353,7 +353,7 @@ def test_vpc_get_by_tag_value_subset():
     assert vpc2.id in vpc_ids
 
 
-@mock_ec2
+@mock_aws
 def test_default_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -380,7 +380,7 @@ def test_default_vpc():
     assert attr.get("Value") is False
 
 
-@mock_ec2
+@mock_aws
 def test_non_default_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -415,7 +415,7 @@ def test_non_default_vpc():
     assert "vpc-cidr-assoc" in cidr_block_association_set["AssociationId"]
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_dedicated_tenancy():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -430,7 +430,7 @@ def test_vpc_dedicated_tenancy():
     assert vpc.instance_tenancy == "dedicated"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_modify_tenancy_unknown():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -455,7 +455,7 @@ def test_vpc_modify_tenancy_unknown():
     assert vpc.instance_tenancy == "default"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_modify_enable_dns_support():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -476,7 +476,7 @@ def test_vpc_modify_enable_dns_support():
     assert attr.get("Value") is False
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_modify_enable_dns_hostnames():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -496,7 +496,7 @@ def test_vpc_modify_enable_dns_hostnames():
     assert attr.get("Value") is not None
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_modify_enable_network_address_usage_metrics():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -516,7 +516,7 @@ def test_vpc_modify_enable_network_address_usage_metrics():
     assert attr.get("Value") is True
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_associate_dhcp_options():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -534,7 +534,7 @@ def test_vpc_associate_dhcp_options():
     assert dhcp_options.id == vpc.dhcp_options_id
 
 
-@mock_ec2
+@mock_aws
 def test_associate_vpc_ipv4_cidr_block():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -568,7 +568,7 @@ def test_associate_vpc_ipv4_cidr_block():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_disassociate_vpc_ipv4_cidr_block():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -634,7 +634,7 @@ def test_disassociate_vpc_ipv4_cidr_block():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_cidr_block_association_filters():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.90.0.0/16")
@@ -688,7 +688,7 @@ def test_cidr_block_association_filters():
     assert len(filtered_vpcs) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_associate_ipv6_cidr_block():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -723,7 +723,7 @@ def test_vpc_associate_ipv6_cidr_block():
     assert len(vpc.ipv6_cidr_block_association_set) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_disassociate_ipv6_cidr_block():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -739,7 +739,7 @@ def test_vpc_disassociate_ipv6_cidr_block():
     assert cidr["AssociationId"] == assoc_id
 
 
-@mock_ec2
+@mock_aws
 def test_ipv6_cidr_block_association_filters():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpc1 = ec2.create_vpc(CidrBlock="10.90.0.0/16")
@@ -801,7 +801,7 @@ def test_ipv6_cidr_block_association_filters():
     assert vpc4.id not in assoc_vpcs
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpc_with_invalid_cidr_block_parameter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -814,7 +814,7 @@ def test_create_vpc_with_invalid_cidr_block_parameter():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpc_with_invalid_cidr_range():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -827,7 +827,7 @@ def test_create_vpc_with_invalid_cidr_range():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpc_with_tags():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     # Create VPC
@@ -840,7 +840,7 @@ def test_create_vpc_with_tags():
     assert vpc.tags == [{"Key": "name", "Value": "some-vpc"}]
 
 
-@mock_ec2
+@mock_aws
 def test_enable_vpc_classic_link():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -851,7 +851,7 @@ def test_enable_vpc_classic_link():
     assert response.get("Return") is True
 
 
-@mock_ec2
+@mock_aws
 def test_enable_vpc_classic_link_failure():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -862,7 +862,7 @@ def test_enable_vpc_classic_link_failure():
     assert response.get("Return") is False
 
 
-@mock_ec2
+@mock_aws
 def test_disable_vpc_classic_link():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -874,7 +874,7 @@ def test_disable_vpc_classic_link():
     assert response.get("Return") is False
 
 
-@mock_ec2
+@mock_aws
 def test_describe_classic_link_enabled():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -886,7 +886,7 @@ def test_describe_classic_link_enabled():
     assert response.get("Vpcs")[0].get("ClassicLinkEnabled") is True
 
 
-@mock_ec2
+@mock_aws
 def test_describe_classic_link_disabled():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -897,7 +897,7 @@ def test_describe_classic_link_disabled():
     assert response.get("Vpcs")[0].get("ClassicLinkEnabled") is False
 
 
-@mock_ec2
+@mock_aws
 def test_describe_classic_link_multiple():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -918,7 +918,7 @@ def test_describe_classic_link_multiple():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_enable_vpc_classic_link_dns_support():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -929,7 +929,7 @@ def test_enable_vpc_classic_link_dns_support():
     assert response.get("Return") is True
 
 
-@mock_ec2
+@mock_aws
 def test_disable_vpc_classic_link_dns_support():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -941,7 +941,7 @@ def test_disable_vpc_classic_link_dns_support():
     assert response.get("Return") is False
 
 
-@mock_ec2
+@mock_aws
 def test_describe_classic_link_dns_support_enabled():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -953,7 +953,7 @@ def test_describe_classic_link_dns_support_enabled():
     assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported") is True
 
 
-@mock_ec2
+@mock_aws
 def test_describe_classic_link_dns_support_disabled():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -964,7 +964,7 @@ def test_describe_classic_link_dns_support_disabled():
     assert response.get("Vpcs")[0].get("ClassicLinkDnsSupported") is False
 
 
-@mock_ec2
+@mock_aws
 def test_describe_classic_link_dns_support_multiple():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -987,7 +987,7 @@ def test_describe_classic_link_dns_support_multiple():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpc_endpoint__policy():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
@@ -1017,7 +1017,7 @@ def test_create_vpc_endpoint__policy():
     assert vpc_end_point["PolicyDocument"] == "my policy document"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_gateway_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -1065,7 +1065,7 @@ def test_describe_vpc_gateway_end_points():
     assert err["Code"] == "InvalidVpcEndpointId.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_interface_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -1127,7 +1127,7 @@ def retrieve_all_endpoints(ec2):
     return all_endpoints
 
 
-@mock_ec2
+@mock_aws
 def test_modify_vpc_endpoint():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
@@ -1171,7 +1171,7 @@ def test_modify_vpc_endpoint():
     assert endpoint["PolicyDocument"] == "doc"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_vpc_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -1213,7 +1213,7 @@ def test_delete_vpc_end_points():
     assert ep2["State"] == "available"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpcs_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -1227,7 +1227,7 @@ def test_describe_vpcs_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_prefix_lists():
     client = boto3.client("ec2", region_name="us-east-1")
     result_unfiltered = client.describe_prefix_lists()

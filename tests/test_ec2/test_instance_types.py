@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types()
@@ -20,7 +20,7 @@ def test_describe_instance_types():
     assert ena_support == {"required", "unsupported", "supported"}
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_filter_by_type():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -33,7 +33,7 @@ def test_describe_instance_types_filter_by_type():
     assert instance_types["InstanceTypes"][1]["InstanceType"] in ["t1.micro", "t2.nano"]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_gpu_instance_types():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -74,7 +74,7 @@ def test_describe_instance_types_gpu_instance_types():
     }
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_unknown_type():
     client = boto3.client("ec2", "us-east-1")
 
@@ -89,7 +89,7 @@ def test_describe_instance_types_unknown_type():
     assert exc_info.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_filter_by_vcpus():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -107,7 +107,7 @@ def test_describe_instance_types_filter_by_vcpus():
     assert "m5d.xlarge" not in types
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_filter_by_memory():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -124,7 +124,7 @@ def test_describe_instance_types_filter_by_memory():
     assert "m5d.xlarge" not in types
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_filter_by_bare_metal():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -141,7 +141,7 @@ def test_describe_instance_types_filter_by_bare_metal():
     assert "t1.micro" not in types
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_filter_by_burstable_performance_supported():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -158,7 +158,7 @@ def test_describe_instance_types_filter_by_burstable_performance_supported():
     assert "t1.micro" not in types
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_filter_by_current_generation():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(
@@ -175,7 +175,7 @@ def test_describe_instance_types_filter_by_current_generation():
     assert "t1.micro" not in types
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_small_instances():
     client = boto3.client("ec2", "us-east-1")
     instance_types = client.describe_instance_types(Filters=[
@@ -190,7 +190,7 @@ def test_describe_instance_types_small_instances():
     assert types == {"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"}
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_types_invalid_filter():
     client = boto3.client("ec2", "us-east-1")
 

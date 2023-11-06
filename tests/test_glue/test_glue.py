@@ -7,10 +7,10 @@ import pytest
 from botocore.client import ClientError
 from botocore.exceptions import ParamValidationError
 
-from moto import mock_glue
+from moto import mock_aws
 
 
-@mock_glue
+@mock_aws
 def test_create_job():
     client = create_glue_client()
     job_name = str(uuid4())
@@ -20,7 +20,7 @@ def test_create_job():
     assert response["Name"] == job_name
 
 
-@mock_glue
+@mock_aws
 def test_delete_job():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -35,7 +35,7 @@ def test_delete_job():
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
 
 
-@mock_glue
+@mock_aws
 def test_create_job_default_argument_not_provided():
     client = create_glue_client()
     with pytest.raises(ParamValidationError) as exc:
@@ -44,7 +44,7 @@ def test_create_job_default_argument_not_provided():
     assert exc.value.kwargs["report"] == 'Missing required parameter in input: "Name"'
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs():
     client = create_glue_client()
     expected_jobs = randint(1, 15)
@@ -54,7 +54,7 @@ def test_list_jobs():
     assert "NextToken" not in response
 
 
-@mock_glue
+@mock_aws
 def test_get_job_not_exists():
     client = create_glue_client()
     name = "my_job_name"
@@ -66,7 +66,7 @@ def test_get_job_not_exists():
     assert exc.value.response["Error"]["Message"] == "Job my_job_name not found."
 
 
-@mock_glue
+@mock_aws
 def test_get_job_exists():
     client = create_glue_client()
     job_attributes = {
@@ -127,7 +127,7 @@ def test_get_job_exists():
     assert "SourceControlDetails" in job
 
 
-@mock_glue
+@mock_aws
 def test_get_jobs_job_name_exists():
     client = create_glue_client()
     test_job_name = create_test_job(client)
@@ -136,7 +136,7 @@ def test_get_jobs_job_name_exists():
     assert response["Jobs"][0]["Name"] == test_job_name
 
 
-@mock_glue
+@mock_aws
 def test_get_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -145,7 +145,7 @@ def test_get_jobs_with_max_results():
     assert "NextToken" in response
 
 
-@mock_glue
+@mock_aws
 def test_get_jobs_from_next_token():
     client = create_glue_client()
     create_test_jobs(client, 10)
@@ -154,7 +154,7 @@ def test_get_jobs_from_next_token():
     assert len(response["Jobs"]) == 7
 
 
-@mock_glue
+@mock_aws
 def test_get_jobs_with_max_results_greater_than_actual_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -162,7 +162,7 @@ def test_get_jobs_with_max_results_greater_than_actual_results():
     assert len(response["Jobs"]) == 4
 
 
-@mock_glue
+@mock_aws
 def test_get_jobs_next_token_logic_does_not_create_infinite_loop():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -174,7 +174,7 @@ def test_get_jobs_next_token_logic_does_not_create_infinite_loop():
     assert not next_token
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_with_max_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -183,7 +183,7 @@ def test_list_jobs_with_max_results():
     assert "NextToken" in response
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_from_next_token():
     client = create_glue_client()
     create_test_jobs(client, 10)
@@ -192,7 +192,7 @@ def test_list_jobs_from_next_token():
     assert len(response["JobNames"]) == 7
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_with_max_results_greater_than_actual_results():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -200,7 +200,7 @@ def test_list_jobs_with_max_results_greater_than_actual_results():
     assert len(response["JobNames"]) == 4
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_with_tags():
     client = create_glue_client()
     create_test_job(client)
@@ -209,7 +209,7 @@ def test_list_jobs_with_tags():
     assert len(response["JobNames"]) == 1
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_after_tagging():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -221,7 +221,7 @@ def test_list_jobs_after_tagging():
     assert len(response["JobNames"]) == 1
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_after_removing_tag():
     client = create_glue_client()
     job_name = create_test_job(client, {"key1": "value1"})
@@ -233,7 +233,7 @@ def test_list_jobs_after_removing_tag():
     assert len(response["JobNames"]) == 0
 
 
-@mock_glue
+@mock_aws
 def test_list_jobs_next_token_logic_does_not_create_infinite_loop():
     client = create_glue_client()
     create_test_jobs(client, 4)
@@ -245,7 +245,7 @@ def test_list_jobs_next_token_logic_does_not_create_infinite_loop():
     assert not next_token
 
 
-@mock_glue
+@mock_aws
 def test_batch_get_jobs():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -298,7 +298,7 @@ def create_test_crawlers(client, number_of_crawlers):
         create_test_crawler(client)
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_with_max_results():
     client = create_glue_client()
     create_test_crawlers(client, 4)
@@ -307,7 +307,7 @@ def test_list_crawlers_with_max_results():
     assert "NextToken" in response
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_from_next_token():
     client = create_glue_client()
     create_test_crawlers(client, 10)
@@ -316,7 +316,7 @@ def test_list_crawlers_from_next_token():
     assert len(response["CrawlerNames"]) == 7
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_with_max_results_greater_than_actual_results():
     client = create_glue_client()
     create_test_crawlers(client, 4)
@@ -324,7 +324,7 @@ def test_list_crawlers_with_max_results_greater_than_actual_results():
     assert len(response["CrawlerNames"]) == 4
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_with_tags():
     client = create_glue_client()
     create_test_crawler(client)
@@ -333,7 +333,7 @@ def test_list_crawlers_with_tags():
     assert len(response["CrawlerNames"]) == 1
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_after_tagging():
     client = create_glue_client()
     crawler_name = create_test_crawler(client)
@@ -345,7 +345,7 @@ def test_list_crawlers_after_tagging():
     assert len(response["CrawlerNames"]) == 1
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_after_removing_tag():
     client = create_glue_client()
     crawler_name = create_test_crawler(client, {"key1": "value1"})
@@ -357,7 +357,7 @@ def test_list_crawlers_after_removing_tag():
     assert len(response["CrawlerNames"]) == 0
 
 
-@mock_glue
+@mock_aws
 def test_list_crawlers_next_token_logic_does_not_create_infinite_loop():
     client = create_glue_client()
     create_test_crawlers(client, 4)
@@ -369,7 +369,7 @@ def test_list_crawlers_next_token_logic_does_not_create_infinite_loop():
     assert not next_token
 
 
-@mock_glue
+@mock_aws
 def test_get_tags_job():
     client = create_glue_client()
     job_name = create_test_job(client, {"key1": "value1", "key2": "value2"})
@@ -380,7 +380,7 @@ def test_get_tags_job():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_glue
+@mock_aws
 def test_get_tags_jobs_no_tags():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -391,7 +391,7 @@ def test_get_tags_jobs_no_tags():
     assert resp["Tags"] == {}
 
 
-@mock_glue
+@mock_aws
 def test_tag_glue_job():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -406,7 +406,7 @@ def test_tag_glue_job():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_glue
+@mock_aws
 def test_untag_glue_job():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -424,7 +424,7 @@ def test_untag_glue_job():
     assert resp["Tags"] == {"key1": "value1", "key3": "value3"}
 
 
-@mock_glue
+@mock_aws
 def test_get_tags_crawler():
     client = create_glue_client()
     crawler_name = create_test_crawler(client, {"key1": "value1", "key2": "value2"})
@@ -435,7 +435,7 @@ def test_get_tags_crawler():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_glue
+@mock_aws
 def test_get_tags_crawler_no_tags():
     client = create_glue_client()
     crawler_name = create_test_crawler(client)
@@ -446,7 +446,7 @@ def test_get_tags_crawler_no_tags():
     assert resp["Tags"] == {}
 
 
-@mock_glue
+@mock_aws
 def test_tag_glue_crawler():
     client = create_glue_client()
     crawler_name = create_test_crawler(client)
@@ -461,7 +461,7 @@ def test_tag_glue_crawler():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_glue
+@mock_aws
 def test_untag_glue_crawler():
     client = create_glue_client()
     crawler_name = create_test_crawler(client)
@@ -479,7 +479,7 @@ def test_untag_glue_crawler():
     assert resp["Tags"] == {"key1": "value1", "key3": "value3"}
 
 
-@mock_glue
+@mock_aws
 def test_batch_get_crawlers():
     client = create_glue_client()
     crawler_name = create_test_crawler(client)
@@ -492,7 +492,7 @@ def test_batch_get_crawlers():
     assert len(response["CrawlersNotFound"]) == 1
 
 
-@mock_glue
+@mock_aws
 def test_create_trigger():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -510,7 +510,7 @@ def test_create_trigger():
     assert response["Name"] == trigger_name
 
 
-@mock_glue
+@mock_aws
 def test_get_trigger_on_demand():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -533,7 +533,7 @@ def test_get_trigger_on_demand():
     assert trigger["Actions"] == [{"JobName": job_name}]
 
 
-@mock_glue
+@mock_aws
 def test_get_trigger_scheduled():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -558,7 +558,7 @@ def test_get_trigger_scheduled():
     assert trigger["Actions"] == [{"JobName": job_name}]
 
 
-@mock_glue
+@mock_aws
 def test_get_trigger_conditional():
     client = create_glue_client()
     crawler_name = create_test_crawler(client)
@@ -610,7 +610,7 @@ def create_test_trigger(client, tags=None):
     return trigger_name
 
 
-@mock_glue
+@mock_aws
 def test_get_triggers_trigger_name_exists():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)
@@ -619,7 +619,7 @@ def test_get_triggers_trigger_name_exists():
     assert response["Triggers"][0]["Name"] == trigger_name
 
 
-@mock_glue
+@mock_aws
 def test_get_triggers_dependent_job_name():
     client = create_glue_client()
 
@@ -641,7 +641,7 @@ def test_get_triggers_dependent_job_name():
     assert response["Triggers"][0]["Name"] == trigger_name
 
 
-@mock_glue
+@mock_aws
 def test_start_trigger():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -668,7 +668,7 @@ def test_start_trigger():
     assert trigger["State"] == "ACTIVATED"
 
 
-@mock_glue
+@mock_aws
 def test_stop_trigger():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -696,7 +696,7 @@ def test_stop_trigger():
     assert trigger["State"] == "DEACTIVATED"
 
 
-@mock_glue
+@mock_aws
 def test_list_triggers():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)
@@ -705,7 +705,7 @@ def test_list_triggers():
     assert "NextToken" not in response
 
 
-@mock_glue
+@mock_aws
 def test_list_triggers_dependent_job_name():
     client = create_glue_client()
 
@@ -731,7 +731,7 @@ def test_list_triggers_dependent_job_name():
     assert response["TriggerNames"] == [trigger_name]
 
 
-@mock_glue
+@mock_aws
 def test_list_triggers_tags():
     client = create_glue_client()
 
@@ -760,7 +760,7 @@ def test_list_triggers_tags():
     assert response["TriggerNames"] == [trigger_name]
 
 
-@mock_glue
+@mock_aws
 def test_batch_get_triggers():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)
@@ -773,7 +773,7 @@ def test_batch_get_triggers():
     assert len(response["TriggersNotFound"]) == 1
 
 
-@mock_glue
+@mock_aws
 def test_delete_trigger():
     client = create_glue_client()
     trigger_name = create_test_trigger(client)
@@ -814,7 +814,7 @@ def create_test_session(client):
     return session_id
 
 
-@mock_glue
+@mock_aws
 def test_create_session():
     client = create_glue_client()
     session_id = create_test_session(client)
@@ -823,7 +823,7 @@ def test_create_session():
     assert resp["Session"]["Id"] == session_id
 
 
-@mock_glue
+@mock_aws
 def test_get_session():
     client = create_glue_client()
     session_id = create_test_session(client)
@@ -832,7 +832,7 @@ def test_get_session():
     assert resp["Session"]["Id"] == session_id
 
 
-@mock_glue
+@mock_aws
 def test_list_sessions():
     client = create_glue_client()
     session_id = create_test_session(client)
@@ -841,7 +841,7 @@ def test_list_sessions():
     assert session_id in resp["Ids"]
 
 
-@mock_glue
+@mock_aws
 def test_delete_session():
     client = create_glue_client()
     session_id = create_test_session(client)
@@ -853,7 +853,7 @@ def test_delete_session():
     assert session_id not in resp["Ids"]
 
 
-@mock_glue
+@mock_aws
 def test_stop_session():
     client = create_glue_client()
     session_id = create_test_session(client)

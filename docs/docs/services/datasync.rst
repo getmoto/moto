@@ -12,17 +12,6 @@
 datasync
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_datasync
-            def test_datasync_behaviour:
-                boto3.client("datasync")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_storage_system

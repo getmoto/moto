@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_kinesis
+from moto import mock_aws
 
 ONE_MB = 2**20
 
 
-@mock_kinesis
+@mock_aws
 def test_record_data_exceeds_1mb():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
@@ -24,7 +24,7 @@ def test_record_data_exceeds_1mb():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_record_data_and_partition_key_exceeds_1mb():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
@@ -45,7 +45,7 @@ def test_record_data_and_partition_key_exceeds_1mb():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_record_data_and_partition_key_exactly_1mb():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
@@ -60,7 +60,7 @@ def test_record_data_and_partition_key_exactly_1mb():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_record_data_and_partition_key_smaller_than_1mb():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
@@ -74,7 +74,7 @@ def test_record_data_and_partition_key_smaller_than_1mb():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_total_record_data_exceeds_5mb():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
@@ -88,7 +88,7 @@ def test_total_record_data_exceeds_5mb():
     assert err["Message"] == "Records size exceeds 5 MB limit"
 
 
-@mock_kinesis
+@mock_aws
 def test_total_record_data_exact_5mb():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)
@@ -101,7 +101,7 @@ def test_total_record_data_exact_5mb():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_too_many_records():
     client = boto3.client("kinesis", region_name="us-east-1")
     client.create_stream(StreamName="my_stream", ShardCount=1)

@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_filters():
     client = boto3.client("s3")
     client.create_bucket(
@@ -221,7 +221,7 @@ def test_lifecycle_with_filters():
     assert result[1]["ID"] == "Tags"
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_eodm():
     client = boto3.client("s3")
     client.create_bucket(
@@ -271,7 +271,7 @@ def test_lifecycle_with_eodm():
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_nve():
     client = boto3.client("s3")
     client.create_bucket(
@@ -307,7 +307,7 @@ def test_lifecycle_with_nve():
     # TODO: Add test for failures due to missing children
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_nvt():
     client = boto3.client("s3")
     client.create_bucket(
@@ -375,7 +375,7 @@ def test_lifecycle_with_nvt():
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_multiple_nvt():
     client = boto3.client("s3")
     client.create_bucket(
@@ -410,7 +410,7 @@ def test_lifecycle_with_multiple_nvt():
     }
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_multiple_transitions():
     client = boto3.client("s3")
     client.create_bucket(
@@ -445,7 +445,7 @@ def test_lifecycle_with_multiple_transitions():
     }
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_aimu():
     client = boto3.client("s3")
     client.create_bucket(
@@ -486,7 +486,7 @@ def test_lifecycle_with_aimu():
     # TODO: Add test for failures due to missing children
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_with_glacier_transition_boto3():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
@@ -517,7 +517,7 @@ def test_lifecycle_with_glacier_transition_boto3():
     assert "Date" not in transition
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_multi_boto3():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
@@ -589,7 +589,7 @@ def test_lifecycle_multi_boto3():
             assert False, "Invalid rule id"
 
 
-@mock_s3
+@mock_aws
 def test_lifecycle_delete_boto3():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")

@@ -14,17 +14,6 @@ es
 
 .. autoclass:: moto.es.models.ElasticsearchServiceBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_es
-            def test_es_behaviour:
-                boto3.client("es")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_inbound_cross_cluster_search_connection

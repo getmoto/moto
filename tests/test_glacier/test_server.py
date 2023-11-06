@@ -1,14 +1,14 @@
 import json
 
 import moto.server as server
-from moto import mock_glacier
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_glacier
+@mock_aws
 def test_list_vaults():
     backend = server.create_backend_app("glacier")
     test_client = backend.test_client()

@@ -3,7 +3,7 @@ from datetime import datetime
 
 import boto3
 
-from moto import mock_meteringmarketplace
+from moto import mock_aws
 from moto.meteringmarketplace.models import Result
 
 USAGE_RECORDS = [
@@ -70,7 +70,7 @@ USAGE_RECORDS = [
 ]
 
 
-@mock_meteringmarketplace()
+@mock_aws()
 def test_batch_meter_usage():
     client = boto3.client("meteringmarketplace", region_name="us-east-1")
 

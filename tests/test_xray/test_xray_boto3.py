@@ -3,10 +3,10 @@ import json
 
 import boto3
 
-from moto import mock_xray
+from moto import mock_aws
 
 
-@mock_xray
+@mock_aws
 def test_put_telemetry():
     client = boto3.client("xray", region_name="us-east-1")
 
@@ -34,7 +34,7 @@ def test_put_telemetry():
     )
 
 
-@mock_xray
+@mock_aws
 def test_put_trace_segments():
     client = boto3.client("xray", region_name="us-east-1")
 
@@ -53,7 +53,7 @@ def test_put_trace_segments():
     )
 
 
-@mock_xray
+@mock_aws
 def test_trace_summary():
     client = boto3.client("xray", region_name="us-east-1")
 
@@ -85,7 +85,7 @@ def test_trace_summary():
     )
 
 
-@mock_xray
+@mock_aws
 def test_batch_get_trace():
     client = boto3.client("xray", region_name="us-east-1")
 
@@ -123,7 +123,7 @@ def test_batch_get_trace():
 
 
 # Following are not implemented, just testing it returns what boto expects
-@mock_xray
+@mock_aws
 def test_batch_get_service_graph():
     client = boto3.client("xray", region_name="us-east-1")
 
@@ -132,7 +132,7 @@ def test_batch_get_service_graph():
     )
 
 
-@mock_xray
+@mock_aws
 def test_batch_get_trace_graph():
     client = boto3.client("xray", region_name="us-east-1")
 

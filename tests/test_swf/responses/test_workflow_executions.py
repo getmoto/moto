@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_swf
+from moto import mock_aws
 from moto.core.utils import unix_time, utcnow
 
 
@@ -31,7 +31,7 @@ def setup_swf_environment_boto3():
 
 
 # StartWorkflowExecution endpoint
-@mock_swf
+@mock_aws
 def test_start_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
 
@@ -43,7 +43,7 @@ def test_start_workflow_execution_boto3():
     assert "runId" in wf
 
 
-@mock_swf
+@mock_aws
 def test_signal_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
     hsh = client.start_workflow_execution(
@@ -68,7 +68,7 @@ def test_signal_workflow_execution_boto3():
     assert wfe["openCounts"]["openDecisionTasks"] == 2
 
 
-@mock_swf
+@mock_aws
 def test_signal_workflow_execution_without_runId():
     conn = setup_swf_environment_boto3()
     hsh = conn.start_workflow_execution(
@@ -93,7 +93,7 @@ def test_signal_workflow_execution_without_runId():
     assert "WorkflowExecutionSignaled" in types
 
 
-@mock_swf
+@mock_aws
 def test_start_already_started_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
     client.start_workflow_execution(
@@ -113,7 +113,7 @@ def test_start_already_started_workflow_execution_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_start_workflow_execution_on_deprecated_type_boto3():
     client = setup_swf_environment_boto3()
     client.deprecate_workflow_type(
@@ -134,7 +134,7 @@ def test_start_workflow_execution_on_deprecated_type_boto3():
 
 
 # DescribeWorkflowExecution endpoint
-@mock_swf
+@mock_aws
 def test_describe_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
     hsh = client.start_workflow_execution(
@@ -151,7 +151,7 @@ def test_describe_workflow_execution_boto3():
     assert wfe["executionInfo"]["executionStatus"] == "OPEN"
 
 
-@mock_swf
+@mock_aws
 def test_describe_non_existent_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
 
@@ -168,7 +168,7 @@ def test_describe_non_existent_workflow_execution_boto3():
 
 
 # GetWorkflowExecutionHistory endpoint
-@mock_swf
+@mock_aws
 def test_get_workflow_execution_history_boto3():
     client = setup_swf_environment_boto3()
     hsh = client.start_workflow_execution(
@@ -185,7 +185,7 @@ def test_get_workflow_execution_history_boto3():
     assert types == ["WorkflowExecutionStarted", "DecisionTaskScheduled"]
 
 
-@mock_swf
+@mock_aws
 def test_get_workflow_execution_history_with_reverse_order_boto3():
     client = setup_swf_environment_boto3()
     hsh = client.start_workflow_execution(
@@ -204,7 +204,7 @@ def test_get_workflow_execution_history_with_reverse_order_boto3():
     assert types == ["DecisionTaskScheduled", "WorkflowExecutionStarted"]
 
 
-@mock_swf
+@mock_aws
 def test_get_workflow_execution_history_on_non_existent_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
 
@@ -221,7 +221,7 @@ def test_get_workflow_execution_history_on_non_existent_workflow_execution_boto3
 
 
 # ListOpenWorkflowExecutions endpoint
-@mock_swf
+@mock_aws
 def test_list_open_workflow_executions_boto3():
     client = setup_swf_environment_boto3()
     # One open workflow execution
@@ -263,7 +263,7 @@ def test_list_open_workflow_executions_boto3():
 
 
 # ListClosedWorkflowExecutions endpoint
-@mock_swf
+@mock_aws
 def test_list_closed_workflow_executions_boto3():
     client = setup_swf_environment_boto3()
     # Leave one workflow execution open to make sure it isn't displayed
@@ -305,7 +305,7 @@ def test_list_closed_workflow_executions_boto3():
 
 
 # TerminateWorkflowExecution endpoint
-@mock_swf
+@mock_aws
 def test_terminate_workflow_execution_boto3():
     client = setup_swf_environment_boto3()
     run_id = client.start_workflow_execution(
@@ -333,7 +333,7 @@ def test_terminate_workflow_execution_boto3():
     assert attrs["cause"] == "OPERATOR_INITIATED"
 
 
-@mock_swf
+@mock_aws
 def test_terminate_workflow_execution_with_wrong_workflow_or_run_id_boto3():
     client = setup_swf_environment_boto3()
     run_id = client.start_workflow_execution(

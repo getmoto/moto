@@ -1,4 +1,4 @@
-from moto import mock_ec2, mock_elbv2
+from moto import mock_aws
 
 from .test_elbv2 import create_load_balancer
 
@@ -9,8 +9,7 @@ default_action = {
 }
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_listener_rule_with_tags():
     response, _, _, _, _, elbv2 = create_load_balancer()
 
@@ -36,8 +35,7 @@ def test_create_listener_rule_with_tags():
     assert tags == {"k1": "v1"}
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_listener_rule_add_remove_tags():
     response, _, _, _, _, elbv2 = create_load_balancer()
 

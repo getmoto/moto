@@ -12,17 +12,6 @@
 support
 =======
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_support
-            def test_support_behaviour:
-                boto3.client("support")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_attachments_to_set

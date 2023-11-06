@@ -2,13 +2,13 @@ import copy
 
 import boto3
 
-from moto import mock_autoscaling, mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
 
 
-@mock_autoscaling
+@mock_aws
 def test_autoscaling_tags_update():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -55,8 +55,7 @@ def test_autoscaling_tags_update():
     assert len(response["AutoScalingGroups"][0]["Tags"]) == 2
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_delete_tags_by_key():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -107,7 +106,7 @@ def test_delete_tags_by_key():
     assert tag_to_delete not in tags
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_tags_without_resources():
     client = boto3.client("autoscaling", region_name="us-east-2")
     resp = client.describe_tags()
@@ -115,7 +114,7 @@ def test_describe_tags_without_resources():
     assert "NextToken" not in resp
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_tags_no_filter():
     subnet = setup_networking()["subnet1"]
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -153,7 +152,7 @@ def test_describe_tags_no_filter():
     } in response["Tags"]
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_tags_filter_by_name():
     subnet = setup_networking()["subnet1"]
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -212,7 +211,7 @@ def test_describe_tags_filter_by_name():
     } in response["Tags"]
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_tags_filter_by_propgateatlaunch():
     subnet = setup_networking()["subnet1"]
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -233,7 +232,7 @@ def test_describe_tags_filter_by_propgateatlaunch():
     ]
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_tags_filter_by_key_or_value():
     subnet = setup_networking()["subnet1"]
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -266,7 +265,7 @@ def test_describe_tags_filter_by_key_or_value():
     ]
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_20_tags_auto_scaling_group():
     """test to verify that the tag-members are sorted correctly, and there is no regression for
     https://github.com/getmoto/moto/issues/6033

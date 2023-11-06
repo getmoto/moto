@@ -2,10 +2,10 @@ import boto3
 import botocore.exceptions
 import pytest
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_mapping():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     api = client.create_api(Name="test-api", ProtocolType="HTTP")
@@ -42,7 +42,7 @@ def test_create_api_mapping():
     assert post_resp.get("Stage") == "$default"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_mapping_missing_api():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     dev_domain = client.create_domain_name(DomainName="dev.service.io")
@@ -61,7 +61,7 @@ def test_create_api_mapping_missing_api():
     )
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_mapping_missing_domain():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     api = client.create_api(Name="test-api", ProtocolType="HTTP")
@@ -81,7 +81,7 @@ def test_create_api_mapping_missing_domain():
     )
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_mapping_bad_mapping_keys():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     api = client.create_api(Name="test-api", ProtocolType="HTTP")
@@ -106,7 +106,7 @@ def test_create_api_mapping_bad_mapping_keys():
         assert err["Message"] == message
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_api_mappings():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api = client.create_api(Name="test-api", ProtocolType="HTTP")
@@ -151,7 +151,7 @@ def test_get_api_mappings():
     assert hr_mapping not in get_resp.get("Items")
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_api_mapping():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api = client.create_api(Name="test-api", ProtocolType="HTTP")
@@ -179,7 +179,7 @@ def test_delete_api_mapping():
     assert v1_mapping not in get_resp.get("Items")
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_api_mapping_dne():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     client.create_api(Name="test-api", ProtocolType="HTTP")

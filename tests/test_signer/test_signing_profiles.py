@@ -1,13 +1,12 @@
-"""Unit tests for signer-supported APIs."""
 import boto3
 
-from moto import mock_signer
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_signer
+@mock_aws
 def test_put_signing_profile():
     client = boto3.client("signer", region_name="eu-west-1")
     resp = client.put_signing_profile(profileName="prof1", platformId="pid")
@@ -17,7 +16,7 @@ def test_put_signing_profile():
     assert "profileVersionArn" in resp
 
 
-@mock_signer
+@mock_aws
 def test_get_signing_profile():
     client = boto3.client("signer", region_name="eu-west-1")
     client.put_signing_profile(profileName="prof1", platformId="AWSLambda-SHA384-ECDSA")
@@ -33,7 +32,7 @@ def test_get_signing_profile():
     assert resp["signatureValidityPeriod"] == {"type": "MONTHS", "value": 135}
 
 
-@mock_signer
+@mock_aws
 def test_get_signing_profile__with_args():
     client = boto3.client("signer", region_name="eu-west-1")
     profile_arn = client.put_signing_profile(
@@ -64,7 +63,7 @@ def test_get_signing_profile__with_args():
     assert tag_list == {"k1": "v1", "k3": "v3"}
 
 
-@mock_signer
+@mock_aws
 def test_cancel_signing_profile():
     client = boto3.client("signer", region_name="eu-west-1")
     client.put_signing_profile(profileName="prof1", platformId="AWSLambda-SHA384-ECDSA")

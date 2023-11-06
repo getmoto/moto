@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_kinesisvideo
+from moto import mock_aws
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_create_stream():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
@@ -16,7 +16,7 @@ def test_create_stream():
     assert stream_name in res["StreamARN"]
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_create_stream_with_same_name():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
@@ -29,7 +29,7 @@ def test_create_stream_with_same_name():
         client.create_stream(StreamName=stream_name, DeviceName=device_name)
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_describe_stream():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
@@ -58,7 +58,7 @@ def test_describe_stream():
     assert stream_info["DeviceName"] == device_name
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_describe_stream_with_name_not_exist():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name_not_exist = "not-exist-stream"
@@ -68,7 +68,7 @@ def test_describe_stream_with_name_not_exist():
         client.describe_stream(StreamName=stream_name_not_exist)
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_list_streams():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
@@ -84,7 +84,7 @@ def test_list_streams():
     assert len(streams) == 2
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_delete_stream():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
@@ -102,7 +102,7 @@ def test_delete_stream():
     assert len(streams) == 1
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_delete_stream_with_arn_not_exist():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"
@@ -121,7 +121,7 @@ def test_delete_stream_with_arn_not_exist():
         client.delete_stream(StreamARN=stream_arn_not_exist)
 
 
-@mock_kinesisvideo
+@mock_aws
 def test_data_endpoint():
     client = boto3.client("kinesisvideo", region_name="ap-northeast-1")
     stream_name = "my-stream"

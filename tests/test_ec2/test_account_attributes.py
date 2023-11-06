@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_describe_account_attributes():
     conn = boto3.client("ec2", region_name="us-east-1")
     response = conn.describe_account_attributes()

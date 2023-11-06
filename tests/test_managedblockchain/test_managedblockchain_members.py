@@ -3,12 +3,12 @@ import pytest
 from botocore.config import Config
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto import mock_managedblockchain
+from moto import mock_aws
 
 from . import helpers
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_another_member():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -93,7 +93,7 @@ def test_create_another_member():
     assert cloudwatch["Enabled"] == logconfignewenabled
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_another_member_withopts():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -198,7 +198,7 @@ def test_create_another_member_withopts():
     assert response["Invitations"][0]["NetworkSummary"]["Status"] == "DELETED"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_invite_and_remove_member():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -280,7 +280,7 @@ def test_invite_and_remove_member():
     assert foundmember2 is True
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_too_many_members():
     # This test throws a ResourceLimitException, with HTTP status code 429
     # Boto3 automatically retries a request with that status code up to 5 times
@@ -367,7 +367,7 @@ def test_create_too_many_members():
     assert "is the maximum number of members allowed in a" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_another_member_alreadyhave():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -418,7 +418,7 @@ def test_create_another_member_alreadyhave():
     )
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_another_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -435,7 +435,7 @@ def test_create_another_member_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_another_member_badinvitation():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -462,7 +462,7 @@ def test_create_another_member_badinvitation():
     assert "Invitation in-ABCDEFGHIJKLMNOP0123456789 not valid" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_another_member_adminpassword():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -577,7 +577,7 @@ def test_create_another_member_adminpassword():
     assert "Invalid request body" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_list_members_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -588,7 +588,7 @@ def test_list_members_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -602,7 +602,7 @@ def test_get_member_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_member_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -623,7 +623,7 @@ def test_get_member_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_delete_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -637,7 +637,7 @@ def test_delete_member_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_delete_member_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -660,7 +660,7 @@ def test_delete_member_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_update_member_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -677,7 +677,7 @@ def test_update_member_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_update_member_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 

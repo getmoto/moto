@@ -12,17 +12,6 @@
 codebuild
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_codebuild
-            def test_codebuild_behaviour:
-                boto3.client("codebuild")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_delete_builds

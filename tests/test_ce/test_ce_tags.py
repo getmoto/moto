@@ -1,12 +1,12 @@
 import boto3
 
-from moto import mock_ce
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_ce
+@mock_aws
 def test_list_tags_if_none_exist():
     client = boto3.client("ce", region_name="ap-southeast-1")
     arn = client.create_cost_category_definition(
@@ -26,7 +26,7 @@ def test_list_tags_if_none_exist():
     assert resp["ResourceTags"] == [{"Key": "t1", "Value": "v1"}]
 
 
-@mock_ce
+@mock_aws
 def test_cost_category_tags_workflow():
     client = boto3.client("ce", region_name="ap-southeast-1")
     arn = client.create_cost_category_definition(

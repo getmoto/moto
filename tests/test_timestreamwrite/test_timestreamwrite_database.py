@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_timestreamwrite
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import timestreamwrite_aws_verified
@@ -37,7 +37,7 @@ def test_create_database_simple():
         ts.delete_database(DatabaseName=db_name)
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_create_database_advanced():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     resp = ts.create_database(
@@ -55,7 +55,7 @@ def test_create_database_advanced():
     assert database["KmsKeyId"] == "mykey"
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_describe_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase", KmsKeyId="mykey")
@@ -81,7 +81,7 @@ def test_describe_unknown_database():
     assert err["Message"] == "The database unknown does not exist."
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_list_databases():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="db_with", KmsKeyId="mykey")
@@ -109,7 +109,7 @@ def test_list_databases():
     } in databases
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_delete_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="db_1", KmsKeyId="mykey")
@@ -125,7 +125,7 @@ def test_delete_database():
     assert [db["DatabaseName"] for db in databases] == ["db_1", "db_3"]
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_update_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase", KmsKeyId="mykey")

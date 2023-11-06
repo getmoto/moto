@@ -14,17 +14,6 @@ cloudtrail
 
 .. autoclass:: moto.cloudtrail.models.CloudTrailBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_cloudtrail
-            def test_cloudtrail_behaviour:
-                boto3.client("cloudtrail")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_tags

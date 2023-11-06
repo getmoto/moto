@@ -1,11 +1,11 @@
 import boto3
 
-from moto import mock_ssm
+from moto import mock_aws
 
 test_ami = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 
 
-@mock_ssm
+@mock_aws
 def test_ssm_get_latest_ami_by_path():
     client = boto3.client("ssm", region_name="us-west-1")
     path = "/aws/service/ami-amazon-linux-latest"
@@ -20,7 +20,7 @@ def test_ssm_get_latest_ami_by_path():
     assert all({p["ARN"].startswith("arn:aws:ssm:us-west-1") for p in params})
 
 
-@mock_ssm
+@mock_aws
 def test_ssm_latest_amis_are_different_in_regions():
     client = boto3.client("ssm", region_name="us-west-1")
     ami_uswest = client.get_parameter(Name=test_ami)["Parameter"]["Value"]

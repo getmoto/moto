@@ -1,6 +1,9 @@
 from collections import namedtuple
 from functools import partial
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from .models import LambdaBackend
 
 ARN = namedtuple("ARN", ["region", "account", "function_name", "version"])
 LAYER_ARN = namedtuple("LAYER_ARN", ["region", "account", "layer_name", "version"])
@@ -35,3 +38,16 @@ def split_arn(arn_type: Callable[[str, str, str, str], str], arn: str) -> Any:
 
 split_function_arn = partial(split_arn, ARN)
 split_layer_arn = partial(split_arn, LAYER_ARN)
+
+
+def get_backend(account_id: str, region: str) -> "LambdaBackend":
+    from moto.core.models import default_user_config
+
+    if default_user_config.get("lambda", {}).get("use_docker", True) is False:
+        from moto.awslambda_simple.models import lambda_simple_backends
+
+        return lambda_simple_backends[account_id][region]
+    else:
+        from moto.awslambda.models import lambda_backends
+
+        return lambda_backends[account_id][region]

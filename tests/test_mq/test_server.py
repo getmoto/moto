@@ -1,10 +1,10 @@
 import json
 
 import moto.server as server
-from moto import mock_mq
+from moto import mock_aws
 
 
-@mock_mq
+@mock_aws
 def test_mq_list():
     backend = server.create_backend_app("mq")
     test_client = backend.test_client()

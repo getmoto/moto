@@ -4,15 +4,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_autoscaling, mock_ec2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_instance_with_networking, setup_networking
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_propogate_tags():
     mocked_networking = setup_networking()
     conn = boto3.client("autoscaling", region_name="us-east-1")
@@ -47,7 +46,7 @@ def test_propogate_tags():
     assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_autoscaling_group_from_instance():
     autoscaling_group_name = "test_asg"
     image_id = EXAMPLE_AMI_ID
@@ -76,8 +75,7 @@ def test_create_autoscaling_group_from_instance():
     assert config["InstanceType"] == instance_type
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_group_from_instance_with_security_groups():
     autoscaling_group_name = "test_asg"
     image_id = EXAMPLE_AMI_ID
@@ -107,7 +105,7 @@ def test_create_autoscaling_group_from_instance_with_security_groups():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_autoscaling_group_from_invalid_instance_id():
     invalid_instance_id = "invalid_instance"
 
@@ -129,8 +127,7 @@ def test_create_autoscaling_group_from_invalid_instance_id():
     assert err["Message"] == f"Instance [{invalid_instance_id}] is invalid."
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_group_from_template():
     mocked_networking = setup_networking()
 
@@ -155,8 +152,7 @@ def test_create_autoscaling_group_from_template():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_ec2
-@mock_autoscaling
+@mock_aws
 def test_create_auto_scaling_from_template_version__latest():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
     launch_template_name = "tester"
@@ -185,8 +181,7 @@ def test_create_auto_scaling_from_template_version__latest():
     assert response["LaunchTemplate"]["Version"] == "$Latest"
 
 
-@mock_ec2
-@mock_autoscaling
+@mock_aws
 def test_create_auto_scaling_from_template_version__default():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
     launch_template_name = "tester"
@@ -220,8 +215,7 @@ def test_create_auto_scaling_from_template_version__default():
     assert response["LaunchTemplate"]["Version"] == "$Default"
 
 
-@mock_ec2
-@mock_autoscaling
+@mock_aws
 def test_create_auto_scaling_from_template_version__no_version():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
     launch_template_name = "tester"
@@ -247,8 +241,7 @@ def test_create_auto_scaling_from_template_version__no_version():
     assert "Version" not in response["LaunchTemplate"]
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_group_no_template_ref():
     mocked_networking = setup_networking()
 
@@ -278,8 +271,7 @@ def test_create_autoscaling_group_no_template_ref():
     )
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_group_multiple_template_ref():
     mocked_networking = setup_networking()
 
@@ -313,7 +305,7 @@ def test_create_autoscaling_group_multiple_template_ref():
     )
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_autoscaling_group_no_launch_configuration():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -335,8 +327,7 @@ def test_create_autoscaling_group_no_launch_configuration():
     )
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_group_multiple_launch_configurations():
     mocked_networking = setup_networking()
 
@@ -375,8 +366,7 @@ def test_create_autoscaling_group_multiple_launch_configurations():
     )
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_describe_autoscaling_groups_launch_template():
     mocked_networking = setup_networking()
     ec2_client = boto3.client("ec2", region_name="us-east-1")
@@ -417,7 +407,7 @@ def test_describe_autoscaling_groups_launch_template():
         assert instance["InstanceType"] == "t2.micro"
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_autoscaling_instances_launch_config():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -447,8 +437,7 @@ def test_describe_autoscaling_instances_launch_config():
         assert instance["InstanceType"] == "t2.micro"
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_describe_autoscaling_instances_launch_template():
     mocked_networking = setup_networking()
     ec2_client = boto3.client("ec2", region_name="us-east-1")
@@ -483,7 +472,7 @@ def test_describe_autoscaling_instances_launch_template():
         assert instance["InstanceType"] == "t2.micro"
 
 
-@mock_autoscaling
+@mock_aws
 def test_describe_autoscaling_instances_instanceid_filter():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -518,7 +507,7 @@ def test_describe_autoscaling_instances_instanceid_filter():
         assert instance["ProtectedFromScaleIn"] is True
 
 
-@mock_autoscaling
+@mock_aws
 def test_update_autoscaling_group_launch_config():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -558,8 +547,7 @@ def test_update_autoscaling_group_launch_config():
     assert group["NewInstancesProtectedFromScaleIn"] is False
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_update_autoscaling_group_launch_template():
     mocked_networking = setup_networking()
     ec2_client = boto3.client("ec2", region_name="us-east-1")
@@ -610,7 +598,7 @@ def test_update_autoscaling_group_launch_template():
     assert group["NewInstancesProtectedFromScaleIn"] is False
 
 
-@mock_autoscaling
+@mock_aws
 def test_update_autoscaling_group_min_size_desired_capacity_change():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -636,7 +624,7 @@ def test_update_autoscaling_group_min_size_desired_capacity_change():
     assert len(group["Instances"]) == 5
 
 
-@mock_autoscaling
+@mock_aws
 def test_update_autoscaling_group_max_size_desired_capacity_change():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -662,7 +650,7 @@ def test_update_autoscaling_group_max_size_desired_capacity_change():
     assert len(group["Instances"]) == 5
 
 
-@mock_autoscaling
+@mock_aws
 def test_autoscaling_describe_policies():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -737,8 +725,7 @@ def test_autoscaling_describe_policies():
     assert "TargetTrackingConfiguration" not in policy
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
     mocked_networking = setup_networking(region_name="us-west-1")
     client = boto3.client("autoscaling", region_name="us-west-1")
@@ -843,8 +830,7 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
     assert "Cooldown" not in policy
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_policy_with_policytype__stepscaling():
     mocked_networking = setup_networking(region_name="eu-west-1")
     client = boto3.client("autoscaling", region_name="eu-west-1")
@@ -897,8 +883,7 @@ def test_create_autoscaling_policy_with_policytype__stepscaling():
     assert "Cooldown" not in policy
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_policy_with_predictive_scaling_config():
     mocked_networking = setup_networking(region_name="eu-west-1")
     client = boto3.client("autoscaling", region_name="eu-west-1")
@@ -936,8 +921,7 @@ def test_create_autoscaling_policy_with_predictive_scaling_config():
     }
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("include_instances_distribution", [True, False])
 def test_create_auto_scaling_group_with_mixed_instances_policy(
     include_instances_distribution,
@@ -996,8 +980,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy(
         }
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
     mocked_networking = setup_networking(region_name="eu-west-1")
     client = boto3.client("autoscaling", region_name="eu-west-1")
@@ -1049,7 +1032,7 @@ def test_create_auto_scaling_group_with_mixed_instances_policy_overrides():
     }
 
 
-@mock_autoscaling
+@mock_aws
 def test_set_instance_protection():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -1086,7 +1069,7 @@ def test_set_instance_protection():
         assert instance["ProtectedFromScaleIn"] is (instance["InstanceId"] in protected)
 
 
-@mock_autoscaling
+@mock_aws
 def test_set_desired_capacity_up():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -1114,7 +1097,7 @@ def test_set_desired_capacity_up():
         assert instance["ProtectedFromScaleIn"] is True
 
 
-@mock_autoscaling
+@mock_aws
 def test_set_desired_capacity_down():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -1157,8 +1140,7 @@ def test_set_desired_capacity_down():
         assert x not in instance_ids  # only unprotected killed
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_terminate_instance_via_ec2_in_autoscaling_group():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -1192,8 +1174,7 @@ def test_terminate_instance_via_ec2_in_autoscaling_group():
     assert replaced_instance_id != original_instance_id
 
 
-@mock_ec2
-@mock_autoscaling
+@mock_aws
 def test_attach_instances():
     asg_client = boto3.client("autoscaling", region_name="us-east-1")
     ec2_client = boto3.client("ec2", region_name="us-east-1")
@@ -1233,7 +1214,7 @@ def test_attach_instances():
         assert instance["InstanceType"] == "c4.2xlarge"
 
 
-@mock_autoscaling
+@mock_aws
 def test_autoscaling_lifecyclehook():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -1277,7 +1258,7 @@ def test_autoscaling_lifecyclehook():
 
 
 @pytest.mark.parametrize("original,new", [(2, 1), (2, 3), (1, 5), (1, 1)])
-@mock_autoscaling
+@mock_aws
 def test_set_desired_capacity_without_protection(original, new):
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -1312,8 +1293,7 @@ def test_set_desired_capacity_without_protection(original, new):
     assert len(instances) == new
 
 
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_template_with_block_device():
     ec2_client = boto3.client("ec2", region_name="ap-southeast-2")
     ec2_client.create_launch_template(

@@ -14,17 +14,6 @@ sesv2
 
 .. autoclass:: moto.sesv2.models.SESV2Backend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_sesv2
-            def test_sesv2_behaviour:
-                boto3.client("sesv2")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_get_metric_data

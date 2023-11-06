@@ -1,9 +1,8 @@
-"""Unit tests for comprehend-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_comprehend
+from moto import mock_aws
 from moto.comprehend.models import (
     CANNED_DETECT_RESPONSE,
     CANNED_PHRASES_RESPONSE,
@@ -25,7 +24,7 @@ INPUT_DATA_CONFIG = {
 }
 
 
-@mock_comprehend
+@mock_aws
 def test_list_entity_recognizers():
     client = boto3.client("comprehend", region_name="us-east-2")
 
@@ -58,7 +57,7 @@ def test_list_entity_recognizers():
     assert len(resp["EntityRecognizerPropertiesList"]) == 2
 
 
-@mock_comprehend
+@mock_aws
 def test_create_entity_recognizer():
     client = boto3.client("comprehend", region_name="ap-southeast-1")
     resp = client.create_entity_recognizer(
@@ -72,7 +71,7 @@ def test_create_entity_recognizer():
     assert "EntityRecognizerArn" in resp
 
 
-@mock_comprehend
+@mock_aws
 def test_create_entity_recognizer_without_version():
     client = boto3.client("comprehend", region_name="ap-southeast-1")
     resp = client.create_entity_recognizer(
@@ -89,7 +88,7 @@ def test_create_entity_recognizer_without_version():
     )
 
 
-@mock_comprehend
+@mock_aws
 def test_create_entity_recognizer_with_tags():
     client = boto3.client("comprehend", region_name="ap-southeast-1")
     arn = client.create_entity_recognizer(
@@ -105,7 +104,7 @@ def test_create_entity_recognizer_with_tags():
     assert resp["Tags"] == [{"Key": "k1", "Value": "v1"}]
 
 
-@mock_comprehend
+@mock_aws
 def test_describe_entity_recognizer():
     client = boto3.client("comprehend", region_name="eu-west-1")
     arn = client.create_entity_recognizer(
@@ -128,7 +127,7 @@ def test_describe_entity_recognizer():
     assert props["VersionName"] == "terraform-20221003201727469000000002"
 
 
-@mock_comprehend
+@mock_aws
 def test_describe_unknown_recognizer():
     client = boto3.client("comprehend", region_name="eu-west-1")
 
@@ -139,7 +138,7 @@ def test_describe_unknown_recognizer():
     assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
 
 
-@mock_comprehend
+@mock_aws
 def test_stop_training_entity_recognizer():
     client = boto3.client("comprehend", region_name="eu-west-1")
     arn = client.create_entity_recognizer(
@@ -157,7 +156,7 @@ def test_stop_training_entity_recognizer():
     assert props["Status"] == "TRAINED"
 
 
-@mock_comprehend
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("comprehend", region_name="us-east-2")
     arn = client.create_entity_recognizer(
@@ -182,7 +181,7 @@ def test_list_tags_for_resource():
     assert resp["Tags"] == []
 
 
-@mock_comprehend
+@mock_aws
 def test_delete_entity_recognizer():
     client = boto3.client("comprehend", region_name="ap-southeast-1")
     arn = client.create_entity_recognizer(
@@ -202,7 +201,7 @@ def test_delete_entity_recognizer():
     assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_pii_entities():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -216,7 +215,7 @@ def test_detect_pii_entities():
     assert result["Entities"] == CANNED_DETECT_RESPONSE
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_pii_entities_invalid_languages():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -237,7 +236,7 @@ def test_detect_pii_entities_invalid_languages():
     )
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_pii_entities_text_too_large():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -259,7 +258,7 @@ def test_detect_pii_entities_text_too_large():
     )
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_key_phrases():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -273,7 +272,7 @@ def test_detect_key_phrases():
     assert result["KeyPhrases"] == CANNED_PHRASES_RESPONSE
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_key_phrases_invalid_languages():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -294,7 +293,7 @@ def test_detect_key_phrases_invalid_languages():
     )
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_detect_key_phrases_text_too_large():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -316,7 +315,7 @@ def test_detect_detect_key_phrases_text_too_large():
     )
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_sentiment():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -330,7 +329,7 @@ def test_detect_sentiment():
     assert result == CANNED_SENTIMENT_RESPONSE
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_sentiment_invalid_languages():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")
@@ -351,7 +350,7 @@ def test_detect_sentiment_invalid_languages():
     )
 
 
-@mock_comprehend
+@mock_aws
 def test_detect_sentiment_text_too_large():
     # Setup
     client = boto3.client("comprehend", region_name="eu-west-1")

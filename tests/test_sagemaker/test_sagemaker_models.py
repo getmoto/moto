@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sagemaker
+from moto import mock_aws
 from moto.sagemaker.models import VpcConfig
 
 TEST_REGION_NAME = "us-east-1"
@@ -14,7 +14,7 @@ TEST_MODEL_NAME = "MyModelName"
 
 @pytest.fixture(name="sagemaker_client")
 def fixture_sagemaker_client():
-    with mock_sagemaker():
+    with mock_aws():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 

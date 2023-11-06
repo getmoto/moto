@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_appconfig
+from moto import mock_aws
 
 
-@mock_appconfig
+@mock_aws
 def test_create_configuration_profile():
     client = boto3.client("appconfig", region_name="eu-north-1")
     app_id = client.create_application(Name="testapp")["Id"]
@@ -79,7 +79,7 @@ def test_create_configuration_profile():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_appconfig
+@mock_aws
 def test_tag_config_profile():
     client = boto3.client("appconfig", region_name="us-east-2")
     app_id = client.create_application(Name="testapp")["Id"]

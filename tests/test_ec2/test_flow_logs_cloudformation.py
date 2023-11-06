@@ -3,14 +3,12 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_cloudformation
-@mock_ec2
-@mock_s3
+@mock_aws
 def test_flow_logs_by_cloudformation():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -56,8 +54,7 @@ def test_flow_logs_by_cloudformation():
     assert flow_logs[0]["MaxAggregationInterval"] == 60
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_cloudformation():
     dummy_template_json = {
         "AWSTemplateFormatVersion": "2010-09-09",

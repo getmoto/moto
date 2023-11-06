@@ -5,7 +5,7 @@ import pytest
 from boto3 import Session
 from botocore.client import ClientError
 
-from moto import mock_config, mock_s3control, settings
+from moto import mock_aws, settings
 
 # All tests for s3-control cannot be run under the server without a modification of the
 # hosts file on your system. This is due to the fact that the URL to the host is in the form of:
@@ -15,8 +15,7 @@ from moto import mock_config, mock_s3control, settings
 
 if not settings.TEST_SERVER_MODE:
 
-    @mock_s3control
-    @mock_config
+    @mock_aws
     def test_config_list_account_pab():
         from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -186,8 +185,7 @@ if not settings.TEST_SERVER_MODE:
         )
         assert not result["ResourceIdentifiers"]
 
-    @mock_s3control
-    @mock_config
+    @mock_aws
     def test_config_get_account_pab():
         from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 

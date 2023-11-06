@@ -19,7 +19,7 @@ This is a decorator that works similarly to the environment variable, but the se
 .. sourcecode:: python
 
     @set_initial_no_auth_action_count(4)
-    @mock_ec2
+    @mock_aws
     def test_describe_instances_allowed():
         policy_document = {
             "Version": "2012-10-17",

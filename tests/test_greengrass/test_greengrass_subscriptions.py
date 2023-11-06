@@ -3,7 +3,7 @@ import freezegun
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_greengrass
+from moto import mock_aws
 from moto.settings import TEST_SERVER_MODE
 
 
@@ -17,7 +17,7 @@ from moto.settings import TEST_SERVER_MODE
     ],
 )
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition(target):
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -46,7 +46,7 @@ def test_create_subscription_definition(target):
         assert res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition_with_invalid_target():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -72,7 +72,7 @@ def test_create_subscription_definition_with_invalid_target():
     assert err["Code"] == "400"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition_with_invalid_source():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -99,7 +99,7 @@ def test_create_subscription_definition_with_invalid_source():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_subscription_definitions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -132,7 +132,7 @@ def test_list_subscription_definitions():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_subscription_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -171,7 +171,7 @@ def test_get_subscription_definition():
         assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_subscription_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -184,7 +184,7 @@ def test_get_subscription_definition_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_subscription_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -208,7 +208,7 @@ def test_delete_subscription_definition():
     assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_greengrass
+@mock_aws
 def test_update_subscription_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -238,7 +238,7 @@ def test_update_subscription_definition():
     assert get_res["Name"] == updated_subscription_name
 
 
-@mock_greengrass
+@mock_aws
 def test_update_subscription_definition_with_empty_name():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -265,7 +265,7 @@ def test_update_subscription_definition_with_empty_name():
     assert err["Code"] == "InvalidContainerDefinitionException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_subscription_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -278,7 +278,7 @@ def test_update_subscription_definition_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_subscription_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -292,7 +292,7 @@ def test_delete_subscription_definition_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_subscriptions = [
@@ -333,7 +333,7 @@ def test_create_subscription_definition_version():
         )
 
 
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     subscriptions = [
@@ -355,7 +355,7 @@ def test_create_subscription_definition_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition_version_with_invalid_target():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_subscriptions = [
@@ -395,7 +395,7 @@ def test_create_subscription_definition_version_with_invalid_target():
     assert err["Code"] == "400"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_subscription_definition_version_with_invalid_source():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_subscriptions = [
@@ -436,7 +436,7 @@ def test_create_subscription_definition_version_with_invalid_source():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_subscription_definition_versions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -470,7 +470,7 @@ def test_list_subscription_definition_versions():
         assert subscription_def_ver["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_list_subscription_definition_versions_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -484,7 +484,7 @@ def test_list_subscription_definition_versions_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_subscription_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -519,7 +519,7 @@ def test_get_subscription_definition_version():
         assert func_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_subscription_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -533,7 +533,7 @@ def test_get_subscription_definition_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_subscription_definition_version_with_invalid_version_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {

@@ -1,7 +1,7 @@
 """Unit tests specific to VPC endpoint services."""
 # boto3 tests are defined in `tests/test_core/test_ec2_vpc_endpoint_services`
 
-from moto import mock_ec2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
@@ -99,7 +99,7 @@ def validate_s3_service_endpoint_interface(details):
     assert details["Tags"][1] == {"Key": "Environ", "Value": "test"}
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_endpoint_services_filters():
     """Verify that different type of filters return the expected results."""
     from moto.ec2.models import ec2_backends  # pylint: disable=import-outside-toplevel

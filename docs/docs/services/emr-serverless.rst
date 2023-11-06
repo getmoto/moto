@@ -14,17 +14,6 @@ emr-serverless
 
 .. autoclass:: moto.emrserverless.models.EMRServerlessBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_emrserverless
-            def test_emrserverless_behaviour:
-                boto3.client("emr-serverless")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] cancel_job_run

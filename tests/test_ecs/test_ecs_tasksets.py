@@ -2,14 +2,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ecs
+from moto import mock_aws
 
 cluster_name = "test_ecs_cluster"
 service_name = "test_ecs_service"
 task_def_name = "test_ecs_task"
 
 
-@mock_ecs
+@mock_aws
 def test_create_task_set():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
@@ -56,7 +56,7 @@ def test_create_task_set():
     assert task_set["platformVersion"] == "LATEST"
 
 
-@mock_ecs
+@mock_aws
 def test_create_task_set_errors():
     # given
     client = boto3.client("ecs", region_name="us-east-1")
@@ -90,7 +90,7 @@ def test_create_task_set_errors():
     )
 
 
-@mock_ecs
+@mock_aws
 def test_describe_task_sets():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
@@ -151,7 +151,7 @@ def test_describe_task_sets():
     assert task_sets[0]["launchType"] == "EC2"
 
 
-@mock_ecs
+@mock_aws
 def test_delete_task_set():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
@@ -197,7 +197,7 @@ def test_delete_task_set():
         )
 
 
-@mock_ecs
+@mock_aws
 def test_delete_task_set__using_partial_arn():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
@@ -230,7 +230,7 @@ def test_delete_task_set__using_partial_arn():
     assert response["taskSet"]["taskSetArn"] == task_set["taskSetArn"]
 
 
-@mock_ecs
+@mock_aws
 def test_update_service_primary_task_set():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
@@ -283,7 +283,7 @@ def test_update_service_primary_task_set():
     assert service["taskDefinition"] == service["taskSets"][1]["taskDefinition"]
 
 
-@mock_ecs
+@mock_aws
 def test_update_task_set():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)
@@ -319,7 +319,7 @@ def test_update_task_set():
     assert updated_task_set["scale"]["unit"] == "PERCENT"
 
 
-@mock_ecs
+@mock_aws
 def test_create_task_sets_with_tags():
     client = boto3.client("ecs", region_name="us-east-1")
     _ = client.create_cluster(clusterName=cluster_name)

@@ -4,7 +4,7 @@ from unittest import SkipTest
 import boto3
 import pytest
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 
 
 @pytest.fixture(scope="function", name="aws_credentials")
@@ -21,7 +21,7 @@ def fixture_aws_credentials(monkeypatch: Any) -> None:  # type: ignore[misc]
 def test_mock_works_with_client_created_inside(
     aws_credentials: Any,  # pylint: disable=unused-argument
 ) -> None:
-    m = mock_s3()
+    m = mock_aws()
     m.start()
     client = boto3.client("s3", region_name="us-east-1")
 
@@ -37,7 +37,7 @@ def test_mock_works_with_client_created_outside(
     outside_client = boto3.client("s3", region_name="us-east-1")
 
     # Start the mock afterwards - which does not mock an already created client
-    m = mock_s3()
+    m = mock_aws()
     m.start()
 
     # So remind us to mock this client
@@ -57,7 +57,7 @@ def test_mock_works_with_resource_created_outside(
     outside_resource = boto3.resource("s3", region_name="us-east-1")
 
     # Start the mock afterwards - which does not mock an already created resource
-    m = mock_s3()
+    m = mock_aws()
     m.start()
 
     # So remind us to mock this resource
@@ -71,7 +71,7 @@ def test_mock_works_with_resource_created_outside(
 
 def test_patch_can_be_called_on_a_mocked_client() -> None:
     # start S3 after the mock, ensuring that the client contains our event-handler
-    m = mock_s3()
+    m = mock_aws()
     m.start()
     client = boto3.client("s3", region_name="us-east-1")
 
@@ -80,7 +80,7 @@ def test_patch_can_be_called_on_a_mocked_client() -> None:
     patch_client(client)
     patch_client(client)
 
-    # At this point, our event-handler should only be registered once, by `mock_s3`
+    # At this point, our event-handler should only be registered once, by `mock_aws`
     # `patch_client` should not re-register the event-handler
     test_object = b"test_object_text"
     client.create_bucket(Bucket="buck")
@@ -120,7 +120,7 @@ def test_mock_works_when_replacing_client(
 ) -> None:
     logic = ImportantBusinessLogic()
 
-    m = mock_s3()
+    m = mock_aws()
     m.start()
 
     # This will fail, as the S3 client was created before the mock was initialized

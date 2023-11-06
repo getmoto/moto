@@ -14,17 +14,6 @@ lambda
 
 .. autoclass:: moto.awslambda.models.LambdaBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_lambda
-            def test_lambda_behaviour:
-                boto3.client("lambda")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_layer_version_permission

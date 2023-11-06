@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_dynamodb
+from moto import mock_aws
 
 
 def dynamodb_aws_verified(create_table: bool = True):
@@ -13,7 +13,7 @@ def dynamodb_aws_verified(create_table: bool = True):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_dynamodb` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     This decorator will:
       - Create a table
@@ -24,7 +24,6 @@ def dynamodb_aws_verified(create_table: bool = True):
     def inner(func):
         @wraps(func)
         def pagination_wrapper():
-            client = boto3.client("dynamodb", region_name="us-east-1")
             table_name = "t" + str(uuid4())[0:6]
 
             allow_aws_request = (
@@ -34,17 +33,19 @@ def dynamodb_aws_verified(create_table: bool = True):
             if allow_aws_request:
                 if create_table:
                     print(f"Test {func} will create DynamoDB Table {table_name}")
-                    return create_table_and_test(table_name, client)
+                    return create_table_and_test(table_name)
                 else:
                     return func()
             else:
-                with mock_dynamodb():
+                with mock_aws():
                     if create_table:
-                        return create_table_and_test(table_name, client)
+                        return create_table_and_test(table_name)
                     else:
                         return func()
 
-        def create_table_and_test(table_name, client):
+        def create_table_and_test(table_name):
+            client = boto3.client("dynamodb", region_name="us-east-1")
+
             client.create_table(
                 TableName=table_name,
                 KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],

@@ -1,10 +1,9 @@
 import boto3
 
-from moto import mock_ecs, mock_efs
+from moto import mock_aws
 
 
-@mock_ecs
-@mock_efs
+@mock_aws
 def test_register_task_definition__use_efs_root():
     client = boto3.client("ecs", region_name="us-east-1")
 

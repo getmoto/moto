@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_ecs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import utils as ec2_utils
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ecs
+@mock_aws
 def test_list_account_settings_initial():
     client = boto3.client("ecs", region_name="eu-west-1")
 
@@ -18,7 +18,7 @@ def test_list_account_settings_initial():
     assert resp["settings"] == []
 
 
-@mock_ecs
+@mock_aws
 @pytest.mark.parametrize(
     "name",
     ["containerInstanceLongArnFormat", "serviceLongArnFormat", "taskLongArnFormat"],
@@ -31,7 +31,7 @@ def test_put_account_setting(name, value):
     assert resp["setting"] == {"name": name, "value": value}
 
 
-@mock_ecs
+@mock_aws
 def test_list_account_setting():
     client = boto3.client("ecs", region_name="eu-west-1")
 
@@ -59,7 +59,7 @@ def test_list_account_setting():
     assert {"name": "taskLongArnFormat", "value": "enabled"} in resp["settings"]
 
 
-@mock_ecs
+@mock_aws
 def test_list_account_settings_wrong_name():
     client = boto3.client("ecs", region_name="eu-west-1")
 
@@ -73,7 +73,7 @@ def test_list_account_settings_wrong_name():
     )
 
 
-@mock_ecs
+@mock_aws
 def test_delete_account_setting():
     client = boto3.client("ecs", region_name="eu-west-1")
 
@@ -94,8 +94,7 @@ def test_delete_account_setting():
     assert {"name": "taskLongArnFormat", "value": "enabled"} in resp["settings"]
 
 
-@mock_ec2
-@mock_ecs
+@mock_aws
 def test_put_account_setting_changes_service_arn():
     client = boto3.client("ecs", region_name="eu-west-1")
     client.put_account_setting(name="serviceLongArnFormat", value="disabled")
@@ -136,8 +135,7 @@ def test_put_account_setting_changes_service_arn():
     )
 
 
-@mock_ec2
-@mock_ecs
+@mock_aws
 def test_put_account_setting_changes_containerinstance_arn():
     ecs_client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -176,8 +174,7 @@ def test_put_account_setting_changes_containerinstance_arn():
     )
 
 
-@mock_ec2
-@mock_ecs
+@mock_aws
 def test_run_task_default_cluster_new_arn_format():
     client = boto3.client("ecs", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

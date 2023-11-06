@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_inspector2
+from moto import mock_aws
 
 
-@mock_inspector2
+@mock_aws
 def test_tag_resource():
     client = boto3.client("inspector2", region_name="ap-southeast-1")
     arn = client.create_filter(
@@ -27,7 +27,7 @@ def test_tag_resource():
     assert client.list_tags_for_resource(resourceArn=arn)["tags"] == {"k2": "v2"}
 
 
-@mock_inspector2
+@mock_aws
 def test_tag_filter():
     client = boto3.client("inspector2", region_name="ap-southeast-1")
     arn = client.create_filter(

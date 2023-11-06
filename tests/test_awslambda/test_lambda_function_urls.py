@@ -4,14 +4,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_lambda
+from moto import mock_aws
 
 from .utilities import get_role_name, get_test_zip_file1
 
 PYTHON_VERSION = "python3.11"
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
 def test_create_function_url_config(key):
     client = boto3.client("lambda", "us-east-2")
@@ -38,7 +38,7 @@ def test_create_function_url_config(key):
     assert "FunctionUrl" in resp
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_url_config_with_cors():
     client = boto3.client("lambda", "us-east-2")
     function_name = str(uuid4())[0:6]
@@ -73,7 +73,7 @@ def test_create_function_url_config_with_cors():
     }
 
 
-@mock_lambda
+@mock_aws
 def test_update_function_url_config_with_cors():
     client = boto3.client("lambda", "us-east-2")
     function_name = str(uuid4())[0:6]
@@ -105,7 +105,7 @@ def test_update_function_url_config_with_cors():
     assert resp["Cors"] == {"AllowCredentials": False}
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
 def test_delete_function_url_config(key):
     client = boto3.client("lambda", "us-east-2")

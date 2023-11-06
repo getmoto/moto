@@ -4,14 +4,14 @@ from unittest import SkipTest
 from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 
-from moto import mock_swf, settings
+from moto import mock_aws, settings
 
 from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow_boto3
 
 
 # Activity Task Heartbeat timeout
 # Default value in workflow helpers: 5 mins
-@mock_swf
+@mock_aws
 def test_activity_task_heartbeat_timeout_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
@@ -54,7 +54,7 @@ def test_activity_task_heartbeat_timeout_boto3():
 
 # Decision Task Start to Close timeout
 # Default value in workflow helpers: 5 mins
-@mock_swf
+@mock_aws
 def test_decision_task_start_to_close_timeout_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
@@ -105,7 +105,7 @@ def test_decision_task_start_to_close_timeout_boto3():
 
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours
-@mock_swf
+@mock_aws
 def test_workflow_execution_start_to_close_timeout_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")

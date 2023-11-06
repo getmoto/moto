@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_opensearch
+from moto import mock_aws
 
 
-@mock_opensearch
+@mock_aws
 def test_create_without_tags():
     client = boto3.client("opensearch", region_name="eu-north-1")
     arn = client.create_domain(DomainName="testdn")["DomainStatus"]["ARN"]
@@ -11,7 +11,7 @@ def test_create_without_tags():
     assert client.list_tags(ARN=arn)["TagList"] == []
 
 
-@mock_opensearch
+@mock_aws
 def test_create_with_tags():
     client = boto3.client("opensearch", region_name="eu-north-1")
     domain = client.create_domain(

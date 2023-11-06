@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_s3
+from moto import mock_aws
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
-@mock_s3
+@mock_aws
 def test_s3_returns_requestid():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     resp = s3_client.create_bucket(Bucket="mybucket")

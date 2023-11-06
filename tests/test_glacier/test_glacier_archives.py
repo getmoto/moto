@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_glacier
+from moto import mock_aws
 
 
-@mock_glacier
+@mock_aws
 def test_upload_archive():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="asdf")
@@ -25,7 +25,7 @@ def test_upload_archive():
     assert "archiveId" in res
 
 
-@mock_glacier
+@mock_aws
 def test_upload_zip_archive():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="asdf")
@@ -40,7 +40,7 @@ def test_upload_zip_archive():
         assert "checksum" in res
 
 
-@mock_glacier
+@mock_aws
 def test_delete_archive():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="asdf")

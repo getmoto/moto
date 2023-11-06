@@ -5,10 +5,10 @@ from unittest import SkipTest, mock
 import boto3
 import responses
 
-from moto import mock_events, settings
+from moto import mock_aws, settings
 
 
-@mock_events
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_EVENTS_INVOKE_HTTP": "true"})
 def test_invoke_http_request_on_event():
     if settings.TEST_SERVER_MODE:

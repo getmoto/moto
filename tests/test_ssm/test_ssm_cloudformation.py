@@ -2,12 +2,11 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_ssm
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ssm
-@mock_cloudformation
+@mock_aws
 def test_get_command_invocations_from_stack():
     stack_template = {
         "AWSTemplateFormatVersion": "2010-09-09",

@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sdb
+from moto import mock_aws
 
 
-@mock_sdb
+@mock_aws
 def test_put_attributes_unknown_domain():
     sdb = boto3.client("sdb", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -18,7 +18,7 @@ def test_put_attributes_unknown_domain():
     assert "BoxUsage" in err
 
 
-@mock_sdb
+@mock_aws
 def test_put_attributes_invalid_domain():
     sdb = boto3.client("sdb", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -31,7 +31,7 @@ def test_put_attributes_invalid_domain():
     assert "BoxUsage" in err
 
 
-@mock_sdb
+@mock_aws
 def test_get_attributes_unknown_domain():
     sdb = boto3.client("sdb", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -42,7 +42,7 @@ def test_get_attributes_unknown_domain():
     assert "BoxUsage" in err
 
 
-@mock_sdb
+@mock_aws
 def test_get_attributes_invalid_domain():
     sdb = boto3.client("sdb", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -53,7 +53,7 @@ def test_get_attributes_invalid_domain():
     assert "BoxUsage" in err
 
 
-@mock_sdb
+@mock_aws
 def test_put_and_get_attributes():
     name = "mydomain"
     sdb = boto3.client("sdb", region_name="eu-west-1")
@@ -67,7 +67,7 @@ def test_put_and_get_attributes():
     assert attrs == [{"Name": "a", "Value": "b"}]
 
 
-@mock_sdb
+@mock_aws
 def test_put_multiple_and_get_attributes():
     name = "mydomain"
     sdb = boto3.client("sdb", region_name="eu-west-1")
@@ -97,7 +97,7 @@ def test_put_multiple_and_get_attributes():
     assert attrs == [{"Name": "a", "Value": "val"}]
 
 
-@mock_sdb
+@mock_aws
 def test_put_replace_and_get_attributes():
     name = "mydomain"
     sdb = boto3.client("sdb", region_name="eu-west-1")
@@ -128,7 +128,7 @@ def test_put_replace_and_get_attributes():
     assert {"Name": "d", "Value": "g"} in attrs
 
 
-@mock_sdb
+@mock_aws
 def test_put_and_get_multiple_attributes():
     name = "mydomain"
     sdb = boto3.client("sdb", region_name="eu-west-1")
@@ -144,7 +144,7 @@ def test_put_and_get_multiple_attributes():
     assert attrs == [{"Name": "a", "Value": "b"}, {"Name": "attr2", "Value": "myvalue"}]
 
 
-@mock_sdb
+@mock_aws
 def test_get_attributes_by_name():
     name = "mydomain"
     sdb = boto3.client("sdb", region_name="eu-west-1")

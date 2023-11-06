@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_rds
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 RDS_REGION = "eu-north-1"
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_cluster_initial():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -18,7 +18,7 @@ def test_describe_db_cluster_initial():
     assert len(resp["DBClusters"]) == 0
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_cluster_fails_for_non_existent_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -31,7 +31,7 @@ def test_describe_db_cluster_fails_for_non_existent_cluster():
     assert err["Message"] == "DBCluster cluster-id not found."
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_invalid_engine():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -46,7 +46,7 @@ def test_create_db_cluster_invalid_engine():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_needs_master_username():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -61,7 +61,7 @@ def test_create_db_cluster_needs_master_username():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_needs_master_user_password():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -78,7 +78,7 @@ def test_create_db_cluster_needs_master_user_password():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_needs_long_master_user_password():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -97,7 +97,7 @@ def test_create_db_cluster_needs_long_master_user_password():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_cluster_needs_long_master_user_password():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -121,7 +121,7 @@ def test_modify_db_cluster_needs_long_master_user_password():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_cluster_new_cluster_identifier():
     client = boto3.client("rds", region_name=RDS_REGION)
     old_id = "cluster-id"
@@ -150,7 +150,7 @@ def test_modify_db_cluster_new_cluster_identifier():
     assert old_id not in clusters
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster__verify_default_properties():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -217,7 +217,7 @@ def test_create_db_cluster__verify_default_properties():
     assert cluster["EarliestRestorableTime"] >= cluster["ClusterCreateTime"]
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_additional_parameters():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -272,7 +272,7 @@ def test_create_db_cluster_additional_parameters():
     assert {"VpcSecurityGroupId": "sg2", "Status": "active"} in security_groups
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_cluster_after_creation():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -305,7 +305,7 @@ def test_describe_db_cluster_after_creation():
     )
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -321,7 +321,7 @@ def test_delete_db_cluster():
     assert len(client.describe_db_clusters()["DBClusters"]) == 0
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_cluster_do_snapshot():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -342,7 +342,7 @@ def test_delete_db_cluster_do_snapshot():
     assert snapshot["SnapshotType"] == "automated"
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_cluster_that_is_protected():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -360,7 +360,7 @@ def test_delete_db_cluster_that_is_protected():
     assert err["Message"] == "Can't delete Cluster with protection enabled"
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_cluster_unknown_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -371,7 +371,7 @@ def test_delete_db_cluster_unknown_cluster():
     assert err["Message"] == "DBCluster cluster-unknown not found."
 
 
-@mock_rds
+@mock_aws
 def test_start_db_cluster_unknown_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -382,7 +382,7 @@ def test_start_db_cluster_unknown_cluster():
     assert err["Message"] == "DBCluster cluster-unknown not found."
 
 
-@mock_rds
+@mock_aws
 def test_start_db_cluster_after_stopping():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -399,7 +399,7 @@ def test_start_db_cluster_after_stopping():
     assert cluster["Status"] == "available"
 
 
-@mock_rds
+@mock_aws
 def test_start_db_cluster_without_stopping():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -417,7 +417,7 @@ def test_start_db_cluster_without_stopping():
     assert err["Message"] == "DbCluster cluster-id is not in stopped state."
 
 
-@mock_rds
+@mock_aws
 def test_stop_db_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -438,7 +438,7 @@ def test_stop_db_cluster():
     assert cluster["Status"] == "stopped"
 
 
-@mock_rds
+@mock_aws
 def test_stop_db_cluster_already_stopped():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -458,7 +458,7 @@ def test_stop_db_cluster_already_stopped():
     assert err["Message"] == "DbCluster cluster-id is not in available state."
 
 
-@mock_rds
+@mock_aws
 def test_stop_db_cluster_unknown_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -469,7 +469,7 @@ def test_stop_db_cluster_unknown_cluster():
     assert err["Message"] == "DBCluster cluster-unknown not found."
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_snapshot_fails_for_unknown_cluster():
     conn = boto3.client("rds", region_name="us-west-2")
     with pytest.raises(ClientError) as exc:
@@ -480,7 +480,7 @@ def test_create_db_cluster_snapshot_fails_for_unknown_cluster():
     assert err["Message"] == "DBCluster db-primary-1 not found."
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
@@ -506,7 +506,7 @@ def test_create_db_cluster_snapshot():
     assert result["TagList"] == []
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_snapshot_copy_tags():
     conn = boto3.client("rds", region_name="us-west-2")
 
@@ -547,7 +547,7 @@ def test_create_db_cluster_snapshot_copy_tags():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
 
@@ -561,7 +561,7 @@ def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot():
     assert err["Message"] == "DBClusterSnapshot snapshot-1 not found."
 
 
-@mock_rds
+@mock_aws
 def test_copy_db_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
 
@@ -594,7 +594,7 @@ def test_copy_db_cluster_snapshot():
     assert result["TagList"] == []
 
 
-@mock_rds
+@mock_aws
 def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
 
@@ -630,7 +630,7 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
     )
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_cluster_snapshots():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
@@ -671,7 +671,7 @@ def test_describe_db_cluster_snapshots():
     assert len(snapshots) == 2
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
@@ -694,7 +694,7 @@ def test_delete_db_cluster_snapshot():
         conn.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
 
 
-@mock_rds
+@mock_aws
 def test_restore_db_cluster_from_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
@@ -733,7 +733,7 @@ def test_restore_db_cluster_from_snapshot():
     )
 
 
-@mock_rds
+@mock_aws
 def test_restore_db_cluster_from_snapshot_and_override_params():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
@@ -765,7 +765,7 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
     assert new_cluster["Port"] == 10000
 
 
-@mock_rds
+@mock_aws
 def test_add_tags_to_cluster():
     conn = boto3.client("rds", region_name="us-west-2")
     resp = conn.create_db_cluster(
@@ -794,7 +794,7 @@ def test_add_tags_to_cluster():
     assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
-@mock_rds
+@mock_aws
 def test_add_tags_to_cluster_snapshot():
     conn = boto3.client("rds", region_name="us-west-2")
     conn.create_db_cluster(
@@ -826,7 +826,7 @@ def test_add_tags_to_cluster_snapshot():
     assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
-@mock_rds
+@mock_aws
 def test_create_serverless_db_cluster():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -850,7 +850,7 @@ def test_create_serverless_db_cluster():
     assert cluster["ScalingConfigurationInfo"]["MaxCapacity"] == 16
 
 
-@mock_rds
+@mock_aws
 def test_create_db_cluster_with_enable_http_endpoint_invalid():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -869,7 +869,7 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
     assert cluster["HttpEndpointEnabled"] is False
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_clusters_filter_by_engine():
     client = boto3.client("rds", region_name=RDS_REGION)
 
@@ -903,7 +903,7 @@ def test_describe_db_clusters_filter_by_engine():
     assert cluster["Engine"] == "aurora-postgresql"
 
 
-@mock_rds
+@mock_aws
 def test_replicate_cluster():
     # WHEN create_db_cluster is called
     # AND create_db_cluster is called again with ReplicationSourceIdentifier
@@ -945,7 +945,7 @@ def test_replicate_cluster():
     assert replica["MultiAZ"] is False
 
 
-@mock_rds
+@mock_aws
 def test_createdb_instance_engine_mismatch_fail():
     # Setup
     client = boto3.client("rds", "us-east-1")

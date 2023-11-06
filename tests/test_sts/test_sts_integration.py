@@ -3,13 +3,11 @@ from base64 import b64encode
 
 import boto3
 
-from moto import mock_dynamodb, mock_iam, mock_sts
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_sts
-@mock_iam
-@mock_dynamodb
+@mock_aws
 class TestStsAssumeRole(unittest.TestCase):
     def setUp(self) -> None:
         self.account_b = "111111111111"

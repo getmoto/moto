@@ -5,11 +5,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_peering_attachment_empty():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -21,7 +21,7 @@ def test_describe_transit_gateway_peering_attachment_empty():
     assert all_attachments == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_describe_transit_gateway_peering_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id1 = ec2.create_transit_gateway(Description="my first gateway")[
@@ -53,7 +53,7 @@ def test_create_and_describe_transit_gateway_peering_attachment():
     assert our_attachment == [attachment]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_peering_attachment_by_filters():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id1 = ec2.create_transit_gateway(Description="my first gateway")[
@@ -115,7 +115,7 @@ def test_describe_transit_gateway_peering_attachment_by_filters():
     assert [a["TransitGatewayAttachmentId"] for a in find_available] == [attchmnt1]
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_accept_transit_gateway_peering_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id1 = ec2.create_transit_gateway(Description="my first gateway")[
@@ -139,7 +139,7 @@ def test_create_and_accept_transit_gateway_peering_attachment():
     assert attachment["State"] == "available"
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_reject_transit_gateway_peering_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id1 = ec2.create_transit_gateway(Description="my first gateway")[
@@ -161,7 +161,7 @@ def test_create_and_reject_transit_gateway_peering_attachment():
     assert attachment["State"] == "rejected"
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_delete_transit_gateway_peering_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id1 = ec2.create_transit_gateway(Description="my first gateway")[
@@ -183,7 +183,7 @@ def test_create_and_delete_transit_gateway_peering_attachment():
     assert attachment["State"] == "deleted"
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [

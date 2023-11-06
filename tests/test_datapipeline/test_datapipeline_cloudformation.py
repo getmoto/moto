@@ -2,11 +2,10 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_datapipeline
+from moto import mock_aws
 
 
-@mock_cloudformation
-@mock_datapipeline
+@mock_aws
 def test_datapipeline():
     dp_template = {
         "AWSTemplateFormatVersion": "2010-09-09",

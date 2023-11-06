@@ -14,17 +14,6 @@ route53resolver
 
 .. autoclass:: moto.route53resolver.models.Route53ResolverBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_route53resolver
-            def test_route53resolver_behaviour:
-                boto3.client("route53resolver")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_firewall_rule_group

@@ -5,7 +5,7 @@ import pytest
 import yaml
 from botocore.exceptions import ClientError
 
-from moto import mock_autoscaling, mock_cloudformation, mock_iam, mock_s3, mock_sts
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
@@ -62,8 +62,7 @@ Resources:
 
 
 # AWS::IAM::User Tests
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -89,8 +88,7 @@ Resources:
     assert provisioned_resource["PhysicalResourceId"] == user_name
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_user_no_interruption():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -129,8 +127,7 @@ Resources:
     assert user["Path"] == path
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_user_replacement():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -172,8 +169,7 @@ Resources:
     iam_client.get_user(UserName=new_user_name)
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_drop_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -234,8 +230,7 @@ Resources:
     assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -264,8 +259,7 @@ Resources:
     assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_user_having_generated_name():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -294,8 +288,7 @@ Resources:
     assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_user_get_attr():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -336,8 +329,7 @@ Outputs:
 
 
 # AWS::IAM::ManagedPolicy Tests
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -380,8 +372,7 @@ Resources:
     assert policy["Path"] == "/"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_with_additional_properties():
     iam_client = boto3.client("iam", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -425,8 +416,7 @@ Resources:
     assert policy["PolicyName"] == name
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_attached_to_a_group():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
@@ -474,8 +464,7 @@ Resources:
     assert "GroupId" in response["PolicyGroups"][0]
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_attached_to_a_user():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
@@ -523,8 +512,7 @@ Resources:
     assert "UserId" in response["PolicyUsers"][0]
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_attached_to_a_role():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
@@ -573,9 +561,7 @@ Resources:
 
 
 # AWS::IAM::Policy Tests
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_user_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
@@ -623,9 +609,7 @@ Resources:
     assert policy["PolicyDocument"] == original_policy_document
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_user_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name_1 = "MyUser1"
@@ -711,9 +695,7 @@ Resources:
         iam_client.get_user_policy(UserName=user_name_1, PolicyName=policy_name)
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_user_policy_having_generated_name():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
@@ -765,9 +747,7 @@ Resources:
         iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_role_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
@@ -815,9 +795,7 @@ Resources:
     assert policy["PolicyDocument"] == original_policy_document
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_role_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name_1 = "MyRole1"
@@ -903,9 +881,7 @@ Resources:
         iam_client.get_role_policy(RoleName=role_name_1, PolicyName=policy_name)
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_role_policy_having_generated_name():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
@@ -958,9 +934,7 @@ Resources:
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_group_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
@@ -1008,9 +982,7 @@ Resources:
     assert policy["PolicyDocument"] == original_policy_document
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_group_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name_1 = "MyGroup1"
@@ -1097,9 +1069,7 @@ Resources:
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_group_policy_having_generated_name():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
@@ -1153,8 +1123,7 @@ Resources:
 
 
 # AWS::IAM::User AccessKeys
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_user_with_access_key():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1197,9 +1166,7 @@ Resources:
     assert access_keys["AccessKeyMetadata"][0]["UserName"] == user_name
 
 
-@mock_sts
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_access_key_get_attr():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1255,8 +1222,7 @@ Outputs:
     pass
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_users_access_key():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1312,8 +1278,7 @@ def test_iam_cloudformation_delete_users_access_key():
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_users_access_key_no_interruption():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1369,8 +1334,7 @@ Resources:
     assert access_keys["AccessKeyMetadata"][0]["Status"] == "Inactive"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_users_access_key_replacement():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1435,8 +1399,7 @@ Resources:
     assert access_key_id != access_keys["AccessKeyMetadata"][0]["AccessKeyId"]
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_role():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1459,8 +1422,7 @@ def test_iam_cloudformation_create_role():
     assert len(iam_client.list_roles()["Roles"]) == 0
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_role_and_instance_profile():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1493,9 +1455,7 @@ def test_iam_cloudformation_create_role_and_instance_profile():
     assert len(iam_client.list_roles()["Roles"]) == 0
 
 
-@mock_autoscaling
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_roles():
     iam_template = {
         "AWSTemplateFormatVersion": "2010-09-09",

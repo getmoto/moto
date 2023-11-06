@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cognitoidentity, mock_iot
+from moto import mock_aws
 
 
 @pytest.fixture(name="region_name")
@@ -14,7 +14,7 @@ def fixture_region_name():
 
 @pytest.fixture(name="iot_client")
 def fixture_iot_client(region_name):
-    with mock_iot():
+    with mock_aws():
         yield boto3.client("iot", region_name=region_name)
 
 
@@ -39,7 +39,7 @@ def test_attach_policy(iot_client, policy):
     assert res["policies"][0]["policyName"] == "my-policy"
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_attach_policy_to_identity(region_name, iot_client, policy):
     cognito_identity_client = boto3.client("cognito-identity", region_name=region_name)
     identity_pool_name = "test_identity_pool"

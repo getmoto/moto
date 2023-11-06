@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_dynamodb
+from moto import mock_aws
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_table__billing_mode():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -33,7 +33,7 @@ def test_update_table__billing_mode():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_table_throughput():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -53,7 +53,7 @@ def test_update_table_throughput():
     assert table.provisioned_throughput["WriteCapacityUnits"] == 6
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_table__enable_stream():
     conn = boto3.client("dynamodb", region_name="us-east-1")
 

@@ -107,9 +107,9 @@ def _invoke_awslambda(
     account_id: str, event_body: Any, fn_arn: str, region_name: str
 ) -> None:
     try:
-        from moto.awslambda.models import lambda_backends
+        from moto.awslambda.utils import get_backend
 
-        lambda_backend = lambda_backends[account_id][region_name]
+        lambda_backend = get_backend(account_id, region_name)
         func = lambda_backend.get_function(fn_arn)
         func.invoke(json.dumps(event_body), dict(), dict())
     except:  # noqa

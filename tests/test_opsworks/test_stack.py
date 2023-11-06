@@ -1,10 +1,10 @@
 import boto3
 import pytest
 
-from moto import mock_opsworks
+from moto import mock_aws
 
 
-@mock_opsworks
+@mock_aws
 def test_create_stack_response():
     client = boto3.client("opsworks", region_name="us-east-1")
     response = client.create_stack(
@@ -16,7 +16,7 @@ def test_create_stack_response():
     assert "StackId" in response
 
 
-@mock_opsworks
+@mock_aws
 def test_describe_stacks():
     client = boto3.client("opsworks", region_name="us-east-1")
     for i in range(1, 4):

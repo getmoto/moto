@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_elbv2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 
@@ -10,7 +10,7 @@ from moto.moto_api._internal import mock_random
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpc_endpoint_service_configuration_without_params():
     client = boto3.client("ec2", region_name="us-west-2")
 
@@ -25,8 +25,7 @@ def test_create_vpc_endpoint_service_configuration_without_params():
     )
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_create_vpc_endpoint_service_configuration_with_network_load_balancer():
     region_name = "eu-west-3"
     client = boto3.client("ec2", region_name=region_name)
@@ -59,8 +58,7 @@ def test_create_vpc_endpoint_service_configuration_with_network_load_balancer():
     assert "GatewayLoadBalancerArns" not in config
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_create_vpc_endpoint_service_configuration_with_gateway_load_balancer():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)
@@ -93,8 +91,7 @@ def test_create_vpc_endpoint_service_configuration_with_gateway_load_balancer():
     assert "NetworkLoadBalancerArns" not in config
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_create_vpc_endpoint_service_configuration_with_options():
     client = boto3.client("ec2", region_name="us-east-2")
 
@@ -125,8 +122,7 @@ def test_create_vpc_endpoint_service_configuration_with_options():
     assert detail["Owner"] == DEFAULT_ACCOUNT_ID
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_describe_vpc_endpoint_service_configurations():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)
@@ -159,8 +155,7 @@ def test_describe_vpc_endpoint_service_configurations():
     assert result["GatewayLoadBalancerArns"] == [lb_arn]
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 @pytest.mark.parametrize(
     "tags",
     [
@@ -190,8 +185,7 @@ def test_describe_vpc_endpoint_service_configurations_with_tags(tags):
         assert tag in result["Tags"]
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_describe_vpc_endpoint_service_configurations_and_add_tags():
     tags = [{"Key": "k1", "Value": "v1"}]
     region = "us-east-2"
@@ -216,7 +210,7 @@ def test_describe_vpc_endpoint_service_configurations_and_add_tags():
         assert tag in result["Tags"]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_endpoint_service_configurations_unknown():
     client = boto3.client("ec2", region_name="eu-west-3")
 
@@ -233,8 +227,7 @@ def test_describe_vpc_endpoint_service_configurations_unknown():
     )
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_delete_vpc_endpoint_service_configurations():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)
@@ -251,7 +244,7 @@ def test_delete_vpc_endpoint_service_configurations():
     assert resp["Unsuccessful"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_delete_vpc_endpoint_service_configurations_already_deleted():
     client = boto3.client("ec2", region_name="eu-west-3")
 
@@ -270,8 +263,7 @@ def test_delete_vpc_endpoint_service_configurations_already_deleted():
     )
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_describe_vpc_endpoint_service_permissions():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)
@@ -288,8 +280,7 @@ def test_describe_vpc_endpoint_service_permissions():
     assert resp["AllowedPrincipals"] == []
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_modify_vpc_endpoint_service_permissions():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)
@@ -320,8 +311,7 @@ def test_modify_vpc_endpoint_service_permissions():
     assert {"Principal": "cipal2"} in resp["AllowedPrincipals"]
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_modify_vpc_endpoint_service_configuration():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)
@@ -346,8 +336,7 @@ def test_modify_vpc_endpoint_service_configuration():
     assert config["PrivateDnsName"] == "dnsname"
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_modify_vpc_endpoint_service_configuration_with_new_loadbalancers():
     region = "us-east-2"
     client = boto3.client("ec2", region_name=region)

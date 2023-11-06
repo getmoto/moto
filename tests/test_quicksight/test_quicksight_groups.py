@@ -3,14 +3,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_quicksight
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_quicksight
+@mock_aws
 def test_create_group():
     client = boto3.client("quicksight", region_name="us-west-2")
     resp = client.create_group(
@@ -30,7 +30,7 @@ def test_create_group():
     assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
-@mock_quicksight
+@mock_aws
 def test_describe_group():
     client = boto3.client("quicksight", region_name="us-west-2")
     client.create_group(
@@ -54,7 +54,7 @@ def test_describe_group():
     assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
-@mock_quicksight
+@mock_aws
 def test_update_group():
     client = boto3.client("quicksight", region_name="us-west-2")
     client.create_group(
@@ -85,7 +85,7 @@ def test_update_group():
     assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
-@mock_quicksight
+@mock_aws
 def test_delete_group():
     client = boto3.client("quicksight", region_name="us-east-2")
     client.create_group(
@@ -107,7 +107,7 @@ def test_delete_group():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_quicksight
+@mock_aws
 def test_list_groups__initial():
     client = boto3.client("quicksight", region_name="us-east-2")
     resp = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
@@ -116,7 +116,7 @@ def test_list_groups__initial():
     assert resp["Status"] == 200
 
 
-@mock_quicksight
+@mock_aws
 def test_list_groups():
     client = boto3.client("quicksight", region_name="us-east-1")
     for i in range(4):

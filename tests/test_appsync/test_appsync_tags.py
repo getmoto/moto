@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_appsync
+from moto import mock_aws
 
 
-@mock_appsync
+@mock_aws
 def test_create_graphql_api_with_tags():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     api = client.create_graphql_api(
@@ -17,7 +17,7 @@ def test_create_graphql_api_with_tags():
     assert api["tags"] == {"key": "val", "key2": "val2"}
 
 
-@mock_appsync
+@mock_aws
 def test_tag_resource():
     client = boto3.client("appsync", region_name="us-east-2")
     api = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -30,7 +30,7 @@ def test_tag_resource():
     assert api["tags"] == {"key1": "val1"}
 
 
-@mock_appsync
+@mock_aws
 def test_tag_resource_with_existing_tags():
     client = boto3.client("appsync", region_name="us-east-2")
     api = client.create_graphql_api(
@@ -47,7 +47,7 @@ def test_tag_resource_with_existing_tags():
     assert api["tags"] == {"key2": "new value", "key3": "val3"}
 
 
-@mock_appsync
+@mock_aws
 def test_untag_resource():
     client = boto3.client("appsync", region_name="eu-west-1")
     api = client.create_graphql_api(
@@ -60,7 +60,7 @@ def test_untag_resource():
     assert api["tags"] == {"key2": "val2"}
 
 
-@mock_appsync
+@mock_aws
 def test_untag_resource_all():
     client = boto3.client("appsync", region_name="eu-west-1")
     api = client.create_graphql_api(
@@ -73,7 +73,7 @@ def test_untag_resource_all():
     assert api["tags"] == {}
 
 
-@mock_appsync
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     api = client.create_graphql_api(

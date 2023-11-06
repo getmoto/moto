@@ -4,7 +4,7 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import mock_lambda, mock_logs, mock_s3, mock_sns, mock_sqs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.markers import requires_docker
 from tests.test_awslambda.utilities import (
@@ -16,9 +16,7 @@ from tests.test_awslambda.utilities import (
 REGION_NAME = "us-east-1"
 
 
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize(
     "match_events,actual_event",
     [
@@ -106,8 +104,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     assert records[0]["s3"]["object"]["size"] == 15
 
 
-@mock_logs
-@mock_s3
+@mock_aws
 def test_objectcreated_put__unknown_lambda_is_handled_gracefully():
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
@@ -139,8 +136,7 @@ def test_objectcreated_put__unknown_lambda_is_handled_gracefully():
     assert resp["Body"].read() == b"bodyofnewobject"
 
 
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_object_copy__sends_to_queue():
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
@@ -206,8 +202,7 @@ def test_object_copy__sends_to_queue():
     assert records[0]["s3"]["object"]["size"] == 15
 
 
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_object_put__sends_to_queue__using_filter():
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
@@ -286,9 +281,7 @@ def test_object_put__sends_to_queue__using_filter():
     _ = [m.delete() for m in messages]
 
 
-@mock_s3
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_put_bucket_notification_sns_sqs():
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     s3_client.create_bucket(Bucket="bucket")
@@ -361,7 +354,7 @@ def test_put_bucket_notification_sns_sqs():
     assert s3_message_body["Records"][0]["eventName"] == "ObjectCreated:Put"
 
 
-@mock_s3
+@mock_aws
 def test_put_bucket_notification_sns_error():
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     s3_client.create_bucket(Bucket="bucket")

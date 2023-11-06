@@ -1,4 +1,3 @@
-"""Unit tests for cloudtrail-supported APIs."""
 from datetime import datetime
 from uuid import uuid4
 
@@ -6,12 +5,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudtrail, mock_s3, mock_sns
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_s3
-@mock_cloudtrail
+@mock_aws
 def test_create_trail_without_bucket():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -49,7 +47,7 @@ def test_create_trail_without_bucket():
         ("-trail", "Trail name must starts with a letter or number."),
     ],
 )
-@mock_cloudtrail
+@mock_aws
 def test_create_trail_invalid_name(name, message):
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -61,8 +59,7 @@ def test_create_trail_invalid_name(name, message):
     assert err["Message"] == message
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_create_trail_simple():
     bucket_name, resp, trail_name = create_trail_simple()
     assert resp["Name"] == trail_name
@@ -90,7 +87,7 @@ def create_trail_simple(region_name="us-east-1"):
     return bucket_name, resp, trail_name
 
 
-@mock_cloudtrail
+@mock_aws
 def test_create_trail_multi_but_not_global():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -106,9 +103,7 @@ def test_create_trail_multi_but_not_global():
     assert err["Message"] == "Multi-Region trail must include global service events."
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_create_trail_with_nonexisting_topic():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     s3 = boto3.client("s3", region_name="us-east-1")
@@ -127,9 +122,7 @@ def test_create_trail_with_nonexisting_topic():
     )
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_create_trail_advanced():
     bucket_name, resp, sns_topic_name, trail_name = create_trail_advanced()
     assert resp["Name"] == trail_name
@@ -176,7 +169,7 @@ def create_trail_advanced(region_name="us-east-1"):
     return bucket_name, resp, sns_topic_name, trail_name
 
 
-@mock_cloudtrail
+@mock_aws
 def test_get_trail_with_one_char():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -189,7 +182,7 @@ def test_get_trail_with_one_char():
     )
 
 
-@mock_cloudtrail
+@mock_aws
 def test_get_trail_unknown():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -199,8 +192,7 @@ def test_get_trail_unknown():
     assert err["Message"] == f"Unknown trail: unknowntrail for the user: {ACCOUNT_ID}"
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_trail():
     create_trail_simple()
     client = boto3.client("cloudtrail", region_name="us-east-1")
@@ -214,7 +206,7 @@ def test_get_trail():
     )
 
 
-@mock_cloudtrail
+@mock_aws
 def test_get_trail_status_with_one_char():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -227,7 +219,7 @@ def test_get_trail_status_with_one_char():
     )
 
 
-@mock_cloudtrail
+@mock_aws
 def test_get_trail_status_unknown_trail():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -240,8 +232,7 @@ def test_get_trail_status_unknown_trail():
     )
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_trail_status_inactive():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, _, trail_name = create_trail_simple()
@@ -256,8 +247,7 @@ def test_get_trail_status_inactive():
     assert "StartLoggingTime" not in status
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_trail_status_arn_inactive():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, resp, _ = create_trail_simple()
@@ -272,8 +262,7 @@ def test_get_trail_status_arn_inactive():
     assert "StartLoggingTime" not in status
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_trail_status_after_starting():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
     _, _, trail_name = create_trail_simple(region_name="eu-west-3")
@@ -295,8 +284,7 @@ def test_get_trail_status_after_starting():
     assert "StopLoggingTime" not in status
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_trail_status_after_starting_and_stopping():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
     _, _, trail_name = create_trail_simple(region_name="eu-west-3")
@@ -320,9 +308,7 @@ def test_get_trail_status_after_starting_and_stopping():
     assert "TimeLoggingStopped" in status  # .equal("2021-10-13T15:03:21Z")
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_get_trail_status_multi_region_not_from_the_home_region():
     # CloudTrail client
     client_us_east_1 = boto3.client("cloudtrail", region_name="us-east-1")
@@ -352,9 +338,7 @@ def test_get_trail_status_multi_region_not_from_the_home_region():
     assert trail_status_us_east_1["IsLogging"]
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_list_trails_different_home_region_one_multiregion():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
 
@@ -374,9 +358,7 @@ def test_list_trails_different_home_region_one_multiregion():
     ]
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_list_trails_different_home_region_no_multiregion():
     client = boto3.client("cloudtrail", region_name="eu-west-3")
 
@@ -390,9 +372,7 @@ def test_list_trails_different_home_region_no_multiregion():
     assert len(all_trails) == 0
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_describe_trails_without_shadowtrails():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, trail1, _ = create_trail_simple()
@@ -433,9 +413,7 @@ def test_describe_trails_without_shadowtrails():
     assert second_trail["IsOrganizationTrail"] is True
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_describe_trails_with_shadowtrails_true():
     # Same behaviour as if shadowtrails-parameter was not supplied
     client = boto3.client("cloudtrail", region_name="us-east-1")
@@ -456,9 +434,7 @@ def test_describe_trails_with_shadowtrails_true():
     assert len(trails) == 2
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_describe_trails_with_shadowtrails_false():
     # Only trails for the current region should now be returned
     client = boto3.client("cloudtrail", region_name="us-east-1")
@@ -476,8 +452,7 @@ def test_describe_trails_with_shadowtrails_false():
     assert [t["Name"] for t in trails] == [name3]
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_delete_trail():
     client = boto3.client("cloudtrail", region_name="us-east-1")
     _, _, name = create_trail_simple()
@@ -491,8 +466,7 @@ def test_delete_trail():
     assert len(trails) == 0
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_update_trail_simple():
     client = boto3.client("cloudtrail", region_name="ap-southeast-2")
     bucket_name, trail, name = create_trail_simple(region_name="ap-southeast-2")
@@ -519,8 +493,7 @@ def test_update_trail_simple():
     assert "SnsTopicARN" not in trail
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_update_trail_full():
     client = boto3.client("cloudtrail", region_name="ap-southeast-1")
     _, trail, name = create_trail_simple(region_name="ap-southeast-1")

@@ -1,21 +1,20 @@
-"""Unit tests for ivs-supported APIs."""
 from re import fullmatch
 
 import boto3
 from botocore.exceptions import ClientError
 from pytest import raises
 
-from moto import mock_ivs
+from moto import mock_aws
 
 
-@mock_ivs
+@mock_aws
 def test_create_channel_with_name():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(name="foo")
     assert create_response["channel"]["name"] == "foo"
 
 
-@mock_ivs
+@mock_aws
 def test_create_channel_defaults():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(name="foo")
@@ -29,7 +28,7 @@ def test_create_channel_defaults():
     assert create_response["streamKey"]["tags"] == {}
 
 
-@mock_ivs
+@mock_aws
 def test_create_channel_generated_values():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(name="foo")
@@ -45,7 +44,7 @@ def test_create_channel_generated_values():
     assert fullmatch(r"sk_.*", create_response["streamKey"]["value"])
 
 
-@mock_ivs
+@mock_aws
 def test_create_channel_with_name_and_recording_configuration():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(
@@ -56,14 +55,14 @@ def test_create_channel_with_name_and_recording_configuration():
     assert create_response["channel"]["recordingConfigurationArn"] == "blah"
 
 
-@mock_ivs
+@mock_aws
 def test_list_channels_empty():
     client = boto3.client("ivs", region_name="eu-west-1")
     list_response = client.list_channels()
     assert list_response["channels"] == []
 
 
-@mock_ivs
+@mock_aws
 def test_list_channels_one():
     client = boto3.client("ivs", region_name="eu-west-1")
     client.create_channel(name="foo")
@@ -72,7 +71,7 @@ def test_list_channels_one():
     assert list_response["channels"][0]["name"] == "foo"
 
 
-@mock_ivs
+@mock_aws
 def test_list_channels_two():
     client = boto3.client("ivs", region_name="eu-west-1")
     client.create_channel(name="foo")
@@ -86,7 +85,7 @@ def test_list_channels_two():
     assert list_response["channels"][1]["name"] == "bar"
 
 
-@mock_ivs
+@mock_aws
 def test_list_channels_by_name():
     client = boto3.client("ivs", region_name="eu-west-1")
     client.create_channel(name="foo")
@@ -99,7 +98,7 @@ def test_list_channels_by_name():
     assert list_response["channels"][0]["name"] == "foo"
 
 
-@mock_ivs
+@mock_aws
 def test_list_channels_by_recording_configuration():
     client = boto3.client("ivs", region_name="eu-west-1")
     client.create_channel(name="foo")
@@ -112,7 +111,7 @@ def test_list_channels_by_recording_configuration():
     assert list_response["channels"][0]["name"] == "bar"
 
 
-@mock_ivs
+@mock_aws
 def test_list_channels_pagination():
     client = boto3.client("ivs", region_name="eu-west-1")
     client.create_channel(name="foo")
@@ -127,7 +126,7 @@ def test_list_channels_pagination():
     assert "nextToken" not in second_list_response
 
 
-@mock_ivs
+@mock_aws
 def test_get_channel_exists():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(name="foo")
@@ -135,7 +134,7 @@ def test_get_channel_exists():
     assert get_response["channel"]["name"] == "foo"
 
 
-@mock_ivs
+@mock_aws
 def test_get_channel_not_exists():
     client = boto3.client("ivs", region_name="eu-west-1")
     with raises(ClientError) as exc:
@@ -143,7 +142,7 @@ def test_get_channel_not_exists():
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_ivs
+@mock_aws
 def test_batch_get_channel():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(name="foo")
@@ -154,7 +153,7 @@ def test_batch_get_channel():
     assert batch_get_response["channels"][0]["name"] == "foo"
 
 
-@mock_ivs
+@mock_aws
 def test_update_channel_exists():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(
@@ -169,7 +168,7 @@ def test_update_channel_exists():
     assert update_response["channel"]["recordingConfigurationArn"] == "blah"
 
 
-@mock_ivs
+@mock_aws
 def test_update_channel_not_exists():
     client = boto3.client("ivs", region_name="eu-west-1")
     with raises(ClientError) as exc:
@@ -177,7 +176,7 @@ def test_update_channel_not_exists():
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_ivs
+@mock_aws
 def test_delete_channel_exists():
     client = boto3.client("ivs", region_name="eu-west-1")
     create_response = client.create_channel(name="foo")
@@ -186,7 +185,7 @@ def test_delete_channel_exists():
     assert list_response["channels"] == []
 
 
-@mock_ivs
+@mock_aws
 def test_delete_channel_not_exists():
     client = boto3.client("ivs", region_name="eu-west-1")
     with raises(ClientError) as exc:

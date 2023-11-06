@@ -1,4 +1,3 @@
-"""Unit tests for identitystore-supported APIs."""
 import random
 import string
 from uuid import UUID, uuid4
@@ -7,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_identitystore
+from moto import mock_aws
 from moto.moto_api._internal import mock_random
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -19,7 +18,7 @@ def get_identity_store_id() -> str:
     return f"d-{rand}"
 
 
-@mock_identitystore
+@mock_aws
 def test_create_group():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -32,7 +31,7 @@ def test_create_group():
     assert UUID(create_resp["GroupId"])
 
 
-@mock_identitystore
+@mock_aws
 def test_create_group_duplicate_name():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -64,7 +63,7 @@ def test_create_group_duplicate_name():
     assert err.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
 
 
-@mock_identitystore
+@mock_aws
 def test_group_multiple_identity_stores():
     identity_store_id = get_identity_store_id()
     identity_store_id2 = get_identity_store_id()
@@ -79,7 +78,7 @@ def test_group_multiple_identity_stores():
     assert not __group_exists(client, group2[0], store_id=identity_store_id)
 
 
-@mock_identitystore
+@mock_aws
 def test_create_group_membership():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -111,7 +110,7 @@ def test_create_group_membership():
     assert list_response["GroupMemberships"][0]["MemberId"]["UserId"] == user_id
 
 
-@mock_identitystore
+@mock_aws
 def test_create_duplicate_username():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -146,7 +145,7 @@ def test_create_duplicate_username():
     assert err.response["Reason"] == "UNIQUENESS_CONSTRAINT_VIOLATION"
 
 
-@mock_identitystore
+@mock_aws
 def test_create_username_no_username():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -166,7 +165,7 @@ def test_create_username_no_username():
     assert err.response["Message"] == "userName is a required attribute"
 
 
-@mock_identitystore
+@mock_aws
 def test_create_username_missing_required_attributes():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -194,7 +193,7 @@ def test_create_username_missing_required_attributes():
     )
 
 
-@mock_identitystore
+@mock_aws
 @pytest.mark.parametrize(
     "field, missing", [("GivenName", "familyname"), ("FamilyName", "givenname")]
 )
@@ -225,7 +224,7 @@ def test_create_username_missing_required_name_field(field, missing):
     assert err.response["Message"] == f"{missing}: The attribute {missing} is required"
 
 
-@mock_identitystore
+@mock_aws
 def test_create_describe_sparse_user():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -248,7 +247,7 @@ def test_create_describe_sparse_user():
     assert user_resp["Name"]["FamilyName"] == "family_name"
 
 
-@mock_identitystore
+@mock_aws
 def test_create_describe_full_user():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -343,7 +342,7 @@ def test_create_describe_full_user():
     assert user_resp["Timezone"] == "timezone"
 
 
-@mock_identitystore
+@mock_aws
 def test_describe_user_doesnt_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -362,7 +361,7 @@ def test_describe_user_doesnt_exist():
     assert "RequestId" in err.response
 
 
-@mock_identitystore
+@mock_aws
 def test_get_group_id():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -389,7 +388,7 @@ def test_get_group_id():
         assert response["GroupId"] == group_id
 
 
-@mock_identitystore
+@mock_aws
 def test_get_group_id_does_not_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -412,7 +411,7 @@ def test_get_group_id_does_not_exist():
     assert "RequestId" in err.response
 
 
-@mock_identitystore
+@mock_aws
 def test_list_groups():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -465,7 +464,7 @@ def test_list_groups():
     assert groups == expected_groups
 
 
-@mock_identitystore
+@mock_aws
 def test_list_groups_filter():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -504,7 +503,7 @@ def test_list_groups_filter():
     assert len(no_groups) == 0
 
 
-@mock_identitystore
+@mock_aws
 def test_list_group_memberships():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -560,7 +559,7 @@ def test_list_group_memberships():
             next_token = list_response["NextToken"]
 
 
-@mock_identitystore
+@mock_aws
 def test_list_group_memberships_for_member():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -622,7 +621,7 @@ def __check_membership_list_values(members, expected):
         assert members[i]["MemberId"]["UserId"] == expected[i][1]
 
 
-@mock_identitystore
+@mock_aws
 def test_list_users():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -665,7 +664,7 @@ def test_list_users():
     assert users == expected_users
 
 
-@mock_identitystore
+@mock_aws
 def test_list_users_filter():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -705,7 +704,7 @@ def test_list_users_filter():
     assert len(no_users) == 0
 
 
-@mock_identitystore
+@mock_aws
 def test_delete_group():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -720,7 +719,7 @@ def test_delete_group():
     assert not __group_exists(client, test_group[0], identity_store_id)
 
 
-@mock_identitystore
+@mock_aws
 def test_delete_group_doesnt_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -734,7 +733,7 @@ def test_delete_group_doesnt_exist():
     assert not __group_exists(client, bogus_id, identity_store_id)
 
 
-@mock_identitystore
+@mock_aws
 def test_delete_group_membership():
     client = boto3.client("identitystore", region_name="eu-west-1")
     identity_store_id = get_identity_store_id()
@@ -764,7 +763,7 @@ def test_delete_group_membership():
     assert len(response["GroupMemberships"]) == 0
 
 
-@mock_identitystore
+@mock_aws
 def test_delete_user():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -778,7 +777,7 @@ def test_delete_user():
     assert err.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_identitystore
+@mock_aws
 def test_delete_user_doesnt_exist():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -789,7 +788,7 @@ def test_delete_user_doesnt_exist():
     )
 
 
-@mock_identitystore
+@mock_aws
 def test_create_describe_group() -> None:
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()
@@ -806,7 +805,7 @@ def test_create_describe_group() -> None:
     assert client_response["IdentityStoreId"] == identity_store_id
 
 
-@mock_identitystore
+@mock_aws
 def test_describe_group_doesnt_exist() -> None:
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()

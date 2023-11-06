@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sns, mock_sqs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_sns
+@mock_aws
 def test_publish_batch_unknown_topic():
     client = boto3.client("sns", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -21,7 +21,7 @@ def test_publish_batch_unknown_topic():
     assert err["Message"] == "Topic does not exist"
 
 
-@mock_sns
+@mock_aws
 def test_publish_batch_too_many_items():
     client = boto3.client("sns", region_name="eu-north-1")
     topic = client.create_topic(Name="some-topic")
@@ -38,7 +38,7 @@ def test_publish_batch_too_many_items():
     assert err["Message"] == "The batch request contains more entries than permissible."
 
 
-@mock_sns
+@mock_aws
 def test_publish_batch_non_unique_ids():
     client = boto3.client("sns", region_name="us-west-2")
     topic = client.create_topic(Name="some-topic")
@@ -57,7 +57,7 @@ def test_publish_batch_non_unique_ids():
     )
 
 
-@mock_sns
+@mock_aws
 def test_publish_batch_fifo_without_message_group_id():
     client = boto3.client("sns", region_name="us-east-1")
     topic = client.create_topic(
@@ -77,7 +77,7 @@ def test_publish_batch_fifo_without_message_group_id():
     )
 
 
-@mock_sns
+@mock_aws
 def test_publish_batch_standard_with_message_group_id():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="standard_topic")["TopicArn"]
@@ -105,8 +105,7 @@ def test_publish_batch_standard_with_message_group_id():
     }
 
 
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_publish_batch_to_sqs():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="standard_topic")["TopicArn"]
@@ -146,8 +145,7 @@ def test_publish_batch_to_sqs():
     ) in messages
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_batch_to_sqs_raw():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="standard_topic")["TopicArn"]

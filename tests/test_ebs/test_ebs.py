@@ -1,16 +1,15 @@
-"""Unit tests for ebs-supported APIs."""
 import hashlib
 
 import boto3
 
-from moto import mock_ebs, mock_ec2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_ebs
+@mock_aws
 def test_start_snapshot__minimal():
     client = boto3.client("ebs", region_name="eu-west-1")
     resp = client.start_snapshot(VolumeSize=720)
@@ -23,7 +22,7 @@ def test_start_snapshot__minimal():
     assert resp["BlockSize"] == 512
 
 
-@mock_ebs
+@mock_aws
 def test_start_snapshot():
     client = boto3.client("ebs", region_name="eu-west-1")
     resp = client.start_snapshot(
@@ -42,7 +41,7 @@ def test_start_snapshot():
     assert resp["Description"] == "my fancy snapshot"
 
 
-@mock_ebs
+@mock_aws
 def test_complete_snapshot():
     client = boto3.client("ebs", region_name="ap-southeast-1")
     snapshot_id = client.start_snapshot(VolumeSize=720)["SnapshotId"]
@@ -51,7 +50,7 @@ def test_complete_snapshot():
     assert resp["Status"] == "completed"
 
 
-@mock_ebs
+@mock_aws
 def test_put_snapshot_block():
     data = b"data for this specific block\xbf"
     checksum = hashlib.sha256(data).hexdigest()
@@ -70,7 +69,7 @@ def test_put_snapshot_block():
     assert resp["ChecksumAlgorithm"] == "SHA256"
 
 
-@mock_ebs
+@mock_aws
 def test_get_snapshot_block():
     client = boto3.client("ebs", region_name="eu-west-1")
     snapshot_id = client.start_snapshot(VolumeSize=720)["SnapshotId"]
@@ -96,7 +95,7 @@ def test_get_snapshot_block():
     assert resp["ChecksumAlgorithm"] == "SHA256"
 
 
-@mock_ebs
+@mock_aws
 def test_list_changed_blocks():
     client = boto3.client("ebs", region_name="ap-southeast-1")
     snapshot_id1 = client.start_snapshot(VolumeSize=415)["SnapshotId"]
@@ -135,7 +134,7 @@ def test_list_changed_blocks():
     assert "SecondBlockToken" not in changed_blocks[1]
 
 
-@mock_ebs
+@mock_aws
 def test_list_snapshot_blocks():
     client = boto3.client("ebs", region_name="ap-southeast-1")
     snapshot_id = client.start_snapshot(VolumeSize=415)["SnapshotId"]
@@ -159,8 +158,7 @@ def test_list_snapshot_blocks():
     assert [b["BlockIndex"] for b in resp["Blocks"]] == [1, 2, 3]
 
 
-@mock_ebs
-@mock_ec2
+@mock_aws
 def test_start_snapshot__should_be_created_in_ec2():
     ebs = boto3.client("ebs", region_name="eu-north-1")
     ec2 = boto3.client("ec2", region_name="eu-north-1")

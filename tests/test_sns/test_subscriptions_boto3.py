@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sns, mock_sqs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sns.models import (
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
@@ -12,7 +12,7 @@ from moto.sns.models import (
 )
 
 
-@mock_sns
+@mock_aws
 def test_subscribe_sms():
     client = boto3.client("sns", region_name="us-east-1")
     client.create_topic(Name="some-topic")
@@ -26,7 +26,7 @@ def test_subscribe_sms():
     assert "SubscriptionArn" in resp
 
 
-@mock_sns
+@mock_aws
 def test_double_subscription():
     client = boto3.client("sns", region_name="us-east-1")
     client.create_topic(Name="some-topic")
@@ -43,7 +43,7 @@ def test_double_subscription():
     assert resp1["SubscriptionArn"] == resp2["SubscriptionArn"]
 
 
-@mock_sns
+@mock_aws
 def test_subscribe_bad_sms():
     client = boto3.client("sns", region_name="us-east-1")
     client.create_topic(Name="some-topic")
@@ -79,7 +79,7 @@ def test_subscribe_bad_sms():
     )
 
 
-@mock_sns
+@mock_aws
 def test_creating_subscription():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -104,7 +104,7 @@ def test_creating_subscription():
     assert len(subscriptions) == 0
 
 
-@mock_sns
+@mock_aws
 def test_unsubscribe_from_deleted_topic():
     client = boto3.client("sns", region_name="us-east-1")
     client.create_topic(Name="some-topic")
@@ -146,7 +146,7 @@ def test_unsubscribe_from_deleted_topic():
     client.unsubscribe(SubscriptionArn=subscription_arn)
 
 
-@mock_sns
+@mock_aws
 def test_getting_subscriptions_by_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="topic1")
@@ -171,7 +171,7 @@ def test_getting_subscriptions_by_topic():
     assert topic1_subscriptions[0]["Endpoint"] == "http://example1.com/"
 
 
-@mock_sns
+@mock_aws
 def test_subscription_paging():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="topic1")
@@ -208,7 +208,7 @@ def test_subscription_paging():
     assert "NextToken" not in topic1_subscriptions
 
 
-@mock_sns
+@mock_aws
 def test_subscribe_attributes():
     client = boto3.client("sns", region_name="us-east-1")
     client.create_topic(Name="some-topic")
@@ -236,7 +236,7 @@ def test_subscribe_attributes():
     )
 
 
-@mock_sns
+@mock_aws
 def test_creating_subscription_with_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -311,8 +311,7 @@ def test_creating_subscription_with_attributes():
         )
 
 
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_delete_subscriptions_on_delete_topic():
     sqs = boto3.client("sqs", region_name="us-east-1")
     conn = boto3.client("sns", region_name="us-east-1")
@@ -333,7 +332,7 @@ def test_delete_subscriptions_on_delete_topic():
     assert len(subscriptions) == 0
 
 
-@mock_sns
+@mock_aws
 def test_set_subscription_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -424,7 +423,7 @@ def test_set_subscription_attributes():
         )
 
 
-@mock_sns
+@mock_aws
 def test_subscribe_invalid_filter_policy():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -727,7 +726,7 @@ def test_subscribe_invalid_filter_policy():
         )
 
 
-@mock_sns
+@mock_aws
 def test_check_not_opted_out():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.check_if_phone_number_is_opted_out(phoneNumber="+447428545375")
@@ -736,7 +735,7 @@ def test_check_not_opted_out():
     assert response["isOptedOut"] is False
 
 
-@mock_sns
+@mock_aws
 def test_check_opted_out():
     # Phone number ends in 99 so is hardcoded in the endpoint to return opted
     # out status
@@ -747,7 +746,7 @@ def test_check_opted_out():
     assert response["isOptedOut"] is True
 
 
-@mock_sns
+@mock_aws
 def test_check_opted_out_invalid():
     conn = boto3.client("sns", region_name="us-east-1")
 
@@ -756,7 +755,7 @@ def test_check_opted_out_invalid():
         conn.check_if_phone_number_is_opted_out(phoneNumber="+44742LALALA")
 
 
-@mock_sns
+@mock_aws
 def test_list_opted_out():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.list_phone_numbers_opted_out()
@@ -765,7 +764,7 @@ def test_list_opted_out():
     assert len(response["phoneNumbers"]) > 0
 
 
-@mock_sns
+@mock_aws
 def test_opt_in():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.list_phone_numbers_opted_out()
@@ -779,7 +778,7 @@ def test_opt_in():
     assert len(response["phoneNumbers"]) < current_len
 
 
-@mock_sns
+@mock_aws
 def test_confirm_subscription():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_topic(Name="testconfirm")
@@ -796,7 +795,7 @@ def test_confirm_subscription():
     )
 
 
-@mock_sns
+@mock_aws
 def test_get_subscription_attributes_error_not_exists():
     # given
     client = boto3.client("sns", region_name="us-east-1")

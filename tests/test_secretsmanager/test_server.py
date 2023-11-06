@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import unittest
 
@@ -6,7 +5,7 @@ import boto3
 import pytest
 
 import moto.server as server
-from moto import mock_iam, mock_lambda, mock_logs, mock_secretsmanager, settings
+from moto import mock_aws, settings
 from tests.markers import requires_docker
 from tests.test_awslambda.test_lambda import get_test_zip_file1
 
@@ -19,7 +18,7 @@ def skip_in_server_mode():
         raise unittest.SkipTest("No point in testing this in ServerMode")
 
 
-@mock_secretsmanager
+@mock_aws
 def test_get_secret_value():
 
     backend = server.create_backend_app("secretsmanager")
@@ -41,7 +40,7 @@ def test_get_secret_value():
     assert json_data["SecretString"] == "foo-secret"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_get_secret_that_does_not_exist():
 
     backend = server.create_backend_app("secretsmanager")
@@ -57,7 +56,7 @@ def test_get_secret_that_does_not_exist():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_get_secret_that_does_not_match():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -77,7 +76,7 @@ def test_get_secret_that_does_not_match():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_get_secret_that_has_no_value():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -101,7 +100,7 @@ def test_get_secret_that_has_no_value():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_create_secret():
 
     backend = server.create_backend_app("secretsmanager")
@@ -127,7 +126,7 @@ def test_create_secret():
     assert json_data_2["Name"] == "test-secret-2"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_describe_secret():
 
     backend = server.create_backend_app("secretsmanager")
@@ -166,7 +165,7 @@ def test_describe_secret():
     assert json_data_2["Name"] == "test-secret-2"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_describe_secret_that_does_not_exist():
 
     backend = server.create_backend_app("secretsmanager")
@@ -183,7 +182,7 @@ def test_describe_secret_that_does_not_exist():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_describe_secret_that_does_not_match():
 
     backend = server.create_backend_app("secretsmanager")
@@ -205,7 +204,7 @@ def test_describe_secret_that_does_not_match():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -233,7 +232,7 @@ def test_rotate_secret():
     assert json_data["VersionId"] == client_request_token
 
 
-# @mock_secretsmanager
+# @mock_aws
 # def test_rotate_secret_enable_rotation():
 #     backend = server.create_backend_app('secretsmanager')
 #     test_client = backend.test_client()
@@ -291,7 +290,7 @@ def test_rotate_secret():
 #     assert json_data['RotationRules']['AutomaticallyAfterDays'] == 42
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_that_does_not_exist():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -307,7 +306,7 @@ def test_rotate_secret_that_does_not_exist():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_that_does_not_match():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -329,7 +328,7 @@ def test_rotate_secret_that_does_not_match():
     assert json_data["__type"] == "ResourceNotFoundException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_that_is_still_rotating():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -373,7 +372,7 @@ def test_rotate_secret_that_is_still_rotating():
     assert rotate_secret.status_code == 400
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_client_request_token_too_short():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -399,7 +398,7 @@ def test_rotate_secret_client_request_token_too_short():
     assert json_data["__type"] == "InvalidParameterException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_client_request_token_too_long():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -427,7 +426,7 @@ def test_rotate_secret_client_request_token_too_long():
     assert json_data["__type"] == "InvalidParameterException"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_rotation_lambda_arn_too_long():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -453,10 +452,7 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     assert json_data["__type"] == "InvalidParameterException"
 
 
-@mock_iam
-@mock_lambda
-@mock_logs
-@mock_secretsmanager
+@mock_aws
 @requires_docker
 def test_rotate_secret_lambda_invocations():
     conn = boto3.client("iam", region_name="us-east-1")
@@ -501,10 +497,7 @@ def test_rotate_secret_lambda_invocations():
     assert len(logs["logStreams"]) == 4
 
 
-@mock_iam
-@mock_lambda
-@mock_logs
-@mock_secretsmanager
+@mock_aws
 def test_rotate_secret_with_incorrect_lambda_arn():
     secretsmanager_backend = server.create_backend_app("secretsmanager")
     secretsmanager_client = secretsmanager_backend.test_client()
@@ -526,7 +519,7 @@ def test_rotate_secret_with_incorrect_lambda_arn():
     assert resp.status_code == 404
 
 
-@mock_secretsmanager
+@mock_aws
 def test_put_secret_value_puts_new_secret():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -576,7 +569,7 @@ def test_put_secret_value_puts_new_secret():
     assert second_secret_json_data["SecretString"] == "foosecret"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_put_secret_value_can_get_first_version_if_put_twice():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -634,7 +627,7 @@ def test_put_secret_value_can_get_first_version_if_put_twice():
     assert get_first_secret_json_data["SecretString"] == first_secret_string
 
 
-@mock_secretsmanager
+@mock_aws
 def test_put_secret_value_versions_differ_if_same_secret_put_twice():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -675,7 +668,7 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
     assert first_secret_version_id != second_secret_version_id
 
 
-@mock_secretsmanager
+@mock_aws
 def test_can_list_secret_version_ids():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -728,7 +721,7 @@ def test_can_list_secret_version_ids():
     ].sort() == returned_version_ids.sort()
 
 
-@mock_secretsmanager
+@mock_aws
 def test_get_resource_policy_secret():
 
     backend = server.create_backend_app("secretsmanager")
@@ -751,7 +744,7 @@ def test_get_resource_policy_secret():
     assert json_data["Name"] == "test-secret"
 
 
-@mock_secretsmanager
+@mock_aws
 @pytest.mark.parametrize("pass_arn", [True, False])
 def test_update_secret_version_stage(pass_arn):
     custom_stage = "CUSTOM_STAGE"
@@ -819,7 +812,7 @@ def test_update_secret_version_stage(pass_arn):
     assert stages[new_version] == []
 
 
-@mock_secretsmanager
+@mock_aws
 def test_update_secret_version_stage_currentversion_handling():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -876,7 +869,7 @@ def test_update_secret_version_stage_currentversion_handling():
     assert stages[new_version] == ["AWSPREVIOUS"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_update_secret_version_stage_validation():
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
@@ -932,7 +925,7 @@ def test_update_secret_version_stage_validation():
 # needs further investigation.
 #
 
-# @mock_secretsmanager
+# @mock_aws
 # def test_rotate_secret_rotation_period_zero():
 #     backend = server.create_backend_app('secretsmanager')
 #     test_client = backend.test_client()
@@ -957,7 +950,7 @@ def test_update_secret_version_stage_validation():
 #     assert json_data['message'] == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
 #     assert json_data['__type'] == 'InvalidParameterException'
 
-# @mock_secretsmanager
+# @mock_aws
 # def test_rotate_secret_rotation_period_too_long():
 #     backend = server.create_backend_app('secretsmanager')
 #     test_client = backend.test_client()

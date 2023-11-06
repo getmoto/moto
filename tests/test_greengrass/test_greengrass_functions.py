@@ -3,12 +3,12 @@ import freezegun
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_greengrass
+from moto import mock_aws
 from moto.settings import TEST_SERVER_MODE
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_function_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -40,7 +40,7 @@ def test_create_function_definition():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_function_definitions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -74,7 +74,7 @@ def test_list_function_definitions():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_function_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -115,7 +115,7 @@ def test_get_function_definition():
         assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_function_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -127,7 +127,7 @@ def test_get_function_definition_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_function_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -153,7 +153,7 @@ def test_delete_function_definition():
     assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_function_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -166,7 +166,7 @@ def test_delete_function_definition_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_function_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -198,7 +198,7 @@ def test_update_function_definition():
     assert get_res["Name"] == updated_func_name
 
 
-@mock_greengrass
+@mock_aws
 def test_update_function_definition_with_empty_name():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -228,7 +228,7 @@ def test_update_function_definition_with_empty_name():
     assert err["Code"] == "InvalidContainerDefinitionException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_function_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -242,7 +242,7 @@ def test_update_function_definition_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_function_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_functions = [
@@ -289,7 +289,7 @@ def test_create_function_definition_version():
         assert func_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_function_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
@@ -315,7 +315,7 @@ def test_create_function_definition_version_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_function_definition_versions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
@@ -352,7 +352,7 @@ def test_list_function_definition_versions():
     assert "Version" in device_def_ver
 
 
-@mock_greengrass
+@mock_aws
 def test_list_function_definition_versions_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -366,7 +366,7 @@ def test_list_function_definition_versions_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_function_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [
@@ -404,7 +404,7 @@ def test_get_function_definition_version():
         assert func_def_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_function_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -418,7 +418,7 @@ def test_get_function_definition_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_function_definition_version_with_invalid_version_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     functions = [

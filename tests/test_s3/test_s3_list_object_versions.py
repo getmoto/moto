@@ -3,13 +3,13 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import mock_s3
+from moto import mock_aws
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 from . import s3_aws_verified
 
 
-@mock_s3
+@mock_aws
 def test_list_versions():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -51,7 +51,7 @@ def test_list_versions():
     assert len(versions) == 1
 
 
-@mock_s3
+@mock_aws
 def test_list_object_versions():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "000" + str(uuid4())
@@ -192,7 +192,7 @@ def test_list_object_versions_with_delimiter(bucket_name=None):
     assert len(response["Versions"]) == 24
 
 
-@mock_s3
+@mock_aws
 def test_list_object_versions_with_delimiter_for_deleted_objects():
     bucket_name = "tests_bucket"
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -241,7 +241,7 @@ def test_list_object_versions_with_delimiter_for_deleted_objects():
     assert [dm["Key"] for dm in del_objs["DeleteMarkers"]] == ["del_obj_0"]
 
 
-@mock_s3
+@mock_aws
 def test_list_object_versions_with_versioning_disabled():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -265,7 +265,7 @@ def test_list_object_versions_with_versioning_disabled():
     assert response["Body"].read() == items[-1]
 
 
-@mock_s3
+@mock_aws
 def test_list_object_versions_with_versioning_enabled_late():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -529,7 +529,7 @@ def test_list_object_versions_with_paging_and_delimiter(bucket_name=None):
     assert "NextVersionIdMarker" not in page3
 
 
-@mock_s3
+@mock_aws
 def test_bad_prefix_list_object_versions():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"

@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_ecs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ecs
+@mock_aws
 def test_create_capacity_provider():
     client = boto3.client("ecs", region_name="us-west-1")
     resp = client.create_capacity_provider(
@@ -37,7 +37,7 @@ def test_create_capacity_provider():
     }
 
 
-@mock_ecs
+@mock_aws
 def test_create_capacity_provider_with_tags():
     client = boto3.client("ecs", region_name="us-west-1")
     resp = client.create_capacity_provider(
@@ -66,7 +66,7 @@ def test_create_capacity_provider_with_tags():
     assert resp["tags"] == [{"key": "k2", "value": "v2"}]
 
 
-@mock_ecs
+@mock_aws
 def test_describe_capacity_provider__using_name():
     client = boto3.client("ecs", region_name="us-west-1")
     client.create_capacity_provider(
@@ -102,7 +102,7 @@ def test_describe_capacity_provider__using_name():
     }
 
 
-@mock_ecs
+@mock_aws
 def test_describe_capacity_provider__using_arn():
     client = boto3.client("ecs", region_name="us-west-1")
     provider_arn = client.create_capacity_provider(
@@ -125,7 +125,7 @@ def test_describe_capacity_provider__using_arn():
     assert provider["name"] == "my_provider"
 
 
-@mock_ecs
+@mock_aws
 def test_describe_capacity_provider__missing():
     client = boto3.client("ecs", region_name="us-west-1")
     client.create_capacity_provider(
@@ -153,7 +153,7 @@ def test_describe_capacity_provider__missing():
     ]
 
 
-@mock_ecs
+@mock_aws
 def test_delete_capacity_provider():
     client = boto3.client("ecs", region_name="us-west-1")
     client.create_capacity_provider(
@@ -179,7 +179,7 @@ def test_delete_capacity_provider():
     } in resp["failures"]
 
 
-@mock_ecs
+@mock_aws
 def test_update_capacity_provider():
     client = boto3.client("ecs", region_name="us-west-1")
     client.create_capacity_provider(

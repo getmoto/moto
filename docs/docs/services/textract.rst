@@ -14,17 +14,6 @@ textract
 
 .. autoclass:: moto.textract.models.TextractBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_textract
-            def test_textract_behaviour:
-                boto3.client("textract")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] analyze_document

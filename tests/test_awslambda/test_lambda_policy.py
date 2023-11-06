@@ -5,18 +5,17 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_lambda, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .utilities import get_role_name, get_test_zip_file1, get_test_zip_file2
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_add_function_permission(key):
     """
     Parametrized to ensure that we can add permission by using the FunctionName and the FunctionArn
@@ -50,7 +49,7 @@ def test_add_function_permission(key):
     }
 
 
-@mock_lambda
+@mock_aws
 def test_add_permission_with_principalorgid():
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -81,7 +80,7 @@ def test_add_permission_with_principalorgid():
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_get_function_policy(key):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -119,7 +118,7 @@ def test_get_function_policy(key):
     )
 
 
-@mock_lambda
+@mock_aws
 def test_get_policy_with_qualifier():
     # assert that the resource within the statement ends with :qualifier
     conn = boto3.client("lambda", _lambda_region)
@@ -164,7 +163,7 @@ def test_get_policy_with_qualifier():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_add_permission_with_unknown_qualifier():
     # assert that the resource within the statement ends with :qualifier
     conn = boto3.client("lambda", _lambda_region)
@@ -200,7 +199,7 @@ def test_add_permission_with_unknown_qualifier():
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_remove_function_permission(key):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -230,7 +229,7 @@ def test_remove_function_permission(key):
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_remove_function_permission__with_qualifier(key):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -274,8 +273,7 @@ def test_remove_function_permission__with_qualifier(key):
     assert policy["Statement"] == []
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_unknown_policy():
     conn = boto3.client("lambda", _lambda_region)
 

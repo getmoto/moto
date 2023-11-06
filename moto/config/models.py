@@ -684,10 +684,10 @@ class Source(ConfigEmptyDictable):
 
         # Import is slow and as it's not needed for all config service
         # operations, only load it if needed.
-        from moto.awslambda import lambda_backends
+        from moto.awslambda.utils import get_backend
 
         try:
-            lambda_backends[account_id][region].get_function(source_identifier)
+            get_backend(account_id, region).get_function(source_identifier)
         except Exception:
             raise InsufficientPermissionsException(
                 f"The AWS Lambda function {source_identifier} cannot be "

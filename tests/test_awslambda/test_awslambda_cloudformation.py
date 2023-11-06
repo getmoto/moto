@@ -8,7 +8,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
+from moto import mock_aws
 
 
 def random_stack_name():
@@ -72,9 +72,7 @@ event_source_mapping_template = Template(
 )
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_lambda_can_be_updated_by_cloudformation():
     s3 = boto3.client("s3", "us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -101,9 +99,7 @@ def test_lambda_can_be_updated_by_cloudformation():
     assert "/test2.zip" in updated_fn["Code"]["Location"]
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_lambda_can_be_deleted_by_cloudformation():
     s3 = boto3.client("s3", "us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -118,10 +114,7 @@ def test_lambda_can_be_deleted_by_cloudformation():
     assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_create_from_cloudformation_json():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -156,10 +149,7 @@ def test_event_source_mapping_create_from_cloudformation_json():
     assert event_source["FunctionArn"] == created_fn_arn
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_delete_stack():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -195,10 +185,7 @@ def test_event_source_mapping_delete_stack():
     assert len(event_sources["EventSourceMappings"]) == 0
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_update_from_cloudformation_json():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -248,10 +235,7 @@ def test_event_source_mapping_update_from_cloudformation_json():
     assert updated_esm["BatchSize"] == 10
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_delete_from_cloudformation_json():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -334,15 +318,14 @@ def get_template(bucket_name, version, runtime):
 
 
 def get_role_arn():
-    with mock_iam():
-        iam = boto3.client("iam", region_name="us-west-2")
-        try:
-            iam.create_role(
-                RoleName="my-role",
-                AssumeRolePolicyDocument="some policy",
-                Path="/my-path/",
-            )
-        except ClientError:
-            pass  # Will fail second/third time - difficult to execute once with parallel tests
+    iam = boto3.client("iam", region_name="us-west-2")
+    try:
+        iam.create_role(
+            RoleName="my-role",
+            AssumeRolePolicyDocument="some policy",
+            Path="/my-path/",
+        )
+    except ClientError:
+        pass  # Will fail second/third time - difficult to execute once with parallel tests
 
-        return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+    return iam.get_role(RoleName="my-role")["Role"]["Arn"]

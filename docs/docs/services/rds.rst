@@ -12,17 +12,6 @@
 rds
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_rds
-            def test_rds_behaviour:
-                boto3.client("rds")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_role_to_db_cluster

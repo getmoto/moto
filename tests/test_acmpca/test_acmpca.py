@@ -1,4 +1,3 @@
-"""Unit tests for acmpca-supported APIs."""
 import datetime
 
 import boto3
@@ -10,7 +9,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import NameOID
 
-from moto import mock_acmpca
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -18,7 +17,7 @@ from moto.core.utils import utcnow
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_acmpca
+@mock_aws
 def test_create_certificate_authority():
     client = boto3.client("acm-pca", region_name="eu-west-1")
     resp = client.create_certificate_authority(
@@ -37,7 +36,7 @@ def test_create_certificate_authority():
     )
 
 
-@mock_acmpca
+@mock_aws
 def test_describe_certificate_authority():
     client = boto3.client("acm-pca", region_name="ap-southeast-1")
     ca_arn = client.create_certificate_authority(
@@ -66,7 +65,7 @@ def test_describe_certificate_authority():
     assert ca["KeyStorageSecurityStandard"] == "FIPS_140_2_LEVEL_3_OR_HIGHER"
 
 
-@mock_acmpca
+@mock_aws
 def test_describe_certificate_authority_with_security_standard():
     client = boto3.client("acm-pca", region_name="ap-southeast-1")
     ca_arn = client.create_certificate_authority(
@@ -96,7 +95,7 @@ def test_describe_certificate_authority_with_security_standard():
     assert ca["KeyStorageSecurityStandard"] == "FIPS_140_2_LEVEL_2_OR_HIGHER"
 
 
-@mock_acmpca
+@mock_aws
 def test_describe_unknown_certificate_authority():
     client = boto3.client("acm-pca", region_name="ap-southeast-1")
 
@@ -106,7 +105,7 @@ def test_describe_unknown_certificate_authority():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_acmpca
+@mock_aws
 def test_get_certificate_authority_certificate():
     client = boto3.client("acm-pca", region_name="ap-southeast-1")
     ca_arn = client.create_certificate_authority(
@@ -125,7 +124,7 @@ def test_get_certificate_authority_certificate():
     assert resp["Certificate"] == ""
 
 
-@mock_acmpca
+@mock_aws
 def test_get_certificate_authority_csr():
     client = boto3.client("acm-pca", region_name="us-east-2")
     ca_arn = client.create_certificate_authority(
@@ -143,7 +142,7 @@ def test_get_certificate_authority_csr():
     assert "Csr" in resp
 
 
-@mock_acmpca
+@mock_aws
 def test_list_tags_when_ca_has_no_tags():
     client = boto3.client("acm-pca", region_name="us-east-2")
     ca_arn = client.create_certificate_authority(
@@ -160,7 +159,7 @@ def test_list_tags_when_ca_has_no_tags():
     assert resp["Tags"] == []
 
 
-@mock_acmpca
+@mock_aws
 def test_list_tags():
     client = boto3.client("acm-pca", region_name="us-east-2")
     ca_arn = client.create_certificate_authority(
@@ -178,7 +177,7 @@ def test_list_tags():
     assert resp["Tags"] == [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
 
 
-@mock_acmpca
+@mock_aws
 def test_update_certificate_authority():
     client = boto3.client("acm-pca", region_name="eu-west-1")
     ca_arn = client.create_certificate_authority(
@@ -202,7 +201,7 @@ def test_update_certificate_authority():
     assert "LastStateChangeAt" in ca
 
 
-@mock_acmpca
+@mock_aws
 def test_delete_certificate_authority():
     client = boto3.client("acm-pca", region_name="ap-southeast-1")
     ca_arn = client.create_certificate_authority(
@@ -222,7 +221,7 @@ def test_delete_certificate_authority():
     assert ca["Status"] == "DELETED"
 
 
-@mock_acmpca
+@mock_aws
 def test_issue_certificate():
     client = boto3.client("acm-pca", region_name="ap-southeast-1")
     ca_arn = client.create_certificate_authority(
@@ -246,7 +245,7 @@ def test_issue_certificate():
     assert "CertificateArn" in resp
 
 
-@mock_acmpca
+@mock_aws
 def test_get_certificate():
     client = boto3.client("acm-pca", region_name="us-east-2")
     ca_arn = client.create_certificate_authority(
@@ -273,7 +272,7 @@ def test_get_certificate():
     assert "Certificate" in resp
 
 
-@mock_acmpca
+@mock_aws
 def test_import_certificate_authority_certificate():
     client = boto3.client("acm-pca", region_name="eu-west-1")
     ca_arn = client.create_certificate_authority(
@@ -303,7 +302,7 @@ def test_import_certificate_authority_certificate():
     assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
 
 
-@mock_acmpca
+@mock_aws
 def test_tag_certificate_authority():
     client = boto3.client("acm-pca", region_name="eu-west-1")
     ca_arn = client.create_certificate_authority(
@@ -324,7 +323,7 @@ def test_tag_certificate_authority():
     assert resp["Tags"] == [{"Key": "t1", "Value": "v1"}, {"Key": "t2", "Value": "v2"}]
 
 
-@mock_acmpca
+@mock_aws
 def test_untag_certificate_authority():
     client = boto3.client("acm-pca", region_name="eu-west-1")
     ca_arn = client.create_certificate_authority(

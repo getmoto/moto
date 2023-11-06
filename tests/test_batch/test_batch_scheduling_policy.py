@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_batch
+from moto import mock_aws
 from tests import DEFAULT_ACCOUNT_ID
 
 
-@mock_batch
+@mock_aws
 def test_create_scheduling_policy():
     client = boto3.client("batch", "us-east-2")
     resp = client.create_scheduling_policy(name="test")
@@ -15,7 +15,7 @@ def test_create_scheduling_policy():
     )
 
 
-@mock_batch
+@mock_aws
 def test_describe_default_scheduling_policy():
     client = boto3.client("batch", "us-east-2")
     arn = client.create_scheduling_policy(name="test")["arn"]
@@ -33,7 +33,7 @@ def test_describe_default_scheduling_policy():
     assert policy["tags"] == {}
 
 
-@mock_batch
+@mock_aws
 def test_describe_scheduling_policy():
     client = boto3.client("batch", "us-east-2")
     arn = client.create_scheduling_policy(
@@ -63,7 +63,7 @@ def test_describe_scheduling_policy():
     assert policy["tags"] == {}
 
 
-@mock_batch
+@mock_aws
 def test_delete_scheduling_policy():
     client = boto3.client("batch", "us-east-2")
     arn = client.create_scheduling_policy(name="test")["arn"]
@@ -74,7 +74,7 @@ def test_delete_scheduling_policy():
     assert len(resp["schedulingPolicies"]) == 0
 
 
-@mock_batch
+@mock_aws
 def test_update_scheduling_policy():
     client = boto3.client("batch", "us-east-2")
     arn = client.create_scheduling_policy(name="test")["arn"]

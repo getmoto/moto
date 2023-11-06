@@ -75,7 +75,7 @@ class DomainDispatcherApplication:
         if self.service:
             return self.service
 
-        if host in backends.BACKENDS:
+        if host in backends.list_of_moto_modules():
             return host
 
         for backend, pattern in self.backend_url_patterns:

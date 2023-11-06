@@ -52,15 +52,15 @@ There are several ways to verify that the value will be persisted successfully.
 Decorator
 ~~~~~~~~~
 
-With a decorator wrapping, all the calls to S3 are automatically mocked out.
+With a simple decorator wrapping, all calls to AWS are automatically mocked out.
 
 .. sourcecode:: python
 
     import boto3
-    from moto import mock_s3
+    from moto import mock_aws
     from mymodule import MyModel
 
-    @mock_s3
+    @mock_aws
     def test_my_model_save():
         conn = boto3.resource("s3", region_name="us-east-1")
         # We need to create the bucket since this is all in Moto's 'virtual' AWS account
@@ -82,7 +82,7 @@ Same as the Decorator, every call inside the ``with`` statement is mocked out.
 .. sourcecode:: python
 
     def test_my_model_save():
-        with mock_s3():
+        with mock_aws():
             conn = boto3.resource("s3", region_name="us-east-1")
             conn.create_bucket(Bucket="mybucket")
 
@@ -102,7 +102,7 @@ You can also start and stop the mocking manually.
 .. sourcecode:: python
 
     def test_my_model_save():
-        mock = mock_s3()
+        mock = mock_aws()
         mock.start()
 
         conn = boto3.resource("s3", region_name="us-east-1")
@@ -126,7 +126,7 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
 .. sourcecode:: python
 
     import unittest
-    from moto import mock_s3
+    from moto import mock_aws
     import boto3
 
     def func_to_test(bucket_name, key, content):
@@ -138,8 +138,8 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
 
         bucket_name = "test-bucket"
         def setUp(self):
-            self.mock_s3 = mock_s3()
-            self.mock_s3.start()
+            self.mock_aws = mock_aws()
+            self.mock_aws.start()
 
             # you can use boto3.client("s3") if you prefer
             s3 = boto3.resource("s3")
@@ -147,7 +147,7 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
             bucket.create()
 
         def tearDown(self):
-            self.mock_s3.stop()
+            self.mock_aws.stop()
 
         def test(self):
             content = b"abc"
@@ -171,7 +171,7 @@ The decorator is effective for every test-method inside your class. State is not
 
 .. sourcecode:: python
 
-    @mock_s3
+    @mock_aws
     class TestMockClassLevel(unittest.TestCase):
         def setUp(self):
             s3 = boto3.client("s3", region_name="us-east-1")
@@ -195,14 +195,13 @@ The decorator is effective for every test-method inside your class. State is not
 Stand-alone server mode
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Moto also comes with a stand-alone server allowing you to mock out an AWS HTTP endpoint. For testing purposes, it's extremely useful even if you don't use Python.
+Moto also comes with a stand-alone server allowing you to mock out the AWS HTTP endpoints. This is useful if you are using any other language than Python.
 
 .. sourcecode:: bash
 
     $ moto_server -p3000
      * Running on http://127.0.0.1:3000/
 
-However, this method isn't encouraged if you're using ``boto3``, the best solution would be to use a decorator method.
 See :doc:`server_mode` for more information.
 
 Recommended Usage
@@ -250,19 +249,19 @@ Here is an example:
         os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
     @pytest.fixture(scope="function")
-    def s3(aws_credentials):
-        with mock_s3():
+    def aws(aws_credentials):
+        with mock_aws():
             yield boto3.client("s3", region_name="us-east-1")
 
     @pytest.fixture
-    def create_bucket1(s3):
+    def create_bucket1(aws):
         boto3.client("s3").create_bucket(Bucket="b1")
 
     @pytest.fixture
-    def create_bucket2(s3):
+    def create_bucket2(aws):
         boto3.client("s3").create_bucket(Bucket="b2")
 
-    def test_s3_directly(s3):
+    def test_s3_directly(aws):
         s3.create_bucket(Bucket="somebucket")
 
         result = s3.list_buckets()
@@ -303,7 +302,7 @@ Example:
 
 .. sourcecode:: python
 
-    def test_something(s3):
+    def test_something(aws):
         # s3 is a fixture defined above that yields a boto3 s3 client.
         
         from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
@@ -323,7 +322,7 @@ If it is not possible to rearrange imports, we can patch the boto3-client or res
     outside_client = boto3.client("s3")
     s3 = boto3.resource("s3")
 
-    @mock_s3
+    @mock_aws
     def test_mock_works_with_client_or_resource_created_outside():
         from moto.core import patch_client, patch_resource
         patch_client(outside_client)

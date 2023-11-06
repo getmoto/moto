@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ssm
+from moto import mock_aws
 
 
-@mock_ssm
+@mock_aws
 def test_describe_maintenance_window():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -16,7 +16,7 @@ def test_describe_maintenance_window():
     assert resp["WindowIdentities"] == []
 
 
-@mock_ssm
+@mock_aws
 def test_create_maintenance_windows_simple():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -48,7 +48,7 @@ def test_create_maintenance_windows_simple():
     assert "StartDate" not in my_window
 
 
-@mock_ssm
+@mock_aws
 def test_create_maintenance_windows_advanced():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -85,7 +85,7 @@ def test_create_maintenance_windows_advanced():
     assert my_window["EndDate"] == "2021-12-31"
 
 
-@mock_ssm
+@mock_aws
 def test_get_maintenance_windows():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -114,7 +114,7 @@ def test_get_maintenance_windows():
     assert "StartDate" not in my_window
 
 
-@mock_ssm
+@mock_aws
 def test_describe_maintenance_windows():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -136,7 +136,7 @@ def test_describe_maintenance_windows():
     assert len(resp["WindowIdentities"]) == 2
 
 
-@mock_ssm
+@mock_aws
 def test_delete_maintenance_windows():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -154,7 +154,7 @@ def test_delete_maintenance_windows():
     assert resp["WindowIdentities"] == []
 
 
-@mock_ssm
+@mock_aws
 def test_tags():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -213,7 +213,7 @@ def test_tags():
     assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
-@mock_ssm
+@mock_aws
 def test_register_maintenance_window_target():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -244,7 +244,7 @@ def test_register_maintenance_window_target():
     assert resp["Targets"][0]["Targets"][0]["Values"] == ["my-instance"]
 
 
-@mock_ssm
+@mock_aws
 def test_deregister_target_from_maintenance_window():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -275,7 +275,7 @@ def test_deregister_target_from_maintenance_window():
     assert len(resp["Targets"]) == 0
 
 
-@mock_ssm
+@mock_aws
 def test_describe_maintenance_window_with_no_task_or_targets():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -299,7 +299,7 @@ def test_describe_maintenance_window_with_no_task_or_targets():
     assert len(resp["Targets"]) == 0
 
 
-@mock_ssm
+@mock_aws
 def test_register_maintenance_window_task():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -342,7 +342,7 @@ def test_register_maintenance_window_task():
     assert resp["Tasks"][0]["MaxErrors"] == "1"
 
 
-@mock_ssm
+@mock_aws
 def test_deregister_maintenance_window_task():
     ssm = boto3.client("ssm", region_name="us-east-1")
 

@@ -3,15 +3,13 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_autoscaling, mock_ec2, mock_elb
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
 
 
-@mock_autoscaling
-@mock_ec2
-@mock_elb
+@mock_aws
 class TestAutoScalingELB(TestCase):
     def setUp(self):
         self.mocked_networking = setup_networking()
@@ -266,9 +264,7 @@ class TestAutoScalingELB(TestCase):
         assert scheduled_action_1["ScheduledActionName"] == "my-scheduled-action"
 
 
-@mock_autoscaling
-@mock_elb
-@mock_ec2
+@mock_aws
 class TestAutoScalingInstances(TestCase):
     def setUp(self) -> None:
         self.mocked_networking = setup_networking()
@@ -809,9 +805,7 @@ class TestAutoScalingInstances(TestCase):
         ]
 
 
-@mock_autoscaling
-@mock_elb
-@mock_ec2
+@mock_aws
 class TestAutoScalingInstancesProtected(TestCase):
     def setUp(self) -> None:
         self.mocked_networking = setup_networking()
@@ -886,9 +880,7 @@ class TestAutoScalingInstancesProtected(TestCase):
         assert len(list(response["LoadBalancerDescriptions"][0]["Instances"])) == 3
 
 
-@mock_autoscaling
-@mock_ec2
-@mock_elb
+@mock_aws
 class TestAutoScalingTerminateInstances(TestCase):
     def setUp(self) -> None:
         self.mocked_networking = setup_networking()

@@ -12,17 +12,6 @@
 cloudwatch
 ==========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_cloudwatch
-            def test_cloudwatch_behaviour:
-                boto3.client("cloudwatch")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] delete_alarms

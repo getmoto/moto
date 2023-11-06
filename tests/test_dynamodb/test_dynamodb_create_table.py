@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import dynamodb_aws_verified
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_standard():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -52,7 +52,7 @@ def test_create_table_standard():
     assert actual["ItemCount"] == 0
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_local_index():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -115,7 +115,7 @@ def test_create_table_with_local_index():
     assert actual["ItemCount"] == 0
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_gsi():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -188,7 +188,7 @@ def test_create_table_with_gsi():
     ]
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_stream_specification():
     conn = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -215,7 +215,7 @@ def test_create_table_with_stream_specification():
     assert "StreamSpecification" in resp["TableDescription"]
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_tags():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -233,7 +233,7 @@ def test_create_table_with_tags():
     assert resp["Tags"] == [{"Key": "tk", "Value": "tv"}]
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_pay_per_request():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -258,7 +258,7 @@ def test_create_table_pay_per_request():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table__provisioned_throughput():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -283,7 +283,7 @@ def test_create_table__provisioned_throughput():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_without_specifying_throughput():
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -305,7 +305,7 @@ def test_create_table_without_specifying_throughput():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_error_pay_per_request_with_provisioned_param():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -331,7 +331,7 @@ def test_create_table_error_pay_per_request_with_provisioned_param():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_ssespecification__false():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -352,7 +352,7 @@ def test_create_table_with_ssespecification__false():
     assert "SSEDescription" not in actual
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_ssespecification__true():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -377,7 +377,7 @@ def test_create_table_with_ssespecification__true():
     assert actual["SSEDescription"]["KMSMasterKeyArn"].startswith("arn:aws:kms")
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_ssespecification__custom_kms_key():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
