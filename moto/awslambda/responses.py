@@ -227,7 +227,8 @@ class LambdaResponse(BaseResponse):
     def _get_policy(self, request: Any) -> TYPE_RESPONSE:
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
-        out = self.backend.get_policy(function_name)
+        qualifier = self.querystring.get("Qualifier", [None])[0]
+        out = self.backend.get_policy(function_name, qualifier)
         return 200, {}, out
 
     def _del_policy(self, request: Any, querystring: Dict[str, Any]) -> TYPE_RESPONSE:

@@ -2098,8 +2098,8 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.get_code_signing_config()
 
-    def get_policy(self, function_name: str) -> str:
-        fn = self.get_function(function_name)
+    def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
+        fn = self._lambdas.get_function_by_name_or_arn(function_name, qualifier)
         if not fn:
             raise UnknownFunctionException(function_name)
         return fn.policy.wire_format()  # type: ignore[union-attr]
