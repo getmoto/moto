@@ -15811,6 +15811,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "chime-sdk-voice": {
+                "Value": "chime-sdk-voice",
+                "endpoint": {
+                  "Value": "voice-chime.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cleanrooms": {
                 "Value": "cleanrooms",
                 "endpoint": {
@@ -23356,6 +23365,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -23808,6 +23826,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -24713,6 +24734,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -25129,6 +25159,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -28095,6 +28128,15 @@
                 "Value": "wellarchitectedtool",
                 "endpoint": {
                   "Value": "wellarchitected.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "wickr": {
+                "Value": "wickr",
+                "endpoint": {
+                  "Value": "api.messaging.wickr.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -8309,6 +8309,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-2": {
+                "Value": "ap-southeast-2",
+                "endpoint": {
+                  "Value": "voice-chime.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -25627,6 +25636,24 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "fsx.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cn-north-1": {
+                "Value": "cn-north-1",
+                "endpoint": {
+                  "Value": "fsx.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cn-northwest-1": {
+                "Value": "cn-northwest-1",
+                "endpoint": {
+                  "Value": "fsx.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48450,6 +48477,12 @@
               "ca-central-1": {
                 "Value": "ca-central-1"
               },
+              "cn-north-1": {
+                "Value": "cn-north-1"
+              },
+              "cn-northwest-1": {
+                "Value": "cn-northwest-1"
+              },
               "eu-central-1": {
                 "Value": "eu-central-1"
               },
@@ -61974,6 +62007,15 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "api.messaging.wickr.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-central-1": {
+                "Value": "eu-central-1",
+                "endpoint": {
+                  "Value": "api.messaging.wickr.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
