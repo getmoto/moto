@@ -155,10 +155,10 @@ def test_create_repository_error_already_exists():
 @mock_ecr
 def test_create_repository_error_name_validation():
     client = boto3.client("ecr", region_name=ECR_REGION)
-    ECR_REPO = "tesT"
+    repo_name = "tesT"
 
     with pytest.raises(ClientError) as e:
-        client.create_repository(repositoryName=ECR_REPO)
+        client.create_repository(repositoryName=repo_name)
 
     ex = e.value
     assert ex.operation_name == "CreateRepository"
@@ -1720,7 +1720,8 @@ def test_put_image_scanning_configuration_error_not_exists():
     # when
     with pytest.raises(ClientError) as e:
         client.put_image_scanning_configuration(
-            repositoryName=ECR_REPO_NOT_EXIST, imageScanningConfiguration={"scanOnPush": True}
+            repositoryName=ECR_REPO_NOT_EXIST,
+            imageScanningConfiguration={"scanOnPush": True},
         )
 
     # then
@@ -1840,9 +1841,7 @@ def test_get_repository_policy():
             }
         ],
     }
-    client.set_repository_policy(
-        repositoryName=ECR_REPO, policyText=json.dumps(policy)
-    )
+    client.set_repository_policy(repositoryName=ECR_REPO, policyText=json.dumps(policy))
 
     # when
     response = client.get_repository_policy(repositoryName=ECR_REPO)
@@ -1912,9 +1911,7 @@ def test_delete_repository_policy():
             }
         ],
     }
-    client.set_repository_policy(
-        repositoryName=ECR_REPO, policyText=json.dumps(policy)
-    )
+    client.set_repository_policy(repositoryName=ECR_REPO, policyText=json.dumps(policy))
 
     # when
     response = client.delete_repository_policy(repositoryName=ECR_REPO)
