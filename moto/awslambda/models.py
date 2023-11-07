@@ -7,8 +7,6 @@ from gzip import GzipFile
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from sys import platform
 
-import docker
-import docker.errors
 import hashlib
 import io
 import logging
@@ -157,6 +155,8 @@ class _DockerDataVolumeContext:
         with self.__class__._lock:
             self._vol_ref.refcount -= 1  # type: ignore[union-attr]
             if self._vol_ref.refcount == 0:  # type: ignore[union-attr]
+                import docker.errors
+
                 try:
                     self._vol_ref.volume.remove()  # type: ignore[union-attr]
                 except docker.errors.APIError as e:
@@ -240,6 +240,8 @@ class _DockerDataVolumeLayerContext:
         with self.__class__._lock:
             self._vol_ref.refcount -= 1  # type: ignore[union-attr]
             if self._vol_ref.refcount == 0:  # type: ignore[union-attr]
+                import docker.errors
+
                 try:
                     self._vol_ref.volume.remove()  # type: ignore[union-attr]
                 except docker.errors.APIError as e:
@@ -857,6 +859,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, event: Optional[str] = None) -> Tuple[str, bool, str]:
+        import docker
+        import docker.errors
+
         # Create the LogGroup if necessary, to write the result to
         self.logs_backend.ensure_log_group(self.logs_group_name)
         # TODO: context not yet implemented
