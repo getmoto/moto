@@ -89,3 +89,42 @@ def test_add_instance_to_serverless_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == "Instances cannot be added to Aurora Serverless clusters."
+
+
+@mock_rds
+def test_delete_db_cluster_fails_if_cluster_contains_db_instances():
+    cluster_identifier = "test-cluster"
+    instance_identifier = "test-instance"
+    client = boto3.client("rds", "us-east-1")
+    client.create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+        MasterUsername="test-user",
+        MasterUserPassword="password",
+    )
+    client.create_db_instance(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+        DBInstanceIdentifier=instance_identifier,
+        DBInstanceClass="db.t4g.medium",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_cluster(
+            DBClusterIdentifier=cluster_identifier,
+            SkipFinalSnapshot=True,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidDBClusterStateFault"
+    assert (
+        err["Message"]
+        == "Cluster cannot be deleted, it still contains DB instances in non-deleting state."
+    )
+    client.delete_db_instance(
+        DBInstanceIdentifier=instance_identifier,
+        SkipFinalSnapshot=True,
+    )
+    cluster = client.delete_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        SkipFinalSnapshot=True,
+    ).get("DBCluster")
+    assert cluster["DBClusterIdentifier"] == cluster_identifier
