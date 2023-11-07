@@ -82,6 +82,14 @@ class InvalidDBClusterStateFaultError(RDSClientError):
         )
 
 
+class DBClusterToBeDeletedHasActiveMembers(RDSClientError):
+    def __init__(self):
+        super().__init__(
+            "InvalidDBClusterStateFault",
+            "Cluster cannot be deleted, it still contains DB instances in non-deleting state.",
+        )
+
+
 class InvalidDBInstanceStateError(RDSClientError):
     def __init__(self, database_identifier: str, istate: str):
         estate = (

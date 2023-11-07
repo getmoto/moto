@@ -19,6 +19,7 @@ from .exceptions import (
     DBClusterNotFoundError,
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
+    DBClusterToBeDeletedHasActiveMembers,
     DBInstanceNotFoundError,
     DBSnapshotNotFoundError,
     DBSecurityGroupNotFoundError,
@@ -2339,7 +2340,8 @@ class RDSBackend(BaseBackend):
                 raise InvalidParameterValue(
                     "Can't delete Cluster with protection enabled"
                 )
-
+            if cluster.cluster_members:
+                raise DBClusterToBeDeletedHasActiveMembers()
             global_id = cluster.global_cluster_identifier or ""
             if global_id in self.global_clusters:
                 self.remove_from_global_cluster(global_id, cluster_identifier)
