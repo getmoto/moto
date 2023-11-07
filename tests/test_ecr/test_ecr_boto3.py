@@ -13,7 +13,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_ecr_helpers import _create_image_manifest, _create_image_manifest_list
 
-
+REGION_NAME = "us-east-1"
 @mock_ecr
 def test_create_repository():
     # given
@@ -2763,3 +2763,42 @@ def test_describe_registry_after_update():
 
     # then
     assert response["replicationConfiguration"] == config
+
+
+@mock_ecr
+def test_ecr_image_digest():
+    # given
+    client = boto3.client("ecr", region_name="eu-central-1")
+    repo_name = "test-repo"
+    digest = "sha256:826b6832e45ba17d625debc95ae8554e148550b00c05b47fa8f7be1c555bc83c"
+    client.create_repository(repositoryName=repo_name)
+    image_manifest = {
+        "config": {
+            "digest": "sha256:6442bc26a7c562f5afe6467dab36365c709909f6a81afcecfc0c25cff0f1bab0",
+            "mediaType": "application/vnd.docker.container.image.v1+json",
+            "size": 5205,
+        },
+        "layers": [
+            {
+                "digest": "sha256:b35e87b5838011a3637be660e4238af9a55e4edc74404c990f7a558e7f416658",
+                "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+                "size": 26690191,
+            }
+        ],
+        "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+        "schemaVersion": 2,
+    }
+
+    # when
+    put_response = client.put_image(
+        repositoryName=repo_name,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="test1",
+        imageDigest=digest,
+    )
+    describe_response = client.describe_images(repositoryName=repo_name)
+
+    # then
+    assert put_response["image"]["imageId"]["imageDigest"] == digest
+    assert describe_response["imageDetails"][0]["imageDigest"] == digest

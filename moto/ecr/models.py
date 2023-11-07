@@ -560,6 +560,7 @@ class ECRBackend(BaseBackend):
         image_manifest: str,
         image_tag: str,
         image_manifest_mediatype: Optional[str] = None,
+        digest: Optional[str] = None,
     ) -> Image:
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
@@ -612,6 +613,7 @@ class ECRBackend(BaseBackend):
                 image_manifest,
                 repository_name,
                 image_manifest_mediatype,
+                digest,
             )
             repository.images.append(image)
             if existing_images_with_matching_tag:
