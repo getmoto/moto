@@ -18,6 +18,7 @@ from moto.redshift.models import redshift_backends, RedshiftBackend
 from moto.emr.models import emr_backends, ElasticMapReduceBackend
 from moto.awslambda.models import lambda_backends, LambdaBackend
 from moto.ecs.models import ecs_backends, EC2ContainerServiceBackend
+from moto.acm.models import acm_backends, AWSCertificateManagerBackend
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -89,6 +90,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.account_id][self.region_name]
+    
+    @property
+    def acm_backend(self) -> AWSCertificateManagerBackend:
+        return acm_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -144,6 +149,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
             return result
+        
+        #ACM 
+        if not resource_type_filters or "acm" in resource_type_filters:
+            for certificate in self.acm_backend._certificates.values():
+                tags = format_tags(
+                    certificate.tags
+                )
+                if not tags or not tag_filter(tags):
+                    continue
+                
+                yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
 
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:
