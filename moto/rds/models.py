@@ -1590,12 +1590,6 @@ class RDSBackend(BaseBackend):
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
         database_id = db_kwargs["db_instance_identifier"]
         self._validate_db_identifier(database_id)
-
-        if db_kwargs.get("engine") not in DbInstanceEngine.valid_db_instance_engine():
-            raise InvalidParameterValue(
-                f"Value {db_kwargs.get('engine')} for parameter Engine is invalid. Reason: engine {db_kwargs.get('engine')} not supported"
-            )
-
         database = Database(**db_kwargs)
 
         cluster_id = database.db_cluster_identifier
