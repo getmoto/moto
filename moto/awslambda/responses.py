@@ -399,11 +399,13 @@ class LambdaResponse(BaseResponse):
 
     @staticmethod
     def _set_configuration_qualifier(configuration: Dict[str, Any], function_name: str, qualifier: str) -> Dict[str, Any]:  # type: ignore[misc]
-        # Extract qualifier from function_name if present
+        # Qualifier may be explicitly passed or part of function name or ARN, extract it here
         if function_name.startswith("arn:aws"):
+            # Extract from ARN
             if ":" in function_name.split(":function:")[-1]:
                 qualifier = function_name.split(":")[-1]
         else:
+            # Extract from function name
             if ":" in function_name:
                 qualifier = function_name.split(":")[1]
 

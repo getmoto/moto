@@ -1355,6 +1355,7 @@ class LambdaStorage(object):
 
     def _get_function_aliases(self, function_name: str) -> Dict[str, LambdaAlias]:
         fn = self.get_function_by_name_or_arn_with_qualifier(function_name)
+        # Split ARN to retrieve an ARN without a qualifier present
         [arn, _, _] = self.split_function_arn(fn.function_arn)
         return self._aliases[arn]
 
@@ -1412,7 +1413,7 @@ class LambdaStorage(object):
         alias.update(description, function_version, routing_config)
         return alias
 
-    def get_function_by_name(
+    def get_function_by_name_forbid_qualifier(
         self, name: str
     ) -> LambdaFunction:
         """
@@ -1445,7 +1446,7 @@ class LambdaStorage(object):
 
         # Find without qualifier
         if qualifier is None:
-            return self.get_function_by_name(name)
+            return self.get_function_by_name_forbid_qualifier(name)
 
         if name not in self._functions:
             raise self.construct_unknown_function_exception(name, qualifier)
@@ -1492,6 +1493,12 @@ class LambdaStorage(object):
         return self._arns.get(arn_without_qualifier, None)
 
     def split_function_arn(self, arn: str) -> [str, str, Optional[str]]:
+        """
+        Handy utility to parse an ARN into:
+        - ARN without qualifier
+        - Function name
+        - Optional qualifier
+        """
         qualifier = None
         # Function ARN may contain an alias
         # arn:aws:lambda:region:account_id:function:<fn_name>:<alias_name>
@@ -1502,7 +1509,7 @@ class LambdaStorage(object):
         name = arn.split(":")[-1]
         return [arn, name, qualifier]
 
-    def get_function_by_name_or_arn(
+    def get_function_by_name_or_arn_forbid_qualifier(
         self, name_or_arn: str
     ) -> LambdaFunction:
         """
@@ -1517,10 +1524,10 @@ class LambdaStorage(object):
             if qualifier is not None:
                 raise InvalidParameterValueException("Cannot provide qualifier")
 
-            return self.get_function_by_name(name)
+            return self.get_function_by_name_forbid_qualifier(name)
         else:
             # name_or_arn is not an arn
-            return self.get_function_by_name(name_or_arn)
+            return self.get_function_by_name_forbid_qualifier(name_or_arn)
 
     def get_function_by_name_or_arn_with_qualifier(
         self, name_or_arn: str, qualifier: Optional[str] = None
@@ -1575,7 +1582,7 @@ class LambdaStorage(object):
     def publish_function(
         self, name_or_arn: str, description: str = ""
     ) -> Optional[LambdaFunction]:
-        function = self.get_function_by_name_or_arn(name_or_arn)
+        function = self.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         name = function.function_name
         if name not in self._functions:
             return None
@@ -1853,21 +1860,21 @@ class LambdaBackend(BaseBackend):
         The Qualifier-parameter is not yet implemented.
         Function URLs are not yet mocked, so invoking them will fail
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         return function.create_url_config(config)
 
     def delete_function_url_config(self, name_or_arn: str) -> None:
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         function.delete_url_config()
 
     def get_function_url_config(self, name_or_arn: str) -> FunctionUrlConfig:
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         if not function:
             raise UnknownFunctionException(arn=name_or_arn)
         return function.get_url_config()
@@ -1878,7 +1885,7 @@ class LambdaBackend(BaseBackend):
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         return function.update_url_config(config)
 
     def create_event_source_mapping(self, spec: Dict[str, Any]) -> EventSourceMapping:
