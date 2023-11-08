@@ -684,6 +684,14 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "c7i.xlarge",
   "Location": "us-west-2"
  },
@@ -1864,6 +1872,14 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "us-west-2"
  },
@@ -2628,6 +2644,14 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "r7i.xlarge",
   "Location": "us-west-2"
  },
@@ -2657,6 +2681,14 @@
  },
  {
   "InstanceType": "r7iz.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
   "Location": "us-west-2"
  },
  {

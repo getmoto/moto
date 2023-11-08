@@ -82,6 +82,14 @@ class InvalidDBClusterStateFaultError(RDSClientError):
         )
 
 
+class DBClusterToBeDeletedHasActiveMembers(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidDBClusterStateFault",
+            "Cluster cannot be deleted, it still contains DB instances in non-deleting state.",
+        )
+
+
 class InvalidDBInstanceStateError(RDSClientError):
     def __init__(self, database_identifier: str, istate: str):
         estate = (
@@ -200,4 +208,12 @@ class InvalidDBInstanceIdentifier(InvalidParameterValue):
             "The parameter DBInstanceIdentifier is not a valid identifier. "
             "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
             "and must not end with a hyphen or contain two consecutive hyphens."
+        )
+
+
+class InvalidDBInstanceEngine(InvalidParameterCombination):
+    def __init__(self, instance_engine: str, cluster_engine: str) -> None:
+        super().__init__(
+            f"The engine name requested for your DB instance ({instance_engine}) doesn't match "
+            f"the engine name of your DB cluster ({cluster_engine})."
         )

@@ -30,3 +30,19 @@ If you want to mock the default region, as an additional layer of protection aga
 
     os.environ["MOTO_ALLOW_NONEXISTENT_REGION"] = True
     os.environ["AWS_DEFAULT_REGION"] = "antarctica"
+
+
+How can I mock my own HTTP-requests, using the Responses-module?
+################################################################
+
+Moto uses it's own Responses-mock to intercept AWS requests, so if you need to intercept custom (non-AWS) request as part of your tests, you may find that Moto 'swallows' any pass-thru's that you have defined.
+You can pass your own Responses-mock to Moto, to ensure that any custom (non-AWS) are handled by that Responses-mock.
+
+.. sourcecode:: python
+
+    from moto.core.models import override_responses_real_send
+
+    my_own_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
+    override_responses_real_send(my_own_mock)
+    my_own_mock.start()
+    my_own_mock.add_passthru("http://some-website.com")

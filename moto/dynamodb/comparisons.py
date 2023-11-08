@@ -10,7 +10,7 @@ from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 def get_filter_expression(
     expr: Optional[str],
     names: Optional[Dict[str, str]],
-    values: Optional[Dict[str, str]],
+    values: Optional[Dict[str, Dict[str, str]]],
 ) -> Union["Op", "Func"]:
     """
     Parse a filter expression into an Op.
@@ -145,7 +145,7 @@ class ConditionExpressionParser:
         self,
         condition_expression: Optional[str],
         expression_attribute_names: Optional[Dict[str, str]],
-        expression_attribute_values: Optional[Dict[str, str]],
+        expression_attribute_values: Optional[Dict[str, Dict[str, str]]],
     ):
         self.condition_expression = condition_expression
         self.expression_attribute_names = expression_attribute_names
@@ -423,7 +423,7 @@ class ConditionExpressionParser:
                 children=[],
             )
 
-    def _lookup_expression_attribute_value(self, name: str) -> str:
+    def _lookup_expression_attribute_value(self, name: str) -> Dict[str, str]:
         return self.expression_attribute_values[name]  # type: ignore[index]
 
     def _lookup_expression_attribute_name(self, name: str) -> str:

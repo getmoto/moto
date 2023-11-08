@@ -176,6 +176,14 @@
   "Location": "eu-south-2a"
  },
  {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "eu-south-2a"
+ },
+ {
   "InstanceType": "c7i.xlarge",
   "Location": "eu-south-2a"
  },
@@ -492,6 +500,14 @@
   "Location": "eu-south-2a"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "eu-south-2a"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "eu-south-2a"
  },
@@ -669,6 +685,14 @@
  },
  {
   "InstanceType": "r7i.large",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
   "Location": "eu-south-2a"
  },
  {
@@ -1180,6 +1204,14 @@
   "Location": "eu-south-2b"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "eu-south-2b"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "eu-south-2b"
  },
@@ -1357,6 +1389,14 @@
  },
  {
   "InstanceType": "r7i.large",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
   "Location": "eu-south-2b"
  },
  {
@@ -1609,6 +1649,14 @@
  },
  {
   "InstanceType": "c7i.large",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
   "Location": "eu-south-2c"
  },
  {
@@ -1904,6 +1952,14 @@
   "Location": "eu-south-2c"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "eu-south-2c"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "eu-south-2c"
  },
@@ -2081,6 +2137,14 @@
  },
  {
   "InstanceType": "r7i.large",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
   "Location": "eu-south-2c"
  },
  {

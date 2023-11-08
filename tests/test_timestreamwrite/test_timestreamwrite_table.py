@@ -1,86 +1,125 @@
+import boto3
+import pytest
 import time
 
-import boto3
 from botocore.exceptions import ClientError
-import pytest
+from uuid import uuid4
 
 from moto import mock_timestreamwrite, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
+from . import timestreamwrite_aws_verified
 
-@mock_timestreamwrite
+
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_create_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")
-    ts.create_database(DatabaseName="mydatabase")
+    db_name = "db_" + str(uuid4())[0:6]
+    table_name = "t_" + str(uuid4())[0:6]
 
-    resp = ts.create_table(
-        DatabaseName="mydatabase",
-        TableName="mytable",
-        RetentionProperties={
+    identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
+    account_id = identity["Account"]
+
+    try:
+        ts.create_database(DatabaseName=db_name)
+
+        resp = ts.create_table(
+            DatabaseName=db_name,
+            TableName=table_name,
+            RetentionProperties={
+                "MemoryStoreRetentionPeriodInHours": 7,
+                "MagneticStoreRetentionPeriodInDays": 42,
+            },
+        )
+        table = resp["Table"]
+        assert table["Arn"] == (
+            f"arn:aws:timestream:us-east-1:{account_id}:database/{db_name}/table/{table_name}"
+        )
+        assert table["TableName"] == table_name
+        assert table["DatabaseName"] == db_name
+        assert table["TableStatus"] == "ACTIVE"
+        assert table["RetentionProperties"] == {
             "MemoryStoreRetentionPeriodInHours": 7,
             "MagneticStoreRetentionPeriodInDays": 42,
-        },
-    )
-    table = resp["Table"]
-    assert table["Arn"] == (
-        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
-    )
-    assert table["TableName"] == "mytable"
-    assert table["DatabaseName"] == "mydatabase"
-    assert table["TableStatus"] == "ACTIVE"
-    assert table["RetentionProperties"] == {
-        "MemoryStoreRetentionPeriodInHours": 7,
-        "MagneticStoreRetentionPeriodInDays": 42,
-    }
+        }
+    finally:
+        ts.delete_table(DatabaseName=db_name, TableName=table_name)
+        ts.delete_database(DatabaseName=db_name)
 
 
-@mock_timestreamwrite
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_create_table__with_magnetic_store_write_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
-    ts.create_database(DatabaseName="mydatabase")
+    db_name = "db_" + str(uuid4())[0:6]
+    table_name = "t_" + str(uuid4())[0:6]
 
-    resp = ts.create_table(
-        DatabaseName="mydatabase",
-        TableName="mytable",
-        MagneticStoreWriteProperties={
+    identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
+    account_id = identity["Account"]
+
+    bucket_name = f"b-{str(uuid4())[0:6]}"
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket=bucket_name)
+
+    try:
+        ts.create_database(DatabaseName=db_name)
+
+        table = ts.create_table(
+            DatabaseName=db_name,
+            TableName=table_name,
+            MagneticStoreWriteProperties={
+                "EnableMagneticStoreWrites": True,
+                "MagneticStoreRejectedDataLocation": {
+                    "S3Configuration": {"BucketName": bucket_name}
+                },
+            },
+        )["Table"]
+        assert table["Arn"] == (
+            f"arn:aws:timestream:us-east-1:{account_id}:database/{db_name}/table/{table_name}"
+        )
+        assert table["TableName"] == table_name
+        assert table["DatabaseName"] == db_name
+        assert table["TableStatus"] == "ACTIVE"
+        assert table["MagneticStoreWriteProperties"] == {
             "EnableMagneticStoreWrites": True,
             "MagneticStoreRejectedDataLocation": {
-                "S3Configuration": {"BucketName": "hithere"}
+                "S3Configuration": {"BucketName": bucket_name}
             },
-        },
-    )
-    table = resp["Table"]
-    assert table["Arn"] == (
-        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
-    )
-    assert table["TableName"] == "mytable"
-    assert table["DatabaseName"] == "mydatabase"
-    assert table["TableStatus"] == "ACTIVE"
-    assert table["MagneticStoreWriteProperties"] == {
-        "EnableMagneticStoreWrites": True,
-        "MagneticStoreRejectedDataLocation": {
-            "S3Configuration": {"BucketName": "hithere"}
-        },
-    }
+        }
+    finally:
+        ts.delete_table(DatabaseName=db_name, TableName=table_name)
+        ts.delete_database(DatabaseName=db_name)
+        s3.delete_bucket(Bucket=bucket_name)
 
 
-@mock_timestreamwrite
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_create_table_without_retention_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
-    ts.create_database(DatabaseName="mydatabase")
+    db_name = "db_" + str(uuid4())[0:6]
+    table_name = "t_" + str(uuid4())[0:6]
 
-    resp = ts.create_table(DatabaseName="mydatabase", TableName="mytable")
-    table = resp["Table"]
-    assert table["Arn"] == (
-        f"arn:aws:timestream:us-east-1:{ACCOUNT_ID}:database/mydatabase/table/mytable"
-    )
-    assert table["TableName"] == "mytable"
-    assert table["DatabaseName"] == "mydatabase"
-    assert table["TableStatus"] == "ACTIVE"
-    assert table["RetentionProperties"] == {
-        "MemoryStoreRetentionPeriodInHours": 123,
-        "MagneticStoreRetentionPeriodInDays": 123,
-    }
+    identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
+    account_id = identity["Account"]
+
+    try:
+        ts.create_database(DatabaseName=db_name)
+
+        table = ts.create_table(DatabaseName=db_name, TableName=table_name)["Table"]
+        assert table["Arn"] == (
+            f"arn:aws:timestream:us-east-1:{account_id}:database/{db_name}/table/{table_name}"
+        )
+        assert table["TableName"] == table_name
+        assert table["DatabaseName"] == db_name
+        assert table["TableStatus"] == "ACTIVE"
+        assert table["RetentionProperties"] == {
+            "MemoryStoreRetentionPeriodInHours": 6,
+            "MagneticStoreRetentionPeriodInDays": 73000,
+        }
+    finally:
+        ts.delete_table(DatabaseName=db_name, TableName=table_name)
+        ts.delete_database(DatabaseName=db_name)
 
 
 @mock_timestreamwrite
@@ -110,16 +149,22 @@ def test_describe_table():
     }
 
 
-@mock_timestreamwrite
+@pytest.mark.aws_verified
+@timestreamwrite_aws_verified
 def test_describe_unknown_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
-    ts.create_database(DatabaseName="mydatabase")
+    db_name = "db_" + str(uuid4())[0:6]
 
-    with pytest.raises(ClientError) as exc:
-        ts.describe_table(DatabaseName="mydatabase", TableName="unknown")
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-    assert err["Message"] == "The table unknown does not exist."
+    try:
+        ts.create_database(DatabaseName=db_name)
+
+        with pytest.raises(ClientError) as exc:
+            ts.describe_table(DatabaseName=db_name, TableName="unknown")
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+        assert err["Message"] == "The table unknown does not exist."
+    finally:
+        ts.delete_database(DatabaseName=db_name)
 
 
 @mock_timestreamwrite

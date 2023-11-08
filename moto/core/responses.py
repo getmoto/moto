@@ -533,6 +533,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
+
         if action in method_names:
             method = getattr(self, action)
             try:

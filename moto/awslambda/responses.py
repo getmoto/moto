@@ -125,8 +125,8 @@ class LambdaResponse(BaseResponse):
 
     @amz_crc32
     @amzn_request_id
-    def invoke(
-        self, request: Any, full_url: str, headers: Any
+    def invoke(  # type: ignore
+        self, request=None, full_url="", headers=None
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -227,7 +227,8 @@ class LambdaResponse(BaseResponse):
     def _get_policy(self, request: Any) -> TYPE_RESPONSE:
         path = request.path if hasattr(request, "path") else path_url(request.url)
         function_name = unquote(path.split("/")[-2])
-        out = self.backend.get_policy(function_name)
+        qualifier = self.querystring.get("Qualifier", [None])[0]
+        out = self.backend.get_policy(function_name, qualifier)
         return 200, {}, out
 
     def _del_policy(self, request: Any, querystring: Dict[str, Any]) -> TYPE_RESPONSE:

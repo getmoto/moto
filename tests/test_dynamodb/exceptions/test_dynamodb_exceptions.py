@@ -1117,7 +1117,7 @@ def test_query_with_missing_expression_attribute():
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_update_item_returns_old_item(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
@@ -1164,3 +1164,36 @@ def test_update_item_returns_old_item(table_name=None):
         "lock": {"M": {"acquired_at": {"N": "123"}}},
         "pk": {"S": "mark"},
     }
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_scan_with_missing_value(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.scan(
+            FilterExpression="attr = loc",
+            # Missing ':'
+            ExpressionAttributeValues={"loc": "sth"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == 'ExpressionAttributeValues contains invalid key: Syntax error; key: "loc"'
+    )
+
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="attr = loc",
+            # Missing ':'
+            ExpressionAttributeValues={"loc": "sth"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == 'ExpressionAttributeValues contains invalid key: Syntax error; key: "loc"'
+    )

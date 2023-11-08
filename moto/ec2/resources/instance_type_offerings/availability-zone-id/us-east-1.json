@@ -2808,6 +2808,14 @@
   "Location": "use1-az2"
  },
  {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "use1-az2"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "use1-az2"
+ },
+ {
   "InstanceType": "c7i.xlarge",
   "Location": "use1-az2"
  },
@@ -3988,6 +3996,14 @@
   "Location": "use1-az2"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "use1-az2"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "use1-az2"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "use1-az2"
  },
@@ -4736,6 +4752,14 @@
   "Location": "use1-az2"
  },
  {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "use1-az2"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
+  "Location": "use1-az2"
+ },
+ {
   "InstanceType": "r7i.xlarge",
   "Location": "use1-az2"
  },
@@ -4765,6 +4789,14 @@
  },
  {
   "InstanceType": "r7iz.large",
+  "Location": "use1-az2"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "use1-az2"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
   "Location": "use1-az2"
  },
  {
@@ -6032,6 +6064,14 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "c7i.xlarge",
   "Location": "use1-az4"
  },
@@ -7208,6 +7248,14 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "use1-az4"
  },
@@ -7948,6 +7996,14 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "r7i.xlarge",
   "Location": "use1-az4"
  },
@@ -7977,6 +8033,14 @@
  },
  {
   "InstanceType": "r7iz.large",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
   "Location": "use1-az4"
  },
  {
@@ -8917,6 +8981,14 @@
  },
  {
   "InstanceType": "c7i.large",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
   "Location": "use1-az5"
  },
  {
@@ -9876,6 +9948,14 @@
   "Location": "use1-az5"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "use1-az5"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "use1-az5"
  },
@@ -10552,6 +10632,14 @@
   "Location": "use1-az5"
  },
  {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
+  "Location": "use1-az5"
+ },
+ {
   "InstanceType": "r7i.xlarge",
   "Location": "use1-az5"
  },
@@ -10581,6 +10669,14 @@
  },
  {
   "InstanceType": "r7iz.large",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "use1-az5"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
   "Location": "use1-az5"
  },
  {
@@ -11513,6 +11609,14 @@
  },
  {
   "InstanceType": "c7i.large",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
   "Location": "use1-az6"
  },
  {
@@ -12704,6 +12808,14 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "use1-az6"
  },
@@ -13464,6 +13576,14 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "r7i.xlarge",
   "Location": "use1-az6"
  },
@@ -13493,6 +13613,14 @@
  },
  {
   "InstanceType": "r7iz.large",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
   "Location": "use1-az6"
  },
  {

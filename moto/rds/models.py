@@ -19,6 +19,7 @@ from .exceptions import (
     DBClusterNotFoundError,
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
+    DBClusterToBeDeletedHasActiveMembers,
     DBInstanceNotFoundError,
     DBSnapshotNotFoundError,
     DBSecurityGroupNotFoundError,
@@ -27,6 +28,7 @@ from .exceptions import (
     DBClusterParameterGroupNotFoundError,
     OptionGroupNotFoundFaultError,
     InvalidDBClusterStateFaultError,
+    InvalidDBInstanceEngine,
     InvalidDBInstanceStateError,
     SnapshotQuotaExceededError,
     DBSnapshotAlreadyExistsError,
@@ -1593,6 +1595,10 @@ class RDSBackend(BaseBackend):
                     raise InvalidParameterValue(
                         "Instances cannot be added to Aurora Serverless clusters."
                     )
+                if database.engine != cluster.engine:
+                    raise InvalidDBInstanceEngine(
+                        str(database.engine), str(cluster.engine)
+                    )
                 cluster.cluster_members.append(database_id)
         self.databases[database_id] = database
         return database
@@ -2339,7 +2345,8 @@ class RDSBackend(BaseBackend):
                 raise InvalidParameterValue(
                     "Can't delete Cluster with protection enabled"
                 )
-
+            if cluster.cluster_members:
+                raise DBClusterToBeDeletedHasActiveMembers()
             global_id = cluster.global_cluster_identifier or ""
             if global_id in self.global_clusters:
                 self.remove_from_global_cluster(global_id, cluster_identifier)
