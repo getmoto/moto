@@ -30,13 +30,24 @@ def test_describe_db_cluster_fails_for_non_existent_cluster():
     assert err["Code"] == "DBClusterNotFoundFault"
     assert err["Message"] == "DBCluster cluster-id not found."
 
+@mock_rds
+def test_create_db_cluster_invalid_engine():
+    client = boto3.client("rds", region_name=RDS_REGION)
+
+    with pytest.raises(ClientError) as ex:
+        client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="aurora-postgresql")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == (
+        "The parameter MasterUsername must be provided and must not be blank."
+    )
 
 @mock_rds
 def test_create_db_cluster_needs_master_username():
     client = boto3.client("rds", region_name=RDS_REGION)
 
     with pytest.raises(ClientError) as ex:
-        client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="aurora")
+        client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="aurora-postgresql")
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
@@ -50,7 +61,7 @@ def test_create_db_cluster_needs_master_user_password():
 
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
-            DBClusterIdentifier="cluster-id", Engine="aurora", MasterUsername="root"
+            DBClusterIdentifier="cluster-id", Engine="aurora-postgresql", MasterUsername="root"
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
@@ -66,7 +77,7 @@ def test_create_db_cluster_needs_long_master_user_password():
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id",
-            Engine="aurora",
+            Engine="aurora-postgresql",
             MasterUsername="root",
             MasterUserPassword="hunter2",
         )
@@ -84,7 +95,7 @@ def test_modify_db_cluster_needs_long_master_user_password():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter21",
     )
@@ -110,7 +121,7 @@ def test_modify_db_cluster_new_cluster_identifier():
 
     client.create_db_cluster(
         DBClusterIdentifier=old_id,
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter21",
     )
@@ -137,7 +148,7 @@ def test_create_db_cluster__verify_default_properties():
 
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-mysql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -169,8 +180,8 @@ def test_create_db_cluster__verify_default_properties():
     )
     assert cluster["ReaderEndpoint"] == expected_readonly
     assert cluster["MultiAZ"] is False
-    assert cluster["Engine"] == "aurora"
-    assert cluster["EngineVersion"] == "5.6.mysql_aurora.1.22.5"
+    assert cluster["Engine"] == "aurora-mysql"
+    assert cluster["EngineVersion"] == "5.7.mysql_aurora.2.07.2"
     assert cluster["Port"] == 3306
     assert cluster["MasterUsername"] == "root"
     assert cluster["PreferredBackupWindow"] == "01:37-02:07"
@@ -206,7 +217,7 @@ def test_create_db_cluster_additional_parameters():
         AvailabilityZones=["eu-north-1b"],
         DatabaseName="users",
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         EngineVersion="8.0.mysql_aurora.3.01.0",
         EngineMode="serverless",
         MasterUsername="root",
@@ -232,7 +243,7 @@ def test_create_db_cluster_additional_parameters():
 
     assert cluster["AvailabilityZones"] == ["eu-north-1b"]
     assert cluster["DatabaseName"] == "users"
-    assert cluster["Engine"] == "aurora"
+    assert cluster["Engine"] == "aurora-postgresql"
     assert cluster["EngineVersion"] == "8.0.mysql_aurora.3.01.0"
     assert cluster["EngineMode"] == "serverless"
     assert cluster["Port"] == 1234
@@ -259,14 +270,14 @@ def test_describe_db_cluster_after_creation():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id1",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
 
     cluster_arn = client.create_db_cluster(
         DBClusterIdentifier="cluster-id2",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )["DBCluster"]["DBClusterArn"]
@@ -292,7 +303,7 @@ def test_delete_db_cluster():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -308,7 +319,7 @@ def test_delete_db_cluster_do_snapshot():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -329,7 +340,7 @@ def test_delete_db_cluster_that_is_protected():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
         DeletionProtection=True,
@@ -369,7 +380,7 @@ def test_start_db_cluster_after_stopping():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -386,7 +397,7 @@ def test_start_db_cluster_without_stopping():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -404,7 +415,7 @@ def test_stop_db_cluster():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -425,7 +436,7 @@ def test_stop_db_cluster_already_stopped():
 
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         MasterUsername="root",
         MasterUserPassword="hunter2_",
     )
@@ -838,7 +849,7 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         DatabaseName="users",
-        Engine="aurora-mysql",
+        Engine="aurora-postgresql",
         EngineMode="serverless",
         EngineVersion="5.7.0",
         MasterUsername="root",
