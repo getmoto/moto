@@ -1379,7 +1379,9 @@ class LambdaStorage(object):
         description: str,
         routing_config: str,
     ) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn_with_qualifier(function_name, function_version)
+        fn = self.get_function_by_name_or_arn_with_qualifier(
+            function_name, function_version
+        )
         aliases = self._get_function_aliases(function_name)
         if name in aliases:
             arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
@@ -1413,9 +1415,7 @@ class LambdaStorage(object):
         alias.update(description, function_version, routing_config)
         return alias
 
-    def get_function_by_name_forbid_qualifier(
-        self, name: str
-    ) -> LambdaFunction:
+    def get_function_by_name_forbid_qualifier(self, name: str) -> LambdaFunction:
         """
         Get function by name forbidding a qualifier
         :raises: UnknownFunctionException if function not found
@@ -1492,7 +1492,7 @@ class LambdaStorage(object):
         [arn_without_qualifier, _, _] = self.split_function_arn(arn)
         return self._arns.get(arn_without_qualifier, None)
 
-    def split_function_arn(self, arn: str) -> [str, str, Optional[str]]:
+    def split_function_arn(self, arn: str) -> Tuple[str, str, Optional[str]]:
         """
         Handy utility to parse an ARN into:
         - ARN without qualifier
@@ -1507,7 +1507,7 @@ class LambdaStorage(object):
             # arn = arn:aws:lambda:region:account_id:function:<fn_name>
             arn = ":".join(arn.split(":")[0:-1])
         name = arn.split(":")[-1]
-        return [arn, name, qualifier]
+        return arn, name, qualifier
 
     def get_function_by_name_or_arn_forbid_qualifier(
         self, name_or_arn: str
@@ -1539,13 +1539,15 @@ class LambdaStorage(object):
 
         if name_or_arn.startswith("arn:aws"):
             [_, name, qualifier_in_arn] = self.split_function_arn(name_or_arn)
-            return self.get_function_by_name_with_qualifier(name, qualifier_in_arn or qualifier)
+            return self.get_function_by_name_with_qualifier(
+                name, qualifier_in_arn or qualifier
+            )
         else:
             return self.get_function_by_name_with_qualifier(name_or_arn, qualifier)
 
     def construct_unknown_function_exception(
         self, name_or_arn: str, qualifier: Optional[str] = None
-    ) -> None:
+    ) -> UnknownFunctionException:
         if name_or_arn.startswith("arn:aws"):
             arn = name_or_arn
         else:
@@ -1607,10 +1609,14 @@ class LambdaStorage(object):
         return fn
 
     def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
-        function = self.get_function_by_name_or_arn_with_qualifier(name_or_arn, qualifier)
+        function = self.get_function_by_name_or_arn_with_qualifier(
+            name_or_arn, qualifier
+        )
         name = function.function_name
-        qualifier = function.version
-        if not qualifier:
+        # Using function version here instead of qualifier
+        # since qualifier may have been passed in via name_or_arn
+        version = function.version
+        if not version:
             # Something is still reffing this so delete all arns
             latest = self._functions[name]["latest"].function_arn
             del self._arns[latest]
@@ -1621,7 +1627,7 @@ class LambdaStorage(object):
             del self._functions[name]
 
         else:
-            if qualifier == "$LATEST":
+            if version == "$LATEST":
                 self._functions[name]["latest"] = None
             else:
                 self._functions[name]["versions"].remove(function)
@@ -1860,21 +1866,27 @@ class LambdaBackend(BaseBackend):
         The Qualifier-parameter is not yet implemented.
         Function URLs are not yet mocked, so invoking them will fail
         """
-        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         return function.create_url_config(config)
 
     def delete_function_url_config(self, name_or_arn: str) -> None:
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         function.delete_url_config()
 
     def get_function_url_config(self, name_or_arn: str) -> FunctionUrlConfig:
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         if not function:
             raise UnknownFunctionException(arn=name_or_arn)
         return function.get_url_config()
@@ -1885,7 +1897,9 @@ class LambdaBackend(BaseBackend):
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         return function.update_url_config(config)
 
     def create_event_source_mapping(self, spec: Dict[str, Any]) -> EventSourceMapping:
@@ -1895,7 +1909,9 @@ class LambdaBackend(BaseBackend):
                 raise RESTError("InvalidParameterValueException", f"Missing {param}")
 
         # Validate function name
-        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(spec.get("FunctionName", ""))
+        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            spec.get("FunctionName", "")
+        )
 
         # Validate queue
         sqs_backend = sqs_backends[self.account_id][self.region_name]
@@ -1987,7 +2003,9 @@ class LambdaBackend(BaseBackend):
 
         for key in spec.keys():
             if key == "FunctionName":
-                func = self._lambdas.get_function_by_name_or_arn_with_qualifier(spec[key])
+                func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+                    spec[key]
+                )
                 esm.function_arn = func.function_arn
             elif key == "BatchSize":
                 esm.batch_size = spec[key]
@@ -2100,7 +2118,9 @@ class LambdaBackend(BaseBackend):
                 }
             ]
         }
-        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(function_name, qualifier)
+        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            function_name, qualifier
+        )
         func.invoke(json.dumps(event), {}, {})
 
     def send_dynamodb_items(
@@ -2179,7 +2199,9 @@ class LambdaBackend(BaseBackend):
         return fn.get_code_signing_config()
 
     def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(function_name, qualifier)
+        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            function_name, qualifier
+        )
         return fn.policy.wire_format()  # type: ignore[union-attr]
 
     def update_function_code(
