@@ -30,24 +30,30 @@ def test_describe_db_cluster_fails_for_non_existent_cluster():
     assert err["Code"] == "DBClusterNotFoundFault"
     assert err["Message"] == "DBCluster cluster-id not found."
 
+
 @mock_rds
 def test_create_db_cluster_invalid_engine():
     client = boto3.client("rds", region_name=RDS_REGION)
 
     with pytest.raises(ClientError) as ex:
-        client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="aurora-postgresql")
+        client.create_db_cluster(
+            DBClusterIdentifier="cluster-id", Engine="aurora-postgresql"
+        )
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
         "The parameter MasterUsername must be provided and must not be blank."
     )
 
+
 @mock_rds
 def test_create_db_cluster_needs_master_username():
     client = boto3.client("rds", region_name=RDS_REGION)
 
     with pytest.raises(ClientError) as ex:
-        client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="aurora-postgresql")
+        client.create_db_cluster(
+            DBClusterIdentifier="cluster-id", Engine="aurora-postgresql"
+        )
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == (
@@ -61,7 +67,9 @@ def test_create_db_cluster_needs_master_user_password():
 
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
-            DBClusterIdentifier="cluster-id", Engine="aurora-postgresql", MasterUsername="root"
+            DBClusterIdentifier="cluster-id",
+            Engine="aurora-postgresql",
+            MasterUsername="root",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"

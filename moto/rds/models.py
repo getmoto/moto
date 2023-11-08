@@ -49,7 +49,7 @@ from .utils import (
     merge_filters,
     validate_filters,
     valid_preferred_maintenance_window,
-    ClusterEngine
+    ClusterEngine,
 )
 
 
@@ -136,7 +136,10 @@ class Cluster:
                     "Engine '{engine}' is not supported "
                     "to satisfy constraint: Member must satisfy enum value set: "
                     "{valid_engines}"
-                ).format(engine=self.engine, valid_engines=ClusterEngine.list_cluster_engines())
+                ).format(
+                    engine=self.engine,
+                    valid_engines=ClusterEngine.list_cluster_engines(),
+                )
             )
         self.engine_version = kwargs.get("engine_version") or Cluster.default_engine_version(self.engine)  # type: ignore
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
@@ -2179,7 +2182,6 @@ class RDSBackend(BaseBackend):
         kwargs["account_id"] = self.account_id
         cluster = Cluster(**kwargs)
         self.clusters[cluster_id] = cluster
-
 
         if (
             cluster.global_cluster_identifier

@@ -22,6 +22,7 @@ FilterDef = namedtuple(
     ],
 )
 
+
 class ClusterEngine(str, Enum):
     AURORA_POSTGRESQL = "aurora-postgresql"
     AURORA_MYSQL = "aurora-mysql"
