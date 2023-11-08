@@ -872,7 +872,7 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
             </networkInfo>
             <freeTierEligible>{{ instance_type.FreeTierEligible }}</freeTierEligible>
             <hibernationSupported>{{ instance_type.HibernationSupported }}</hibernationSupported>
-            <hypervisor>{{ instance_type.Hypervisor }}</hypervisor>
+            <hypervisor>{{ instance_type.get('Hypervisor', 'motovisor') }}</hypervisor>
             <instanceStorageSupported>{{ instance_type.InstanceStorageSupported }}</instanceStorageSupported>
             <placementGroupInfo>
                 <supportedStrategies>
