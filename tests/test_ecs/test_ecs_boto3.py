@@ -1484,7 +1484,7 @@ def test_deregister_container_instance():
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
     container_instance_id = response["containerInstance"]["containerInstanceArn"]
-    response = ecs_client.deregister_container_instance(
+    ecs_client.deregister_container_instance(
         cluster=test_cluster_name, containerInstance=container_instance_id
     )
     container_instances_response = ecs_client.list_container_instances(
@@ -1520,12 +1520,12 @@ def test_deregister_container_instance():
         containerInstances=[container_instance_id],
         startedBy="moto",
     )
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         ecs_client.deregister_container_instance(
             cluster=test_cluster_name, containerInstance=container_instance_id
         )
-    # TODO: Return correct error format
-    # should.contain("Found running tasks on the instance")
+    err = exc.value.response["Error"]
+    assert err["Message"] == "Found running tasks on the instance."
 
     container_instances_response = ecs_client.list_container_instances(
         cluster=test_cluster_name

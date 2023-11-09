@@ -663,6 +663,7 @@ def test_describe_flow_logs_filtering():
     )["FlowLogs"]
     assert len(fl_by_tag_key) == 0
 
+    # NotYetImplemented
     with pytest.raises(Exception):
         client.describe_flow_logs(Filters=[{"Name": "unknown", "Values": ["foobar"]}])
 

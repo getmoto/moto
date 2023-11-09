@@ -599,10 +599,10 @@ def test_cannot_restore_standard_class_object():
     bucket.create()
 
     key = bucket.put_object(Key="the-key", Body=b"somedata")
-    with pytest.raises(Exception) as err:
+    with pytest.raises(ClientError) as exc:
         key.restore_object(RestoreRequest={"Days": 1})
 
-    err = err.value.response["Error"]
+    err = exc.value.response["Error"]
     assert err["Code"] == "InvalidObjectState"
     assert err["StorageClass"] == "STANDARD"
     assert err["Message"] == (

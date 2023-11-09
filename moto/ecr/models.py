@@ -578,8 +578,8 @@ class ECRBackend(BaseBackend):
             parsed_image_manifest["imageManifest"] = image_manifest_mediatype
         else:
             if "mediaType" not in parsed_image_manifest:
-                raise Exception(
-                    "image manifest mediatype not provided in manifest or parameter"
+                raise InvalidParameterException(
+                    message="image manifest mediatype not provided in manifest or parameter"
                 )
             else:
                 image_manifest_mediatype = parsed_image_manifest["mediaType"]

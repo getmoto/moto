@@ -3,6 +3,7 @@ import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.exceptions import JsonRESTError
 from moto.utilities.utils import md5_hash
 
 from .utils import get_job_id
@@ -189,6 +190,8 @@ class GlacierBackend(BaseBackend):
         self.vaults: Dict[str, Vault] = {}
 
     def get_vault(self, vault_name: str) -> Vault:
+        if vault_name not in self.vaults:
+            raise JsonRESTError(error_type="VaultNotFound", message="Vault not found")
         return self.vaults[vault_name]
 
     def create_vault(self, vault_name: str) -> None:
