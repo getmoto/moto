@@ -1217,7 +1217,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_definition
 
     @staticmethod
-    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None: # type: ignore[misc]
+    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
         for cd in container_definitions:
             if "name" not in cd:
                 raise TaskDefinitionMissingPropertyError("name")
