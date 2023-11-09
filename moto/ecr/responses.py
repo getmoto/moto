@@ -57,8 +57,9 @@ class ECRResponse(BaseResponse):
         image_manifest = self._get_param("imageManifest")
         image_tag = self._get_param("imageTag")
         image_manifest_media_type = self._get_param("imageManifestMediaType")
+        digest = self._get_param("imageDigest")
         image = self.ecr_backend.put_image(
-            repository_str, image_manifest, image_tag, image_manifest_media_type
+            repository_str, image_manifest, image_tag, image_manifest_media_type, digest
         )
 
         return json.dumps({"image": image.response_object})
