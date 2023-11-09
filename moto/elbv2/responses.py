@@ -7,7 +7,6 @@ from .exceptions import ListenerOrBalancerMissingError
 
 SSL_POLICIES = [
     {
-        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -29,9 +28,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 18},
         ],
         "name": "ELBSecurityPolicy-2016-08",
+        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
@@ -46,9 +45,9 @@ SSL_POLICIES = [
             {"name": "ECDHE-RSA-AES256-SHA384", "priority": 11},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-2-2021-06",
+        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
@@ -59,9 +58,9 @@ SSL_POLICIES = [
             {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 7},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-2-Res-2021-06",
+        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
@@ -80,9 +79,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA256", "priority": 15},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-2-Ext1-2021-06",
+        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
@@ -107,9 +106,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 21},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-2-Ext2-2021-06",
+        "ssl_protocols": ["TLSv1.2", "TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1.1", "TLSv1.2", "TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
@@ -134,9 +133,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 21},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-1-2021-06",
+        "ssl_protocols": ["TLSv1.1", "TLSv1.2", "TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
@@ -161,18 +160,18 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 21},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-0-2021-06",
+        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1.3"],
         "ciphers": [
             {"name": "TLS_AES_128_GCM_SHA256", "priority": 1},
             {"name": "TLS_AES_256_GCM_SHA384", "priority": 2},
             {"name": "TLS_CHACHA20_POLY1305_SHA256", "priority": 3},
         ],
         "name": "ELBSecurityPolicy-TLS13-1-3-2021-06",
+        "ssl_protocols": ["TLSv1.3"],
     },
     {
-        "ssl_protocols": ["TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -188,9 +187,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA256", "priority": 12},
         ],
         "name": "ELBSecurityPolicy-TLS-1-2-2017-01",
+        "ssl_protocols": ["TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.1", "TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -212,9 +211,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 18},
         ],
         "name": "ELBSecurityPolicy-TLS-1-1-2017-01",
+        "ssl_protocols": ["TLSv1.1", "TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -236,9 +235,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 18},
         ],
         "name": "ELBSecurityPolicy-TLS-1-2-Ext-2018-06",
+        "ssl_protocols": ["TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -254,9 +253,9 @@ SSL_POLICIES = [
             {"name": "ECDHE-ECDSA-AES256-SHA", "priority": 12},
         ],
         "name": "ELBSecurityPolicy-FS-2018-06",
+        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -278,9 +277,9 @@ SSL_POLICIES = [
             {"name": "AES256-SHA", "priority": 18},
         ],
         "name": "ELBSecurityPolicy-2015-05",
+        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -303,9 +302,9 @@ SSL_POLICIES = [
             {"name": "DES-CBC3-SHA", "priority": 19},
         ],
         "name": "ELBSecurityPolicy-TLS-1-0-2015-04",
+        "ssl_protocols": ["TLSv1", "TLSv1.1", "TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -317,9 +316,9 @@ SSL_POLICIES = [
             {"name": "ECDHE-RSA-AES256-SHA384", "priority": 8},
         ],
         "name": "ELBSecurityPolicy-FS-1-2-Res-2019-08",
+        "ssl_protocols": ["TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.1", "TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -335,9 +334,9 @@ SSL_POLICIES = [
             {"name": "ECDHE-ECDSA-AES256-SHA", "priority": 12},
         ],
         "name": "ELBSecurityPolicy-FS-1-1-2019-08",
+        "ssl_protocols": ["TLSv1.1", "TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -353,9 +352,9 @@ SSL_POLICIES = [
             {"name": "ECDHE-ECDSA-AES256-SHA", "priority": 12},
         ],
         "name": "ELBSecurityPolicy-FS-1-2-2019-08",
+        "ssl_protocols": ["TLSv1.2"],
     },
     {
-        "ssl_protocols": ["TLSv1.2"],
         "ciphers": [
             {"name": "ECDHE-ECDSA-AES128-GCM-SHA256", "priority": 1},
             {"name": "ECDHE-RSA-AES128-GCM-SHA256", "priority": 2},
@@ -363,6 +362,7 @@ SSL_POLICIES = [
             {"name": "ECDHE-RSA-AES256-GCM-SHA384", "priority": 4},
         ],
         "name": "ELBSecurityPolicy-FS-1-2-Res-2020-10",
+        "ssl_protocols": ["TLSv1.2"],
     },
 ]
 

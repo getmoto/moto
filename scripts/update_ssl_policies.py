@@ -23,7 +23,7 @@ def transform_policies(ssl_policies: dict):
     if not isinstance(ssl_policies, dict):
         return ssl_policies
     result = {}
-    for key, value in ssl_policies.items():
+    for key, value in sorted(ssl_policies.items()):
         if key in KEY_BLACKLIST:
             continue
         new_key = camel_case_to_snake_case(key)
