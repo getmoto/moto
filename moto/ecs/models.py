@@ -1836,7 +1836,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
         if not force and container_instance.running_tasks_count > 0:
-            raise Exception("Found running tasks on the instance.")
+            raise JsonRESTError(
+                error_type="InvalidParameter",
+                message="Found running tasks on the instance.",
+            )
         # Currently assume that people might want to do something based around deregistered instances
         # with tasks left running on them - but nothing if no tasks were running already
         elif force and container_instance.running_tasks_count > 0:

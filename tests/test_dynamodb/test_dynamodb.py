@@ -1846,7 +1846,7 @@ def test_describe_continuous_backups_errors():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     # when
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_continuous_backups(TableName="not-existing-table")
 
     # then
@@ -1930,7 +1930,7 @@ def test_update_continuous_backups_errors():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     # when
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as e:
         client.update_continuous_backups(
             TableName="not-existing-table",
             PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},

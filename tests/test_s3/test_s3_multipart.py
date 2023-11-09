@@ -582,11 +582,11 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
 
     client.create_bucket(Bucket="blah")
 
-    with pytest.raises(Exception) as err:
+    with pytest.raises(ClientError) as exc:
         client.abort_multipart_upload(
             Bucket="blah", Key="foobar", UploadId="dummy_upload_id"
         )
-    err = err.value.response["Error"]
+    err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchUpload"
     assert err["Message"] == (
         "The specified upload does not exist. The upload ID may be invalid, "
