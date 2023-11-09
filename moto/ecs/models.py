@@ -23,6 +23,8 @@ from .exceptions import (
     ClusterNotFoundException,
     InvalidParameterException,
     RevisionNotFoundException,
+    TaskDefinitionMemoryError,
+    TaskDefinitionMissingPropertyError,
     UnknownAccountSettingException,
 )
 
@@ -1180,6 +1182,8 @@ class EC2ContainerServiceBackend(BaseBackend):
                     f"Tasks using the Fargate launch type do not support pidMode '{pid_mode}'. The supported value for pidMode is 'task'."
                 )
 
+        self._validate_container_defs(memory, container_definitions)
+
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
             revision = (last_id or 0) + 1
@@ -1211,6 +1215,18 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.task_definitions[family][revision] = task_definition
 
         return task_definition
+
+    @staticmethod
+    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None: # type: ignore[misc]
+        for cd in container_definitions:
+            if "name" not in cd:
+                raise TaskDefinitionMissingPropertyError("name")
+            if "image" not in cd:
+                raise TaskDefinitionMissingPropertyError("image")
+            if "memory" not in cd and "memoryReservation" not in cd and not memory:
+                raise TaskDefinitionMemoryError(cd["name"])
+            else:
+                continue
 
     def list_task_definitions(self, family_prefix: str) -> List[str]:
         task_arns = []
