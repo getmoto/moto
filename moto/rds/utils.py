@@ -33,6 +33,10 @@ class ClusterEngine(str, Enum):
     def list_cluster_engines(self) -> List[str]:
         return sorted([item.value for item in ClusterEngine])
 
+    @classmethod
+    def serverless_engines(self) -> List[str]:
+        return [ClusterEngine.AURORA_MYSQL, ClusterEngine.AURORA_POSTGRESQL]
+
 
 def get_object_value(obj: Any, attr: str) -> Any:
     """Retrieves an arbitrary attribute value from an object.

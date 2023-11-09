@@ -1603,7 +1603,10 @@ class RDSBackend(BaseBackend):
         if cluster_id is not None:
             cluster = self.clusters.get(cluster_id)
             if cluster is not None:
-                if cluster.engine == "aurora" and cluster.engine_mode == "serverless":
+                if (
+                    cluster.engine in ClusterEngine.serverless_engines()
+                    and cluster.engine_mode == "serverless"
+                ):
                     raise InvalidParameterValue(
                         "Instances cannot be added to Aurora Serverless clusters."
                     )
