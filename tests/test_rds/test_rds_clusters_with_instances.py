@@ -74,7 +74,7 @@ def test_add_instance_to_serverless_cluster():
 
     _ = client.create_db_cluster(
         DBClusterIdentifier="dbci",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         EngineMode="serverless",
         MasterUsername="masterusername",
         MasterUserPassword="hunter2_",
