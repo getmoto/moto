@@ -26,6 +26,7 @@ def test_describe_hosts_with_instancefamily():
 
     host = client.describe_hosts(HostIds=host_ids)["Hosts"][0]
 
+    assert "AllocationTime" in host
     assert host["HostProperties"]["InstanceFamily"] == "c5"
 
 
