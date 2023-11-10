@@ -54,8 +54,8 @@ class AccessPoint(BaseModel):
         root_directory: Dict[str, str],
         context: "EFSBackend",
     ):
-        self.access_point_id = mock_random.get_random_hex(8)
-        self.access_point_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:access-point/fsap-{self.access_point_id}"
+        self.access_point_id = f"fsap-{mock_random.get_random_hex(8)}"
+        self.access_point_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:access-point/{self.access_point_id}"
         self.client_token = client_token
         self.file_system_id = file_system_id
         self.name = name
