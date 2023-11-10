@@ -14,6 +14,14 @@ from .exceptions import (
 import warnings
 
 
+class Group(NamedTuple):
+    GroupId: str
+    DisplayName: str
+    ExternalIds: List[Optional[Dict[str, str]]]
+    Description: str
+    IdentityStoreId: str
+
+
 class Name(NamedTuple):
     Formatted: Optional[str]
     FamilyName: Optional[str]
@@ -56,7 +64,7 @@ class User(NamedTuple):
 
 class IdentityStoreData:
     def __init__(self) -> None:
-        self.groups: Dict[str, Dict[str, str]] = {}
+        self.groups: Dict[str, Group] = {}
         self.users: Dict[str, User] = {}
         self.group_memberships: Dict[str, Any] = {}
 
@@ -95,9 +103,7 @@ class IdentityStoreBackend(BaseBackend):
         identity_store = self.__get_identity_store(identity_store_id)
 
         matching = [
-            g
-            for g in identity_store.groups.values()
-            if g["DisplayName"] == display_name
+            g for g in identity_store.groups.values() if g.DisplayName == display_name
         ]
         if len(matching) > 0:
             raise ConflictException(
@@ -106,13 +112,14 @@ class IdentityStoreBackend(BaseBackend):
             )
 
         group_id = str(mock_random.uuid4())
-        group_dict = {
-            "GroupId": group_id,
-            "IdentityStoreId": identity_store_id,
-            "DisplayName": display_name,
-            "Description": description,
-        }
-        identity_store.groups[group_id] = group_dict
+        group = Group(
+            group_id,
+            display_name,
+            [],
+            description,
+            identity_store_id,
+        )
+        identity_store.groups[group_id] = group
         return group_id, identity_store_id
 
     def get_group_id(
@@ -127,13 +134,30 @@ class IdentityStoreBackend(BaseBackend):
             ):
                 for g in identity_store.groups.values():
                     if (
-                        g["DisplayName"]
+                        g.DisplayName
                         == alternate_identifier["UniqueAttribute"]["AttributeValue"]
                     ):
-                        return g["GroupId"], identity_store_id
+                        return g.GroupId, identity_store_id
         elif "ExternalId" in alternate_identifier:
             warnings.warn("ExternalId has not been implemented.")
 
+        raise ResourceNotFoundException(
+            message="GROUP not found.", resource_type="GROUP"
+        )
+
+    def describe_group(self, identity_store_id: str, group_id: str) -> Group:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if group_id in identity_store.groups:
+            g = identity_store.groups[group_id]
+            # External Ids are not implemented
+            external_ids: List[Any] = []
+            return Group(
+                g.GroupId,
+                g.DisplayName,
+                external_ids,
+                g.Description,
+                identity_store_id,
+            )
         raise ResourceNotFoundException(
             message="GROUP not found.", resource_type="GROUP"
         )
@@ -240,19 +264,19 @@ class IdentityStoreBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_groups(
         self, identity_store_id: str, filters: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, Any]]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         if filters:
             if filters[0].get("AttributePath") == "DisplayName":
                 displayname = filters[0].get("AttributeValue")
                 return [
-                    m
+                    m._asdict()
                     for m in identity_store.groups.values()
-                    if m["DisplayName"] == displayname
+                    if m.DisplayName == displayname
                 ]
 
-        return [m for m in identity_store.groups.values()]
+        return [m._asdict() for m in identity_store.groups.values()]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_users(
