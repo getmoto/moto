@@ -14,6 +14,14 @@ from .exceptions import (
 import warnings
 
 
+class Group(NamedTuple):
+    GroupId: str
+    DisplayName: str
+    ExternalIds: List[Optional[Dict[str, str]]]
+    Description: str
+    IdentityStoreId: str
+
+
 class Name(NamedTuple):
     Formatted: Optional[str]
     FamilyName: Optional[str]
@@ -134,6 +142,23 @@ class IdentityStoreBackend(BaseBackend):
         elif "ExternalId" in alternate_identifier:
             warnings.warn("ExternalId has not been implemented.")
 
+        raise ResourceNotFoundException(
+            message="GROUP not found.", resource_type="GROUP"
+        )
+
+    def describe_group(self, identity_store_id: str, group_id: str) -> Group:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if group_id in identity_store.groups:
+            g = identity_store.groups[group_id]
+            # External Ids are not implemented
+            external_ids: List[Any] = []
+            return Group(
+                g["GroupId"],
+                g["DisplayName"],
+                external_ids,
+                g["Description"],
+                identity_store_id,
+            )
         raise ResourceNotFoundException(
             message="GROUP not found.", resource_type="GROUP"
         )
