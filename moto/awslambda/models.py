@@ -1609,14 +1609,21 @@ class LambdaStorage(object):
         return fn
 
     def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
+        # Qualifier may be explicitly passed or part of function name or ARN, extract it here
+        if name_or_arn.startswith("arn:aws"):
+            # Extract from ARN
+            if ":" in name_or_arn.split(":function:")[-1]:
+                qualifier = name_or_arn.split(":")[-1]
+        else:
+            # Extract from function name
+            if ":" in name_or_arn:
+                qualifier = name_or_arn.split(":")[1]
+
         function = self.get_function_by_name_or_arn_with_qualifier(
             name_or_arn, qualifier
         )
         name = function.function_name
-        # Using function version here instead of qualifier
-        # since qualifier may have been passed in via name_or_arn
-        version = function.version
-        if not version:
+        if not qualifier:
             # Something is still reffing this so delete all arns
             latest = self._functions[name]["latest"].function_arn
             del self._arns[latest]
@@ -1627,7 +1634,7 @@ class LambdaStorage(object):
             del self._functions[name]
 
         else:
-            if version == "$LATEST":
+            if qualifier == "$LATEST":
                 self._functions[name]["latest"] = None
             else:
                 self._functions[name]["versions"].remove(function)

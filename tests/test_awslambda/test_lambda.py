@@ -792,7 +792,7 @@ def test_delete_function():
 
     assert success_result == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
-    func_list = conn.list_functions()["Functions"]
+    func_list = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in func_list if f["FunctionName"] == function_name]
     assert len(our_functions) == 0
 
@@ -1624,8 +1624,13 @@ def test_multiple_qualifiers():
     qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
     assert qualis == ["$LATEST", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 
+    # Test delete with function name and qualifier
     client.delete_function(FunctionName=fn_name, Qualifier="4")
-    client.delete_function(FunctionName=fn_name, Qualifier="5")
+    # Test delete with ARN and qualifier
+    client.delete_function(
+        FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}",
+        Qualifier="5",
+    )
     # Test delete with qualifier part of function name
     client.delete_function(FunctionName=fn_name + ":8")
     # Test delete with qualifier inside ARN
