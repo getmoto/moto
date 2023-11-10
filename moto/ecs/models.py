@@ -1218,15 +1218,20 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     @staticmethod
     def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
+        # The capitalised keys are passed by Cloudformation
         for cd in container_definitions:
-            if "name" not in cd:
+            if "name" not in cd and "Name" not in cd:
                 raise TaskDefinitionMissingPropertyError("name")
-            if "image" not in cd:
+            if "image" not in cd and "Image" not in cd:
                 raise TaskDefinitionMissingPropertyError("image")
-            if "memory" not in cd and "memoryReservation" not in cd and not memory:
+            if (
+                "memory" not in cd
+                and "Memory" not in cd
+                and "memoryReservation" not in cd
+                and "MemoryReservation" not in cd
+                and not memory
+            ):
                 raise TaskDefinitionMemoryError(cd["name"])
-            else:
-                continue
 
     def list_task_definitions(self, family_prefix: str) -> List[str]:
         task_arns = []
