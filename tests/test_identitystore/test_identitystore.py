@@ -432,6 +432,7 @@ def test_list_groups():
             {
                 "GroupId": group_id,
                 "DisplayName": display_name,
+                "ExternalIds": [],
                 "Description": description,
                 "IdentityStoreId": identity_store_id,
             }
@@ -476,6 +477,7 @@ def test_list_groups_filter():
     expected_group = {
         "GroupId": group_id,
         "DisplayName": display_name,
+        "ExternalIds": [],
         "Description": description,
         "IdentityStoreId": identity_store_id,
     }
