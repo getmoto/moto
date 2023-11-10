@@ -33,7 +33,7 @@ identitystore
 - [X] delete_group
 - [X] delete_group_membership
 - [X] delete_user
-- [ ] describe_group
+- [X] describe_group
 - [ ] describe_group_membership
 - [X] describe_user
 - [X] get_group_id
