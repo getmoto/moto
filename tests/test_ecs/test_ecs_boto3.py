@@ -14,10 +14,12 @@ from moto import mock_ecs, mock_ec2, settings
 from moto.moto_api import state_manager
 from tests import EXAMPLE_AMI_ID
 
+ECS_REGION = "us-east-1"
+
 
 @mock_ecs
 def test_create_cluster():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     response = client.create_cluster(clusterName="test_ecs_cluster")
     assert response["cluster"]["clusterName"] == "test_ecs_cluster"
     assert (
@@ -33,7 +35,7 @@ def test_create_cluster():
 
 @mock_ecs
 def test_create_cluster_with_setting():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     cluster = client.create_cluster(
         clusterName="test_ecs_cluster",
         settings=[{"name": "containerInsights", "value": "disabled"}],
@@ -47,7 +49,7 @@ def test_create_cluster_with_setting():
 
 @mock_ecs
 def test_create_cluster_with_capacity_providers():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     cluster = client.create_cluster(
         clusterName="test_ecs_cluster",
         capacityProviders=["FARGATE", "FARGATE_SPOT"],
@@ -65,7 +67,7 @@ def test_create_cluster_with_capacity_providers():
 
 @mock_ecs
 def test_put_capacity_providers():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     cluster = client.put_cluster_capacity_providers(
         cluster="test_ecs_cluster",
@@ -101,7 +103,7 @@ def test_list_clusters():
 
 @mock_ecs
 def test_create_cluster_with_tags():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     tag_list = [{"key": "tagName", "value": "TagValue"}]
     cluster = client.create_cluster(clusterName="c1")["cluster"]
 
@@ -120,7 +122,7 @@ def test_create_cluster_with_tags():
 
 @mock_ecs
 def test_describe_clusters():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     tag_list = [{"key": "tagName", "value": "TagValue"}]
     client.create_cluster(clusterName="c_with_tags", tags=tag_list)
     client.create_cluster(clusterName="c_without")
@@ -150,7 +152,7 @@ def test_describe_clusters():
 
 @mock_ecs
 def test_describe_clusters_missing():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     response = client.describe_clusters(clusters=["some-cluster"])
     assert {
         "arn": f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:cluster/some-cluster",
@@ -160,7 +162,7 @@ def test_describe_clusters_missing():
 
 @mock_ecs
 def test_delete_cluster():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     response = client.delete_cluster(cluster="test_ecs_cluster")
     assert response["cluster"]["clusterName"] == "test_ecs_cluster"
@@ -180,7 +182,7 @@ def test_delete_cluster():
 
 @mock_ecs
 def test_delete_cluster_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     with pytest.raises(ClientError) as exc:
         client.delete_cluster(cluster="not_a_cluster")
     assert exc.value.response["Error"]["Code"] == "ClusterNotFoundException"
@@ -188,7 +190,7 @@ def test_delete_cluster_exceptions():
 
 @mock_ecs
 def test_register_task_definition():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     # Registering with minimal definition
     definition = dict(
         family="test_ecs_task",
@@ -296,7 +298,7 @@ def test_register_task_definition():
 
 @mock_ecs
 def test_register_task_definition_fargate_with_pid_mode():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     definition = dict(
         family="test_ecs_task",
         containerDefinitions=[
@@ -322,8 +324,61 @@ def test_register_task_definition_fargate_with_pid_mode():
 
 
 @mock_ecs
+def test_register_task_definition_memory_validation():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    container_name = "hello_world"
+    bad_definition1 = dict(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {"name": container_name, "image": "hello-world:latest", "memory": 400},
+            {"name": f"{container_name}2", "image": "hello-world:latest"},
+        ],
+        requiresCompatibilities=["FARGATE"],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.register_task_definition(**bad_definition1)
+    ex = exc.value
+    assert ex.operation_name == "RegisterTaskDefinition"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ClientException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Invalid setting for container '{container_name}2'. At least one of 'memory' or 'memoryReservation' must be specified."
+    )
+
+
+@mock_ecs
+@pytest.mark.parametrize(
+    "ecs_def,missing_prop",
+    [({"image": "hello-world:latest"}, "name"), ({"name": "test-name"}, "image")],
+)
+def test_register_task_definition_container_definition_validation(
+    ecs_def, missing_prop
+):
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    bad_definition1 = dict(
+        family="test_ecs_task",
+        memory="400",
+        containerDefinitions=[ecs_def],
+        requiresCompatibilities=["FARGATE"],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.register_task_definition(**bad_definition1)
+    ex = exc.value
+    assert ex.operation_name == "RegisterTaskDefinition"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "ClientException"
+    assert (
+        ex.response["Error"]["Message"]
+        == f"Container.{missing_prop} should not be null or empty."
+    )
+
+
+@mock_ecs
 def test_list_task_definitions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -370,7 +425,7 @@ def test_list_task_definitions():
 
 @mock_ecs
 def test_list_task_definitions_with_family_prefix():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task_a",
         containerDefinitions=[
@@ -435,7 +490,7 @@ def test_list_task_definitions_with_family_prefix():
 
 @mock_ecs
 def test_describe_task_definitions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -503,7 +558,7 @@ def test_describe_task_definitions():
 
 @mock_ecs
 def test_deregister_task_definition_1():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -554,7 +609,7 @@ def test_deregister_task_definition_1():
 
 @mock_ecs
 def test_deregister_task_definition_2():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     with pytest.raises(ClientError) as exc:
         client.deregister_task_definition(taskDefinition="fake_task")
     assert exc.value.response["Error"]["Message"] == "Revision is missing."
@@ -574,7 +629,7 @@ def test_deregister_task_definition_2():
 
 @mock_ecs
 def test_create_service():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -634,8 +689,8 @@ def test_create_running_service():
     with mock.patch.dict(
         os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
     ):
-        client = boto3.client("ecs", region_name="us-east-1")
-        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        client = boto3.client("ecs", region_name=ECS_REGION)
+        ec2 = boto3.resource("ec2", region_name=ECS_REGION)
         setup_ecs(client, ec2)
 
         response = client.create_service(
@@ -657,8 +712,8 @@ def test_create_running_service_bad_env_var():
     with mock.patch.dict(
         os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
     ):
-        client = boto3.client("ecs", region_name="us-east-1")
-        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        client = boto3.client("ecs", region_name=ECS_REGION)
+        ec2 = boto3.resource("ec2", region_name=ECS_REGION)
         setup_ecs(client, ec2)
 
         response = client.create_service(
@@ -679,8 +734,8 @@ def test_create_running_service_negative_env_var():
     with mock.patch.dict(
         os.environ, {"MOTO_ECS_SERVICE_RUNNING": str(running_service_count)}
     ):
-        client = boto3.client("ecs", region_name="us-east-1")
-        ec2 = boto3.resource("ec2", region_name="us-east-1")
+        client = boto3.client("ecs", region_name=ECS_REGION)
+        ec2 = boto3.resource("ec2", region_name=ECS_REGION)
         setup_ecs(client, ec2)
 
         response = client.create_service(
@@ -697,7 +752,7 @@ def test_create_running_service_negative_env_var():
 @mock_ecs
 def test_create_service_errors():
     # given
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -739,7 +794,7 @@ def test_create_service_errors():
 
 @mock_ecs
 def test_create_service_scheduling_strategy():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -788,7 +843,7 @@ def test_create_service_scheduling_strategy():
 
 @mock_ecs
 def test_list_services():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster1")
     client.create_cluster(clusterName="test_ecs_cluster2")
     client.register_task_definition(
@@ -856,7 +911,7 @@ def test_list_services():
 @mock_ecs
 @pytest.mark.parametrize("args", [{}, {"cluster": "foo"}], ids=["no args", "unknown"])
 def test_list_unknown_service(args):
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     with pytest.raises(ClientError) as exc:
         client.list_services(**args)
     err = exc.value.response["Error"]
@@ -866,7 +921,7 @@ def test_list_unknown_service(args):
 
 @mock_ecs
 def test_describe_services():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     cluster_arn = client.create_cluster(clusterName="test_ecs_cluster")["cluster"][
         "clusterArn"
     ]
@@ -961,10 +1016,11 @@ def test_describe_services_new_arn():
         raise SkipTest(
             "Can't set environment variables in server mode for a single test"
         )
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
+        memory="400",
         containerDefinitions=[
             {"name": "hello_world", "image": "docker/hello-world:latest"}
         ],
@@ -987,7 +1043,7 @@ def test_describe_services_new_arn():
 
 @mock_ecs
 def test_describe_services_scheduling_strategy():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -1129,7 +1185,7 @@ def test_describe_services_with_known_unknown_services():
 
 @mock_ecs
 def test_update_service():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -1176,7 +1232,7 @@ def test_update_service():
 
 @mock_ecs
 def test_update_missing_service():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
 
     with pytest.raises(ClientError):
@@ -1190,7 +1246,7 @@ def test_update_missing_service():
 
 @mock_ecs
 def test_delete_service():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -1250,7 +1306,7 @@ def test_delete_service():
 
 @mock_ecs
 def test_delete_service__using_arns():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     cluster_arn = client.create_cluster(clusterName="test_ecs_cluster")["cluster"][
         "clusterArn"
     ]
@@ -1288,7 +1344,7 @@ def test_delete_service__using_arns():
 
 @mock_ecs
 def test_delete_service_force():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -1338,7 +1394,7 @@ def test_delete_service_force():
 
 @mock_ecs
 def test_delete_service_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
 
     # Raises ClusterNotFoundException because "default" is not a cluster
     with pytest.raises(ClientError) as exc:
@@ -1376,7 +1432,7 @@ def test_delete_service_exceptions():
 
 @mock_ecs
 def test_update_service_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
 
     with pytest.raises(ClientError) as exc:
         client.update_service(service="not_a_service", desiredCount=0)
@@ -1392,8 +1448,8 @@ def test_update_service_exceptions():
 @mock_ec2
 @mock_ecs
 def test_register_container_instance():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -1437,8 +1493,8 @@ def test_register_container_instance_new_arn_format():
         raise SkipTest(
             "Can't set environment variables in server mode for a single test"
         )
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -1465,8 +1521,8 @@ def test_register_container_instance_new_arn_format():
 @mock_ec2
 @mock_ecs
 def test_deregister_container_instance():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -1543,8 +1599,8 @@ def test_deregister_container_instance():
 @mock_ec2
 @mock_ecs
 def test_list_container_instances():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
     ecs_client.create_cluster(clusterName=test_cluster_name)
@@ -1576,8 +1632,8 @@ def test_list_container_instances():
 @mock_ec2
 @mock_ecs
 def test_describe_container_instances():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
     ecs_client.create_cluster(clusterName=test_cluster_name)
@@ -1626,7 +1682,7 @@ def test_describe_container_instances():
 
 @mock_ecs
 def test_describe_container_instances_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
 
     with pytest.raises(ClientError) as exc:
         client.describe_container_instances(containerInstances=[])
@@ -1643,8 +1699,8 @@ def test_describe_container_instances_exceptions():
 @mock_ec2
 @mock_ecs
 def test_update_container_instances_state():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
     ecs_client.create_cluster(clusterName=test_cluster_name)
@@ -1706,8 +1762,8 @@ def test_update_container_instances_state():
 @mock_ec2
 @mock_ecs
 def test_update_container_instances_state_by_arn():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
     ecs_client.create_cluster(clusterName=test_cluster_name)
@@ -1770,8 +1826,8 @@ def test_update_container_instances_state_by_arn():
 @mock_ec2
 @mock_ecs
 def test_run_task():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -1857,8 +1913,8 @@ def test_wait_tasks_stopped():
         transition={"progression": "immediate"},
     )
 
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -1924,8 +1980,8 @@ def test_task_state_transitions():
         transition={"progression": "manual", "times": 1},
     )
 
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -1984,9 +2040,9 @@ def test_task_state_transitions():
 @mock_ecs
 def test_run_task_awsvpc_network():
     # Setup
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2_client = boto3.client("ec2", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2_client = boto3.client("ec2", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     # ECS setup
     setup_resources = setup_ecs(client, ec2)
@@ -2033,8 +2089,8 @@ def test_run_task_awsvpc_network():
 @mock_ecs
 def test_run_task_awsvpc_network_error():
     # Setup
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     # ECS setup
     setup_ecs(client, ec2)
@@ -2058,7 +2114,7 @@ def test_run_task_awsvpc_network_error():
 
 @mock_ecs
 def test_run_task_default_cluster():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
 
     test_cluster_name = "default"
 
@@ -2110,8 +2166,8 @@ def test_run_task_default_cluster_new_arn_format():
         raise SkipTest(
             "Can't set environment variables in server mode for a single test"
         )
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "default"
 
@@ -2154,10 +2210,11 @@ def test_run_task_default_cluster_new_arn_format():
 
 @mock_ecs
 def test_run_task_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task",
-        containerDefinitions=[{"name": "irrelevant"}],
+        memory="400",
+        containerDefinitions=[{"name": "irrelevant", "image": "irrelevant"}],
     )
 
     with pytest.raises(ClientError) as exc:
@@ -2180,7 +2237,7 @@ def test_run_task_exceptions():
 @mock_ec2
 @mock_ecs
 def test_start_task():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     test_cluster_name = "test_ecs_cluster"
     setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
@@ -2224,7 +2281,7 @@ def test_start_task():
 @mock_ec2
 @mock_ecs
 def test_start_task_with_tags():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     test_cluster_name = "test_ecs_cluster"
     setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
@@ -2269,7 +2326,7 @@ def test_start_task_with_tags():
 
 @mock_ecs
 def test_start_task_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -2296,8 +2353,8 @@ def test_start_task_exceptions():
 @mock_ec2
 @mock_ecs
 def test_list_tasks():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     client.create_cluster()
 
@@ -2353,7 +2410,7 @@ def test_list_tasks():
 
 @mock_ecs
 def test_list_tasks_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     with pytest.raises(ClientError) as exc:
         client.list_tasks(cluster="not_a_cluster")
     assert exc.value.response["Error"]["Code"] == "ClusterNotFoundException"
@@ -2362,7 +2419,7 @@ def test_list_tasks_exceptions():
 @mock_ec2
 @mock_ecs
 def test_describe_tasks():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     test_cluster_name = "test_ecs_cluster"
     setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
@@ -2393,7 +2450,7 @@ def test_describe_tasks():
 @mock_ec2
 @mock_ecs
 def test_describe_tasks_empty_tags():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     test_cluster_name = "test_ecs_cluster"
     setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
@@ -2427,7 +2484,7 @@ def test_describe_tasks_empty_tags():
 @mock_ec2
 @mock_ecs
 def test_describe_tasks_include_tags():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     test_cluster_name = "test_ecs_cluster"
     setup_ecs_cluster_with_ec2_instance(client, test_cluster_name)
 
@@ -2462,7 +2519,7 @@ def test_describe_tasks_include_tags():
 
 @mock_ecs
 def test_describe_tasks_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
 
     with pytest.raises(ClientError) as exc:
         client.describe_tasks(tasks=[])
@@ -2476,7 +2533,7 @@ def test_describe_tasks_exceptions():
 
 @mock_ecs
 def test_describe_task_definition_by_family():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     container_definition = {
         "name": "hello_world",
         "image": "docker/hello-world:latest",
@@ -2522,8 +2579,8 @@ def test_describe_task_definition_by_family():
 @mock_ec2
 @mock_ecs
 def test_stop_task():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -2578,7 +2635,7 @@ def test_stop_task():
 
 @mock_ecs
 def test_stop_task_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
 
     with pytest.raises(ClientError) as exc:
         client.stop_task(task="fake_task")
@@ -2588,8 +2645,8 @@ def test_stop_task_exceptions():
 @mock_ec2
 @mock_ecs
 def test_resource_reservation_and_release():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -2663,8 +2720,8 @@ def test_resource_reservation_and_release():
 @mock_ec2
 @mock_ecs
 def test_resource_reservation_and_release_memory_reservation():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -2736,8 +2793,8 @@ def test_resource_reservation_and_release_memory_reservation():
 @mock_ec2
 @mock_ecs
 def test_task_definitions_unable_to_be_placed():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -2777,8 +2834,8 @@ def test_task_definitions_unable_to_be_placed():
 @mock_ec2
 @mock_ecs
 def test_task_definitions_with_port_clash():
-    client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -2847,8 +2904,8 @@ def test_task_definitions_with_port_clash():
 @mock_ecs
 def test_attributes():
     # Combined put, list delete attributes into the same test due to the amount of setup
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -2957,7 +3014,7 @@ def test_attributes():
 @mock_ecs
 def test_poll_endpoint():
     # Combined put, list delete attributes into the same test due to the amount of setup
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
 
     # Just a placeholder until someone actually wants useless data, just testing it doesnt raise an exception
     resp = ecs_client.discover_poll_endpoint(cluster="blah", containerInstance="blah")
@@ -2967,7 +3024,7 @@ def test_poll_endpoint():
 
 @mock_ecs
 def test_list_task_definition_families():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -3011,8 +3068,8 @@ def test_list_task_definition_families():
 @mock_ec2
 @mock_ecs
 def test_default_container_instance_attributes():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -3053,8 +3110,8 @@ def test_default_container_instance_attributes():
 @mock_ec2
 @mock_ecs
 def test_describe_container_instances_with_attributes():
-    ecs_client = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     test_cluster_name = "test_ecs_cluster"
 
@@ -3144,7 +3201,7 @@ def _fetch_container_instance_resources(container_instance_description):
 
 @mock_ecs
 def test_create_service_load_balancing():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -3207,7 +3264,7 @@ def test_create_service_load_balancing():
 
 @mock_ecs
 def test_list_tags_for_resource():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     response = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -3245,7 +3302,7 @@ def test_list_tags_for_resource():
 
 @mock_ecs
 def test_list_tags_exceptions():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     with pytest.raises(ClientError) as exc:
         client.list_tags_for_resource(
             resourceArn="arn:aws:ecs:us-east-1:012345678910:service/fake_service:1"
@@ -3263,7 +3320,7 @@ def test_list_tags_exceptions():
 
 @mock_ecs
 def test_list_tags_for_resource_ecs_service():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -3301,7 +3358,7 @@ def test_ecs_service_tag_resource(long_arn):
     """
     Tagging does some weird ARN parsing - ensure it works with both long and short formats
     """
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.put_account_setting(name="serviceLongArnFormat", value=long_arn)
 
     client.create_cluster(clusterName="test_ecs_cluster")
@@ -3358,7 +3415,7 @@ def test_ecs_service_tag_resource(long_arn):
 
 @mock_ecs
 def test_ecs_service_tag_resource_overwrites_tag():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -3394,7 +3451,7 @@ def test_ecs_service_tag_resource_overwrites_tag():
 
 @mock_ecs
 def test_ecs_service_untag_resource():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -3421,7 +3478,7 @@ def test_ecs_service_untag_resource():
 
 @mock_ecs
 def test_ecs_service_untag_resource_multiple_tags():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
     client.register_task_definition(
         family="test_ecs_task",
@@ -3452,7 +3509,7 @@ def test_ecs_service_untag_resource_multiple_tags():
 
 @mock_ecs
 def test_update_cluster():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     client.create_cluster(clusterName="test_ecs_cluster")
 
     resp = client.update_cluster(
@@ -3468,7 +3525,7 @@ def test_update_cluster():
 
 @mock_ecs
 def test_ecs_task_definition_placement_constraints():
-    client = boto3.client("ecs", region_name="us-east-1")
+    client = boto3.client("ecs", region_name=ECS_REGION)
     task_def = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
@@ -3497,8 +3554,8 @@ def test_ecs_task_definition_placement_constraints():
 @mock_ec2
 @mock_ecs
 def test_list_tasks_with_filters():
-    ecs = boto3.client("ecs", region_name="us-east-1")
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ecs = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     clstr1 = "test_cluster_1"
     clstr2 = "test_cluster_2"
@@ -3641,7 +3698,7 @@ def setup_ecs(client, ec2):
 
 
 def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     client.create_cluster(clusterName=test_cluster_name)
     test_instance = ec2.create_instances(
