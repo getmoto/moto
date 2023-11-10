@@ -432,6 +432,6 @@ class CloudFrontBackend(BaseBackend):
 cloudfront_backends = BackendDict(
     CloudFrontBackend,
     "cloudfront",
-    use_boto3_regions=False,
+    use_ssm_regions=False,
     additional_regions=["global"],
 )

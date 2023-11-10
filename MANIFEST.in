@@ -1,6 +1,7 @@
 include README.md LICENSE AUTHORS.md
 include requirements.txt requirements-dev.txt
 include moto/config/resources/aws_managed_rules.json
+include moto/core/regions.json
 include moto/ec2/_models/*.py
 include moto/ec2/resources/instance_types.json
 include moto/ec2/resources/instance_type_offerings/*/*.json

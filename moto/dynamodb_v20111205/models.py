@@ -393,6 +393,6 @@ class DynamoDBBackend(BaseBackend):
 dynamodb_backends = BackendDict(
     DynamoDBBackend,
     "dynamodb_v20111205",
-    use_boto3_regions=False,
+    use_ssm_regions=False,
     additional_regions=["global"],
 )

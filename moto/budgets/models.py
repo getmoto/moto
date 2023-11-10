@@ -141,5 +141,5 @@ class BudgetsBackend(BaseBackend):
 
 
 budgets_backends = BackendDict(
-    BudgetsBackend, "budgets", use_boto3_regions=False, additional_regions=["global"]
+    BudgetsBackend, "budgets", use_ssm_regions=False, additional_regions=["global"]
 )

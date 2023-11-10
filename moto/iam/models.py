@@ -3310,5 +3310,5 @@ class IAMBackend(BaseBackend):
 
 
 iam_backends = BackendDict(
-    IAMBackend, "iam", use_boto3_regions=False, additional_regions=["global"]
+    IAMBackend, "iam", use_ssm_regions=False, additional_regions=["global"]
 )

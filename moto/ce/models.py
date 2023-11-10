@@ -153,5 +153,5 @@ class CostExplorerBackend(BaseBackend):
 
 
 ce_backends = BackendDict(
-    CostExplorerBackend, "ce", use_boto3_regions=False, additional_regions=["global"]
+    CostExplorerBackend, "ce", use_ssm_regions=False, additional_regions=["global"]
 )

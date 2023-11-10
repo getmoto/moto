@@ -198,5 +198,5 @@ class STSBackend(BaseBackend):
 
 
 sts_backends = BackendDict(
-    STSBackend, "sts", use_boto3_regions=False, additional_regions=["global"]
+    STSBackend, "sts", use_ssm_regions=False, additional_regions=["global"]
 )
