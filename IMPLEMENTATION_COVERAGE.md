@@ -1275,7 +1275,7 @@
 
 ## comprehend
 <details>
-<summary>13% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1318,6 +1318,7 @@
 - [X] detect_sentiment
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
+- [ ] detect_toxic_content
 - [ ] import_model
 - [ ] list_datasets
 - [ ] list_document_classification_jobs
@@ -2125,6 +2126,7 @@
 - [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
@@ -2277,6 +2279,7 @@
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
+- [ ] disable_snapshot_block_public_access
 - [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
 - [X] disable_vpc_classic_link
@@ -2306,6 +2309,7 @@
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
+- [ ] enable_snapshot_block_public_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
 - [ ] enable_volume_io
@@ -2346,6 +2350,7 @@
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
+- [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
@@ -2438,6 +2443,7 @@
 - [ ] provision_byoip_cidr
 - [ ] provision_ipam_pool_cidr
 - [ ] provision_public_ipv4_pool_cidr
+- [ ] purchase_capacity_block
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -2656,16 +2662,18 @@
 
 ## eks
 <details>
-<summary>42% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
 - [ ] create_addon
 - [X] create_cluster
+- [ ] create_eks_anywhere_subscription
 - [X] create_fargate_profile
 - [X] create_nodegroup
 - [ ] delete_addon
 - [X] delete_cluster
+- [ ] delete_eks_anywhere_subscription
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
 - [ ] deregister_cluster
@@ -2673,6 +2681,7 @@
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [X] describe_cluster
+- [ ] describe_eks_anywhere_subscription
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
 - [X] describe_nodegroup
@@ -2680,6 +2689,7 @@
 - [ ] disassociate_identity_provider_config
 - [ ] list_addons
 - [X] list_clusters
+- [ ] list_eks_anywhere_subscriptions
 - [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
 - [X] list_nodegroups
@@ -2691,6 +2701,7 @@
 - [ ] update_addon
 - [ ] update_cluster_config
 - [ ] update_cluster_version
+- [ ] update_eks_anywhere_subscription
 - [ ] update_nodegroup_config
 - [ ] update_nodegroup_version
 </details>
@@ -3824,7 +3835,7 @@
 - [X] delete_group
 - [X] delete_group_membership
 - [X] delete_user
-- [ ] describe_group
+- [X] describe_group
 - [ ] describe_group_membership
 - [X] describe_user
 - [X] get_group_id
@@ -4465,15 +4476,20 @@
 
 ## logs
 <details>
-<summary>66% implemented</summary>
+<summary>51% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
+- [ ] create_delivery
 - [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
+- [ ] delete_delivery
+- [ ] delete_delivery_destination
+- [ ] delete_delivery_destination_policy
+- [ ] delete_delivery_source
 - [X] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
@@ -4483,6 +4499,9 @@
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
 - [ ] describe_account_policies
+- [ ] describe_deliveries
+- [ ] describe_delivery_destinations
+- [ ] describe_delivery_sources
 - [X] describe_destinations
 - [ ] describe_export_tasks
 - [X] describe_log_groups
@@ -4495,6 +4514,10 @@
 - [ ] disassociate_kms_key
 - [X] filter_log_events
 - [ ] get_data_protection_policy
+- [ ] get_delivery
+- [ ] get_delivery_destination
+- [ ] get_delivery_destination_policy
+- [ ] get_delivery_source
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
@@ -4503,6 +4526,9 @@
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
+- [ ] put_delivery_destination
+- [ ] put_delivery_destination_policy
+- [ ] put_delivery_source
 - [X] put_destination
 - [X] put_destination_policy
 - [X] put_log_events
@@ -5485,7 +5511,7 @@
 
 ## rds
 <details>
-<summary>38% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5516,7 +5542,9 @@
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
+- [ ] create_integration
 - [X] create_option_group
+- [ ] create_tenant_database
 - [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
@@ -5534,7 +5562,9 @@
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
+- [ ] delete_integration
 - [X] delete_option_group
+- [ ] delete_tenant_database
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
 - [ ] describe_blue_green_deployments
@@ -5559,6 +5589,7 @@
 - [ ] describe_db_proxy_targets
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
+- [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
 - [ ] describe_engine_default_cluster_parameters
@@ -5568,6 +5599,7 @@
 - [ ] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
+- [ ] describe_integrations
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [X] describe_orderable_db_instance_options
@@ -5575,6 +5607,7 @@
 - [ ] describe_reserved_db_instances
 - [ ] describe_reserved_db_instances_offerings
 - [ ] describe_source_regions
+- [ ] describe_tenant_databases
 - [ ] describe_valid_db_instance_modifications
 - [ ] download_db_log_file_portion
 - [ ] failover_db_cluster
@@ -5599,6 +5632,7 @@
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
 - [X] modify_option_group
+- [ ] modify_tenant_database
 - [X] promote_read_replica
 - [X] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering
@@ -5739,6 +5773,7 @@
 - [ ] disassociate_data_share_consumer
 - [ ] enable_logging
 - [X] enable_snapshot_copy
+- [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options
@@ -7606,6 +7641,7 @@
 - kinesis-video-webrtc-storage
 - kinesisanalytics
 - kinesisanalyticsv2
+- launch-wizard
 - lex-models
 - lex-runtime
 - lexv2-models

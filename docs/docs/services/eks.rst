@@ -29,10 +29,12 @@ eks
 - [ ] associate_identity_provider_config
 - [ ] create_addon
 - [X] create_cluster
+- [ ] create_eks_anywhere_subscription
 - [X] create_fargate_profile
 - [X] create_nodegroup
 - [ ] delete_addon
 - [X] delete_cluster
+- [ ] delete_eks_anywhere_subscription
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
 - [ ] deregister_cluster
@@ -40,6 +42,7 @@ eks
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [X] describe_cluster
+- [ ] describe_eks_anywhere_subscription
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
 - [X] describe_nodegroup
@@ -47,6 +50,7 @@ eks
 - [ ] disassociate_identity_provider_config
 - [ ] list_addons
 - [X] list_clusters
+- [ ] list_eks_anywhere_subscriptions
 - [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
 - [X] list_nodegroups
@@ -70,6 +74,7 @@ eks
 - [ ] update_addon
 - [ ] update_cluster_config
 - [ ] update_cluster_version
+- [ ] update_eks_anywhere_subscription
 - [ ] update_nodegroup_config
 - [ ] update_nodegroup_version
 

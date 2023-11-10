@@ -1773,6 +1773,8 @@ class LambdaBackend(BaseBackend):
         # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
         MOTO_DOCKER_NETWORK_MODE=host moto_server
 
+    _-_-_-_
+
     The Docker images used by Moto are taken from the following repositories:
 
     - `mlupin/docker-lambda` (for recent versions)
@@ -1784,6 +1786,8 @@ class LambdaBackend(BaseBackend):
 
         MOTO_DOCKER_LAMBDA_IMAGE=mlupin/docker-lambda
 
+    _-_-_-_
+
     Use the following environment variable if you want to configure the data directory used by the Docker containers:
 
     .. sourcecode:: bash
@@ -1791,6 +1795,15 @@ class LambdaBackend(BaseBackend):
         MOTO_LAMBDA_DATA_DIR=/tmp/data
 
     .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
+
+    _-_-_-_
+
+    If you want to mock the Lambda-containers invocation without starting a Docker-container, use the simple decorator:
+
+    .. sourcecode:: python
+
+        @mock_lambda_simple
+
     """
 
     def __init__(self, region_name: str, account_id: str):
