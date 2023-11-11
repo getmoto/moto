@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.8
 -----
-Docker Digest for 4.2.8: <autopopulateddigest>
+Docker Digest for 4.2.8: _sha256:937315c79dedcc86506fc22a60502fd73d0e6f3a6f3e5fc614dd3164740e1191_
 
     General:
         * Support for Python 3.12
