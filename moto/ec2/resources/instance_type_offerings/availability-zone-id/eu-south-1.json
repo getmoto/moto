@@ -1040,6 +1040,10 @@
   "Location": "eus1-az1"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "eus1-az1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "eus1-az1"
  },
@@ -2121,6 +2125,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "u-12tb1.112xlarge",
   "Location": "eus1-az2"
  },
  {
