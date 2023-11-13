@@ -1,6 +1,7 @@
 import boto3
 import pytest
 
+from botocore.exceptions import ClientError
 from moto import mock_opsworks
 from moto import mock_ec2
 from tests import EXAMPLE_AMI_ID
@@ -43,7 +44,7 @@ def test_create_instance():
 
     assert "InstanceId" in response
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_instance(
             StackId="nothere", LayerIds=[layer_id], InstanceType="t2.micro"
         )
@@ -51,14 +52,14 @@ def test_create_instance():
         "Unable to find stack with ID nothere"
     )
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_instance(
             StackId=stack_id, LayerIds=["nothere"], InstanceType="t2.micro"
         )
     assert exc.value.response["Error"]["Message"] == "nothere"
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_instance(
             StackId=stack_id, LayerIds=[second_layer_id], InstanceType="t2.micro"
         )
@@ -67,7 +68,7 @@ def test_create_instance():
     )
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.start_instance(InstanceId="nothere")
     assert exc.value.response["Error"]["Message"] == (
         "Unable to find instance with ID nothere"
@@ -160,22 +161,22 @@ def test_describe_instances():
     assert S2L1_i1 not in [i["InstanceId"] for i in response]
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_instances(StackId=S1, LayerId=S1L1)
     assert "Please provide either one or more" in exc.value.response["Error"]["Message"]
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_instances(StackId="nothere")
     assert "nothere" in exc.value.response["Error"]["Message"]
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_instances(LayerId="nothere")
     assert "nothere" in exc.value.response["Error"]["Message"]
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_instances(InstanceIds=["nothere"])
     assert exc.value.response["Error"]["Message"] == "nothere"
 

@@ -46,3 +46,6 @@ You can pass your own Responses-mock to Moto, to ensure that any custom (non-AWS
     override_responses_real_send(my_own_mock)
     my_own_mock.start()
     my_own_mock.add_passthru("http://some-website.com")
+
+    # Unset this behaviour at the end of your tests
+    override_responses_real_send(None)

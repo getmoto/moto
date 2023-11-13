@@ -43,7 +43,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     DEFAULT_POLICY = {
         "Version": "2008-10-17",
-        "Statement ": [
+        "Statement": [
             {"Effect": "Allow", "Principal": "*", "Action": "*", "Resource": "*"}
         ],
     }

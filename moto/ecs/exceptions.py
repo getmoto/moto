@@ -65,3 +65,19 @@ class UnknownAccountSettingException(InvalidParameterException):
         super().__init__(
             "unknown should be one of [serviceLongArnFormat,taskLongArnFormat,containerInstanceLongArnFormat,containerLongArnFormat,awsvpcTrunking,containerInsights,dualStackIPv6]"
         )
+
+
+class TaskDefinitionMemoryError(JsonRESTError):
+    def __init__(self, container_name: str) -> None:
+        super().__init__(
+            error_type="ClientException",
+            message=f"Invalid setting for container '{container_name}'. At least one of 'memory' or 'memoryReservation' must be specified.",
+        )
+
+
+class TaskDefinitionMissingPropertyError(JsonRESTError):
+    def __init__(self, missing_prop: str) -> None:
+        super().__init__(
+            error_type="ClientException",
+            message=f"Container.{missing_prop} should not be null or empty.",
+        )

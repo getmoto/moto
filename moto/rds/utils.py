@@ -1,6 +1,7 @@
 import copy
 from collections import namedtuple
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, Tuple, Optional, List
+from enum import Enum
 
 from botocore.utils import merge_dicts
 
@@ -50,6 +51,21 @@ class DbInstanceEngine(str, Enum):
     @classmethod
     def valid_db_instance_engine(self) -> List[str]:
         return sorted([item.value for item in DbInstanceEngine])
+
+
+class ClusterEngine(str, Enum):
+    AURORA_POSTGRESQL = "aurora-postgresql"
+    AURORA_MYSQL = "aurora-mysql"
+    RDS_POSTGRESQL = "postgres"
+    RDS_MYSQL = "mysql"
+
+    @classmethod
+    def list_cluster_engines(self) -> List[str]:
+        return sorted([item.value for item in ClusterEngine])
+
+    @classmethod
+    def serverless_engines(self) -> List[str]:
+        return [ClusterEngine.AURORA_MYSQL, ClusterEngine.AURORA_POSTGRESQL]
 
 
 def get_object_value(obj: Any, attr: str) -> Any:

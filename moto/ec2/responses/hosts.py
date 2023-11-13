@@ -66,6 +66,7 @@ EC2_DESCRIBE_HOSTS = """<DescribeHostsResult xmlns="http://ec2.amazonaws.com/doc
     <hostSet>
         {% for host in hosts %}
             <item>
+                <allocationTime>{{ host.allocation_time }}</allocationTime>
                 <autoPlacement>{{ host.auto_placement }}</autoPlacement>
                 <availabilityZone>{{ host.zone }}</availabilityZone>
                 <availableCapacity></availableCapacity>

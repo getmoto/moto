@@ -993,7 +993,7 @@ def test_create_vpc_endpoint__policy():
     # create without policy --> verify the default policy is created
     default_policy = {
         "Version": "2008-10-17",
-        "Statement ": [
+        "Statement": [
             {"Effect": "Allow", "Principal": "*", "Action": "*", "Resource": "*"}
         ],
     }

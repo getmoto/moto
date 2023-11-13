@@ -1,6 +1,38 @@
 Moto Changelog
 ==============
 
+4.2.8
+-----
+Docker Digest for 4.2.8: _sha256:937315c79dedcc86506fc22a60502fd73d0e6f3a6f3e5fc614dd3164740e1191_
+
+    General:
+        * Support for Python 3.12
+        * Support for a Simple Lambda backend, that will mock functions without invoking a Docker container.
+          Use the decorator `mock_lambda_simple` for this feature.
+
+    New Methods:
+        * IdentityStore:
+            * describe_group()
+
+        * Signer:
+            * list_tags_by_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * DynamoDB: create_table() now throws an error when supplying an unknown KeyType
+        * DynamoDB: query() now throws an error when supplying a ExpressionAttributeValue that doesn't start with a ':'
+        * EC2: describe_hosts() now returns the AllocationTime-attribute
+        * ECS: register_task_definition() now throws an exception if the ContainerDefinition has missing keys
+        * ECR: describe_images() now returns the supplied imageDigest-values, instead of random values
+        * EFS: AccessPoints now have the correct identifier format
+        * Lambda: Various methods now support the FunctionName in the format 'name:qualifier'
+        * MQ: create_configuration() is now possible for engine-type 'RABBITMQ'
+        * RDS: create_db_cluster() now throws an error if the provided engine is not supported
+        * RDS: create_db_instance() now throws an error if the provided engine does not match the cluster engine
+        * RDS: delete_db_cluster() now throws an error if any instances are still active
+        * SageMaker: list_model_packages() and list_model_package_groups() no longer throw an error on pagination
+
 4.2.7
 -----
 Docker Digest for 4.2.7: _sha256:9149597856f5ce195ef451df1a1b96aa8db0692c4b8ed1f7952fc02952733103_

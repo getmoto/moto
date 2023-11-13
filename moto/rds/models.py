@@ -50,6 +50,7 @@ from .utils import (
     validate_filters,
     valid_preferred_maintenance_window,
     DbInstanceEngine,
+    ClusterEngine,
 )
 
 
@@ -130,6 +131,17 @@ class Cluster:
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.deletion_protection = kwargs.get("deletion_protection")
         self.engine = kwargs.get("engine")
+        if self.engine not in ClusterEngine.list_cluster_engines():
+            raise InvalidParameterValue(
+                (
+                    "Engine '{engine}' is not supported "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_engines}"
+                ).format(
+                    engine=self.engine,
+                    valid_engines=ClusterEngine.list_cluster_engines(),
+                )
+            )
         self.engine_version = kwargs.get("engine_version") or Cluster.default_engine_version(self.engine)  # type: ignore
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
@@ -1596,7 +1608,10 @@ class RDSBackend(BaseBackend):
         if cluster_id is not None:
             cluster = self.clusters.get(cluster_id)
             if cluster is not None:
-                if cluster.engine == "aurora" and cluster.engine_mode == "serverless":
+                if (
+                    cluster.engine in ClusterEngine.serverless_engines()
+                    and cluster.engine_mode == "serverless"
+                ):
                     raise InvalidParameterValue(
                         "Instances cannot be added to Aurora Serverless clusters."
                     )
