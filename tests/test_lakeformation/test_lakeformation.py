@@ -41,6 +41,11 @@ def test_deregister_resource():
     err = exc.value.response["Error"]
     assert err["Code"] == "EntityNotFoundException"
 
+    with pytest.raises(ClientError) as exc:
+        client.deregister_resource(ResourceArn="some arn")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityNotFoundException"
+
 
 @mock_lakeformation
 def test_list_resources():
