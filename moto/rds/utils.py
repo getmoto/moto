@@ -5,8 +5,6 @@ from enum import Enum
 
 from botocore.utils import merge_dicts
 
-from typing import List
-from enum import Enum
 from collections import OrderedDict
 import datetime
 import re
