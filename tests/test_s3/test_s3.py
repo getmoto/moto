@@ -25,6 +25,7 @@ from moto import moto_proxy
 from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
 
+from tests import DEFAULT_ACCOUNT_ID
 from . import s3_aws_verified
 
 
@@ -44,12 +45,13 @@ class MyModel:
 @mock_s3
 def test_keys_are_pickleable():
     """Keys must be pickleable due to boto3 implementation details."""
-    key = s3model.FakeKey("name", b"data!")
+    key = s3model.FakeKey("name", b"data!", account_id=DEFAULT_ACCOUNT_ID)
     assert key.value == b"data!"
 
     pickled = pickle.dumps(key)
     loaded = pickle.loads(pickled)
     assert loaded.value == key.value
+    assert loaded.account_id == key.account_id
 
 
 @mock_s3

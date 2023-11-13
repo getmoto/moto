@@ -89,7 +89,7 @@ class FakeKey(BaseModel, ManagedState):
         self,
         name: str,
         value: bytes,
-        account_id: Optional[str] = None,
+        account_id: str,
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
@@ -363,6 +363,7 @@ class FakeMultipart(BaseModel):
         self,
         key_name: str,
         metadata: CaseInsensitiveDict,  # type: ignore
+        account_id: str,
         storage: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         acl: Optional["FakeAcl"] = None,
@@ -371,6 +372,7 @@ class FakeMultipart(BaseModel):
     ):
         self.key_name = key_name
         self.metadata = metadata
+        self.account_id = account_id
         self.storage = storage
         self.tags = tags
         self.acl = acl
@@ -417,7 +419,7 @@ class FakeMultipart(BaseModel):
             raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(
-            part_id, value, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
+            part_id, value, account_id=self.account_id, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
         )
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first
@@ -2289,6 +2291,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         multipart = FakeMultipart(
             key_name,
             metadata,
+            account_id=self.account_id,
             storage=storage_type,
             tags=tags,
             acl=acl,

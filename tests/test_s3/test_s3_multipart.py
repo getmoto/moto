@@ -17,6 +17,7 @@ from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
     test_proxy_mode,
 )
+from tests import DEFAULT_ACCOUNT_ID
 from .test_s3 import add_proxy_details
 
 if settings.TEST_DECORATOR_MODE:
@@ -51,12 +52,12 @@ def test_default_key_buffer_size():
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
-    fake_key = s3model.FakeKey("a", os.urandom(1))  # 1 byte string
+    fake_key = s3model.FakeKey("a", os.urandom(1), account_id=DEFAULT_ACCOUNT_ID)
     assert fake_key._value_buffer._rolled is False
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
     assert get_s3_default_key_buffer_size() == 1
-    fake_key = s3model.FakeKey("a", os.urandom(3))  # 3 byte string
+    fake_key = s3model.FakeKey("a", os.urandom(3), account_id=DEFAULT_ACCOUNT_ID)
     assert fake_key._value_buffer._rolled is True
 
     # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the
