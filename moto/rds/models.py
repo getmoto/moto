@@ -49,6 +49,7 @@ from .utils import (
     merge_filters,
     validate_filters,
     valid_preferred_maintenance_window,
+    DbInstanceEngine,
     ClusterEngine,
 )
 
@@ -568,6 +569,10 @@ class Database(CloudFormationModel):
         self.account_id: str = kwargs["account_id"]
         self.region_name: str = kwargs["region"]
         self.engine = kwargs.get("engine")
+        if self.engine not in DbInstanceEngine.valid_db_instance_engine():
+            raise InvalidParameterValue(
+                f"Value {self.engine} for parameter Engine is invalid. Reason: engine {self.engine} not supported"
+            )
         self.engine_version = kwargs.get("engine_version", None)
         if not self.engine_version and self.engine in self.default_engine_versions:
             self.engine_version = self.default_engine_versions[self.engine]
