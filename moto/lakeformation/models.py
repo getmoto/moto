@@ -56,6 +56,8 @@ class LakeFormationBackend(BaseBackend):
         return self.resources[resource_arn]
 
     def deregister_resource(self, resource_arn: str) -> None:
+        if resource_arn not in self.resources:
+            raise EntityNotFound
         del self.resources[resource_arn]
 
     def register_resource(self, resource_arn: str, role_arn: str) -> None:
