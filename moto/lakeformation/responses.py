@@ -3,7 +3,11 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import lakeformation_backends, LakeFormationBackend
+from .models import (
+    lakeformation_backends,
+    LakeFormationBackend,
+    ListPermissionsResource,
+)
 
 
 class LakeFormationResponse(BaseResponse):
@@ -87,7 +91,21 @@ class LakeFormationResponse(BaseResponse):
 
     def list_permissions(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
-        permissions = self.lakeformation_backend.list_permissions(catalog_id)
+        principal = self._get_param("Principal")
+        resource = self._get_param("Resource")
+        resource_type = self._get_param("ResourceType")
+
+        list_permission_resource = (
+            ListPermissionsResource.from_dictionary(resource)
+            if resource is not None
+            else None
+        )
+        permissions = self.lakeformation_backend.list_permissions(
+            catalog_id=catalog_id,
+            principal=principal,
+            resource=list_permission_resource,
+            resource_type=resource_type,
+        )
         return json.dumps({"PrincipalResourcePermissions": permissions})
 
     def create_lf_tag(self) -> str:

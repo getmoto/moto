@@ -1,9 +1,18 @@
+from __future__ import annotations
+from enum import Enum
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
-from .exceptions import EntityNotFound
+from .exceptions import EntityNotFound, InvalidInput
+
+
+class RessourceType(Enum):
+    catalog = "CATALOG"
+    database = "DATABASE"
+    table = "TABLE"
+    data_location = "DATA_LOCATION"
 
 
 class Resource(BaseModel):
@@ -16,6 +25,155 @@ class Resource(BaseModel):
             "ResourceArn": self.arn,
             "RoleArn": self.role_arn,
         }
+
+
+class ListPermissionsResourceDatabase:
+    def __init__(self, catalog_id: Optional[str], name: str):
+        self.name = name
+        self.catalog_id = Optional[catalog_id]
+
+    @classmethod
+    def from_dictionary(
+        cls, dictionary: Dict[str, Any]
+    ) -> ListPermissionsResourceDatabase:
+        return cls(name=dictionary.get("Name"), catalog_id=dictionary.get("CatalogId"))
+
+
+class ListPermissionsResourceTable:
+    def __init__(
+        self,
+        catalog_id: Optional[str],
+        database_name: str,
+        name: Optional[str],
+        table_wild_card: Optional[dict],
+    ):
+        if name is None and table_wild_card is None:
+            raise InvalidInput("Table name and table wildcard cannot both be empty.")
+        if name is not None and table_wild_card is not None:
+            raise InvalidInput("Table name and table wildcard cannot both be present.")
+        self.database_name = database_name
+        self.name = name
+        self.catalog_id = Optional[catalog_id]
+        self.table_wildcard = table_wild_card
+
+    @classmethod
+    def from_dictionary(
+        cls, dictionary: Dict[str, Any]
+    ) -> ListPermissionsResourceTable:
+        return cls(
+            database_name=dictionary.get("DatabaseName"),
+            name=dictionary.get("Name"),
+            catalog_id=dictionary.get("CatalogId"),
+            table_wildcard=dictionary.get("TableWildcard"),
+        )
+
+
+class ExcludedColumnNames:
+    def __init__(self, excluded_column_names: List[str]):
+        self.excluded_column_names = excluded_column_names
+
+
+class ListPermissionsResourceTableWithColumns:
+    def __init__(
+        self,
+        catalog_id: Optional[str],
+        database_name: str,
+        name: str,
+        column_names: list[str],
+        column_wildcard: ExcludedColumnNames,
+    ):
+        self.database_name = database_name
+        self.name = name
+        self.catalog_id = catalog_id
+        self.column_names = column_names
+        self.column_wildcard = column_wildcard
+
+
+class ListPermissionsResourceDataLocation:
+    def __init__(self, catalog_id: Optional[str], resource_arn: str):
+        self.catalog_id = catalog_id
+        self.resource_arn = resource_arn
+
+
+class ListPermissionsResourceDataCellsFilter:
+    def __init__(
+        self, table_catalog_id: str, database_name: str, table_name: str, name: str
+    ):
+        self.table_catalog_id = table_catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.name = name
+
+
+class ListPermissionsResourceLFTag:
+    def __init__(self, catalog_id: str, tag_key: str, tag_values: List[str]):
+        self.catalog_id = catalog_id
+        self.tag_key = tag_key
+        self.tag_values = tag_values
+
+
+class LFTag:
+    def __init__(self, tag_key: str, tag_values: List[str]):
+        self.tag_key = tag_key
+        self.tag_values = tag_values
+
+
+class ListPermissionsResourceLFTagPolicy:
+    def __init__(self, catalog_id: str, resource_type: str, expression: List[LFTag]):
+        self.catalog_id = catalog_id
+        self.resource_type = resource_type
+        self.expression = expression
+
+
+class ListPermissionsResource:
+    def __init__(
+        self,
+        catalog: Optional[dict],
+        database: Optional[ListPermissionsResourceDatabase],
+        table: Optional[ListPermissionsResourceTable],
+        table_with_columns: Optional[ListPermissionsResourceTableWithColumns],
+        data_location: Optional[ListPermissionsResourceDataLocation],
+        data_cells_filter: Optional[ListPermissionsResourceDataCellsFilter],
+        lf_tag: Optional[ListPermissionsResourceLFTag],
+        lf_tag_policy: Optional[ListPermissionsResourceLFTagPolicy],
+    ):
+        if catalog is None and database is None and table is None:
+            raise InvalidInput(
+                "Resource must have either the catalog, table or database field populated."
+            )
+        self.catalog = catalog
+        self.database = database
+        self.table = table
+        self.table_with_columns = table_with_columns
+        self.data_location = data_location
+        self.data_cells_filter = data_cells_filter
+        self.lf_tag = lf_tag
+        self.lf_tag_policy = lf_tag_policy
+
+    @classmethod
+    def from_dictionary(cls, dictionary: dict) -> ListPermissionsResource:
+        database_sub_dictionary = dictionary.get("Database")
+        database = (
+            ListPermissionsResourceDatabase.from_dictionary(database_sub_dictionary)
+            if database_sub_dictionary is not None
+            else None
+        )
+        table_sub_dictionary = dictionary.get("Table")
+        table = (
+            ListPermissionsResourceTable.from_dictionary(table_sub_dictionary)
+            if table_sub_dictionary is not None
+            else None
+        )
+        return cls(
+            catalog=dictionary.get("Catalog"),
+            database=database,
+            table=table,
+            table_with_columns=None,
+            data_location=None,
+            data_cells_filter=None,
+            lf_tag=None,
+            lf_tag_policy=None,
+        )
 
 
 def default_settings() -> Dict[str, Any]:
@@ -114,11 +272,82 @@ class LakeFormationBackend(BaseBackend):
             grant for grant in self.grants[catalog_id] if grant["Permissions"] != []
         ]
 
-    def list_permissions(self, catalog_id: str) -> List[Dict[str, Any]]:
+    def list_permissions(
+        self,
+        catalog_id: str,
+        principal: Optional[Dict[str, str]] = None,
+        resource: Optional[ListPermissionsResource] = None,
+        resource_type: Optional[RessourceType] = None,
+    ) -> List[Dict[str, Any]]:
         """
-        No parameters have been implemented yet
+        No pagination has been implemented yet.
         """
-        return self.grants[catalog_id]
+        permissions = self.grants[catalog_id]
+
+        def filter_for_principal(permission: Dict[str, Any], principal: str) -> bool:
+            return permission["Principal"]["DataLakePrincipalIdentifier"] == principal
+
+        if principal is not None:
+            permissions = filter(filter_for_principal, permissions)
+
+        def filter_for_resource_type(
+            permission: Dict[str, Any], resource_type: RessourceType
+        ) -> bool:
+            if resource_type == RessourceType.catalog:
+                return "Catalog" in permission
+            elif resource_type == RessourceType.database:
+                return "Database" in permission
+            elif resource_type == RessourceType.data_location:
+                return "DataLocation" in permission
+            elif resource_type == RessourceType.table:
+                return "Table" in permission or "TableWithColumns" in permission
+
+        if resource_type is not None:
+            permissions = filter(filter_for_resource_type, permissions)
+
+        def filter_for_resource(
+            permission: Dict[str, Any], resource: ListPermissionsResource
+        ) -> bool:
+            """
+            If catalog is provided:
+                only matching permissions with resource-type "Catalog" are returned;
+            if catalog is not provided and database is provided:
+                only matching permissions with resource-type "Database" are returned;
+            if catalog and database are not provided and table is provided:
+                only matching permissions with resource-type "Table" are returned;
+            """
+            catalog = resource.catalog
+            if catalog is not None and "Catalog" in permission:
+                return catalog == permission["Catalog"]
+
+            database = resource.database
+            if database is not None and "Database" in permission:
+                equals = database.name == permission["Database"]["Name"]
+                if database.catalog_id is not None:
+                    equals = equals and (
+                        database.catalog_id == permission["Database"]["CatalogId"]
+                    )
+                return equals
+
+            table = resource.table
+            if table is not None and "Table" in permission:
+                equals = table.database_name == permission["Table"]["DatabaseName"]
+                if table.catalog_id is not None:
+                    equals = equals and (
+                        table.catalog_id == permission["Table"]["CatalogId"]
+                    )
+                if table.name is not None and table.table_wildcard is None:
+                    equals = equals and (table.name == permission["Table"]["Name"])
+                if table.name is None and table.table_wildcard is not None:
+                    equals = equals and (
+                        table.table_wildcard == permission["Table"]["TableWildcard"]
+                    )
+                return equals
+
+        if resource is not None:
+            permissions = filter(filter_for_resource, permissions)
+
+        return permissions
 
     def create_lf_tag(self, catalog_id: str, key: str, values: List[str]) -> None:
         # There is no ARN that we can use, so just create another  unique identifier that's easy to recognize and reproduce
