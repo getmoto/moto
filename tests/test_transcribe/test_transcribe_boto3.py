@@ -407,7 +407,8 @@ def test_run_transcription_job_s3output_params():
         "Formats": args["Subtitles"]["Formats"],
         "SubtitleFileUris": [
             f"https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key.{format}"
-        for format in args["Subtitles"]["Formats"]],
+            for format in args["Subtitles"]["Formats"]
+        ],
     }
 
     # A new job without an "OutputKey"
