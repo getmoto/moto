@@ -437,9 +437,10 @@ class Task(BaseObject, ManagedState):
             return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.cluster_name}/{self.id}"
         return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.id}"
 
-    @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self, include_tags: bool = True) -> Dict[str, Any]:  # type: ignore
         response_object = self.gen_response_object()
+        if not include_tags:
+            response_object.pop("tags", None)
         response_object["taskArn"] = self.task_arn
         response_object["lastStatus"] = self.last_status
         return response_object
@@ -1471,12 +1472,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.tasks[cluster.name][task.task_arn] = task
         return tasks
 
-    def describe_tasks(
-        self,
-        cluster_str: str,
-        tasks: Optional[str],
-        include: Optional[List[str]] = None,
-    ) -> List[Task]:
+    def describe_tasks(self, cluster_str: str, tasks: Optional[str]) -> List[Task]:
         """
         Only include=TAGS is currently supported.
         """
@@ -1495,22 +1491,18 @@ class EC2ContainerServiceBackend(BaseBackend):
                 ):
                     task.advance()
                     response.append(task)
-        if "TAGS" in (include or []):
-            return response
 
-        for task in response:
-            task.tags = []
         return response
 
     def list_tasks(
         self,
-        cluster_str: str,
-        container_instance: Optional[str],
-        family: str,
-        started_by: str,
-        service_name: str,
-        desiredStatus: str,
-    ) -> List[str]:
+        cluster_str: Optional[str] = None,
+        container_instance: Optional[str] = None,
+        family: Optional[str] = None,
+        started_by: Optional[str] = None,
+        service_name: Optional[str] = None,
+        desiredStatus: Optional[str] = None,
+    ) -> List[Task]:
         filtered_tasks = []
         for tasks in self.tasks.values():
             for task in tasks.values():
@@ -1554,7 +1546,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 filter(lambda t: t.desired_status == desiredStatus, filtered_tasks)
             )
 
-        return [t.task_arn for t in filtered_tasks]
+        return filtered_tasks
 
     def stop_task(self, cluster_str: str, task_str: str, reason: str) -> Task:
         cluster = self._get_cluster(cluster_str)
@@ -2080,6 +2072,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             return task_def
         elif parsed_arn["service"] == "capacity-provider":
             return self._get_provider(parsed_arn["id"])
+        elif parsed_arn["service"] == "task":
+            for task in self.list_tasks():
+                if task.task_arn == resource_arn:
+                    return task
         raise NotImplementedError()
 
     def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
