@@ -224,7 +224,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 transcript_file_prefix = (
                     f"https://s3.{self._region_name}.amazonaws.com/"
                     f"{self._output_bucket_name}/"
-                    f"{self.output_key or self.transcription_job_name}"
+                    f"{(self.output_key or self.transcription_job_name).replace('.json', '')}"
                 )
                 self.output_location_type = "CUSTOMER_BUCKET"
             else:
