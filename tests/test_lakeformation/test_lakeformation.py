@@ -1,4 +1,5 @@
 """Unit tests for lakeformation-supported APIs."""
+from typing import Dict
 import boto3
 import pytest
 
@@ -114,6 +115,230 @@ def test_list_permissions():
             "Permissions": ["ALL"],
             "PermissionsWithGrantOption": ["SELECT"],
         }
+    ]
+
+
+def grant_table_permissions(
+    client: boto3.client, catalog_id: str, principal: str, db: str, table: str
+):
+    client.grant_permissions(
+        CatalogId=catalog_id,
+        Principal={"DataLakePrincipalIdentifier": principal},
+        Resource={
+            "Table": {
+                "DatabaseName": db,
+                "Name": table,
+                "CatalogId": catalog_id,
+                "TableWildcard": {},
+            }
+        },
+        Permissions=["ALL"],
+        PermissionsWithGrantOption=["SELECT"],
+    )
+
+
+def grant_db_permissions(
+    client: boto3.client, catalog_id: str, principal: str, db: str
+):
+    client.grant_permissions(
+        CatalogId=catalog_id,
+        Principal={"DataLakePrincipalIdentifier": principal},
+        Resource={"Database": {"Name": db, "CatalogId": catalog_id}},
+        Permissions=["ALL"],
+        PermissionsWithGrantOption=["SELECT"],
+    )
+
+
+def grant_catalog_permissions(client: boto3.client, catalog_id: str, principal: str):
+    client.grant_permissions(
+        CatalogId=catalog_id,
+        Principal={"DataLakePrincipalIdentifier": principal},
+        Resource={"Catalog": {}},
+        Permissions=["CREATE_DATABASE"],
+        PermissionsWithGrantOption=[],
+    )
+
+
+def db_response(principal: str, catalog_id: str, db: str) -> Dict:
+    return {
+        "Principal": {"DataLakePrincipalIdentifier": principal},
+        "Resource": {
+            "Database": {
+                "CatalogId": catalog_id,
+                "Name": db,
+            }
+        },
+        "Permissions": ["ALL"],
+        "PermissionsWithGrantOption": ["SELECT"],
+    }
+
+
+def table_response(principal: str, catalog_id: str, db: str, table: str) -> Dict:
+    return {
+        "Principal": {"DataLakePrincipalIdentifier": principal},
+        "Resource": {
+            "Table": {
+                "CatalogId": catalog_id,
+                "DatabaseName": db,
+                "Name": table,
+                "TableWildcard": {},
+            }
+        },
+        "Permissions": ["ALL"],
+        "PermissionsWithGrantOption": ["SELECT"],
+    }
+
+
+def catalog_response(principal: str) -> Dict:
+    return {
+        "Principal": {"DataLakePrincipalIdentifier": principal},
+        "Resource": {"Catalog": {}},
+        "Permissions": ["CREATE_DATABASE"],
+        "PermissionsWithGrantOption": [],
+    }
+
+
+@mock_lakeformation
+def test_list_permissions_filtered_for_catalog_id():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+    catalog_id_1 = "000000000000"
+    catalog_id_2 = "000000000001"
+    principal_1 = "principal_1"
+    principal_2 = "principal_2"
+
+    grant_catalog_permissions(
+        client=client, catalog_id=catalog_id_1, principal=principal_1
+    )
+    grant_catalog_permissions(
+        client=client, catalog_id=catalog_id_2, principal=principal_2
+    )
+
+    permissions = client.list_permissions(CatalogId=catalog_id_1)[
+        "PrincipalResourcePermissions"
+    ]
+    assert permissions == [catalog_response(principal=principal_1)]
+
+    permissions = client.list_permissions(CatalogId=catalog_id_2)[
+        "PrincipalResourcePermissions"
+    ]
+    assert permissions == [catalog_response(principal=principal_2)]
+
+
+@mock_lakeformation
+def test_list_permissions_filtered_for_resource_type():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+    catalog_id = "000000000000"
+    principal_1 = "principal_1"
+    db_1 = "db_1"
+    table_1 = "table_1"
+
+    grant_db_permissions(
+        client=client, catalog_id=catalog_id, principal=principal_1, db=db_1
+    )
+    grant_table_permissions(
+        client=client,
+        catalog_id=catalog_id,
+        principal=principal_1,
+        db=db_1,
+        table=table_1,
+    )
+    grant_catalog_permissions(
+        client=client, catalog_id=catalog_id, principal=principal_1
+    )
+
+    res = client.list_permissions(CatalogId=catalog_id, ResourceType="DATABASE")
+    assert res["PrincipalResourcePermissions"] == [
+        db_response(principal=principal_1, catalog_id=catalog_id, db=db_1),
+    ]
+
+    res = client.list_permissions(CatalogId=catalog_id, ResourceType="TABLE")
+    assert res["PrincipalResourcePermissions"] == [
+        table_response(
+            principal=principal_1, catalog_id=catalog_id, db=db_1, table=table_1
+        ),
+    ]
+
+    res = client.list_permissions(CatalogId=catalog_id, ResourceType="CATALOG")
+    assert res["PrincipalResourcePermissions"] == [
+        catalog_response(principal=principal_1),
+    ]
+
+
+@mock_lakeformation
+def test_list_permissions_filtered_for_resource_db():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+    catalog_id = "000000000000"
+    principal_1 = "principal_1"
+    db_1 = "db_1"
+    db_2 = "db_2"
+
+    grant_db_permissions(
+        client=client, catalog_id=catalog_id, principal=principal_1, db=db_1
+    )
+    grant_db_permissions(
+        client=client, catalog_id=catalog_id, principal=principal_1, db=db_2
+    )
+
+    res = client.list_permissions(
+        CatalogId=catalog_id, Resource={"Database": {"Name": db_1}}
+    )
+
+    assert res["PrincipalResourcePermissions"] == [
+        db_response(principal=principal_1, catalog_id=catalog_id, db=db_1),
+    ]
+
+    res = client.list_permissions(
+        CatalogId=catalog_id, Resource={"Database": {"Name": db_2}}
+    )
+    assert res["PrincipalResourcePermissions"] == [
+        db_response(principal=principal_1, catalog_id=catalog_id, db=db_2),
+    ]
+
+
+@mock_lakeformation
+def test_list_permissions_filtered_for_resource_table():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+    catalog_id = "000000000000"
+    principal_1 = "principal_1"
+    db_1 = "db_1"
+    table_1 = "table_1"
+    table_2 = "table_2"
+
+    grant_table_permissions(
+        client=client,
+        catalog_id=catalog_id,
+        principal=principal_1,
+        db=db_1,
+        table=table_1,
+    )
+    grant_table_permissions(
+        client=client,
+        catalog_id=catalog_id,
+        principal=principal_1,
+        db=db_1,
+        table=table_2,
+    )
+
+    res = client.list_permissions(
+        CatalogId=catalog_id,
+        Resource={"Table": {"DatabaseName": db_1, "Name": table_1}},
+    )
+
+    assert res["PrincipalResourcePermissions"] == [
+        table_response(
+            principal=principal_1, catalog_id=catalog_id, db=db_1, table=table_1
+        ),
+    ]
+
+    res = client.list_permissions(
+        CatalogId=catalog_id,
+        Resource={"Table": {"DatabaseName": db_1, "Name": table_2}},
+    )
+
+    assert res["PrincipalResourcePermissions"] == [
+        table_response(
+            principal=principal_1, catalog_id=catalog_id, db=db_1, table=table_2
+        ),
     ]
 
 
