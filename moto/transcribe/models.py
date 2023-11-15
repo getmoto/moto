@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
@@ -221,10 +222,11 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 "%Y-%m-%d %H:%M:%S"
             )
             if self._output_bucket_name:
+                remove_json_extension = re.compile("\\.json$")
                 transcript_file_prefix = (
                     f"https://s3.{self._region_name}.amazonaws.com/"
                     f"{self._output_bucket_name}/"
-                    f"{(self.output_key or self.transcription_job_name).replace('.json', '')}"
+                    f"{remove_json_extension.sub('', self.output_key or self.transcription_job_name)}"
                 )
                 self.output_location_type = "CUSTOMER_BUCKET"
             else:

@@ -369,7 +369,7 @@ def test_run_transcription_job_s3output_params():
         "LanguageCode": "en-US",
         "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "OutputBucketName": "my-output-bucket",
-        "OutputKey": "bucket-key.json",
+        "OutputKey": "bucket.json.key.json",
         "Subtitles": {"Formats": ["vtt", "srt"]},
     }
     resp = client.start_transcription_job(**args)
@@ -401,12 +401,12 @@ def test_run_transcription_job_s3output_params():
     assert "Transcript" in transcription_job
     # Check aws hosted bucket
     assert (
-        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key.json"
+        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket.json.key.json"
     ) in transcription_job["Transcript"]["TranscriptFileUri"]
     assert transcription_job["Subtitles"] == {
         "Formats": args["Subtitles"]["Formats"],
         "SubtitleFileUris": [
-            f"https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key.{format}"
+            f"https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket.json.key.{format}"
             for format in args["Subtitles"]["Formats"]
         ],
     }
