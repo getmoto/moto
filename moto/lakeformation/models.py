@@ -32,12 +32,6 @@ class ListPermissionsResourceDatabase:
         self.name = name
         self.catalog_id = catalog_id
 
-    @classmethod
-    def from_dictionary(
-        cls, dictionary: Dict[str, Any]
-    ) -> ListPermissionsResourceDatabase:
-        return cls(name=dictionary.get("Name"), catalog_id=dictionary.get("CatalogId"))
-
 
 class ListPermissionsResourceTable:
     def __init__(
@@ -45,7 +39,9 @@ class ListPermissionsResourceTable:
         catalog_id: Optional[str],
         database_name: str,
         name: Optional[str],
-        table_wildcard: Optional[dict],
+        table_wildcard: Optional[
+            Dict[str, str]
+        ],  # Placeholder type, table_wildcard is an empty dict in docs
     ):
         if name is None and table_wildcard is None:
             raise InvalidInput("Table name and table wildcard cannot both be empty.")
@@ -55,17 +51,6 @@ class ListPermissionsResourceTable:
         self.name = name
         self.catalog_id = catalog_id
         self.table_wildcard = table_wildcard
-
-    @classmethod
-    def from_dictionary(
-        cls, dictionary: Dict[str, Any]
-    ) -> ListPermissionsResourceTable:
-        return cls(
-            database_name=dictionary.get("DatabaseName"),
-            name=dictionary.get("Name"),
-            catalog_id=dictionary.get("CatalogId"),
-            table_wildcard=dictionary.get("TableWildcard"),
-        )
 
 
 class ExcludedColumnNames:
@@ -128,7 +113,9 @@ class ListPermissionsResourceLFTagPolicy:
 class ListPermissionsResource:
     def __init__(
         self,
-        catalog: Optional[dict],
+        catalog: Optional[
+            Dict[str, str]
+        ],  # Placeholder type, catalog is an empty dict in docs
         database: Optional[ListPermissionsResourceDatabase],
         table: Optional[ListPermissionsResourceTable],
         table_with_columns: Optional[ListPermissionsResourceTableWithColumns],
@@ -149,31 +136,6 @@ class ListPermissionsResource:
         self.data_cells_filter = data_cells_filter
         self.lf_tag = lf_tag
         self.lf_tag_policy = lf_tag_policy
-
-    @classmethod
-    def from_dictionary(cls, dictionary: dict) -> ListPermissionsResource:
-        database_sub_dictionary = dictionary.get("Database")
-        database = (
-            ListPermissionsResourceDatabase.from_dictionary(database_sub_dictionary)
-            if database_sub_dictionary is not None
-            else None
-        )
-        table_sub_dictionary = dictionary.get("Table")
-        table = (
-            ListPermissionsResourceTable.from_dictionary(table_sub_dictionary)
-            if table_sub_dictionary is not None
-            else None
-        )
-        return cls(
-            catalog=dictionary.get("Catalog"),
-            database=database,
-            table=table,
-            table_with_columns=None,
-            data_location=None,
-            data_cells_filter=None,
-            lf_tag=None,
-            lf_tag_policy=None,
-        )
 
 
 def default_settings() -> Dict[str, Any]:
@@ -291,15 +253,18 @@ class LakeFormationBackend(BaseBackend):
             permissions = list(filter(filter_for_principal, permissions))
 
         def filter_for_resource_type(permission: Dict[str, Any]) -> bool:
+            if resource_type is None:  # Check for mypy
+                return False
             resource = permission["Resource"]
-            if resource_type == RessourceType.catalog.value:
+            if resource_type == RessourceType.catalog:
                 return "Catalog" in resource
-            elif resource_type == RessourceType.database.value:
+            elif resource_type == RessourceType.database:
                 return "Database" in resource
-            elif resource_type == RessourceType.data_location.value:
+            elif resource_type == RessourceType.data_location:
                 return "DataLocation" in resource
-            elif resource_type == RessourceType.table.value:
+            elif resource_type == RessourceType.table:
                 return "Table" in resource or "TableWithColumns" in resource
+            return False
 
         if resource_type is not None:
             permissions = list(filter(filter_for_resource_type, permissions))
@@ -313,6 +278,9 @@ class LakeFormationBackend(BaseBackend):
             if catalog and database are not provided and table is provided:
                 only matching permissions with resource-type "Table" are returned;
             """
+            if resource is None:  # Check for linter
+                return False
+
             permission_resource = permission["Resource"]
             catalog = resource.catalog
             if catalog is not None and "Catalog" in permission_resource:
@@ -347,6 +315,7 @@ class LakeFormationBackend(BaseBackend):
                         == permission_resource["Table"]["TableWildcard"]
                     )
                 return equals
+            return False
 
         if resource is not None:
             permissions = list(filter(filter_for_resource, permissions))

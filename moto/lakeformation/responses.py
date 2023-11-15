@@ -1,12 +1,15 @@
 """Handles incoming lakeformation requests, invokes methods, returns responses."""
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from moto.core.responses import BaseResponse
 from .models import (
     lakeformation_backends,
     LakeFormationBackend,
     ListPermissionsResource,
+    ListPermissionsResourceDatabase,
+    ListPermissionsResourceTable,
+    RessourceType,
 )
 
 
@@ -93,13 +96,47 @@ class LakeFormationResponse(BaseResponse):
         catalog_id = self._get_param("CatalogId") or self.current_account
         principal = self._get_param("Principal")
         resource = self._get_param("Resource")
-        resource_type = self._get_param("ResourceType")
+        resource_type_param = self._get_param("ResourceType")
+        if resource_type_param is None:
+            resource_type = None
+        else:
+            resource_type = RessourceType(resource_type_param)
 
-        list_permission_resource = (
-            ListPermissionsResource.from_dictionary(resource)
-            if resource is not None
-            else None
-        )
+        if resource is None:
+            list_permission_resource = None
+        else:
+            database_sub_dictionary = resource.get("Database")
+            table_sub_dictionary = resource.get("Table")
+            catalog_sub_dictionary = resource.get("Catalog")
+
+            if database_sub_dictionary is None:
+                database = None
+            else:
+                database = ListPermissionsResourceDatabase(
+                    name=database_sub_dictionary.get("Name"),
+                    catalog_id=database_sub_dictionary.get("CatalogId"),
+                )
+
+            if table_sub_dictionary is None:
+                table = None
+            else:
+                table = ListPermissionsResourceTable(
+                    database_name=table_sub_dictionary.get("DatabaseName"),
+                    name=table_sub_dictionary.get("Name"),
+                    catalog_id=table_sub_dictionary.get("CatalogId"),
+                    table_wildcard=table_sub_dictionary.get("TableWildcard"),
+                )
+
+            list_permission_resource = ListPermissionsResource(
+                catalog=catalog_sub_dictionary,
+                database=database,
+                table=table,
+                table_with_columns=None,
+                data_location=None,
+                data_cells_filter=None,
+                lf_tag=None,
+                lf_tag_policy=None,
+            )
         permissions = self.lakeformation_backend.list_permissions(
             catalog_id=catalog_id,
             principal=principal,
