@@ -30,7 +30,7 @@ class Resource(BaseModel):
 class ListPermissionsResourceDatabase:
     def __init__(self, catalog_id: Optional[str], name: str):
         self.name = name
-        self.catalog_id = Optional[catalog_id]
+        self.catalog_id = catalog_id
 
     @classmethod
     def from_dictionary(
@@ -45,16 +45,16 @@ class ListPermissionsResourceTable:
         catalog_id: Optional[str],
         database_name: str,
         name: Optional[str],
-        table_wild_card: Optional[dict],
+        table_wildcard: Optional[dict],
     ):
-        if name is None and table_wild_card is None:
+        if name is None and table_wildcard is None:
             raise InvalidInput("Table name and table wildcard cannot both be empty.")
-        if name is not None and table_wild_card is not None:
+        if name is not None and table_wildcard is not None:
             raise InvalidInput("Table name and table wildcard cannot both be present.")
         self.database_name = database_name
         self.name = name
-        self.catalog_id = Optional[catalog_id]
-        self.table_wildcard = table_wild_card
+        self.catalog_id = catalog_id
+        self.table_wildcard = table_wildcard
 
     @classmethod
     def from_dictionary(
@@ -284,30 +284,27 @@ class LakeFormationBackend(BaseBackend):
         """
         permissions = self.grants[catalog_id]
 
-        def filter_for_principal(permission: Dict[str, Any], principal: str) -> bool:
-            return permission["Principal"]["DataLakePrincipalIdentifier"] == principal
+        def filter_for_principal(permission: Dict[str, Any]) -> bool:
+            return permission["Principal"] == principal
 
         if principal is not None:
-            permissions = filter(filter_for_principal, permissions)
+            permissions = list(filter(filter_for_principal, permissions))
 
-        def filter_for_resource_type(
-            permission: Dict[str, Any], resource_type: RessourceType
-        ) -> bool:
-            if resource_type == RessourceType.catalog:
-                return "Catalog" in permission
-            elif resource_type == RessourceType.database:
-                return "Database" in permission
-            elif resource_type == RessourceType.data_location:
-                return "DataLocation" in permission
-            elif resource_type == RessourceType.table:
-                return "Table" in permission or "TableWithColumns" in permission
+        def filter_for_resource_type(permission: Dict[str, Any]) -> bool:
+            resource = permission["Resource"]
+            if resource_type == RessourceType.catalog.value:
+                return "Catalog" in resource
+            elif resource_type == RessourceType.database.value:
+                return "Database" in resource
+            elif resource_type == RessourceType.data_location.value:
+                return "DataLocation" in resource
+            elif resource_type == RessourceType.table.value:
+                return "Table" in resource or "TableWithColumns" in resource
 
         if resource_type is not None:
-            permissions = filter(filter_for_resource_type, permissions)
+            permissions = list(filter(filter_for_resource_type, permissions))
 
-        def filter_for_resource(
-            permission: Dict[str, Any], resource: ListPermissionsResource
-        ) -> bool:
+        def filter_for_resource(permission: Dict[str, Any]) -> bool:
             """
             If catalog is provided:
                 only matching permissions with resource-type "Catalog" are returned;
@@ -316,37 +313,43 @@ class LakeFormationBackend(BaseBackend):
             if catalog and database are not provided and table is provided:
                 only matching permissions with resource-type "Table" are returned;
             """
+            permission_resource = permission["Resource"]
             catalog = resource.catalog
-            if catalog is not None and "Catalog" in permission:
-                return catalog == permission["Catalog"]
+            if catalog is not None and "Catalog" in permission_resource:
+                return catalog == permission_resource["Catalog"]
 
             database = resource.database
-            if database is not None and "Database" in permission:
-                equals = database.name == permission["Database"]["Name"]
+            if database is not None and "Database" in permission_resource:
+                equals = database.name == permission_resource["Database"]["Name"]
                 if database.catalog_id is not None:
                     equals = equals and (
-                        database.catalog_id == permission["Database"]["CatalogId"]
+                        database.catalog_id
+                        == permission_resource["Database"]["CatalogId"]
                     )
                 return equals
 
             table = resource.table
-            if table is not None and "Table" in permission:
-                equals = table.database_name == permission["Table"]["DatabaseName"]
+            if table is not None and "Table" in permission_resource:
+                equals = (
+                    table.database_name == permission_resource["Table"]["DatabaseName"]
+                )
                 if table.catalog_id is not None:
                     equals = equals and (
-                        table.catalog_id == permission["Table"]["CatalogId"]
+                        table.catalog_id == permission_resource["Table"]["CatalogId"]
                     )
                 if table.name is not None and table.table_wildcard is None:
-                    equals = equals and (table.name == permission["Table"]["Name"])
+                    equals = equals and (
+                        table.name == permission_resource["Table"]["Name"]
+                    )
                 if table.name is None and table.table_wildcard is not None:
                     equals = equals and (
-                        table.table_wildcard == permission["Table"]["TableWildcard"]
+                        table.table_wildcard
+                        == permission_resource["Table"]["TableWildcard"]
                     )
                 return equals
 
         if resource is not None:
-            permissions = filter(filter_for_resource, permissions)
-
+            permissions = list(filter(filter_for_resource, permissions))
         return permissions
 
     def create_lf_tag(self, catalog_id: str, key: str, values: List[str]) -> None:
