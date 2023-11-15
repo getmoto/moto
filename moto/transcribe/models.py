@@ -228,7 +228,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 )
                 self.output_location_type = "CUSTOMER_BUCKET"
             else:
-                url = (
+                transcript_file_prefix = (
                     f"https://s3.{self._region_name}.amazonaws.com/"
                     f"aws-transcribe-{self._region_name}-prod/"
                     f"{self._account_id}/"
@@ -238,9 +238,11 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 )
                 self.output_location_type = "SERVICE_BUCKET"
             self.transcript = {"TranscriptFileUri": f"{transcript_file_prefix}.json"}
-            self.subtitles["SubtitleFileUris"] = (
-                [f"{transcript_file_prefix}.{format}" for format in self.subtitles["Formats"]]
-            )
+            self.subtitles["SubtitleFileUris"] = [
+                f"{transcript_file_prefix}.{format}"
+                for format in self.subtitles["Formats"]
+            ]
+
 
 class FakeVocabulary(BaseObject, ManagedState):
     def __init__(
@@ -518,6 +520,7 @@ class TranscribeBackend(BaseBackend):
         identify_language: Optional[bool],
         identify_multiple_languages: Optional[bool],
         language_options: Optional[List[str]],
+        subtitles: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         if transcription_job_name in self.transcriptions:
             raise ConflictException(
@@ -549,6 +552,7 @@ class TranscribeBackend(BaseBackend):
             identify_language=identify_language,
             identify_multiple_languages=identify_multiple_languages,
             language_options=language_options,
+            subtitles=subtitles,
         )
         self.transcriptions[transcription_job_name] = transcription_job_object
 

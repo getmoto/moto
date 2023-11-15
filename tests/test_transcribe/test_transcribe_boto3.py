@@ -209,6 +209,10 @@ def test_run_transcription_job_all_params():
             "MaxAlternatives": 6,
             "VocabularyName": vocabulary_name,
         },
+        "Subtitles": {
+            "Formats": ["srt", "vtt"],
+            "OutputStartIndex": 1,
+        },
         # Missing `ContentRedaction`, `JobExecutionSettings`,
         # `VocabularyFilterName`, `LanguageModel`
     }
@@ -268,6 +272,18 @@ def test_run_transcription_job_all_params():
             f"/{args['OutputBucketName']}"
             f"/{args['TranscriptionJobName']}.json"
         ),
+    }
+    assert transcription_job["Subtitles"] == {
+        "Formats": args["Subtitles"]["Formats"],
+        "OutputStartIndex": 1,
+        "SubtitleFileUris": [
+            (
+                f"https://s3.{region_name}.amazonaws.com"
+                f"/{args['OutputBucketName']}"
+                f"/{args['TranscriptionJobName']}.{format}"
+            )
+            for format in args["Subtitles"]["Formats"]
+        ],
     }
 
 
@@ -329,6 +345,11 @@ def test_run_transcription_job_minimal_params():
     assert (
         f"https://s3.{region_name}.amazonaws.com/aws-transcribe-{region_name}-prod/"
     ) in transcription_job["Transcript"]["TranscriptFileUri"]
+    assert transcription_job["Subtitles"] == {
+        "Formats": [],
+        "OutputStartIndex": 0,
+        "SubtitleFileUris": [],
+    }
 
     # Delete
     client.delete_transcription_job(TranscriptionJobName=job_name)
@@ -379,7 +400,7 @@ def test_run_transcription_job_s3output_params():
     assert "Transcript" in transcription_job
     # Check aws hosted bucket
     assert (
-        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key/MyJob.json"
+        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key.json"
     ) in transcription_job["Transcript"]["TranscriptFileUri"]
     # A new job without an "OutputKey"
     job_name = "MyJob2"
