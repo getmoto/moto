@@ -730,6 +730,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
 
+    @jsonify_error
     def list_queue_tags(self) -> str:
         queue_name = self._get_queue_name()
 

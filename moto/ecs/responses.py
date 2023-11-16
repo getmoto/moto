@@ -193,16 +193,19 @@ class EC2ContainerServiceResponse(BaseResponse):
             network_configuration,
         )
         return json.dumps(
-            {"tasks": [task.response_object for task in tasks], "failures": []}
+            {"tasks": [task.response_object() for task in tasks], "failures": []}
         )
 
     def describe_tasks(self) -> str:
         cluster = self._get_param("cluster", "default")
         tasks = self._get_param("tasks")
-        include = self._get_param("include")
-        data = self.ecs_backend.describe_tasks(cluster, tasks, include)
+        include_tags = "TAGS" in self._get_param("include", [])
+        data = self.ecs_backend.describe_tasks(cluster, tasks)
         return json.dumps(
-            {"tasks": [task.response_object for task in data], "failures": []}
+            {
+                "tasks": [task.response_object(include_tags) for task in data],
+                "failures": [],
+            }
         )
 
     def start_task(self) -> str:
@@ -221,7 +224,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
         )
         return json.dumps(
-            {"tasks": [task.response_object for task in tasks], "failures": []}
+            {"tasks": [task.response_object() for task in tasks], "failures": []}
         )
 
     def list_tasks(self) -> str:
@@ -231,7 +234,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         started_by = self._get_param("startedBy")
         service_name = self._get_param("serviceName")
         desiredStatus = self._get_param("desiredStatus")
-        task_arns = self.ecs_backend.list_tasks(
+        tasks = self.ecs_backend.list_tasks(
             cluster_str,
             container_instance,
             family,
@@ -239,14 +242,14 @@ class EC2ContainerServiceResponse(BaseResponse):
             service_name,
             desiredStatus,
         )
-        return json.dumps({"taskArns": task_arns})
+        return json.dumps({"taskArns": [t.task_arn for t in tasks]})
 
     def stop_task(self) -> str:
         cluster_str = self._get_param("cluster", "default")
         task = self._get_param("task")
         reason = self._get_param("reason")
         task = self.ecs_backend.stop_task(cluster_str, task, reason)
-        return json.dumps({"task": task.response_object})
+        return json.dumps({"task": task.response_object()})
 
     def create_service(self) -> str:
         cluster_str = self._get_param("cluster", "default")

@@ -115,6 +115,7 @@ redshift
 - [ ] disassociate_data_share_consumer
 - [ ] enable_logging
 - [X] enable_snapshot_copy
+- [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options

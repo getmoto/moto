@@ -591,6 +591,22 @@ def test_get_function():
         == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
 
+    # Test get function with version
+    result = conn.get_function(FunctionName=function_name, Qualifier="1")
+    assert result["Configuration"]["Version"] == "1"
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+
+    # Test get function with version inside of name
+    result = conn.get_function(FunctionName=f"{function_name}:1")
+    assert result["Configuration"]["Version"] == "1"
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+
     # Test get function when can't find function name
     with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
@@ -724,6 +740,22 @@ def test_get_function_by_arn():
     result = conn.get_function(FunctionName=fnc["FunctionArn"])
     assert result["Configuration"]["FunctionName"] == function_name
 
+    # Test with version
+    result = conn.get_function(FunctionName=fnc["FunctionArn"], Qualifier="1")
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+    assert result["Configuration"]["Version"] == "1"
+
+    # Test with version inside of ARN
+    result = conn.get_function(FunctionName=f"{fnc['FunctionArn']}:1")
+    assert result["Configuration"]["Version"] == "1"
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+
 
 @mock_lambda
 @mock_s3
@@ -760,7 +792,7 @@ def test_delete_function():
 
     assert success_result == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
-    func_list = conn.list_functions()["Functions"]
+    func_list = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in func_list if f["FunctionName"] == function_name]
     assert len(our_functions) == 0
 
@@ -1592,18 +1624,41 @@ def test_multiple_qualifiers():
     qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
     assert qualis == ["$LATEST", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 
+    # Test delete with function name and qualifier
     client.delete_function(FunctionName=fn_name, Qualifier="4")
-    client.delete_function(FunctionName=fn_name, Qualifier="5")
+    # Test delete with ARN and qualifier
+    client.delete_function(
+        FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}",
+        Qualifier="5",
+    )
+    # Test delete with qualifier part of function name
+    client.delete_function(FunctionName=fn_name + ":8")
+    # Test delete with qualifier inside ARN
+    client.delete_function(
+        FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}:9"
+    )
 
     resp = client.list_versions_by_function(FunctionName=fn_name)["Versions"]
     qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
-    assert qualis == ["$LATEST", "1", "2", "3", "6", "7", "8", "9", "10"]
+    assert qualis == ["$LATEST", "1", "2", "3", "6", "7", "10"]
 
     fn = client.get_function(FunctionName=fn_name, Qualifier="6")["Configuration"]
     assert (
         fn["FunctionArn"]
         == f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}:6"
     )
+
+
+@mock_lambda
+def test_delete_non_existent():
+    client = boto3.client("lambda", "us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_function(
+            FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:nonexistent:9"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 def test_get_role_name_utility_race_condition():

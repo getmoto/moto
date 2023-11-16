@@ -32,6 +32,7 @@ class TranscribeResponse(BaseResponse):
             identify_language=self._get_param("IdentifyLanguage"),
             identify_multiple_languages=self._get_param("IdentifyMultipleLanguages"),
             language_options=self._get_param("LanguageOptions"),
+            subtitles=self._get_param("Subtitles"),
         )
         return json.dumps(response)
 

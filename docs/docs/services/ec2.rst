@@ -257,6 +257,7 @@ ec2
 - [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
@@ -306,6 +307,7 @@ ec2
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
 - [X] describe_instance_status
+- [ ] describe_instance_topology
 - [X] describe_instance_type_offerings
 - [X] describe_instance_types
 - [X] describe_instances
@@ -325,6 +327,7 @@ ec2
 - [ ] describe_local_gateway_virtual_interface_groups
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
+- [ ] describe_locked_snapshots
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -436,6 +439,7 @@ ec2
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
+- [ ] disable_snapshot_block_public_access
 - [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
 - [X] disable_vpc_classic_link
@@ -465,6 +469,7 @@ ec2
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
+- [ ] enable_snapshot_block_public_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
 - [ ] enable_volume_io
@@ -505,6 +510,7 @@ ec2
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
+- [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
@@ -527,6 +533,7 @@ ec2
 - [ ] import_volume
 - [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
+- [ ] lock_snapshot
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -601,6 +608,7 @@ ec2
 - [ ] provision_byoip_cidr
 - [ ] provision_ipam_pool_cidr
 - [ ] provision_public_ipv4_pool_cidr
+- [ ] purchase_capacity_block
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -675,6 +683,7 @@ ec2
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
 - [ ] unassign_private_nat_gateway_address
+- [ ] unlock_snapshot
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress

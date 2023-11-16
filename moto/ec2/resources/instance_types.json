@@ -12263,12 +12263,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 30000,
-    "BaselineIops": 131250,
-    "BaselineThroughputInMBps": 3750.0,
-    "MaximumBandwidthInMbps": 30000,
-    "MaximumIops": 131250,
-    "MaximumThroughputInMBps": 3750.0
+    "BaselineBandwidthInMbps": 37500,
+    "BaselineIops": 150000,
+    "BaselineThroughputInMBps": 4687.5,
+    "MaximumBandwidthInMbps": 37500,
+    "MaximumIops": 150000,
+    "MaximumThroughputInMBps": 4687.5
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12382,12 +12382,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 175000,
-    "BaselineThroughputInMBps": 5000.0,
-    "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 175000,
-    "MaximumThroughputInMBps": 5000.0
+    "BaselineBandwidthInMbps": 50000,
+    "BaselineIops": 200000,
+    "BaselineThroughputInMBps": 6250.0,
+    "MaximumBandwidthInMbps": 50000,
+    "MaximumIops": 200000,
+    "MaximumThroughputInMBps": 6250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12509,12 +12509,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 262500,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 262500,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 75000,
+    "BaselineIops": 300000,
+    "BaselineThroughputInMBps": 9375.0,
+    "MaximumBandwidthInMbps": 75000,
+    "MaximumIops": 300000,
+    "MaximumThroughputInMBps": 9375.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12627,12 +12627,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 5000,
-    "BaselineIops": 21875,
-    "BaselineThroughputInMBps": 625.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 6250,
+    "BaselineIops": 25000,
+    "BaselineThroughputInMBps": 781.25,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12726,12 +12726,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12862,12 +12862,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 43750,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 12500,
+    "BaselineIops": 50000,
+    "BaselineThroughputInMBps": 1562.5,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -12965,12 +12965,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 87500,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 25000,
+    "BaselineIops": 100000,
+    "BaselineThroughputInMBps": 3125.0,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -13076,12 +13076,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1250,
-    "BaselineIops": 5468,
-    "BaselineThroughputInMBps": 156.25,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 1562,
+    "BaselineIops": 6250,
+    "BaselineThroughputInMBps": 195.3125,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -13172,12 +13172,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -13264,12 +13264,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2500,
-    "BaselineIops": 10937,
-    "BaselineThroughputInMBps": 312.5,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 3125,
+    "BaselineIops": 12500,
+    "BaselineThroughputInMBps": 390.625,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -45008,10 +45008,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 37500,
-    "BaselineIops": 131250,
+    "BaselineIops": 150000,
     "BaselineThroughputInMBps": 4687.5,
     "MaximumBandwidthInMbps": 37500,
-    "MaximumIops": 131250,
+    "MaximumIops": 150000,
     "MaximumThroughputInMBps": 4687.5
    },
    "EbsOptimizedSupport": "default",
@@ -45139,10 +45139,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 50000,
-    "BaselineIops": 175000,
+    "BaselineIops": 200000,
     "BaselineThroughputInMBps": 6250.0,
     "MaximumBandwidthInMbps": 50000,
-    "MaximumIops": 175000,
+    "MaximumIops": 200000,
     "MaximumThroughputInMBps": 6250.0
    },
    "EbsOptimizedSupport": "default",
@@ -45278,10 +45278,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 75000,
-    "BaselineIops": 262500,
+    "BaselineIops": 300000,
     "BaselineThroughputInMBps": 9375.0,
     "MaximumBandwidthInMbps": 75000,
-    "MaximumIops": 262500,
+    "MaximumIops": 300000,
     "MaximumThroughputInMBps": 9375.0
    },
    "EbsOptimizedSupport": "default",
@@ -45408,10 +45408,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 6250,
-    "BaselineIops": 21875,
+    "BaselineIops": 25000,
     "BaselineThroughputInMBps": 781.25,
     "MaximumBandwidthInMbps": 25000,
-    "MaximumIops": 87500,
+    "MaximumIops": 100000,
     "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
@@ -45519,10 +45519,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 100000,
-    "BaselineIops": 350000,
+    "BaselineIops": 400000,
     "BaselineThroughputInMBps": 12500.0,
     "MaximumBandwidthInMbps": 100000,
-    "MaximumIops": 350000,
+    "MaximumIops": 400000,
     "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
@@ -45667,10 +45667,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 12500,
-    "BaselineIops": 43750,
+    "BaselineIops": 50000,
     "BaselineThroughputInMBps": 1562.5,
     "MaximumBandwidthInMbps": 25000,
-    "MaximumIops": 87500,
+    "MaximumIops": 100000,
     "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
@@ -45782,10 +45782,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 25000,
-    "BaselineIops": 87500,
+    "BaselineIops": 100000,
     "BaselineThroughputInMBps": 3125.0,
     "MaximumBandwidthInMbps": 25000,
-    "MaximumIops": 87500,
+    "MaximumIops": 100000,
     "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
@@ -45905,10 +45905,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 1562,
-    "BaselineIops": 5468,
+    "BaselineIops": 6250,
     "BaselineThroughputInMBps": 195.3125,
     "MaximumBandwidthInMbps": 25000,
-    "MaximumIops": 87500,
+    "MaximumIops": 100000,
     "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
@@ -46013,10 +46013,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 100000,
-    "BaselineIops": 350000,
+    "BaselineIops": 400000,
     "BaselineThroughputInMBps": 12500.0,
     "MaximumBandwidthInMbps": 100000,
-    "MaximumIops": 350000,
+    "MaximumIops": 400000,
     "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
@@ -46117,10 +46117,10 @@
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 3125,
-    "BaselineIops": 10937,
+    "BaselineIops": 12500,
     "BaselineThroughputInMBps": 390.625,
     "MaximumBandwidthInMbps": 25000,
-    "MaximumIops": 87500,
+    "MaximumIops": 100000,
     "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
@@ -46225,12 +46225,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 30000,
-    "BaselineIops": 131250,
-    "BaselineThroughputInMBps": 3750.0,
-    "MaximumBandwidthInMbps": 30000,
-    "MaximumIops": 131250,
-    "MaximumThroughputInMBps": 3750.0
+    "BaselineBandwidthInMbps": 37500,
+    "BaselineIops": 150000,
+    "BaselineThroughputInMBps": 4687.5,
+    "MaximumBandwidthInMbps": 37500,
+    "MaximumIops": 150000,
+    "MaximumThroughputInMBps": 4687.5
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -46344,12 +46344,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 175000,
-    "BaselineThroughputInMBps": 5000.0,
-    "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 175000,
-    "MaximumThroughputInMBps": 5000.0
+    "BaselineBandwidthInMbps": 50000,
+    "BaselineIops": 200000,
+    "BaselineThroughputInMBps": 6250.0,
+    "MaximumBandwidthInMbps": 50000,
+    "MaximumIops": 200000,
+    "MaximumThroughputInMBps": 6250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -46471,12 +46471,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 262500,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 262500,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 75000,
+    "BaselineIops": 300000,
+    "BaselineThroughputInMBps": 9375.0,
+    "MaximumBandwidthInMbps": 75000,
+    "MaximumIops": 300000,
+    "MaximumThroughputInMBps": 9375.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -46589,12 +46589,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 5000,
-    "BaselineIops": 21875,
-    "BaselineThroughputInMBps": 625.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 6250,
+    "BaselineIops": 25000,
+    "BaselineThroughputInMBps": 781.25,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -46688,12 +46688,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -46824,12 +46824,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 43750,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 12500,
+    "BaselineIops": 50000,
+    "BaselineThroughputInMBps": 1562.5,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -46927,12 +46927,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 87500,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 25000,
+    "BaselineIops": 100000,
+    "BaselineThroughputInMBps": 3125.0,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -47038,12 +47038,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1250,
-    "BaselineIops": 5468,
-    "BaselineThroughputInMBps": 156.25,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 1562,
+    "BaselineIops": 6250,
+    "BaselineThroughputInMBps": 195.3125,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -47134,12 +47134,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -47226,12 +47226,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2500,
-    "BaselineIops": 10937,
-    "BaselineThroughputInMBps": 312.5,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 3125,
+    "BaselineIops": 12500,
+    "BaselineThroughputInMBps": 390.625,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -53682,6 +53682,7 @@
    "ebs"
   ],
   "SupportedUsageClasses": [
+   "capacity-block",
    "on-demand",
    "spot"
   ],
@@ -66625,12 +66626,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 30000,
-    "BaselineIops": 131250,
-    "BaselineThroughputInMBps": 3750.0,
-    "MaximumBandwidthInMbps": 30000,
-    "MaximumIops": 131250,
-    "MaximumThroughputInMBps": 3750.0
+    "BaselineBandwidthInMbps": 37500,
+    "BaselineIops": 150000,
+    "BaselineThroughputInMBps": 4687.5,
+    "MaximumBandwidthInMbps": 37500,
+    "MaximumIops": 150000,
+    "MaximumThroughputInMBps": 4687.5
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -66756,12 +66757,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 175000,
-    "BaselineThroughputInMBps": 5000.0,
-    "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 175000,
-    "MaximumThroughputInMBps": 5000.0
+    "BaselineBandwidthInMbps": 50000,
+    "BaselineIops": 200000,
+    "BaselineThroughputInMBps": 6250.0,
+    "MaximumBandwidthInMbps": 50000,
+    "MaximumIops": 200000,
+    "MaximumThroughputInMBps": 6250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -66895,12 +66896,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 262500,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 262500,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 75000,
+    "BaselineIops": 300000,
+    "BaselineThroughputInMBps": 9375.0,
+    "MaximumBandwidthInMbps": 75000,
+    "MaximumIops": 300000,
+    "MaximumThroughputInMBps": 9375.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67025,12 +67026,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 5000,
-    "BaselineIops": 21875,
-    "BaselineThroughputInMBps": 625.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 6250,
+    "BaselineIops": 25000,
+    "BaselineThroughputInMBps": 781.25,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67136,12 +67137,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67284,12 +67285,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 43750,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 12500,
+    "BaselineIops": 50000,
+    "BaselineThroughputInMBps": 1562.5,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67399,12 +67400,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 87500,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 25000,
+    "BaselineIops": 100000,
+    "BaselineThroughputInMBps": 3125.0,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67522,12 +67523,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1250,
-    "BaselineIops": 5468,
-    "BaselineThroughputInMBps": 156.25,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 1562,
+    "BaselineIops": 6250,
+    "BaselineThroughputInMBps": 195.3125,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67630,12 +67631,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67734,12 +67735,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2500,
-    "BaselineIops": 10937,
-    "BaselineThroughputInMBps": 312.5,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 3125,
+    "BaselineIops": 12500,
+    "BaselineThroughputInMBps": 390.625,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67843,12 +67844,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 30000,
-    "BaselineIops": 131250,
-    "BaselineThroughputInMBps": 3750.0,
-    "MaximumBandwidthInMbps": 30000,
-    "MaximumIops": 131250,
-    "MaximumThroughputInMBps": 3750.0
+    "BaselineBandwidthInMbps": 37500,
+    "BaselineIops": 150000,
+    "BaselineThroughputInMBps": 4687.5,
+    "MaximumBandwidthInMbps": 37500,
+    "MaximumIops": 150000,
+    "MaximumThroughputInMBps": 4687.5
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -67962,12 +67963,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 40000,
-    "BaselineIops": 175000,
-    "BaselineThroughputInMBps": 5000.0,
-    "MaximumBandwidthInMbps": 40000,
-    "MaximumIops": 175000,
-    "MaximumThroughputInMBps": 5000.0
+    "BaselineBandwidthInMbps": 50000,
+    "BaselineIops": 200000,
+    "BaselineThroughputInMBps": 6250.0,
+    "MaximumBandwidthInMbps": 50000,
+    "MaximumIops": 200000,
+    "MaximumThroughputInMBps": 6250.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68089,12 +68090,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
-    "BaselineIops": 262500,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
-    "MaximumIops": 262500,
-    "MaximumThroughputInMBps": 7500.0
+    "BaselineBandwidthInMbps": 75000,
+    "BaselineIops": 300000,
+    "BaselineThroughputInMBps": 9375.0,
+    "MaximumBandwidthInMbps": 75000,
+    "MaximumIops": 300000,
+    "MaximumThroughputInMBps": 9375.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68207,12 +68208,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 5000,
-    "BaselineIops": 21875,
-    "BaselineThroughputInMBps": 625.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 6250,
+    "BaselineIops": 25000,
+    "BaselineThroughputInMBps": 781.25,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68306,12 +68307,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68442,12 +68443,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 43750,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 12500,
+    "BaselineIops": 50000,
+    "BaselineThroughputInMBps": 1562.5,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68545,12 +68546,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 20000,
-    "BaselineIops": 87500,
-    "BaselineThroughputInMBps": 2500.0,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 25000,
+    "BaselineIops": 100000,
+    "BaselineThroughputInMBps": 3125.0,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68656,12 +68657,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 1250,
-    "BaselineIops": 5468,
-    "BaselineThroughputInMBps": 156.25,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 1562,
+    "BaselineIops": 6250,
+    "BaselineThroughputInMBps": 195.3125,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68752,12 +68753,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 80000,
-    "BaselineIops": 350000,
-    "BaselineThroughputInMBps": 10000.0,
-    "MaximumBandwidthInMbps": 80000,
-    "MaximumIops": 350000,
-    "MaximumThroughputInMBps": 10000.0
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -68844,12 +68845,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 2500,
-    "BaselineIops": 10937,
-    "BaselineThroughputInMBps": 312.5,
-    "MaximumBandwidthInMbps": 20000,
-    "MaximumIops": 87500,
-    "MaximumThroughputInMBps": 2500.0
+    "BaselineBandwidthInMbps": 3125,
+    "BaselineIops": 12500,
+    "BaselineThroughputInMBps": 390.625,
+    "MaximumBandwidthInMbps": 25000,
+    "MaximumIops": 100000,
+    "MaximumThroughputInMBps": 3125.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
