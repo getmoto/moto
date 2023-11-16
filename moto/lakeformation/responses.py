@@ -3,7 +3,14 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import lakeformation_backends, LakeFormationBackend
+from .models import (
+    lakeformation_backends,
+    LakeFormationBackend,
+    ListPermissionsResource,
+    ListPermissionsResourceDatabase,
+    ListPermissionsResourceTable,
+    RessourceType,
+)
 
 
 class LakeFormationResponse(BaseResponse):
@@ -87,7 +94,55 @@ class LakeFormationResponse(BaseResponse):
 
     def list_permissions(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
-        permissions = self.lakeformation_backend.list_permissions(catalog_id)
+        principal = self._get_param("Principal")
+        resource = self._get_param("Resource")
+        resource_type_param = self._get_param("ResourceType")
+        if resource_type_param is None:
+            resource_type = None
+        else:
+            resource_type = RessourceType(resource_type_param)
+
+        if resource is None:
+            list_permission_resource = None
+        else:
+            database_sub_dictionary = resource.get("Database")
+            table_sub_dictionary = resource.get("Table")
+            catalog_sub_dictionary = resource.get("Catalog")
+
+            if database_sub_dictionary is None:
+                database = None
+            else:
+                database = ListPermissionsResourceDatabase(
+                    name=database_sub_dictionary.get("Name"),
+                    catalog_id=database_sub_dictionary.get("CatalogId"),
+                )
+
+            if table_sub_dictionary is None:
+                table = None
+            else:
+                table = ListPermissionsResourceTable(
+                    database_name=table_sub_dictionary.get("DatabaseName"),
+                    name=table_sub_dictionary.get("Name"),
+                    catalog_id=table_sub_dictionary.get("CatalogId"),
+                    table_wildcard=table_sub_dictionary.get("TableWildcard"),
+                )
+
+            list_permission_resource = ListPermissionsResource(
+                catalog=catalog_sub_dictionary,
+                database=database,
+                table=table,
+                table_with_columns=None,
+                data_location=None,
+                data_cells_filter=None,
+                lf_tag=None,
+                lf_tag_policy=None,
+            )
+        permissions = self.lakeformation_backend.list_permissions(
+            catalog_id=catalog_id,
+            principal=principal,
+            resource=list_permission_resource,
+            resource_type=resource_type,
+        )
         return json.dumps({"PrincipalResourcePermissions": permissions})
 
     def create_lf_tag(self) -> str:
