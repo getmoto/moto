@@ -2235,7 +2235,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise InvalidRequest("PutBucketAccelerateConfiguration")
         bucket.set_accelerate_configuration(accelerate_configuration)
 
-    def put_bucket_public_access_block(
+    def put_public_access_block(
         self, bucket_name: str, pub_block_config: Optional[Dict[str, Any]]
     ) -> None:
         bucket = self.get_bucket(bucket_name)

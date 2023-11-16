@@ -922,7 +922,7 @@ class S3Response(BaseResponse):
 
         elif "publicAccessBlock" in querystring:
             pab_config = self._parse_pab_config()
-            self.backend.put_bucket_public_access_block(
+            self.backend.put_public_access_block(
                 bucket_name, pab_config["PublicAccessBlockConfiguration"]
             )
             return ""

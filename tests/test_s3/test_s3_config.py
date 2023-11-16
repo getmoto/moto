@@ -22,9 +22,7 @@ def test_s3_public_access_block_to_config_dict():
     }
 
     # Add a public access block:
-    s3_config_query_backend.put_bucket_public_access_block(
-        "bucket1", public_access_block
-    )
+    s3_config_query_backend.put_public_access_block("bucket1", public_access_block)
 
     result = s3_config_query_backend.buckets[
         "bucket1"
