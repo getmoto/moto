@@ -90,7 +90,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.account_id][self.region_name]
-    
+
     @property
     def acm_backend(self) -> AWSCertificateManagerBackend:
         return acm_backends[self.account_id][self.region_name]
@@ -149,16 +149,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
             return result
-        
-        #ACM 
+
+        # ACM
         if not resource_type_filters or "acm" in resource_type_filters:
             for certificate in self.acm_backend._certificates.values():
-                tags = format_tags(
-                    certificate.tags
-                )
+                tags = format_tags(certificate.tags)
                 if not tags or not tag_filter(tags):
                     continue
-                
+
                 yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
 
         # S3
