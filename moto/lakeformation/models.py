@@ -1,4 +1,3 @@
-from __future__ import annotations
 from enum import Enum
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
@@ -64,7 +63,7 @@ class ListPermissionsResourceTableWithColumns:
         catalog_id: Optional[str],
         database_name: str,
         name: str,
-        column_names: list[str],
+        column_names: List[str],
         column_wildcard: ExcludedColumnNames,
     ):
         self.database_name = database_name

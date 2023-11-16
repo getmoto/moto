@@ -1,6 +1,20 @@
 Moto Changelog
 ==============
 
+4.2.9
+-----
+Docker Digest for 4.2.9: <autopopulateddigest>
+
+    General:
+        * Fix compatibility with botocore 1.32.1
+
+    Miscellaneous:
+        * ECS: Tagging is now supported for Tasks
+        * LakeFormation: deregister_resource() now throws the correct error for unknown resources
+        * LakeFormation: list_permissions() now supports Parameters
+        * RDS: create_db_instance() now validates the engine parameter
+        * Transcribe: TranscriptionJobs now support the Subtitles-parameter
+
 4.2.8
 -----
 Docker Digest for 4.2.8: _sha256:937315c79dedcc86506fc22a60502fd73d0e6f3a6f3e5fc614dd3164740e1191_
