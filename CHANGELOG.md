@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.9
 -----
-Docker Digest for 4.2.9: <autopopulateddigest>
+Docker Digest for 4.2.9: _sha256:4e9d89322b5ca9196fa7efda78b1269580be7aa6879894950e2728edc946573f_
 
     General:
         * Fix compatibility with botocore 1.32.1
