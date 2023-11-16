@@ -1,6 +1,6 @@
 """Handles incoming lakeformation requests, invokes methods, returns responses."""
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
 from .models import (
