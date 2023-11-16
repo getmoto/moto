@@ -18,7 +18,7 @@ from moto.core.utils import (
     method_names_from_class,
     params_sort_function,
 )
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import load_resource, load_resource_as_bytes
 from jinja2 import Environment, DictLoader, Template
 from typing import (
     Dict,
@@ -961,7 +961,12 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path: str):
-        spec = load_resource("botocore", path)
+        try:
+            spec = load_resource("botocore", path)
+        except FileNotFoundError:
+            # botocore >= 1.32.1 sends compressed files
+            compressed = load_resource_as_bytes("botocore", f"{path}.gz")
+            spec = json.loads(gzip_decompress(compressed).decode("utf-8"))
 
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]
