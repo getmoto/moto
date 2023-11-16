@@ -307,6 +307,7 @@ ec2
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
 - [X] describe_instance_status
+- [ ] describe_instance_topology
 - [X] describe_instance_type_offerings
 - [X] describe_instance_types
 - [X] describe_instances
@@ -326,6 +327,7 @@ ec2
 - [ ] describe_local_gateway_virtual_interface_groups
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
+- [ ] describe_locked_snapshots
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -531,6 +533,7 @@ ec2
 - [ ] import_volume
 - [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
+- [ ] lock_snapshot
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -680,6 +683,7 @@ ec2
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
 - [ ] unassign_private_nat_gateway_address
+- [ ] unlock_snapshot
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress

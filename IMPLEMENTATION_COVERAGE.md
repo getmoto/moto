@@ -1898,7 +1898,7 @@
 
 ## ec2
 <details>
-<summary>34% implemented</summary>
+<summary>33% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_reserved_instances_exchange_quote
@@ -2168,6 +2168,7 @@
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
 - [X] describe_instance_status
+- [ ] describe_instance_topology
 - [X] describe_instance_type_offerings
 - [X] describe_instance_types
 - [X] describe_instances
@@ -2187,6 +2188,7 @@
 - [ ] describe_local_gateway_virtual_interface_groups
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
+- [ ] describe_locked_snapshots
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -2373,6 +2375,7 @@
 - [ ] import_volume
 - [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
+- [ ] lock_snapshot
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -2501,6 +2504,7 @@
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
 - [ ] unassign_private_nat_gateway_address
+- [ ] unlock_snapshot
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
@@ -3282,7 +3286,7 @@
 
 ## glue
 <details>
-<summary>33% implemented</summary>
+<summary>32% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3296,6 +3300,7 @@
 - [ ] batch_get_dev_endpoints
 - [X] batch_get_jobs
 - [X] batch_get_partition
+- [ ] batch_get_table_optimizer
 - [X] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
@@ -3323,6 +3328,7 @@
 - [ ] create_security_configuration
 - [X] create_session
 - [X] create_table
+- [ ] create_table_optimizer
 - [X] create_trigger
 - [ ] create_user_defined_function
 - [ ] create_workflow
@@ -3347,6 +3353,7 @@
 - [ ] delete_security_configuration
 - [X] delete_session
 - [X] delete_table
+- [ ] delete_table_optimizer
 - [X] delete_table_version
 - [X] delete_trigger
 - [ ] delete_user_defined_function
@@ -3401,6 +3408,7 @@
 - [X] get_session
 - [ ] get_statement
 - [X] get_table
+- [ ] get_table_optimizer
 - [X] get_table_version
 - [X] get_table_versions
 - [X] get_tables
@@ -3433,6 +3441,7 @@
 - [ ] list_schemas
 - [X] list_sessions
 - [ ] list_statements
+- [ ] list_table_optimizer_runs
 - [X] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
@@ -3483,6 +3492,7 @@
 - [X] update_schema
 - [ ] update_source_control_from_job
 - [X] update_table
+- [ ] update_table_optimizer
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow
@@ -3827,7 +3837,7 @@
 
 ## identitystore
 <details>
-<summary>57% implemented</summary>
+<summary>63% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -6266,13 +6276,14 @@
 
 ## s3control
 <details>
-<summary>14% implemented</summary>
+<summary>12% implemented</summary>
 
 - [X] create_access_point
 - [ ] create_access_point_for_object_lambda
 - [ ] create_bucket
 - [ ] create_job
 - [ ] create_multi_region_access_point
+- [ ] create_storage_lens_group
 - [X] delete_access_point
 - [ ] delete_access_point_for_object_lambda
 - [X] delete_access_point_policy
@@ -6287,6 +6298,7 @@
 - [X] delete_public_access_block
 - [ ] delete_storage_lens_configuration
 - [ ] delete_storage_lens_configuration_tagging
+- [ ] delete_storage_lens_group
 - [ ] describe_job
 - [ ] describe_multi_region_access_point_operation
 - [X] get_access_point
@@ -6310,12 +6322,15 @@
 - [X] get_public_access_block
 - [ ] get_storage_lens_configuration
 - [ ] get_storage_lens_configuration_tagging
+- [ ] get_storage_lens_group
 - [ ] list_access_points
 - [ ] list_access_points_for_object_lambda
 - [ ] list_jobs
 - [ ] list_multi_region_access_points
 - [ ] list_regional_buckets
 - [ ] list_storage_lens_configurations
+- [ ] list_storage_lens_groups
+- [ ] list_tags_for_resource
 - [ ] put_access_point_configuration_for_object_lambda
 - [ ] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
@@ -6330,8 +6345,11 @@
 - [ ] put_storage_lens_configuration
 - [ ] put_storage_lens_configuration_tagging
 - [ ] submit_multi_region_access_point_routes
+- [ ] tag_resource
+- [ ] untag_resource
 - [ ] update_job_priority
 - [ ] update_job_status
+- [ ] update_storage_lens_group
 </details>
 
 ## sagemaker
@@ -7240,7 +7258,7 @@
 
 ## stepfunctions
 <details>
-<summary>38% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] create_activity
 - [X] create_state_machine
@@ -7265,6 +7283,7 @@
 - [X] list_state_machines
 - [X] list_tags_for_resource
 - [ ] publish_state_machine_version
+- [ ] redrive_execution
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
