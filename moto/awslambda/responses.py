@@ -269,7 +269,10 @@ class LambdaResponse(BaseResponse):
             elif request.headers.get("X-Amz-Invocation-Type") == "DryRun":
                 status_code = 204
             else:
-                if request.headers.get("X-Amz-Log-Type") != "Tail":
+                if (
+                    request.headers.get("X-Amz-Log-Type") != "Tail"
+                    and "x-amz-log-result" in response_headers
+                ):
                     del response_headers["x-amz-log-result"]
                 status_code = 200
             return status_code, response_headers, payload
