@@ -1,5 +1,6 @@
 import random
 import string
+from typing import Dict, Any
 
 from .exceptions import MessageAttributesInvalid
 
@@ -39,46 +40,52 @@ def parse_message_attributes(
             break
 
         data_type_key = base + "{0}.{1}.{2}DataType".format(key, index, value_namespace)
-        data_type = querystring.get(data_type_key)
-        if not data_type:
-            raise MessageAttributesInvalid(
-                "The message attribute '{0}' must contain non-empty message attribute value.".format(
-                    name[0]
-                )
-            )
+        data_type = querystring.get(data_type_key, [None])[0]
 
-        data_type_parts = data_type[0].split(".")
-        if data_type_parts[0] not in [
-            "String",
-            "Binary",
-            "Number",
-        ]:
-            raise MessageAttributesInvalid(
-                "The message attribute '{0}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String.".format(
-                    name[0]
-                )
-            )
+        data_type_parts = (data_type or "").split(".")[0]
 
         type_prefix = "String"
-        if data_type_parts[0] == "Binary":
+        if data_type_parts == "Binary":
             type_prefix = "Binary"
 
         value_key = base + "{0}.{1}.{2}{3}Value".format(
             key, index, value_namespace, type_prefix
         )
-        value = querystring.get(value_key)
-        if not value:
-            raise MessageAttributesInvalid(
-                "The message attribute '{0}' must contain non-empty message attribute value for message attribute type '{1}'.".format(
-                    name[0], data_type[0]
-                )
-            )
+        value = querystring.get(value_key, [None])[0]
 
         message_attributes[name[0]] = {
-            "data_type": data_type[0],
-            type_prefix.lower() + "_value": value[0],
+            "data_type": data_type,
+            type_prefix.lower() + "_value": value,
         }
 
         index += 1
 
+    validate_message_attributes(message_attributes)
+
     return message_attributes
+
+def validate_message_attributes(message_attributes: Dict[str, Any]) -> None:
+    for name, value in (message_attributes or {}).items():
+        data_type = value["data_type"]
+
+        if not data_type:
+            raise MessageAttributesInvalid(
+                f"The message attribute '{name}' must contain non-empty message attribute value."
+            )
+
+        data_type_parts = data_type.split(".")[0]
+        if data_type_parts not in [
+            "String",
+            "Binary",
+            "Number",
+        ]:
+            raise MessageAttributesInvalid(
+                f"The message attribute '{name}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String."
+            )
+
+        possible_value_fields = ["string_value", "binary_value"]
+        for field in possible_value_fields:
+            if field in value and value[field] is None:
+                raise MessageAttributesInvalid(
+                    f"The message attribute '{name}' must contain non-empty message attribute value for message attribute type '{data_type}'."
+                )
