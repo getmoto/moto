@@ -12,6 +12,7 @@ Proxy Mode
 
 Moto can be run as a proxy, intercepting all requests to AWS and mocking them instead.  :raw-html:`<br />`
 Some of the benefits:
+
  - Easy to configure for all SDK's
  - Can be reached by Lambda containers, allowing you to mock service-calls inside a Lambda-function
 
@@ -69,7 +70,7 @@ The `AWS_CA_BUNDLE` needs to point to the location of the CA certificate that co
 You can run `moto_proxy --help` to get the exact location of this certificate, depending on where Moto is installed.
 
 Environment Variables Configuration:
-------------------------------
+-------------------------------------
 
 .. code-block:: bash
 
