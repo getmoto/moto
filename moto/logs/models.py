@@ -410,7 +410,9 @@ class LogGroup(CloudFormationModel):
         **kwargs: Any,
     ) -> "LogGroup":
         properties = cloudformation_json["Properties"]
-        tags = properties.get("Tags", {})
+        tags = properties.get("Tags", [])
+        tags = dict([tag.values() for tag in tags])
+
         return logs_backends[account_id][region_name].create_log_group(
             resource_name, tags, **properties
         )
