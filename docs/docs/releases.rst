@@ -1,0 +1,53 @@
+.. _releases:
+
+.. role:: bash(code)
+   :language: bash
+
+.. role:: raw-html(raw)
+    :format: html
+
+================================
+Releases and Upgrade Paths
+================================
+
+
+Release Schedule
+------------------
+
+There is no fixed release schedule, although we try to release a new version every 1 or 2 weeks.
+
+Specific release intervals will be influenced by 1) high-priority bugs, 2) number of new features and 3) maintainer availability.
+
+
+Development Releases
+----------------------
+
+Every commit should result in a development release, marked as `Pre-releases in PyPi <https://pypi.org/project/moto/#history>`_ and with the `latest`-tag `in DockerHub <https://hub.docker.com/r/motoserver/moto/tags>`_.
+
+
+Versioning scheme
+----------------------
+
+Moto follows a `semver` scheme: `major.minor.patch`.
+ - A major releases indicates a breaking change
+ - A minor release indicates a big change, but nothing breaking
+ - A patch release will contain new features and bug fixes
+
+
+Breaking Changes
+-----------------
+
+A full list of all changes in a specific release can be found on Github: https://github.com/getmoto/moto/blob/master/CHANGELOG.md
+
+A overview of the breaking changes between major versions:
+
+For Moto 2.x:
+ - A change in the installation method. Use `pip install moto[service]` to only install the required dependencies for that service, or `pip install moto[all]` to install all (1.x behaviour)
+
+For Moto 3.x:
+ - Removed compatibility with `boto`. Specifically: all `service_deprecated`-decorators were removed.
+ - The class-decorator now resets the state before every test-method (before, the state was global - shared between class-methods).
+ - ECS ARN's now use the new (long) format by default
+
+For Moto 4.x:
+ - Removed decorators `mock_dynamodb2` and `mock_rds2` (they were functionally equivalent with `mock_dynamodb` and `mock_rds` since 3.x)
