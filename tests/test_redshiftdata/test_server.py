@@ -1,9 +1,10 @@
 """Test different server responses."""
 import json
+import pytest
+import unittest
 from uuid import UUID
 
-import pytest
-
+from moto import settings
 import moto.server as server
 from tests.test_redshiftdata.test_redshiftdata_constants import (
     DEFAULT_ENCODING,
@@ -11,6 +12,12 @@ from tests.test_redshiftdata.test_redshiftdata_constants import (
 )
 
 CLIENT_ENDPOINT = "/"
+
+
+@pytest.fixture(scope="function", autouse=True)
+def skip_in_server_mode():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("No point in testing this in ServerMode")
 
 
 def headers(action):
