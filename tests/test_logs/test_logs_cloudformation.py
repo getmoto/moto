@@ -1,5 +1,4 @@
 import json
-import re
 
 import boto3
 
@@ -20,14 +19,12 @@ def test_tagging():
                 "Properties": {"Tags": [{"Key": "foo", "Value": "bar"}]},
             }
         },
-        "Outputs": {"LogGroup": {"Value": {"Ref": "testGroup"}}},
     }
     template_json = json.dumps(template)
     cf_client.create_stack(
         StackName="test_stack",
         TemplateBody=template_json,
     )
-    stack_description = cf_client.describe_stacks(StackName="test_stack")["Stacks"][0]
 
     arn = logs_client.describe_log_groups()["logGroups"][0]["arn"]
     tags = logs_client.list_tags_for_resource(resourceArn=arn)["tags"]
