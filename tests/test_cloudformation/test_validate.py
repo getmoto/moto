@@ -81,7 +81,6 @@ yaml_template = """
       S3Bucket:
         Type: AWS::S3::Bucket
         Properties:
-          AccessControl: PublicRead
           BucketName: cf-test-bucket-1
 """
 

@@ -73,6 +73,11 @@ class RESTError(HTTPException):
     def get_body(self, *args, **kwargs):  # pylint: disable=unused-argument
         return self.description
 
+    def to_json(self) -> "JsonRESTError":
+        err = JsonRESTError(error_type=self.error_type, message=self.message)
+        err.code = self.code
+        return err
+
 
 class DryRunClientError(RESTError):
     code = 412
