@@ -1,9 +1,10 @@
 import json
 import pytest
+import unittest
 
 from copy import deepcopy
 import moto.server as server
-from moto import mock_eks
+from moto import mock_eks, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.eks.exceptions import ResourceInUseException, ResourceNotFoundException
 from moto.eks.models import (
@@ -79,6 +80,8 @@ class TestNodegroup:
 
 @pytest.fixture(autouse=True, name="test_client")
 def fixture_test_client():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("No point in testing this in ServerMode")
     backend = server.create_backend_app(service=SERVICE)
     yield backend.test_client()
 
