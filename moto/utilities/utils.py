@@ -33,6 +33,10 @@ def load_resource(package, resource, as_json=True):
     return json.loads(resource) if as_json else resource.decode("utf-8")
 
 
+def load_resource_as_bytes(package, resource):
+    return pkgutil.get_data(package, resource)
+
+
 def merge_multiple_dicts(*args):
     result = {}
     for d in args:

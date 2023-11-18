@@ -11,7 +11,7 @@ import pytz
 from moto.core.exceptions import DryRunClientError
 
 from jinja2 import Environment, DictLoader, TemplateNotFound
-
+from gzip import decompress
 from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import xmltodict
@@ -20,7 +20,7 @@ from werkzeug.exceptions import HTTPException
 import boto3
 from collections import OrderedDict
 from moto.core.utils import camelcase_to_underscores, method_names_from_class
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import load_resource, load_resource_as_bytes
 from moto import settings
 
 log = logging.getLogger(__name__)
@@ -840,7 +840,12 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path):
-        spec = load_resource("botocore", path)
+        try:
+            spec = load_resource("botocore", path)
+        except FileNotFoundError:
+            # botocore >= 1.32.1 sends compressed files
+            compressed = load_resource_as_bytes("botocore", f"{path}.gz")
+            spec = json.loads(decompress(compressed).decode("utf-8"))
 
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]

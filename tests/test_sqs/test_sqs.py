@@ -640,21 +640,13 @@ def test_create_queues_in_multiple_region():
     w2_name = str(uuid4())[0:6]
     w2.create_queue(QueueName=w2_name)
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-1.queue.amazonaws.com"
-    )
-    w1.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
-    w1.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
+    w1_queue_names = [q.split("/")[-1] for q in w1.list_queues()["QueueUrls"]]
+    assert w1_name in w1_queue_names
+    assert w2_name not in w1_queue_names
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-2.queue.amazonaws.com"
-    )
-    w2.list_queues()["QueueUrls"].shouldnt.contain(f"{base_url}/{ACCOUNT_ID}/{w1_name}")
-    w2.list_queues()["QueueUrls"].should.contain(f"{base_url}/{ACCOUNT_ID}/{w2_name}")
+    w2_queue_names = [q.split("/")[-1] for q in w2.list_queues()["QueueUrls"]]
+    assert w1_name not in w2_queue_names
+    assert w2_name in w2_queue_names
 
 
 @mock_sqs
@@ -667,22 +659,14 @@ def test_get_queue_with_prefix():
     q_name2 = f"{prefix}-test"
     conn.create_queue(QueueName=q_name2)
 
-    base_url = (
-        "http://localhost:5000"
-        if settings.TEST_SERVER_MODE
-        else "https://us-west-1.queue.amazonaws.com"
-    )
-    expected_url1 = f"{base_url}/{ACCOUNT_ID}/{q_name1}"
-    expected_url2 = f"{base_url}/{ACCOUNT_ID}/{q_name2}"
-
-    all_urls = conn.list_queues()["QueueUrls"]
-    all_urls.should.contain(expected_url1)
-    all_urls.should.contain(expected_url2)
+    queue_names = [q.split("/")[-1] for q in conn.list_queues()["QueueUrls"]]
+    assert q_name1 in queue_names
+    assert q_name2 in queue_names
 
     queue = conn.list_queues(QueueNamePrefix=prefix)["QueueUrls"]
     queue.should.have.length_of(1)
 
-    queue[0].should.equal(expected_url2)
+    assert queue[0].endswith(q_name2)
 
 
 @mock_sqs

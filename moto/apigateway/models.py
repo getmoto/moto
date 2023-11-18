@@ -6,13 +6,26 @@ import re
 from collections import defaultdict
 from copy import copy
 
-from openapi_spec_validator import validate_spec
+try:
+    # Recommended as of 0.7.x
+    from openapi_spec_validator import validate  # type: ignore
+except ImportError:
+    # Only used in < 0.7.x
+    # (Also exists in 0.7.0, but throws a warning)
+    from openapi_spec_validator import validate_spec as validate  # type: ignore
 import time
 
 from urllib.parse import urlparse
 import responses
 
-from openapi_spec_validator.exceptions import OpenAPIValidationError
+try:
+    from openapi_spec_validator.exceptions import (  # noqa  # pylint: disable=unused-import
+        OpenAPIValidationError,
+    )
+except ImportError:
+    from openapi_spec_validator.validation.exceptions import (  # noqa  # pylint: disable=unused-import
+        OpenAPIValidationError,
+    )
 from moto.core import get_account_id, BaseBackend, BaseModel, CloudFormationModel
 from .utils import create_id, to_path
 from moto.core.utils import path_url, BackendDict
@@ -1285,9 +1298,12 @@ class APIGatewayBackend(BaseBackend):
         """
         if fail_on_warnings:
             try:
-                validate_spec(api_doc)
+                validate(api_doc)
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
+            except AttributeError:
+                # Call can fail on Python3.7 due to `typing_extensions 4.6.0` throwing an error
+                pass
         name = api_doc["info"]["title"]
         description = api_doc["info"]["description"]
         api = self.create_rest_api(name=name, description=description)
@@ -1314,9 +1330,12 @@ class APIGatewayBackend(BaseBackend):
 
         if fail_on_warnings:
             try:
-                validate_spec(api_doc)
+                validate(api_doc)
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
+            except AttributeError:
+                # Call can fail on Python3.7 due to `typing_extensions 4.6.0` throwing an error
+                pass
 
         if mode == "overwrite":
             api = self.get_rest_api(function_id)

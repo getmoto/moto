@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 from urllib.parse import urlparse, parse_qs
 from gzip import GzipFile
 from io import BytesIO
@@ -787,6 +788,8 @@ def test_streaming_upload_from_file_to_presigned_url():
 
 @mock_s3
 def test_upload_from_file_to_presigned_url():
+    if sys.version_info > (3, 9):
+        raise SkipTest("Incompatibility with werkzeug and urllib causing test failure")
     s3 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3.create_bucket(Bucket="mybucket")
 
@@ -810,6 +813,8 @@ def test_upload_from_file_to_presigned_url():
 
 @mock_s3
 def test_put_chunked_with_v4_signature_in_body():
+    if sys.version_info > (3, 9):
+        raise SkipTest("Incompatibility with werkzeug and urllib causing test failure")
     bucket_name = "mybucket"
     file_name = "file"
     content = "CONTENT"
@@ -3026,6 +3031,8 @@ def test_creating_presigned_post():
 
 @mock_s3
 def test_presigned_put_url_with_approved_headers():
+    if sys.version_info > (3, 9):
+        raise SkipTest("Incompatibility with werkzeug and urllib causing test failure")
     bucket = str(uuid.uuid4())
     key = "file.txt"
     content = b"filecontent"
@@ -3077,6 +3084,8 @@ def test_presigned_put_url_with_approved_headers():
 
 @mock_s3
 def test_presigned_put_url_with_custom_headers():
+    if sys.version_info > (3, 9):
+        raise SkipTest("Incompatibility with werkzeug and urllib causing test failure")
     bucket = str(uuid.uuid4())
     key = "file.txt"
     content = b"filecontent"
