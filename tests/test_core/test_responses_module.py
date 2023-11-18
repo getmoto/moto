@@ -37,7 +37,7 @@ class TestResponsesModule(TestCase):
         responses.add(
             responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"}
         )
-        s3 = boto3.client("s3")
+        s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
         s3.put_object(Bucket="mybucket", Key="name", Body="value")
         s3.get_object(Bucket="mybucket", Key="name")["Body"].read()
@@ -53,7 +53,7 @@ class TestResponsesModule(TestCase):
             responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"}
         )
         with mock_s3():
-            s3 = boto3.client("s3")
+            s3 = boto3.client("s3", region_name="us-east-1")
             s3.create_bucket(Bucket="mybucket")
             s3.put_object(Bucket="mybucket", Key="name", Body="value")
             # This mock exists within Moto

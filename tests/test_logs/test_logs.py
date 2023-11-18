@@ -1380,7 +1380,7 @@ def test_create_export_task_happy_path():
     fromTime = 1611316574
     to = 1642852574
     logs = boto3.client("logs", region_name="ap-southeast-1")
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", "us-east-1")
     logs.create_log_group(logGroupName=log_group_name)
     s3.create_bucket(Bucket=destination)
     resp = logs.create_export_task(
@@ -1415,7 +1415,7 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found():
     destination = "mybucket"
     fromTime = 1611316574
     to = 1642852574
-    s3 = boto3.client("s3")
+    s3 = boto3.client("s3", region_name="us-east-1")
     s3.create_bucket(Bucket=destination)
     logs = boto3.client("logs", region_name="ap-southeast-1")
     with pytest.raises(logs.exceptions.ResourceNotFoundException):

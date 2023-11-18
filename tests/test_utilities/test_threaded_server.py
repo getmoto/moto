@@ -25,6 +25,7 @@ class TestThreadedMotoServer(unittest.TestCase):
             endpoint_url="http://127.0.0.1:5000",
             aws_access_key_id="ak",
             aws_secret_access_key="sk",
+            region_name="us-east-1",
         )
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]
@@ -37,9 +38,12 @@ class TestThreadedMotoServer(unittest.TestCase):
             endpoint_url="http://127.0.0.1:5000",
             aws_access_key_id="ak",
             aws_secret_access_key="sk",
+            region_name="us-east-1",
         )
         dynamodb_client = boto3.client(
-            "dynamodb", endpoint_url="http://127.0.0.1:5000", region_name="us-east-1"
+            "dynamodb",
+            endpoint_url="http://127.0.0.1:5000",
+            region_name="us-east-1",
         )
         s3_client.create_bucket(Bucket="test")
         dynamodb_client.create_table(
@@ -61,6 +65,7 @@ class TestThreadedMotoServer(unittest.TestCase):
             endpoint_url="http://127.0.0.1:5000",
             aws_access_key_id="ak",
             aws_secret_access_key="sk",
+            region_name="us-east-1",
         )
         server_client.create_bucket(Bucket="test")
 
@@ -81,6 +86,7 @@ def test_threaded_moto_server__different_port():
             endpoint_url="http://127.0.0.1:5001",
             aws_access_key_id="ak",
             aws_secret_access_key="sk",
+            region_name="us-east-1",
         )
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]

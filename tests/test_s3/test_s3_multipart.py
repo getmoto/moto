@@ -1038,7 +1038,7 @@ def test_generate_presigned_url_for_multipart_upload():
         raise SkipTest("No point in testing this outside decorator mode")
     bucket_name = "mock-bucket"
     file_name = "mock-file"
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
 
     mpu = s3_client.create_multipart_upload(
