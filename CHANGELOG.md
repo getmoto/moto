@@ -1,8 +1,14 @@
 Moto Changelog
 ==============
 
+3.1.19
+------
+
+    General:
+        * Support for latest botocore/boto3 versions.
+
 3.1.18
------
+------
 Docker Digest for 3.1.18: <autopopulateddigest>
 
     General:
