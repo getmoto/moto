@@ -620,6 +620,10 @@
   "Location": "eu-central-1"
  },
  {
+  "InstanceType": "dl2q.24xlarge",
+  "Location": "eu-central-1"
+ },
+ {
   "InstanceType": "f1.2xlarge",
   "Location": "eu-central-1"
  },

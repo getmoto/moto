@@ -316,6 +316,42 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "eun1-az1"
  },
@@ -1613,6 +1649,42 @@
  },
  {
   "InstanceType": "c6in.xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
   "Location": "eun1-az2"
  },
  {
@@ -3009,6 +3081,42 @@
  },
  {
   "InstanceType": "c6in.xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
   "Location": "eun1-az3"
  },
  {

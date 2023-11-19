@@ -148,10 +148,6 @@
   "Location": "me-central-1"
  },
  {
-  "InstanceType": "f1.4xlarge",
-  "Location": "me-central-1"
- },
- {
   "InstanceType": "g5.12xlarge",
   "Location": "me-central-1"
  },

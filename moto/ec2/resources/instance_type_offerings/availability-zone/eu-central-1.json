@@ -5160,6 +5160,10 @@
   "Location": "eu-central-1c"
  },
  {
+  "InstanceType": "dl2q.24xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
   "InstanceType": "f1.2xlarge",
   "Location": "eu-central-1c"
  },
