@@ -828,10 +828,6 @@
   "Location": "mec1-az2"
  },
  {
-  "InstanceType": "f1.4xlarge",
-  "Location": "mec1-az2"
- },
- {
   "InstanceType": "g5.12xlarge",
   "Location": "mec1-az2"
  },
