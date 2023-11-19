@@ -10077,7 +10077,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -10184,7 +10184,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -10295,7 +10295,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -10740,7 +10740,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -11133,7 +11133,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -11252,7 +11252,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -11375,7 +11375,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -11868,7 +11868,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -13373,7 +13373,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.12xlarge",
@@ -13475,7 +13475,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.16xlarge",
@@ -13687,7 +13687,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.2xlarge",
@@ -13997,7 +13997,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.4xlarge",
@@ -14095,7 +14095,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.8xlarge",
@@ -14195,7 +14195,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.large",
@@ -14455,7 +14455,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7a.xlarge",
@@ -14558,7 +14558,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -14697,7 +14697,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -15344,7 +15344,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -15531,7 +15531,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -15682,7 +15682,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -17357,7 +17357,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.12xlarge",
@@ -17471,7 +17471,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.16xlarge",
@@ -17731,7 +17731,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.2xlarge",
@@ -17838,7 +17838,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -17965,7 +17965,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.4xlarge",
@@ -18063,7 +18063,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.8xlarge",
@@ -18169,7 +18169,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.large",
@@ -18354,7 +18354,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -18427,7 +18427,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7i.xlarge",
@@ -20165,6 +20165,136 @@
   },
   "SupportedBootModes": [
    "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 48,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 96,
+   "ValidCores": [
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "dl2q.24xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 19000,
+    "BaselineIops": 80000,
+    "BaselineThroughputInMBps": 2375.0,
+    "MaximumBandwidthInMbps": 19000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2375.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InferenceAcceleratorInfo": {
+   "Accelerators": [
+    {
+     "Count": 8,
+     "Manufacturer": "Qualcomm",
+     "MemoryInfo": {
+      "SizeInMiB": 16000
+     },
+     "Name": "Qualcomm AI100"
+    }
+   ],
+   "TotalInferenceMemoryInMiB": 128000
+  },
+  "InstanceStorageSupported": false,
+  "InstanceType": "dl2q.24xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 786432
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    }
+   ],
+   "NetworkPerformance": "100 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.5
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
   ],
   "SupportedRootDeviceTypes": [
    "ebs"
@@ -27850,7 +27980,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -27966,7 +28096,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -28304,7 +28434,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -28435,7 +28565,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -28558,7 +28688,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -29057,7 +29187,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -29769,7 +29899,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -29885,7 +30015,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -42821,7 +42951,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -42928,7 +43058,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -43039,7 +43169,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -43484,7 +43614,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -43877,7 +44007,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -43996,7 +44126,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -44119,7 +44249,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -44612,7 +44742,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -48520,7 +48650,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -48659,7 +48789,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -49306,7 +49436,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -49493,7 +49623,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -49644,7 +49774,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -51400,7 +51530,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -51916,7 +52046,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -64440,7 +64570,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -64547,7 +64677,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -64658,7 +64788,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -65103,7 +65233,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -65496,7 +65626,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -65615,7 +65745,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -65738,7 +65868,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -66231,7 +66361,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -69268,7 +69398,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7a.2xlarge",
@@ -69578,7 +69708,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7a.4xlarge",
@@ -69776,7 +69906,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7a.large",
@@ -69867,7 +69997,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7a.medium",
@@ -70036,7 +70166,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7a.xlarge",
@@ -70139,7 +70269,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -70278,7 +70408,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -70925,7 +71055,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -71112,7 +71242,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -71263,7 +71393,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -72436,7 +72566,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7i.2xlarge",
@@ -72543,7 +72673,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -72670,7 +72800,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7i.4xlarge",
@@ -72874,7 +73004,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7i.large",
@@ -73059,7 +73189,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -73132,7 +73262,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7i.xlarge",
@@ -73460,7 +73590,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7iz.2xlarge",
@@ -73678,7 +73808,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7iz.4xlarge",
@@ -73882,7 +74012,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7iz.large",
@@ -74140,7 +74270,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r7iz.xlarge",
@@ -80393,7 +80523,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80511,7 +80641,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80871,7 +81001,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80989,7 +81119,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -81462,7 +81592,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
