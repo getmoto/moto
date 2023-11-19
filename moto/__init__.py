@@ -2,7 +2,7 @@ import importlib
 import sys
 from contextlib import ContextDecorator
 
-from moto.core.models import BaseMockAWS, base_decorator
+from moto.core.models import BaseMockAWS, base_decorator, BaseDecorator
 from typing import Any, Callable, List, Optional, TypeVar, Union, overload
 from typing import TYPE_CHECKING
 from typing_extensions import ParamSpec
@@ -19,9 +19,9 @@ def lazy_load(
     element: str,
     boto3_name: Optional[str] = None,
     backend: Optional[str] = None,
-) -> Callable[..., BaseMockAWS]:
+) -> BaseDecorator:
     @overload
-    def f() -> BaseMockAWS:
+    def f(func: None = None) -> BaseMockAWS:
         ...
 
     @overload

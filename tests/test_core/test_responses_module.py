@@ -17,8 +17,8 @@ class TestResponsesModule(TestCase):
         if settings.TEST_SERVER_MODE:
             raise SkipTest("No point in testing responses-decorator in ServerMode")
 
-    @mock_s3
     @responses.activate
+    @mock_s3
     def test_moto_first(self) -> None:
         """
         Verify we can activate a user-defined `responses` on top of our Moto mocks

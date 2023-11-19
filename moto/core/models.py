@@ -7,7 +7,7 @@ import unittest
 from types import FunctionType
 from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union, overload
 from typing import ContextManager
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, Protocol
 from unittest.mock import patch
 
 import boto3
@@ -516,7 +516,7 @@ class base_decorator:
         self.backends = backends
 
     @overload
-    def __call__(self, func: None) -> BaseMockAWS:
+    def __call__(self, func: None = None) -> BaseMockAWS:
         ...
 
     @overload
@@ -529,7 +529,7 @@ class base_decorator:
         if settings.test_proxy_mode():
             mocked_backend: BaseMockAWS = ProxyModeMockAWS(self.backends)
         elif settings.TEST_SERVER_MODE:
-            mocked_backend: BaseMockAWS = ServerModeMockAWS(self.backends)
+            mocked_backend = ServerModeMockAWS(self.backends)
         else:
             mocked_backend = self.mock_backend(self.backends)
 
@@ -537,3 +537,18 @@ class base_decorator:
             return mocked_backend(func)
         else:
             return mocked_backend
+
+
+class BaseDecorator(Protocol):
+    """A protocol for base_decorator's signature.
+
+    This enables typing of callables with the same behavior as base_decorator.
+    """
+
+    @overload
+    def __call__(self, func: None = None) -> BaseMockAWS:
+        ...
+
+    @overload
+    def __call__(self, func: Callable[P, T]) -> Callable[P, T]:
+        ...
