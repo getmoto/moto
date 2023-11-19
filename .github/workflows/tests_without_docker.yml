@@ -35,7 +35,7 @@ jobs:
     # Uninstalling the module enforces that all tests are indeed skipped
     - name: Uninstall Docker
       run: |
-        pip uninstall docker
+        pip uninstall docker -y
     - name: Test with pytest
       env:
         TESTS_SKIP_REQUIRES_DOCKER: true
