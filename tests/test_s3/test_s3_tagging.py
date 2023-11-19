@@ -463,7 +463,7 @@ def test_objects_tagging_with_same_key_name():
 
 @mock_s3
 def test_generate_url_for_tagged_object():
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="my-bucket")
     s3_client.put_object(
         Bucket="my-bucket", Key="test.txt", Body=b"abc", Tagging="MyTag=value"

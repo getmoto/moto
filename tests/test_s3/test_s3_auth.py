@@ -5,8 +5,10 @@ import boto3
 import pytest
 
 from botocore.exceptions import ClientError
+
 from moto import mock_iam, mock_s3, mock_sts, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID, set_initial_no_auth_action_count
+from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 @mock_s3
@@ -42,6 +44,7 @@ def test_head_bucket_with_correct_credentials():
         "s3",
         aws_access_key_id=iam_keys["AccessKeyId"],
         aws_secret_access_key=iam_keys["SecretAccessKey"],
+        region_name=DEFAULT_REGION_NAME,
     )
     s3_client.create_bucket(Bucket="mock_bucket")
 
@@ -73,6 +76,7 @@ def test_head_bucket_with_incorrect_credentials():
         "s3",
         aws_access_key_id=iam_keys["AccessKeyId"],
         aws_secret_access_key=iam_keys["SecretAccessKey"],
+        region_name=DEFAULT_REGION_NAME,
     )
     s3_client.create_bucket(Bucket="mock_bucket")
 

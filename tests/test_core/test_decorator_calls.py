@@ -85,7 +85,7 @@ class Tester:
 @mock_s3
 class TesterWithSetup(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = boto3.client("s3")
+        self.client = boto3.client("s3", region_name="us-east-1")
         self.client.create_bucket(Bucket="mybucket")
 
     def test_still_the_same(self) -> None:
