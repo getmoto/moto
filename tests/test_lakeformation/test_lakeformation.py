@@ -13,12 +13,12 @@ from moto import mock_lakeformation
 @mock_lakeformation
 def test_register_resource():
     client = boto3.client("lakeformation", region_name="us-east-2")
-    resp = client.register_resource(
-        ResourceArn="some arn",
-    )
+    resp = client.register_resource(ResourceArn="some arn", RoleArn="another arn")
 
     del resp["ResponseMetadata"]
     assert resp == {}
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.register_resource(ResourceArn="some arn", RoleArn="another arn")
 
 
 @mock_lakeformation

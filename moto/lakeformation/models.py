@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
-from .exceptions import EntityNotFound, InvalidInput
+from .exceptions import EntityNotFound, InvalidInput, AlreadyExists
 
 
 class RessourceType(Enum):
@@ -187,6 +187,10 @@ class LakeFormationBackend(BaseBackend):
         del self.resources[resource_arn]
 
     def register_resource(self, resource_arn: str, role_arn: str) -> None:
+        if resource_arn in self.resources:
+            raise AlreadyExists(
+                "An error occurred (AlreadyExistsException) when calling the RegisterResource operation: Resource is already registered"
+            )
         self.resources[resource_arn] = Resource(resource_arn, role_arn)
 
     def list_resources(self) -> List[Resource]:

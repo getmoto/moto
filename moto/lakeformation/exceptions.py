@@ -10,3 +10,8 @@ class EntityNotFound(JsonRESTError):
 class InvalidInput(JsonRESTError):
     def __init__(self, message: str) -> None:
         super().__init__("InvalidInputException", message)
+
+
+class AlreadyExists(JsonRESTError):
+    def __init__(self, message: str) -> None:
+        super().__init__("AlreadyExistsException", message)
