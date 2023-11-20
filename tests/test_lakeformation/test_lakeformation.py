@@ -118,6 +118,24 @@ def test_list_permissions():
     ]
 
 
+@mock_lakeformation
+def test_list_permissions_invalid_input():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+
+    client.grant_permissions(
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["ALL"],
+        PermissionsWithGrantOption=["SELECT"],
+    )
+
+    with pytest.raises(client.exceptions.InvalidInputException):
+        client.list_permissions(Principal={"DataLakePrincipalIdentifier": "asdf"})
+
+    with pytest.raises(client.exceptions.InvalidInputException):
+        client.list_permissions(Resource={})
+
+
 def grant_table_permissions(
     client: boto3.client, catalog_id: str, principal: str, db: str, table: str
 ):
@@ -393,8 +411,6 @@ def test_list_permissions_filtered_for_resource_data_location():
         CatalogId=catalog_id,
         Resource={"DataLocation": {"ResourceArn": data_location_resource_arn_1}},
     )
-    print(res["PrincipalResourcePermissions"])
-    print(data_location_response(principal, resource_arn=data_location_resource_arn_1))
     assert res["PrincipalResourcePermissions"] == [
         data_location_response(principal, resource_arn=data_location_resource_arn_1)
     ]

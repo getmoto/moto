@@ -13,6 +13,8 @@ from .models import (
     RessourceType,
 )
 
+from .exceptions import InvalidInput
+
 
 class LakeFormationResponse(BaseResponse):
     """Handler for LakeFormation requests and responses."""
@@ -98,6 +100,12 @@ class LakeFormationResponse(BaseResponse):
         principal = self._get_param("Principal")
         resource = self._get_param("Resource")
         resource_type_param = self._get_param("ResourceType")
+        if principal is not None and resource is None:
+            # Error message is the exact string returned by the AWS-CLI
+            raise InvalidInput(
+                "An error occurred (InvalidInputException) when calling the ListPermissions operation: Resource is mandatory if Principal is set in the input."
+            )
+
         if resource_type_param is None:
             resource_type = None
         else:
