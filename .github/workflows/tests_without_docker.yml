@@ -2,7 +2,7 @@
 # Or in other words:
 # Verify that all tests that require Docker have the @requires_docker decorator
 
-name: Unit test Without Docker
+name: Unit tests without Docker
 on:
   workflow_dispatch:
   schedule:
@@ -35,7 +35,8 @@ jobs:
     # Uninstalling the module enforces that all tests are indeed skipped
     - name: Uninstall Docker
       run: |
-        pip uninstall docker -y
+        sudo systemctl stop docker
+        sudo systemctl stop docker.socket
     - name: Test with pytest
       env:
         TESTS_SKIP_REQUIRES_DOCKER: true
