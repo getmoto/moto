@@ -8,9 +8,12 @@ from .models import (
     LakeFormationBackend,
     ListPermissionsResource,
     ListPermissionsResourceDatabase,
+    ListPermissionsResourceDataLocation,
     ListPermissionsResourceTable,
     RessourceType,
 )
+
+from .exceptions import InvalidInput
 
 
 class LakeFormationResponse(BaseResponse):
@@ -97,6 +100,12 @@ class LakeFormationResponse(BaseResponse):
         principal = self._get_param("Principal")
         resource = self._get_param("Resource")
         resource_type_param = self._get_param("ResourceType")
+        if principal is not None and resource is None:
+            # Error message is the exact string returned by the AWS-CLI
+            raise InvalidInput(
+                "An error occurred (InvalidInputException) when calling the ListPermissions operation: Resource is mandatory if Principal is set in the input."
+            )
+
         if resource_type_param is None:
             resource_type = None
         else:
@@ -108,6 +117,7 @@ class LakeFormationResponse(BaseResponse):
             database_sub_dictionary = resource.get("Database")
             table_sub_dictionary = resource.get("Table")
             catalog_sub_dictionary = resource.get("Catalog")
+            data_location_sub_dictionary = resource.get("DataLocation")
 
             if database_sub_dictionary is None:
                 database = None
@@ -127,12 +137,20 @@ class LakeFormationResponse(BaseResponse):
                     table_wildcard=table_sub_dictionary.get("TableWildcard"),
                 )
 
+            if data_location_sub_dictionary is None:
+                data_location = None
+            else:
+                data_location = ListPermissionsResourceDataLocation(
+                    resource_arn=data_location_sub_dictionary.get("ResourceArn"),
+                    catalog_id=data_location_sub_dictionary.get("CatalogId"),
+                )
+
             list_permission_resource = ListPermissionsResource(
                 catalog=catalog_sub_dictionary,
                 database=database,
                 table=table,
                 table_with_columns=None,
-                data_location=None,
+                data_location=data_location,
                 data_cells_filter=None,
                 lf_tag=None,
                 lf_tag_policy=None,
