@@ -8,6 +8,7 @@ from .models import (
     LakeFormationBackend,
     ListPermissionsResource,
     ListPermissionsResourceDatabase,
+    ListPermissionsResourceDataLocation,
     ListPermissionsResourceTable,
     RessourceType,
 )
@@ -108,6 +109,7 @@ class LakeFormationResponse(BaseResponse):
             database_sub_dictionary = resource.get("Database")
             table_sub_dictionary = resource.get("Table")
             catalog_sub_dictionary = resource.get("Catalog")
+            data_location_sub_dictionary = resource.get("DataLocation")
 
             if database_sub_dictionary is None:
                 database = None
@@ -127,12 +129,20 @@ class LakeFormationResponse(BaseResponse):
                     table_wildcard=table_sub_dictionary.get("TableWildcard"),
                 )
 
+            if data_location_sub_dictionary is None:
+                data_location = None
+            else:
+                data_location = ListPermissionsResourceDataLocation(
+                    resource_arn=data_location_sub_dictionary.get("ResourceArn"),
+                    catalog_id=data_location_sub_dictionary.get("CatalogId"),
+                )
+
             list_permission_resource = ListPermissionsResource(
                 catalog=catalog_sub_dictionary,
                 database=database,
                 table=table,
                 table_with_columns=None,
-                data_location=None,
+                data_location=data_location,
                 data_cells_filter=None,
                 lf_tag=None,
                 lf_tag_policy=None,
