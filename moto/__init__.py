@@ -11,8 +11,6 @@ if TYPE_CHECKING:
     from typing_extensions import ParamSpec
 
     P = ParamSpec("P")
-else:
-    P = object
 
 
 T = TypeVar("T")
@@ -29,10 +27,12 @@ def lazy_load(
         ...
 
     @overload
-    def f(func: Callable[P, T]) -> Callable[P, T]:
+    def f(func: "Callable[P, T]") -> "Callable[P, T]":
         ...
 
-    def f(func: Optional[Callable[P, T]] = None) -> Union[BaseMockAWS, Callable[P, T]]:
+    def f(
+        func: "Optional[Callable[P, T]]" = None,
+    ) -> "Union[BaseMockAWS, Callable[P, T]]":
         module = importlib.import_module(module_name, "moto")
         decorator: base_decorator = getattr(module, element)
         return decorator(func)

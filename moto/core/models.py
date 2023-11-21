@@ -32,7 +32,6 @@ if TYPE_CHECKING:
     P = ParamSpec("P")
 else:
     Protocol = object
-    P = object
 
 
 DEFAULT_ACCOUNT_ID = "123456789012"
@@ -76,10 +75,10 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
 
     def __call__(
         self,
-        func: Callable[P, T],
+        func: "Callable[P, T]",
         reset: bool = True,
         remove_data: bool = True,
-    ) -> Callable[P, T]:
+    ) -> "Callable[P, T]":
         if inspect.isclass(func):
             return self.decorate_class(func)  # type: ignore
         return self.decorate_callable(func, reset, remove_data)
@@ -129,9 +128,12 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
             self.disable_patching()  # type: ignore[attr-defined]
 
     def decorate_callable(
-        self, func: Callable[P, T], reset: bool, remove_data: bool
-    ) -> Callable[P, T]:
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        self,
+        func: "Callable[P, T]",
+        reset: bool,
+        remove_data: bool,
+    ) -> "Callable[P, T]":
+        def wrapper(*args: "P.args", **kwargs: "P.kwargs") -> T:
             self.start(reset=reset)
             try:
                 result = func(*args, **kwargs)
@@ -527,12 +529,12 @@ class base_decorator:
         ...
 
     @overload
-    def __call__(self, func: Callable[P, T]) -> Callable[P, T]:
+    def __call__(self, func: "Callable[P, T]") -> "Callable[P, T]":
         ...
 
     def __call__(
-        self, func: Optional[Callable[P, T]] = None
-    ) -> Union[BaseMockAWS, Callable[P, T]]:
+        self, func: "Optional[Callable[P, T]]" = None
+    ) -> "Union[BaseMockAWS, Callable[P, T]]":
         if settings.test_proxy_mode():
             mocked_backend: BaseMockAWS = ProxyModeMockAWS(self.backends)
         elif settings.TEST_SERVER_MODE:
@@ -557,5 +559,5 @@ class BaseDecorator(Protocol):
         ...
 
     @overload
-    def __call__(self, func: Callable[P, T]) -> Callable[P, T]:
+    def __call__(self, func: "Callable[P, T]") -> "Callable[P, T]":
         ...
