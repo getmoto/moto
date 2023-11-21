@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple, Optional
 
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.utilities.tagging_service import TaggingService
-from .exceptions import EntityNotFound, InvalidInput
+from .exceptions import EntityNotFound, InvalidInput, AlreadyExists
 
 
 class RessourceType(Enum):
@@ -123,7 +123,14 @@ class ListPermissionsResource:
         lf_tag: Optional[ListPermissionsResourceLFTag],
         lf_tag_policy: Optional[ListPermissionsResourceLFTagPolicy],
     ):
-        if catalog is None and database is None and table is None:
+        if (
+            catalog is None
+            and database is None
+            and table is None
+            and data_location is None
+        ):
+            # Error message is the exact string returned by the AWS-CLI eventhough it is valid
+            # to not populate the respective fields as long as data_location is given.
             raise InvalidInput(
                 "Resource must have either the catalog, table or database field populated."
             )
@@ -180,6 +187,10 @@ class LakeFormationBackend(BaseBackend):
         del self.resources[resource_arn]
 
     def register_resource(self, resource_arn: str, role_arn: str) -> None:
+        if resource_arn in self.resources:
+            raise AlreadyExists(
+                "An error occurred (AlreadyExistsException) when calling the RegisterResource operation: Resource is already registered"
+            )
         self.resources[resource_arn] = Resource(resource_arn, role_arn)
 
     def list_resources(self) -> List[Resource]:
@@ -276,10 +287,11 @@ class LakeFormationBackend(BaseBackend):
                 only matching permissions with resource-type "Database" are returned;
             if catalog and database are not provided and table is provided:
                 only matching permissions with resource-type "Table" are returned;
+            if catalog and database and table are not provided and data location is provided:
+                only matching permissions with resource-type "DataLocation" are returned;
             """
             if resource is None:  # Check for linter
                 return False
-
             permission_resource = permission["Resource"]
             catalog = resource.catalog
             if catalog is not None and "Catalog" in permission_resource:
@@ -291,7 +303,7 @@ class LakeFormationBackend(BaseBackend):
                 if database.catalog_id is not None:
                     equals = equals and (
                         database.catalog_id
-                        == permission_resource["Database"]["CatalogId"]
+                        == permission_resource["Database"].get("CatalogId")
                     )
                 return equals
 
@@ -302,7 +314,8 @@ class LakeFormationBackend(BaseBackend):
                 )
                 if table.catalog_id is not None:
                     equals = equals and (
-                        table.catalog_id == permission_resource["Table"]["CatalogId"]
+                        table.catalog_id
+                        == permission_resource["Table"].get("CatalogId")
                     )
                 if table.name is not None and table.table_wildcard is None:
                     equals = equals and (
@@ -314,6 +327,20 @@ class LakeFormationBackend(BaseBackend):
                         == permission_resource["Table"]["TableWildcard"]
                     )
                 return equals
+
+            data_location = resource.data_location
+            if data_location is not None and "DataLocation" in permission_resource:
+                equals = (
+                    data_location.resource_arn
+                    == permission_resource["DataLocation"]["ResourceArn"]
+                )
+                if data_location.catalog_id is not None:
+                    equals = equals and (
+                        data_location.catalog_id
+                        == permission_resource["DataLocation"].get("CatalogId")
+                    )
+                return equals
+
             return False
 
         if resource is not None:

@@ -756,6 +756,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "dl2q.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "f1.16xlarge",
   "Location": "us-west-2"
  },
@@ -1885,6 +1889,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "mac2-m2.metal",
   "Location": "us-west-2"
  },
  {

@@ -170,7 +170,10 @@ class EFSResponse(BaseResponse):
 
     def describe_access_points(self) -> TYPE_RESPONSE:
         access_point_id = self._get_param("AccessPointId")
-        access_points = self.efs_backend.describe_access_points(access_point_id)
+        file_system_id = self._get_param("FileSystemId")
+        access_points = self.efs_backend.describe_access_points(
+            access_point_id, file_system_id
+        )
         resp = [ap.info_json() for ap in access_points]
         return json.dumps({"AccessPoints": resp}), {"Content-Type": "application/json"}
 

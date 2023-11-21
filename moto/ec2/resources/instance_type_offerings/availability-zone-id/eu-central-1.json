@@ -576,6 +576,10 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "dl2q.24xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "f1.2xlarge",
   "Location": "euc1-az1"
  },

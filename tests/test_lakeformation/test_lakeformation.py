@@ -1,5 +1,5 @@
 """Unit tests for lakeformation-supported APIs."""
-from typing import Dict
+from typing import Dict, Optional
 import boto3
 import pytest
 
@@ -13,12 +13,12 @@ from moto import mock_lakeformation
 @mock_lakeformation
 def test_register_resource():
     client = boto3.client("lakeformation", region_name="us-east-2")
-    resp = client.register_resource(
-        ResourceArn="some arn",
-    )
+    resp = client.register_resource(ResourceArn="some arn", RoleArn="another arn")
 
     del resp["ResponseMetadata"]
     assert resp == {}
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.register_resource(ResourceArn="some arn", RoleArn="another arn")
 
 
 @mock_lakeformation
@@ -118,6 +118,24 @@ def test_list_permissions():
     ]
 
 
+@mock_lakeformation
+def test_list_permissions_invalid_input():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+
+    client.grant_permissions(
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["ALL"],
+        PermissionsWithGrantOption=["SELECT"],
+    )
+
+    with pytest.raises(client.exceptions.InvalidInputException):
+        client.list_permissions(Principal={"DataLakePrincipalIdentifier": "asdf"})
+
+    with pytest.raises(client.exceptions.InvalidInputException):
+        client.list_permissions(Resource={})
+
+
 def grant_table_permissions(
     client: boto3.client, catalog_id: str, principal: str, db: str, table: str
 ):
@@ -159,6 +177,18 @@ def grant_catalog_permissions(client: boto3.client, catalog_id: str, principal: 
     )
 
 
+def grant_data_location_permissions(
+    client: boto3.client, resource_arn: str, catalog_id: str, principal: str
+):
+    client.grant_permissions(
+        CatalogId=catalog_id,
+        Principal={"DataLakePrincipalIdentifier": principal},
+        Resource={"DataLocation": {"ResourceArn": resource_arn}},
+        Permissions=["DATA_LOCATION_ACCESS"],
+        PermissionsWithGrantOption=[],
+    )
+
+
 def db_response(principal: str, catalog_id: str, db: str) -> Dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
@@ -196,6 +226,20 @@ def catalog_response(principal: str) -> Dict:
         "Permissions": ["CREATE_DATABASE"],
         "PermissionsWithGrantOption": [],
     }
+
+
+def data_location_response(
+    principal: str, resource_arn: str, catalog_id: Optional[str] = None
+) -> Dict:
+    response = {
+        "Principal": {"DataLakePrincipalIdentifier": principal},
+        "Resource": {"DataLocation": {"ResourceArn": resource_arn}},
+        "Permissions": ["DATA_LOCATION_ACCESS"],
+        "PermissionsWithGrantOption": [],
+    }
+    if catalog_id is not None:
+        response["Resource"]["CatalogId"] = catalog_id
+    return response
 
 
 @mock_lakeformation
@@ -339,6 +383,45 @@ def test_list_permissions_filtered_for_resource_table():
         table_response(
             principal=principal_1, catalog_id=catalog_id, db=db_1, table=table_2
         ),
+    ]
+
+
+@mock_lakeformation
+def test_list_permissions_filtered_for_resource_data_location():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+    catalog_id = "000000000000"
+    principal = "principal"
+    data_location_resource_arn_1 = "resource_arn_1"
+    data_location_resource_arn_2 = "resource_arn_2"
+
+    grant_data_location_permissions(
+        catalog_id=catalog_id,
+        client=client,
+        resource_arn=data_location_resource_arn_1,
+        principal=principal,
+    )
+    grant_data_location_permissions(
+        catalog_id=catalog_id,
+        client=client,
+        resource_arn=data_location_resource_arn_2,
+        principal=principal,
+    )
+
+    res = client.list_permissions(
+        CatalogId=catalog_id,
+        Resource={"DataLocation": {"ResourceArn": data_location_resource_arn_1}},
+    )
+    assert res["PrincipalResourcePermissions"] == [
+        data_location_response(principal, resource_arn=data_location_resource_arn_1)
+    ]
+
+    res = client.list_permissions(
+        CatalogId=catalog_id,
+        Resource={"DataLocation": {"ResourceArn": data_location_resource_arn_2}},
+    )
+
+    assert res["PrincipalResourcePermissions"] == [
+        data_location_response(principal, resource_arn=data_location_resource_arn_2)
     ]
 
 

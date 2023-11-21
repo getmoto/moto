@@ -409,6 +409,7 @@ def test_terminate_job_empty_argument_strings():
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_cancel_pending_job():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
