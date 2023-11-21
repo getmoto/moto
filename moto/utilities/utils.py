@@ -23,7 +23,7 @@ def load_resource(package: str, resource: str) -> Any:
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
-    return load_resource_as_bytes(package, resource).decode("utf-8")  # type: ignore
+    return load_resource_as_bytes(package, resource).decode("utf-8")
 
 
 def load_resource_as_bytes(package: str, resource: str) -> bytes:
@@ -69,7 +69,7 @@ def md5_hash(data: Any = None) -> Any:
     """
     args = (data,) if data else ()
     try:
-        return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
+        return hashlib.md5(*args, usedforsecurity=False)
     except TypeError:
         # The usedforsecurity-parameter is only available as of Python 3.9
         return hashlib.md5(*args)

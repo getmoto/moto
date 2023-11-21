@@ -5,7 +5,7 @@ from moto.utilities.distutils_version import LooseVersion
 try:
     from importlib.metadata import version
 except ImportError:
-    from importlib_metadata import version  # type: ignore[no-redef]
+    from importlib_metadata import version
 
 
 PYTHON_VERSION_INFO = sys.version_info

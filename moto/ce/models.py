@@ -17,7 +17,7 @@ def first_day() -> str:
         .replace(minute=0)
         .replace(second=0)
     )
-    return iso_8601_datetime_without_milliseconds(as_date)  # type: ignore[return-value]
+    return iso_8601_datetime_without_milliseconds(as_date)
 
 
 class CostCategoryDefinition(BaseModel):

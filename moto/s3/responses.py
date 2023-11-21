@@ -340,7 +340,7 @@ class S3Response(BaseResponse):
                 f"Method {method} has not been implemented in the S3 backend yet"
             )
 
-    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:
         # Flask's Request has the querystring already parsed
         # In ServerMode, we can use this, instead of manually parsing this
         if hasattr(request, "args"):
@@ -1114,7 +1114,7 @@ class S3Response(BaseResponse):
         new_key = self.backend.put_object(bucket_name, key, f)
 
         if self.querystring.get("acl"):
-            acl = get_canned_acl(self.querystring["acl"][0])  # type: ignore
+            acl = get_canned_acl(self.querystring["acl"][0])
             new_key.set_acl(acl)
 
         # Metadata
@@ -1486,7 +1486,7 @@ class S3Response(BaseResponse):
                     unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
                 )
                 src_version_id = parse_qs(copy_source_parsed.query).get(
-                    "versionId", [None]  # type: ignore
+                    "versionId", [None]
                 )[0]
                 src_range = request.headers.get("x-amz-copy-source-range", "").split(
                     "bytes="
@@ -1638,7 +1638,7 @@ class S3Response(BaseResponse):
                 unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
             )
             src_version_id = parse_qs(copy_source_parsed.query).get(
-                "versionId", [None]  # type: ignore
+                "versionId", [None]
             )[0]
 
             key_to_copy = self.backend.get_object(

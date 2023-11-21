@@ -3214,7 +3214,7 @@ class SageMakerModelBackend(BaseBackend):
         raise ValueError(f"Invalid model package type: {model_package_type}")
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_model_package_groups(  # type: ignore[misc]
+    def list_model_package_groups(
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],
@@ -3271,7 +3271,7 @@ class SageMakerModelBackend(BaseBackend):
         return model_package_group
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_model_packages(  # type: ignore[misc]
+    def list_model_packages(
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],

@@ -989,7 +989,7 @@ class SecurityGroupBackend:
         if ip_ranges:
             for cidr in ip_ranges:
                 if (
-                    isinstance(cidr, dict)  # type: ignore
+                    isinstance(cidr, dict)
                     and not any(
                         [
                             is_valid_cidr(cidr.get("CidrIp", "")),
@@ -1044,7 +1044,7 @@ class SecurityGroupBackend:
         if ip_ranges:
             for cidr in ip_ranges:
                 if (
-                    isinstance(cidr, dict)  # type: ignore
+                    isinstance(cidr, dict)
                     and not any(
                         [
                             is_valid_cidr(cidr.get("CidrIp", "")),

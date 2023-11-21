@@ -224,4 +224,4 @@ def validate_schema(
             f"Query condition missed key schema element: {index_range_key}"
         )
 
-    return hash_value, range_comparison, range_values  # type: ignore[return-value]
+    return hash_value, range_comparison, range_values

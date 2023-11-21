@@ -142,7 +142,9 @@ class Cluster:
                     valid_engines=ClusterEngine.list_cluster_engines(),
                 )
             )
-        self.engine_version = kwargs.get("engine_version") or Cluster.default_engine_version(self.engine)  # type: ignore
+        self.engine_version = kwargs.get(
+            "engine_version"
+        ) or Cluster.default_engine_version(self.engine)
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
         self.kms_key_id = kwargs.get("kms_key_id")
@@ -160,7 +162,7 @@ class Cluster:
         self.allocated_storage = kwargs.get("allocated_storage")
         if self.allocated_storage is None:
             self.allocated_storage = Cluster.default_allocated_storage(
-                engine=self.engine, storage_type=self.storage_type  # type: ignore
+                engine=self.engine, storage_type=self.storage_type
             )
         self.master_username = kwargs.get("master_username")
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
@@ -593,7 +595,7 @@ class Database(CloudFormationModel):
         self.allocated_storage = kwargs.get("allocated_storage")
         if self.allocated_storage is None:
             self.allocated_storage = Database.default_allocated_storage(
-                engine=self.engine, storage_type=self.storage_type  # type: ignore
+                engine=self.engine, storage_type=self.storage_type
             )
         self.db_cluster_identifier: Optional[str] = kwargs.get("db_cluster_identifier")
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
@@ -601,7 +603,7 @@ class Database(CloudFormationModel):
         self.db_instance_class = kwargs.get("db_instance_class")
         self.port = kwargs.get("port")
         if self.port is None:
-            self.port = Database.default_port(self.engine)  # type: ignore
+            self.port = Database.default_port(self.engine)
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
         self.instance_create_time = iso_8601_datetime_with_milliseconds()

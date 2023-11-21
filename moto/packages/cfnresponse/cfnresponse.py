@@ -50,7 +50,7 @@ def send(
     headers = {"content-type": "", "content-length": str(len(json_responseBody))}
 
     try:
-        response = http.request(  # type: ignore
+        response = http.request(
             "PUT", responseUrl, headers=headers, body=json_responseBody
         )
         print("Status code:", response.status)

@@ -441,7 +441,7 @@ class FakeStack(CloudFormationModel):
 
     @property
     def creation_time_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.creation_time)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
     def _add_stack_event(
         self,
@@ -654,7 +654,7 @@ class FakeChangeSet(BaseModel):
 
     @property
     def creation_time_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.creation_time)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
     def diff(self) -> List[FakeChange]:
         changes = []

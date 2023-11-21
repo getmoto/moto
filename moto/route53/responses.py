@@ -238,8 +238,8 @@ class Route53(BaseResponse):
         elif method == "GET":
             querystring = parse_qs(self.parsed_url.query)
             template = Template(LIST_RRSET_RESPONSE)
-            start_type = querystring.get("type", [None])[0]  # type: ignore
-            start_name = querystring.get("name", [None])[0]  # type: ignore
+            start_type = querystring.get("type", [None])[0]
+            start_name = querystring.get("name", [None])[0]
             max_items = int(querystring.get("maxitems", ["300"])[0])
 
             if start_type and not start_name:

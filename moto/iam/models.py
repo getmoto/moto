@@ -116,7 +116,7 @@ class MFADevice:
 
     @property
     def enabled_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.enable_date)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.enable_date)
 
 
 class VirtualMfaDevice:
@@ -245,7 +245,7 @@ class OpenIDConnectProvider(BaseModel):
 
     @property
     def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
     def _validate(
         self, url: str, thumbprint_list: List[str], client_id_list: List[str]
@@ -1062,7 +1062,7 @@ class SigningCertificate(BaseModel):
 
     @property
     def uploaded_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.upload_date)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
 class AccessKeyLastUsed:
@@ -1073,7 +1073,7 @@ class AccessKeyLastUsed:
 
     @property
     def timestamp(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self._timestamp)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self._timestamp)
 
 
 class AccessKey(CloudFormationModel):
@@ -1096,7 +1096,7 @@ class AccessKey(CloudFormationModel):
 
     @property
     def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -1200,7 +1200,7 @@ class SshPublicKey(BaseModel):
 
     @property
     def uploaded_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.upload_date)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
 class Group(BaseModel):
