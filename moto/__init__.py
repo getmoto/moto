@@ -1,14 +1,13 @@
 import importlib
 import sys
-from contextlib import ContextDecorator
+from contextlib import ContextDecorator, AbstractContextManager
 
-from moto.core.models import BaseMockAWS, base_decorator, BaseDecorator
+from moto.core.models import BaseMockAWS, BaseDecorator
 from typing import Any, Callable, List, Optional, TypeVar, Union, overload
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from moto.xray import XRaySegment as xray_segment_type
-    from typing_extensions import ParamSpec
+    from typing_extensions import ParamSpec, Literal
 
     P = ParamSpec("P")
 
@@ -16,12 +15,46 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+@overload
+def lazy_load(
+    module_name: str,
+    element: str,
+    boto3_name: Optional[str] = ...,
+    backend: Optional[str] = ...,
+    *,
+    context_manager: "Literal[False]" = ...,
+) -> BaseDecorator:
+    ...
+
+
+@overload
+def lazy_load(
+    module_name: str,
+    element: str,
+    boto3_name: Optional[str] = ...,
+    backend: Optional[str] = ...,
+    *,
+    context_manager: "Literal[True]" = ...,
+) -> "Callable[[], AbstractContextManager[object]]":
+    ...
+
+
 def lazy_load(
     module_name: str,
     element: str,
     boto3_name: Optional[str] = None,
     backend: Optional[str] = None,
-) -> BaseDecorator:
+    *,
+    context_manager: bool = False,
+) -> "Union[BaseDecorator, Callable[[], AbstractContextManager[object]]]":
+    """Lazy load a base_decorator or context manager."""
+
+    # The typing on the internal f() function is a little hacky:
+    # It's incorrect in the context_manager = True case, but mypy seems happy as long
+    # as the return value matches one of the possible return types, and the actual
+    # return type (per mypy) is based on the external overload logic, not the internal
+    # implementation type.
+
     @overload
     def f(func: None = None) -> BaseMockAWS:
         ...
@@ -34,25 +67,14 @@ def lazy_load(
         func: "Optional[Callable[P, T]]" = None,
     ) -> "Union[BaseMockAWS, Callable[P, T]]":
         module = importlib.import_module(module_name, "moto")
-        decorator: base_decorator = getattr(module, element)
-        return decorator(func)
+        if context_manager:
+            return getattr(module, element)()
+        return getattr(module, element)(func)
 
     setattr(f, "name", module_name.replace(".", ""))
     setattr(f, "element", element)
     setattr(f, "boto3_name", boto3_name or f.name)  # type: ignore[attr-defined]
     setattr(f, "backend", backend or f"{f.name}_backends")  # type: ignore[attr-defined]
-    return f
-
-
-def load_xray_segment() -> Callable[[], "xray_segment_type"]:
-    def f() -> "xray_segment_type":
-        # We can't use `lazy_load` here
-        # XRaySegment will always be run as a context manager
-        # I.e.: no function is passed directly: `with XRaySegment()`
-        from moto.xray import XRaySegment as xray_segment
-
-        return xray_segment()
-
     return f
 
 
@@ -221,7 +243,7 @@ mock_timestreamwrite = lazy_load(
     ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
 )
 mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
-XRaySegment = load_xray_segment()
+XRaySegment = lazy_load(".xray", "XRaySegment", context_manager=True)
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")

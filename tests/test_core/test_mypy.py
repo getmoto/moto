@@ -1,7 +1,8 @@
 import boto3
 
-from moto import mock_s3
+from moto import mock_s3, XRaySegment
 from moto.core.models import BaseMockAWS
+from contextlib import AbstractContextManager
 
 
 @mock_s3
@@ -40,3 +41,23 @@ assert x == 456
 
 y: int = test_without_parentheses()
 assert y == 123
+
+
+def test_xray() -> None:
+    xray: "AbstractContextManager[object]" = XRaySegment()
+    with xray:
+        assert True
+
+
+def dont_call_me() -> None:
+    # This is not a test and should never be called.
+    #
+    # warn_unused_ignores is enabed, so this will fail mypy if the typing of XRaySegment
+    # would allow this. Normally that wouldn't be a concern at all, but since lazy_load is
+    # a pretty complicated overload type, it seems worth double checking
+
+    @XRaySegment  # type: ignore[call-arg]
+    def this_is_the_wrong_use_of_XRaySegment() -> None:
+        pass
+
+    assert False
