@@ -1,5 +1,4 @@
-from typing import Dict, Tuple, List, Any, NamedTuple, Optional
-from typing_extensions import Self
+from typing import Dict, Tuple, List, Any, NamedTuple, Optional, TYPE_CHECKING
 from moto.utilities.paginator import paginate
 
 from botocore.exceptions import ParamValidationError
@@ -12,6 +11,9 @@ from .exceptions import (
     ConflictException,
 )
 import warnings
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
 
 
 class Group(NamedTuple):
@@ -31,7 +33,7 @@ class Name(NamedTuple):
     HonorificSuffix: Optional[str]
 
     @classmethod
-    def from_dict(cls, name_dict: Dict[str, str]) -> Optional[Self]:
+    def from_dict(cls, name_dict: Dict[str, str]) -> "Optional[Self]":
         if not name_dict:
             return None
         return cls(

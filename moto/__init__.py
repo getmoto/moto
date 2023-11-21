@@ -5,12 +5,16 @@ from contextlib import ContextDecorator
 from moto.core.models import BaseMockAWS, base_decorator, BaseDecorator
 from typing import Any, Callable, List, Optional, TypeVar, Union, overload
 from typing import TYPE_CHECKING
-from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from moto.xray import XRaySegment as xray_segment_type
+    from typing_extensions import ParamSpec
 
-P = ParamSpec("P")
+    P = ParamSpec("P")
+else:
+    P = object
+
+
 T = TypeVar("T")
 
 

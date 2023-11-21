@@ -10,6 +10,12 @@ def test_without_parentheses() -> int:
     return 123
 
 
+@mock_s3()
+def test_with_parentheses() -> int:
+    assert boto3.client("s3").list_buckets()["Buckets"] == []
+    return 456
+
+
 @mock_s3
 def test_no_return() -> None:
     assert boto3.client("s3").list_buckets()["Buckets"] == []
@@ -28,6 +34,9 @@ def test_manual() -> None:
     assert boto3.client("s3").list_buckets()["Buckets"] == []
     m.stop()
 
+
+x: int = test_with_parentheses()
+assert x == 456
 
 y: int = test_without_parentheses()
 assert y == 123

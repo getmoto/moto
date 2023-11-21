@@ -6,8 +6,7 @@ import re
 import unittest
 from types import FunctionType
 from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union, overload
-from typing import ContextManager
-from typing_extensions import ParamSpec, Protocol
+from typing import ContextManager, TYPE_CHECKING
 from unittest.mock import patch
 
 import boto3
@@ -27,8 +26,16 @@ from .custom_responses_mock import (
 )
 from .model_instances import reset_model_data
 
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec, Protocol
+
+    P = ParamSpec("P")
+else:
+    Protocol = object
+    P = object
+
+
 DEFAULT_ACCOUNT_ID = "123456789012"
-P = ParamSpec("P")
 T = TypeVar("T")
 
 
@@ -435,7 +442,7 @@ class ServerModeMockAWS(BaseMockAWS):
     def _get_region(self, *args: Any, **kwargs: Any) -> Optional[str]:
         if "region_name" in kwargs:
             return kwargs["region_name"]
-        if type(args) == tuple and len(args) == 2:
+        if type(args) is tuple and len(args) == 2:
             _, region = args
             return region
         return None
