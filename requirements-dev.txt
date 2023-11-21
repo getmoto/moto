@@ -7,6 +7,12 @@ inflection
 lxml
 mypy
 typing-extensions<=4.5.0; python_version < '3.8'
+typing-extensions; python_version >= '3.8'
 packaging
 build
 prompt_toolkit
+
+# typing_extensions is currently used for:
+# Protocol  (3.8+)
+# ParamSpec  (3.10+)
+# Self  (3.11+)

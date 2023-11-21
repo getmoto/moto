@@ -19,7 +19,7 @@ class TestResponsesModule(TestCase):
 
     @mock_s3
     @responses.activate
-    def test_moto_first(self) -> None:
+    def test_moto_first(self) -> None:  # type: ignore
         """
         Verify we can activate a user-defined `responses` on top of our Moto mocks
         """
