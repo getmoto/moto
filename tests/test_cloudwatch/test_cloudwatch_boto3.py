@@ -1,3 +1,5 @@
+import copy
+
 import boto3
 import pytest
 
@@ -1903,3 +1905,41 @@ def test_get_metric_data_with_custom_label():
         )
         assert len(metric_result_data) == 1
         assert metric_result_data[0]["Label"] == expected_value
+
+
+@mock_cloudwatch
+def test_get_metric_data_queries():
+    """
+    verify that >= 10 queries can still be parsed
+    there was an error with the order of parsing items, leading to IndexError
+    """
+    now = datetime.utcnow().replace(microsecond=0)
+    start_time = now - timedelta(minutes=10)
+    end_time = now + timedelta(minutes=5)
+    original_query = {
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "CPUUtilization",
+                "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": ""}],
+            },
+            "Period": 1,
+            "Stat": "Average",
+            "Unit": "Percent",
+        },
+    }
+
+    queries = []
+    for i in range(0, 20):
+        query = copy.deepcopy(original_query)
+        query["Id"] = f"q{i}"
+        query["MetricStat"]["Metric"]["Dimensions"][0]["Value"] = f"id-{i}"
+        queries.append(query)
+
+    assert len(queries) == 20
+    response = boto3.client("cloudwatch", "eu-west-1").get_metric_data(
+        StartTime=start_time, EndTime=end_time, MetricDataQueries=queries
+    )
+
+    # we expect twenty results
+    assert len(response["MetricDataResults"]) == 20
