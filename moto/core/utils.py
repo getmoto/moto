@@ -326,16 +326,19 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     return region
 
 
-def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, Any]:
+def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, int, str]:
     """
-    Comparison function used to sort params appropriately taking tags non
-    alphabetical order into consideration
+    sort by <string-prefix>.member.<integer>.<string-postfix>:
+    in case there are more than 10 members, the default-string sort would lead to IndexError when parsing the content.
+
+    Note: currently considers only the first occurence of `member`, but there may be cases with nested members
     """
     key, _ = item
-    if key.startswith("Tags.member"):
-        member_num = int(key.split(".")[2])
-        return ("Tags.member", member_num)
-    return item
+
+    match = re.search(r"(.*?member)\.(\d+)(.*)", key)
+    if match:
+        return (match.group(1), int(match.group(2)), match.group(3))
+    return (key, 0, "")
 
 
 def gzip_decompress(body: bytes) -> bytes:
