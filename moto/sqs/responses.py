@@ -289,7 +289,13 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
-        return SET_QUEUE_ATTRIBUTE_RESPONSE
+        return self._empty_response(SET_QUEUE_ATTRIBUTE_RESPONSE)
+
+    def _empty_response(self, xml_response: str) -> str:
+        # 'Empty' XML response always needs some fields
+        if self.is_json():
+            return "{}"
+        return xml_response
 
     @jsonify_error
     def delete_queue(self) -> str:
@@ -298,8 +304,7 @@ class SQSResponse(BaseResponse):
 
         self.sqs_backend.delete_queue(queue_name)
 
-        template = self.response_template(DELETE_QUEUE_RESPONSE)
-        return template.render()
+        return self._empty_response(DELETE_QUEUE_RESPONSE)
 
     @jsonify_error
     def send_message(self) -> Union[str, TYPE_RESPONSE]:
@@ -506,8 +511,7 @@ class SQSResponse(BaseResponse):
     def purge_queue(self) -> str:
         queue_name = self._get_queue_name()
         self.sqs_backend.purge_queue(queue_name)
-        template = self.response_template(PURGE_QUEUE_RESPONSE)
-        return template.render()
+        return self._empty_response(PURGE_QUEUE_RESPONSE)
 
     @jsonify_error
     def receive_message(self) -> Union[str, TYPE_RESPONSE]:
@@ -684,8 +688,7 @@ class SQSResponse(BaseResponse):
 
         self.sqs_backend.add_permission(queue_name, actions, account_ids, label)
 
-        template = self.response_template(ADD_PERMISSION_RESPONSE)
-        return template.render()
+        return self._empty_response(ADD_PERMISSION_RESPONSE)
 
     @jsonify_error
     def remove_permission(self) -> str:
@@ -694,8 +697,7 @@ class SQSResponse(BaseResponse):
 
         self.sqs_backend.remove_permission(queue_name, label)
 
-        template = self.response_template(REMOVE_PERMISSION_RESPONSE)
-        return template.render()
+        return self._empty_response(REMOVE_PERMISSION_RESPONSE)
 
     @jsonify_error
     def tag_queue(self) -> str:

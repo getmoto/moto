@@ -78,6 +78,10 @@ jobs:
     needs: lint
     uses: ./.github/workflows/tests_sdk_dotnet.yml
 
+  rubytest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_ruby.yml
+
   test:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
