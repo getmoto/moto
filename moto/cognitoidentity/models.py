@@ -5,7 +5,7 @@ import re
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import utcnow
 from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
