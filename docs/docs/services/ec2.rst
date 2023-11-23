@@ -48,6 +48,7 @@ ec2
 - [ ] associate_enclave_certificate_iam_role
 - [X] associate_iam_instance_profile
 - [ ] associate_instance_event_window
+- [ ] associate_ipam_byoasn
 - [ ] associate_ipam_resource_discovery
 - [ ] associate_nat_gateway_address
 - [X] associate_route_table
@@ -242,6 +243,7 @@ ec2
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
 - [ ] deprovision_byoip_cidr
+- [ ] deprovision_ipam_byoasn
 - [ ] deprovision_ipam_pool_cidr
 - [ ] deprovision_public_ipv4_pool_cidr
 - [X] deregister_image
@@ -312,6 +314,7 @@ ec2
 - [X] describe_instance_types
 - [X] describe_instances
 - [X] describe_internet_gateways
+- [ ] describe_ipam_byoasn
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations
@@ -449,6 +452,7 @@ ec2
 - [ ] disassociate_enclave_certificate_iam_role
 - [X] disassociate_iam_instance_profile
 - [ ] disassociate_instance_event_window
+- [ ] disassociate_ipam_byoasn
 - [ ] disassociate_ipam_resource_discovery
 - [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
@@ -497,6 +501,7 @@ ec2
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_discovered_accounts
+- [ ] get_ipam_discovered_public_addresses
 - [ ] get_ipam_discovered_resource_cidrs
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -606,6 +611,7 @@ ec2
 - [ ] move_address_to_vpc
 - [ ] move_byoip_cidr_to_ipam
 - [ ] provision_byoip_cidr
+- [ ] provision_ipam_byoasn
 - [ ] provision_ipam_pool_cidr
 - [ ] provision_public_ipv4_pool_cidr
 - [ ] purchase_capacity_block

@@ -64,7 +64,7 @@ lakeformation
 - [X] list_lf_tags
 - [X] list_permissions
   
-        No parameters have been implemented yet
+        No pagination has been implemented yet.
         
 
 - [X] list_resources

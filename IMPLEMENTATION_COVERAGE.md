@@ -1137,7 +1137,7 @@
 
 ## cognito-identity
 <details>
-<summary>34% implemented</summary>
+<summary>39% implemented</summary>
 
 - [X] create_identity_pool
 - [ ] delete_identities
@@ -1151,7 +1151,7 @@
 - [X] get_open_id_token_for_developer_identity
 - [ ] get_principal_tag_attribute_map
 - [X] list_identities
-- [ ] list_identity_pools
+- [X] list_identity_pools
 - [ ] list_tags_for_resource
 - [ ] lookup_developer_identity
 - [ ] merge_developer_identities
@@ -1921,6 +1921,7 @@
 - [ ] associate_enclave_certificate_iam_role
 - [X] associate_iam_instance_profile
 - [ ] associate_instance_event_window
+- [ ] associate_ipam_byoasn
 - [ ] associate_ipam_resource_discovery
 - [ ] associate_nat_gateway_address
 - [X] associate_route_table
@@ -2111,6 +2112,7 @@
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
 - [ ] deprovision_byoip_cidr
+- [ ] deprovision_ipam_byoasn
 - [ ] deprovision_ipam_pool_cidr
 - [ ] deprovision_public_ipv4_pool_cidr
 - [X] deregister_image
@@ -2173,6 +2175,7 @@
 - [X] describe_instance_types
 - [X] describe_instances
 - [X] describe_internet_gateways
+- [ ] describe_ipam_byoasn
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations
@@ -2291,6 +2294,7 @@
 - [ ] disassociate_enclave_certificate_iam_role
 - [X] disassociate_iam_instance_profile
 - [ ] disassociate_instance_event_window
+- [ ] disassociate_ipam_byoasn
 - [ ] disassociate_ipam_resource_discovery
 - [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
@@ -2339,6 +2343,7 @@
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_discovered_accounts
+- [ ] get_ipam_discovered_public_addresses
 - [ ] get_ipam_discovered_resource_cidrs
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -2444,6 +2449,7 @@
 - [ ] move_address_to_vpc
 - [ ] move_byoip_cidr_to_ipam
 - [ ] provision_byoip_cidr
+- [ ] provision_ipam_byoasn
 - [ ] provision_ipam_pool_cidr
 - [ ] provision_public_ipv4_pool_cidr
 - [ ] purchase_capacity_block
@@ -2521,7 +2527,7 @@
 
 ## ecr
 <details>
-<summary>68% implemented</summary>
+<summary>65% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -2563,7 +2569,9 @@
 - [ ] start_lifecycle_policy_preview
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_pull_through_cache_rule
 - [ ] upload_layer_part
+- [ ] validate_pull_through_cache_rule
 </details>
 
 ## ecs
@@ -3286,7 +3294,7 @@
 
 ## glue
 <details>
-<summary>32% implemented</summary>
+<summary>31% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3366,6 +3374,8 @@
 - [ ] get_classifiers
 - [ ] get_column_statistics_for_partition
 - [ ] get_column_statistics_for_table
+- [ ] get_column_statistics_task_run
+- [ ] get_column_statistics_task_runs
 - [ ] get_connection
 - [ ] get_connections
 - [X] get_crawler
@@ -3426,6 +3436,7 @@
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
+- [ ] list_column_statistics_task_runs
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
@@ -3456,6 +3467,7 @@
 - [ ] run_statement
 - [ ] search_tables
 - [ ] start_blueprint_run
+- [ ] start_column_statistics_task_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_data_quality_rule_recommendation_run
@@ -3467,6 +3479,7 @@
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
 - [ ] start_workflow_run
+- [ ] stop_column_statistics_task_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
@@ -5331,6 +5344,7 @@
 - [X] create_ingestion
 - [ ] create_namespace
 - [ ] create_refresh_schedule
+- [ ] create_role_membership
 - [ ] create_template
 - [ ] create_template_alias
 - [ ] create_theme
@@ -5352,6 +5366,8 @@
 - [ ] delete_iam_policy_assignment
 - [ ] delete_namespace
 - [ ] delete_refresh_schedule
+- [ ] delete_role_custom_permission
+- [ ] delete_role_membership
 - [ ] delete_template
 - [ ] delete_template_alias
 - [ ] delete_theme
@@ -5389,6 +5405,7 @@
 - [ ] describe_ip_restriction
 - [ ] describe_namespace
 - [ ] describe_refresh_schedule
+- [ ] describe_role_custom_permission
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -5422,6 +5439,7 @@
 - [ ] list_ingestions
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
+- [ ] list_role_memberships
 - [ ] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -5466,6 +5484,7 @@
 - [ ] update_ip_restriction
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule
+- [ ] update_role_custom_permission
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions
@@ -5691,7 +5710,7 @@
 
 ## redshift
 <details>
-<summary>23% implemented</summary>
+<summary>22% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -5715,6 +5734,7 @@
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
+- [ ] create_redshift_idc_application
 - [ ] create_scheduled_action
 - [X] create_snapshot_copy_grant
 - [ ] create_snapshot_schedule
@@ -5733,6 +5753,7 @@
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
 - [ ] delete_partner
+- [ ] delete_redshift_idc_application
 - [ ] delete_resource_policy
 - [ ] delete_scheduled_action
 - [X] delete_snapshot_copy_grant
@@ -5767,6 +5788,7 @@
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_redshift_idc_applications
 - [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
@@ -5802,6 +5824,7 @@
 - [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
+- [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule
@@ -7215,31 +7238,59 @@
 
 ## sso-admin
 <details>
-<summary>21% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] attach_customer_managed_policy_reference_to_permission_set
 - [ ] attach_managed_policy_to_permission_set
 - [X] create_account_assignment
+- [ ] create_application
+- [ ] create_application_assignment
+- [ ] create_instance
 - [ ] create_instance_access_control_attribute_configuration
 - [X] create_permission_set
+- [ ] create_trusted_token_issuer
 - [X] delete_account_assignment
+- [ ] delete_application
+- [ ] delete_application_access_scope
+- [ ] delete_application_assignment
+- [ ] delete_application_authentication_method
+- [ ] delete_application_grant
 - [ ] delete_inline_policy_from_permission_set
+- [ ] delete_instance
 - [ ] delete_instance_access_control_attribute_configuration
 - [X] delete_permission_set
 - [ ] delete_permissions_boundary_from_permission_set
+- [ ] delete_trusted_token_issuer
 - [ ] describe_account_assignment_creation_status
 - [ ] describe_account_assignment_deletion_status
+- [ ] describe_application
+- [ ] describe_application_assignment
+- [ ] describe_application_provider
+- [ ] describe_instance
 - [ ] describe_instance_access_control_attribute_configuration
 - [X] describe_permission_set
 - [ ] describe_permission_set_provisioning_status
+- [ ] describe_trusted_token_issuer
 - [ ] detach_customer_managed_policy_reference_from_permission_set
 - [ ] detach_managed_policy_from_permission_set
+- [ ] get_application_access_scope
+- [ ] get_application_assignment_configuration
+- [ ] get_application_authentication_method
+- [ ] get_application_grant
 - [ ] get_inline_policy_for_permission_set
 - [ ] get_permissions_boundary_for_permission_set
 - [ ] list_account_assignment_creation_status
 - [ ] list_account_assignment_deletion_status
 - [X] list_account_assignments
+- [ ] list_account_assignments_for_principal
 - [ ] list_accounts_for_provisioned_permission_set
+- [ ] list_application_access_scopes
+- [ ] list_application_assignments
+- [ ] list_application_assignments_for_principal
+- [ ] list_application_authentication_methods
+- [ ] list_application_grants
+- [ ] list_application_providers
+- [ ] list_applications
 - [ ] list_customer_managed_policy_references_in_permission_set
 - [ ] list_instances
 - [ ] list_managed_policies_in_permission_set
@@ -7247,13 +7298,21 @@
 - [X] list_permission_sets
 - [ ] list_permission_sets_provisioned_to_account
 - [ ] list_tags_for_resource
+- [ ] list_trusted_token_issuers
 - [ ] provision_permission_set
+- [ ] put_application_access_scope
+- [ ] put_application_assignment_configuration
+- [ ] put_application_authentication_method
+- [ ] put_application_grant
 - [ ] put_inline_policy_to_permission_set
 - [ ] put_permissions_boundary_to_permission_set
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_application
+- [ ] update_instance
 - [ ] update_instance_access_control_attribute_configuration
 - [X] update_permission_set
+- [ ] update_trusted_token_issuer
 </details>
 
 ## stepfunctions
@@ -7675,7 +7734,6 @@
 - lookoutvision
 - m2
 - machinelearning
-- macie
 - macie2
 - managedblockchain-query
 - marketplace-catalog
@@ -7763,6 +7821,7 @@
 - tnb
 - transfer
 - translate
+- trustedadvisor
 - verifiedpermissions
 - voice-id
 - vpc-lattice

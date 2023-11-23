@@ -8,6 +8,12 @@
 FAQ
 ======
 
+Why is my test data disappearing?
+###################################
+To prevent state from leaking across different tests, Moto automatically deletes any created data after a Moto-decorator ends.
+
+So make sure that your decorator is active for the entire duration of the test-method.
+
 Is Moto concurrency safe?
 ############################
 

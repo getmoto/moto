@@ -41,7 +41,11 @@ cognito-identity
         The MaxResults-parameter has not yet been implemented
         
 
-- [ ] list_identity_pools
+- [X] list_identity_pools
+  
+        The MaxResults-parameter has not yet been implemented
+        
+
 - [ ] list_tags_for_resource
 - [ ] lookup_developer_identity
 - [ ] merge_developer_identities

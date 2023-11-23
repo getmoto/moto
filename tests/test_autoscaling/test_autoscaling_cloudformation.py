@@ -355,8 +355,29 @@ def test_autoscaling_group_with_elb():
     cf.create_stack(StackName="web_stack", TemplateBody=web_setup_template_json)
 
     autoscale_group = client.describe_auto_scaling_groups()["AutoScalingGroups"][0]
+    asg_name = autoscale_group["AutoScalingGroupName"]
     assert "my-launch-config" in autoscale_group["LaunchConfigurationName"]
     assert autoscale_group["LoadBalancerNames"] == ["my-elb"]
+    assert len(autoscale_group["Tags"]) == 2
+    assert {
+        "ResourceId": asg_name,
+        "ResourceType": "auto-scaling-group",
+        "Key": "propagated-test-tag",
+        "Value": "propagated-test-tag-value",
+        "PropagateAtLaunch": True,
+    } in autoscale_group["Tags"]
+    assert {
+        "ResourceId": asg_name,
+        "ResourceType": "auto-scaling-group",
+        "Key": "not-propagated-test-tag",
+        "Value": "not-propagated-test-tag-value",
+        "PropagateAtLaunch": False,
+    } in autoscale_group["Tags"]
+
+    tags = client.describe_tags(
+        Filters=[{"Name": "auto-scaling-group", "Values": [asg_name]}]
+    )["Tags"]
+    assert tags == autoscale_group["Tags"]
 
     # Confirm the Launch config was actually created
     assert len(client.describe_launch_configurations()["LaunchConfigurations"]) == 1

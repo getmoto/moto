@@ -254,23 +254,33 @@ Here is an example:
         with mock_s3():
             yield boto3.client("s3", region_name="us-east-1")
 
+    @pytest.fixture
+    def create_bucket1(s3):
+        boto3.client("s3").create_bucket(Bucket="b1")
+
+    @pytest.fixture
+    def create_bucket2(s3):
+        boto3.client("s3").create_bucket(Bucket="b2")
+
+    def test_s3_directly(s3):
+        s3.create_bucket(Bucket="somebucket")
+
+        result = s3.list_buckets()
+        assert len(result["Buckets"]) == 1
+
+    def test_bucket_creation(create_bucket1, create_bucket2):
+        buckets = boto3.client("s3").list_buckets()["Buckets"]
+        assert len(result["Buckets"]) == 2
+
 
 In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`,
 which sets the proper fake environment variables. The fake environment variables are used so that `botocore` doesn't try to locate real
 credentials on your system.
 
-Next, once you need to do anything with the mocked AWS environment, do something like:
+With Moto activated within the fixture, we can pass it to a test-method to ensure that any other AWS-calls are also mocked inside that test method.
+We can also combine multiple fixtures that use the same Moto-fixture.
 
-.. sourcecode:: python
-
-    def test_create_bucket(s3):
-        # s3 is a fixture defined above that yields a boto3 s3 client.
-        # Feel free to instantiate another boto3 S3 client -- Keep note of the region though.
-        s3.create_bucket(Bucket="somebucket")
-
-        result = s3.list_buckets()
-        assert len(result["Buckets"]) == 1
-        assert result["Buckets"][0]["Name"] == "somebucket"
+Moto will delete any data after the mock ends, so the state is not shared across methods.
 
 
 .. _pesky_imports_section:
