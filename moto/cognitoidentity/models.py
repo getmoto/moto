@@ -174,5 +174,17 @@ class CognitoIdentityBackend(BaseBackend):
         """
         return json.dumps(self.pools_identities[identity_pool_id])
 
+    def list_identity_pools(self) -> str:
+        """
+        The MaxResults-parameter has not yet been implemented
+        """
+        return json.dumps(
+            {
+                "IdentityPools": [
+                    json.loads(pool.to_json()) for pool in self.identity_pools.values()
+                ]
+            }
+        )
+
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

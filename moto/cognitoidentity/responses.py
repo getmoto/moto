@@ -80,3 +80,6 @@ class CognitoIdentityResponse(BaseResponse):
         return self.backend.list_identities(
             self._get_param("IdentityPoolId") or get_random_identity_id(self.region)
         )
+
+    def list_identity_pools(self) -> str:
+        return self.backend.list_identity_pools()
