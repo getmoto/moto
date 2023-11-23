@@ -139,12 +139,11 @@ class CognitoIdentityBackend(BaseBackend):
         duration = 90
         now = utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
-        expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
         return json.dumps(
             {
                 "Credentials": {
                     "AccessKeyId": "TESTACCESSKEY12345",
-                    "Expiration": expiration_str,
+                    "Expiration": expiration.timestamp(),
                     "SecretKey": "ABCSECRETKEY",
                     "SessionToken": "ABC12345",
                 },
