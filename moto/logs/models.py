@@ -1,4 +1,5 @@
-from datetime import timedelta
+import json
+from datetime import timedelta, datetime
 from typing import Any, Dict, Iterable, List, Tuple, Optional
 from moto.core import BaseBackend, BackendDict, BaseModel
 from moto.core import CloudFormationModel
@@ -719,6 +720,31 @@ class LogResourcePolicy(CloudFormationModel):
         logs_backends[account_id][region_name].delete_resource_policy(resource_name)
 
 
+class ExportTask(BaseModel):
+  def __init__(self, task_id: str, task_name: str, log_group_name: str, destination: str, destination_prefix: str,
+               from_time: int, to: int):
+    self.task_id = task_id
+    self.task_name = task_name
+    self.log_group_name = log_group_name
+    self.destination = destination
+    self.destination_prefix = destination_prefix
+    self.from_time = from_time
+    self.to = to
+    self.status = {"code": "active"}
+
+  def to_json(self) -> Dict[str, Any]:
+    return {
+      "taskId": self.task_id,
+      "taskName": self.task_name,
+      "logGroupName": self.log_group_name,
+      "destination": self.destination,
+      "destinationPrefix": self.destination_prefix,
+      "from": self.from_time,
+      "to": self.to,
+      "status": self.status
+    }
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -728,6 +754,7 @@ class LogsBackend(BaseBackend):
         self.resource_policies: Dict[str, LogResourcePolicy] = dict()
         self.destinations: Dict[str, Destination] = dict()
         self.tagger = TaggingService()
+        self.export_tasks: Dict[str, ExportTask] = dict()
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1204,12 +1231,28 @@ class LogsBackend(BaseBackend):
         return self.queries[query_id]
 
     def create_export_task(
-        self, log_group_name: str, destination: Dict[str, Any]
+      self, taskName: str, logGroupName: str, destination: str, destinationPrefix: str, fromTime: int, to: int
     ) -> str:
-        s3_backends[self.account_id]["global"].get_bucket(destination)
-        if log_group_name not in self.groups:
-            raise ResourceNotFoundException()
-        return str(mock_random.uuid4())
+      s3_backends[self.account_id]["global"].get_bucket(destination)
+      if logGroupName not in self.groups:
+        raise ResourceNotFoundException()
+      task_id = str(mock_random.uuid4())
+      self.export_tasks[task_id] = ExportTask(
+        task_id, taskName, logGroupName, destination, destinationPrefix, fromTime, to
+      )
+      if fromTime <= datetime.now().timestamp() <= to:
+        logs = self.filter_log_events(logGroupName, [], fromTime, to, None, None, "", False)
+        s3_backends[self.account_id]["global"].put_object(destination, destinationPrefix, json.dumps(logs))
+        self.export_tasks[task_id].status["code"] = "completed"
+      return task_id
+
+    def describe_export_tasks(self, taskId: str = None) -> Tuple[List[ExportTask], str]:
+      if taskId:
+        if taskId not in self.export_tasks:
+          raise ResourceNotFoundException()
+        return [self.export_tasks[taskId]], None
+      else:
+        return self.export_tasks.values(), None
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
@@ -1222,3 +1265,4 @@ class LogsBackend(BaseBackend):
 
 
 logs_backends = BackendDict(LogsBackend, "logs")
+
