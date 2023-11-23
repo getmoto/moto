@@ -1558,7 +1558,6 @@ class AutoScalingBackend(BaseBackend):
     def describe_tags(self, filters: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
         Pagination is not yet implemented.
-        Only the `auto-scaling-group` and `propagate-at-launch` filters are implemented.
         """
         resources = self.autoscaling_groups.values()
         tags = list(itertools.chain(*[r.tags for r in resources]))
@@ -1572,6 +1571,10 @@ class AutoScalingBackend(BaseBackend):
                     for t in tags
                     if t.get("propagate_at_launch", "").lower() in values
                 ]
+            if f["Name"] == "key":
+                tags = [t for t in tags if t["key"] in f["Values"]]
+            if f["Name"] == "value":
+                tags = [t for t in tags if t["value"] in f["Values"]]
         return tags
 
     def enable_metrics_collection(self, group_name: str, metrics: List[str]) -> None:
