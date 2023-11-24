@@ -19,6 +19,13 @@ class MockValidationException(DynamodbException):
         self.exception_msg = message
 
 
+class KeyIsEmptyStringException(MockValidationException):
+    def __init__(self, empty_key: str):
+        super().__init__(
+            message=f"One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {empty_key}"
+        )
+
+
 class InvalidIndexNameError(MockValidationException):
     pass
 

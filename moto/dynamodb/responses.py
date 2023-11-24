@@ -14,6 +14,7 @@ from .exceptions import (
     MockValidationException,
     ResourceNotFoundException,
     UnknownKeyType,
+    KeyIsEmptyStringException,
 )
 from moto.dynamodb.models import dynamodb_backends, Table, DynamoDBBackend
 from moto.dynamodb.models.utilities import dynamo_json_dump
@@ -554,10 +555,7 @@ class DynamoHandler(BaseResponse):
         key = self.body["Key"]
         empty_keys = [k for k, v in key.items() if not next(iter(v.values()))]
         if empty_keys:
-            raise MockValidationException(
-                "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an "
-                f"empty string value. Key: {empty_keys[0]}"
-            )
+            raise KeyIsEmptyStringException(empty_keys[0])
 
         projection_expression = self._get_projection_expression()
         attributes_to_get = self.body.get("AttributesToGet")
