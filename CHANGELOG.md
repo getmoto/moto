@@ -1,6 +1,24 @@
 Moto Changelog
 ==============
 
+4.2.10
+-----
+Docker Digest for 4.2.10: <autopopulateddigest>
+
+    New Methods:
+        * CognitoIdentity: list_identity_pools()
+
+    Miscellaneous:
+        * Autoscaling: describe_tags() now supports the key/value filters
+        * CloudFormation: AWS::Logs::LogGroup now supports tags
+        * CloudWatch: get_metric_data() no longer throws an error when supplying >10 queries
+        * CognitoIdentity: get_credentials_for_identity() now returns Expiration as a number, fixing compatibility with the GoLang SDK
+        * EFS: describe_access_points() now supports the FileSystemId-parameter
+        * LakeFormation: list_permissions() now supports the DataLocation-parameter
+        * LakeFormation: register_resource() now throws an exception when registering an existing resource
+        * SQS: Ensure all responses are in JSON-format when required, fixing compatibility with the Ruby SDK
+
+
 4.2.9
 -----
 Docker Digest for 4.2.9: _sha256:4e9d89322b5ca9196fa7efda78b1269580be7aa6879894950e2728edc946573f_

@@ -472,10 +472,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
     @tags.setter
     def tags(self, tags: List[Dict[str, str]]) -> None:
         for tag in tags:
-            if "resource_id" not in tag or not tag["resource_id"]:
-                tag["resource_id"] = self.name
-            if "resource_type" not in tag or not tag["resource_type"]:
-                tag["resource_type"] = "auto-scaling-group"
+            if "ResourceId" not in tag or not tag["ResourceId"]:
+                tag["ResourceId"] = self.name
+            if "ResourceType" not in tag or not tag["ResourceType"]:
+                tag["ResourceType"] = "auto-scaling-group"
         self._tags = tags
 
     @property
@@ -1376,31 +1376,31 @@ class AutoScalingBackend(BaseBackend):
 
     def create_or_update_tags(self, tags: List[Dict[str, str]]) -> None:
         for tag in tags:
-            group_name = tag["resource_id"]
+            group_name = tag["ResourceId"]
             group = self.autoscaling_groups[group_name]
             old_tags = group.tags
 
             new_tags = []
             # if key was in old_tags, update old tag
             for old_tag in old_tags:
-                if old_tag["key"] == tag["key"]:
+                if old_tag["Key"] == tag["Key"]:
                     new_tags.append(tag)
                 else:
                     new_tags.append(old_tag)
 
             # if key was never in old_tag's add it (create tag)
-            if not any(new_tag["key"] == tag["key"] for new_tag in new_tags):
+            if not any(new_tag["Key"] == tag["Key"] for new_tag in new_tags):
                 new_tags.append(tag)
 
             group.tags = new_tags
 
     def delete_tags(self, tags: List[Dict[str, str]]) -> None:
         for tag_to_delete in tags:
-            group_name = tag_to_delete["resource_id"]
-            key_to_delete = tag_to_delete["key"]
+            group_name = tag_to_delete["ResourceId"]
+            key_to_delete = tag_to_delete["Key"]
             group = self.autoscaling_groups[group_name]
             old_tags = group.tags
-            group.tags = [x for x in old_tags if x["key"] != key_to_delete]
+            group.tags = [x for x in old_tags if x["Key"] != key_to_delete]
 
     def attach_load_balancers(
         self, group_name: str, load_balancer_names: List[str]
@@ -1563,18 +1563,16 @@ class AutoScalingBackend(BaseBackend):
         tags = list(itertools.chain(*[r.tags for r in resources]))
         for f in filters:
             if f["Name"] == "auto-scaling-group":
-                tags = [t for t in tags if t["resource_id"] in f["Values"]]
+                tags = [t for t in tags if t["ResourceId"] in f["Values"]]
             if f["Name"] == "propagate-at-launch":
                 values = [v.lower() for v in f["Values"]]
                 tags = [
-                    t
-                    for t in tags
-                    if t.get("propagate_at_launch", "").lower() in values
+                    t for t in tags if t.get("PropagateAtLaunch", "").lower() in values
                 ]
             if f["Name"] == "key":
-                tags = [t for t in tags if t["key"] in f["Values"]]
+                tags = [t for t in tags if t["Key"] in f["Values"]]
             if f["Name"] == "value":
-                tags = [t for t in tags if t["value"] in f["Values"]]
+                tags = [t for t in tags if t["Value"] in f["Values"]]
         return tags
 
     def enable_metrics_collection(self, group_name: str, metrics: List[str]) -> None:

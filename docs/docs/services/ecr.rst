@@ -77,5 +77,7 @@ ecr
 - [ ] start_lifecycle_policy_preview
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_pull_through_cache_rule
 - [ ] upload_layer_part
+- [ ] validate_pull_through_cache_rule
 

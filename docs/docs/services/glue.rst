@@ -107,6 +107,8 @@ glue
 - [ ] get_classifiers
 - [ ] get_column_statistics_for_partition
 - [ ] get_column_statistics_for_table
+- [ ] get_column_statistics_task_run
+- [ ] get_column_statistics_task_runs
 - [ ] get_connection
 - [ ] get_connections
 - [X] get_crawler
@@ -179,6 +181,7 @@ glue
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
+- [ ] list_column_statistics_task_runs
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
@@ -209,6 +212,7 @@ glue
 - [ ] run_statement
 - [ ] search_tables
 - [ ] start_blueprint_run
+- [ ] start_column_statistics_task_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_data_quality_rule_recommendation_run
@@ -220,6 +224,7 @@ glue
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
 - [ ] start_workflow_run
+- [ ] stop_column_statistics_task_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
