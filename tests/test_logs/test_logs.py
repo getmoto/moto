@@ -1384,7 +1384,10 @@ def test_create_export_task_happy_path():
     logs.create_log_group(logGroupName=log_group_name)
     s3.create_bucket(Bucket=destination)
     resp = logs.create_export_task(
-        logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination,
+        logGroupName=log_group_name,
+        fromTime=fromTime,
+        to=to,
+        destination=destination,
     )
     # taskId resembles a valid UUID (i.e. a string of 32 hexadecimal digits)
     assert UUID(resp["taskId"])
@@ -1439,7 +1442,10 @@ def test_create_export_executes_export_task():
     logs.create_log_group(logGroupName=log_group_name)
     s3.create_bucket(Bucket=destination)
     resp = logs.create_export_task(
-        logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination,
+        logGroupName=log_group_name,
+        fromTime=fromTime,
+        to=to,
+        destination=destination,
     )
     taskId = resp["taskId"]
     resp = logs.describe_export_tasks(taskId=taskId)
@@ -1464,7 +1470,10 @@ def test_describe_export_tasks_happy_path():
     logs.create_log_group(logGroupName=log_group_name)
     s3.create_bucket(Bucket=destination)
     logs.create_export_task(
-        logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination,
+        logGroupName=log_group_name,
+        fromTime=fromTime,
+        to=to,
+        destination=destination,
     )
     resp = logs.describe_export_tasks()
     assert len(resp["exportTasks"]) == 1
@@ -1488,7 +1497,10 @@ def test_describe_export_tasks_task_id():
     logs.create_log_group(logGroupName=log_group_name)
     s3.create_bucket(Bucket=destination)
     resp = logs.create_export_task(
-        logGroupName=log_group_name, fromTime=fromTime, to=to, destination=destination,
+        logGroupName=log_group_name,
+        fromTime=fromTime,
+        to=to,
+        destination=destination,
     )
     taskId = resp["taskId"]
     resp = logs.describe_export_tasks(taskId=taskId)
