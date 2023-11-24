@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.10
 -----
-Docker Digest for 4.2.10: <autopopulateddigest>
+Docker Digest for 4.2.10: _sha256:f72acd62b994654d01bdec6f5cc779f4ab30083b441e2fb7eff0c13e0bbfdca7_
 
     New Methods:
         * CognitoIdentity: list_identity_pools()
