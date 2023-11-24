@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Any, List, Dict, Tuple, Optional, Union
-from moto.dynamodb.exceptions import MockValidationException
+from moto.dynamodb.exceptions import MockValidationException, KeyIsEmptyStringException
 from moto.utilities.tokenizer import GenericTokenizer
 
 
@@ -209,6 +209,8 @@ def validate_schema(
         )
     if comparison != "=":
         raise MockValidationException("Query key condition not supported")
+    if "S" in hash_value and hash_value["S"] == "":
+        raise KeyIsEmptyStringException(index_hash_key)  # type: ignore[arg-type]
 
     index_range_key = get_key(schema, "RANGE")
     range_key, range_comparison, range_values = next(
@@ -219,9 +221,12 @@ def validate_schema(
         ),
         (None, None, []),
     )
-    if index_range_key and len(results) > 1 and range_key != index_range_key:
-        raise MockValidationException(
-            f"Query condition missed key schema element: {index_range_key}"
-        )
+    if index_range_key:
+        if len(results) > 1 and range_key != index_range_key:
+            raise MockValidationException(
+                f"Query condition missed key schema element: {index_range_key}"
+            )
+        if {"S": ""} in range_values:
+            raise KeyIsEmptyStringException(index_range_key)
 
     return hash_value, range_comparison, range_values  # type: ignore[return-value]

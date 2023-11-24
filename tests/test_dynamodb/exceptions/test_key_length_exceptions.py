@@ -3,6 +3,7 @@ import pytest
 
 from moto import mock_dynamodb
 from botocore.exceptions import ClientError
+from boto3.dynamodb.conditions import Key
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
@@ -322,4 +323,41 @@ def test_item_add_empty_key_exception():
     assert (
         ex.value.response["Error"]["Message"]
         == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: forum_name"
+    )
+
+
+@mock_dynamodb
+def test_query_empty_key_exception():
+    name = "TestTable"
+    conn = boto3.client("dynamodb", region_name="us-west-2")
+    conn.create_table(
+        TableName=name,
+        KeySchema=[
+            {"AttributeName": "hk", "KeyType": "HASH"},
+            {"AttributeName": "rk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "hk", "AttributeType": "S"},
+            {"AttributeName": "rk", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = boto3.resource("dynamodb", "us-west-2").Table(name)
+
+    with pytest.raises(ClientError) as ex:
+        table.query(KeyConditionExpression=Key("hk").eq(""))
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: hk"
+    )
+
+    with pytest.raises(ClientError) as ex:
+        table.query(KeyConditionExpression=Key("hk").eq("sth") & Key("rk").eq(""))
+    assert ex.value.response["Error"]["Code"] == "ValidationException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: rk"
     )
