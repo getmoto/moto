@@ -440,17 +440,16 @@ class LogsResponse(BaseResponse):
             destination=self._get_param("destination"),
             destinationPrefix=self._get_param("destinationPrefix"),
             taskName=self._get_param("taskName"),
-
         )
         return json.dumps(dict(taskId=str(task_id)))
 
     def describe_export_tasks(self) -> str:
-      task_id = self._get_param("taskId")
+        task_id = self._get_param("taskId")
 
-      tasks, next_token = self.logs_backend.describe_export_tasks(
-        taskId=task_id
-      )
-      return json.dumps({"exportTasks": [task.to_json() for task in tasks], "nextToken": next_token})
+        tasks, next_token = self.logs_backend.describe_export_tasks(taskId=task_id)
+        return json.dumps(
+            {"exportTasks": [task.to_json() for task in tasks], "nextToken": next_token}
+        )
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("resourceArn")
