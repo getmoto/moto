@@ -4982,6 +4982,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "us-west-1": {
                 "Value": "us-west-1",
                 "endpoint": {
@@ -23634,6 +23652,9 @@
               },
               "ap-southeast-2": {
                 "Value": "ap-southeast-2"
+              },
+              "ap-southeast-3": {
+                "Value": "ap-southeast-3"
               },
               "ap-southeast-4": {
                 "Value": "ap-southeast-4"
@@ -62926,6 +62947,15 @@
                 "Value": "eu-west-2",
                 "endpoint": {
                   "Value": "workspaces.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "workspaces.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

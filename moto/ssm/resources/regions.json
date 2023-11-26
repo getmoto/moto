@@ -18845,6 +18845,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "fargate": {
+                "Value": "fargate"
+              },
               "firehose": {
                 "Value": "firehose",
                 "endpoint": {
@@ -42545,6 +42548,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces": {
+                "Value": "workspaces",
+                "endpoint": {
+                  "Value": "workspaces.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -53064,6 +53076,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "artifact": {
                 "Value": "artifact"
               },
@@ -54428,6 +54449,15 @@
                 "Value": "appstream",
                 "endpoint": {
                   "Value": "appstream2.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -57935,9 +57965,6 @@
               },
               "usw2-las1-az1": {
                 "Value": "usw2-las1-az1"
-              },
-              "usw2-las1-az2": {
-                "Value": "usw2-las1-az2"
               },
               "usw2-lax1-az1": {
                 "Value": "usw2-lax1-az1"
