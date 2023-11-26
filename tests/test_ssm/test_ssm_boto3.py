@@ -2,6 +2,7 @@ import datetime
 import re
 import string
 import uuid
+from unittest.mock import patch, Mock
 
 import boto3
 import botocore.exceptions
@@ -300,6 +301,52 @@ def test_put_parameter(name):
     assert response["Parameters"][0]["ARN"] == (
         f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
     )
+
+
+@mock_ssm
+def test_put_parameter_unimplemented_parameters():
+    """
+    Test to ensure coverage of unimplemented parameters.  Remove for appropriate tests
+    once implemented
+    """
+    mock_warn = Mock()
+    with patch("warnings.warn", mock_warn):
+        # Ensure that the ssm parameters are still working with the Mock
+        client = boto3.client("ssm", region_name="us-east-1")
+        name = "my-param"
+        response = client.put_parameter(
+            Name=name,
+            Description="A test parameter",
+            Value="value",
+            Type="String",
+            Tier="Advanced",
+            Policies="No way fam",
+        )
+
+        assert response["Version"] == 1
+
+        response = client.get_parameters(Names=[name], WithDecryption=False)
+
+        assert len(response["Parameters"]) == 1
+        assert response["Parameters"][0]["Name"] == name
+        assert response["Parameters"][0]["Value"] == "value"
+        assert response["Parameters"][0]["Type"] == "String"
+        assert response["Parameters"][0]["Version"] == 1
+        assert response["Parameters"][0]["DataType"] == "text"
+        assert isinstance(
+            response["Parameters"][0]["LastModifiedDate"], datetime.datetime
+        )
+        assert response["Parameters"][0]["ARN"] == (
+            f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
+        )
+
+        # We got the argument warnings
+        mock_warn.assert_any_call(
+            "Tier configuration option is not yet implemented.  Discarding."
+        )
+        mock_warn.assert_any_call(
+            "Policies configuration option is not yet implemented.  Discarding."
+        )
 
 
 @pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
