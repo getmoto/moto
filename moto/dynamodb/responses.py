@@ -456,6 +456,9 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         item = self.body["Item"]
         return_values = self.body.get("ReturnValues", "NONE")
+        return_values_on_condition_check_failure = self.body.get(
+            "ReturnValuesOnConditionCheckFailure"
+        )
 
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
@@ -498,6 +501,7 @@ class DynamoHandler(BaseResponse):
             expression_attribute_names,
             expression_attribute_values,
             overwrite,
+            return_values_on_condition_check_failure,
         )
 
         item_dict = result.to_json()

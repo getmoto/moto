@@ -517,6 +517,7 @@ class Table(CloudFormationModel):
         expression_attribute_names: Optional[Dict[str, str]] = None,
         expression_attribute_values: Optional[Dict[str, Any]] = None,
         overwrite: bool = False,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         if self.hash_key_attr not in item_attrs.keys():
             raise MockValidationException(
@@ -571,7 +572,13 @@ class Table(CloudFormationModel):
                 expression_attribute_values,
             )
             if not condition_op.expr(current):
-                raise ConditionalCheckFailed
+                if (
+                    return_values_on_condition_check_failure == "ALL_OLD"
+                    and current is not None
+                ):
+                    raise ConditionalCheckFailed(item=current.to_json()["Attributes"])
+                else:
+                    raise ConditionalCheckFailed
 
         if range_value:
             self.items[hash_value][range_value] = item

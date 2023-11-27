@@ -675,6 +675,48 @@ def test_put_item_empty_set():
 
 
 @mock_dynamodb
+def test_put_item_returns_old_item():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.create_table(
+        TableName="test-table",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    table.put_item(Item={"pk": "foo", "bar": "baz"})
+
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"pk": "foo", "bar": "quuz"},
+            ConditionExpression="attribute_not_exists(pk)",
+        )
+    resp = exc.value.response
+    assert resp["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert resp["message"] == "The conditional request failed"
+    assert "Item" not in resp
+
+    table.put_item(Item={"pk": "foo", "bar": "baz"})
+
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"pk": "foo", "bar": "quuz"},
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+            ConditionExpression="attribute_not_exists(pk)",
+        )
+    resp = exc.value.response
+    assert resp["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert "message" not in resp
+    assert resp["Item"] == {"pk": {"S": "foo"}, "bar": {"S": "baz"}}
+
+
+@mock_dynamodb
 def test_update_expression_with_trailing_comma():
     resource = boto3.resource(service_name="dynamodb", region_name="us-east-1")
     table = resource.create_table(
