@@ -1,5 +1,6 @@
 import json
 from typing import Any, Dict, Tuple, Union
+import warnings
 
 from moto.core.responses import BaseResponse
 from .exceptions import ValidationException, ParameterAlreadyExists
@@ -270,8 +271,20 @@ class SimpleSystemManagerResponse(BaseResponse):
         allowed_pattern = self._get_param("AllowedPattern")
         keyid = self._get_param("KeyId")
         overwrite = self._get_param("Overwrite", False)
-        tags = self._get_param("Tags", [])
+        tags = self._get_param("Tags")
         data_type = self._get_param("DataType", "text")
+
+        # To be implemented arguments of put_parameter
+        tier = self._get_param("Tier")
+        if tier is not None:
+            warnings.warn(
+                "Tier configuration option is not yet implemented.  Discarding."
+            )
+        policies = self._get_param("Policies")
+        if policies is not None:
+            warnings.warn(
+                "Policies configuration option is not yet implemented.  Discarding."
+            )
 
         result = self.ssm_backend.put_parameter(
             name,

@@ -2106,6 +2106,24 @@ class SimpleSystemManagerBackend(BaseBackend):
                 self._check_for_parameter_version_limit_exception(name)
                 previous_parameter_versions.pop(0)
 
+            # Ensure all the previous values that we didn't overwrite are preserved
+            value = value if value is not None else previous_parameter.value
+            description = (
+                description
+                if description is not None
+                else previous_parameter.description
+            )
+            allowed_pattern = (
+                allowed_pattern
+                if allowed_pattern is not None
+                else previous_parameter.allowed_pattern
+            )
+            keyid = keyid if keyid is not None else previous_parameter.keyid
+            tags = tags if tags is not None else previous_parameter.tags
+            data_type = (
+                data_type if data_type is not None else previous_parameter.data_type
+            )
+
         last_modified_date = time.time()
         self._parameters[name].append(
             Parameter(
