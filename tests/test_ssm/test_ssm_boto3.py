@@ -312,7 +312,7 @@ def test_put_parameter_unimplemented_parameters():
     """
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't test for warning logs in server mode")
-    
+
     mock_warn = Mock()
     with patch("warnings.warn", mock_warn):
         # Ensure that the ssm parameters are still working with the Mock
