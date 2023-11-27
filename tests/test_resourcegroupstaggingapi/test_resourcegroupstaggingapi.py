@@ -95,7 +95,7 @@ def test_get_resources_acm():
         ValidationMethod="DNS",
         Tags=[
             {"Key": "TagKey1", "Value": "TagValue1"},
-            {"Key": "TagKey2", "Value": "TagValue2"},
+            {"Key": "TagKey2", "Value": ""},
             {"Key": "Color", "Value": "Green"},
         ],
     )

@@ -123,7 +123,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     and v in vl
                 )
 
-        def tag_filter(tag_list: List[Dict[str, str]]) -> bool:
+        def tag_filter(tag_list: List[Dict[str, Optional[str]]]) -> bool:
             result = []
             if tag_filters:
                 for f in filters:
@@ -136,15 +136,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 return True
 
-        def format_tags(tags: Dict[str, str]) -> List[Dict[str, str]]:
+        def format_tags(
+            tags: Dict[str, Optional[str]]
+        ) -> List[Dict[str, Optional[str]]]:
             result = []
             for key, value in tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 
         def format_tag_keys(
-            tags: List[Dict[str, str]], keys: List[str]
-        ) -> List[Dict[str, str]]:
+            tags: List[Dict[str, Optional[str]]], keys: List[str]
+        ) -> List[Dict[str, Optional[str]]]:
             result = []
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
