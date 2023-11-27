@@ -57,7 +57,9 @@ class DomainDispatcherApplication:
     """
 
     def __init__(
-        self, create_app: Callable[[str], Flask], service: Optional[str] = None
+        self,
+        create_app: Callable[[backends.SERVICE_NAMES], Flask],
+        service: Optional[str] = None,
     ):
         self.create_app = create_app
         self.lock = Lock()
@@ -260,7 +262,7 @@ class DomainDispatcherApplication:
         return backend_app(environ, start_response)
 
 
-def create_backend_app(service: str) -> Flask:
+def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     from werkzeug.routing import Map
 
     current_file = os.path.abspath(__file__)
