@@ -225,6 +225,7 @@ class DynamoDBBackend(BaseBackend):
         expression_attribute_names: Optional[Dict[str, Any]] = None,
         expression_attribute_values: Optional[Dict[str, Any]] = None,
         overwrite: bool = False,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         table = self.get_table(table_name)
         return table.put_item(
@@ -234,6 +235,7 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_names,
             expression_attribute_values,
             overwrite,
+            return_values_on_condition_check_failure,
         )
 
     def get_table_keys_name(
