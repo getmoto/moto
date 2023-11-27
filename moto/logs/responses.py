@@ -433,12 +433,23 @@ class LogsResponse(BaseResponse):
         return json.dumps(query.to_result_json())
 
     def create_export_task(self) -> str:
-        log_group_name = self._get_param("logGroupName")
-        destination = self._get_param("destination")
         task_id = self.logs_backend.create_export_task(
-            log_group_name=log_group_name, destination=destination
+            logGroupName=self._get_param("logGroupName"),
+            fromTime=self._get_int_param("from"),
+            to=self._get_int_param("to"),
+            destination=self._get_param("destination"),
+            destinationPrefix=self._get_param("destinationPrefix"),
+            taskName=self._get_param("taskName"),
         )
         return json.dumps(dict(taskId=str(task_id)))
+
+    def describe_export_tasks(self) -> str:
+        task_id = self._get_param("taskId")
+
+        tasks, next_token = self.logs_backend.describe_export_tasks(taskId=task_id)
+        return json.dumps(
+            {"exportTasks": [task.to_json() for task in tasks], "nextToken": next_token}
+        )
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("resourceArn")
