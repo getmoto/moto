@@ -3,13 +3,14 @@ import re
 import string
 import uuid
 from unittest.mock import patch, Mock
+from unittest import SkipTest
 
 import boto3
 import botocore.exceptions
 from botocore.exceptions import ClientError
 import pytest
 
-from moto import mock_ec2, mock_ssm
+from moto import mock_ec2, mock_ssm, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
 from tests import EXAMPLE_AMI_ID
@@ -309,6 +310,9 @@ def test_put_parameter_unimplemented_parameters():
     Test to ensure coverage of unimplemented parameters.  Remove for appropriate tests
     once implemented
     """
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't test for warning logs in server mode")
+    
     mock_warn = Mock()
     with patch("warnings.warn", mock_warn):
         # Ensure that the ssm parameters are still working with the Mock
