@@ -2,7 +2,7 @@ import re
 import string
 from functools import lru_cache
 from threading import RLock
-from typing import Any, ClassVar, Dict, Iterator, List, Optional, TypeVar
+from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, TypeVar
 from uuid import uuid4
 
 from boto3 import Session
@@ -10,6 +10,7 @@ from boto3 import Session
 from moto.settings import allow_unknown_region, enable_iso_regions
 
 from .model_instances import model_data
+from .responses import TYPE_RESPONSE
 from .utils import convert_regex_to_flask_path
 
 
@@ -47,7 +48,7 @@ class BaseBackend:
         return backend_urls_module
 
     @property
-    def urls(self) -> Dict[str, str]:
+    def urls(self) -> Dict[str, Callable[[Any, str, Any], TYPE_RESPONSE]]:  # type: ignore[misc]
         """
         A dictionary of the urls to be mocked with this service and the handlers
         that should be called in their place
@@ -81,7 +82,7 @@ class BaseBackend:
         return urls
 
     @property
-    def url_paths(self) -> Dict[str, str]:
+    def url_paths(self) -> Dict[str, Callable[[Any, str, Any], TYPE_RESPONSE]]:  # type: ignore[misc]
         """
         A dictionary of the paths of the urls to be mocked with this service and
         the handlers that should be called in their place
@@ -103,7 +104,7 @@ class BaseBackend:
         return self._url_module.url_bases
 
     @property
-    def flask_paths(self) -> Dict[str, str]:
+    def flask_paths(self) -> Dict[str, Callable[[Any, str, Any], TYPE_RESPONSE]]:  # type: ignore[misc]
         """
         The url paths that will be used for the flask server
         """
@@ -259,7 +260,7 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         return super().__getitem__(region_name)
 
 
-class BackendDict(Dict[str, AccountSpecificBackend]):  # type: ignore[type-arg]
+class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
     """
     Data Structure to store everything related to a specific service.
     Format:
@@ -269,7 +270,7 @@ class BackendDict(Dict[str, AccountSpecificBackend]):  # type: ignore[type-arg]
 
     def __init__(
         self,
-        backend: Any,
+        backend: "type[SERVICE_BACKEND]",
         service_name: str,
         use_boto3_regions: bool = True,
         additional_regions: Optional[List[str]] = None,
@@ -292,7 +293,7 @@ class BackendDict(Dict[str, AccountSpecificBackend]):  # type: ignore[type-arg]
         return not self.__eq__(other)
 
     @lru_cache()
-    def __getitem__(self, account_id: str) -> AccountSpecificBackend:  # type: ignore
+    def __getitem__(self, account_id: str) -> AccountSpecificBackend[SERVICE_BACKEND]:
         self._create_account_specific_backend(account_id)
         return super().__getitem__(account_id)
 
@@ -305,7 +306,11 @@ class BackendDict(Dict[str, AccountSpecificBackend]):  # type: ignore[type-arg]
     def __len__(self) -> int:
         return super().__len__()
 
-    def __setitem__(self, key: str, value: AccountSpecificBackend) -> None:  # type: ignore[type-arg]
+    def __setitem__(
+        self,
+        key: str,
+        value: AccountSpecificBackend[SERVICE_BACKEND],
+    ) -> None:
         super().__setitem__(key, value)
 
     def _create_account_specific_backend(self, account_id: str) -> None:

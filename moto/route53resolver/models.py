@@ -311,7 +311,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             description=f"Route 53 Resolver: {self.id}:{eni_id}",
             group_ids=self.security_group_ids,
             interface_type="interface",
-            private_ip_address=value.get("Ip"),
+            private_ip_address=value.get("Ip"),  # type: ignore[arg-type]
             private_ip_addresses=[
                 {"Primary": True, "PrivateIpAddress": value.get("Ip")}
             ],
@@ -515,7 +515,7 @@ class Route53ResolverBackend(BaseBackend):
                 subnet_info = self.ec2_backend.describe_subnets(
                     subnet_ids=[x["SubnetId"]]
                 )[0]
-                x["Ip"] = subnet_info.get_available_subnet_ip(self)
+                x["Ip"] = subnet_info.get_available_subnet_ip(self)  # type: ignore[arg-type]
 
         self._verify_subnet_ips(ip_addresses)
         self._verify_security_group_ids(security_group_ids)
@@ -908,9 +908,9 @@ class Route53ResolverBackend(BaseBackend):
 
         if not value.get("Ip"):
             subnet_info = self.ec2_backend.describe_subnets(
-                subnet_ids=[value.get("SubnetId")]
+                subnet_ids=[value.get("SubnetId")]  # type: ignore[list-item]
             )[0]
-            value["Ip"] = subnet_info.get_available_subnet_ip(self)
+            value["Ip"] = subnet_info.get_available_subnet_ip(self)  # type: ignore[arg-type]
         self._verify_subnet_ips([value], False)
 
         resolver_endpoint.associate_ip_address(value)

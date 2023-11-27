@@ -1281,7 +1281,7 @@ class EventSourceMapping(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid
         lambda_backend = lambda_backends[account_id][region_name]
-        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)
+        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)  # type: ignore[return-value]
 
     @classmethod
     def delete_from_cloudformation_json(  # type: ignore[misc]
@@ -1331,7 +1331,7 @@ class LambdaVersion(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
         func = lambda_backends[account_id][region_name].publish_function(function_name)
-        spec = {"Version": func.version}
+        spec = {"Version": func.version}  # type: ignore[union-attr]
         return LambdaVersion(spec)
 
 

@@ -296,7 +296,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         ec2_backend = ec2_backends[account_id][region_name]
         security_group_ids = properties.get("SecurityGroups", [])
         group_names = [
-            ec2_backend.get_security_group_from_id(group_id).name
+            ec2_backend.get_security_group_from_id(group_id).name  # type: ignore[union-attr]
             for group_id in security_group_ids
         ]
 

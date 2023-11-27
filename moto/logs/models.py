@@ -1266,7 +1266,7 @@ class LogsBackend(BaseBackend):
                 logGroupName, [], fromTime, to, None, None, "", False
             )
             s3_backends[self.account_id]["global"].put_object(
-                destination, destinationPrefix, json.dumps(logs)
+                destination, destinationPrefix, json.dumps(logs).encode("utf-8")
             )
             self.export_tasks[task_id].status["code"] = "completed"
             self.export_tasks[task_id].status["message"] = "Task is completed"

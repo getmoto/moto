@@ -141,7 +141,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
             secrets_backend.get_secret_value(
                 secret_name,
                 version_id=version_id,
-                version_stage=None,
+                version_stage=None,  # type: ignore[arg-type]
             )
             for version_id in sorted_version_ids
         ]
@@ -149,7 +149,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
             Parameter(
                 account_id=self.account_id,
                 name=secret["Name"],
-                value=val.get("SecretString"),
+                value=val.get("SecretString"),  # type: ignore[arg-type]
                 parameter_type="SecureString",
                 description=secret.get("Description"),
                 allowed_pattern=None,

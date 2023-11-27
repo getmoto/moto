@@ -46,7 +46,7 @@ def load_pipeline_definition_from_s3(
         bucket_name=pipeline_definition_s3_location["Bucket"],
         key_name=pipeline_definition_s3_location["ObjectKey"],
     )
-    return json.loads(result.value)
+    return json.loads(result.value)  # type: ignore[union-attr]
 
 
 def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:

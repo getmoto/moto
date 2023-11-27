@@ -467,10 +467,10 @@ class Queue(CloudFormationModel):
         sqs_backend = sqs_backends[account_id][region_name]
         queue = sqs_backend.get_queue(queue_name)
         if "VisibilityTimeout" in properties:
-            queue.visibility_timeout = int(properties["VisibilityTimeout"])
+            queue.visibility_timeout = int(properties["VisibilityTimeout"])  # type: ignore[attr-defined]
 
         if "ReceiveMessageWaitTimeSeconds" in properties:
-            queue.receive_message_wait_time_seconds = int(
+            queue.receive_message_wait_time_seconds = int(  # type: ignore[attr-defined]
                 properties["ReceiveMessageWaitTimeSeconds"]
             )
         return queue
@@ -593,15 +593,16 @@ class Queue(CloudFormationModel):
             )
 
             if result:
-                [backend.delete_message(self.name, m.receipt_handle) for m in messages]
+                for m in messages:
+                    backend.delete_message(self.name, m.receipt_handle)  # type: ignore[arg-type]
             else:
                 # Make messages visible again
-                [
+                for m in messages:
                     backend.change_message_visibility(
-                        self.name, m.receipt_handle, visibility_timeout=0
+                        self.name,
+                        m.receipt_handle,  # type: ignore[arg-type]
+                        visibility_timeout=0,
                     )
-                    for m in messages
-                ]
 
     def delete_message(self, receipt_handle: str) -> None:
         if receipt_handle in self.deleted_messages:

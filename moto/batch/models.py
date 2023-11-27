@@ -211,7 +211,7 @@ class JobQueue(CloudFormationModel):
             priority=properties["Priority"],
             state=properties.get("State", "ENABLED"),
             compute_env_order=compute_envs,
-            schedule_policy={},
+            schedule_policy=None,
         )
 
 
@@ -448,18 +448,18 @@ class JobDefinition(CloudFormationModel):
             tags=lowercase_first_key(properties.get("Tags", {})),
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=(
-                lowercase_first_key(properties["ContainerProperties"])
+                lowercase_first_key(properties["ContainerProperties"])  # type: ignore[arg-type]
                 if "ContainerProperties" in properties
                 else None
             ),
             node_properties=(
-                lowercase_first_key(properties["NodeProperties"])
+                lowercase_first_key(properties["NodeProperties"])  # type: ignore[arg-type]
                 if "NodeProperties" in properties
                 else None
             ),
             timeout=lowercase_first_key(properties.get("timeout", {})),
-            platform_capabilities=None,
-            propagate_tags=None,
+            platform_capabilities=None,  # type: ignore[arg-type]
+            propagate_tags=None,  # type: ignore[arg-type]
         )
 
 

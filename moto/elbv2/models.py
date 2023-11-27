@@ -421,7 +421,7 @@ class FakeListenerRule(CloudFormationModel):
         listener_rule = elbv2_backend.modify_rule(
             original_resource.arn, conditions, actions
         )
-        return listener_rule
+        return listener_rule  # type: ignore[return-value]
 
 
 class FakeRule(BaseModel):

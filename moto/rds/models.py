@@ -4,7 +4,7 @@ import re
 import string
 from collections import OrderedDict, defaultdict
 from re import compile as re_compile
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from jinja2 import Template
 
@@ -53,6 +53,9 @@ from .utils import (
     valid_preferred_maintenance_window,
     validate_filters,
 )
+
+if TYPE_CHECKING:
+    from moto.ec2.models.subnets import Subnet
 
 
 def find_cluster(cluster_arn: str) -> "Cluster":
@@ -620,12 +623,11 @@ class Database(CloudFormationModel):
             self.availability_zone = f"{self.region_name}a"
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
+        self.db_subnet_group = None
         if self.db_subnet_group_name:
             self.db_subnet_group = rds_backends[self.account_id][
                 self.region_name
             ].describe_db_subnet_groups(self.db_subnet_group_name)[0]
-        else:
-            self.db_subnet_group = None
         self.security_groups = kwargs.get("security_groups", [])
         self.vpc_security_group_ids = kwargs.get("vpc_security_group_ids", [])
         self.preferred_maintenance_window = kwargs.get("preferred_maintenance_window")
@@ -1092,7 +1094,7 @@ class Database(CloudFormationModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_instance(self.db_instance_identifier)
+        backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
 
 
 class DatabaseSnapshot(BaseModel):
@@ -1403,10 +1405,10 @@ class SecurityGroup(CloudFormationModel):
                     security_group.authorize_cidr(ingress_value)
                 elif ingress_type == "EC2SecurityGroupName":
                     subnet = ec2_backend.get_security_group_from_name(ingress_value)
-                    security_group.authorize_security_group(subnet)
+                    security_group.authorize_security_group(subnet)  # type: ignore[arg-type]
                 elif ingress_type == "EC2SecurityGroupId":
                     subnet = ec2_backend.get_security_group_from_id(ingress_value)
-                    security_group.authorize_security_group(subnet)
+                    security_group.authorize_security_group(subnet)  # type: ignore[arg-type]
         return security_group
 
     def get_tags(self) -> List[Dict[str, str]]:
@@ -1431,7 +1433,7 @@ class SubnetGroup(CloudFormationModel):
         self,
         subnet_name: str,
         description: str,
-        subnets: List[Any],
+        subnets: "List[Subnet]",
         tags: List[Dict[str, str]],
         region: str,
         account_id: str,
@@ -1900,18 +1902,16 @@ class RDSBackend(BaseBackend):
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
-    def describe_db_subnet_groups(
-        self, subnet_group_name: str
-    ) -> Iterable[SubnetGroup]:
+    def describe_db_subnet_groups(self, subnet_group_name: str) -> List[SubnetGroup]:
         if subnet_group_name:
             if subnet_group_name in self.subnet_groups:
                 return [self.subnet_groups[subnet_group_name]]
             else:
                 raise DBSubnetGroupNotFoundError(subnet_group_name)
-        return self.subnet_groups.values()
+        return list(self.subnet_groups.values())
 
     def modify_db_subnet_group(
-        self, subnet_name: str, description: str, subnets: List[str]
+        self, subnet_name: str, description: str, subnets: "List[Subnet]"
     ) -> SubnetGroup:
         subnet_group = self.subnet_groups.pop(subnet_name)
         if not subnet_group:
@@ -2895,7 +2895,7 @@ class DBParameterGroup(CloudFormationModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_parameter_group(self.name)
+        backend.delete_db_parameter_group(self.name)  # type: ignore[arg-type]
 
     @staticmethod
     def cloudformation_name_type() -> str:

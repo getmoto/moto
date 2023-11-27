@@ -291,7 +291,7 @@ class RecordSet(CloudFormationModel):
             else None
         )
         if not hosted_zone:
-            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)
+            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)  # type: ignore[arg-type]
         hosted_zone.delete_rrset({"Name": self.name, "Type": self.type_})
 
 
@@ -470,8 +470,7 @@ class RecordSetGroup(CloudFormationModel):
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
 
-        record_set_group = RecordSetGroup(hosted_zone.id, record_sets)
-        return record_set_group
+        return RecordSetGroup(hosted_zone.id, record_sets)
 
 
 class QueryLoggingConfig(BaseModel):

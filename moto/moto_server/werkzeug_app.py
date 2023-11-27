@@ -292,7 +292,7 @@ def create_backend_app(service: str) -> Flask:
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
-            endpoint = f"{handler.__self__.__name__}.dispatch"
+            endpoint = f"{handler.__self__.__name__}.dispatch"  # type: ignore[attr-defined]
         else:
             endpoint = view_func.__name__
 

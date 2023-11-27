@@ -187,8 +187,8 @@ class Rule(CloudFormationModel):
         archive = events_backends[self.account_id][self.region_name].archives.get(
             archive_name
         )
-        if archive.uuid == archive_uuid:
-            archive.events.append(event)
+        if archive.uuid == archive_uuid:  # type: ignore[union-attr]
+            archive.events.append(event)  # type: ignore[arg-type,union-attr]
 
     def _find_api_destination(self, resource_id: str) -> "Destination":
         backend: "EventsBackend" = events_backends[self.account_id][self.region_name]

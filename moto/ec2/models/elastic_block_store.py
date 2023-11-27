@@ -96,12 +96,11 @@ class VolumeAttachment(CloudFormationModel):
         volume_id = properties["VolumeId"]
 
         ec2_backend = ec2_backends[account_id][region_name]
-        attachment = ec2_backend.attach_volume(
+        return ec2_backend.attach_volume(  # type: ignore[return-value]
             volume_id=volume_id,
             instance_id=instance_id,
             device_path=properties["Device"],
         )
-        return attachment
 
 
 class Volume(TaggedEC2Resource, CloudFormationModel):

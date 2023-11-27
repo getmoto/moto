@@ -27,7 +27,7 @@ from botocore.handlers import BUILTIN_HANDLERS
 
 from moto import settings
 
-from .base_backend import BackendDict
+from .base_backend import SERVICE_BACKEND, BackendDict, BaseBackend
 from .botocore_stubber import BotocoreStubber
 from .custom_responses_mock import (
     CallbackResponse,
@@ -53,13 +53,13 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
     nested_count = 0
     mocks_active = False
 
-    def __init__(self, backends: BackendDict):
+    def __init__(self, backends: BackendDict[SERVICE_BACKEND]):
         from moto.instance_metadata import instance_metadata_backends
         from moto.moto_api._internal.models import moto_api_backend
 
         self.backends = backends
 
-        self.backends_for_urls = []
+        self.backends_for_urls: list[BaseBackend] = []
         default_account_id = DEFAULT_ACCOUNT_ID
         default_backends = [
             instance_metadata_backends[default_account_id]["global"],
@@ -534,7 +534,7 @@ class ProxyModeMockAWS(BaseMockAWS):
 class base_decorator:
     mock_backend = MockAWS
 
-    def __init__(self, backends: BackendDict):
+    def __init__(self, backends: BackendDict[SERVICE_BACKEND]):
         self.backends = backends
 
     @overload

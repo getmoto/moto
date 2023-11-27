@@ -332,7 +332,8 @@ class SESBackend(BaseBackend):
                     message = self.__generate_feedback__(msg_type)
                     if message:
                         sns_backends[self.account_id][self.region_name].publish(
-                            message, arn=sns_topic
+                            message,  # type: ignore[arg-type]
+                            arn=sns_topic,
                         )
 
     def send_raw_email(

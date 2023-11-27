@@ -1,9 +1,12 @@
 import importlib
 import sys
-from typing import Iterable, Tuple
+from typing import TYPE_CHECKING, Iterable, Tuple
 
 import moto
-from moto.core import BackendDict
+
+if TYPE_CHECKING:
+    from moto.core import BackendDict, BaseBackend
+
 
 decorators = [d for d in dir(moto) if d.startswith("mock_") and not d == "mock_all"]
 decorator_functions = [getattr(moto, f) for f in decorators]
@@ -14,23 +17,26 @@ BACKENDS["instance_metadata"] = ("instance_metadata", "instance_metadata_backend
 BACKENDS["s3bucket_path"] = ("s3", "s3_backends")
 
 
-def _import_backend(module_name: str, backends_name: str) -> BackendDict:
+def _import_backend(
+    module_name: str,
+    backends_name: str,
+) -> "BackendDict[BaseBackend]":
     module = importlib.import_module("moto." + module_name)
     return getattr(module, backends_name)
 
 
-def backends() -> Iterable[BackendDict]:
+def backends() -> "Iterable[BackendDict[BaseBackend]]":
     for module_name, backends_name in BACKENDS.values():
         yield _import_backend(module_name, backends_name)
 
 
-def service_backends() -> Iterable[BackendDict]:
+def service_backends() -> "Iterable[BackendDict[BaseBackend]]":
     services = [(f.name, f.backend) for f in decorator_functions]
     for module_name, backends_name in sorted(set(services)):
         yield _import_backend(module_name, backends_name)
 
 
-def loaded_backends() -> Iterable[Tuple[str, BackendDict]]:
+def loaded_backends() -> "Iterable[Tuple[str, BackendDict[BaseBackend]]]":
     loaded_modules = sys.modules.keys()
     moto_modules = [m for m in loaded_modules if m.startswith("moto.")]
     imported_backends = [
@@ -43,6 +49,6 @@ def loaded_backends() -> Iterable[Tuple[str, BackendDict]]:
         yield name, _import_backend(module_name, backends_name)
 
 
-def get_backend(name: str) -> BackendDict:
+def get_backend(name: str) -> "BackendDict[BaseBackend]":
     module_name, backends_name = BACKENDS[name]
     return _import_backend(module_name, backends_name)

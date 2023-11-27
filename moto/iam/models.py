@@ -675,7 +675,7 @@ class Role(CloudFormationModel):
         self.tags = tags
         # last_used should be treated as part of the public API
         # https://github.com/getmoto/moto/issues/6859
-        self.last_used = None
+        self.last_used: Optional[datetime] = None
         self.last_used_region = None
         self.description = description
         self.permissions_boundary: Optional[str] = permissions_boundary
