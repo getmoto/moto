@@ -693,7 +693,9 @@ class Service(BaseObject, CloudFormationModel):
         ):
             # TODO: LoadBalancers
             # TODO: Role
-            ecs_backend.delete_service(cluster_name, service_name)
+            ecs_backend.delete_service(
+                original_resource.cluster_name, service_name, force=True
+            )
             return ecs_backend.create_service(
                 cluster_name,
                 new_resource_name,

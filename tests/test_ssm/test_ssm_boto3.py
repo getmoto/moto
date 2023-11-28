@@ -2,15 +2,13 @@ import datetime
 import re
 import string
 import uuid
-from unittest.mock import patch, Mock
-from unittest import SkipTest
 
 import boto3
 import botocore.exceptions
 from botocore.exceptions import ClientError
 import pytest
 
-from moto import mock_ec2, mock_ssm, settings
+from moto import mock_ec2, mock_ssm
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
 from tests import EXAMPLE_AMI_ID
@@ -304,55 +302,6 @@ def test_put_parameter(name):
     )
 
 
-@mock_ssm
-def test_put_parameter_unimplemented_parameters():
-    """
-    Test to ensure coverage of unimplemented parameters.  Remove for appropriate tests
-    once implemented
-    """
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't test for warning logs in server mode")
-
-    mock_warn = Mock()
-    with patch("warnings.warn", mock_warn):
-        # Ensure that the ssm parameters are still working with the Mock
-        client = boto3.client("ssm", region_name="us-east-1")
-        name = "my-param"
-        response = client.put_parameter(
-            Name=name,
-            Description="A test parameter",
-            Value="value",
-            Type="String",
-            Tier="Advanced",
-            Policies="No way fam",
-        )
-
-        assert response["Version"] == 1
-
-        response = client.get_parameters(Names=[name], WithDecryption=False)
-
-        assert len(response["Parameters"]) == 1
-        assert response["Parameters"][0]["Name"] == name
-        assert response["Parameters"][0]["Value"] == "value"
-        assert response["Parameters"][0]["Type"] == "String"
-        assert response["Parameters"][0]["Version"] == 1
-        assert response["Parameters"][0]["DataType"] == "text"
-        assert isinstance(
-            response["Parameters"][0]["LastModifiedDate"], datetime.datetime
-        )
-        assert response["Parameters"][0]["ARN"] == (
-            f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
-        )
-
-        # We got the argument warnings
-        mock_warn.assert_any_call(
-            "Tier configuration option is not yet implemented.  Discarding."
-        )
-        mock_warn.assert_any_call(
-            "Policies configuration option is not yet implemented.  Discarding."
-        )
-
-
 @pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
 @mock_ssm
 def test_put_parameter_overwrite_preserves_metadata(name):
@@ -367,12 +316,11 @@ def test_put_parameter_overwrite_preserves_metadata(name):
         Description=test_description,
         Value="value",
         Type="String",
-        Tags=[
-            {"Key": test_tag_key, "Value": test_tag_value},
-        ],
+        Tags=[{"Key": test_tag_key, "Value": test_tag_value}],
         AllowedPattern=test_pattern,
         KeyId=test_key_id,
-        # TODO: add tier and policies support
+        Tier="Standard",
+        Policies='["Expiration"]',
     )
 
     assert response["Version"] == 1
@@ -430,7 +378,6 @@ def test_put_parameter_overwrite_preserves_metadata(name):
     assert response["Parameters"][0]["ARN"] == (
         f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
     )
-    initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
 
     # Verify that tags are unchanged
     response = client.list_tags_for_resource(ResourceType="Parameter", ResourceId=name)
@@ -439,20 +386,42 @@ def test_put_parameter_overwrite_preserves_metadata(name):
     assert response["TagList"][0]["Key"] == test_tag_key
     assert response["TagList"][0]["Value"] == test_tag_value
 
-    # Verify description is unchanged
+    # Verify description/tier/policies is unchanged
     response = client.describe_parameters(
-        ParameterFilters=[
-            {
-                "Key": "Name",
-                "Option": "Equals",
-                "Values": [name],
-            },
-        ]
+        ParameterFilters=[{"Key": "Name", "Option": "Equals", "Values": [name]}]
     )
     assert len(response["Parameters"]) == 1
     assert response["Parameters"][0]["Description"] == test_description
     assert response["Parameters"][0]["AllowedPattern"] == test_pattern
     assert response["Parameters"][0]["KeyId"] == test_key_id
+    assert response["Parameters"][0]["Tier"] == "Standard"
+    assert response["Parameters"][0]["Policies"] == [
+        {
+            "PolicyStatus": "Finished",
+            "PolicyText": "Expiration",
+            "PolicyType": "Expiration",
+        }
+    ]
+
+
+@mock_ssm
+def test_put_parameter_with_invalid_policy():
+    name = "some_param"
+    test_description = "A test parameter"
+    client = boto3.client("ssm", region_name="us-east-1")
+    client.put_parameter(
+        Name=name,
+        Description=test_description,
+        Value="value",
+        Type="String",
+        Policies="invalid json",
+    )
+
+    # Verify that an invalid policy does not break anything
+    param = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Equals", "Values": [name]}]
+    )["Parameters"][0]
+    assert "Policies" not in param
 
 
 @mock_ssm

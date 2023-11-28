@@ -539,7 +539,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.policy: Optional[Policy] = None
+        self.policy = Policy(self)
         self.url_config: Optional[FunctionUrlConfig] = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
@@ -582,7 +582,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         self._set_function_code(self.code)
 
-        self.function_arn = make_function_arn(
+        self.function_arn: str = make_function_arn(
             self.region, self.account_id, self.function_name
         )
 
@@ -659,7 +659,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         ]
         if not all(layer_versions):
             raise UnknownLayerVersionException(layers_versions_arns)
-        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions]
+        # The `if lv` part is not necessary - we know there are no None's, because of the `all()`-check earlier
+        # But MyPy does not seem to understand this
+        # The `type: ignore` is because `code_size` is an int, and we're returning Dict[str, str]
+        # We should convert the return-type into a TypedDict the moment we drop Py3.7 support
+        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv]  # type: ignore
 
     def get_code_signing_config(self) -> Dict[str, Any]:
         return {
@@ -1577,8 +1581,6 @@ class LambdaStorage(object):
             self._functions[fn.function_name]["latest"] = fn
         else:
             self._functions[fn.function_name] = {"latest": fn, "versions": []}
-        # instantiate a new policy for this version of the lambda
-        fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
     def publish_function(

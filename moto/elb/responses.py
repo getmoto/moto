@@ -200,7 +200,7 @@ class ELBResponse(BaseResponse):
         policy_type_name = self._get_param("PolicyTypeName")
         policy_attrs = self._get_multi_param("PolicyAttributes.member.")
 
-        self.elb_backend.create_lb_other_policy(
+        self.elb_backend.create_load_balancer_policy(
             load_balancer_name, policy_name, policy_type_name, policy_attrs
         )
 
@@ -269,7 +269,7 @@ class ELBResponse(BaseResponse):
         ]
         if mb_backend:
             policies = self._get_multi_param("PolicyNames.member")
-            self.elb_backend.set_load_balancer_policies_of_backend_server(
+            self.elb_backend.set_load_balancer_policies_for_backend_server(
                 load_balancer_name, instance_port, policies
             )
         # else: explode?

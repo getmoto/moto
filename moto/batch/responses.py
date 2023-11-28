@@ -31,7 +31,7 @@ class BatchResponse(BaseResponse):
         state = self._get_param("state")
         _type = self._get_param("type")
 
-        name, arn = self.batch_backend.create_compute_environment(
+        env = self.batch_backend.create_compute_environment(
             compute_environment_name=compute_env_name,
             _type=_type,
             state=state,
@@ -39,7 +39,7 @@ class BatchResponse(BaseResponse):
             service_role=service_role,
         )
 
-        result = {"computeEnvironmentArn": arn, "computeEnvironmentName": name}
+        result = {"computeEnvironmentArn": env.arn, "computeEnvironmentName": env.name}
 
         return json.dumps(result)
 
@@ -91,7 +91,7 @@ class BatchResponse(BaseResponse):
         state = self._get_param("state")
         tags = self._get_param("tags")
 
-        name, arn = self.batch_backend.create_job_queue(
+        queue = self.batch_backend.create_job_queue(
             queue_name=queue_name,
             priority=priority,
             schedule_policy=schedule_policy,
@@ -100,7 +100,7 @@ class BatchResponse(BaseResponse):
             tags=tags,
         )
 
-        result = {"jobQueueArn": arn, "jobQueueName": name}
+        result = {"jobQueueArn": queue.arn, "jobQueueName": queue.name}
 
         return json.dumps(result)
 
@@ -157,7 +157,7 @@ class BatchResponse(BaseResponse):
         timeout = self._get_param("timeout")
         platform_capabilities = self._get_param("platformCapabilities")
         propagate_tags = self._get_param("propagateTags")
-        name, arn, revision = self.batch_backend.register_job_definition(
+        job_def = self.batch_backend.register_job_definition(
             def_name=def_name,
             parameters=parameters,
             _type=_type,
@@ -171,9 +171,9 @@ class BatchResponse(BaseResponse):
         )
 
         result = {
-            "jobDefinitionArn": arn,
-            "jobDefinitionName": name,
-            "revision": revision,
+            "jobDefinitionArn": job_def.arn,
+            "jobDefinitionName": job_def.name,
+            "revision": job_def.revision,
         }
 
         return json.dumps(result)

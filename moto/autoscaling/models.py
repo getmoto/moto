@@ -30,6 +30,10 @@ DEFAULT_COOLDOWN = 300
 ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 
+def make_int(value: Union[None, str, int]) -> Optional[int]:
+    return int(value) if value is not None else value
+
+
 class InstanceState:
     def __init__(
         self,
@@ -406,13 +410,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
         min_size: Optional[int],
         launch_config_name: str,
         launch_template: Dict[str, Any],
-        vpc_zone_identifier: str,
+        vpc_zone_identifier: Optional[str],
         default_cooldown: Optional[int],
         health_check_period: Optional[int],
         health_check_type: Optional[str],
         load_balancers: List[str],
         target_group_arns: List[str],
-        placement_group: str,
+        placement_group: Optional[str],
         termination_policies: List[str],
         autoscaling_backend: "AutoScalingBackend",
         ec2_backend: EC2Backend,
@@ -941,9 +945,6 @@ class AutoScalingBackend(BaseBackend):
     def delete_launch_configuration(self, launch_configuration_name: str) -> None:
         self.launch_configurations.pop(launch_configuration_name, None)
 
-    def make_int(self, value: Union[None, str, int]) -> Optional[int]:
-        return int(value) if value is not None else value
-
     def put_scheduled_update_group_action(
         self,
         name: str,
@@ -955,9 +956,9 @@ class AutoScalingBackend(BaseBackend):
         end_time: str,
         recurrence: str,
     ) -> FakeScheduledAction:
-        max_size = self.make_int(max_size)
-        min_size = self.make_int(min_size)
-        desired_capacity = self.make_int(desired_capacity)
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
 
         scheduled_action = FakeScheduledAction(
             name=name,
@@ -1010,13 +1011,13 @@ class AutoScalingBackend(BaseBackend):
         min_size: Union[None, str, int],
         launch_config_name: str,
         launch_template: Dict[str, Any],
-        vpc_zone_identifier: str,
+        vpc_zone_identifier: Optional[str],
         default_cooldown: Optional[int],
         health_check_period: Union[None, str, int],
         health_check_type: Optional[str],
         load_balancers: List[str],
         target_group_arns: List[str],
-        placement_group: str,
+        placement_group: Optional[str],
         termination_policies: List[str],
         tags: List[Dict[str, str]],
         capacity_rebalance: bool = False,
@@ -1024,10 +1025,10 @@ class AutoScalingBackend(BaseBackend):
         instance_id: Optional[str] = None,
         mixed_instance_policy: Optional[Dict[str, Any]] = None,
     ) -> FakeAutoScalingGroup:
-        max_size = self.make_int(max_size)
-        min_size = self.make_int(min_size)
-        desired_capacity = self.make_int(desired_capacity)
-        default_cooldown = self.make_int(default_cooldown)
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
+        default_cooldown = make_int(default_cooldown)
 
         # Verify only a single launch config-like parameter is provided.
         params = [
@@ -1064,9 +1065,7 @@ class AutoScalingBackend(BaseBackend):
             launch_template=launch_template,
             vpc_zone_identifier=vpc_zone_identifier,
             default_cooldown=default_cooldown,
-            health_check_period=self.make_int(health_check_period)
-            if health_check_period
-            else 300,
+            health_check_period=make_int(health_check_period or 300),
             health_check_type=health_check_type,
             load_balancers=load_balancers,
             target_group_arns=target_group_arns,

@@ -69,7 +69,7 @@ class Repository(BaseObject, CloudFormationModel):
         account_id: str,
         region_name: str,
         repository_name: str,
-        registry_id: str,
+        registry_id: Optional[str],
         encryption_config: Optional[Dict[str, str]],
         image_scan_config: str,
         image_tag_mutablility: str,
@@ -467,7 +467,7 @@ class ECRBackend(BaseBackend):
     def create_repository(
         self,
         repository_name: str,
-        registry_id: str,
+        registry_id: Optional[str],
         encryption_config: Dict[str, str],
         image_scan_config: Any,
         image_tag_mutablility: str,

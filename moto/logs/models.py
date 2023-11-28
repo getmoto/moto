@@ -1271,13 +1271,16 @@ class LogsBackend(BaseBackend):
             self.export_tasks[task_id].status["message"] = "Task is completed"
         return task_id
 
-    def describe_export_tasks(self, taskId: str = "") -> Tuple[List[ExportTask], str]:
-        if taskId:
-            if taskId not in self.export_tasks:
+    def describe_export_tasks(self, task_id: str) -> List[ExportTask]:
+        """
+        Pagination is not yet implemented
+        """
+        if task_id:
+            if task_id not in self.export_tasks:
                 raise ResourceNotFoundException()
-            return [self.export_tasks[taskId]], ""
+            return [self.export_tasks[task_id]]
         else:
-            return list(self.export_tasks.values()), ""
+            return list(self.export_tasks.values())
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)

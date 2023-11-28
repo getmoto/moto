@@ -230,9 +230,8 @@ class RecordSet(CloudFormationModel):
 
         zone_name = properties.get("HostedZoneName")
         backend = route53_backends[account_id]["global"]
-        if zone_name:
-            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
-        else:
+        hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
+        if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
         record_set = hosted_zone.add_rrset(properties)
         return record_set
@@ -267,9 +266,8 @@ class RecordSet(CloudFormationModel):
 
         zone_name = properties.get("HostedZoneName")
         backend = route53_backends[account_id]["global"]
-        if zone_name:
-            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
-        else:
+        hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
+        if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
 
         try:
@@ -286,7 +284,11 @@ class RecordSet(CloudFormationModel):
     ) -> None:
         """Not exposed as part of the Route 53 API - used for CloudFormation"""
         backend = route53_backends[account_id]["global"]
-        hosted_zone = backend.get_hosted_zone_by_name(self.hosted_zone_name)
+        hosted_zone = (
+            backend.get_hosted_zone_by_name(self.hosted_zone_name)
+            if self.hosted_zone_name
+            else None
+        )
         if not hosted_zone:
             hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)
         hosted_zone.delete_rrset({"Name": self.name, "Type": self.type_})
@@ -460,9 +462,8 @@ class RecordSetGroup(CloudFormationModel):
 
         zone_name = properties.get("HostedZoneName")
         backend = route53_backends[account_id]["global"]
-        if zone_name:
-            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
-        else:
+        hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
+        if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
         record_sets = properties["RecordSets"]
         for record_set in record_sets:

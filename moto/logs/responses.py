@@ -446,10 +446,8 @@ class LogsResponse(BaseResponse):
     def describe_export_tasks(self) -> str:
         task_id = self._get_param("taskId")
 
-        tasks, next_token = self.logs_backend.describe_export_tasks(taskId=task_id)
-        return json.dumps(
-            {"exportTasks": [task.to_json() for task in tasks], "nextToken": next_token}
-        )
+        tasks = self.logs_backend.describe_export_tasks(task_id=task_id)
+        return json.dumps({"exportTasks": [t.to_json() for t in tasks]})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("resourceArn")

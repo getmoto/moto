@@ -140,7 +140,7 @@ class Trail(BaseModel):
             )
 
     def check_topic_exists(self) -> None:
-        if self.sns_topic_name:
+        if self.topic_arn:
             from moto.sns import sns_backends
 
             sns_backend = sns_backends[self.account_id][self.region_name]

@@ -114,16 +114,13 @@ class ComputeEnvironment(CloudFormationModel):
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
-        env = backend.create_compute_environment(
+        return backend.create_compute_environment(
             resource_name,
             properties["Type"],
             properties.get("State", "ENABLED"),
             lowercase_first_key(properties["ComputeResources"]),
             properties["ServiceRole"],
         )
-        arn = env[1]
-
-        return backend.get_compute_environment_by_arn(arn)
 
 
 class JobQueue(CloudFormationModel):
@@ -209,16 +206,13 @@ class JobQueue(CloudFormationModel):
             for dict_item in properties["ComputeEnvironmentOrder"]
         ]
 
-        queue = backend.create_job_queue(
+        return backend.create_job_queue(
             queue_name=resource_name,
             priority=properties["Priority"],
             state=properties.get("State", "ENABLED"),
             compute_env_order=compute_envs,
             schedule_policy={},
         )
-        arn = queue[1]
-
-        return backend.get_job_queue_by_arn(arn)
 
 
 class JobDefinition(CloudFormationModel):
@@ -447,7 +441,7 @@ class JobDefinition(CloudFormationModel):
     ) -> "JobDefinition":
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
-        res = backend.register_job_definition(
+        return backend.register_job_definition(
             def_name=resource_name,
             parameters=lowercase_first_key(properties.get("Parameters", {})),
             _type="container",
@@ -467,9 +461,6 @@ class JobDefinition(CloudFormationModel):
             platform_capabilities=None,
             propagate_tags=None,
         )
-        arn = res[1]
-
-        return backend.get_job_definition_by_arn(arn)
 
 
 class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
@@ -1219,7 +1210,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_resources: Dict[str, Any],
         service_role: str,
-    ) -> Tuple[str, str]:
+    ) -> ComputeEnvironment:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
             raise InvalidParameterValueException(
@@ -1304,7 +1295,7 @@ class BatchBackend(BaseBackend):
         ecs_cluster = self.ecs_backend.create_cluster(cluster_name)
         new_comp_env.set_ecs(ecs_cluster.arn, cluster_name)
 
-        return compute_environment_name, new_comp_env.arn
+        return new_comp_env
 
     def _validate_compute_resources(self, cr: Dict[str, Any]) -> None:
         """
@@ -1504,7 +1495,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_env_order: List[Dict[str, str]],
         tags: Optional[Dict[str, str]] = None,
-    ) -> Tuple[str, str]:
+    ) -> JobQueue:
         for variable, var_name in (
             (queue_name, "jobQueueName"),
             (priority, "priority"),
@@ -1550,7 +1541,7 @@ class BatchBackend(BaseBackend):
         )
         self._job_queues[queue.arn] = queue
 
-        return queue_name, queue.arn
+        return queue
 
     def describe_job_queues(
         self, job_queues: Optional[List[str]] = None
@@ -1644,7 +1635,7 @@ class BatchBackend(BaseBackend):
         timeout: Dict[str, int],
         platform_capabilities: List[str],
         propagate_tags: bool,
-    ) -> Tuple[str, str, int]:
+    ) -> JobDefinition:
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
 
@@ -1683,7 +1674,7 @@ class BatchBackend(BaseBackend):
 
         self._job_definitions[job_def.arn] = job_def
 
-        return def_name, job_def.arn, job_def.revision
+        return job_def
 
     def deregister_job_definition(self, def_name: str) -> None:
         job_def = self.get_job_definition_by_arn(def_name)
