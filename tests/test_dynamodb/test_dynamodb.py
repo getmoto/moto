@@ -5857,3 +5857,5 @@ def test_dynamo_type_assertion_exception_not_raised_when_reloading_modules():
             ":some_value": {"M": {"Some key": {"S": "Some new value"}}}
         },
     )
+
+    mock_dynamo.stop()
