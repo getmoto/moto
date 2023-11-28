@@ -90,7 +90,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.account_id][self.region_name]
-    
+
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
@@ -433,13 +433,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Subnet group
 
         # SQS
-        if (
-            not resource_type_filters
-            or "sqs" in resource_type_filters
-        ):
+        if not resource_type_filters or "sqs" in resource_type_filters:
             for queue in self.sqs_backend.queues.values():
                 tags = format_tags(queue.tags)
-                if not tags or not tag_filter(tags):  # Skip if no tags, or invalid filter
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
                     continue
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}

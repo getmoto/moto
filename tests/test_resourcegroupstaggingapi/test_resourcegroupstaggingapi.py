@@ -674,6 +674,7 @@ def test_get_resources_lambda():
     resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
     assert_response(resp, [rectangle_arn])
 
+
 @mock_sqs
 @mock_resourcegroupstaggingapi
 def test_get_resources_sqs():
@@ -684,10 +685,10 @@ def test_get_resources_sqs():
         i_str = str(i)
 
         sqs.create_queue(
-            QueueName='sqs-tag-value-' + i_str,
+            QueueName="sqs-tag-value-" + i_str,
             tags={
-                "Test" : i_str,
-            }
+                "Test": i_str,
+            },
         )
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
@@ -703,6 +704,7 @@ def test_get_resources_sqs():
     )
     assert len(resp["ResourceTagMappingList"]) == 1
     assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+
 
 @mock_resourcegroupstaggingapi
 def test_tag_resources_for_unknown_service():
