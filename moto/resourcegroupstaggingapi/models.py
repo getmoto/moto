@@ -155,21 +155,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # ACM
         if not resource_type_filters or "acm" in resource_type_filters:
             for certificate in self.acm_backend._certificates.values():
-                tags = format_tags(certificate.tags)
-                if not tags or not tag_filter(tags):
+                acm_tags = format_tags(certificate.tags)
+                if not acm_tags or not tag_filter(acm_tags):
                     continue
-
-                yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
+                yield {"ResourceARN": f"{certificate.arn}", "Tags": acm_tags}
 
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:
             for bucket in self.s3_backend.buckets.values():
-                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
-                if not tags or not tag_filter(
-                    tags
+                s3_tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
+                if not s3_tags or not tag_filter(
+                    s3_tags
                 ):  # Skip if no tags, or invalid filter
                     continue
-                yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": tags}
+                yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": s3_tags}
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
@@ -180,10 +179,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 backend = cloudformation_backends[self.account_id][self.region_name]
 
                 for stack in backend.stacks.values():
-                    tags = format_tags(stack.tags)
-                    if not tag_filter(tags):
+                    cf_tags = format_tags(stack.tags)
+                    if not tag_filter(cf_tags):
                         continue
-                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
+                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": cf_tags}
 
             except Exception:
                 pass
