@@ -123,7 +123,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     and v in vl
                 )
 
-        def tag_filter(tag_list: List[Dict[str, Optional[str]]]) -> bool:
+        # Any in this case means: str | Optional[str]
+        # When we drop Python 3.7 we should look into replacing this with a TypedDict
+        def tag_filter(tag_list: List[Dict[str, Any]]) -> bool:
             result = []
             if tag_filters:
                 for f in filters:
@@ -136,17 +138,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 return True
 
-        def format_tags(
-            tags: Dict[str, Optional[str]]
-        ) -> List[Dict[str, Optional[str]]]:
+        def format_tags(tags: Dict[str, Any]) -> List[Dict[str, Any]]:
             result = []
             for key, value in tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 
         def format_tag_keys(
-            tags: List[Dict[str, Optional[str]]], keys: List[str]
-        ) -> List[Dict[str, Optional[str]]]:
+            tags: List[Dict[str, Any]], keys: List[str]
+        ) -> List[Dict[str, Any]]:
             result = []
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
@@ -155,22 +155,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # ACM
         if not resource_type_filters or "acm" in resource_type_filters:
             for certificate in self.acm_backend._certificates.values():
-                acm_tags = format_tags(certificate.tags)
-                if not acm_tags or not tag_filter(acm_tags):
+                tags = format_tags(certificate.tags)
+                if not tags or not tag_filter(tags):
                     continue
-                yield {"ResourceARN": f"{certificate.arn}", "Tags": acm_tags}
+                yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
 
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:
             for bucket in self.s3_backend.buckets.values():
-                s3_tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)[
-                    "Tags"
-                ]
-                if not s3_tags or not tag_filter(
-                    s3_tags
+                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
+                if not tags or not tag_filter(
+                    tags
                 ):  # Skip if no tags, or invalid filter
                     continue
-                yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": s3_tags}
+                yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": tags}
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
@@ -181,10 +179,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 backend = cloudformation_backends[self.account_id][self.region_name]
 
                 for stack in backend.stacks.values():
-                    cf_tags = format_tags(stack.tags)
-                    if not tag_filter(cf_tags):
+                    tags = format_tags(stack.tags)
+                    if not tag_filter(tags):
                         continue
-                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": cf_tags}
+                    yield {"ResourceARN": f"{stack.stack_id}", "Tags": tags}
 
             except Exception:
                 pass
