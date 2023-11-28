@@ -5825,7 +5825,7 @@ def test_dynamo_type_assertion_exception_not_raised_when_reloading_modules():
 
     mock_dynamo = mock_dynamodb()
     mock_dynamo.start()
-    dynamo_client = boto3.client("dynamodb")
+    dynamo_client = boto3.client("dynamodb", region_name="eu-west-1")
     dynamo_client.create_table(
         TableName="SomeTable",
         AttributeDefinitions=[
