@@ -163,7 +163,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:
             for bucket in self.s3_backend.buckets.values():
-                s3_tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
+                s3_tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)[
+                    "Tags"
+                ]
                 if not s3_tags or not tag_filter(
                     s3_tags
                 ):  # Skip if no tags, or invalid filter
