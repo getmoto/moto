@@ -2,6 +2,8 @@ import boto3
 import pytest
 import uuid
 import re
+import importlib
+import sys
 from botocore.exceptions import ClientError
 from datetime import datetime
 from decimal import Decimal
@@ -5807,3 +5809,51 @@ def test_invalid_projection_expressions():
         ClientError, match="ProjectionExpression: Attribute name contains white space"
     ):
         client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, na me")
+
+
+# https://github.com/getmoto/moto/pull/7073
+def test_dynamo_type_assertion_exception_not_raised_when_reloading_modules():
+    importlib.reload(sys.modules["moto"])
+    to_reload = [module for module in sys.modules if module.startswith("moto.")]
+    for module in to_reload:
+        importlib.reload(sys.modules[module])
+
+    importlib.reload(sys.modules["moto"])
+    to_reload = [module for module in sys.modules if module.startswith("moto.")]
+    for module in to_reload:
+        importlib.reload(sys.modules[module])
+
+    mock_dynamo = mock_dynamodb()
+    mock_dynamo.start()
+    dynamo_client = boto3.client("dynamodb")
+    dynamo_client.create_table(
+        TableName="SomeTable",
+        AttributeDefinitions=[
+            {"AttributeName": "SomeKey", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "SomeKey", "KeyType": "HASH"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    config_key = "SomeKeyValue"
+
+    dynamo_client.put_item(
+        TableName="SomeTable",
+        Item={
+            "SomeKey": {"S": config_key},
+            "ConfigValue": {"M": {"Some key": {"S": "Some value"}}},
+        },
+    )
+
+    dynamo_client.update_item(
+        TableName="SomeTable",
+        Key={
+            "SomeKey": {"S": config_key},
+        },
+        UpdateExpression="SET SomeValue = :some_value",
+        ExpressionAttributeValues={
+            ":some_value": {"M": {"Some key": {"S": "Some new value"}}}
+        },
+    )
