@@ -1075,6 +1075,9 @@ class AccessKeyLastUsed:
     def timestamp(self) -> str:
         return iso_8601_datetime_without_milliseconds(self._timestamp)  # type: ignore
 
+    def strftime(self, date_format: str) -> str:
+        return self._timestamp.strftime(date_format)
+
 
 class AccessKey(CloudFormationModel):
     def __init__(
@@ -1091,7 +1094,15 @@ class AccessKey(CloudFormationModel):
         self.secret_access_key = random_alphanumeric(40)
         self.status = status
         self.create_date = utcnow()
-        self.last_used: Optional[datetime] = None
+
+        # Some users will set this field manually
+        # And they will be setting this value to a `datetime`
+        # https://github.com/getmoto/moto/issues/5927#issuecomment-1738188283
+        #
+        # The `to_csv` method calls `last_used.strptime`, which currently works on both AccessKeyLastUsed and datetime
+        # In the next major release we should communicate that this only accepts AccessKeyLastUsed
+        # (And rework to_csv accordingly)
+        self.last_used: Optional[AccessKeyLastUsed] = None
         self.role_arn: Optional[str] = None
 
     @property

@@ -1,9 +1,12 @@
 import datetime
 
 import boto3
+import csv
 from moto import mock_ec2, mock_iam, mock_sts, settings
 from moto.iam.models import iam_backends, IAMBackend
+from dateutil.parser import parse
 from tests import DEFAULT_ACCOUNT_ID
+from unittest import SkipTest
 
 
 @mock_ec2
@@ -60,3 +63,35 @@ def test_mark_role_as_last_used():
     if not settings.TEST_SERVER_MODE:
         iam: IAMBackend = iam_backends[DEFAULT_ACCOUNT_ID]["global"]
         assert iam.get_role(role_name).last_used is not None
+
+
+@mock_ec2
+@mock_iam
+def test_get_credential_report_content__set_last_used_automatically():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("No point testing this in ServerMode")
+    # Ensure LAST_USED field is set
+    c_iam = boto3.client("iam", region_name="us-east-1")
+    c_iam.create_user(Path="my/path", UserName="fakeUser")
+    key = c_iam.create_access_key(UserName="fakeUser")
+
+    c_ec2 = boto3.client(
+        "ec2",
+        region_name="us-east-2",
+        aws_access_key_id=key["AccessKey"]["AccessKeyId"],
+        aws_secret_access_key=key["AccessKey"]["SecretAccessKey"],
+    )
+    c_ec2.describe_instances()
+
+    # VERIFY last_used can be retrieved
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    result = conn.generate_credential_report()
+    while result["State"] != "COMPLETE":
+        result = conn.generate_credential_report()
+    result = conn.get_credential_report()
+    report = result["Content"].decode("utf-8")
+    report_dict = csv.DictReader(report.split("\n"))
+    user = next(report_dict)
+
+    assert parse(user["access_key_1_last_used_date"])

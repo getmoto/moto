@@ -1244,7 +1244,7 @@ class IoTBackend(BaseBackend):
         cognito = cognitoidentity_backends[self.account_id][self.region_name]
         identities = []
         for identity_pool in cognito.identity_pools:
-            pool_identities = cognito.pools_identities.get(identity_pool, None)
+            pool_identities = cognito.pools_identities.get(identity_pool, [])
             identities.extend(
                 [pi["IdentityId"] for pi in pool_identities.get("Identities", [])]
             )

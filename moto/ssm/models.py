@@ -41,6 +41,7 @@ from .exceptions import (
     InvalidPermissionType,
     InvalidResourceId,
     InvalidResourceType,
+    ParameterAlreadyExists,
 )
 
 
@@ -211,6 +212,8 @@ class Parameter(CloudFormationModel):
         tags: Optional[List[Dict[str, str]]] = None,
         labels: Optional[List[str]] = None,
         source_result: Optional[str] = None,
+        tier: Optional[str] = None,
+        policies: Optional[str] = None,
     ):
         self.account_id = account_id
         self.name = name
@@ -224,6 +227,8 @@ class Parameter(CloudFormationModel):
         self.tags = tags or []
         self.labels = labels or []
         self.source_result = source_result
+        self.tier = tier
+        self.policies = policies
 
         if self.parameter_type == "SecureString":
             if not self.keyid:
@@ -255,7 +260,17 @@ class Parameter(CloudFormationModel):
             "Version": self.version,
             "LastModifiedDate": round(self.last_modified_date, 3),
             "DataType": self.data_type,
+            "Tier": self.tier,
         }
+        if self.policies:
+            try:
+                policy_list = json.loads(self.policies)
+                r["Policies"] = [
+                    {"PolicyText": p, "PolicyType": p, "PolicyStatus": "Finished"}
+                    for p in policy_list
+                ]
+            except json.JSONDecodeError:
+                pass
         if self.source_result:
             r["SourceResult"] = self.source_result
 
@@ -316,10 +331,10 @@ class Parameter(CloudFormationModel):
             "overwrite": properties.get("Overwrite", False),
             "tags": properties.get("Tags", None),
             "data_type": properties.get("DataType", "text"),
+            "tier": properties.get("Tier"),
+            "policies": properties.get("Policies"),
         }
-        ssm_backend.put_parameter(**parameter_args)
-        parameter = ssm_backend.get_parameter(properties.get("Name"))
-        return parameter
+        return ssm_backend.put_parameter(**parameter_args)
 
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
@@ -442,7 +457,6 @@ class Documents(BaseModel):
         version_name: Optional[str] = None,
         strict: bool = True,
     ) -> "Document":
-
         if document_version == "$LATEST":
             ssm_document: Optional["Document"] = self.get_latest_version()
         elif version_name and document_version:
@@ -547,7 +561,6 @@ class Documents(BaseModel):
                     self.permissions.pop(account_id, None)
 
     def describe_permissions(self) -> Dict[str, Any]:
-
         permissions_ordered_by_date = sorted(
             self.permissions.values(), key=lambda p: p.created_at
         )
@@ -678,7 +691,6 @@ class Command(BaseModel):
         targets: Optional[List[Dict[str, Any]]] = None,
         backend_region: str = "us-east-1",
     ):
-
         if instance_ids is None:
             instance_ids = []
 
@@ -1336,7 +1348,6 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_document(
         self, name: str, document_version: str, version_name: str, document_format: str
     ) -> Dict[str, Any]:
-
         documents = self._get_documents(name)
         ssm_document = documents.find(document_version, version_name)
 
@@ -1488,7 +1499,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         shared_document_version: str,
         permission_type: str,
     ) -> None:
-
         account_id_regex = re.compile(r"^(all|[0-9]{12})$", re.IGNORECASE)
         version_regex = re.compile(r"^([$]LATEST|[$]DEFAULT|[$]ALL)$")
 
@@ -1810,7 +1820,6 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_parameter_history(
         self, name: str, next_token: Optional[str], max_results: int = 50
     ) -> Tuple[Optional[List[Parameter]], Optional[str]]:
-
         if max_results > PARAMETER_HISTORY_MAX_RESULTS:
             raise ValidationException(
                 "1 validation error detected: "
@@ -2034,7 +2043,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         overwrite: bool,
         tags: List[Dict[str, str]],
         data_type: str,
-    ) -> Optional[int]:
+        tier: Optional[str],
+        policies: Optional[str],
+    ) -> Parameter:
         if not value:
             raise ValidationException(
                 "1 validation error detected: Value '' at 'value' failed to satisfy"
@@ -2097,7 +2108,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             version = previous_parameter.version + 1
 
             if not overwrite:
-                return None
+                raise ParameterAlreadyExists
             # overwriting a parameter, Type is not included in boto3 call
             if not parameter_type and overwrite:
                 parameter_type = previous_parameter.parameter_type
@@ -2123,29 +2134,32 @@ class SimpleSystemManagerBackend(BaseBackend):
             data_type = (
                 data_type if data_type is not None else previous_parameter.data_type
             )
+            tier = tier if tier is not None else previous_parameter.tier
+            policies = policies if policies is not None else previous_parameter.policies
 
         last_modified_date = time.time()
-        self._parameters[name].append(
-            Parameter(
-                account_id=self.account_id,
-                name=name,
-                value=value,
-                parameter_type=parameter_type,
-                description=description,
-                allowed_pattern=allowed_pattern,
-                keyid=keyid,
-                last_modified_date=last_modified_date,
-                version=version,
-                tags=tags or [],
-                data_type=data_type,
-            )
+        new_param = Parameter(
+            account_id=self.account_id,
+            name=name,
+            value=value,
+            parameter_type=parameter_type,
+            description=description,
+            allowed_pattern=allowed_pattern,
+            keyid=keyid,
+            last_modified_date=last_modified_date,
+            version=version,
+            tags=tags or [],
+            data_type=data_type,
+            tier=tier,
+            policies=policies,
         )
+        self._parameters[name].append(new_param)
 
         if tags:
             tag_dict = {t["Key"]: t["Value"] for t in tags}
             self.add_tags_to_resource("Parameter", name, tag_dict)
 
-        return version
+        return new_param
 
     def add_tags_to_resource(
         self, resource_type: str, resource_id: str, tags: Dict[str, str]
@@ -2460,7 +2474,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         cutoff_behavior: Optional[str],
         alarm_configurations: Optional[Dict[str, Any]],
     ) -> str:
-
         window = self.get_maintenance_window(window_id)
         task = FakeMaintenanceWindowTask(
             window_id,
