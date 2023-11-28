@@ -3,7 +3,7 @@ import abc
 from abc import abstractmethod
 from collections import deque
 
-from moto.dynamodb.models import DynamoType
+from moto.dynamodb.models.dynamo_type import DynamoType
 from ..exceptions import DuplicateUpdateExpression, TooManyAddClauses
 
 
