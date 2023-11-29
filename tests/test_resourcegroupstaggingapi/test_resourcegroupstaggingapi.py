@@ -3,6 +3,7 @@ import json
 import boto3
 from botocore.client import ClientError
 
+from moto import mock_acm
 from moto import mock_ec2
 from moto import mock_elbv2
 from moto import mock_kms
@@ -14,6 +15,7 @@ from moto import mock_cloudformation
 from moto import mock_ecs
 from moto import mock_sqs
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
+import logging
 
 
 @mock_kms
@@ -74,6 +76,45 @@ def test_get_resources_cloudformation():
     )
     assert len(resp["ResourceTagMappingList"]) == 1
     assert stack_two in resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_acm
+@mock_resourcegroupstaggingapi
+def test_get_resources_acm():
+    client = boto3.client("acm", region_name="us-east-1")
+    cert_blue = client.request_certificate(
+        DomainName="helloworldone.com",
+        ValidationMethod="DNS",
+        Tags=[
+            {"Key": "TagKey1", "Value": "TagValue1"},
+            {"Key": "TagKey2", "Value": "TagValue2"},
+            {"Key": "Color", "Value": "Blue"},
+        ],
+    )
+    client.request_certificate(
+        DomainName="helloworldtwo.com",
+        ValidationMethod="DNS",
+        Tags=[
+            {"Key": "TagKey1", "Value": "TagValue1"},
+            {"Key": "TagKey2", "Value": ""},
+            {"Key": "Color", "Value": "Green"},
+        ],
+    )
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resources_no_filter = rgta_client.get_resources(
+        ResourceTypeFilters=["acm"],
+    )
+    assert len(resources_no_filter["ResourceTagMappingList"]) == 2
+    logging.info(f"RESOURCES NO FILTER: {resources_no_filter}\n")
+    resources_blue_filter = rgta_client.get_resources(
+        TagFilters=[{"Key": "Color", "Values": ["Blue"]}]
+    )
+    logging.info(f"RESOURCES BLUE FILTER: {resources_blue_filter}")
+    assert len(resources_blue_filter["ResourceTagMappingList"]) == 1
+    assert (
+        cert_blue["CertificateArn"]
+        == resources_blue_filter["ResourceTagMappingList"][0]["ResourceARN"]
+    )
 
 
 @mock_ecs
