@@ -298,31 +298,55 @@ class EventInvokeConfig:
     def __init__(self, config: Dict[str, Any]) -> None:
 
         self.config = config
-        self.validate(config)
+        self.validate_max()
+        self.validate()
 
     def validate_max(self):
-        pass
+        if "MaximumRetryAttempts" in self.config:
+            mra = self.config["MaximumRetryAttempts"]
+            if mra > 2:
+                raise ValidationException(
+                    mra,
+                    "maximumRetryAttempts",
+                    f"Member must have value less than or equal to 2",
+                )
+
+            # < 0 validation done by botocore
+        if "MaximumEventAgeInSeconds" in self.config:
+            mra = self.config["MaximumEventAgeInSeconds"]
+            if mra > 21600:
+                raise ValidationException(
+                    mra,
+                    "maximumEventAgeInSeconds",
+                    f"Member must have value less than or equal to 21600",
+                )
+
+            # < 60 validation done by botocore
+
 
     def validate(self):
         # https://docs.aws.amazon.com/lambda/latest/dg/API_OnSuccess.html
         regex = "^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
         pattern = re.compile(regex)
 
-        if self.config:
-            contents = self.config.get("OnSuccess", {}).get("Contents")
-            if not pattern.match(self.config.get("OnSuccess", {}).get("Contents")):
-                raise ValidationException(
-                    contents,
-                    "destinationConfig.onSuccess.destination",
-                    f"Member must satisfy regular expression pattern: {regex}",
-                )
-            contents = self.config.get("OnFailure", {}).get("Contents")
-            if not pattern.match(self.config.get("OnSuccess", {}).get("Contents")):
-                raise ValidationException(
-                    contents,
-                    "destinationConfig.onFailure.destination",
-                    f"Member must satisfy regular expression pattern: {regex}",
-                )
+        if self.config['DestinationConfig']:
+            destination_config = self.config['DestinationConfig']
+            if "OnSuccess" in destination_config and "Destination" in destination_config["OnSuccess"]:
+                contents = destination_config["OnSuccess"]["Destination"]
+                if not pattern.match(contents):
+                    raise ValidationException(
+                        contents,
+                        "destinationConfig.onSuccess.destination",
+                        f"Member must satisfy regular expression pattern: {regex}",
+                    )
+            if "OnFailure" in destination_config and "Destination" in destination_config["OnFailure"]:
+                contents = destination_config["OnFailure"]["Destination"]
+                if not pattern.match(contents):
+                    raise ValidationException(
+                        contents,
+                        "destinationConfig.onFailure.destination",
+                        f"Member must satisfy regular expression pattern: {regex}",
+                    )
 
 
 class ImageConfig:
@@ -580,6 +604,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
+        self.event_invoke_config: dict
 
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
@@ -2333,6 +2358,11 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 
+    def set_event_invoke_config(self, function_name:str, config: Dict) -> Tuple[str, str]:
+        fn = self.get_function(function_name)
+        event_config = EventInvokeConfig(config)
+        fn.event_invoke_config = event_config
+        return fn.function_arn, fn.last_modified
 
 def do_validate_s3() -> bool:
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]

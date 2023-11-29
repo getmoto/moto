@@ -607,7 +607,13 @@ class LambdaResponse(BaseResponse):
         )
         return 201, {}, json.dumps(alias.to_json())
 
-    def event_invoke_config(
+    def set_event_invoke_config(
         self, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
-        self.backend.get_function()
+        self.setup_class(request, full_url, headers)
+        function_name = unquote(self.path.rsplit("/", 2)[1])
+        arn, last_modified = self.backend.set_event_invoke_config(function_name,self.json_body)
+        response = self.json_body
+        response["LastModified"] = last_modified
+        response["FunctionArn"] = arn
+        return 200, {}, json.dumps(response)

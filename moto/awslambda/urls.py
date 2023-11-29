@@ -79,4 +79,7 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>.+)/versions/(?P<layer_version>[\w_-]+)$": LambdaResponse.method_dispatch(
         LambdaResponse.layers_version
     ),
+    r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/event-invoke-config/?$": LambdaResponse.method_dispatch(
+        LambdaResponse.set_event_invoke_config
+    ),
 }

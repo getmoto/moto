@@ -1868,10 +1868,10 @@ def test_event_config():
     response = conn.put_function_event_invoke_config(
         FunctionName=name,
         Qualifier="string",
-        MaximumRetryAttempts=0,
-        MaximumEventAgeInSeconds=123,
+        MaximumRetryAttempts=2,
+        # MaximumEventAgeInSeconds=60,
         DestinationConfig={
-            "OnSuccess": {"Destination": "string"},
+            "OnSuccess": {"Destination": "arn:as"},
             # 'OnFailure': {
             #     'Destination': 'string'
             # }
