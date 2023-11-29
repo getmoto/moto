@@ -1874,7 +1874,7 @@ def test_put_function_concurrency_i_can_has_math():
         },
     ],
 )
-def test_event_invoke_config(config):
+def test_put_event_invoke_config(config):
     # Setup
     client = boto3.client("lambda", _lambda_region)
     arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
@@ -1892,13 +1892,17 @@ def test_event_invoke_config(config):
     assert result["FunctionArn"] == arn_1
     assert result["DestinationConfig"] == config
 
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
 
 @mock_lambda
-def test_event_invoke_config_errors_1():
+def test_put_event_invoke_config_errors_1():
     # Setup
     client = boto3.client("lambda", _lambda_region)
-    setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
-    setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
     config = {
         "OnSuccess": {"Destination": "invalid"},
         "OnFailure": {},
@@ -1920,13 +1924,17 @@ def test_event_invoke_config_errors_1():
         r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
     )
 
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
 
 @mock_lambda
-def test_event_invoke_config_2():
+def test_put_event_invoke_config_2():
     # Setup
     client = boto3.client("lambda", _lambda_region)
-    _ = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
-    _ = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
     config = {
         "OnFailure": {"Destination": "invalid"},
         "OnSuccess": {},
@@ -1948,12 +1956,16 @@ def test_event_invoke_config_2():
         r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
     )
 
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
 
 @mock_lambda
-def test_event_invoke_config_3():
+def test_put_event_invoke_config_3():
     # Setup
     client = boto3.client("lambda", _lambda_region)
-    _ = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
     test_val = 5
 
     # Execute
@@ -1971,12 +1983,15 @@ def test_event_invoke_config_3():
         "Member must have value less than or equal to 2"
     )
 
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
 
 @mock_lambda
-def test_event_invoke_config_4():
+def test_put_event_invoke_config_4():
     # Setup
     client = boto3.client("lambda", _lambda_region)
-    _ = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
     test_val = 44444
 
     # Execute
@@ -1993,6 +2008,26 @@ def test_event_invoke_config_4():
         f"Value '{test_val}' at 'maximumEventAgeInSeconds' failed to satisfy constraint: "
         "Member must have value less than or equal to 21600"
     )
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
+
+@mock_lambda
+def test_get_event_invoke_config():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # Execute
+    result = client.get_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
+
+    # Verify
+    assert "DestinationConfig" in result
+    assert result["DestinationConfig"] == {"OnSuccess": {}, "OnFailure": {}}
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
 
 
 def setup_lambda(client, name):

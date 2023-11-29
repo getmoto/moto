@@ -296,7 +296,6 @@ def _validate_s3_bucket_and_key(
 
 class EventInvokeConfig:
     def __init__(self, config: Dict[str, Any]) -> None:
-
         self.config = config
         self.validate_max()
         self.validate()
@@ -609,7 +608,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
-        self.event_invoke_config: EventInvokeConfig
+        self.event_invoke_config = EventInvokeConfig(
+            {"DestinationConfig": {"OnSuccess": {}, "OnFailure": {}}}
+        )
 
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
@@ -2370,6 +2371,10 @@ class LambdaBackend(BaseBackend):
         event_config = EventInvokeConfig(config)
         fn.event_invoke_config = event_config
         return fn.function_arn, fn.last_modified
+
+    def get_event_invoke_config(self, function_name: str) -> Dict[str, str]:
+        fn = self.get_function(function_name)
+        return fn.event_invoke_config.config
 
 
 def do_validate_s3() -> bool:

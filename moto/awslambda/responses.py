@@ -607,15 +607,33 @@ class LambdaResponse(BaseResponse):
         )
         return 201, {}, json.dumps(alias.to_json())
 
-    def set_event_invoke_config(
+    def event_invoke_config_handler(
         self, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         function_name = unquote(self.path.rsplit("/", 2)[1])
-        arn, last_modified = self.backend.set_event_invoke_config(
-            function_name, self.json_body
-        )
+
+        if self.method == "PUT":
+            response = self._set_event_invoke_config(function_name, self.json_body)
+            return 200, {}, json.dumps(response)
+        if self.method == "GET":
+            response = self._get_event_invoke_config(function_name)
+            return 200, {}, json.dumps(response)
+
+        raise NotImplementedError
+
+    def _set_event_invoke_config(
+        self, function_name: str, body: Dict[str, str]
+    ) -> Dict[str, str]:
+
+        arn, last_modified = self.backend.set_event_invoke_config(function_name, body)
         response = self.json_body
         response["LastModified"] = last_modified
         response["FunctionArn"] = arn
-        return 200, {}, json.dumps(response)
+        return response
+
+    def _get_event_invoke_config(
+        self,
+        function_name: str,
+    ) -> Dict[str, str]:
+        return self.backend.get_event_invoke_config(function_name)

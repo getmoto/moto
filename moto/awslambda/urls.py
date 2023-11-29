@@ -80,6 +80,6 @@ url_paths = {
         LambdaResponse.layers_version
     ),
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/event-invoke-config/?$": LambdaResponse.method_dispatch(
-        LambdaResponse.set_event_invoke_config
+        LambdaResponse.event_invoke_config_handler
     ),
 }
