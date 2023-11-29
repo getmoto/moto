@@ -301,7 +301,7 @@ class EventInvokeConfig:
         self.validate_max()
         self.validate()
 
-    def validate_max(self):
+    def validate_max(self) -> None:
         if "MaximumRetryAttempts" in self.config:
             mra = self.config["MaximumRetryAttempts"]
             if mra > 2:
@@ -323,7 +323,7 @@ class EventInvokeConfig:
 
             # < 60 validation done by botocore
 
-    def validate(self):
+    def validate(self) -> None:
         # https://docs.aws.amazon.com/lambda/latest/dg/API_OnSuccess.html
         regex = r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
         pattern = re.compile(regex)
@@ -609,7 +609,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
-        self.event_invoke_config: dict
+        self.event_invoke_config: EventInvokeConfig
 
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
@@ -2364,7 +2364,7 @@ class LambdaBackend(BaseBackend):
         return fn.reserved_concurrency
 
     def set_event_invoke_config(
-        self, function_name: str, config: Dict
+        self, function_name: str, config: Dict[str, Any]
     ) -> Tuple[str, str]:
         fn = self.get_function(function_name)
         event_config = EventInvokeConfig(config)
