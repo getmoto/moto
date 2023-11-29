@@ -308,7 +308,7 @@ class EventInvokeConfig:
                 raise ValidationException(
                     mra,
                     "maximumRetryAttempts",
-                    f"Member must have value less than or equal to 2",
+                    "Member must have value less than or equal to 2",
                 )
 
             # < 0 validation done by botocore
@@ -318,20 +318,22 @@ class EventInvokeConfig:
                 raise ValidationException(
                     mra,
                     "maximumEventAgeInSeconds",
-                    f"Member must have value less than or equal to 21600",
+                    "Member must have value less than or equal to 21600",
                 )
 
             # < 60 validation done by botocore
 
-
     def validate(self):
         # https://docs.aws.amazon.com/lambda/latest/dg/API_OnSuccess.html
-        regex = "^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+        regex = r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
         pattern = re.compile(regex)
 
-        if self.config['DestinationConfig']:
-            destination_config = self.config['DestinationConfig']
-            if "OnSuccess" in destination_config and "Destination" in destination_config["OnSuccess"]:
+        if self.config["DestinationConfig"]:
+            destination_config = self.config["DestinationConfig"]
+            if (
+                "OnSuccess" in destination_config
+                and "Destination" in destination_config["OnSuccess"]
+            ):
                 contents = destination_config["OnSuccess"]["Destination"]
                 if not pattern.match(contents):
                     raise ValidationException(
@@ -339,7 +341,10 @@ class EventInvokeConfig:
                         "destinationConfig.onSuccess.destination",
                         f"Member must satisfy regular expression pattern: {regex}",
                     )
-            if "OnFailure" in destination_config and "Destination" in destination_config["OnFailure"]:
+            if (
+                "OnFailure" in destination_config
+                and "Destination" in destination_config["OnFailure"]
+            ):
                 contents = destination_config["OnFailure"]["Destination"]
                 if not pattern.match(contents):
                     raise ValidationException(
@@ -2358,11 +2363,14 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 
-    def set_event_invoke_config(self, function_name:str, config: Dict) -> Tuple[str, str]:
+    def set_event_invoke_config(
+        self, function_name: str, config: Dict
+    ) -> Tuple[str, str]:
         fn = self.get_function(function_name)
         event_config = EventInvokeConfig(config)
         fn.event_invoke_config = event_config
         return fn.function_arn, fn.last_modified
+
 
 def do_validate_s3() -> bool:
     return os.environ.get("VALIDATE_LAMBDA_S3", "") in ["", "1", "true"]

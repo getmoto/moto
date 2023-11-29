@@ -612,7 +612,9 @@ class LambdaResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         function_name = unquote(self.path.rsplit("/", 2)[1])
-        arn, last_modified = self.backend.set_event_invoke_config(function_name,self.json_body)
+        arn, last_modified = self.backend.set_event_invoke_config(
+            function_name, self.json_body
+        )
         response = self.json_body
         response["LastModified"] = last_modified
         response["FunctionArn"] = arn

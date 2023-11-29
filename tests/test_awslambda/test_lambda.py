@@ -24,6 +24,7 @@ from .utilities import (
 )
 
 PYTHON_VERSION = "python3.11"
+LAMBDA_FUNC_NAME = "test"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -1848,13 +1849,156 @@ def test_put_function_concurrency_i_can_has_math():
 
 
 @mock_lambda
-def test_event_config():
-    name = "raf-test"
-    conn = boto3.client("lambda", _lambda_region)
+@pytest.mark.parametrize(
+    "config",
+    [
+        {
+            "OnSuccess": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnFailure": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnSuccess": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+            "OnSuccess": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+        },
+    ],
+)
+def test_event_invoke_config(config):
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # the name has to match ARNs in pytest parameterize
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {"OnSuccess": {"Destination": arn_2}, "OnFailure": {}}
+
+    # Execute
+    result = client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Verify
+    assert result["FunctionArn"] == arn_1
+    assert result["DestinationConfig"] == config
+
+
+@mock_lambda
+def test_event_invoke_config_errors_1():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnSuccess": {"Destination": "invalid"},
+        "OnFailure": {},
+    }
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        "Value 'invalid' at 'destinationConfig.onSuccess.destination' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern: "
+        r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+    )
+
+
+@mock_lambda
+def test_event_invoke_config_2():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    _ = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    _ = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnFailure": {"Destination": "invalid"},
+        "OnSuccess": {},
+    }
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        "Value 'invalid' at 'destinationConfig.onFailure.destination' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern: "
+        r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+    )
+
+
+@mock_lambda
+def test_event_invoke_config_3():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    _ = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    test_val = 5
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, MaximumRetryAttempts=test_val
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        f"Value '{test_val}' at 'maximumRetryAttempts' failed to satisfy constraint: "
+        "Member must have value less than or equal to 2"
+    )
+
+
+@mock_lambda
+def test_event_invoke_config_4():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    _ = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    test_val = 44444
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, MaximumEventAgeInSeconds=test_val
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        f"Value '{test_val}' at 'maximumEventAgeInSeconds' failed to satisfy constraint: "
+        "Member must have value less than or equal to 21600"
+    )
+
+
+def setup_lambda(client, name):
     zip_content = get_test_zip_file1()
-    function_name = name
-    conn.create_function(
-        FunctionName=function_name,
+    return client.create_function(
+        FunctionName=name,
         Runtime=PYTHON_VERSION,
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
@@ -1864,18 +2008,3 @@ def test_event_config():
         MemorySize=128,
         Publish=True,
     )
-
-    response = conn.put_function_event_invoke_config(
-        FunctionName=name,
-        Qualifier="string",
-        MaximumRetryAttempts=2,
-        # MaximumEventAgeInSeconds=60,
-        DestinationConfig={
-            "OnSuccess": {"Destination": "arn:as"},
-            # 'OnFailure': {
-            #     'Destination': 'string'
-            # }
-        },
-    )
-
-    print(response)
