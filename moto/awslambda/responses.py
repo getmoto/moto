@@ -606,3 +606,8 @@ class LambdaResponse(BaseResponse):
             routing_config=routing_config,
         )
         return 201, {}, json.dumps(alias.to_json())
+
+    def event_invoke_config(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        self.backend.get_function()

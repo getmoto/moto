@@ -1845,3 +1845,37 @@ def test_put_function_concurrency_i_can_has_math():
     assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
     response = conn.get_function_concurrency(FunctionName=function_name_2)
     assert response["ReservedConcurrentExecutions"] == 100
+
+
+@mock_lambda
+def test_event_config():
+    name = "raf-test"
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = name
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    response = conn.put_function_event_invoke_config(
+        FunctionName=name,
+        Qualifier="string",
+        MaximumRetryAttempts=0,
+        MaximumEventAgeInSeconds=123,
+        DestinationConfig={
+            "OnSuccess": {"Destination": "string"},
+            # 'OnFailure': {
+            #     'Destination': 'string'
+            # }
+        },
+    )
+
+    print(response)

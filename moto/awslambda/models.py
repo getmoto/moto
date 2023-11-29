@@ -294,6 +294,37 @@ def _validate_s3_bucket_and_key(
     return key
 
 
+class EventInvokeConfig:
+    def __init__(self, config: Dict[str, Any]) -> None:
+
+        self.config = config
+        self.validate(config)
+
+    def validate_max(self):
+        pass
+
+    def validate(self):
+        # https://docs.aws.amazon.com/lambda/latest/dg/API_OnSuccess.html
+        regex = "^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+        pattern = re.compile(regex)
+
+        if self.config:
+            contents = self.config.get("OnSuccess", {}).get("Contents")
+            if not pattern.match(self.config.get("OnSuccess", {}).get("Contents")):
+                raise ValidationException(
+                    contents,
+                    "destinationConfig.onSuccess.destination",
+                    f"Member must satisfy regular expression pattern: {regex}",
+                )
+            contents = self.config.get("OnFailure", {}).get("Contents")
+            if not pattern.match(self.config.get("OnSuccess", {}).get("Contents")):
+                raise ValidationException(
+                    contents,
+                    "destinationConfig.onFailure.destination",
+                    f"Member must satisfy regular expression pattern: {regex}",
+                )
+
+
 class ImageConfig:
     def __init__(self, config: Dict[str, Any]) -> None:
         self.cmd = config.get("Command", [])
