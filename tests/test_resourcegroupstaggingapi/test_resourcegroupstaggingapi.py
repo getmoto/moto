@@ -13,6 +13,7 @@ from moto import mock_lambda
 from moto import mock_iam
 from moto import mock_cloudformation
 from moto import mock_ecs
+from moto import mock_sqs
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 import logging
 
@@ -713,6 +714,37 @@ def test_get_resources_lambda():
 
     resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
     assert_response(resp, [rectangle_arn])
+
+
+@mock_sqs
+@mock_resourcegroupstaggingapi
+def test_get_resources_sqs():
+    sqs = boto3.resource("sqs", region_name="eu-central-1")
+
+    # Create two tagged SQS queues
+    for i in range(1, 3):
+        i_str = str(i)
+
+        sqs.create_queue(
+            QueueName="sqs-tag-value-" + i_str,
+            tags={
+                "Test": i_str,
+            },
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
+
+    # Basic test
+    resp = rtapi.get_resources(ResourceTypeFilters=["sqs"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["elasticloadbalancing:targetgroup"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
 @mock_resourcegroupstaggingapi
