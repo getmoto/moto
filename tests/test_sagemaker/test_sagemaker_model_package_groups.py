@@ -1,10 +1,10 @@
 """Unit tests for sagemaker-supported APIs."""
-from unittest import SkipTest
 from datetime import datetime
+from unittest import SkipTest
 
 import boto3
-from freezegun import freeze_time
 from dateutil.tz import tzutc  # type: ignore
+from freezegun import freeze_time
 
 from moto import mock_sagemaker, settings
 

@@ -1,7 +1,8 @@
-import boto3
 import json
 
-from moto import mock_lambda, mock_cloudformation, mock_apigateway, mock_iam, mock_logs
+import boto3
+
+from moto import mock_apigateway, mock_cloudformation, mock_iam, mock_lambda, mock_logs
 
 template = """{
   "AWSTemplateFormatVersion": "2010-09-09",

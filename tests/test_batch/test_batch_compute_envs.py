@@ -1,8 +1,11 @@
-from . import _get_clients, _setup
+from uuid import uuid4
+
 import pytest
 from botocore.exceptions import ClientError
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, settings
-from uuid import uuid4
+
+from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, settings
+
+from . import _get_clients, _setup
 
 
 # Yes, yes it talks to all the things

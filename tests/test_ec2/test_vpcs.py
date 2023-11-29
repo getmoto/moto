@@ -1,13 +1,14 @@
+import json
+import random
+from unittest import SkipTest
+from uuid import uuid4
+
+import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-import boto3
-import json
-import random
-
 from moto import mock_ec2, settings
-from unittest import SkipTest
-from uuid import uuid4
+
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"

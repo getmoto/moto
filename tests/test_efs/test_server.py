@@ -1,9 +1,9 @@
 import re
+
 import pytest
 
-from moto import mock_efs, mock_ec2
 import moto.server as server
-
+from moto import mock_ec2, mock_efs
 
 FILE_SYSTEMS = "/2015-02-01/file-systems"
 MOUNT_TARGETS = "/2015-02-01/mount-targets"

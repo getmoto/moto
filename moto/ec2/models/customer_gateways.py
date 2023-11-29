@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional
 
-from .core import TaggedEC2Resource
 from ..exceptions import InvalidCustomerGatewayIdError
 from ..utils import random_customer_gateway_id
+from .core import TaggedEC2Resource
 
 
 class CustomerGateway(TaggedEC2Resource):

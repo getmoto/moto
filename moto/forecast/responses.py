@@ -3,7 +3,8 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import forecast_backends, ForecastBackend
+
+from .models import ForecastBackend, forecast_backends
 
 
 class ForecastResponse(BaseResponse):

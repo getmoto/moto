@@ -1,6 +1,7 @@
+from uuid import uuid4
+
 import boto3
 import pytest
-from uuid import uuid4
 
 from moto import mock_timestreamwrite
 

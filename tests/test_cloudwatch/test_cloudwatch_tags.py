@@ -1,8 +1,8 @@
 from operator import itemgetter
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_cloudwatch
 from moto.cloudwatch.utils import make_arn_for_alarm

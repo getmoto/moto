@@ -5,12 +5,12 @@ import uuid
 
 import boto3
 import botocore.exceptions
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_ssm
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
+from moto.ssm.models import PARAMETER_HISTORY_MAX_RESULTS, PARAMETER_VERSION_LIMIT
 from tests import EXAMPLE_AMI_ID
 
 

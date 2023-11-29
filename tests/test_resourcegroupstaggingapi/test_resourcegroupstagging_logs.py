@@ -1,8 +1,8 @@
-import boto3
 import unittest
 
-from moto import mock_logs
-from moto import mock_resourcegroupstaggingapi
+import boto3
+
+from moto import mock_logs, mock_resourcegroupstaggingapi
 
 
 @mock_logs

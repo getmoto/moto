@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, SupportsFloat
+from typing import Any, Dict, List, SupportsFloat, Tuple
 
 
 def parse_expression(

@@ -1,9 +1,9 @@
 import importlib
-import moto
 import sys
-from moto.core import BackendDict
 from typing import Iterable, Tuple
 
+import moto
+from moto.core import BackendDict
 
 decorators = [d for d in dir(moto) if d.startswith("mock_") and not d == "mock_all"]
 decorator_functions = [getattr(moto, f) for f in decorators]

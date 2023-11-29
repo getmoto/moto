@@ -7,12 +7,12 @@ from typing import Any, List, Optional
 
 from werkzeug.serving import run_simple
 
+from moto.moto_server.threaded_moto_server import (  # noqa # pylint: disable=unused-import
+    ThreadedMotoServer,
+)
 from moto.moto_server.werkzeug_app import (
     DomainDispatcherApplication,
     create_backend_app,
-)
-from moto.moto_server.threaded_moto_server import (  # noqa # pylint: disable=unused-import
-    ThreadedMotoServer,
 )
 
 

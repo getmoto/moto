@@ -1,6 +1,6 @@
 import boto3
 
-from moto import mock_kinesis, mock_cloudformation
+from moto import mock_cloudformation, mock_kinesis
 
 
 @mock_cloudformation

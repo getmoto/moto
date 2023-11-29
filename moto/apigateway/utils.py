@@ -1,8 +1,10 @@
-import string
 import json
-import yaml
-from moto.moto_api._internal import mock_random as random
+import string
 from typing import Any, Dict
+
+import yaml
+
+from moto.moto_api._internal import mock_random as random
 
 
 def create_id() -> str:

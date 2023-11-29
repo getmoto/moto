@@ -1,9 +1,11 @@
 """Handles incoming cloudtrail requests, invokes methods, returns responses."""
 import json
 from typing import Any, Dict
+
 from moto.core.responses import BaseResponse
-from .models import cloudtrail_backends, CloudTrailBackend
+
 from .exceptions import InvalidParameterCombinationException
+from .models import CloudTrailBackend, cloudtrail_backends
 
 
 class CloudTrailResponse(BaseResponse):

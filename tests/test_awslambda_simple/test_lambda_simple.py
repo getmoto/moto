@@ -1,9 +1,11 @@
 import json
 from unittest import SkipTest
+
 import boto3
 
 from moto import mock_iam, mock_lambda_simple, settings
-from ..test_awslambda.utilities import get_test_zip_file1, get_role_name
+
+from ..test_awslambda.utilities import get_role_name, get_test_zip_file1
 
 LAMBDA_REGION = "us-west-2"
 PYTHON_VERSION = "3.11"

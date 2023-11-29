@@ -1,11 +1,11 @@
-import boto3
-
 import json
+from uuid import uuid4
+
+import boto3
 
 from moto import mock_cloudformation, mock_ec2, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
 
 
 @mock_cloudformation

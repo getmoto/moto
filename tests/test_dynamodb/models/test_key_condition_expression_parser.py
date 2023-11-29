@@ -1,4 +1,5 @@
 import pytest
+
 from moto.dynamodb.exceptions import DynamodbException
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 

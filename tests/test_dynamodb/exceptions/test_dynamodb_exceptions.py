@@ -1,10 +1,13 @@
+from unittest import SkipTest
+
 import boto3
 import botocore
 import pytest
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-from unittest import SkipTest
+
 from moto import mock_dynamodb, settings
+
 from .. import dynamodb_aws_verified
 
 table_schema = {

@@ -1,10 +1,11 @@
 import json
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 import moto.iotdata.models
-from moto import mock_iotdata, mock_iot, settings
+from moto import mock_iot, mock_iotdata, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 

@@ -1,26 +1,26 @@
 import itertools
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from moto.packages.boto.ec2.blockdevicemapping import (
-    BlockDeviceType,
-    BlockDeviceMapping,
-)
-from moto.ec2.exceptions import InvalidInstanceIdError
-
-from collections import OrderedDict
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
+from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import EC2Backend
 from moto.ec2.models.instances import Instance
-from moto.elb.models import elb_backends, ELBBackend
-from moto.elbv2.models import elbv2_backends, ELBv2Backend
 from moto.elb.exceptions import LoadBalancerNotFoundError
+from moto.elb.models import ELBBackend, elb_backends
+from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.moto_api._internal import mock_random as random
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceMapping,
+    BlockDeviceType,
+)
+
 from .exceptions import (
     AutoscalingClientError,
-    ResourceContentionError,
     InvalidInstanceError,
+    ResourceContentionError,
     ValidationError,
 )
 

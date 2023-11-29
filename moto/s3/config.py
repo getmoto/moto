@@ -1,8 +1,8 @@
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core.exceptions import InvalidNextTokenException
 from moto.core.common_models import ConfigQueryModel
+from moto.core.exceptions import InvalidNextTokenException
 from moto.s3 import s3_backends
 
 

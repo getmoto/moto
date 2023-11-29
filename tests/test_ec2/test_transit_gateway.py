@@ -1,9 +1,10 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from unittest import SkipTest
 
 
 @mock_ec2

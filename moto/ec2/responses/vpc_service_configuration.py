@@ -1,5 +1,5 @@
-from ._base_response import EC2BaseResponse
 from ..exceptions import NoLoadBalancersProvided
+from ._base_response import EC2BaseResponse
 
 
 class VPCEndpointServiceConfiguration(EC2BaseResponse):

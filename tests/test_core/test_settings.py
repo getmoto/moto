@@ -1,9 +1,9 @@
 import os
 from unittest import mock
+
 import pytest
 
 from moto import settings
-
 
 """
 Sanity checks for interpretation of the MOTO_ECS_NEW_ARN-variable

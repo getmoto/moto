@@ -1,11 +1,11 @@
 import json
-from string import Template
 from random import randint
+from string import Template
 from uuid import uuid4
 
 import boto3
 
-from moto import mock_sqs, mock_cloudformation
+from moto import mock_cloudformation, mock_sqs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 simple_queue = Template(

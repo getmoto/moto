@@ -2,6 +2,7 @@ import re
 
 import boto3
 import pytest
+
 from moto import mock_applicationautoscaling, mock_ecs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 

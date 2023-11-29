@@ -1,5 +1,7 @@
 import boto3
+
 from moto import mock_cloudfront
+
 from . import cloudfront_test_scaffolding as scaffold
 
 

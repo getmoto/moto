@@ -1,9 +1,10 @@
+import json
+from urllib.parse import unquote, urlsplit
+
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import batch_backends, BatchBackend
-from urllib.parse import urlsplit, unquote
 
-import json
+from .models import BatchBackend, batch_backends
 
 
 class BatchResponse(BaseResponse):

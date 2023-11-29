@@ -3,23 +3,24 @@ import os
 import re
 from os import environ
 from typing import Any, Dict, List, Optional, Set, cast
+
 from moto import settings
 from moto.utilities.utils import load_resource
+
 from ..exceptions import (
-    InvalidAMIIdError,
     InvalidAMIAttributeItemValueError,
+    InvalidAMIIdError,
     InvalidTaggableResourceType,
     MalformedAMIIdError,
     UnvailableAMIIdError,
 )
-from .core import TaggedEC2Resource
-from .instances import Instance
 from ..utils import (
-    random_ami_id,
     generic_filter,
+    random_ami_id,
     utc_date_and_time,
 )
-
+from .core import TaggedEC2Resource
+from .instances import Instance
 
 if "MOTO_AMIS_PATH" in environ:
     with open(environ["MOTO_AMIS_PATH"], "r", encoding="utf-8") as f:

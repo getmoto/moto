@@ -1,9 +1,11 @@
 """Unit tests for ivs-supported APIs."""
+from re import fullmatch
+
 import boto3
 from botocore.exceptions import ClientError
 from pytest import raises
+
 from moto import mock_ivs
-from re import fullmatch
 
 
 @mock_ivs

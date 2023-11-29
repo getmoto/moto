@@ -1,5 +1,6 @@
-from ._base_response import EC2BaseResponse
 from moto.ec2.utils import utc_date_and_time
+
+from ._base_response import EC2BaseResponse
 
 
 class Windows(EC2BaseResponse):

@@ -3,11 +3,11 @@ import re
 import uuid
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_sagemaker
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-import pytest
 
 TEST_REGION_NAME = "us-east-1"
 TEST_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"

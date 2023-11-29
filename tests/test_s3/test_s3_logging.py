@@ -1,14 +1,12 @@
 import json
+from unittest import SkipTest
+from unittest.mock import patch
 
 import boto3
 import pytest
 from botocore.client import ClientError
-from unittest import SkipTest
-from unittest.mock import patch
 
-
-from moto import mock_s3
-from moto import settings
+from moto import mock_s3, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.s3 import s3_backends
 from moto.s3.models import FakeBucket

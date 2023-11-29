@@ -1,14 +1,15 @@
-import logging
 import base64
 import binascii
-import re
 import hashlib
-from urllib.parse import urlparse
-from requests.structures import CaseInsensitiveDict
-from typing import Any, Dict, List, Iterator, Union, Tuple, Optional
+import logging
+import re
 import sys
-from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
+from requests.structures import CaseInsensitiveDict
+
+from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
 
 log = logging.getLogger(__name__)
 

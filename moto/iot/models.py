@@ -2,31 +2,32 @@ import hashlib
 import re
 import time
 from collections import OrderedDict
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Pattern, Tuple
+
 from cryptography import x509
 from cryptography.hazmat._oid import NameOID
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization, hashes
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple, Optional, Pattern, Iterable, TYPE_CHECKING
 
-from .utils import PAGINATION_MODEL
-
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+
 from .exceptions import (
     CertificateStateException,
     DeleteConflictException,
-    ResourceNotFoundException,
     InvalidRequestException,
     InvalidStateTransitionException,
-    VersionConflictException,
     ResourceAlreadyExistsException,
-    VersionsLimitExceededException,
+    ResourceNotFoundException,
     ThingStillAttached,
+    VersionConflictException,
+    VersionsLimitExceededException,
 )
+from .utils import PAGINATION_MODEL
 
 if TYPE_CHECKING:
     from moto.iotdata.models import FakeShadow

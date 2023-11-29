@@ -1,4 +1,5 @@
 from jinja2 import Template
+
 from moto.core.exceptions import RESTError
 
 

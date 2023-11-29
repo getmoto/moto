@@ -1,8 +1,10 @@
-from moto.core.responses import BaseResponse
-from .models import iotdata_backends, IoTDataPlaneBackend
 import json
 from typing import Any
 from urllib.parse import unquote
+
+from moto.core.responses import BaseResponse
+
+from .models import IoTDataPlaneBackend, iotdata_backends
 
 
 class IoTDataPlaneResponse(BaseResponse):

@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import mediastore_backends, MediaStoreBackend
+
+from .models import MediaStoreBackend, mediastore_backends
 
 
 class MediaStoreResponse(BaseResponse):

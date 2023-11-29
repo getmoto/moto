@@ -1,11 +1,12 @@
+from random import randint
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
-from random import randint
-from unittest import SkipTest
 
 
 @mock_ec2

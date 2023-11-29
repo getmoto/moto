@@ -1,9 +1,9 @@
 import boto3
 import pytest
+from boto3.dynamodb.conditions import Key
+from botocore.exceptions import ClientError
 
 from moto import mock_dynamodb
-from botocore.exceptions import ClientError
-from boto3.dynamodb.conditions import Key
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 

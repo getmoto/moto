@@ -1,8 +1,10 @@
 from typing import Any, Dict, List, Optional
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources
-from .core import TaggedEC2Resource
+
 from ..utils import random_transit_gateway_route_table_id
+from .core import TaggedEC2Resource
 
 
 class TransitGatewayRouteTable(TaggedEC2Resource):

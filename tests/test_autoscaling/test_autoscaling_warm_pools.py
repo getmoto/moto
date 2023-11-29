@@ -1,8 +1,10 @@
+from unittest import TestCase
+
 import boto3
 
 from moto import mock_autoscaling, mock_ec2
 from tests import EXAMPLE_AMI_ID
-from unittest import TestCase
+
 from .utils import setup_networking
 
 

@@ -2,7 +2,8 @@ import json
 from typing import Dict, Tuple
 
 from moto.core.responses import BaseResponse
-from .models import mediastoredata_backends, MediaStoreDataBackend
+
+from .models import MediaStoreDataBackend, mediastoredata_backends
 
 
 class MediaStoreDataResponse(BaseResponse):

@@ -1,13 +1,13 @@
 """Handles incoming sesv2 requests, invokes methods, returns responses."""
 import base64
 import json
-
-from moto.core.responses import BaseResponse
-from .models import sesv2_backends
-from ..ses.responses import SEND_EMAIL_RESPONSE
-from .models import SESV2Backend
 from typing import List
 from urllib.parse import unquote
+
+from moto.core.responses import BaseResponse
+
+from ..ses.responses import SEND_EMAIL_RESPONSE
+from .models import SESV2Backend, sesv2_backends
 
 
 class SESV2Response(BaseResponse):

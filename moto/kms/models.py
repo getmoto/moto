@@ -3,24 +3,24 @@ import os
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple, Optional, Iterable, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from moto.core.exceptions import JsonRESTError
 
 from .exceptions import ValidationException
 from .utils import (
     RESERVED_ALIASES,
+    KeySpec,
+    SigningAlgorithm,
     decrypt,
     encrypt,
     generate_key_id,
     generate_master_key,
     generate_private_key,
-    KeySpec,
-    SigningAlgorithm,
 )
 
 

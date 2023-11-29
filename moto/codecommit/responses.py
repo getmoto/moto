@@ -2,8 +2,9 @@ import json
 import re
 
 from moto.core.responses import BaseResponse
-from .models import codecommit_backends, CodeCommitBackend
+
 from .exceptions import InvalidRepositoryNameException
+from .models import CodeCommitBackend, codecommit_backends
 
 
 def _is_repository_name_valid(repository_name: str) -> bool:

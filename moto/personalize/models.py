@@ -1,8 +1,9 @@
 from typing import Any, Dict, Iterable
 
-from .exceptions import ResourceNotFoundException
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
+
+from .exceptions import ResourceNotFoundException
 
 
 class Schema(BaseModel):

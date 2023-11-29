@@ -1,10 +1,10 @@
 import re
+from uuid import uuid4
 
 import boto3
 import pytest
-
 from botocore.client import ClientError
-from uuid import uuid4
+
 from moto import mock_s3control
 from tests.test_s3 import s3_aws_verified
 

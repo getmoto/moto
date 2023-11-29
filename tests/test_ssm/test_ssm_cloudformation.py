@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from moto import mock_ssm, mock_cloudformation
+from moto import mock_cloudformation, mock_ssm
 from tests import EXAMPLE_AMI_ID
 
 

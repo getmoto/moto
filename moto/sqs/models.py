@@ -3,41 +3,41 @@ import hashlib
 import json
 import re
 import string
-
 import struct
 from copy import deepcopy
-from typing import Any, Dict, List, Optional, Tuple, Set, TYPE_CHECKING
 from threading import Condition
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import ParseResult
 from xml.sax.saxutils import escape
 
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
+    tags_from_cloudformation_tags_list,
     unix_time,
     unix_time_millis,
-    tags_from_cloudformation_tags_list,
 )
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
+
 from .constants import MAXIMUM_VISIBILITY_TIMEOUT
-from .utils import generate_receipt_handle
 from .exceptions import (
-    MessageAttributesInvalid,
-    QueueDoesNotExist,
-    QueueAlreadyExists,
-    ReceiptHandleIsInvalid,
-    InvalidBatchEntryId,
-    BatchRequestTooLong,
     BatchEntryIdsNotDistinct,
-    TooManyEntriesInBatchRequest,
+    BatchRequestTooLong,
     InvalidAttributeName,
+    InvalidAttributeValue,
+    InvalidBatchEntryId,
     InvalidParameterValue,
+    MessageAttributesInvalid,
     MissingParameter,
     OverLimit,
-    InvalidAttributeValue,
+    QueueAlreadyExists,
+    QueueDoesNotExist,
+    ReceiptHandleIsInvalid,
+    TooManyEntriesInBatchRequest,
 )
+from .utils import generate_receipt_handle
 
 if TYPE_CHECKING:
     from moto.awslambda.models import EventSourceMapping

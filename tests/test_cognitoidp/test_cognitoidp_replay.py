@@ -1,14 +1,14 @@
 import os
+import uuid
+from unittest import TestCase
 
 import boto3
-import uuid
 import pytest
 import requests
-
 from botocore.exceptions import ClientError
+
 from moto import mock_cognitoidp, settings
 from moto.moto_api import recorder
-from unittest import TestCase
 
 
 @mock_cognitoidp

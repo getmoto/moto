@@ -1,8 +1,10 @@
-import boto3
 import os
 from functools import wraps
-from moto import mock_dynamodb
 from uuid import uuid4
+
+import boto3
+
+from moto import mock_dynamodb
 
 
 def dynamodb_aws_verified(create_table: bool = True):

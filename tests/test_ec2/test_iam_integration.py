@@ -1,11 +1,11 @@
-import pytest
+from uuid import uuid4
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_iam
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
 
 
 def quick_instance_creation():

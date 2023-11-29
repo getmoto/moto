@@ -1,9 +1,10 @@
 import copy
-import boto3
 import json
-from moto import mock_cloudformation, mock_ecr
 from string import Template
 
+import boto3
+
+from moto import mock_cloudformation, mock_ecr
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 repo_template = Template(

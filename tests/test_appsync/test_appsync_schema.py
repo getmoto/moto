@@ -1,7 +1,9 @@
-import boto3
 import json
-from botocore.exceptions import ClientError
+
+import boto3
 import pytest
+from botocore.exceptions import ClientError
+
 from moto import mock_appsync
 
 schema = """type Mutation {

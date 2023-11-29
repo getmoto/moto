@@ -1,8 +1,7 @@
-import json
 import hashlib
+import json
 import pkgutil
-
-from typing import Any, Dict, Iterator, List, TypeVar, Tuple, Optional, MutableMapping
+from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
 
 
 def str2bool(v: Any) -> Optional[bool]:

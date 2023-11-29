@@ -1,11 +1,12 @@
+from uuid import uuid4
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from moto import mock_acm, mock_elb, mock_ec2, mock_iam
+
+from moto import mock_acm, mock_ec2, mock_elb, mock_iam
 from moto.core import DEFAULT_ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
 
 
 @pytest.mark.parametrize("region_name", ["us-east-1", "ap-south-1"])

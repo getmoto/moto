@@ -1,6 +1,7 @@
 import collections
 from typing import Any, Deque, Dict, List
-from moto.core import BaseBackend, BackendDict, BaseModel
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal import mock_random
 
 

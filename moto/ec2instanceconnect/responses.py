@@ -1,5 +1,6 @@
 from moto.core.responses import BaseResponse
-from .models import ec2instanceconnect_backends, Ec2InstanceConnectBackend
+
+from .models import Ec2InstanceConnectBackend, ec2instanceconnect_backends
 
 
 class Ec2InstanceConnectResponse(BaseResponse):

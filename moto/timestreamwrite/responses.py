@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import timestreamwrite_backends, TimestreamWriteBackend
+
+from .models import TimestreamWriteBackend, timestreamwrite_backends
 
 
 class TimestreamWriteResponse(BaseResponse):

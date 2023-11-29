@@ -1,6 +1,8 @@
-import boto3
 import json
 from copy import deepcopy
+
+import boto3
+
 from moto import mock_cloudformation, mock_ecs
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys
 

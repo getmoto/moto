@@ -1,6 +1,8 @@
-from moto.core.responses import BaseResponse
-from .models import medialive_backends, MediaLiveBackend
 import json
+
+from moto.core.responses import BaseResponse
+
+from .models import MediaLiveBackend, medialive_backends
 
 
 class MediaLiveResponse(BaseResponse):

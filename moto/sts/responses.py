@@ -1,6 +1,7 @@
 from moto.core.responses import BaseResponse
+
 from .exceptions import STSValidationError
-from .models import sts_backends, STSBackend
+from .models import STSBackend, sts_backends
 
 MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 

@@ -1,16 +1,16 @@
-import boto3
 import json
 import os
-import pytest
-
-from botocore.exceptions import ClientError
 from datetime import datetime
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ec2 import utils as ec2_utils
-from unittest import mock, SkipTest
+from unittest import SkipTest, mock
 from uuid import UUID
 
-from moto import mock_ecs, mock_ec2, settings
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_ec2, mock_ecs, settings
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ec2 import utils as ec2_utils
 from moto.moto_api import state_manager
 from tests import EXAMPLE_AMI_ID
 

@@ -1,11 +1,12 @@
 """Test different server responses."""
 import json
-import pytest
 import unittest
 from uuid import UUID
 
-from moto import settings
+import pytest
+
 import moto.server as server
+from moto import settings
 from tests.test_redshiftdata.test_redshiftdata_constants import (
     DEFAULT_ENCODING,
     HttpHeaders,

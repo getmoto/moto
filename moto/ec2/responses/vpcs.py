@@ -1,5 +1,6 @@
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
+
 from ._base_response import EC2BaseResponse
 
 

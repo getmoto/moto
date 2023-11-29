@@ -1,6 +1,7 @@
-from copy import deepcopy
 import ipaddress
+from copy import deepcopy
 from unittest.mock import patch
+
 from pytest import raises
 
 from moto.ec2 import utils

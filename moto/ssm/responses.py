@@ -2,8 +2,9 @@ import json
 from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
+
 from .exceptions import ValidationException
-from .models import ssm_backends, SimpleSystemManagerBackend
+from .models import SimpleSystemManagerBackend, ssm_backends
 
 
 class SimpleSystemManagerResponse(BaseResponse):

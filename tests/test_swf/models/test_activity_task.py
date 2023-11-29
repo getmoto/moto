@@ -1,7 +1,7 @@
 import re
 
-from freezegun import freeze_time
 import pytest
+from freezegun import freeze_time
 
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
 from moto.swf.models import ActivityTask, ActivityType, Timeout

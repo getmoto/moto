@@ -1,18 +1,18 @@
 import pytest
 
 from moto.dynamodb.exceptions import (
-    AttributeIsReservedKeyword,
-    ExpressionAttributeValueNotDefined,
     AttributeDoesNotExist,
+    AttributeIsReservedKeyword,
     ExpressionAttributeNameNotDefined,
+    ExpressionAttributeValueNotDefined,
     IncorrectOperandType,
     InvalidUpdateExpressionInvalidDocumentPath,
 )
-from moto.dynamodb.models import Item, DynamoType
+from moto.dynamodb.models import DynamoType, Item
 from moto.dynamodb.parsing.ast_nodes import (
+    DDBTypedValue,
     NodeDepthLeftTypeFetcher,
     UpdateExpressionSetAction,
-    DDBTypedValue,
 )
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator

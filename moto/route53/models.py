@@ -5,14 +5,18 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-
-from jinja2 import Template
 from typing import Any, Dict, List, Optional, Tuple
 
+from jinja2 import Template
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.moto_api._internal import mock_random as random
 from moto.route53.exceptions import (
+    DnsNameInvalidForZone,
     HostedZoneNotEmpty,
     InvalidActionValue,
     InvalidCloudWatchArn,
+    InvalidInput,
     LastVPCAssociation,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
@@ -21,13 +25,10 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
-    DnsNameInvalidForZone,
     ResourceRecordAlreadyExists,
-    InvalidInput,
 )
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+
 from .utils import PAGINATION_MODEL
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits

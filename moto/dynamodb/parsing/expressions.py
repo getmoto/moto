@@ -1,37 +1,36 @@
 # type: ignore
+import abc
 import logging
 from abc import abstractmethod
-import abc
 from collections import deque
 
+from moto.dynamodb.exceptions import InvalidTokenException, InvalidUpdateExpression
 from moto.dynamodb.parsing.ast_nodes import (
-    UpdateExpression,
-    UpdateExpressionSetClause,
-    UpdateExpressionSetActions,
-    UpdateExpressionSetAction,
-    UpdateExpressionRemoveActions,
-    UpdateExpressionRemoveAction,
-    UpdateExpressionPath,
-    UpdateExpressionValue,
-    UpdateExpressionGroupedValue,
-    UpdateExpressionRemoveClause,
-    ExpressionPathDescender,
-    ExpressionSelector,
     ExpressionAttribute,
     ExpressionAttributeName,
     ExpressionAttributeValue,
+    ExpressionPathDescender,
+    ExpressionSelector,
     ExpressionValueOperator,
-    UpdateExpressionFunction,
-    UpdateExpressionAddClause,
-    UpdateExpressionAddActions,
+    UpdateExpression,
     UpdateExpressionAddAction,
+    UpdateExpressionAddActions,
+    UpdateExpressionAddClause,
     UpdateExpressionDeleteAction,
     UpdateExpressionDeleteActions,
     UpdateExpressionDeleteClause,
+    UpdateExpressionFunction,
+    UpdateExpressionGroupedValue,
+    UpdateExpressionPath,
+    UpdateExpressionRemoveAction,
+    UpdateExpressionRemoveActions,
+    UpdateExpressionRemoveClause,
+    UpdateExpressionSetAction,
+    UpdateExpressionSetActions,
+    UpdateExpressionSetClause,
+    UpdateExpressionValue,
 )
-from moto.dynamodb.exceptions import InvalidTokenException, InvalidUpdateExpression
-from moto.dynamodb.parsing.tokens import Token, ExpressionTokenizer
-
+from moto.dynamodb.parsing.tokens import ExpressionTokenizer, Token
 
 logger = logging.getLogger(__name__)
 

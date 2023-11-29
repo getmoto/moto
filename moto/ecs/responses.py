@@ -2,7 +2,8 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import ecs_backends, EC2ContainerServiceBackend
+
+from .models import EC2ContainerServiceBackend, ecs_backends
 
 
 class EC2ContainerServiceResponse(BaseResponse):

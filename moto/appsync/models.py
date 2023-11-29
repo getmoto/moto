@@ -1,13 +1,14 @@
 import base64
 import json
-from datetime import timedelta, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-from moto.core import BaseBackend, BackendDict, BaseModel
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import GraphqlAPINotFound, GraphQLSchemaException, BadRequestException
+from .exceptions import BadRequestException, GraphqlAPINotFound, GraphQLSchemaException
 
 # AWS custom scalars and directives
 # https://github.com/dotansimha/graphql-code-generator/discussions/4311#discussioncomment-2921796
@@ -65,8 +66,8 @@ class GraphqlSchema(BaseModel):
     def _parse_graphql_definition(self) -> None:
         try:
             from graphql import parse
-            from graphql.language.ast import ObjectTypeDefinitionNode
             from graphql.error.graphql_error import GraphQLError
+            from graphql.language.ast import ObjectTypeDefinitionNode
 
             res = parse(self.definition)
             for definition in res.definitions:
@@ -79,10 +80,10 @@ class GraphqlSchema(BaseModel):
 
     def get_introspection_schema(self, format_: str, include_directives: bool) -> str:
         from graphql import (
-            print_schema,
             build_client_schema,
-            introspection_from_schema,
             build_schema,
+            introspection_from_schema,
+            print_schema,
         )
 
         schema = build_schema(self.definition + AWS_CUSTOM_GRAPHQL)

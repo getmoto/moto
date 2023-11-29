@@ -3,11 +3,10 @@ from copy import deepcopy
 from datetime import datetime
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_codepipeline, mock_iam
-
 
 expected_pipeline_details = {
     "name": "test-pipeline",

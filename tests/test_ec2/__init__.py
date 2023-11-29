@@ -1,5 +1,6 @@
 import os
 from functools import wraps
+
 from moto import mock_ec2, mock_ssm
 
 

@@ -2,9 +2,9 @@
 from datetime import datetime
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
-import pytest
 
 from moto import mock_secretsmanager
 

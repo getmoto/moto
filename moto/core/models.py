@@ -5,8 +5,18 @@ import os
 import re
 import unittest
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union, overload
-from typing import ContextManager, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ContextManager,
+    Dict,
+    Optional,
+    Set,
+    TypeVar,
+    Union,
+    overload,
+)
 from unittest.mock import patch
 
 import boto3
@@ -16,11 +26,12 @@ from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 
 from moto import settings
+
 from .base_backend import BackendDict
 from .botocore_stubber import BotocoreStubber
 from .custom_responses_mock import (
-    get_response_mock,
     CallbackResponse,
+    get_response_mock,
     not_implemented_callback,
     reset_responses_mock,
 )
@@ -414,7 +425,8 @@ class ServerModeMockAWS(BaseMockAWS):
             # Just started
             self.reset()
 
-        from boto3 import client as real_boto3_client, resource as real_boto3_resource
+        from boto3 import client as real_boto3_client
+        from boto3 import resource as real_boto3_resource
 
         def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
             region = self._get_region(*args, **kwargs)
@@ -478,7 +490,8 @@ class ProxyModeMockAWS(BaseMockAWS):
             # Just started
             self.reset()
 
-        from boto3 import client as real_boto3_client, resource as real_boto3_resource
+        from boto3 import client as real_boto3_client
+        from boto3 import resource as real_boto3_resource
 
         def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
             kwargs["verify"] = False

@@ -1,6 +1,8 @@
-from moto.core.responses import BaseResponse
-from .models import support_backends, SupportBackend
 import json
+
+from moto.core.responses import BaseResponse
+
+from .models import SupportBackend, support_backends
 
 
 class SupportResponse(BaseResponse):

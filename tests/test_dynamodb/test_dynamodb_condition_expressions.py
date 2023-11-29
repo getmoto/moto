@@ -1,8 +1,9 @@
-from decimal import Decimal
 import re
+from decimal import Decimal
 
 import boto3
 import pytest
+
 from moto import mock_dynamodb
 
 

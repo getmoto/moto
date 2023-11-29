@@ -1,9 +1,10 @@
 from typing import Any, Dict, List, Optional
+
 from moto.utilities.utils import filter_resources
 
-from .core import TaggedEC2Resource
 from ..exceptions import InvalidCarrierGatewayID, InvalidVPCIdError
 from ..utils import random_carrier_gateway_id
+from .core import TaggedEC2Resource
 
 
 class CarrierGateway(TaggedEC2Resource):

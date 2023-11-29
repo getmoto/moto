@@ -1,14 +1,13 @@
-import boto3
 import json
-import yaml
 
+import boto3
 import pytest
+import yaml
 from botocore.exceptions import ClientError
 
+from moto import mock_autoscaling, mock_cloudformation, mock_iam, mock_s3, mock_sts
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto import mock_autoscaling, mock_iam, mock_cloudformation, mock_s3, mock_sts
 from tests import EXAMPLE_AMI_ID
-
 
 TEMPLATE_MINIMAL_ROLE = """
 AWSTemplateFormatVersion: 2010-09-09

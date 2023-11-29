@@ -1,9 +1,10 @@
-import boto3
 import json
-from moto import mock_iam, mock_ec2, mock_ecs, mock_cloudformation
-from moto import mock_batch_simple as mock_batch_without_docker
 from uuid import uuid4
 
+import boto3
+
+from moto import mock_batch_simple as mock_batch_without_docker
+from moto import mock_cloudformation, mock_ec2, mock_ecs, mock_iam
 
 # Copy of test_batch/test_batch_cloudformation
 # Except that we verify this behaviour still works without docker

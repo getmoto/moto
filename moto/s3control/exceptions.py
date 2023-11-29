@@ -1,6 +1,6 @@
 from typing import Any
-from moto.core.exceptions import RESTError
 
+from moto.core.exceptions import RESTError
 
 ERROR_WITH_ACCESS_POINT_NAME = """{% extends 'wrapped_single_error' %}
 {% block extra %}<AccessPointName>{{ name }}</AccessPointName>{% endblock %}

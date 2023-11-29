@@ -1,6 +1,7 @@
 import json
-from moto import mock_dynamodb
+
 import moto.server as server
+from moto import mock_dynamodb
 
 """
 Test the different server responses

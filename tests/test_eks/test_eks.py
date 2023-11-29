@@ -1,8 +1,7 @@
 from copy import deepcopy
-from unittest import SkipTest
+from unittest import SkipTest, mock
 
 import boto3
-from unittest import mock
 import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
@@ -35,29 +34,29 @@ from moto.eks.responses import DEFAULT_MAX_RESULTS
 from moto.moto_api._internal import mock_random
 
 from .test_eks_constants import (
-    BatchCountSize,
-    ClusterAttributes,
-    ClusterInputs,
     DEFAULT_NAMESPACE,
     DISK_SIZE,
-    ErrorAttributes,
-    FargateProfileAttributes,
-    FargateProfileInputs,
     FROZEN_TIME,
     INSTANCE_TYPES,
     LAUNCH_TEMPLATE,
     MAX_FARGATE_LABELS,
+    PARTITIONS,
+    POD_EXECUTION_ROLE_ARN,
+    REGION,
+    REMOTE_ACCESS,
+    SERVICE,
+    BatchCountSize,
+    ClusterAttributes,
+    ClusterInputs,
+    ErrorAttributes,
+    FargateProfileAttributes,
+    FargateProfileInputs,
     NodegroupAttributes,
     NodegroupInputs,
     PageCount,
-    PARTITIONS,
-    POD_EXECUTION_ROLE_ARN,
     PossibleTestResults,
     RegExTemplates,
-    REGION,
-    REMOTE_ACCESS,
     ResponseAttributes,
-    SERVICE,
 )
 from .test_eks_utils import (
     attributes_to_test,

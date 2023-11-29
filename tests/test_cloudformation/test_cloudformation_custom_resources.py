@@ -1,16 +1,18 @@
-import boto3
 import json
-import requests
 import time
-import pytest
-
-from botocore.exceptions import ClientError
-from moto import mock_lambda, mock_cloudformation, mock_logs, mock_s3, settings
 from unittest import SkipTest
 from uuid import uuid4
+
+import boto3
+import pytest
+import requests
+from botocore.exceptions import ClientError
+
+from moto import mock_cloudformation, mock_lambda, mock_logs, mock_s3, settings
 from tests.test_awslambda.utilities import wait_for_log_msg
-from .fixtures.custom_lambda import get_template, get_template_for_unknown_lambda
+
 from ..markers import requires_docker
+from .fixtures.custom_lambda import get_template, get_template_for_unknown_lambda
 
 
 def get_lambda_code():

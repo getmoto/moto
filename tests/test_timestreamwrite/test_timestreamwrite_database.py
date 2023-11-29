@@ -1,7 +1,8 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from uuid import uuid4
 
 from moto import mock_timestreamwrite
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

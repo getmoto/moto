@@ -1,9 +1,10 @@
 """Test the different server responses."""
 import json
 import re
+import unittest
+
 import pytest
 import xmltodict
-import unittest
 
 import moto.server as server
 from moto import mock_redshift, settings

@@ -1,25 +1,27 @@
 import json
 import re
 from datetime import datetime
-from dateutil.tz import tzlocal
-from typing import Any, Dict, List, Iterable, Optional, Pattern
+from typing import Any, Dict, Iterable, List, Optional, Pattern
 
-from moto.core import BaseBackend, BackendDict, CloudFormationModel
+from dateutil.tz import tzlocal
+
+from moto import settings
+from moto.core import BackendDict, BaseBackend, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
+
 from .exceptions import (
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
     InvalidExecutionInput,
     InvalidName,
+    NameTooLongException,
     ResourceNotFound,
     StateMachineDoesNotExist,
-    NameTooLongException,
 )
-from .utils import api_to_cfn_tags, cfn_to_api_tags, PAGINATION_MODEL
-from moto import settings
-from moto.utilities.paginator import paginate
+from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
 
 
 class StateMachine(CloudFormationModel):

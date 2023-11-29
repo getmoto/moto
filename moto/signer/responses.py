@@ -4,7 +4,8 @@ from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
-from .models import signer_backends, SignerBackend
+
+from .models import SignerBackend, signer_backends
 
 
 class SignerResponse(BaseResponse):

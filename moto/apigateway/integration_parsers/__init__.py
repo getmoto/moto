@@ -1,6 +1,8 @@
 import abc
 from typing import Tuple, Union
+
 from requests.models import PreparedRequest
+
 from ..models import Integration
 
 

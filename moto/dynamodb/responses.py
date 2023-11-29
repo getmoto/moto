@@ -1,25 +1,24 @@
 import copy
-import json
-
 import itertools
+import json
 from functools import wraps
-from typing import Any, Dict, List, Union, Callable, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
+from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
+from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+
 from .exceptions import (
+    KeyIsEmptyStringException,
     MockValidationException,
     ResourceNotFoundException,
     UnknownKeyType,
-    KeyIsEmptyStringException,
 )
-from moto.dynamodb.models import dynamodb_backends, Table, DynamoDBBackend
-from moto.dynamodb.models.utilities import dynamo_json_dump
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
-
 
 TRANSACTION_MAX_ITEMS = 25
 

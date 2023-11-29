@@ -3,8 +3,9 @@ from typing import Any, Dict, List
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import utcnow
+
 from .exceptions import ValidationError
-from .models import ses_backends, SESBackend
+from .models import SESBackend, ses_backends
 
 
 class EmailResponse(BaseResponse):

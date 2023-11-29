@@ -1,7 +1,8 @@
-import boto3
 import unittest
 
-from moto import mock_sqs, mock_ec2
+import boto3
+
+from moto import mock_ec2, mock_sqs
 from tests import EXAMPLE_AMI_ID
 
 

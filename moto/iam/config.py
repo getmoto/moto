@@ -1,8 +1,10 @@
 import json
-import boto3
 from typing import Any, Dict, List, Optional, Tuple
-from moto.core.exceptions import InvalidNextTokenException
+
+import boto3
+
 from moto.core.common_models import ConfigQueryModel
+from moto.core.exceptions import InvalidNextTokenException
 from moto.iam import iam_backends
 
 

@@ -1,4 +1,5 @@
-from typing import Any, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, Union
+
 from moto.core.exceptions import RESTError
 
 if TYPE_CHECKING:

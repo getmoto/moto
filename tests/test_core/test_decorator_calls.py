@@ -1,11 +1,12 @@
+import unittest
+from typing import Any
+from unittest import SkipTest
+
 import boto3
 import pytest
-import unittest
-
 from botocore.exceptions import ClientError
-from typing import Any
+
 from moto import mock_ec2, mock_kinesis, mock_s3, settings
-from unittest import SkipTest
 
 """
 Test the different ways that the decorator can be used

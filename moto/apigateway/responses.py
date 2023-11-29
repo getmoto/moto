@@ -2,11 +2,12 @@ import json
 from typing import Any, Dict, List
 from urllib.parse import unquote
 
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.utilities.utils import merge_multiple_dicts
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
-from .models import apigateway_backends, APIGatewayBackend
-from .utils import deserialize_body
+
 from .exceptions import InvalidRequestInput
+from .models import APIGatewayBackend, apigateway_backends
+from .utils import deserialize_body
 
 API_KEY_SOURCES = ["AUTHORIZER", "HEADER"]
 AUTHORIZER_TYPES = ["TOKEN", "REQUEST", "COGNITO_USER_POOLS"]

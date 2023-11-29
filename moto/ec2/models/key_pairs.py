@@ -1,20 +1,21 @@
 from typing import Any, Dict, List, Optional
 
-from .core import TaggedEC2Resource
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+
 from ..exceptions import (
-    InvalidKeyPairNameError,
     InvalidKeyPairDuplicateError,
     InvalidKeyPairFormatError,
+    InvalidKeyPairNameError,
 )
 from ..utils import (
     generic_filter,
     public_key_fingerprint,
     public_key_parse,
-    random_key_pair_id,
     random_ed25519_key_pair,
+    random_key_pair_id,
     random_rsa_key_pair,
 )
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from .core import TaggedEC2Resource
 
 
 class KeyPair(TaggedEC2Resource):

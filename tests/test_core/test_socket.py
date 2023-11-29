@@ -1,6 +1,7 @@
-import unittest
-from moto import mock_dynamodb
 import socket
+import unittest
+
+from moto import mock_dynamodb
 
 
 class TestSocketPair(unittest.TestCase):

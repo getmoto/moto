@@ -1,6 +1,6 @@
 """Test the different server responses."""
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 import moto.server as server
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 def test_sns_server_get():

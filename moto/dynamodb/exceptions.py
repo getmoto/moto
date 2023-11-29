@@ -1,8 +1,8 @@
 import json
 from typing import Any, Dict, List, Optional
+
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
-
 
 ERROR_TYPE_PREFIX = "com.amazonaws.dynamodb.v20120810#"
 

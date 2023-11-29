@@ -1,7 +1,8 @@
-from ..test_batch import _get_clients, _setup
-from moto import mock_batch_simple, mock_iam, mock_ec2, mock_ecs, settings
 from uuid import uuid4
 
+from moto import mock_batch_simple, mock_ec2, mock_ecs, mock_iam, settings
+
+from ..test_batch import _get_clients, _setup
 
 # Copy of test_batch/test_batch_compute_envs
 # Except that we verify this behaviour still works without docker

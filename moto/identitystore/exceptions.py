@@ -1,9 +1,8 @@
 """Exceptions raised by the identitystore service."""
 import json
-
-from moto.core.exceptions import AWSError
 from typing import Any
 
+from moto.core.exceptions import AWSError
 
 request_id = "178936da-50ad-4d58-8871-22d9979e8658example"
 

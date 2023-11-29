@@ -1,9 +1,11 @@
-import yaml
 import os
 import string
-from moto.moto_api._internal import mock_random as random
 from typing import Any, List
 from urllib.parse import urlparse
+
+import yaml
+
+from moto.moto_api._internal import mock_random as random
 
 
 def generate_stack_id(stack_name: str, region: str, account: str) -> str:
@@ -56,7 +58,7 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
 
 def validate_template_cfn_lint(template: str) -> List[Any]:
     # Importing cfnlint adds a significant overhead, so we keep it local
-    from cfnlint import decode, core
+    from cfnlint import core, decode
 
     # Save the template to a temporary file -- cfn-lint requires a file
     filename = "file.tmp"

@@ -1,7 +1,7 @@
 import os
 import threading
 import time
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 from uuid import uuid4
 
 from . import debug, info

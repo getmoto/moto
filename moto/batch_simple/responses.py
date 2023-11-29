@@ -1,5 +1,5 @@
 from ..batch.responses import BatchResponse
-from .models import batch_simple_backends, BatchBackend
+from .models import BatchBackend, batch_simple_backends
 
 
 class BatchSimpleResponse(BatchResponse):

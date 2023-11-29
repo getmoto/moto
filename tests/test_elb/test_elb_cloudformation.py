@@ -1,5 +1,6 @@
-import boto3
 import json
+
+import boto3
 
 from moto import mock_cloudformation, mock_ec2, mock_elb
 from tests import EXAMPLE_AMI_ID

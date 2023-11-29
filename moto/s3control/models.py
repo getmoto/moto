@@ -2,12 +2,12 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal import mock_random
 from moto.s3.exceptions import (
-    WrongPublicAccessBlockAccountIdError,
-    NoSuchPublicAccessBlockConfiguration,
     InvalidPublicAccessBlockConfiguration,
+    NoSuchPublicAccessBlockConfiguration,
+    WrongPublicAccessBlockAccountIdError,
 )
 from moto.s3.models import PublicAccessBlock
 

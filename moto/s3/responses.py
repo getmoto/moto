@@ -1,71 +1,77 @@
 import io
 import re
-from typing import Any, Dict, List, Iterator, Union, Tuple, Optional, Type
-
 import urllib.parse
-
-from moto import settings
-from moto.core.utils import (
-    extract_region_from_aws_authorization,
-    str_to_rfc_1123_datetime,
-)
-from urllib.parse import parse_qs, urlparse, unquote, urlencode, urlunparse
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
+from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
+from xml.dom import minidom
 
 import xmltodict
 
+from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from moto.core.utils import path_url
-
+from moto.core.utils import (
+    extract_region_from_aws_authorization,
+    path_url,
+    str_to_rfc_1123_datetime,
+)
 from moto.s3bucket_path.utils import (
     bucket_name_from_url as bucketpath_bucket_name_from_url,
+)
+from moto.s3bucket_path.utils import (
     parse_key_name as bucketpath_parse_key_name,
 )
 from moto.utilities.aws_headers import amzn_request_id
 
 from .exceptions import (
-    BucketAlreadyExists,
+    AccessForbidden,
     BucketAccessDeniedError,
+    BucketAlreadyExists,
     BucketMustHaveLockeEnabled,
     DuplicateTagKeys,
+    HeadOnDeleteMarker,
+    IllegalLocationConstraintException,
     InvalidContentMD5,
     InvalidContinuationToken,
-    S3ClientError,
-    HeadOnDeleteMarker,
+    InvalidMaxPartArgument,
+    InvalidMaxPartNumberArgument,
+    InvalidNotificationARN,
+    InvalidNotificationEvent,
+    InvalidObjectState,
+    InvalidPartOrder,
+    InvalidRange,
+    LockNotEnabled,
+    MalformedACLError,
+    MalformedXML,
     MissingBucket,
     MissingKey,
     MissingVersion,
-    InvalidMaxPartArgument,
-    InvalidMaxPartNumberArgument,
-    NotAnIntegerException,
-    InvalidPartOrder,
-    MalformedXML,
-    MalformedACLError,
-    IllegalLocationConstraintException,
-    InvalidNotificationARN,
-    InvalidNotificationEvent,
-    S3AclAndGrantError,
-    InvalidObjectState,
-    ObjectNotInActiveTierError,
     NoSystemTags,
+    NotAnIntegerException,
+    ObjectNotInActiveTierError,
     PreconditionFailed,
-    InvalidRange,
-    LockNotEnabled,
-    AccessForbidden,
+    S3AclAndGrantError,
+    S3ClientError,
 )
-from .models import s3_backends, S3Backend
-from .models import get_canned_acl, FakeGrantee, FakeGrant, FakeAcl, FakeKey, FakeBucket
+from .models import (
+    FakeAcl,
+    FakeBucket,
+    FakeGrant,
+    FakeGrantee,
+    FakeKey,
+    S3Backend,
+    get_canned_acl,
+    s3_backends,
+)
 from .select_object_content import serialize_select
 from .utils import (
+    ARCHIVE_STORAGE_CLASSES,
     bucket_name_from_url,
+    compute_checksum,
+    cors_matches_origin,
     metadata_from_headers,
     parse_region_from_url,
-    compute_checksum,
-    ARCHIVE_STORAGE_CLASSES,
-    cors_matches_origin,
 )
-from xml.dom import minidom
-
 
 DEFAULT_REGION_NAME = "us-east-1"
 

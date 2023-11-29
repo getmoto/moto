@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import meteringmarketplace_backends, MeteringMarketplaceBackend
+
+from .models import MeteringMarketplaceBackend, meteringmarketplace_backends
 
 
 class MarketplaceMeteringResponse(BaseResponse):

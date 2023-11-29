@@ -1,15 +1,14 @@
 import copy
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from operator import itemgetter
+from uuid import uuid4
 
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta, timezone
 from dateutil.tz import tzutc
-from decimal import Decimal
 from freezegun import freeze_time
-from operator import itemgetter
-from uuid import uuid4
 
 from moto import mock_cloudwatch, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

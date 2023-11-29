@@ -3,24 +3,24 @@ from threading import Timer as ThreadingTimer
 from time import sleep
 from unittest.mock import Mock, patch
 
-from freezegun import freeze_time
 import pytest
+from freezegun import freeze_time
 
 from moto.swf.exceptions import SWFDefaultUndefinedFault
 from moto.swf.models import (
     ActivityType,
     Timeout,
     Timer,
-    WorkflowType,
     WorkflowExecution,
+    WorkflowType,
 )
+
 from ..utils import (
     auto_start_decision_tasks,
     get_basic_domain,
     get_basic_workflow_type,
     make_workflow_execution,
 )
-
 
 VALID_ACTIVITY_TASK_ATTRIBUTES = {
     "activityId": "my-activity-001",

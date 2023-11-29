@@ -1,14 +1,14 @@
-import pytest
 import datetime
-import boto3
+from unittest import SkipTest
+from uuid import uuid4
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
-from unittest import SkipTest
 
 
 @mock_ec2

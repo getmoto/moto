@@ -1,9 +1,11 @@
-import boto3
 import os
 from functools import wraps
-from moto import mock_s3, mock_sts, mock_s3control
-from moto.s3.responses import DEFAULT_REGION_NAME
 from uuid import uuid4
+
+import boto3
+
+from moto import mock_s3, mock_s3control, mock_sts
+from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 def s3_aws_verified(func):
