@@ -103,7 +103,7 @@ class UnknownPolicyException(LambdaClientError):
 class UnknownEventConfig(LambdaClientError):
     code = 404
 
-    def __init__(self, arn) -> None:
+    def __init__(self, arn: str) -> None:
         super().__init__(
             "ResourceNotFoundException",
             f"The function {arn} doesn't have an EventInvokeConfig",
