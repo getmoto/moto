@@ -615,7 +615,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
-        self.event_invoke_config: EventInvokeConfig | None = EventInvokeConfig(
+        self.event_invoke_config: Optional[EventInvokeConfig] = EventInvokeConfig(
             EventInvokeConfig.default_config
         )
 
