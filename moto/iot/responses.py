@@ -34,12 +34,14 @@ class IoTResponse(BaseResponse):
         thing_name = self._get_param("thingName")
         thing_type_name = self._get_param("thingTypeName")
         attribute_payload = self._get_param("attributePayload")
-        thing_name, thing_arn = self.iot_backend.create_thing(
+        thing = self.iot_backend.create_thing(
             thing_name=thing_name,
             thing_type_name=thing_type_name,
             attribute_payload=attribute_payload,
         )
-        return json.dumps(dict(thingName=thing_name, thingArn=thing_arn))
+        return json.dumps(
+            dict(thingName=thing.thing_name, thingArn=thing.arn, thingId=thing.thing_id)
+        )
 
     def create_thing_type(self) -> str:
         thing_type_name = self._get_param("thingTypeName")
@@ -95,7 +97,9 @@ class IoTResponse(BaseResponse):
     def describe_thing(self) -> str:
         thing_name = self._get_param("thingName")
         thing = self.iot_backend.describe_thing(thing_name=thing_name)
-        return json.dumps(thing.to_dict(include_default_client_id=True))
+        return json.dumps(
+            thing.to_dict(include_default_client_id=True, include_thing_id=True)
+        )
 
     def describe_thing_type(self) -> str:
         thing_type_name = self._get_param("thingTypeName")
@@ -415,12 +419,8 @@ class IoTResponse(BaseResponse):
         return json.dumps(policy.to_dict_at_creation())
 
     def list_policies(self) -> str:
-        # marker = self._get_param("marker")
-        # page_size = self._get_int_param("pageSize")
-        # ascending_order = self._get_param("ascendingOrder")
         policies = self.iot_backend.list_policies()
 
-        # TODO: implement pagination in the future
         return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
 
     def get_policy(self) -> str:
@@ -492,14 +492,8 @@ class IoTResponse(BaseResponse):
 
     def list_attached_policies(self) -> str:
         principal = self._get_param("target")
-        # marker = self._get_param("marker")
-        # page_size = self._get_int_param("pageSize")
         policies = self.iot_backend.list_attached_policies(target=principal)
-        # TODO: implement pagination in the future
-        next_marker = None
-        return json.dumps(
-            dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker)
-        )
+        return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
 
     def attach_principal_policy(self) -> str:
         policy_name = self._get_param("policyName")
@@ -525,31 +519,19 @@ class IoTResponse(BaseResponse):
 
     def list_principal_policies(self) -> str:
         principal = self.headers.get("x-amzn-iot-principal")
-        # marker = self._get_param("marker")
-        # page_size = self._get_int_param("pageSize")
-        # ascending_order = self._get_param("ascendingOrder")
         policies = self.iot_backend.list_principal_policies(principal_arn=principal)
-        # TODO: implement pagination in the future
-        next_marker = None
-        return json.dumps(
-            dict(policies=[_.to_dict() for _ in policies], nextMarker=next_marker)
-        )
+        return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
 
     def list_policy_principals(self) -> str:
         policy_name = self.headers.get("x-amzn-iot-policy")
-        # marker = self._get_param("marker")
-        # page_size = self._get_int_param("pageSize")
-        # ascending_order = self._get_param("ascendingOrder")
         principals = self.iot_backend.list_policy_principals(policy_name=policy_name)
-        # TODO: implement pagination in the future
-        next_marker = None
-        return json.dumps(dict(principals=principals, nextMarker=next_marker))
+        return json.dumps(dict(principals=principals))
 
     def list_targets_for_policy(self) -> str:
         """https://docs.aws.amazon.com/iot/latest/apireference/API_ListTargetsForPolicy.html"""
         policy_name = self._get_param("policyName")
         principals = self.iot_backend.list_targets_for_policy(policy_name=policy_name)
-        return json.dumps(dict(targets=principals, nextMarker=None))
+        return json.dumps(dict(targets=principals))
 
     def attach_thing_principal(self) -> str:
         thing_name = self._get_param("thingName")
