@@ -438,7 +438,7 @@ class LogsResponse(BaseResponse):
             fromTime=self._get_int_param("from"),
             to=self._get_int_param("to"),
             destination=self._get_param("destination"),
-            destinationPrefix=self._get_param("destinationPrefix"),
+            destinationPrefix=self._get_param("destinationPrefix", "exportedlogs"),
             taskName=self._get_param("taskName"),
         )
         return json.dumps(dict(taskId=str(task_id)))
