@@ -2,7 +2,7 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import datasync_backends, DataSyncBackend, Location
+from .models import DataSyncBackend, Location, datasync_backends
 
 
 class DataSyncResponse(BaseResponse):

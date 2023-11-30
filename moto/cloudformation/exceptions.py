@@ -1,6 +1,8 @@
-from moto.core.exceptions import RESTError
-from jinja2 import Template
 from typing import Optional
+
+from jinja2 import Template
+
+from moto.core.exceptions import RESTError
 
 
 class UnformattedGetAttTemplateException(Exception):

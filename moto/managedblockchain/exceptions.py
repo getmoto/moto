@@ -1,6 +1,7 @@
 import json
-from moto.core.exceptions import JsonRESTError
 from typing import Any, List, Tuple
+
+from moto.core.exceptions import JsonRESTError
 
 
 class ManagedBlockchainClientError(JsonRESTError):

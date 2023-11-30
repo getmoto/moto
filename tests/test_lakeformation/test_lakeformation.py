@@ -1,9 +1,10 @@
 """Unit tests for lakeformation-supported APIs."""
 from typing import Dict, Optional
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_lakeformation
 
 # See our Development Tips on writing tests for hints on how to write good tests:

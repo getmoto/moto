@@ -1,13 +1,13 @@
-import json
 import datetime
+import json
 from typing import Any, Dict, Tuple, Union
-
-from moto.core.responses import BaseResponse
-from moto.core.exceptions import AWSError
 from urllib.parse import urlsplit
 
-from .models import xray_backends, XRayBackend
+from moto.core.exceptions import AWSError
+from moto.core.responses import BaseResponse
+
 from .exceptions import BadSegmentException
+from .models import XRayBackend, xray_backends
 
 
 class XRayResponse(BaseResponse):

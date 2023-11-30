@@ -1,21 +1,22 @@
 from typing import Any, Dict, List, Optional
+
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
 
 from ..exceptions import (
-    InvalidVPCIdError,
-    GatewayNotAttachedError,
     DependencyViolationError,
-    InvalidInternetGatewayIdError,
+    GatewayNotAttachedError,
     InvalidGatewayIDError,
+    InvalidInternetGatewayIdError,
+    InvalidVPCIdError,
     ResourceAlreadyAssociatedError,
 )
-from .vpn_gateway import VPCGatewayAttachment
 from ..utils import (
     filter_internet_gateways,
     random_egress_only_internet_gateway_id,
     random_internet_gateway_id,
 )
+from .core import TaggedEC2Resource
+from .vpn_gateway import VPCGatewayAttachment
 
 
 class EgressOnlyInternetGateway(TaggedEC2Resource):

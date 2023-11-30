@@ -1,15 +1,14 @@
 import random
 import time
+from threading import Thread
+
 import pytest
 
-from moto.core import BaseBackend, BackendDict, DEFAULT_ACCOUNT_ID
-from moto.core.base_backend import AccountSpecificBackend
-
 from moto.autoscaling.models import AutoScalingBackend
+from moto.core import DEFAULT_ACCOUNT_ID, BackendDict, BaseBackend
+from moto.core.base_backend import AccountSpecificBackend
 from moto.ec2.models import EC2Backend
 from moto.elbv2.models import ELBv2Backend
-
-from threading import Thread
 
 
 class ExampleBackend(BaseBackend):

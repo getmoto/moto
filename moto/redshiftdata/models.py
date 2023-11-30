@@ -1,11 +1,11 @@
 import re
 from datetime import datetime
-from typing import Any, Dict, Iterable, Iterator, List, Tuple, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict
+from moto.core import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random as random
-from moto.redshiftdata.exceptions import ValidationException, ResourceNotFoundException
+from moto.redshiftdata.exceptions import ResourceNotFoundException, ValidationException
 
 
 class Statement(Iterable[Tuple[str, Any]]):

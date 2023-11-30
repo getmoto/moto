@@ -1,12 +1,14 @@
 """CostExplorerBackend class with methods for supported APIs."""
 
-from .exceptions import CostCategoryNotFound
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.utilities.tagging_service import TaggingService
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random
-from datetime import datetime
-from typing import Any, Dict, List, Tuple, Optional
+from moto.utilities.tagging_service import TaggingService
+
+from .exceptions import CostCategoryNotFound
 
 
 def first_day() -> str:

@@ -8,6 +8,7 @@ except ImportError:
 
 from moto.moto_api._internal import mock_random
 from tests.test_eks.test_eks_constants import (
+    STATUS,
     ClusterAttributes,
     ClusterInputs,
     FargateProfileAttributes,
@@ -15,9 +16,7 @@ from tests.test_eks.test_eks_constants import (
     NodegroupAttributes,
     NodegroupInputs,
     ResponseAttributes,
-    STATUS,
 )
-
 
 generate_random_name = mock_random.get_random_string
 

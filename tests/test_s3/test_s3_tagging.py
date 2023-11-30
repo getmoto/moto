@@ -1,10 +1,11 @@
 import boto3
-from botocore.client import ClientError
 import pytest
 import requests
+from botocore.client import ClientError
 
 from moto import mock_s3, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
+
 from .test_s3 import add_proxy_details
 
 

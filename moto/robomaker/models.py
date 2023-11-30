@@ -1,7 +1,7 @@
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import unix_time
+from typing import Any, Dict, Iterable, List
 
-from typing import Any, Dict, List, Iterable
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.utils import unix_time
 
 
 class RobotApplication(BaseModel):

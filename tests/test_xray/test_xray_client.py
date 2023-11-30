@@ -1,5 +1,4 @@
 import os
-import requests  # noqa # pylint: disable=all
 import sys
 from unittest import SkipTest
 
@@ -8,8 +7,9 @@ import aws_xray_sdk.core.patcher as xray_core_patcher
 import boto3
 import botocore.client
 import botocore.endpoint
+import requests  # noqa # pylint: disable=all
 
-from moto import mock_xray_client, XRaySegment, mock_dynamodb
+from moto import XRaySegment, mock_dynamodb, mock_xray_client
 from moto.utilities.distutils_version import LooseVersion
 from moto.xray.mock_client import MockEmitter
 

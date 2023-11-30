@@ -1,17 +1,17 @@
 import base64
 import fnmatch
-import re
 import ipaddress
+import re
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PublicKey,
     Ed25519PrivateKey,
+    Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
 
 from moto.core.utils import utcnow
 from moto.iam import iam_backends

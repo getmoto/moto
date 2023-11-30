@@ -2,7 +2,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import comprehend_backends, ComprehendBackend
+
+from .models import ComprehendBackend, comprehend_backends
 
 
 class ComprehendResponse(BaseResponse):

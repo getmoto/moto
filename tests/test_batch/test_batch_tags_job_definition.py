@@ -1,7 +1,8 @@
-from . import _get_clients
+from uuid import uuid4
 
 from moto import mock_batch
-from uuid import uuid4
+
+from . import _get_clients
 
 container_properties = {
     "image": "busybox",

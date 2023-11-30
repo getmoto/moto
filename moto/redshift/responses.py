@@ -1,13 +1,13 @@
 import json
+from typing import Any, Dict, List
 
 import xmltodict
-
 from jinja2 import Template
-from typing import Any, Dict, List
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import redshift_backends, RedshiftBackend
+
+from .models import RedshiftBackend, redshift_backends
 
 
 def convert_json_error_to_xml(json_error: Any) -> str:

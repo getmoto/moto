@@ -1,20 +1,22 @@
 import json
+import logging
 
 import boto3
 from botocore.client import ClientError
 
-from moto import mock_acm
-from moto import mock_ec2
-from moto import mock_elbv2
-from moto import mock_kms
-from moto import mock_resourcegroupstaggingapi
-from moto import mock_s3
-from moto import mock_lambda
-from moto import mock_iam
-from moto import mock_cloudformation
-from moto import mock_ecs
+from moto import (
+    mock_acm,
+    mock_cloudformation,
+    mock_ec2,
+    mock_ecs,
+    mock_elbv2,
+    mock_iam,
+    mock_kms,
+    mock_lambda,
+    mock_resourcegroupstaggingapi,
+    mock_s3,
+)
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
-import logging
 
 
 @mock_kms

@@ -1,8 +1,8 @@
 """Unit tests for ce-supported APIs."""
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_ce
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 

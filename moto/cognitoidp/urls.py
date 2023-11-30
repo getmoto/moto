@@ -1,4 +1,4 @@
-from .responses import CognitoIdpResponse, CognitoIdpJsonWebKeyResponse
+from .responses import CognitoIdpJsonWebKeyResponse, CognitoIdpResponse
 
 url_bases = [r"https?://cognito-idp\.(.+)\.amazonaws.com"]
 

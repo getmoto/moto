@@ -1,7 +1,8 @@
 import copy
 import re
 import string
-from typing import Any, List, Dict, Tuple, Iterator
+from typing import Any, Dict, Iterator, List, Tuple
+
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,

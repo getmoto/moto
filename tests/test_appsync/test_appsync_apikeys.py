@@ -1,6 +1,7 @@
+from datetime import datetime, timedelta
+
 import boto3
 
-from datetime import timedelta, datetime
 from moto import mock_appsync
 from moto.core.utils import unix_time
 

@@ -1,4 +1,5 @@
-from threading import Timer as ThreadingTimer, Lock
+from threading import Lock
+from threading import Timer as ThreadingTimer
 from typing import Any, Dict, Iterable, List, Optional
 
 from moto.core import BaseModel
@@ -7,9 +8,9 @@ from moto.moto_api._internal import mock_random
 
 from ..constants import DECISIONS_FIELDS
 from ..exceptions import (
+    SWFDecisionValidationException,
     SWFDefaultUndefinedFault,
     SWFValidationException,
-    SWFDecisionValidationException,
 )
 from ..utils import decapitalize
 from .activity_task import ActivityTask

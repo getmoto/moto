@@ -1,6 +1,8 @@
 from typing import Any, Dict, Iterable
-from moto.core import BaseBackend, BackendDict, BaseModel
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal import mock_random as random
+
 from .exceptions import ResourceNotFoundException
 
 

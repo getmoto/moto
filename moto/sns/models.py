@@ -1,40 +1,40 @@
 import contextlib
 import json
-import requests
 import re
-
 from collections import OrderedDict
-from typing import Any, Dict, List, Iterable, Optional, Tuple, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+import requests
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
-    iso_8601_datetime_with_milliseconds,
     camelcase_to_underscores,
+    iso_8601_datetime_with_milliseconds,
 )
 from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
 from moto.sqs.exceptions import MissingParameter
+from moto.utilities.arns import parse_arn
 
 from .exceptions import (
-    SNSNotFoundError,
-    TopicNotFound,
+    BatchEntryIdsNotDistinct,
     DuplicateSnsEndpointError,
+    InternalError,
+    InvalidParameterValue,
+    ResourceNotFoundError,
     SnsEndpointDisabled,
     SNSInvalidParameter,
-    InvalidParameterValue,
-    InternalError,
-    ResourceNotFoundError,
+    SNSNotFoundError,
     TagLimitExceededError,
     TooManyEntriesInBatchRequest,
-    BatchEntryIdsNotDistinct,
+    TopicNotFound,
 )
 from .utils import (
-    make_arn_for_topic,
-    make_arn_for_subscription,
-    is_e164,
     FilterPolicyMatcher,
+    is_e164,
+    make_arn_for_subscription,
+    make_arn_for_topic,
 )
-from moto.utilities.arns import parse_arn
 
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB

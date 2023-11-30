@@ -1,11 +1,12 @@
+from uuid import uuid4
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from moto import mock_autoscaling, mock_ec2, mock_elb
 
+from moto import mock_autoscaling, mock_ec2, mock_elb
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
-from uuid import uuid4
+
 from .test_instances import retrieve_all_instances
 
 

@@ -1,14 +1,13 @@
 import json
+from uuid import uuid4
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
-import pytest
-
-from moto import mock_iam, mock_ec2, mock_s3, mock_sts, mock_ssm, mock_elbv2, mock_rds
-from moto.core import set_initial_no_auth_action_count
+from moto import mock_ec2, mock_elbv2, mock_iam, mock_rds, mock_s3, mock_ssm, mock_sts
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
+from moto.core import set_initial_no_auth_action_count
 
 
 @mock_iam

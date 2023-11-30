@@ -1,12 +1,11 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
-from typing import Any, Dict, List, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import ScheduleExists
-from .exceptions import ScheduleNotFound, ScheduleGroupNotFound
+from .exceptions import ScheduleExists, ScheduleGroupNotFound, ScheduleNotFound
 
 
 class Schedule(BaseModel):

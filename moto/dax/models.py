@@ -1,12 +1,13 @@
 """DAXBackend class with methods for supported APIs."""
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, Iterable, List
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.utilities.tagging_service import TaggingService
 from moto.utilities.paginator import paginate
-from typing import Any, Dict, List, Iterable
+from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import ClusterNotFoundFault
 from .utils import PAGINATION_MODEL

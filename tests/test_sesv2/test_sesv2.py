@@ -1,9 +1,11 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
-from moto import mock_sesv2, mock_ses, settings
-from moto.ses.models import ses_backends, RawMessage, Message
+from botocore.exceptions import ClientError
+
+from moto import mock_ses, mock_sesv2, settings
+from moto.ses.models import Message, RawMessage, ses_backends
 from tests import DEFAULT_ACCOUNT_ID
+
 from ..test_ses.test_ses_boto3 import get_raw_email
 
 

@@ -1,14 +1,14 @@
-import boto3
 import json
-import pytest
-
-from botocore.exceptions import ClientError
 from datetime import datetime
-from dateutil.tz import tzlocal
-from freezegun import freeze_time
-from moto import mock_ecr, settings
 from unittest import SkipTest
 
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+from dateutil.tz import tzlocal
+from freezegun import freeze_time
+
+from moto import mock_ecr, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_ecr_helpers import _create_image_manifest, _create_image_manifest_list

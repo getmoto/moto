@@ -1,10 +1,10 @@
 import json
+from typing import Any, Dict, List
 
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionAuthenticatorMixin, BaseResponse
-from typing import Any, Dict, List
 
 
 class MotoAPIResponse(BaseResponse):

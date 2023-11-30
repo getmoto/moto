@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Any, List, Dict, Tuple, Optional, Union
-from moto.dynamodb.exceptions import MockValidationException, KeyIsEmptyStringException
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from moto.dynamodb.exceptions import KeyIsEmptyStringException, MockValidationException
 from moto.utilities.tokenizer import GenericTokenizer
 
 

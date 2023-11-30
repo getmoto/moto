@@ -1,5 +1,5 @@
-from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.moto_api import state_manager
+from moto.moto_api._internal.managed_state_model import ManagedState
 
 
 class ExampleModel(ManagedState):

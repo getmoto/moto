@@ -1,9 +1,8 @@
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from moto import mock_opsworks
-from moto import mock_ec2
+
+from moto import mock_ec2, mock_opsworks
 from tests import EXAMPLE_AMI_ID
 
 

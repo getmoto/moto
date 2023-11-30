@@ -1,23 +1,24 @@
-from functools import wraps
-from io import BytesIO
 import os
 import re
-
-import boto3
-from botocore.client import ClientError
-import pytest
-import requests
+from functools import wraps
+from io import BytesIO
 from unittest import SkipTest
 
-from moto import settings, mock_s3
+import boto3
+import pytest
+import requests
+from botocore.client import ClientError
+
 import moto.s3.models as s3model
+from moto import mock_s3, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
-    get_s3_default_key_buffer_size,
     S3_UPLOAD_PART_MIN_SIZE,
+    get_s3_default_key_buffer_size,
     test_proxy_mode,
 )
 from tests import DEFAULT_ACCOUNT_ID
+
 from .test_s3 import add_proxy_details
 
 if settings.TEST_DECORATOR_MODE:

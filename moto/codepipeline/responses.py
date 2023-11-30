@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import codepipeline_backends, CodePipelineBackend
+
+from .models import CodePipelineBackend, codepipeline_backends
 
 
 class CodePipelineResponse(BaseResponse):

@@ -1,8 +1,8 @@
 from uuid import uuid4
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_s3
 

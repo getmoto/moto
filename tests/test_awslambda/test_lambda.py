@@ -1,24 +1,26 @@
 import base64
+import hashlib
 import json
 import os
 from unittest import SkipTest, mock
-import boto3
-import hashlib
-import pytest
+from uuid import uuid4
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
-from tests.test_ecr.test_ecr_helpers import _create_image_manifest
-from moto import mock_lambda, mock_s3, mock_ecr, settings
+
+from moto import mock_ecr, mock_lambda, mock_s3, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
+from tests.test_ecr.test_ecr_helpers import _create_image_manifest
+
 from .utilities import (
+    _process_lambda,
+    create_invalid_lambda,
     get_role_name,
     get_test_zip_file1,
     get_test_zip_file2,
     get_test_zip_file3,
-    create_invalid_lambda,
-    _process_lambda,
 )
 
 PYTHON_VERSION = "python3.11"

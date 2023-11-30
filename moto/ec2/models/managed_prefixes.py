@@ -1,8 +1,9 @@
 from typing import Any, Dict, List, Optional
 
 from moto.utilities.utils import filter_resources
+
+from ..utils import describe_tag_filter, random_managed_prefix_list_id
 from .core import TaggedEC2Resource
-from ..utils import random_managed_prefix_list_id, describe_tag_filter
 
 
 class ManagedPrefixList(TaggedEC2Resource):

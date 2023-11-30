@@ -1,12 +1,12 @@
 import weakref
 from typing import Dict, List
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 
 from .exceptions import (
+    ApplicationNotFound,
     InvalidParameterValueError,
     ResourceNotFoundException,
-    ApplicationNotFound,
 )
 from .utils import make_arn
 

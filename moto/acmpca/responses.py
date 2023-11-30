@@ -3,7 +3,8 @@ import base64
 import json
 
 from moto.core.responses import BaseResponse
-from .models import acmpca_backends, ACMPCABackend
+
+from .models import ACMPCABackend, acmpca_backends
 
 
 class ACMPCAResponse(BaseResponse):

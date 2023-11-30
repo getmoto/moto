@@ -1,10 +1,11 @@
-import boto3
 import json
 import os
+from unittest import SkipTest, mock
+
+import boto3
 import responses
 
 from moto import mock_events, settings
-from unittest import mock, SkipTest
 
 
 @mock_events

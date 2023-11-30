@@ -1,9 +1,10 @@
-import boto3
-from unittest import mock
 import os
+from unittest import SkipTest, mock
+
+import boto3
 import pytest
+
 from moto import mock_dynamodb, mock_sns, settings
-from unittest import SkipTest
 
 
 @mock_sns

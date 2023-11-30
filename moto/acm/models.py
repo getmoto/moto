@@ -1,24 +1,24 @@
 import base64
-import re
 import datetime
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import utcnow
+import re
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+
+import cryptography.hazmat.primitives.asymmetric.rsa
+import cryptography.x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.x509 import OID_COMMON_NAME, DNSName, NameOID
+
 from moto import settings
-from typing import Any, Dict, List, Iterable, Optional, Tuple, Set
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.utils import utcnow
 
 from .exceptions import (
-    AWSValidationException,
     AWSTooManyTagsException,
+    AWSValidationException,
     CertificateNotFound,
 )
 from .utils import make_arn_for_certificate
-
-import cryptography.x509
-from cryptography.x509 import OID_COMMON_NAME, NameOID, DNSName
-import cryptography.hazmat.primitives.asymmetric.rsa
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.backends import default_backend
-
 
 AWS_ROOT_CA = b"""-----BEGIN CERTIFICATE-----
 MIIESTCCAzGgAwIBAgITBntQXCplJ7wevi2i0ZmY7bibLDANBgkqhkiG9w0BAQsF

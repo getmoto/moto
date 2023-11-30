@@ -1,22 +1,23 @@
 import datetime
 from collections import OrderedDict
-from typing import Any, Dict, List, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.ec2.models import ec2_backends
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidInstanceIdError
+from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random
+
 from .exceptions import (
     BadHealthCheckDefinition,
-    DuplicateLoadBalancerName,
+    CertificateNotFoundException,
     DuplicateListenerError,
+    DuplicateLoadBalancerName,
     EmptyListenersError,
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
     NoActiveLoadBalancerFoundError,
     PolicyNotFoundError,
     TooManyTagsError,
-    CertificateNotFoundException,
 )
 from .policies import (
     AppCookieStickinessPolicy,
@@ -619,7 +620,7 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def _register_certificate(self, ssl_certificate_id: str, dns_name: str) -> None:
-        from moto.acm.models import acm_backends, CertificateNotFound
+        from moto.acm.models import CertificateNotFound, acm_backends
 
         acm_backend = acm_backends[self.account_id][self.region_name]
         try:

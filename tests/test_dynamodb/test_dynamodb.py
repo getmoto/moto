@@ -1,19 +1,20 @@
-import boto3
-import pytest
-import uuid
 import re
-from botocore.exceptions import ClientError
+import uuid
 from datetime import datetime
 from decimal import Decimal
 
+import boto3
+import pytest
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import Binary
+from botocore.exceptions import ClientError
+
+import moto.dynamodb.comparisons
+import moto.dynamodb.models
 from moto import mock_dynamodb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
 
-import moto.dynamodb.comparisons
-import moto.dynamodb.models
 from . import dynamodb_aws_verified
 
 

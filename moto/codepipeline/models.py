@@ -1,17 +1,17 @@
 import json
 from typing import Any, Dict, List, Tuple
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
-from moto.iam.exceptions import IAMNotFoundException
-from moto.iam.models import iam_backends, IAMBackend
 
 from moto.codepipeline.exceptions import (
     InvalidStructureException,
+    InvalidTagsException,
     PipelineNotFoundException,
     ResourceNotFoundException,
-    InvalidTagsException,
     TooManyTagsException,
 )
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.models import IAMBackend, iam_backends
 
 
 class CodePipeline(BaseModel):

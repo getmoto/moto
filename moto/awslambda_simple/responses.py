@@ -1,5 +1,5 @@
 from ..awslambda.responses import LambdaResponse
-from .models import lambda_simple_backends, LambdaBackend
+from .models import LambdaBackend, lambda_simple_backends
 
 
 class LambdaSimpleResponse(LambdaResponse):

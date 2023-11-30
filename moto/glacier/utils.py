@@ -1,5 +1,6 @@
-from moto.moto_api._internal import mock_random as random
 import string
+
+from moto.moto_api._internal import mock_random as random
 
 
 def vault_from_glacier_url(full_url: str) -> str:

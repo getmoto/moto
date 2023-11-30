@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Iterable
+from typing import Any, Dict, Iterable, List
 
 
 def match_task_arn(task: Dict[str, Any], arns: List[str]) -> bool:

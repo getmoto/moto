@@ -2,8 +2,8 @@ import re
 from typing import List, Union
 
 from moto.dynamodb.exceptions import (
-    InvalidTokenException,
     InvalidExpressionAttributeNameKey,
+    InvalidTokenException,
 )
 
 

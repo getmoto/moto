@@ -1,11 +1,13 @@
 """PrometheusServiceBackend class with methods for supported APIs."""
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Callable, Dict, List, Optional
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
-from typing import Any, Callable, Dict, List, Optional
+
 from .exceptions import RuleGroupNamespaceNotFound, WorkspaceNotFound
 from .utils import PAGINATION_MODEL
 

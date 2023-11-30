@@ -5,8 +5,9 @@ from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from .models import sns_backends, SNSBackend
+
 from .exceptions import InvalidParameterValue, SNSNotFoundError
+from .models import SNSBackend, sns_backends
 from .utils import is_e164
 
 

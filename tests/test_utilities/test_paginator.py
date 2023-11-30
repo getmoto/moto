@@ -1,11 +1,10 @@
-from collections import OrderedDict
 import unittest
+from collections import OrderedDict
 
 import pytest
 
-from moto.utilities.paginator import Paginator, paginate
 from moto.core.exceptions import InvalidToken
-
+from moto.utilities.paginator import Paginator, paginate
 
 results = [
     {"id": f"id{i}", "name": f"name{i}", "arn": f"arn:aws:thing/name{i}"}

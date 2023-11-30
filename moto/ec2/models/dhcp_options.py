@@ -1,13 +1,14 @@
 import itertools
 from typing import Any, Dict, List, Optional
+
 from ..exceptions import (
     DependencyViolationError,
     InvalidDHCPOptionsIdError,
     InvalidParameterValueError,
     MalformedDHCPOptionsIdError,
 )
+from ..utils import generic_filter, random_dhcp_option_id
 from .core import TaggedEC2Resource
-from ..utils import random_dhcp_option_id, generic_filter
 
 
 class DHCPOptionsSet(TaggedEC2Resource):

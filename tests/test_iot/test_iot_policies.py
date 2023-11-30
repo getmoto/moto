@@ -1,9 +1,10 @@
-import boto3
 import json
-import pytest
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
-from moto import mock_iot, mock_cognitoidentity
+
+from moto import mock_cognitoidentity, mock_iot
 
 
 @pytest.fixture(name="region_name")

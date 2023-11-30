@@ -1,8 +1,8 @@
-from collections import defaultdict
-from datetime import datetime
 import re
 import string
 import time
+from collections import defaultdict
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
@@ -17,54 +17,56 @@ except ImportError:
     # (Also exists in 0.7.0, but throws a warning)
     from openapi_spec_validator import validate_spec as validate  # type: ignore
 from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from .utils import create_id, to_path
+
+from moto.apigateway.exceptions import MethodNotFoundException
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import path_url
+from moto.moto_api._internal import mock_random as random
+
+from ..core.models import responses_mock
 from .exceptions import (
-    BadRequestException,
-    ConflictException,
-    DeploymentNotFoundException,
+    ApiKeyAlreadyExists,
     ApiKeyNotFoundException,
-    UsagePlanNotFoundException,
+    ApiKeyValueMinLength,
+    AuthorizerNotFoundException,
     AwsProxyNotAllowed,
+    BadRequestException,
+    BasePathConflictException,
+    BasePathNotFoundException,
+    ConflictException,
     CrossAccountNotAllowed,
+    DeploymentNotFoundException,
+    DomainNameNotFound,
+    GatewayResponseNotFound,
     IntegrationMethodNotDefined,
     InvalidArn,
-    InvalidIntegrationArn,
+    InvalidBasePathException,
+    InvalidDomainName,
     InvalidHttpEndpoint,
+    InvalidIntegrationArn,
+    InvalidModelName,
     InvalidOpenAPIDocumentException,
     InvalidOpenApiDocVersionException,
     InvalidOpenApiModeException,
     InvalidResourcePathException,
-    AuthorizerNotFoundException,
-    StageNotFoundException,
-    ResourceIdNotFoundException,
-    RoleNotSpecified,
+    InvalidRestApiId,
+    InvalidRestApiIdForBasePathMappingException,
+    InvalidStageException,
+    ModelNotFound,
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
     NoMethodDefined,
-    ApiKeyAlreadyExists,
-    DomainNameNotFound,
-    InvalidDomainName,
-    InvalidRestApiId,
-    InvalidModelName,
-    RestAPINotFound,
     RequestValidatorNotFound,
-    ModelNotFound,
-    ApiKeyValueMinLength,
-    InvalidBasePathException,
-    InvalidRestApiIdForBasePathMappingException,
-    InvalidStageException,
-    BasePathConflictException,
-    BasePathNotFoundException,
+    ResourceIdNotFoundException,
+    RestAPINotFound,
+    RoleNotSpecified,
+    StageNotFoundException,
     StageStillActive,
-    VpcLinkNotFound,
+    UsagePlanNotFoundException,
     ValidationException,
-    GatewayResponseNotFound,
+    VpcLinkNotFound,
 )
-from ..core.models import responses_mock
-from moto.apigateway.exceptions import MethodNotFoundException
-from moto.moto_api._internal import mock_random as random
+from .utils import create_id, to_path
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 

@@ -2,15 +2,15 @@ import re
 import string
 from typing import Any, Dict, List
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
-from moto.organizations.models import organizations_backends, OrganizationsBackend
+from moto.organizations.models import OrganizationsBackend, organizations_backends
 from moto.ram.exceptions import (
-    MalformedArnException,
     InvalidParameterException,
-    UnknownResourceException,
+    MalformedArnException,
     OperationNotPermittedException,
+    UnknownResourceException,
 )
 
 

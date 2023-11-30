@@ -1,12 +1,13 @@
-import boto3
 import io
-import pytest
 import time
 import zipfile
-
-from botocore.exceptions import ClientError
-from moto import settings, mock_iam
 from uuid import uuid4
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_iam, settings
 
 _lambda_region = "us-west-2"
 

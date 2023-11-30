@@ -4,7 +4,7 @@ from typing import Any, List
 from moto.core.responses import BaseResponse
 
 from .exceptions import SWFSerializationException, SWFValidationException
-from .models import swf_backends, SWFBackend, GenericType
+from .models import GenericType, SWFBackend, swf_backends
 
 
 class SWFResponse(BaseResponse):

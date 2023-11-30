@@ -1,9 +1,9 @@
+import json
 from collections import defaultdict
 from typing import Any, Dict, List
-import json
-from .models import Key
-from .exceptions import AccessDeniedException
 
+from .exceptions import AccessDeniedException
+from .models import Key
 
 ALTERNATIVE_ACTIONS = defaultdict(list)
 ALTERNATIVE_ACTIONS["kms:DescribeKey"] = ["kms:*", "kms:Describe*", "kms:DescribeKey"]

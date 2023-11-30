@@ -1,6 +1,5 @@
 from typing import Dict, List
 
-
 PAGINATION_MODEL = {
     "list_executions": {
         "input_token": "next_token",

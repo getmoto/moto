@@ -1,14 +1,15 @@
-import boto3
 import json
-import pytest
-from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_organizations, mock_sqs, settings
-from moto.core import DEFAULT_ACCOUNT_ID
-from moto.cloudformation import cloudformation_backends as cf_backends
-from moto.sqs import sqs_backends
 from unittest import SkipTest, TestCase
 from uuid import uuid4
 
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_cloudformation, mock_organizations, mock_sqs, settings
+from moto.cloudformation import cloudformation_backends as cf_backends
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.sqs import sqs_backends
 
 TEMPLATE_DCT = {
     "AWSTemplateFormatVersion": "2010-09-09",

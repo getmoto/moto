@@ -1,6 +1,6 @@
 from moto.core.responses import BaseResponse
 
-from .models import iam_backends, IAMBackend, User
+from .models import IAMBackend, User, iam_backends
 
 
 class IamResponse(BaseResponse):

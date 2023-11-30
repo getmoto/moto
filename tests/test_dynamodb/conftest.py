@@ -1,4 +1,5 @@
 import pytest
+
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.dynamodb.models import Table
 

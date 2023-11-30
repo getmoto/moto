@@ -6,7 +6,6 @@ import boto3
 from moto import mock_meteringmarketplace
 from moto.meteringmarketplace.models import Result
 
-
 USAGE_RECORDS = [
     {
         "Timestamp": datetime(2019, 8, 25, 21, 1, 38),

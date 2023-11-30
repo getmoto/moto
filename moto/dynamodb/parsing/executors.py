@@ -1,28 +1,28 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Union, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
 from moto.dynamodb.exceptions import (
-    IncorrectOperandType,
     IncorrectDataType,
+    IncorrectOperandType,
     ProvidedKeyDoesNotExist,
 )
 from moto.dynamodb.models.dynamo_type import (
-    DDBTypeConversion,
     DDBType,
+    DDBTypeConversion,
     DynamoType,
     Item,
 )
 from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
-    Node,
-    UpdateExpressionSetAction,
-    UpdateExpressionDeleteAction,
-    UpdateExpressionRemoveAction,
-    UpdateExpressionAddAction,
-    UpdateExpressionPath,
     DDBTypedValue,
     ExpressionAttribute,
-    ExpressionSelector,
     ExpressionAttributeName,
+    ExpressionSelector,
+    Node,
+    UpdateExpressionAddAction,
+    UpdateExpressionDeleteAction,
+    UpdateExpressionPath,
+    UpdateExpressionRemoveAction,
+    UpdateExpressionSetAction,
 )
 from moto.dynamodb.parsing.validators import ExpressionPathResolver
 

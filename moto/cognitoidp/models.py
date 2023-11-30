@@ -1,40 +1,43 @@
 import datetime
+import enum
 import json
 import os
+import re
 import time
 import typing
-import enum
-import re
-from jose import jws
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Optional, Set
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from jose import jws
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
-from .exceptions import (
-    AliasExistsException,
-    GroupExistsException,
-    NotAuthorizedError,
-    ResourceNotFoundError,
-    UserNotFoundError,
-    UsernameExistsException,
-    UserNotConfirmedException,
-    InvalidParameterException,
-    ExpiredCodeException,
-    InvalidPasswordException,
-)
-from .utils import (
-    create_id,
-    check_secret_hash,
-    generate_id,
-    validate_username_format,
-    flatten_attrs,
-    expand_attrs,
-    PAGINATION_MODEL,
-)
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
+
 from ..settings import get_cognito_idp_user_pool_id_strategy
+from .exceptions import (
+    AliasExistsException,
+    ExpiredCodeException,
+    GroupExistsException,
+    InvalidParameterException,
+    InvalidPasswordException,
+    NotAuthorizedError,
+    ResourceNotFoundError,
+    UsernameExistsException,
+    UserNotConfirmedException,
+    UserNotFoundError,
+)
+from .utils import (
+    PAGINATION_MODEL,
+    check_secret_hash,
+    create_id,
+    expand_attrs,
+    flatten_attrs,
+    generate_id,
+    validate_username_format,
+)
 
 
 class UserStatus(str, enum.Enum):

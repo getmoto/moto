@@ -1,5 +1,6 @@
 from typing import Any
-from moto.core.exceptions import RESTError, JsonRESTError, AWSError
+
+from moto.core.exceptions import AWSError, JsonRESTError, RESTError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
 {% block extra %}<ModelName>{{ model }}</ModelName>{% endblock %}

@@ -1,5 +1,7 @@
-from typing import Any, Dict, Optional, List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
 from moto.core import CloudFormationModel
+
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
@@ -7,12 +9,12 @@ from .security_groups import SecurityGroup
 if TYPE_CHECKING:
     from .instances import Instance
 from ..utils import (
-    random_eni_id,
     generate_dns_from_ip,
+    generic_filter,
+    random_eni_id,
     random_mac_address,
     random_private_ip,
     random_public_ip,
-    generic_filter,
 )
 
 

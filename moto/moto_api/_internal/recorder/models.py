@@ -2,11 +2,11 @@ import base64
 import io
 import json
 import os
+from typing import Any, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 import requests
 from botocore.awsrequest import AWSPreparedRequest
-from typing import Any, Optional, Union, Tuple
-from urllib.parse import urlparse
 
 
 class Recorder:

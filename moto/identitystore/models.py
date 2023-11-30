@@ -1,16 +1,17 @@
-from typing import Dict, Tuple, List, Any, NamedTuple, Optional, TYPE_CHECKING
-from moto.utilities.paginator import paginate
+import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
+from moto.core import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random
-from moto.core import BaseBackend, BackendDict
+from moto.utilities.paginator import paginate
+
 from .exceptions import (
+    ConflictException,
     ResourceNotFoundException,
     ValidationException,
-    ConflictException,
 )
-import warnings
 
 if TYPE_CHECKING:
     from typing_extensions import Self

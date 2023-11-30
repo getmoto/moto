@@ -1,7 +1,7 @@
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_ec2, mock_elbv2
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.moto_api._internal import mock_random

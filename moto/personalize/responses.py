@@ -2,7 +2,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import personalize_backends, PersonalizeBackend
+
+from .models import PersonalizeBackend, personalize_backends
 
 
 class PersonalizeResponse(BaseResponse):

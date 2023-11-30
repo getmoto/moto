@@ -3,16 +3,16 @@ import re
 
 from moto.swf.exceptions import (
     SWFClientError,
-    SWFUnknownResourceFault,
+    SWFDecisionValidationException,
+    SWFDefaultUndefinedFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
     SWFSerializationException,
     SWFTypeAlreadyExistsFault,
     SWFTypeDeprecatedFault,
-    SWFWorkflowExecutionAlreadyStartedFault,
-    SWFDefaultUndefinedFault,
+    SWFUnknownResourceFault,
     SWFValidationException,
-    SWFDecisionValidationException,
+    SWFWorkflowExecutionAlreadyStartedFault,
 )
 from moto.swf.models import WorkflowType
 

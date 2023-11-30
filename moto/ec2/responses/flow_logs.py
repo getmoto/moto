@@ -1,4 +1,5 @@
 from moto.ec2.models import validate_resource_ids
+
 from ._base_response import EC2BaseResponse
 
 

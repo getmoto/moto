@@ -25,6 +25,7 @@
 Represents an EC2 Instance
 """
 from typing import Any
+
 from moto.packages.boto.ec2.ec2object import EC2Object, TaggedEC2Object
 from moto.packages.boto.ec2.image import ProductCodes
 

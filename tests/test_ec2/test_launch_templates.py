@@ -1,10 +1,10 @@
-import boto3
-import pytest
-
-from botocore.client import ClientError
-from moto import mock_ec2, settings
 from uuid import uuid4
 
+import boto3
+import pytest
+from botocore.client import ClientError
+
+from moto import mock_ec2, settings
 from tests import EXAMPLE_AMI_ID
 
 

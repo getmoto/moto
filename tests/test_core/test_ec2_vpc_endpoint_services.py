@@ -3,9 +3,8 @@
 #
 # There are some issues with running these tests in parallel
 # Running them as part of 'moto/core' avoids that problem
-import pytest
-
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2

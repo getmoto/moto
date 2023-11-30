@@ -1,6 +1,7 @@
-from moto.moto_api._internal import mock_random as random
-import string
 import base64
+import string
+
+from moto.moto_api._internal import mock_random as random
 
 AWS_ROLE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 ACCOUNT_OFFSET = 549755813888  # int.from_bytes(base64.b32decode(b"QAAAAAAA"), byteorder="big"), start value

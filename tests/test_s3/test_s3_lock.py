@@ -2,9 +2,9 @@ import datetime
 import time
 
 import boto3
-from botocore.config import Config
-from botocore.client import ClientError
 import pytest
+from botocore.client import ClientError
+from botocore.config import Config
 
 from moto import mock_s3
 from moto.core.utils import utcnow

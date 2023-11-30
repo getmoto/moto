@@ -1,8 +1,7 @@
 """Unit tests verifying various delivery stream destination content."""
 import boto3
 
-from moto import mock_firehose
-from moto import settings
+from moto import mock_firehose, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 

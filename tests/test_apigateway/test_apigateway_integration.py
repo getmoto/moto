@@ -1,11 +1,11 @@
-import boto3
 import json
+from unittest import SkipTest
+
+import boto3
 import requests
 
-from moto import mock_apigateway, mock_dynamodb
-from moto import settings
+from moto import mock_apigateway, mock_dynamodb, settings
 from moto.core.models import responses_mock
-from unittest import SkipTest
 
 
 @mock_apigateway

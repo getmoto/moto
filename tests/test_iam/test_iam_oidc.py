@@ -1,11 +1,11 @@
+from datetime import datetime
+
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_iam
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-import pytest
-
-from datetime import datetime
 
 
 @mock_iam

@@ -1,11 +1,9 @@
 """Route53 unit tests specific to query_logging_config APIs."""
-import pytest
-
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs
-from moto import mock_route53
+from moto import mock_logs, mock_route53
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 

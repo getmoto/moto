@@ -6,13 +6,12 @@ from unittest import SkipTest, TestCase
 
 import boto3
 
-from moto import settings, mock_s3
+from moto import mock_s3, settings
 from moto.dynamodb.models import DynamoDBBackend
-from moto.s3 import models as s3model, s3_backends
+from moto.s3 import models as s3model
+from moto.s3 import s3_backends
 from moto.s3.responses import S3Response
-
 from tests import DEFAULT_ACCOUNT_ID
-
 
 TEST_BUCKET = "my-bucket"
 TEST_BUCKET_VERSIONED = "versioned-bucket"

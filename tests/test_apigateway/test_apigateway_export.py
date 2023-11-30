@@ -1,9 +1,10 @@
-import boto3
 import json
 import os
-import pytest
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_apigateway
 
 

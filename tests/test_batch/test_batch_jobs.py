@@ -1,14 +1,15 @@
-import botocore.exceptions
 import datetime
-import pytest
 import time
 from uuid import uuid4
 
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
+import botocore.exceptions
+import pytest
+
+from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, mock_logs
 from tests import DEFAULT_ACCOUNT_ID
 
-from . import _get_clients, _setup
 from ..markers import requires_docker
+from . import _get_clients, _setup
 
 
 @mock_logs

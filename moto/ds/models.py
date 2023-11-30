@@ -1,8 +1,8 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Tuple, List
+from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -14,8 +14,8 @@ from moto.ds.exceptions import (
 )
 from moto.ds.utils import PAGINATION_MODEL
 from moto.ds.validations import validate_args
-from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2 import ec2_backends
+from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService

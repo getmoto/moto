@@ -6,38 +6,38 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, List, Type, Union
 
 from moto.dynamodb.exceptions import (
-    AttributeIsReservedKeyword,
-    ExpressionAttributeValueNotDefined,
     AttributeDoesNotExist,
+    AttributeIsReservedKeyword,
+    EmptyKeyAttributeException,
     ExpressionAttributeNameNotDefined,
+    ExpressionAttributeValueNotDefined,
     IncorrectOperandType,
     InvalidUpdateExpressionInvalidDocumentPath,
-    ProvidedKeyDoesNotExist,
-    EmptyKeyAttributeException,
-    UpdateHashRangeKeyException,
     MockValidationException,
+    ProvidedKeyDoesNotExist,
+    UpdateHashRangeKeyException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import Table
 from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
-    Node,
-    ExpressionAttribute,
-    UpdateExpressionClause,
-    UpdateExpressionPath,
-    UpdateExpressionSetAction,
-    UpdateExpressionAddAction,
-    UpdateExpressionDeleteAction,
-    UpdateExpressionRemoveAction,
     DDBTypedValue,
-    ExpressionAttributeValue,
-    ExpressionAttributeName,
     DepthFirstTraverser,
-    NoneExistingPath,
-    UpdateExpressionFunction,
+    ExpressionAttribute,
+    ExpressionAttributeName,
+    ExpressionAttributeValue,
     ExpressionPathDescender,
-    UpdateExpressionValue,
-    ExpressionValueOperator,
     ExpressionSelector,
+    ExpressionValueOperator,
+    Node,
+    NoneExistingPath,
+    UpdateExpressionAddAction,
+    UpdateExpressionClause,
+    UpdateExpressionDeleteAction,
+    UpdateExpressionFunction,
+    UpdateExpressionPath,
+    UpdateExpressionRemoveAction,
+    UpdateExpressionSetAction,
+    UpdateExpressionValue,
 )
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 

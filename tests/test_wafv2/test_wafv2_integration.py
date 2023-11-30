@@ -1,9 +1,10 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_apigateway, mock_wafv2
 from tests.test_apigateway.test_apigateway_stage import create_method_integration
+
 from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 

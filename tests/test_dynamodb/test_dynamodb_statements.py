@@ -1,11 +1,11 @@
+from unittest import TestCase
+
 import boto3
 import pytest
 
 from moto import mock_dynamodb
-from unittest import TestCase
 
 from . import dynamodb_aws_verified
-
 
 item1 = {
     "pk": {"S": "msg1"},

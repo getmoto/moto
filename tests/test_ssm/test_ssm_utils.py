@@ -1,4 +1,4 @@
-from moto.ssm.utils import convert_to_tree, convert_to_params
+from moto.ssm.utils import convert_to_params, convert_to_tree
 
 SOURCE_PARAMS = [
     {

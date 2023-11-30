@@ -1,19 +1,19 @@
 """EMRServerlessBackend class with methods for supported APIs."""
+import inspect
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Iterator
-import inspect
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.emrcontainers.utils import get_partition, paginated_list
+
+from .exceptions import ResourceNotFoundException, ValidationException
 from .utils import (
     default_auto_start_configuration,
     default_auto_stop_configuration,
     random_appplication_id,
 )
-
-from .exceptions import ResourceNotFoundException, ValidationException
 
 APPLICATION_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/applications/{application_id}"
 

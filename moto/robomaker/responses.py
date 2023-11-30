@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import robomaker_backends, RoboMakerBackend
+
+from .models import RoboMakerBackend, robomaker_backends
 
 
 class RoboMakerResponse(BaseResponse):

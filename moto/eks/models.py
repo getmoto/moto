@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict
+from moto.core import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random as random
 

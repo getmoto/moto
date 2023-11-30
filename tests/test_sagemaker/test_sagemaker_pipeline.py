@@ -1,6 +1,6 @@
+import json
 from contextlib import contextmanager
 from datetime import datetime
-import json
 from time import sleep
 from unittest import SkipTest
 
@@ -9,17 +9,17 @@ import botocore
 import pytest
 
 from moto import mock_sagemaker, settings
-from moto.s3 import mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.s3 import mock_s3
 from moto.sagemaker.exceptions import ValidationError
-from moto.sagemaker.utils import (
-    get_pipeline_from_name,
-    get_pipeline_execution_from_arn,
-    get_pipeline_name_from_execution_arn,
-)
 from moto.sagemaker.models import FakePipeline, sagemaker_backends
-from moto.sagemaker.utils import arn_formatter, load_pipeline_definition_from_s3
-
+from moto.sagemaker.utils import (
+    arn_formatter,
+    get_pipeline_execution_from_arn,
+    get_pipeline_from_name,
+    get_pipeline_name_from_execution_arn,
+    load_pipeline_definition_from_s3,
+)
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
 TEST_REGION_NAME = "us-west-1"

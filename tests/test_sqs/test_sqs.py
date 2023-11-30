@@ -9,19 +9,19 @@ from uuid import uuid4
 
 import boto3
 import botocore.exceptions
+import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-import pytest
 
 from moto import mock_sqs, settings
-from moto.utilities.distutils_version import LooseVersion
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
-    Queue,
+    MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
-    MAXIMUM_MESSAGE_LENGTH,
+    Queue,
 )
+from moto.utilities.distutils_version import LooseVersion
 
 TEST_POLICY = """
 {

@@ -1,6 +1,7 @@
 import boto3
-import pytest
 import botocore.exceptions
+import pytest
+
 from moto import mock_apigatewayv2
 
 

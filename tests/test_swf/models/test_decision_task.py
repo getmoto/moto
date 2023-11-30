@@ -1,10 +1,10 @@
 import re
 
-from freezegun import freeze_time
 import pytest
+from freezegun import freeze_time
 
-from moto.swf.models import DecisionTask, Timeout
 from moto.swf.exceptions import SWFWorkflowExecutionClosedError
+from moto.swf.models import DecisionTask, Timeout
 
 from ..utils import make_workflow_execution, process_first_timeout
 

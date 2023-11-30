@@ -1,10 +1,11 @@
 import json
 from typing import Any
 from urllib.parse import unquote
+
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .models import eks_backends, EKSBackend
+from .models import EKSBackend, eks_backends
 
 DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""

@@ -1,11 +1,14 @@
-from boto3 import Session
 import re
 import string
 from functools import lru_cache
 from threading import RLock
-from typing import Any, List, Dict, Optional, ClassVar, TypeVar, Iterator
+from typing import Any, ClassVar, Dict, Iterator, List, Optional, TypeVar
 from uuid import uuid4
+
+from boto3 import Session
+
 from moto.settings import allow_unknown_region, enable_iso_regions
+
 from .model_instances import model_data
 from .utils import convert_regex_to_flask_path
 

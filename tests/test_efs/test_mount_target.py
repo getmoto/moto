@@ -6,6 +6,7 @@ from botocore.exceptions import ClientError
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_efs.junk_drawer import has_status_code
+
 from . import fixture_ec2, fixture_efs  # noqa # pylint: disable=unused-import
 
 

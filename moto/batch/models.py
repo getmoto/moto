@@ -1,42 +1,42 @@
 import datetime
-import dateutil.parser
 import logging
 import re
 import threading
 import time
-
-from sys import platform
 from itertools import cycle
+from sys import platform
 from time import sleep
-from typing import Any, Dict, List, Tuple, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.iam.models import iam_backends, IAMBackend
-from moto.ec2.models import ec2_backends, EC2Backend
-from moto.ec2.models.instances import Instance
-from moto.ecs.models import ecs_backends, EC2ContainerServiceBackend
-from moto.logs.models import logs_backends, LogsBackend
-from moto.utilities.tagging_service import TaggingService
+import dateutil.parser
 
-from .exceptions import InvalidParameterValueException, ClientException, ValidationError
-from .utils import (
-    make_arn_for_compute_env,
-    make_arn_for_job_queue,
-    make_arn_for_job,
-    make_arn_for_task_def,
-    lowercase_first_key,
-    JobStatus,
-)
-from moto.ec2.exceptions import InvalidSubnetIdError
-from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
-from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
-from moto.iam.exceptions import IAMNotFoundException
+from moto import settings
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis
+from moto.ec2.exceptions import InvalidSubnetIdError
+from moto.ec2.models import EC2Backend, ec2_backends
+from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
+from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
+from moto.ec2.models.instances import Instance
+from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
+from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.models import IAMBackend, iam_backends
+from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
-from moto import settings
+from moto.utilities.tagging_service import TaggingService
+
+from .exceptions import ClientException, InvalidParameterValueException, ValidationError
+from .utils import (
+    JobStatus,
+    lowercase_first_key,
+    make_arn_for_compute_env,
+    make_arn_for_job,
+    make_arn_for_job_queue,
+    make_arn_for_task_def,
+)
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(

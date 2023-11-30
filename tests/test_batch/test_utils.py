@@ -1,7 +1,6 @@
 import pytest
 
 from moto.batch.exceptions import ValidationError
-
 from moto.batch.utils import JobStatus
 
 

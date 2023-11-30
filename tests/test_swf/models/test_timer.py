@@ -1,7 +1,7 @@
 from threading import Timer as ThreadingTimer
+from unittest.mock import Mock
 
 from moto.swf.models import Timer
-from unittest.mock import Mock
 
 
 def test_timer_creation():

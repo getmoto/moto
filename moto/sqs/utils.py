@@ -2,6 +2,7 @@ import string
 from typing import Any, Dict, List
 
 from moto.moto_api._internal import mock_random as random
+
 from .exceptions import MessageAttributesInvalid
 
 

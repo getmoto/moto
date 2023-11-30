@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Any, Dict, List, Iterable, Optional
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, Iterable, List, Optional
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 
 from .exceptions import (

@@ -1,11 +1,13 @@
 from unittest.mock import patch
+
 import pytest
+
 from moto.s3.utils import (
-    bucket_name_from_url,
     _VersionedKeyStore,
-    parse_region_from_url,
+    bucket_name_from_url,
     compute_checksum,
     cors_matches_origin,
+    parse_region_from_url,
 )
 
 

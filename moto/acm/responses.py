@@ -1,11 +1,11 @@
-import json
 import base64
+import json
+from typing import Dict, List, Tuple, Union
 
 from moto.core.responses import BaseResponse
-from typing import Dict, List, Tuple, Union
-from .models import acm_backends, AWSCertificateManagerBackend
-from .exceptions import AWSValidationException
 
+from .exceptions import AWSValidationException
+from .models import AWSCertificateManagerBackend, acm_backends
 
 GENERIC_RESPONSE_TYPE = Union[str, Tuple[str, Dict[str, int]]]
 

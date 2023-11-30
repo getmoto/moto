@@ -1,6 +1,7 @@
 import collections.abc as collections_abc
-from moto.moto_api._internal import mock_random
 from typing import Any
+
+from moto.moto_api._internal import mock_random
 
 
 def get_random_pipeline_id() -> str:

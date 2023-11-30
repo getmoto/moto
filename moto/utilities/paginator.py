@@ -1,13 +1,11 @@
 import inspect
-
 from copy import deepcopy
 from functools import wraps
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 
 from moto.core.exceptions import InvalidToken
-
 
 # This should be typed using ParamSpec
 # https://stackoverflow.com/a/70591060/13245310

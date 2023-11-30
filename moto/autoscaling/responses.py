@@ -1,7 +1,8 @@
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
-from .models import autoscaling_backends, AutoScalingBackend
+
+from .models import AutoScalingBackend, autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):

@@ -1,13 +1,13 @@
-import boto3
-import pytest
 import json
-from moto import mock_cloudformation, mock_ec2
-from tests import EXAMPLE_AMI_ID
 from string import Template
 from uuid import uuid4
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
 
+from moto import mock_cloudformation, mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 SEC_GROUP_INGRESS = Template(
     """{

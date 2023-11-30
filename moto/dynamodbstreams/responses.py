@@ -1,6 +1,6 @@
 from moto.core.responses import BaseResponse
 
-from .models import dynamodbstreams_backends, DynamoDBStreamsBackend
+from .models import DynamoDBStreamsBackend, dynamodbstreams_backends
 
 
 class DynamoDBStreamsHandler(BaseResponse):

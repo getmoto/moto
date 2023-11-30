@@ -1,11 +1,11 @@
+from unittest import mock
+
 import boto3
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from unittest import mock
 
 from moto import mock_kms
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
 
 grantee_principal = (
     f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/tf-acc-test-7071877926602081451"

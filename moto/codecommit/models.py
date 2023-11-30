@@ -1,7 +1,9 @@
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Dict, List, Optional
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
-from typing import Dict, List, Optional
+
 from .exceptions import RepositoryDoesNotExistException, RepositoryNameExistsException
 
 

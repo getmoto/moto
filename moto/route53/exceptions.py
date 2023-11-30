@@ -1,5 +1,6 @@
 """Exceptions raised by the Route53 service."""
 from typing import Any
+
 from moto.core.exceptions import RESTError
 
 

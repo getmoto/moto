@@ -4,7 +4,7 @@ import json
 from moto.core.exceptions import InvalidToken
 from moto.core.responses import BaseResponse
 from moto.ds.exceptions import InvalidNextTokenException
-from moto.ds.models import ds_backends, DirectoryServiceBackend
+from moto.ds.models import DirectoryServiceBackend, ds_backends
 
 
 class DirectoryServiceResponse(BaseResponse):

@@ -4,7 +4,8 @@ from typing import Any, Dict, Optional, Union
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
-from .models import dynamodb_backends, DynamoDBBackend, dynamo_json_dump
+
+from .models import DynamoDBBackend, dynamo_json_dump, dynamodb_backends
 
 
 class DynamoHandler(BaseResponse):

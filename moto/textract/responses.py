@@ -2,7 +2,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import textract_backends, TextractBackend
+
+from .models import TextractBackend, textract_backends
 
 
 class TextractResponse(BaseResponse):

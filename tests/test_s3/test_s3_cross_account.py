@@ -2,10 +2,10 @@ import os
 from unittest import SkipTest, mock
 
 import boto3
-from botocore.client import ClientError
 import pytest
+from botocore.client import ClientError
 
-from moto import settings, mock_s3
+from moto import mock_s3, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 

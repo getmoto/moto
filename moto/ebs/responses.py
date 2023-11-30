@@ -2,9 +2,10 @@
 import json
 from typing import Any
 
-from moto.core.responses import BaseResponse
 from moto.core.common_types import TYPE_RESPONSE
-from .models import ebs_backends, EBSBackend
+from moto.core.responses import BaseResponse
+
+from .models import EBSBackend, ebs_backends
 
 
 class EBSResponse(BaseResponse):

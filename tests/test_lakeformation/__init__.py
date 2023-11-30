@@ -1,8 +1,10 @@
-import boto3
 import os
 from functools import wraps
-from moto import mock_glue, mock_lakeformation, mock_s3, mock_sts
 from uuid import uuid4
+
+import boto3
+
+from moto import mock_glue, mock_lakeformation, mock_s3, mock_sts
 
 
 def lakeformation_aws_verified(func):

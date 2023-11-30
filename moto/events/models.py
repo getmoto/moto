@@ -1,32 +1,32 @@
 import copy
+import json
 import os
 import re
-import requests
-import json
 import sys
 import warnings
+from collections import OrderedDict
 from datetime import datetime
 from enum import Enum, unique
 from json import JSONDecodeError
-from operator import lt, le, eq, ge, gt
+from operator import eq, ge, gt, le, lt
 from typing import Any, Dict, List, Optional, Tuple
 
-from collections import OrderedDict
+import requests
 
 from moto import settings
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, BackendDict, CloudFormationModel, BaseModel
 from moto.core.utils import (
+    iso_8601_datetime_without_milliseconds,
     unix_time,
     unix_time_millis,
-    iso_8601_datetime_without_milliseconds,
 )
 from moto.events.exceptions import (
-    ValidationException,
-    ResourceNotFoundException,
-    ResourceAlreadyExistsException,
-    InvalidEventPatternException,
     IllegalStatusException,
+    InvalidEventPatternException,
+    ResourceAlreadyExistsException,
+    ResourceNotFoundException,
+    ValidationException,
 )
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.arns import parse_arn

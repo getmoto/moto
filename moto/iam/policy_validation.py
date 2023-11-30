@@ -1,8 +1,8 @@
 import json
 import re
 from typing import Any, Dict, List
-from moto.iam.exceptions import MalformedPolicyDocument
 
+from moto.iam.exceptions import MalformedPolicyDocument
 
 VALID_TOP_ELEMENTS = ["Version", "Id", "Statement", "Conditions"]
 

@@ -1,7 +1,8 @@
+from unittest import TestCase
+
 import boto3
 
 from moto import mock_autoscaling
-from unittest import TestCase
 
 
 @mock_autoscaling

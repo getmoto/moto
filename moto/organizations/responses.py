@@ -2,7 +2,8 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import organizations_backends, OrganizationsBackend
+
+from .models import OrganizationsBackend, organizations_backends
 
 
 class OrganizationsResponse(BaseResponse):

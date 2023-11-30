@@ -1,8 +1,10 @@
 import json
 from typing import Any, Dict
+
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import glacier_backends, GlacierBackend
+
+from .models import GlacierBackend, glacier_backends
 from .utils import vault_from_glacier_url
 
 

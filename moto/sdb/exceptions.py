@@ -1,7 +1,7 @@
 """Exceptions raised by the sdb service."""
 from typing import Any
-from moto.core.exceptions import RESTError
 
+from moto.core.exceptions import RESTError
 
 SDB_ERROR = """<?xml version="1.0"?>
 <Response>
