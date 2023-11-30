@@ -50,6 +50,9 @@ from .exceptions import (
     UnknownFunctionException,
     UnknownLayerException,
     UnknownLayerVersionException,
+    UnknownFunctionException,
+    UnknownAliasException,
+    UnknownEventConfig,
     ValidationException,
 )
 from .utils import (
@@ -295,6 +298,8 @@ def _validate_s3_bucket_and_key(
 
 
 class EventInvokeConfig:
+    default_config = {"DestinationConfig": {"OnSuccess": {}, "OnFailure": {}}}
+
     def __init__(self, config: Dict[str, Any]) -> None:
         self.config = config
         self.validate_max()
@@ -608,9 +613,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
-        self.event_invoke_config = EventInvokeConfig(
-            {"DestinationConfig": {"OnSuccess": {}, "OnFailure": {}}}
-        )
+        self.event_invoke_config = EventInvokeConfig(EventInvokeConfig.default_config)
 
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
@@ -2374,7 +2377,15 @@ class LambdaBackend(BaseBackend):
 
     def get_event_invoke_config(self, function_name: str) -> Dict[str, str]:
         fn = self.get_function(function_name)
-        return fn.event_invoke_config.config
+        if fn.event_invoke_config:
+            return fn.event_invoke_config.config
+        else:
+            raise UnknownEventConfig(fn.function_arn)
+
+    def delete_event_invoke_config(self, function_name: str) -> None:
+        if self.get_event_invoke_config(function_name):
+            fn = self.get_function(function_name)
+            fn.event_invoke_config = None
 
 
 def do_validate_s3() -> bool:

@@ -616,11 +616,14 @@ class LambdaResponse(BaseResponse):
         if self.method == "PUT":
             response = self._set_event_invoke_config(function_name, self.json_body)
             return 200, {}, json.dumps(response)
-        if self.method == "GET":
+        elif self.method == "GET":
             response = self._get_event_invoke_config(function_name)
             return 200, {}, json.dumps(response)
-
-        raise NotImplementedError
+        elif self.method == "DELETE":
+            self.backend.delete_event_invoke_config(function_name)
+            return 204, {}, json.dumps({})
+        else:
+            raise NotImplementedError
 
     def _set_event_invoke_config(
         self, function_name: str, body: Dict[str, str]

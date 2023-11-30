@@ -1902,7 +1902,6 @@ def test_put_event_invoke_config_errors_1():
     # Setup
     client = boto3.client("lambda", _lambda_region)
     arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
-    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
     config = {
         "OnSuccess": {"Destination": "invalid"},
         "OnFailure": {},
@@ -1926,7 +1925,6 @@ def test_put_event_invoke_config_errors_1():
 
     # Clean up for servertests
     client.delete_function(FunctionName=arn_1)
-    client.delete_function(FunctionName=arn_2)
 
 
 @mock_lambda
@@ -2028,6 +2026,32 @@ def test_get_event_invoke_config():
 
     # Clean up for servertests
     client.delete_function(FunctionName=arn_1)
+
+
+@mock_lambda
+def test_delete_event_invoke_config():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # the name has to match ARNs in pytest parameterize
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {"OnSuccess": {"Destination": arn_2}, "OnFailure": {}}
+    client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Execute
+    result = client.delete_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME
+    )
+    # Verify
+    assert result["ResponseMetadata"]['HTTPStatusCode'] == 204
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
 
 
 def setup_lambda(client, name):
