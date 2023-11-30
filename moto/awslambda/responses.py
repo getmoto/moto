@@ -9,6 +9,13 @@ from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 
 from .exceptions import FunctionAlreadyExists, UnknownFunctionException
 from .models import LambdaBackend, lambda_backends
+from moto.core.responses import BaseResponse, TYPE_RESPONSE
+from .exceptions import (
+    FunctionAlreadyExists,
+    UnknownFunctionException,
+    UnknownEventConfig,
+)
+from .models import lambda_backends, LambdaBackend
 
 
 class LambdaResponse(BaseResponse):
@@ -625,6 +632,20 @@ class LambdaResponse(BaseResponse):
         else:
             raise NotImplementedError
 
+    def event_invoke_config_list(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        self.setup_class(request, full_url, headers)
+        function_name = unquote(self.path.rsplit("/", 3)[1])
+        response: Dict[str, List[Dict[str, Any]]] = {"FunctionEventInvokeConfigs": []}
+        try:
+            response["FunctionEventInvokeConfigs"] = [
+                self._get_event_invoke_config(function_name)
+            ]
+            return 200, {}, json.dumps(response)
+        except UnknownEventConfig:
+            return 200, {}, json.dumps(response)
+
     def _set_event_invoke_config(
         self, function_name: str, body: Dict[str, str]
     ) -> Dict[str, str]:
@@ -639,4 +660,9 @@ class LambdaResponse(BaseResponse):
         self,
         function_name: str,
     ) -> Dict[str, str]:
-        return self.backend.get_event_invoke_config(function_name)
+        arn, last_modified, response = self.backend.get_event_invoke_config(
+            function_name
+        )
+        response["LastModified"] = last_modified
+        response["FunctionArn"] = arn
+        return response

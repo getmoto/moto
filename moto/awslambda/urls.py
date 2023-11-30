@@ -82,4 +82,7 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/event-invoke-config/?$": LambdaResponse.method_dispatch(
         LambdaResponse.event_invoke_config_handler
     ),
+    r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/event-invoke-config/list?$": LambdaResponse.method_dispatch(
+        LambdaResponse.event_invoke_config_list
+    ),
 }

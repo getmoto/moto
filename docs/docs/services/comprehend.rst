@@ -72,7 +72,6 @@ comprehend
 - [X] detect_sentiment
 - [ ] detect_syntax
 - [ ] detect_targeted_sentiment
-- [ ] detect_toxic_content
 - [ ] import_model
 - [ ] list_datasets
 - [ ] list_document_classification_jobs

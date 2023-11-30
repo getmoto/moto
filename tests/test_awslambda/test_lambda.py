@@ -1881,7 +1881,6 @@ def test_put_event_invoke_config(config):
 
     # the name has to match ARNs in pytest parameterize
     arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
-    config = {"OnSuccess": {"Destination": arn_2}, "OnFailure": {}}
 
     # Execute
     result = client.put_function_event_invoke_config(
@@ -1928,7 +1927,7 @@ def test_put_event_invoke_config_errors_1():
 
 
 @mock_lambda
-def test_put_event_invoke_config_2():
+def test_put_event_invoke_config_errors_2():
     # Setup
     client = boto3.client("lambda", _lambda_region)
     arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
@@ -1960,7 +1959,7 @@ def test_put_event_invoke_config_2():
 
 
 @mock_lambda
-def test_put_event_invoke_config_3():
+def test_put_event_invoke_config_errors_3():
     # Setup
     client = boto3.client("lambda", _lambda_region)
     arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
@@ -1986,7 +1985,7 @@ def test_put_event_invoke_config_3():
 
 
 @mock_lambda
-def test_put_event_invoke_config_4():
+def test_put_event_invoke_config_errors_4():
     # Setup
     client = boto3.client("lambda", _lambda_region)
     arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
@@ -2016,13 +2015,79 @@ def test_get_event_invoke_config():
     # Setup
     client = boto3.client("lambda", _lambda_region)
     arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnFailure": {"Destination": arn_2},
+        "OnSuccess": {"Destination": arn_2},
+    }
+    client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
 
     # Execute
     result = client.get_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
 
     # Verify
-    assert "DestinationConfig" in result
-    assert result["DestinationConfig"] == {"OnSuccess": {}, "OnFailure": {}}
+    assert result["DestinationConfig"] == config
+    assert result["FunctionArn"] == arn_1
+    assert "LastModified" in result
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+def test_list_event_invoke_configs():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnFailure": {"Destination": arn_2},
+        "OnSuccess": {"Destination": arn_2},
+    }
+
+    # Execute
+    result = client.list_function_event_invoke_configs(FunctionName=LAMBDA_FUNC_NAME)
+
+    # Verify
+    assert "FunctionEventInvokeConfigs" in result
+    assert result["FunctionEventInvokeConfigs"] == []
+
+    # Execute
+    client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+    result = client.list_function_event_invoke_configs(FunctionName=LAMBDA_FUNC_NAME)
+
+    # Verify
+    assert len(result["FunctionEventInvokeConfigs"]) == 1
+    assert result["FunctionEventInvokeConfigs"][0]["DestinationConfig"] == config
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+def test_get_event_invoke_config_empty():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.get_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
+
+    err = exc.value.response
+
+    # Verify
+    assert err["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Error"]["Message"]
+        == f"The function {arn_1} doesn't have an EventInvokeConfig"
+    )
 
     # Clean up for servertests
     client.delete_function(FunctionName=arn_1)
