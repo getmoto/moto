@@ -11,12 +11,13 @@ def test_create_thing():
 
     thing = client.create_thing(thingName=name)
     assert thing["thingName"] == name
-    assert "thingArn" in thing
+    assert thing["thingArn"] is not None
+    assert thing["thingId"] is not None
 
     res = client.list_things()
     assert len(res["things"]) == 1
-    assert res["things"][0]["thingName"] is not None
-    assert res["things"][0]["thingArn"] is not None
+    assert res["things"][0]["thingName"] == name
+    assert res["things"][0]["thingArn"] == thing["thingArn"]
 
 
 @mock_iot
@@ -105,6 +106,7 @@ def test_describe_thing():
     client.update_thing(thingName=name, attributePayload={"attributes": {"k1": "v1"}})
 
     thing = client.describe_thing(thingName=name)
+    assert thing["thingId"] is not None
     assert thing["thingName"] == name
     assert "defaultClientId" in thing
     assert thing["attributes"] == {"k1": "v1"}

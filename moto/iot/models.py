@@ -43,6 +43,7 @@ class FakeThing(BaseModel):
         region_name: str,
     ):
         self.region_name = region_name
+        self.thing_id = str(random.uuid4())
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
@@ -68,6 +69,7 @@ class FakeThing(BaseModel):
         self,
         include_default_client_id: bool = False,
         include_connectivity: bool = False,
+        include_thing_id: bool = False,
     ) -> Dict[str, Any]:
         obj = {
             "thingName": self.thing_name,
@@ -84,6 +86,8 @@ class FakeThing(BaseModel):
                 "connected": True,
                 "timestamp": time.mktime(utcnow().timetuple()),
             }
+        if include_thing_id:
+            obj["thingId"] = self.thing_id
         return obj
 
 
@@ -697,7 +701,7 @@ class IoTBackend(BaseBackend):
         thing_name: str,
         thing_type_name: str,
         attribute_payload: Optional[Dict[str, Any]],
-    ) -> Tuple[str, str]:
+    ) -> FakeThing:
         thing_types = self.list_thing_types()
         thing_type = None
         if thing_type_name:
@@ -723,7 +727,7 @@ class IoTBackend(BaseBackend):
             thing_name, thing_type, attributes, self.account_id, self.region_name
         )
         self.things[thing.arn] = thing
-        return thing.thing_name, thing.arn
+        return thing
 
     def create_thing_type(
         self, thing_type_name: str, thing_type_properties: Dict[str, Any]
@@ -1128,9 +1132,15 @@ class IoTBackend(BaseBackend):
         del self.principal_policies[k]
 
     def list_attached_policies(self, target: str) -> List[FakePolicy]:
+        """
+        Pagination is not yet implemented
+        """
         return [v[1] for k, v in self.principal_policies.items() if k[0] == target]
 
     def list_policies(self) -> Iterable[FakePolicy]:
+        """
+        Pagination is not yet implemented
+        """
         return self.policies.values()
 
     def get_policy(self, policy_name: str) -> FakePolicy:
@@ -1273,12 +1283,18 @@ class IoTBackend(BaseBackend):
         del self.principal_policies[k]
 
     def list_principal_policies(self, principal_arn: str) -> List[FakePolicy]:
+        """
+        Pagination is not yet implemented
+        """
         policies = [
             v[1] for k, v in self.principal_policies.items() if k[0] == principal_arn
         ]
         return policies
 
     def list_policy_principals(self, policy_name: str) -> List[str]:
+        """
+        Pagination is not yet implemented
+        """
         # this action is deprecated
         # https://docs.aws.amazon.com/iot/latest/apireference/API_ListTargetsForPolicy.html
         # should use ListTargetsForPolicy instead
@@ -1288,6 +1304,9 @@ class IoTBackend(BaseBackend):
         return principals
 
     def list_targets_for_policy(self, policy_name: str) -> List[str]:
+        """
+        Pagination is not yet implemented
+        """
         # This behaviour is different to list_policy_principals which will just return an empty list
         if policy_name not in self.policies:
             raise ResourceNotFoundException("Policy not found")
