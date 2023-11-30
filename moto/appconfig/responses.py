@@ -1,9 +1,10 @@
 import json
-
-from moto.core.responses import BaseResponse
-from .models import appconfig_backends, AppConfigBackend
 from typing import Any, Dict, Tuple
 from urllib.parse import unquote
+
+from moto.core.responses import BaseResponse
+
+from .models import AppConfigBackend, appconfig_backends
 
 
 class AppConfigResponse(BaseResponse):

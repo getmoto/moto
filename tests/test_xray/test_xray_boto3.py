@@ -1,5 +1,6 @@
 import datetime
 import json
+
 import boto3
 
 from moto import mock_xray

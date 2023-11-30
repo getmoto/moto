@@ -1,8 +1,9 @@
+import json
 import typing
+from typing import Any, Dict
 
 from moto.s3.models import s3_backends
-import json
-from typing import Any, Dict
+
 from .exceptions import ValidationError
 
 if typing.TYPE_CHECKING:

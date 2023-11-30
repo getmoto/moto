@@ -3,11 +3,12 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec, SpotInstanceRequest
-from .core import TaggedEC2Resource
+
 from ..utils import (
-    random_fleet_id,
     convert_tag_spec,
+    random_fleet_id,
 )
+from .core import TaggedEC2Resource
 
 
 class Fleet(TaggedEC2Resource):

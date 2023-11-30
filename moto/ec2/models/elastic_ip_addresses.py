@@ -1,19 +1,21 @@
 from typing import Any, Dict, List, Optional
+
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
+
 from ..exceptions import (
     FilterNotImplementedError,
     InvalidAddressError,
     InvalidAllocationIdError,
-    ResourceAlreadyAssociatedError,
     InvalidAssociationIdError,
+    ResourceAlreadyAssociatedError,
 )
 from ..utils import (
-    random_ip,
+    generic_filter,
     random_eip_allocation_id,
     random_eip_association_id,
-    generic_filter,
+    random_ip,
 )
+from .core import TaggedEC2Resource
 
 
 class ElasticAddress(TaggedEC2Resource, CloudFormationModel):

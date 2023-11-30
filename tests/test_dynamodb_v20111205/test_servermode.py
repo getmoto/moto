@@ -1,9 +1,10 @@
 import json
+from unittest import SkipTest
+from uuid import uuid4
+
 import requests
 
 from moto import settings
-from unittest import SkipTest
-from uuid import uuid4
 
 """
 Test the different server responses

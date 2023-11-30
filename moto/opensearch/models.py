@@ -1,10 +1,10 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.utilities.tagging_service import TaggingService
 
 from .data import compatible_versions
-from .exceptions import ResourceNotFoundException, EngineTypeNotFoundException
+from .exceptions import EngineTypeNotFoundException, ResourceNotFoundException
 
 default_cluster_config = {
     "InstanceType": "t3.small.search",

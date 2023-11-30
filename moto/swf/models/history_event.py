@@ -1,9 +1,9 @@
 from typing import Any, Dict, Optional
+
 from moto.core import BaseModel
 from moto.core.utils import underscores_to_camelcase, unix_time
 
 from ..utils import decapitalize
-
 
 # We keep track of which history event types we support
 # so that we'll be able to catch specific formatting

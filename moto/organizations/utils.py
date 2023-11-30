@@ -1,8 +1,8 @@
 import re
 import string
-from moto.moto_api._internal import mock_random as random
 from typing import Pattern, Union
 
+from moto.moto_api._internal import mock_random as random
 
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"

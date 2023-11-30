@@ -3,12 +3,11 @@ import re
 import time
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
-import pytest
 
-from moto import mock_ec2
-from moto import mock_redshift
+from moto import mock_ec2, mock_redshift
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 

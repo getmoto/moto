@@ -1,8 +1,9 @@
 import json
+from unittest import SkipTest
+
 import requests
 
 from moto import settings
-from unittest import SkipTest
 
 
 def test_set_transition():

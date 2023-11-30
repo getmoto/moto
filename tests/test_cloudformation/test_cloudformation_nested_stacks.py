@@ -1,6 +1,7 @@
-import boto3
 import json
 from uuid import uuid4
+
+import boto3
 
 from moto import mock_cloudformation, mock_s3
 

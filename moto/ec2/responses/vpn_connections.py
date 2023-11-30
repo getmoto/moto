@@ -1,6 +1,8 @@
-from moto.ec2.utils import add_tag_specification
-from ._base_response import EC2BaseResponse
 from xml.sax.saxutils import escape
+
+from moto.ec2.utils import add_tag_specification
+
+from ._base_response import EC2BaseResponse
 
 
 class VPNConnections(EC2BaseResponse):

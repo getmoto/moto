@@ -2,11 +2,11 @@ import pytest
 from freezegun import freeze_time
 
 from moto.core.utils import (
+    camelcase_to_pascal,
     camelcase_to_underscores,
+    pascal_to_camelcase,
     underscores_to_camelcase,
     unix_time,
-    camelcase_to_pascal,
-    pascal_to_camelcase,
 )
 
 

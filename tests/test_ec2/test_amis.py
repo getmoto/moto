@@ -1,15 +1,16 @@
-import boto3
 import os
-import pytest
 import random
+from unittest import SkipTest, mock
+from uuid import uuid4
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
-from moto.ec2.models.amis import AMIS
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from botocore.exceptions import ClientError
+from moto.ec2.models.amis import AMIS
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
-from unittest import mock, SkipTest
-from uuid import uuid4
 
 
 # The default AMIs are not loaded for our test case, to speed things up

@@ -1,6 +1,5 @@
 from typing import Type
 
-
 PAGINATION_MODEL = {
     "describe_log_groups": {
         "input_token": "next_token",

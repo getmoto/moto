@@ -1,15 +1,15 @@
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 
+from ..moto_api._internal import mock_random
 from .exceptions import (
-    UserAlreadyExists,
-    UserNotFound,
     CacheClusterAlreadyExists,
     CacheClusterNotFound,
+    UserAlreadyExists,
+    UserNotFound,
 )
-from ..moto_api._internal import mock_random
 
 
 class User(BaseModel):

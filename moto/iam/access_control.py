@@ -15,32 +15,33 @@ TODO add support for resource-based policies
 import json
 import logging
 import re
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 from enum import Enum
-from typing import Any, Dict, Optional, Match, List, Union
+from typing import Any, Dict, List, Match, Optional, Union
 
-from botocore.auth import SigV4Auth, S3SigV4Auth
+from botocore.auth import S3SigV4Auth, SigV4Auth
 from botocore.awsrequest import AWSRequest
 from botocore.credentials import Credentials
 
 from moto.core.exceptions import (
-    SignatureDoesNotMatchError,
     AccessDeniedError,
-    InvalidClientTokenIdError,
     AuthFailureError,
+    InvalidClientTokenIdError,
+    SignatureDoesNotMatchError,
 )
 from moto.s3.exceptions import (
     BucketAccessDeniedError,
-    S3AccessDeniedError,
-    BucketInvalidTokenError,
-    S3InvalidTokenError,
-    S3InvalidAccessKeyIdError,
     BucketInvalidAccessKeyIdError,
+    BucketInvalidTokenError,
     BucketSignatureDoesNotMatchError,
+    S3AccessDeniedError,
+    S3InvalidAccessKeyIdError,
+    S3InvalidTokenError,
     S3SignatureDoesNotMatchError,
 )
 from moto.sts.models import sts_backends
-from .models import iam_backends, Policy, IAMBackend
+
+from .models import IAMBackend, Policy, iam_backends
 
 log = logging.getLogger(__name__)
 

@@ -1,14 +1,14 @@
 import json
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_sns, mock_sqs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sns.models import (
-    DEFAULT_PAGE_SIZE,
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
+    DEFAULT_PAGE_SIZE,
 )
 
 

@@ -1,7 +1,9 @@
-from .core import TaggedEC2Resource
-from ..utils import generic_filter, random_dedicated_host_id
-from moto.core.utils import unix_time
 from typing import Any, Dict, List, Optional
+
+from moto.core.utils import unix_time
+
+from ..utils import generic_filter, random_dedicated_host_id
+from .core import TaggedEC2Resource
 
 
 class Host(TaggedEC2Resource):

@@ -3,23 +3,23 @@ import json
 import re
 from collections import namedtuple
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
+    ImageAlreadyExistsException,
     ImageNotFoundException,
-    RepositoryNotFoundException,
+    InvalidParameterException,
+    LifecyclePolicyNotFoundException,
+    LimitExceededException,
+    RegistryPolicyNotFoundException,
     RepositoryAlreadyExistsException,
     RepositoryNotEmptyException,
-    InvalidParameterException,
-    ImageAlreadyExistsException,
+    RepositoryNotFoundException,
     RepositoryPolicyNotFoundException,
-    LifecyclePolicyNotFoundException,
-    RegistryPolicyNotFoundException,
-    LimitExceededException,
     ScanNotFoundException,
     ValidationException,
 )

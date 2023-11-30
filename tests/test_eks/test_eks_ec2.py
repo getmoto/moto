@@ -1,6 +1,7 @@
 import boto3
 
 from moto import mock_ec2, mock_eks
+
 from .test_eks_constants import NODEROLE_ARN_VALUE, SUBNET_IDS
 
 

@@ -3,7 +3,7 @@ import json
 from moto.core.responses import BaseResponse
 from moto.moto_api._internal import mock_random
 
-from .models import ssoadmin_backends, SSOAdminBackend
+from .models import SSOAdminBackend, ssoadmin_backends
 
 
 class SSOAdminResponse(BaseResponse):

@@ -3,9 +3,9 @@ import copy
 import boto3
 
 from moto import mock_autoscaling, mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
-from tests import EXAMPLE_AMI_ID
 
 
 @mock_autoscaling

@@ -1,10 +1,11 @@
 import json
-import pytest
 
 import boto3
+import pytest
 from boto3 import Session
 from botocore.client import ClientError
-from moto import settings, mock_s3control, mock_config
+
+from moto import mock_config, mock_s3control, settings
 
 # All tests for s3-control cannot be run under the server without a modification of the
 # hosts file on your system. This is due to the fact that the URL to the host is in the form of:

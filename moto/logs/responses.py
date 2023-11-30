@@ -2,10 +2,10 @@ import json
 import re
 from typing import Any, Callable, Optional
 
-from .exceptions import InvalidParameterException
-
 from moto.core.responses import BaseResponse
-from .models import logs_backends, LogsBackend
+
+from .exceptions import InvalidParameterException
+from .models import LogsBackend, logs_backends
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 

@@ -1,9 +1,11 @@
-import boto3
-import botocore
 import os
 from functools import wraps
-from moto import mock_sns, mock_sts
 from unittest import SkipTest
+
+import boto3
+import botocore
+
+from moto import mock_sns, mock_sts
 
 
 def sns_aws_verified(func):

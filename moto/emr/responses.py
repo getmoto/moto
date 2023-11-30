@@ -4,13 +4,12 @@ from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Dict, List, Pattern
 
-from moto.core.responses import AWSServiceSpec
-from moto.core.responses import BaseResponse
-from moto.core.responses import xml_to_json_response
+from moto.core.responses import AWSServiceSpec, BaseResponse, xml_to_json_response
 from moto.core.utils import tags_from_query_string
+
 from .exceptions import ValidationException
-from .models import emr_backends, ElasticMapReduceBackend
-from .utils import steps_from_query_string, Unflattener, ReleaseLabel
+from .models import ElasticMapReduceBackend, emr_backends
+from .utils import ReleaseLabel, Unflattener, steps_from_query_string
 
 
 def generate_boto3_response(

@@ -4,7 +4,8 @@ from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import quicksight_backends, QuickSightBackend
+
+from .models import QuickSightBackend, quicksight_backends
 
 
 class QuickSightResponse(BaseResponse):

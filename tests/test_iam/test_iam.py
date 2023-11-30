@@ -1,23 +1,20 @@
+import csv
 import json
+from datetime import datetime
+from urllib import parse
+from uuid import uuid4
 
 import boto3
-import csv
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_config, mock_iam, settings
+from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
-from moto.backends import get_backend
-from tests import DEFAULT_ACCOUNT_ID
-import pytest
-
-from datetime import datetime
-from uuid import uuid4
-from urllib import parse
-
 from moto.s3.responses import DEFAULT_REGION_NAME
-
+from tests import DEFAULT_ACCOUNT_ID
 
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
 MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
@@ -3583,8 +3580,8 @@ def test_role_list_config_discovered_resources():
 
 @mock_iam
 def test_role_config_dict():
-    from moto.iam.config import role_config_query, policy_config_query
-    from moto.iam.utils import random_role_id, random_policy_id
+    from moto.iam.config import policy_config_query, role_config_query
+    from moto.iam.utils import random_policy_id, random_role_id
 
     # Without any roles
     assert not role_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "something")
@@ -4192,7 +4189,7 @@ def test_policy_list_config_discovered_resources():
 
 @mock_iam
 def test_policy_config_dict():
-    from moto.iam.config import role_config_query, policy_config_query
+    from moto.iam.config import policy_config_query, role_config_query
     from moto.iam.utils import random_policy_id
 
     # Without any roles

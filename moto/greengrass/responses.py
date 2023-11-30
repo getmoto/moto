@@ -1,10 +1,11 @@
-from typing import Any
 import json
+from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.core.responses import BaseResponse
-from .models import greengrass_backends, GreengrassBackend
+from moto.core.utils import iso_8601_datetime_with_milliseconds
+
+from .models import GreengrassBackend, greengrass_backends
 
 
 class GreengrassResponse(BaseResponse):

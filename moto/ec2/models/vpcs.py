@@ -2,38 +2,39 @@ import ipaddress
 import json
 import weakref
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
 from operator import itemgetter
+from typing import Any, Dict, List, Optional
 
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
+
 from ..exceptions import (
     CidrLimitExceeded,
-    UnsupportedTenancy,
     DefaultVpcAlreadyExists,
     DependencyViolationError,
     InvalidCIDRBlockParameterError,
-    InvalidServiceName,
     InvalidFilter,
     InvalidNextToken,
     InvalidParameterValueError,
+    InvalidServiceName,
     InvalidVpcCidrBlockAssociationIdError,
+    InvalidVpcEndPointIdError,
     InvalidVPCIdError,
     InvalidVPCRangeError,
     OperationNotPermitted,
-    InvalidVpcEndPointIdError,
+    UnsupportedTenancy,
 )
-from .availability_zones_and_regions import RegionsAndZonesBackend
 from ..utils import (
-    random_ipv6_cidr,
-    random_vpc_ep_id,
-    random_private_ip,
     create_dns_entries,
-    random_vpc_id,
-    random_vpc_cidr_association_id,
     generic_filter,
+    random_ipv6_cidr,
+    random_private_ip,
+    random_vpc_cidr_association_id,
+    random_vpc_ep_id,
+    random_vpc_id,
     utc_date_and_time,
 )
+from .availability_zones_and_regions import RegionsAndZonesBackend
+from .core import TaggedEC2Resource
 
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
 DEFAULT_VPC_ENDPOINT_SERVICES: List[Dict[str, str]] = []

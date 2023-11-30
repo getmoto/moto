@@ -3,7 +3,7 @@
 import string
 from typing import Any, Dict, List, Tuple
 
-from moto.core import BaseBackend, BackendDict
+from moto.core import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
 
 

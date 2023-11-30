@@ -1,19 +1,20 @@
 import re
 import time
-
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Iterable, Tuple
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.utilities.tagging_service import TaggingService
+
 from .exceptions import (
-    S3BucketDoesNotExistException,
     InsufficientSnsTopicPolicyException,
+    S3BucketDoesNotExistException,
+    TrailNameInvalidChars,
+    TrailNameNotEndingCorrectly,
+    TrailNameNotStartingCorrectly,
     TrailNameTooLong,
     TrailNameTooShort,
-    TrailNameNotStartingCorrectly,
-    TrailNameNotEndingCorrectly,
-    TrailNameInvalidChars,
     TrailNotFoundException,
 )
 

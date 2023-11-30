@@ -1,5 +1,5 @@
-from ._base_response import EC2BaseResponse
 from ..exceptions import AuthFailureRestricted, InvalidRequest
+from ._base_response import EC2BaseResponse
 
 
 class AmisResponse(EC2BaseResponse):

@@ -1,8 +1,7 @@
-from random import Random
 import string
-from uuid import UUID
 from base64 import urlsafe_b64encode
-
+from random import Random
+from uuid import UUID
 
 HEX_CHARS = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
 

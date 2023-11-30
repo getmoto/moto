@@ -1,8 +1,9 @@
-import boto3
-from moto import mock_kinesisvideoarchivedmedia
-from moto import mock_kinesisvideo
-from moto.core.utils import utcnow
 from datetime import timedelta
+
+import boto3
+
+from moto import mock_kinesisvideo, mock_kinesisvideoarchivedmedia
+from moto.core.utils import utcnow
 
 
 @mock_kinesisvideo

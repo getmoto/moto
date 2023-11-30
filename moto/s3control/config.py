@@ -1,10 +1,10 @@
 import json
-
-from boto3 import Session
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core.exceptions import InvalidNextTokenException
+from boto3 import Session
+
 from moto.core.common_models import ConfigQueryModel
+from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import unix_time, utcnow
 from moto.s3control import s3control_backends
 

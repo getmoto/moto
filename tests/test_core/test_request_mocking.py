@@ -1,8 +1,8 @@
-import requests
-import pytest
-
 import boto3
-from moto import mock_s3, mock_sts, mock_sqs, settings
+import pytest
+import requests
+
+from moto import mock_s3, mock_sqs, mock_sts, settings
 
 
 @mock_sqs

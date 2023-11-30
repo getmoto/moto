@@ -1,6 +1,5 @@
-from moto.moto_api._internal import mock_random as random
-
 from moto.core import BaseModel
+from moto.moto_api._internal import mock_random as random
 
 
 class WindowsBackend(BaseModel):

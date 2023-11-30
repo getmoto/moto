@@ -1,6 +1,8 @@
-from moto.core.responses import BaseResponse
-from .models import resourcegroupstaggingapi_backends, ResourceGroupsTaggingAPIBackend
 import json
+
+from moto.core.responses import BaseResponse
+
+from .models import ResourceGroupsTaggingAPIBackend, resourcegroupstaggingapi_backends
 
 
 class ResourceGroupsTaggingAPIResponse(BaseResponse):

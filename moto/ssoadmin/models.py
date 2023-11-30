@@ -1,9 +1,10 @@
 from typing import Any, Dict, List
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+
 from .exceptions import ResourceNotFound
 from .utils import PAGINATION_MODEL
 

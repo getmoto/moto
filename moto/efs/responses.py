@@ -3,8 +3,7 @@ from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
 
-from .models import efs_backends, EFSBackend
-
+from .models import EFSBackend, efs_backends
 
 TYPE_RESPONSE = Tuple[str, Dict[str, Union[str, int]]]
 

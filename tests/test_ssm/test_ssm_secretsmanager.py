@@ -1,11 +1,10 @@
 import json
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
-from moto import mock_ssm, mock_secretsmanager
-
+from moto import mock_secretsmanager, mock_ssm
 
 # https://docs.aws.amazon.com/systems-manager/latest/userguide/integration-ps-secretsmanager.html
 

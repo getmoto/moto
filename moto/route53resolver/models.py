@@ -1,14 +1,13 @@
 """Route53ResolverBackend class with methods for supported APIs."""
+import re
 from collections import defaultdict
 from datetime import datetime, timezone
-from ipaddress import ip_address, ip_network, IPv4Address
+from ipaddress import IPv4Address, ip_address, ip_network
 from typing import Any, Dict, List, Optional, Set
-import re
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
-from moto.ec2.exceptions import InvalidSubnetIdError
-from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
+from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError, InvalidSubnetIdError
 from moto.moto_api._internal import mock_random
 from moto.route53resolver.exceptions import (
     InvalidParameterException,
@@ -21,7 +20,6 @@ from moto.route53resolver.exceptions import (
 )
 from moto.route53resolver.utils import PAGINATION_MODEL
 from moto.route53resolver.validations import validate_args
-
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 

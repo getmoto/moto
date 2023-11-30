@@ -1,12 +1,14 @@
-import boto3
 import io
-import zipfile
-from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
-import pytest
 import re
+import zipfile
 from string import Template
 from uuid import uuid4
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
 
 
 def random_stack_name():

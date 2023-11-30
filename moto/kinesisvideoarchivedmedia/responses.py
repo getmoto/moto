@@ -1,7 +1,9 @@
-from typing import Dict, Tuple
-from moto.core.responses import BaseResponse
-from .models import kinesisvideoarchivedmedia_backends, KinesisVideoArchivedMediaBackend
 import json
+from typing import Dict, Tuple
+
+from moto.core.responses import BaseResponse
+
+from .models import KinesisVideoArchivedMediaBackend, kinesisvideoarchivedmedia_backends
 
 
 class KinesisVideoArchivedMediaResponse(BaseResponse):

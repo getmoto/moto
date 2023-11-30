@@ -1,6 +1,7 @@
-from moto.moto_api._internal import mock_random as random
 import string
 from typing import Any, Dict
+
+from moto.moto_api._internal import mock_random as random
 
 
 def random_id(size: int = 13) -> str:

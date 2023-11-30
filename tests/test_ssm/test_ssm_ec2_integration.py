@@ -1,9 +1,9 @@
-import boto3
 import os
+from unittest import SkipTest, mock
+
+import boto3
 
 from moto import mock_ec2, mock_ssm, settings
-from unittest import mock, SkipTest
-
 
 test_ami = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 

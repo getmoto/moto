@@ -1,5 +1,6 @@
-from .responses import ElasticsearchServiceResponse
 from moto.opensearch.responses import OpenSearchServiceResponse
+
+from .responses import ElasticsearchServiceResponse
 
 url_bases = [
     r"https?://es\.(.+)\.amazonaws\.com",

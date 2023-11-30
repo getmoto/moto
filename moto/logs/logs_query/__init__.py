@@ -1,10 +1,9 @@
-from typing import Any, Dict, List
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:
-    from ..models import LogGroup, LogEvent, LogStream
+    from ..models import LogEvent, LogGroup, LogStream
 
-from .query_parser import parse_query, ParsedQuery
+from .query_parser import ParsedQuery, parse_query
 
 
 class ParsedEvent:

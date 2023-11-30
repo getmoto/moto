@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_autoscaling, mock_elb, mock_ec2
+from moto import mock_autoscaling, mock_ec2, mock_elb
+from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
-from tests import EXAMPLE_AMI_ID
 
 
 @mock_autoscaling

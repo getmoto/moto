@@ -3,10 +3,9 @@ import pytest
 
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ec2 import mock_ec2, ec2_backends
+from moto.ec2 import ec2_backends, mock_ec2
 from moto.emr import mock_emr
 from moto.emr.utils import EmrSecurityGroupManager
-
 
 ec2_backend = ec2_backends[ACCOUNT_ID]["us-east-1"]
 

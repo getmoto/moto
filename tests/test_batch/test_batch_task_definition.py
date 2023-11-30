@@ -1,8 +1,11 @@
-from . import _get_clients
 import random
-import pytest
-from moto import mock_batch
 from uuid import uuid4
+
+import pytest
+
+from moto import mock_batch
+
+from . import _get_clients
 
 
 @mock_batch

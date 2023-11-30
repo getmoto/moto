@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
+from typing import List, Optional, Tuple
+
 from moto.moto_api import state_manager
-from typing import List, Tuple, Optional
 
 
 class ManagedState:

@@ -1,11 +1,10 @@
-from moto.core import DEFAULT_ACCOUNT_ID
-from moto.logs.models import LogGroup
-from moto.logs.logs_query import execute_query
-from moto.core.utils import unix_time, unix_time_millis
-
 from unittest import TestCase
 from uuid import uuid4
 
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.utils import unix_time, unix_time_millis
+from moto.logs.logs_query import execute_query
+from moto.logs.models import LogGroup
 
 DEFAULT_QUERY = """fields @timestamp, @message, @logStream, @log
 | sort @timestamp desc

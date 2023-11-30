@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_sts, mock_sqs
+from moto import mock_sqs, mock_sts
 
 
 class TestStsAssumeRole(unittest.TestCase):

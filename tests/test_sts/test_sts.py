@@ -1,15 +1,15 @@
-from base64 import b64encode
-from datetime import datetime
 import json
 import re
+from base64 import b64encode
+from datetime import datetime
 from unittest.mock import patch
 
 import boto3
+import pytest
 from botocore.client import ClientError
 from freezegun import freeze_time
-import pytest
 
-from moto import mock_sts, mock_iam, settings
+from moto import mock_iam, mock_sts, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 

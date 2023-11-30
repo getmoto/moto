@@ -1,30 +1,29 @@
 import re
 from copy import copy
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional, Tuple
 from os import getenv
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto import settings
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
-
-from ..ec2.utils import random_private_ip
+from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time
 from moto.ec2 import ec2_backends
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 
+from ..ec2.utils import random_private_ip
 from .exceptions import (
-    EcsClientException,
-    ServiceNotFoundException,
-    TaskDefinitionNotFoundException,
-    TaskSetNotFoundException,
     ClusterNotFoundException,
+    EcsClientException,
     InvalidParameterException,
     RevisionNotFoundException,
+    ServiceNotFoundException,
     TaskDefinitionMemoryError,
     TaskDefinitionMissingPropertyError,
+    TaskDefinitionNotFoundException,
+    TaskSetNotFoundException,
     UnknownAccountSettingException,
 )
 

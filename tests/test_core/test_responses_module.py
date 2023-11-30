@@ -2,14 +2,16 @@
 Ensure that the responses module plays nice with our mocks
 """
 
+from unittest import SkipTest, TestCase
+
 import boto3
 import requests
 import responses
+
 from moto import mock_dynamodb, mock_s3, settings
 from moto.core.models import override_responses_real_send
 from moto.core.versions import RESPONSES_VERSION
 from moto.utilities.distutils_version import LooseVersion
-from unittest import SkipTest, TestCase
 
 
 class TestResponsesModule(TestCase):

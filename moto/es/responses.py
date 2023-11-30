@@ -4,8 +4,9 @@ from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+
 from .exceptions import InvalidDomainName
-from .models import es_backends, ElasticsearchServiceBackend
+from .models import ElasticsearchServiceBackend, es_backends
 
 
 class ElasticsearchServiceResponse(BaseResponse):

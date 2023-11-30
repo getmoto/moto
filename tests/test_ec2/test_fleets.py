@@ -1,9 +1,10 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 
 from moto import mock_ec2
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
 
 from . import ec2_aws_verified
 

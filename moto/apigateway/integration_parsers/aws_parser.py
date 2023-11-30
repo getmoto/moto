@@ -1,8 +1,9 @@
+from typing import Tuple, Union
+
 import requests
 
-from . import IntegrationParser
 from ..models import Integration
-from typing import Tuple, Union
+from . import IntegrationParser
 
 
 class TypeAwsParser(IntegrationParser):

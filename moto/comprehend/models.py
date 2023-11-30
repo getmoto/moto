@@ -1,13 +1,15 @@
 """ComprehendBackend class with methods for supported APIs."""
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, Iterable, List
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.utilities.tagging_service import TaggingService
+
 from .exceptions import (
-    ResourceNotFound,
     DetectPIIValidationException,
+    ResourceNotFound,
     TextSizeLimitExceededException,
 )
-from typing import Any, Dict, List, Iterable
 
 CANNED_DETECT_RESPONSE = [
     {

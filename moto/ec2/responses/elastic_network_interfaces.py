@@ -1,5 +1,6 @@
 from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
-from moto.ec2.utils import get_attribute_value, add_tag_specification
+from moto.ec2.utils import add_tag_specification, get_attribute_value
+
 from ._base_response import EC2BaseResponse
 
 

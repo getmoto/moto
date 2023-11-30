@@ -7,7 +7,6 @@ import pytest
 
 from moto import mock_s3, settings
 
-
 DEFAULT_REGION_NAME = "us-east-1"
 CUSTOM_ENDPOINT = "https://s3.local.some-test-domain.de"
 CUSTOM_ENDPOINT_2 = "https://caf-o.s3-ext.jc.rl.ac.uk"

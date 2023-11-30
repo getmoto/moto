@@ -1,9 +1,9 @@
 import re
 from collections import deque, namedtuple
-from typing import Any, Dict, List, Tuple, Deque, Optional, Iterable, Union
+from typing import Any, Deque, Dict, Iterable, List, Optional, Tuple, Union
 
-from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.exceptions import ConditionAttributeIsReservedKeyword
+from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 

@@ -2,7 +2,8 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import ram_backends, ResourceAccessManagerBackend
+
+from .models import ResourceAccessManagerBackend, ram_backends
 
 
 class ResourceAccessManagerResponse(BaseResponse):

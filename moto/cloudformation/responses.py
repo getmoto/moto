@@ -1,16 +1,18 @@
 import json
 import re
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import yaml
-from typing import Any, Dict, Tuple, List, Optional, Union
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
 from moto.utilities.aws_headers import amzn_request_id
-from .models import cloudformation_backends, CloudFormationBackend, FakeStack
-from .exceptions import ValidationError, MissingParameterError
-from .utils import yaml_tag_constructor, get_stack_from_s3_url
+
+from .exceptions import MissingParameterError, ValidationError
+from .models import CloudFormationBackend, FakeStack, cloudformation_backends
+from .utils import get_stack_from_s3_url, yaml_tag_constructor
 
 
 def get_template_summary_response_from_template(template_body: str) -> Dict[str, Any]:

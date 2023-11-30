@@ -4,7 +4,8 @@ from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import iot_backends, IoTBackend
+
+from .models import IoTBackend, iot_backends
 
 
 class IoTResponse(BaseResponse):

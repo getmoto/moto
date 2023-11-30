@@ -1,50 +1,55 @@
 import base64
-import time
-from collections import defaultdict
+import calendar
 import copy
-from datetime import datetime
-from gzip import GzipFile
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
-from sys import platform
-
 import hashlib
 import io
+import json
 import logging
 import os
-import json
 import re
-import zipfile
 import tarfile
-import calendar
 import threading
-import weakref
+import time
 import warnings
+import weakref
+import zipfile
+from collections import defaultdict
+from datetime import datetime
+from gzip import GzipFile
+from sys import platform
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
 import requests.exceptions
 
+from moto import settings
 from moto.awslambda.policy import Policy
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds, utcnow
-from moto.utilities.utils import load_resource_as_bytes
-from moto.iam.models import iam_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.core.utils import iso_8601_datetime_with_nanoseconds, unix_time_millis, utcnow
+from moto.dynamodb import dynamodb_backends
+from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.ecr.exceptions import ImageNotFoundException
+from moto.ecr.models import ecr_backends
+from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.models import iam_backends
 from moto.logs.models import logs_backends
 from moto.moto_api._internal import mock_random as random
-from moto.s3.models import s3_backends, FakeKey
-from moto.ecr.models import ecr_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
-from moto import settings
+from moto.s3.models import FakeKey, s3_backends
+from moto.sqs import sqs_backends
+from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.utils import load_resource_as_bytes
+
 from .exceptions import (
     ConflictException,
     CrossAccountNotAllowed,
     FunctionUrlConfigNotFound,
-    InvalidRoleFormat,
     InvalidParameterValueException,
+    InvalidRoleFormat,
+    UnknownAliasException,
+    UnknownFunctionException,
     UnknownLayerException,
     UnknownLayerVersionException,
-    UnknownFunctionException,
-    UnknownAliasException,
     ValidationException,
 )
 from .utils import (
@@ -54,10 +59,6 @@ from .utils import (
     make_layer_ver_arn,
     split_layer_arn,
 )
-from moto.sqs import sqs_backends
-from moto.dynamodb import dynamodb_backends
-from moto.dynamodbstreams import dynamodbstreams_backends
-from moto.utilities.docker_utilities import DockerModel
 
 logger = logging.getLogger(__name__)
 

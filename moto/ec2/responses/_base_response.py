@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional
+
 from moto.core.responses import BaseResponse
+
 from ..exceptions import EmptyTagSpecError, InvalidParameter
 from ..utils import convert_tag_spec
 

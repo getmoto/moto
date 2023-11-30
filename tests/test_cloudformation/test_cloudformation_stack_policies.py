@@ -1,10 +1,11 @@
-import boto3
 import json
 
+import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_cloudformation, mock_s3
+
 from .test_cloudformation_stack_crud_boto3 import dummy_template_json
 
 

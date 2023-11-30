@@ -2,12 +2,10 @@
 from datetime import datetime, timezone
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
-import pytest
-
-from moto import mock_route53resolver
-from moto import settings
+from moto import mock_route53resolver, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import mock_ec2
 from moto.moto_api._internal import mock_random

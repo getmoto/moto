@@ -1,13 +1,14 @@
 import base64
-import boto3
 import os
-import pytest
+from unittest import SkipTest, mock
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_autoscaling, mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from unittest import mock, SkipTest
 
 
 @mock_autoscaling

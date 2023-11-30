@@ -1,5 +1,7 @@
-from boto3 import Session
 from typing import Any, Dict, List, Optional
+
+from boto3 import Session
+
 from moto.utilities.utils import filter_resources
 
 

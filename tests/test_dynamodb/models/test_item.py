@@ -1,5 +1,4 @@
-from moto.dynamodb.models.dynamo_type import DynamoType, Item
-from moto.dynamodb.models.dynamo_type import serializer
+from moto.dynamodb.models.dynamo_type import DynamoType, Item, serializer
 
 
 class TestFindNestedKeys:

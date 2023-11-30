@@ -1,17 +1,18 @@
 import base64
 import copy
 import decimal
+from typing import Any, Dict, List, Optional, Union
 
-from botocore.utils import merge_dicts
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
-from typing import Any, Dict, List, Union, Optional
+from botocore.utils import merge_dicts
 
 from moto.core import BaseModel
 from moto.dynamodb.exceptions import (
-    IncorrectDataType,
     EmptyKeyAttributeException,
+    IncorrectDataType,
     ItemSizeTooLarge,
 )
+
 from .utilities import bytesize, find_nested_key
 
 deserializer = TypeDeserializer()

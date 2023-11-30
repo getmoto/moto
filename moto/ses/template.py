@@ -1,7 +1,8 @@
 from typing import Any, Dict, Optional, Type
 
-from .exceptions import MissingRenderingAttributeException
 from moto.utilities.tokenizer import GenericTokenizer
+
+from .exceptions import MissingRenderingAttributeException
 
 
 class BlockProcessor:

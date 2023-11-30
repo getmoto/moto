@@ -1,8 +1,9 @@
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2
-from botocore.exceptions import ClientError
+
 from .test_tags import retrieve_all_tagged
 
 

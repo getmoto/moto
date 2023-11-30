@@ -1,7 +1,9 @@
-import requests
 from typing import Tuple, Union
-from . import IntegrationParser
+
+import requests
+
 from ..models import Integration
+from . import IntegrationParser
 
 
 class TypeUnknownParser(IntegrationParser):

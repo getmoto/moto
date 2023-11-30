@@ -1,11 +1,10 @@
-from ..test_batch import _get_clients, _setup
-
 import os
-from moto import mock_iam, mock_ec2, mock_ecs, mock_logs, settings
-from moto import mock_batch_simple
+from unittest import SkipTest, mock
 from uuid import uuid4
-from unittest import mock, SkipTest
 
+from moto import mock_batch_simple, mock_ec2, mock_ecs, mock_iam, mock_logs, settings
+
+from ..test_batch import _get_clients, _setup
 
 # Copy of test_batch/test_batch_jobs
 # Except that we verify this behaviour still works without docker

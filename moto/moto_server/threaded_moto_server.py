@@ -1,7 +1,8 @@
 import time
 from threading import Thread
 from typing import Optional
-from werkzeug.serving import make_server, BaseWSGIServer
+
+from werkzeug.serving import BaseWSGIServer, make_server
 
 from .werkzeug_app import DomainDispatcherApplication, create_backend_app
 

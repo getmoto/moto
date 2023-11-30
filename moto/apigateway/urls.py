@@ -1,5 +1,5 @@
-from .responses import APIGatewayResponse
 from ..apigatewayv2.urls import url_paths as url_paths_v2
+from .responses import APIGatewayResponse
 
 url_bases = [r"https?://apigateway\.(.+)\.amazonaws.com"]
 

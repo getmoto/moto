@@ -1,5 +1,6 @@
-from ._base_response import EC2BaseResponse
 from moto.utilities.utils import str2bool
+
+from ._base_response import EC2BaseResponse
 
 
 class TransitGatewayRouteTable(EC2BaseResponse):

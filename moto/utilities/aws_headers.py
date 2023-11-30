@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Any, Callable, Dict, TypeVar, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar
 
 if TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -8,8 +8,8 @@ else:
 
 import binascii
 import re
-from moto.moto_api._internal import mock_random as random
 
+from moto.moto_api._internal import mock_random as random
 
 TypeDec = TypeVar("TypeDec", bound=Callable[..., Any])
 

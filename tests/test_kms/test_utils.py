@@ -8,19 +8,19 @@ from moto.kms.exceptions import (
 )
 from moto.kms.models import Key
 from moto.kms.utils import (
+    MASTER_KEY_LEN,
+    Ciphertext,
+    ECDSAPrivateKey,
+    KeySpec,
+    RSAPrivateKey,
+    SigningAlgorithm,
     _deserialize_ciphertext_blob,
     _serialize_ciphertext_blob,
     _serialize_encryption_context,
+    decrypt,
+    encrypt,
     generate_data_key,
     generate_master_key,
-    MASTER_KEY_LEN,
-    encrypt,
-    decrypt,
-    Ciphertext,
-    KeySpec,
-    SigningAlgorithm,
-    RSAPrivateKey,
-    ECDSAPrivateKey,
 )
 
 ENCRYPTION_CONTEXT_VECTORS = [

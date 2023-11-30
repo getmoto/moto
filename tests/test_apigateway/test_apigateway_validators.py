@@ -1,7 +1,8 @@
 import boto3
-from moto import mock_apigateway
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_apigateway
 
 ID = "id"
 NAME = "name"

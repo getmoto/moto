@@ -1,5 +1,6 @@
-import boto3
 import time
+
+import boto3
 
 from moto import mock_glacier
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

@@ -15,9 +15,9 @@ except ImportError:
     )
     raise
 
-import moto.backends as backends
 import moto.backend_index as backend_index
-from moto.core import BackendDict, DEFAULT_ACCOUNT_ID
+import moto.backends as backends
+from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
 from moto.core.utils import convert_to_flask_response
 
 from .utilities import AWSTestHelper, RegexConverter

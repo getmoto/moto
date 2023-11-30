@@ -1,7 +1,7 @@
 import string
+from email.utils import parseaddr
 from typing import Optional
 
-from email.utils import parseaddr
 from moto.moto_api._internal import mock_random as random
 
 

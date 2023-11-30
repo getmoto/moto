@@ -3,7 +3,7 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import opensearch_backends, OpenSearchServiceBackend
+from .models import OpenSearchServiceBackend, opensearch_backends
 
 
 class OpenSearchServiceResponse(BaseResponse):

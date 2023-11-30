@@ -1,15 +1,17 @@
 import json
 import time
-import jsondiff
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+import jsondiff
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import merge_dicts
-from moto.iot.models import iot_backends, IoTBackend
+from moto.iot.models import IoTBackend, iot_backends
+
 from .exceptions import (
     ConflictException,
-    ResourceNotFoundException,
     InvalidRequestException,
+    ResourceNotFoundException,
 )
 
 

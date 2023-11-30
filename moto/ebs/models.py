@@ -1,12 +1,12 @@
 """EBSBackend class with methods for supported APIs."""
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
-from moto.ec2.models import ec2_backends, EC2Backend
+from moto.ec2.models import EC2Backend, ec2_backends
 from moto.ec2.models.elastic_block_store import Snapshot
 from moto.moto_api._internal import mock_random
-
-from typing import Any, Dict, List, Optional, Tuple
 
 
 class Block(BaseModel):

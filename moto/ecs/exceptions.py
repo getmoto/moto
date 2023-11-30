@@ -1,4 +1,4 @@
-from moto.core.exceptions import RESTError, JsonRESTError
+from moto.core.exceptions import JsonRESTError, RESTError
 
 
 class ServiceNotFoundException(RESTError):

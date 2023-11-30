@@ -1,10 +1,11 @@
 """Handles incoming amp requests, invokes methods, returns responses."""
 import json
-
-from moto.core.responses import BaseResponse
-from .models import amp_backends, PrometheusServiceBackend
 from typing import Any
 from urllib.parse import unquote
+
+from moto.core.responses import BaseResponse
+
+from .models import PrometheusServiceBackend, amp_backends
 
 
 class PrometheusServiceResponse(BaseResponse):

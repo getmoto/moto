@@ -1,5 +1,6 @@
-from moto.core.exceptions import RESTError
 from typing import Any
+
+from moto.core.exceptions import RESTError
 
 EXCEPTION_RESPONSE = """<?xml version="1.0"?>
 <ErrorResponse xmlns="http://cloudfront.amazonaws.com/doc/2020-05-31/">

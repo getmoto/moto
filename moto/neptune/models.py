@@ -1,12 +1,14 @@
 import copy
 import string
-from jinja2 import Template
 from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from jinja2 import Template
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.utilities.utils import load_resource
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import load_resource
+
 from .exceptions import DBClusterNotFoundError
 
 

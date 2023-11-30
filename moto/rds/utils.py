@@ -1,13 +1,11 @@
 import copy
-from collections import namedtuple
-from typing import Any, Dict, Tuple, Optional, List
-from enum import Enum
-
-from botocore.utils import merge_dicts
-
-from collections import OrderedDict
 import datetime
 import re
+from collections import OrderedDict, namedtuple
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
 FilterDef = namedtuple(

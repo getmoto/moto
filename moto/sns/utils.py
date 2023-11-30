@@ -1,7 +1,8 @@
-import re
-from moto.moto_api._internal import mock_random
-from typing import Any, Dict, List, Iterable, Optional, Tuple, Union, Callable
 import json
+import re
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+
+from moto.moto_api._internal import mock_random
 
 E164_REGEX = re.compile(r"^\+?[1-9]\d{1,14}$")
 

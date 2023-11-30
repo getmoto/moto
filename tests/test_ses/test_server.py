@@ -1,6 +1,6 @@
 """Test the different server responses."""
-from datetime import datetime
 import re
+from datetime import datetime
 
 import moto.server as server
 

@@ -1,8 +1,11 @@
 from collections import defaultdict
 from io import BytesIO
+from typing import Any, Callable, Dict, List, Pattern, Tuple, Union
+
 from botocore.awsrequest import AWSResponse
+
 from moto.core.exceptions import HTTPException
-from typing import Any, Dict, Callable, List, Tuple, Union, Pattern
+
 from .responses import TYPE_RESPONSE
 
 

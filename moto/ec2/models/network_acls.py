@@ -5,12 +5,12 @@ from ..exceptions import (
     InvalidRouteTableIdError,
     NetworkAclEntryAlreadyExistsError,
 )
-from .core import TaggedEC2Resource
 from ..utils import (
     generic_filter,
     random_network_acl_id,
     random_network_acl_subnet_association_id,
 )
+from .core import TaggedEC2Resource
 
 
 class NetworkAclBackend:

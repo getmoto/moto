@@ -1,8 +1,9 @@
-from base64 import b64encode
 import unittest
+from base64 import b64encode
 
 import boto3
-from moto import mock_dynamodb, mock_sts, mock_iam
+
+from moto import mock_dynamodb, mock_iam, mock_sts
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 

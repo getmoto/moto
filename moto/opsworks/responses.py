@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import opsworks_backends, OpsWorksBackend
+
+from .models import OpsWorksBackend, opsworks_backends
 
 
 class OpsWorksResponse(BaseResponse):

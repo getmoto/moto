@@ -1,31 +1,30 @@
 import datetime
-from gzip import GzipFile
-from io import BytesIO
 import json
 import os
 import pickle
-from unittest import SkipTest
-from urllib.parse import urlparse, parse_qs
 import uuid
-from uuid import uuid4
 import zlib
+from gzip import GzipFile
+from io import BytesIO
+from unittest import SkipTest
+from urllib.parse import parse_qs, urlparse
+from uuid import uuid4
 
 import boto3
-from botocore.client import ClientError
 import botocore.exceptions
-from botocore.handlers import disable_signing
-from freezegun import freeze_time
 import pytest
 import requests
+from botocore.client import ClientError
+from botocore.handlers import disable_signing
+from freezegun import freeze_time
 
-from moto import settings, mock_s3, mock_config
-from moto.moto_api import state_manager
-from moto.core.utils import utcnow
-from moto import moto_proxy
-from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
-
+from moto import mock_config, mock_s3, moto_proxy, settings
+from moto.core.utils import utcnow
+from moto.moto_api import state_manager
+from moto.s3.responses import DEFAULT_REGION_NAME
 from tests import DEFAULT_ACCOUNT_ID
+
 from . import s3_aws_verified
 
 

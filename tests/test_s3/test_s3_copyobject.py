@@ -1,11 +1,11 @@
 import datetime
 
 import boto3
+import pytest
 from botocore.client import ClientError
 
-from moto import mock_s3, mock_kms
+from moto import mock_kms, mock_s3
 from moto.s3.responses import DEFAULT_REGION_NAME
-import pytest
 
 
 @pytest.mark.parametrize(

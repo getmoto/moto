@@ -1,8 +1,8 @@
-import boto3
 import unittest
 
-from moto import mock_rds
-from moto import mock_resourcegroupstaggingapi
+import boto3
+
+from moto import mock_rds, mock_resourcegroupstaggingapi
 
 
 @mock_rds

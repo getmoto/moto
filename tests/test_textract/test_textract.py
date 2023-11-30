@@ -1,12 +1,13 @@
 """Unit tests for textract-supported APIs."""
 from random import randint
-from botocore.exceptions import ClientError, ParamValidationError
-import pytest
-import boto3
-
 from unittest import SkipTest
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError, ParamValidationError
+
+from moto import mock_textract, settings
 from moto.textract.models import TextractBackend
-from moto import settings, mock_textract
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html

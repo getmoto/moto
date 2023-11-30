@@ -1,9 +1,11 @@
 import boto3
+import pytest
+from botocore.exceptions import ClientError
+
 from moto import mock_applicationautoscaling, mock_ecs
 from moto.applicationautoscaling import models
 from moto.applicationautoscaling.exceptions import AWSValidationException
-import pytest
-from botocore.exceptions import ClientError
+
 from .test_applicationautoscaling import register_scalable_target
 
 DEFAULT_REGION = "us-east-1"

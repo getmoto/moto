@@ -5,7 +5,6 @@ import requests
 from moto import settings
 from moto.server import ThreadedMotoServer
 
-
 SERVER_PORT = 5001
 BASE_URL = f"http://localhost:{SERVER_PORT}/"
 

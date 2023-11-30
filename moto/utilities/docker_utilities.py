@@ -1,6 +1,7 @@
 import functools
+from typing import TYPE_CHECKING, Any, Tuple
+
 import requests.adapters
-from typing import Any, Tuple, TYPE_CHECKING
 
 from moto import settings
 

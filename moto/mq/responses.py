@@ -5,7 +5,8 @@ from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import mq_backends, MQBackend
+
+from .models import MQBackend, mq_backends
 
 
 class MQResponse(BaseResponse):

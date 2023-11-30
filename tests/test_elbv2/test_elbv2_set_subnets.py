@@ -1,6 +1,6 @@
 import boto3
 
-from moto import mock_elbv2, mock_ec2
+from moto import mock_ec2, mock_elbv2
 
 
 @mock_elbv2

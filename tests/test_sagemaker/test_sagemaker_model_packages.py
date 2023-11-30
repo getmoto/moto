@@ -3,12 +3,11 @@ from datetime import datetime
 from unittest import SkipTest, TestCase
 
 import boto3
-from freezegun import freeze_time
+import pytest
 from dateutil.tz import tzutc  # type: ignore
+from freezegun import freeze_time
 
 from moto import mock_sagemaker, settings
-
-import pytest
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html

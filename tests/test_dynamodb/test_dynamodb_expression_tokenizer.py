@@ -1,8 +1,8 @@
 import pytest
 
 from moto.dynamodb.exceptions import (
-    InvalidTokenException,
     InvalidExpressionAttributeNameKey,
+    InvalidTokenException,
 )
 from moto.dynamodb.parsing.tokens import ExpressionTokenizer, Token
 

@@ -1,17 +1,16 @@
 import base64
-from io import BytesIO
 import json
 import time
-from zipfile import ZipFile, ZIP_DEFLATED
 import zlib
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import boto3
-from botocore.exceptions import ClientError
-from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
-from moto import mock_kinesis
-from moto.core.utils import unix_time_millis
 import pytest
+from botocore.exceptions import ClientError
 
+from moto import mock_firehose, mock_iam, mock_kinesis, mock_lambda, mock_logs, mock_s3
+from moto.core.utils import unix_time_millis
 from tests.markers import requires_docker
 
 

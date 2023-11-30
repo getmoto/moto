@@ -1,9 +1,10 @@
 """Handles incoming identitystore requests, invokes methods, returns responses."""
 import json
-from typing import NamedTuple, Any, Dict, Optional
+from typing import Any, Dict, NamedTuple, Optional
 
 from moto.core.responses import BaseResponse
-from .models import identitystore_backends, IdentityStoreBackend
+
+from .models import IdentityStoreBackend, identitystore_backends
 
 
 class IdentityStoreResponse(BaseResponse):

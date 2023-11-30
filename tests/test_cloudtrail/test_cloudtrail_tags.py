@@ -2,7 +2,7 @@ import boto3
 
 from moto import mock_cloudtrail, mock_s3, mock_sns
 
-from .test_cloudtrail import create_trail_simple, create_trail_advanced
+from .test_cloudtrail import create_trail_advanced, create_trail_simple
 
 
 @mock_cloudtrail

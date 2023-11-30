@@ -3,14 +3,15 @@ from typing import Any, Dict, List, Optional, Tuple
 from moto.core import CloudFormationModel
 from moto.ec2.models.instances import Instance
 from moto.iam.models import InstanceProfile
+
 from ..exceptions import (
     IncorrectStateIamProfileAssociationError,
     InvalidAssociationIDIamProfileAssociationError,
 )
 from ..utils import (
-    random_iam_instance_profile_association_id,
     filter_iam_instance_profile_associations,
     filter_iam_instance_profiles,
+    random_iam_instance_profile_association_id,
 )
 
 

@@ -1,6 +1,8 @@
-from moto.core.responses import BaseResponse
-from .models import kinesisvideo_backends, KinesisVideoBackend
 import json
+
+from moto.core.responses import BaseResponse
+
+from .models import KinesisVideoBackend, kinesisvideo_backends
 
 
 class KinesisVideoResponse(BaseResponse):

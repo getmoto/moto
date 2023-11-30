@@ -1,7 +1,8 @@
+from uuid import uuid4
+
 import boto3
 
 from moto import mock_ec2
-from uuid import uuid4
 
 
 @mock_ec2

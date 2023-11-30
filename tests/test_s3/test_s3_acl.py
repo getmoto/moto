@@ -4,10 +4,11 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
-
 from botocore.exceptions import ClientError
 from botocore.handlers import disable_signing
+
 from moto import mock_s3, settings
+
 from .test_s3 import add_proxy_details
 
 DEFAULT_REGION_NAME = "us-east-1"

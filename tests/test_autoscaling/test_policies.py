@@ -2,9 +2,9 @@ import boto3
 import pytest
 
 from moto import mock_autoscaling
+from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
-from tests import EXAMPLE_AMI_ID
 
 
 def setup_autoscale_group_boto3():

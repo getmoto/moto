@@ -1,8 +1,9 @@
 import json
-import pytest
 import unittest
-
 from copy import deepcopy
+
+import pytest
+
 import moto.server as server
 from moto import mock_eks, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -17,26 +18,26 @@ from moto.eks.models import (
 from moto.eks.responses import DEFAULT_MAX_RESULTS, DEFAULT_NEXT_TOKEN
 from tests.test_eks.test_eks import all_arn_values_should_be_valid
 from tests.test_eks.test_eks_constants import (
-    AddonAttributes,
-    ClusterAttributes,
     DEFAULT_ENCODING,
     DEFAULT_HTTP_HEADERS,
     DEFAULT_REGION,
+    NODEROLE_ARN_KEY,
+    NODEROLE_ARN_VALUE,
+    PARTITIONS,
+    ROLE_ARN_KEY,
+    ROLE_ARN_VALUE,
+    SERVICE,
+    SUBNETS_KEY,
+    SUBNETS_VALUE,
+    AddonAttributes,
+    ClusterAttributes,
     Endpoints,
     FargateProfileAttributes,
     HttpHeaders,
     NodegroupAttributes,
-    NODEROLE_ARN_KEY,
-    NODEROLE_ARN_VALUE,
-    PARTITIONS,
     RegExTemplates,
     ResponseAttributes,
-    ROLE_ARN_KEY,
-    ROLE_ARN_VALUE,
-    SERVICE,
     StatusCodes,
-    SUBNETS_KEY,
-    SUBNETS_VALUE,
 )
 
 """

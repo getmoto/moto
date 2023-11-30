@@ -1,13 +1,12 @@
-import pytest
-
-import boto3
-from botocore.exceptions import ClientError
-
 import random
 import uuid
+from unittest import SkipTest
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
-from unittest import SkipTest
 
 SAMPLE_DOMAIN_NAME = "example.com"
 SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]

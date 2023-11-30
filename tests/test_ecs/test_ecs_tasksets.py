@@ -1,9 +1,8 @@
-from botocore.exceptions import ClientError
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ecs
-import pytest
-
 
 cluster_name = "test_ecs_cluster"
 service_name = "test_ecs_service"

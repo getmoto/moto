@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 from moto import mock_dax
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 

@@ -3,8 +3,8 @@ import threading
 from typing import Any, Dict
 
 from moto import settings
-from moto.core import CloudFormationModel
 from moto.awslambda import lambda_backends
+from moto.core import CloudFormationModel
 from moto.moto_api._internal import mock_random
 
 

@@ -1,8 +1,10 @@
 from typing import Any, Dict, List
-from moto.core import BaseBackend, BackendDict, BaseModel
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
-from .exceptions import ResourceNotFoundException, ResourceInUseException
 from moto.moto_api._internal import mock_random as random
+
+from .exceptions import ResourceInUseException, ResourceNotFoundException
 
 
 class Stream(BaseModel):

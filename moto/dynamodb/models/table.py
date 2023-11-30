@@ -1,23 +1,23 @@
-from collections import defaultdict
 import copy
+from collections import defaultdict
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
-from typing import Any, Dict, Optional, List, Tuple, Iterator, Sequence
 from moto.core import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
-from moto.dynamodb.comparisons import get_filter_expression, get_expected
+from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
-    InvalidIndexNameError,
-    HashKeyTooLong,
-    RangeKeyTooLong,
     ConditionalCheckFailed,
+    HashKeyTooLong,
     InvalidAttributeTypeError,
-    MockValidationException,
     InvalidConversion,
+    InvalidIndexNameError,
+    MockValidationException,
+    RangeKeyTooLong,
     SerializationException,
 )
-from moto.dynamodb.models.utilities import dynamo_json_dump
-from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.dynamodb.models.dynamo_type import DynamoType, Item
+from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.moto_api._internal import mock_random
 
 

@@ -1,14 +1,23 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    overload,
+)
 
-from moto.core.models import BaseMockAWS, base_decorator, BaseDecorator
-from typing import Any, Callable, List, Optional, TypeVar, Union, overload
-from typing import TYPE_CHECKING
+from moto.core.models import BaseDecorator, BaseMockAWS, base_decorator
 
 if TYPE_CHECKING:
-    from moto.xray import XRaySegment as xray_segment_type
     from typing_extensions import ParamSpec
+
+    from moto.xray import XRaySegment as xray_segment_type
 
     P = ParamSpec("P")
 
@@ -255,9 +264,9 @@ __version__ = "4.2.11.dev"
 try:
     # Need to monkey-patch botocore requests back to underlying urllib3 classes
     from botocore.awsrequest import (
-        HTTPSConnectionPool,
-        HTTPConnectionPool,
         HTTPConnection,
+        HTTPConnectionPool,
+        HTTPSConnectionPool,
         VerifiedHTTPSConnection,
     )
 except ImportError:

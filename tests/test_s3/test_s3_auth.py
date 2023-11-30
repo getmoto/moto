@@ -3,11 +3,11 @@ from unittest import SkipTest
 
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
 
 from moto import mock_iam, mock_s3, mock_sts, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID, set_initial_no_auth_action_count
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import set_initial_no_auth_action_count
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 

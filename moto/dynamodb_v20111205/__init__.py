@@ -1,5 +1,5 @@
-from .models import dynamodb_backends
 from ..core.models import base_decorator
+from .models import dynamodb_backends
 
 """
 An older API version of DynamoDB.

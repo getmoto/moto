@@ -1,12 +1,12 @@
 """Handles incoming apigatewayv2 requests, invokes methods, returns responses."""
 import json
-
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
 from typing import Any
 from urllib.parse import unquote
 
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
+
 from .exceptions import UnknownProtocol
-from .models import apigatewayv2_backends, ApiGatewayV2Backend
+from .models import ApiGatewayV2Backend, apigatewayv2_backends
 
 
 class ApiGatewayV2Response(BaseResponse):

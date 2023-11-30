@@ -1,8 +1,8 @@
-import boto3
 import json
 
-from moto import mock_cloudformation, mock_dynamodb
+import boto3
 
+from moto import mock_cloudformation, mock_dynamodb
 
 template_create_table = {
     "AWSTemplateFormatVersion": "2010-09-09",

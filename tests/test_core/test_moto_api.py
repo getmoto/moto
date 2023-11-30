@@ -1,12 +1,13 @@
-import requests
+import json
+from unittest import SkipTest, TestCase
 
 import boto3
-import json
 import pytest
+import requests
 from botocore.exceptions import ClientError
+
 from moto import mock_autoscaling, mock_s3, mock_sqs, settings
 from moto.core.model_instances import model_data, reset_model_data
-from unittest import SkipTest, TestCase
 
 base_url = (
     "http://localhost:5000"

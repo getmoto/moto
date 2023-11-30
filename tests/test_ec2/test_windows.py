@@ -1,9 +1,10 @@
-import boto3
 import os
+from unittest import SkipTest, mock
+
+import boto3
 
 from moto import mock_ec2, settings
-from tests import EXAMPLE_AMI_WINDOWS, EXAMPLE_AMI_PARAVIRTUAL
-from unittest import mock, SkipTest
+from tests import EXAMPLE_AMI_PARAVIRTUAL, EXAMPLE_AMI_WINDOWS
 
 
 # The default AMIs are not loaded for our test case, to speed things up

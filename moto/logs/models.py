@@ -1,21 +1,22 @@
 import json
-from datetime import timedelta, datetime
-from typing import Any, Dict, Iterable, List, Tuple, Optional
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core import CloudFormationModel
+from datetime import datetime, timedelta
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
-from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
-    ResourceNotFoundException,
-    ResourceAlreadyExistsException,
     InvalidParameterException,
     LimitExceededException,
+    ResourceAlreadyExistsException,
+    ResourceNotFoundException,
 )
 from moto.logs.logs_query import execute_query
+from moto.logs.metric_filters import MetricFilters
 from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+
 from .utils import PAGINATION_MODEL, EventMessageFilter
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10

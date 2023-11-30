@@ -3,7 +3,8 @@ import json
 from typing import Any
 
 from moto.core.responses import BaseResponse
-from .models import apigatewaymanagementapi_backends, ApiGatewayManagementApiBackend
+
+from .models import ApiGatewayManagementApiBackend, apigatewaymanagementapi_backends
 
 
 class ApiGatewayManagementApiResponse(BaseResponse):

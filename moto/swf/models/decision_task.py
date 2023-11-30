@@ -1,10 +1,10 @@
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from moto.core import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
-from ..exceptions import SWFWorkflowExecutionClosedError
 
+from ..exceptions import SWFWorkflowExecutionClosedError
 from .timeout import Timeout
 
 if TYPE_CHECKING:

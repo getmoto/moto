@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import kinesis_backends, KinesisBackend
+
+from .models import KinesisBackend, kinesis_backends
 
 
 class KinesisResponse(BaseResponse):

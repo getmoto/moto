@@ -1,7 +1,6 @@
 import json
 from typing import Any, Dict
 
-
 _EVENT_S3_OBJECT_CREATED: Dict[str, Any] = {
     "version": "0",
     "id": "17793124-05d4-b198-2fde-7ededc63b103",

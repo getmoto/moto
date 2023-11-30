@@ -1,4 +1,5 @@
 from threading import Timer as ThreadingTimer
+
 from moto.core import BaseModel
 
 

@@ -1,16 +1,15 @@
-import pytest
 import json
-import boto3
-from botocore.client import ClientError
-
-
 from datetime import datetime, timezone
+
+import boto3
+import pytest
+from botocore.client import ClientError
 from freezegun import freeze_time
 
 from moto import mock_glue, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from . import helpers
 
+from . import helpers
 
 FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 

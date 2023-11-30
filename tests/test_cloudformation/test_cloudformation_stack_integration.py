@@ -1,29 +1,28 @@
-import boto3
-import json
 import io
-import pytest
+import json
 import zipfile
-
-from botocore.exceptions import ClientError
 from decimal import Decimal
 from string import Template
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import (
     mock_autoscaling,
     mock_cloudformation,
     mock_dynamodb,
     mock_ec2,
+    mock_elbv2,
     mock_events,
     mock_kms,
     mock_lambda,
     mock_logs,
     mock_s3,
     mock_sqs,
-    mock_elbv2,
     mock_ssm,
 )
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume

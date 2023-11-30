@@ -1,6 +1,8 @@
 import itertools
 from typing import Any, Dict, List, Optional, Tuple
+
 from moto.core import CloudFormationModel
+
 from ..exceptions import (
     FlowLogAlreadyExists,
     InvalidAggregationIntervalParameterError,
@@ -8,12 +10,12 @@ from ..exceptions import (
     InvalidDependantParameterTypeError,
     InvalidFlowLogIdError,
 )
-from .core import TaggedEC2Resource
 from ..utils import (
-    random_flow_log_id,
     generic_filter,
+    random_flow_log_id,
     utc_date_and_time,
 )
+from .core import TaggedEC2Resource
 
 
 class FlowLogs(TaggedEC2Resource, CloudFormationModel):
@@ -221,8 +223,8 @@ class FlowLogsBackend:
                 self.get_network_interface(resource_id)  # type: ignore[attr-defined]
 
             if log_destination_type == "s3":
-                from moto.s3.models import s3_backends
                 from moto.s3.exceptions import MissingBucket
+                from moto.s3.models import s3_backends
 
                 arn = log_destination.split(":", 5)[5]
                 try:
@@ -236,8 +238,8 @@ class FlowLogsBackend:
                     )
                     continue
             elif log_destination_type == "cloud-watch-logs":
-                from moto.logs.models import logs_backends
                 from moto.logs.exceptions import ResourceNotFoundException
+                from moto.logs.models import logs_backends
 
                 # API allows to create a FlowLog with a
                 # non-existing LogGroup. It however later

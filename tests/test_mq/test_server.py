@@ -1,7 +1,7 @@
 import json
 
-from moto import mock_mq
 import moto.server as server
+from moto import mock_mq
 
 
 @mock_mq
