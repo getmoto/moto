@@ -2042,16 +2042,13 @@ def test_delete_event_invoke_config():
     )
 
     # Execute
-    result = client.delete_function_event_invoke_config(
-        FunctionName=LAMBDA_FUNC_NAME
-    )
+    result = client.delete_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
     # Verify
-    assert result["ResponseMetadata"]['HTTPStatusCode'] == 204
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     # Clean up for servertests
     client.delete_function(FunctionName=arn_1)
     client.delete_function(FunctionName=arn_2)
-
 
 
 def setup_lambda(client, name):
