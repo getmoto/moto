@@ -9,7 +9,6 @@ from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 
 from .exceptions import (
     FunctionAlreadyExists,
-    UnknownEventConfig,
     UnknownFunctionException,
 )
 from .models import LambdaBackend, lambda_backends
@@ -621,10 +620,10 @@ class LambdaResponse(BaseResponse):
             response = self._set_event_invoke_config(function_name, self.json_body)
             return 200, {}, json.dumps(response)
         elif self.method == "GET":
-            response = self._get_event_invoke_config(function_name)
+            response = self.backend.get_function_event_invoke_config(function_name)
             return 200, {}, json.dumps(response)
         elif self.method == "DELETE":
-            self.backend.delete_event_invoke_config(function_name)
+            self.backend.delete_function_event_invoke_config(function_name)
             return 204, {}, json.dumps({})
         else:
             raise NotImplementedError
@@ -634,32 +633,20 @@ class LambdaResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         function_name = unquote(self.path.rsplit("/", 3)[1])
-        response: Dict[str, List[Dict[str, Any]]] = {"FunctionEventInvokeConfigs": []}
-        try:
-            response["FunctionEventInvokeConfigs"] = [
-                self._get_event_invoke_config(function_name)
-            ]
-            return 200, {}, json.dumps(response)
-        except UnknownEventConfig:
-            return 200, {}, json.dumps(response)
+        return (
+            200,
+            {},
+            json.dumps(self.backend.list_function_event_invoke_configs(function_name)),
+        )
 
     def _set_event_invoke_config(
         self, function_name: str, body: Dict[str, str]
     ) -> Dict[str, str]:
 
-        arn, last_modified = self.backend.set_event_invoke_config(function_name, body)
-        response = self.json_body
-        response["LastModified"] = last_modified
-        response["FunctionArn"] = arn
-        return response
-
-    def _get_event_invoke_config(
-        self,
-        function_name: str,
-    ) -> Dict[str, str]:
-        arn, last_modified, response = self.backend.get_event_invoke_config(
-            function_name
+        arn, last_modified = self.backend.put_function_event_invoke_config(
+            function_name, body
         )
+        response = self.json_body
         response["LastModified"] = last_modified
         response["FunctionArn"] = arn
         return response

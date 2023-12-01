@@ -4393,7 +4393,7 @@
 
 ## lambda
 <details>
-<summary>54% implemented</summary>
+<summary>60% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4459,7 +4459,7 @@
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
-- [X] update_function_event_invoke_config
+- [ ] update_function_event_invoke_config
 - [X] update_function_url_config
 </details>
 

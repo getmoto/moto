@@ -2363,7 +2363,7 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 
-    def set_event_invoke_config(
+    def put_function_event_invoke_config(
         self, function_name: str, config: Dict[str, Any]
     ) -> Tuple[str, str]:
         fn = self.get_function(function_name)
@@ -2371,19 +2371,30 @@ class LambdaBackend(BaseBackend):
         fn.event_invoke_config.append(event_config)
         return fn.function_arn, fn.last_modified
 
-    def get_event_invoke_config(
-        self, function_name: str
-    ) -> Tuple[str, str, Dict[str, str]]:
+    def get_function_event_invoke_config(self, function_name: str) -> Dict[str, Any]:
         fn = self.get_function(function_name)
         if fn.event_invoke_config:
-            return fn.function_arn, fn.last_modified, fn.event_invoke_config[0].config
+            response = fn.event_invoke_config[0].config
+            response["LastModified"] = fn.last_modified
+            response["FunctionArn"] = fn.function_arn
+            return response
         else:
             raise UnknownEventConfig(fn.function_arn)
 
-    def delete_event_invoke_config(self, function_name: str) -> None:
-        if self.get_event_invoke_config(function_name):
+    def delete_function_event_invoke_config(self, function_name: str) -> None:
+        if self.get_function_event_invoke_config(function_name):
             fn = self.get_function(function_name)
             fn.event_invoke_config = []
+
+    def list_function_event_invoke_configs(self, function_name: str) -> Dict[str, Any]:
+        response: Dict[str, List[Dict[str, Any]]] = {"FunctionEventInvokeConfigs": []}
+        try:
+            response["FunctionEventInvokeConfigs"] = [
+                self.get_function_event_invoke_config(function_name)
+            ]
+            return response
+        except UnknownEventConfig:
+            return response
 
 
 def do_validate_s3() -> bool:
