@@ -47,12 +47,10 @@ from .exceptions import (
     InvalidParameterValueException,
     InvalidRoleFormat,
     UnknownAliasException,
+    UnknownEventConfig,
     UnknownFunctionException,
     UnknownLayerException,
     UnknownLayerVersionException,
-    UnknownFunctionException,
-    UnknownAliasException,
-    UnknownEventConfig,
     ValidationException,
 )
 from .utils import (

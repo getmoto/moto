@@ -7,15 +7,12 @@ from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.core.utils import path_url
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 
-from .exceptions import FunctionAlreadyExists, UnknownFunctionException
-from .models import LambdaBackend, lambda_backends
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
 from .exceptions import (
     FunctionAlreadyExists,
-    UnknownFunctionException,
     UnknownEventConfig,
+    UnknownFunctionException,
 )
-from .models import lambda_backends, LambdaBackend
+from .models import LambdaBackend, lambda_backends
 
 
 class LambdaResponse(BaseResponse):
