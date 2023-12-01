@@ -54,6 +54,7 @@ rds
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
+- [ ] create_integration
 - [X] create_option_group
 - [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
@@ -72,6 +73,7 @@ rds
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
+- [ ] delete_integration
 - [X] delete_option_group
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
@@ -106,6 +108,7 @@ rds
 - [ ] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
+- [ ] describe_integrations
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [X] describe_orderable_db_instance_options

@@ -1897,6 +1897,54 @@ def test_put_event_invoke_config(config):
 
 
 @mock_lambda
+@pytest.mark.parametrize(
+    "config",
+    [
+        {
+            "OnSuccess": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnFailure": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnSuccess": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+            "OnSuccess": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+        },
+    ],
+)
+def test_update_event_invoke_config(config):
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # the name has to match ARNs in pytest parameterize
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+
+    # Execute
+    result = client.update_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Verify
+    assert result["FunctionArn"] == arn_1
+    assert result["DestinationConfig"] == config
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
 def test_put_event_invoke_config_errors_1():
     # Setup
     client = boto3.client("lambda", _lambda_region)

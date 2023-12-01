@@ -617,7 +617,9 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[1])
 
         if self.method == "PUT":
-            response = self._set_event_invoke_config(function_name, self.json_body)
+            response = self.backend.put_function_event_invoke_config(
+                function_name, self.json_body
+            )
             return 200, {}, json.dumps(response)
         elif self.method == "GET":
             response = self.backend.get_function_event_invoke_config(function_name)
@@ -625,6 +627,11 @@ class LambdaResponse(BaseResponse):
         elif self.method == "DELETE":
             self.backend.delete_function_event_invoke_config(function_name)
             return 204, {}, json.dumps({})
+        elif self.method == "POST":
+            response = self.backend.update_function_event_invoke_config(
+                function_name, self.json_body
+            )
+            return 200, {}, json.dumps(response)
         else:
             raise NotImplementedError
 
@@ -638,15 +645,3 @@ class LambdaResponse(BaseResponse):
             {},
             json.dumps(self.backend.list_function_event_invoke_configs(function_name)),
         )
-
-    def _set_event_invoke_config(
-        self, function_name: str, body: Dict[str, str]
-    ) -> Dict[str, str]:
-
-        arn, last_modified = self.backend.put_function_event_invoke_config(
-            function_name, body
-        )
-        response = self.json_body
-        response["LastModified"] = last_modified
-        response["FunctionArn"] = arn
-        return response

@@ -2125,6 +2125,7 @@
 - [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
@@ -2438,6 +2439,7 @@
 - [ ] provision_byoip_cidr
 - [ ] provision_ipam_pool_cidr
 - [ ] provision_public_ipv4_pool_cidr
+- [ ] purchase_capacity_block
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -4393,7 +4395,7 @@
 
 ## lambda
 <details>
-<summary>60% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4459,7 +4461,7 @@
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
-- [ ] update_function_event_invoke_config
+- [X] update_function_event_invoke_config
 - [X] update_function_url_config
 </details>
 
@@ -5516,6 +5518,7 @@
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
+- [ ] create_integration
 - [X] create_option_group
 - [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
@@ -5534,6 +5537,7 @@
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
+- [ ] delete_integration
 - [X] delete_option_group
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
@@ -5568,6 +5572,7 @@
 - [ ] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
+- [ ] describe_integrations
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [X] describe_orderable_db_instance_options
@@ -5739,6 +5744,7 @@
 - [ ] disassociate_data_share_consumer
 - [ ] enable_logging
 - [X] enable_snapshot_copy
+- [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options

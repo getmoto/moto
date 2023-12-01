@@ -129,7 +129,7 @@ lambda
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
-- [ ] update_function_event_invoke_config
+- [X] update_function_event_invoke_config
 - [X] update_function_url_config
   
         The Qualifier-parameter is not yet implemented

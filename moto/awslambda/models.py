@@ -296,10 +296,12 @@ def _validate_s3_bucket_and_key(
 
 
 class EventInvokeConfig:
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, arn: str, last_modified: str, config: Dict[str, Any]) -> None:
         self.config = config
         self.validate_max()
         self.validate()
+        self.arn = arn
+        self.last_modified = last_modified
 
     def validate_max(self) -> None:
         if "MaximumRetryAttempts" in self.config:
@@ -352,6 +354,11 @@ class EventInvokeConfig:
                         "destinationConfig.onFailure.destination",
                         f"Member must satisfy regular expression pattern: {regex}",
                     )
+
+    def response(self) -> Dict[str, Any]:
+        response = {"FunctionArn": self.arn, "LastModified": self.last_modified}
+        response.update(self.config)
+        return response
 
 
 class ImageConfig:
@@ -2365,19 +2372,24 @@ class LambdaBackend(BaseBackend):
 
     def put_function_event_invoke_config(
         self, function_name: str, config: Dict[str, Any]
-    ) -> Tuple[str, str]:
+    ) -> Dict[str, Any]:
         fn = self.get_function(function_name)
-        event_config = EventInvokeConfig(config)
+        event_config = EventInvokeConfig(fn.function_arn, fn.last_modified, config)
         fn.event_invoke_config.append(event_config)
-        return fn.function_arn, fn.last_modified
+        return event_config.response()
+
+    def update_function_event_invoke_config(
+        self, function_name: str, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        # partial functionality, the update function just does a put
+        # instead of partial update
+        return self.put_function_event_invoke_config(function_name, config)
 
     def get_function_event_invoke_config(self, function_name: str) -> Dict[str, Any]:
         fn = self.get_function(function_name)
         if fn.event_invoke_config:
-            response = fn.event_invoke_config[0].config
-            response["LastModified"] = fn.last_modified
-            response["FunctionArn"] = fn.function_arn
-            return response
+            response = fn.event_invoke_config[0]
+            return response.response()
         else:
             raise UnknownEventConfig(fn.function_arn)
 
