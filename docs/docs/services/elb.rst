@@ -33,7 +33,7 @@ elb
 - [X] create_lb_cookie_stickiness_policy
 - [X] create_load_balancer
 - [X] create_load_balancer_listeners
-- [ ] create_load_balancer_policy
+- [X] create_load_balancer_policy
 - [X] delete_load_balancer
 - [X] delete_load_balancer_listeners
 - [X] delete_load_balancer_policy
@@ -52,6 +52,6 @@ elb
 - [ ] register_instances_with_load_balancer
 - [ ] remove_tags
 - [X] set_load_balancer_listener_ssl_certificate
-- [ ] set_load_balancer_policies_for_backend_server
+- [X] set_load_balancer_policies_for_backend_server
 - [X] set_load_balancer_policies_of_listener
 

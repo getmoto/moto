@@ -47,6 +47,7 @@ from .exceptions import (
     InvalidParameterValueException,
     InvalidRoleFormat,
     UnknownAliasException,
+    UnknownEventConfig,
     UnknownFunctionException,
     UnknownLayerException,
     UnknownLayerVersionException,
@@ -292,6 +293,72 @@ def _validate_s3_bucket_and_key(
                 "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
             )
     return key
+
+
+class EventInvokeConfig:
+    def __init__(self, arn: str, last_modified: str, config: Dict[str, Any]) -> None:
+        self.config = config
+        self.validate_max()
+        self.validate()
+        self.arn = arn
+        self.last_modified = last_modified
+
+    def validate_max(self) -> None:
+        if "MaximumRetryAttempts" in self.config:
+            mra = self.config["MaximumRetryAttempts"]
+            if mra > 2:
+                raise ValidationException(
+                    mra,
+                    "maximumRetryAttempts",
+                    "Member must have value less than or equal to 2",
+                )
+
+            # < 0 validation done by botocore
+        if "MaximumEventAgeInSeconds" in self.config:
+            mra = self.config["MaximumEventAgeInSeconds"]
+            if mra > 21600:
+                raise ValidationException(
+                    mra,
+                    "maximumEventAgeInSeconds",
+                    "Member must have value less than or equal to 21600",
+                )
+
+            # < 60 validation done by botocore
+
+    def validate(self) -> None:
+        # https://docs.aws.amazon.com/lambda/latest/dg/API_OnSuccess.html
+        regex = r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+        pattern = re.compile(regex)
+
+        if self.config["DestinationConfig"]:
+            destination_config = self.config["DestinationConfig"]
+            if (
+                "OnSuccess" in destination_config
+                and "Destination" in destination_config["OnSuccess"]
+            ):
+                contents = destination_config["OnSuccess"]["Destination"]
+                if not pattern.match(contents):
+                    raise ValidationException(
+                        contents,
+                        "destinationConfig.onSuccess.destination",
+                        f"Member must satisfy regular expression pattern: {regex}",
+                    )
+            if (
+                "OnFailure" in destination_config
+                and "Destination" in destination_config["OnFailure"]
+            ):
+                contents = destination_config["OnFailure"]["Destination"]
+                if not pattern.match(contents):
+                    raise ValidationException(
+                        contents,
+                        "destinationConfig.onFailure.destination",
+                        f"Member must satisfy regular expression pattern: {regex}",
+                    )
+
+    def response(self) -> Dict[str, Any]:
+        response = {"FunctionArn": self.arn, "LastModified": self.last_modified}
+        response.update(self.config)
+        return response
 
 
 class ImageConfig:
@@ -549,6 +616,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
+        self.event_invoke_config: List[EventInvokeConfig] = []
 
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
@@ -2301,6 +2369,44 @@ class LambdaBackend(BaseBackend):
     def get_function_concurrency(self, function_name: str) -> str:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
+
+    def put_function_event_invoke_config(
+        self, function_name: str, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        fn = self.get_function(function_name)
+        event_config = EventInvokeConfig(fn.function_arn, fn.last_modified, config)
+        fn.event_invoke_config.append(event_config)
+        return event_config.response()
+
+    def update_function_event_invoke_config(
+        self, function_name: str, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        # partial functionality, the update function just does a put
+        # instead of partial update
+        return self.put_function_event_invoke_config(function_name, config)
+
+    def get_function_event_invoke_config(self, function_name: str) -> Dict[str, Any]:
+        fn = self.get_function(function_name)
+        if fn.event_invoke_config:
+            response = fn.event_invoke_config[0]
+            return response.response()
+        else:
+            raise UnknownEventConfig(fn.function_arn)
+
+    def delete_function_event_invoke_config(self, function_name: str) -> None:
+        if self.get_function_event_invoke_config(function_name):
+            fn = self.get_function(function_name)
+            fn.event_invoke_config = []
+
+    def list_function_event_invoke_configs(self, function_name: str) -> Dict[str, Any]:
+        response: Dict[str, List[Dict[str, Any]]] = {"FunctionEventInvokeConfigs": []}
+        try:
+            response["FunctionEventInvokeConfigs"] = [
+                self.get_function_event_invoke_config(function_name)
+            ]
+            return response
+        except UnknownEventConfig:
+            return response
 
 
 def do_validate_s3() -> bool:

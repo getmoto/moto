@@ -47,7 +47,6 @@ redshift
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
-- [ ] create_redshift_idc_application
 - [ ] create_scheduled_action
 - [X] create_snapshot_copy_grant
 - [ ] create_snapshot_schedule
@@ -66,7 +65,6 @@ redshift
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
 - [ ] delete_partner
-- [ ] delete_redshift_idc_application
 - [ ] delete_resource_policy
 - [ ] delete_scheduled_action
 - [X] delete_snapshot_copy_grant
@@ -101,7 +99,6 @@ redshift
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
-- [ ] describe_redshift_idc_applications
 - [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
@@ -137,7 +134,6 @@ redshift
 - [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
-- [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule

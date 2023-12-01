@@ -100,6 +100,16 @@ class UnknownPolicyException(LambdaClientError):
         )
 
 
+class UnknownEventConfig(LambdaClientError):
+    code = 404
+
+    def __init__(self, arn: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"The function {arn} doesn't have an EventInvokeConfig",
+        )
+
+
 class ValidationException(LambdaClientError):
     def __init__(self, value: str, property_name: str, specific_message: str):
         message = f"1 validation error detected: Value '{value}' at '{property_name}' failed to satisfy constraint: {specific_message}"

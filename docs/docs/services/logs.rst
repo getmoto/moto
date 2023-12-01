@@ -27,16 +27,11 @@ logs
 
 - [ ] associate_kms_key
 - [ ] cancel_export_task
-- [ ] create_delivery
 - [X] create_export_task
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
-- [ ] delete_delivery
-- [ ] delete_delivery_destination
-- [ ] delete_delivery_destination_policy
-- [ ] delete_delivery_source
 - [X] delete_destination
 - [X] delete_log_group
 - [X] delete_log_stream
@@ -50,11 +45,12 @@ logs
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
 - [ ] describe_account_policies
-- [ ] describe_deliveries
-- [ ] describe_delivery_destinations
-- [ ] describe_delivery_sources
 - [X] describe_destinations
-- [ ] describe_export_tasks
+- [X] describe_export_tasks
+  
+        Pagination is not yet implemented
+        
+
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
@@ -82,10 +78,6 @@ logs
         
 
 - [ ] get_data_protection_policy
-- [ ] get_delivery
-- [ ] get_delivery_destination
-- [ ] get_delivery_destination_policy
-- [ ] get_delivery_source
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
@@ -98,9 +90,6 @@ logs
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
-- [ ] put_delivery_destination
-- [ ] put_delivery_destination_policy
-- [ ] put_delivery_source
 - [X] put_destination
 - [X] put_destination_policy
 - [X] put_log_events
