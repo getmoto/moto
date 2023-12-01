@@ -523,11 +523,15 @@ def test_scan_pagination():
     page1 = table.scan(Limit=6)
     assert page1["Count"] == 6
     assert len(page1["Items"]) == 6
+    page1_results = set([r["username"] for r in page1["Items"]])
+    assert page1_results == {"user0", "user3", "user1", "user2", "user5", "user4"}
 
     page2 = table.scan(Limit=6, ExclusiveStartKey=page1["LastEvaluatedKey"])
     assert page2["Count"] == 4
     assert len(page2["Items"]) == 4
     assert "LastEvaluatedKey" not in page2
+    page2_results = set([r["username"] for r in page2["Items"]])
+    assert page2_results == {"user6", "user7", "user8", "user9"}
 
     results = page1["Items"] + page2["Items"]
     usernames = set([r["username"] for r in results])
