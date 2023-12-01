@@ -23,7 +23,9 @@ def test_execute_statement():
 @mock_rdsdata
 def test_set_query_results():
     base_url = (
-        "localhost:5000" if settings.TEST_SERVER_MODE else "motoapi.amazonaws.com"
+        settings.test_server_mode_endpoint()
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
     )
 
     sql_result = {
@@ -37,7 +39,7 @@ def test_set_query_results():
         "region": "us-west-1",
     }
     resp = requests.post(
-        f"http://{base_url}/moto-api/static/rds-data/statement-results",
+        f"{base_url}/moto-api/static/rds-data/statement-results",
         json=sql_result,
     )
     assert resp.status_code == 201
