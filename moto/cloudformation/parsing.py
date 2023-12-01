@@ -598,9 +598,10 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
                     key = s3_backends[self._account_id]["global"].get_object(
-                        bucket_name, name
+                        bucket_name,  # type: ignore[arg-type]
+                        name,
                     )
-                    self._parsed_resources.update(json.loads(key.value))
+                    self._parsed_resources.update(json.loads(key.value))  # type: ignore[union-attr]
 
     def parse_ssm_parameter(self, value: str, value_type: str) -> str:
         # The Value in SSM parameters is the SSM parameter path
@@ -609,9 +610,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         parameter = ssm_backends[self._account_id][self._region_name].get_parameter(
             value
         )
-        actual_value = parameter.value
+        actual_value = parameter.value  # type: ignore[union-attr]
         if value_type.find("List") > 0:
-            return actual_value.split(",")
+            return actual_value.split(",")  # type: ignore[return-value]
         return actual_value
 
     def load_parameters(self) -> None:

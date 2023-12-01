@@ -133,13 +133,13 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 self.region
             ].create_network_interface(
                 subnet=subnet_id,
-                private_ip_address=None,
+                private_ip_address=None,  # type: ignore[arg-type]
                 group_ids=[security_group_id],
                 description=f"AWS created network interface for {self.directory_id}",
             )
             eni_ids.append(eni_info.id)
             subnet_ips.append(eni_info.private_ip_address)
-        return eni_ids, subnet_ips
+        return eni_ids, subnet_ips  # type: ignore[return-value]
 
     def delete_eni(self) -> None:
         """Delete ENI for each subnet and the security group."""

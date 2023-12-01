@@ -109,4 +109,4 @@ def get_stack_from_s3_url(template_url: str, account_id: str) -> str:
             key_name = template_url_parts.path.lstrip("/")
 
     key = s3_backends[account_id]["global"].get_object(bucket_name, key_name)
-    return key.value.decode("utf-8")
+    return key.value.decode("utf-8")  # type: ignore[union-attr]

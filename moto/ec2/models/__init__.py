@@ -73,7 +73,7 @@ class SettingsBackend:
         ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         ec2_backend.ebs_encryption_by_default = True
 
-    def get_ebs_encryption_by_default(self) -> None:
+    def get_ebs_encryption_by_default(self) -> bool:
         ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         return ec2_backend.ebs_encryption_by_default
 

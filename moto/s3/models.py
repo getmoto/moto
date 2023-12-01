@@ -2633,7 +2633,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
 
-class S3BackendDict(BackendDict):
+class S3BackendDict(BackendDict[S3Backend]):
     """
     Encapsulation class to hold S3 backends.
 

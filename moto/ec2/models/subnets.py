@@ -1,12 +1,13 @@
 import ipaddress
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from moto.core import CloudFormationModel
 
 if TYPE_CHECKING:
     from moto.ec2.models.instances import Instance
+
 from moto.ec2.models.availability_zones_and_regions import Zone
 
 from ..exceptions import (
@@ -412,7 +413,7 @@ class SubnetBackend:
 
     def describe_subnets(
         self, subnet_ids: Optional[List[str]] = None, filters: Optional[Any] = None
-    ) -> Iterable[Subnet]:
+    ) -> List[Subnet]:
         # Extract a list of all subnets
         matches = list(
             itertools.chain(*[x.copy().values() for x in self.subnets.copy().values()])
