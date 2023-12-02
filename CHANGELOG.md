@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.11
 -----
-Docker Digest for 4.2.11: <autopopulateddigest>
+Docker Digest for 4.2.11: _sha256:f2a24d8a3440bf397705e461b33a032bbb6d3511cd9c643e71419dd962b3384e_
 
     New Methods:
         * Lambda:
