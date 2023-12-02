@@ -1070,6 +1070,14 @@ class DynamoHandler(BaseResponse):
                 item_attrs = item["Put"]["Item"]
                 table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
                 validate_put_has_empty_keys(item_attrs, table)
+            if "Update" in item:
+                item_attrs = item["Update"]["Key"]
+                table = self.dynamodb_backend.get_table(item["Update"]["TableName"])
+                validate_put_has_empty_keys(
+                    item_attrs,
+                    table,
+                    custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
+                )
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
