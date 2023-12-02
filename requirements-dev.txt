@@ -12,6 +12,10 @@ packaging
 build
 prompt_toolkit
 
+# type stubs that mypy doesn't install automatically
+botocore-stubs
+
+
 # typing_extensions is currently used for:
 # Protocol  (3.8+)
 # ParamSpec  (3.10+)

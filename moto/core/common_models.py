@@ -1,7 +1,7 @@
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Generic, List, Optional, Tuple
 
-from .base_backend import InstanceTrackerMeta
+from .base_backend import SERVICE_BACKEND, BackendDict, InstanceTrackerMeta
 
 
 class BaseModel(metaclass=InstanceTrackerMeta):
@@ -94,8 +94,8 @@ class CloudFormationModel(BaseModel):
         return True
 
 
-class ConfigQueryModel:
-    def __init__(self, backends: Any):
+class ConfigQueryModel(Generic[SERVICE_BACKEND]):
+    def __init__(self, backends: BackendDict[SERVICE_BACKEND]):
         """Inits based on the resource type's backends (1 for each region if applicable)"""
         self.backends = backends
 

@@ -263,7 +263,7 @@ __version__ = "4.2.11.dev"
 
 try:
     # Need to monkey-patch botocore requests back to underlying urllib3 classes
-    from botocore.awsrequest import (
+    from botocore.awsrequest import (  # type: ignore[attr-defined]
         HTTPConnection,
         HTTPConnectionPool,
         HTTPSConnectionPool,

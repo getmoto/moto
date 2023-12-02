@@ -293,7 +293,7 @@ def patch_client(client: botocore.client.BaseClient) -> None:
     if isinstance(client, botocore.client.BaseClient):
         # Check if our event handler was already registered
         try:
-            event_emitter = client._ruleset_resolver._event_emitter._emitter
+            event_emitter = client._ruleset_resolver._event_emitter._emitter  # type: ignore[attr-defined]
             all_handlers = event_emitter._handlers._root["children"]
             handler_trie = list(all_handlers["before-send"].values())[1]
             handlers_list = handler_trie.first + handler_trie.middle + handler_trie.last
