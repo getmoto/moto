@@ -98,4 +98,5 @@ efs
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_file_system
+- [ ] update_file_system_protection
 

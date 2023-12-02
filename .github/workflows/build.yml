@@ -103,6 +103,7 @@ jobs:
     permissions:
       id-token: write
       packages: write
+      pull-requests: write
     needs: [dotnettest, javatest, test, testserver ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
     steps:

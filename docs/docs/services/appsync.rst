@@ -55,6 +55,7 @@ appsync
 - [ ] get_api_association
 - [ ] get_api_cache
 - [ ] get_data_source
+- [ ] get_data_source_introspection
 - [ ] get_domain_name
 - [ ] get_function
 - [X] get_graphql_api
@@ -82,6 +83,7 @@ appsync
 - [X] list_tags_for_resource
 - [ ] list_types
 - [ ] list_types_by_association
+- [ ] start_data_source_introspection
 - [X] start_schema_creation
 - [ ] start_schema_merge
 - [X] tag_resource

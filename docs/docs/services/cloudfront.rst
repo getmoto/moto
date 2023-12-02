@@ -43,6 +43,7 @@ cloudfront
 - [ ] create_function
 - [X] create_invalidation
 - [ ] create_key_group
+- [ ] create_key_value_store
 - [ ] create_monitoring_subscription
 - [X] create_origin_access_control
 - [ ] create_origin_request_policy
@@ -64,6 +65,7 @@ cloudfront
 - [ ] delete_field_level_encryption_profile
 - [ ] delete_function
 - [ ] delete_key_group
+- [ ] delete_key_value_store
 - [ ] delete_monitoring_subscription
 - [X] delete_origin_access_control
   
@@ -76,6 +78,7 @@ cloudfront
 - [ ] delete_response_headers_policy
 - [ ] delete_streaming_distribution
 - [ ] describe_function
+- [ ] describe_key_value_store
 - [ ] get_cache_policy
 - [ ] get_cache_policy_config
 - [ ] get_cloud_front_origin_access_identity
@@ -128,6 +131,7 @@ cloudfront
         
 
 - [ ] list_key_groups
+- [ ] list_key_value_stores
 - [X] list_origin_access_controls
   
         Pagination is not yet implemented
@@ -157,6 +161,7 @@ cloudfront
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
 - [ ] update_key_group
+- [ ] update_key_value_store
 - [X] update_origin_access_control
   
         The IfMatch-parameter is not yet implemented
