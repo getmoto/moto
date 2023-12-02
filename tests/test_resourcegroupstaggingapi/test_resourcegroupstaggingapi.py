@@ -1,5 +1,4 @@
 import json
-import logging
 
 import boto3
 from botocore.client import ClientError
@@ -106,11 +105,10 @@ def test_get_resources_acm():
         ResourceTypeFilters=["acm"],
     )
     assert len(resources_no_filter["ResourceTagMappingList"]) == 2
-    logging.info(f"RESOURCES NO FILTER: {resources_no_filter}\n")
+
     resources_blue_filter = rgta_client.get_resources(
         TagFilters=[{"Key": "Color", "Values": ["Blue"]}]
     )
-    logging.info(f"RESOURCES BLUE FILTER: {resources_blue_filter}")
     assert len(resources_blue_filter["ResourceTagMappingList"]) == 1
     assert (
         cert_blue["CertificateArn"]
