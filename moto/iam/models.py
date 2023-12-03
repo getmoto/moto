@@ -1097,15 +1097,25 @@ class AccessKey(CloudFormationModel):
         self.status = status
         self.create_date = utcnow()
 
+        self._last_used: Optional[AccessKeyLastUsed] = None
+        self.role_arn: Optional[str] = None
+
+    @property
+    def last_used(self) -> Optional[AccessKeyLastUsed]:
+        return self._last_used
+
+    @last_used.setter
+    def last_used(self, value: Union[datetime, AccessKeyLastUsed, None]) -> None:
         # Some users will set this field manually
         # And they will be setting this value to a `datetime`
         # https://github.com/getmoto/moto/issues/5927#issuecomment-1738188283
-        #
-        # The `to_csv` method calls `last_used.strptime`, which currently works on both AccessKeyLastUsed and datetime
-        # In the next major release we should communicate that this only accepts AccessKeyLastUsed
-        # (And rework to_csv accordingly)
-        self.last_used: Optional[AccessKeyLastUsed] = None
-        self.role_arn: Optional[str] = None
+        if isinstance(value, datetime):
+            if self._last_used is None:
+                self._last_used = AccessKeyLastUsed(value, "unknown", "unknown")
+            else:
+                self._last_used._timestamp = value
+        else:
+            self._last_used = value
 
     @property
     def created_iso_8601(self) -> str:
