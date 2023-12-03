@@ -854,7 +854,7 @@ class Role(CloudFormationModel):
             return self.arn
         raise UnformattedGetAttTemplateException()
 
-    def get_tags(self) -> List[dict[str, str]]:
+    def get_tags(self) -> List[Dict[str, str]]:
         return [self.tags[tag] for tag in self.tags]
 
     @property
