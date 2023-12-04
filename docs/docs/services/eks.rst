@@ -32,11 +32,13 @@ eks
 - [ ] create_eks_anywhere_subscription
 - [X] create_fargate_profile
 - [X] create_nodegroup
+- [ ] create_pod_identity_association
 - [ ] delete_addon
 - [X] delete_cluster
 - [ ] delete_eks_anywhere_subscription
 - [X] delete_fargate_profile
 - [X] delete_nodegroup
+- [ ] delete_pod_identity_association
 - [ ] deregister_cluster
 - [ ] describe_addon
 - [ ] describe_addon_configuration
@@ -46,6 +48,7 @@ eks
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
 - [X] describe_nodegroup
+- [ ] describe_pod_identity_association
 - [ ] describe_update
 - [ ] disassociate_identity_provider_config
 - [ ] list_addons
@@ -54,6 +57,7 @@ eks
 - [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
 - [X] list_nodegroups
+- [ ] list_pod_identity_associations
 - [X] list_tags_for_resource
   
         This function currently will list tags on an EKS cluster only.  It does not list tags from a managed node group
@@ -77,4 +81,5 @@ eks
 - [ ] update_eks_anywhere_subscription
 - [ ] update_nodegroup_config
 - [ ] update_nodegroup_version
+- [ ] update_pod_identity_association
 

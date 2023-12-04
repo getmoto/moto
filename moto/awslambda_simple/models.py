@@ -1,10 +1,11 @@
+from typing import Any, Optional, Union
+
 from ..awslambda.models import (
-    lambda_backends,
     BaseBackend,
     LambdaBackend,
+    lambda_backends,
 )
 from ..core import BackendDict
-from typing import Any, Optional, Union
 
 
 class LambdaSimpleBackend(BaseBackend):

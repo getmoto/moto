@@ -1,15 +1,14 @@
+import json
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
 
 import boto3
-import json
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_emr
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
 
 run_job_flow_args = dict(
     Instances={

@@ -2,10 +2,10 @@ import json
 import re
 from typing import Any, Callable, Optional
 
-from .exceptions import InvalidParameterException
-
 from moto.core.responses import BaseResponse
-from .models import logs_backends, LogsBackend
+
+from .exceptions import InvalidParameterException
+from .models import LogsBackend, logs_backends
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
@@ -438,7 +438,7 @@ class LogsResponse(BaseResponse):
             fromTime=self._get_int_param("from"),
             to=self._get_int_param("to"),
             destination=self._get_param("destination"),
-            destinationPrefix=self._get_param("destinationPrefix"),
+            destinationPrefix=self._get_param("destinationPrefix", "exportedlogs"),
             taskName=self._get_param("taskName"),
         )
         return json.dumps(dict(taskId=str(task_id)))

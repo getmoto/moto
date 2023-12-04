@@ -2,7 +2,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import firehose_backends, FirehoseBackend
+
+from .models import FirehoseBackend, firehose_backends
 
 
 class FirehoseResponse(BaseResponse):

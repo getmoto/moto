@@ -1,14 +1,23 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    overload,
+)
 
-from moto.core.models import BaseMockAWS, base_decorator, BaseDecorator
-from typing import Any, Callable, List, Optional, TypeVar, Union, overload
-from typing import TYPE_CHECKING
+from moto.core.models import BaseDecorator, BaseMockAWS, base_decorator
 
 if TYPE_CHECKING:
-    from moto.xray import XRaySegment as xray_segment_type
     from typing_extensions import ParamSpec
+
+    from moto.xray import XRaySegment as xray_segment_type
 
     P = ParamSpec("P")
 
@@ -175,7 +184,7 @@ mock_polly = lazy_load(".polly", "mock_polly")
 mock_quicksight = lazy_load(".quicksight", "mock_quicksight")
 mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds")
-mock_rdsdata = lazy_load(".rdsdata", "mock_rdsdata")
+mock_rdsdata = lazy_load(".rdsdata", "mock_rdsdata", boto3_name="rds-data")
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
@@ -249,15 +258,15 @@ mock_all = MockAll
 # logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
-__version__ = "4.2.11.dev"
+__version__ = "4.2.12.dev"
 
 
 try:
     # Need to monkey-patch botocore requests back to underlying urllib3 classes
     from botocore.awsrequest import (
-        HTTPSConnectionPool,
-        HTTPConnectionPool,
         HTTPConnection,
+        HTTPConnectionPool,
+        HTTPSConnectionPool,
         VerifiedHTTPSConnection,
     )
 except ImportError:

@@ -1,5 +1,6 @@
 from unittest.mock import patch
-from moto.server import main, create_backend_app, DomainDispatcherApplication
+
+from moto.server import DomainDispatcherApplication, create_backend_app, main
 
 
 def test_wrong_arguments():

@@ -1,24 +1,26 @@
 import base64
-import boto3
 import json
-import pytest
-
-from botocore.exceptions import ClientError
-from moto import mock_lambda, mock_ec2, settings
-from uuid import uuid4
 from unittest import SkipTest
+from uuid import uuid4
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_ec2, mock_lambda, settings
+
+from ..markers import requires_docker
 from .utilities import (
-    get_role_name,
-    get_test_zip_file_error,
-    get_test_zip_file1,
-    get_zip_with_multiple_files,
-    get_test_zip_file2,
     get_lambda_using_environment_port,
     get_lambda_using_network_mode,
-    get_test_zip_largeresponse,
     get_proxy_zip_file,
+    get_role_name,
+    get_test_zip_file1,
+    get_test_zip_file2,
+    get_test_zip_file_error,
+    get_test_zip_largeresponse,
+    get_zip_with_multiple_files,
 )
-from ..markers import requires_docker
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"

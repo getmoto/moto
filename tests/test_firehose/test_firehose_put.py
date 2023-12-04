@@ -1,12 +1,10 @@
 """Unit tests verifying put-related delivery stream APIs."""
 import boto3
 
-from moto import mock_firehose
-from moto import mock_s3
+from moto import mock_firehose, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
-from tests.test_firehose.test_firehose import TEST_REGION
-from tests.test_firehose.test_firehose import sample_s3_dest_config
+from tests.test_firehose.test_firehose import TEST_REGION, sample_s3_dest_config
 from tests.test_firehose.test_firehose_destination_types import (
     create_redshift_delivery_stream,
 )

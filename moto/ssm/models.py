@@ -1,48 +1,47 @@
+import datetime
+import hashlib
+import json
 import re
-from dataclasses import dataclass
-from typing import Any, Dict, List, Iterator, Optional, Tuple
-from typing import DefaultDict
-
+import time
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+import yaml
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
+from moto.moto_api._internal import mock_random as random
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.exceptions import SecretsManagerClientError
 from moto.utilities.utils import load_resource
 
-import datetime
-import time
-import json
-import yaml
-import hashlib
-from moto.moto_api._internal import mock_random as random
-from .utils import parameter_arn, convert_to_params
 from .exceptions import (
-    ValidationException,
-    InvalidFilterValue,
-    InvalidFilterOption,
-    InvalidFilterKey,
-    ParameterVersionLabelLimitExceeded,
-    ParameterVersionNotFound,
-    ParameterNotFound,
-    DocumentAlreadyExists,
-    InvalidDocumentOperation,
     AccessDeniedException,
+    DocumentAlreadyExists,
+    DocumentPermissionLimit,
+    DuplicateDocumentContent,
+    DuplicateDocumentVersionName,
     InvalidDocument,
     InvalidDocumentContent,
+    InvalidDocumentOperation,
     InvalidDocumentVersion,
-    DuplicateDocumentVersionName,
-    DuplicateDocumentContent,
-    ParameterMaxVersionLimitExceeded,
-    DocumentPermissionLimit,
+    InvalidFilterKey,
+    InvalidFilterOption,
+    InvalidFilterValue,
     InvalidPermissionType,
     InvalidResourceId,
     InvalidResourceType,
     ParameterAlreadyExists,
+    ParameterMaxVersionLimitExceeded,
+    ParameterNotFound,
+    ParameterVersionLabelLimitExceeded,
+    ParameterVersionNotFound,
+    ValidationException,
 )
+from .utils import convert_to_params, parameter_arn
 
 
 class ParameterDict(DefaultDict[str, List["Parameter"]]):
@@ -142,7 +141,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
             secrets_backend.get_secret_value(
                 secret_name,
                 version_id=version_id,
-                version_stage=None,
+                version_stage=None,  # type: ignore[arg-type]
             )
             for version_id in sorted_version_ids
         ]
@@ -150,7 +149,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
             Parameter(
                 account_id=self.account_id,
                 name=secret["Name"],
-                value=val.get("SecretString"),
+                value=val.get("SecretString"),  # type: ignore[arg-type]
                 parameter_type="SecureString",
                 description=secret.get("Description"),
                 allowed_pattern=None,

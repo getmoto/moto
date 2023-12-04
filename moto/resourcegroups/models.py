@@ -1,9 +1,9 @@
-from typing import Any, Dict, List, Optional
-
 import json
 import re
+from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
+
 from .exceptions import BadRequestException
 
 

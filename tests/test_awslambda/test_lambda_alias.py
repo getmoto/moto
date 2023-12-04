@@ -2,11 +2,12 @@
 from uuid import uuid4
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_lambda
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
 from .utilities import (
     get_role_name,
     get_test_zip_file1,

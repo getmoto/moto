@@ -3,8 +3,8 @@ import json
 import boto3
 
 from moto import mock_ses, mock_sns, mock_sqs
-from moto.ses.models import SESFeedback
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ses.models import SESFeedback
 
 
 @mock_ses

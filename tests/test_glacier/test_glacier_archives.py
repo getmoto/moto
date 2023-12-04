@@ -1,9 +1,10 @@
-import boto3
 import os
+
+import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_glacier
-from botocore.exceptions import ClientError
 
 
 @mock_glacier

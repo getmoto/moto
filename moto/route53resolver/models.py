@@ -1,14 +1,13 @@
 """Route53ResolverBackend class with methods for supported APIs."""
+import re
 from collections import defaultdict
 from datetime import datetime, timezone
-from ipaddress import ip_address, ip_network, IPv4Address
+from ipaddress import IPv4Address, ip_address, ip_network
 from typing import Any, Dict, List, Optional, Set
-import re
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.ec2 import ec2_backends
-from moto.ec2.exceptions import InvalidSubnetIdError
-from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError
+from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError, InvalidSubnetIdError
 from moto.moto_api._internal import mock_random
 from moto.route53resolver.exceptions import (
     InvalidParameterException,
@@ -21,7 +20,6 @@ from moto.route53resolver.exceptions import (
 )
 from moto.route53resolver.utils import PAGINATION_MODEL
 from moto.route53resolver.validations import validate_args
-
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
@@ -313,7 +311,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             description=f"Route 53 Resolver: {self.id}:{eni_id}",
             group_ids=self.security_group_ids,
             interface_type="interface",
-            private_ip_address=value.get("Ip"),
+            private_ip_address=value.get("Ip"),  # type: ignore[arg-type]
             private_ip_addresses=[
                 {"Primary": True, "PrivateIpAddress": value.get("Ip")}
             ],
@@ -517,7 +515,7 @@ class Route53ResolverBackend(BaseBackend):
                 subnet_info = self.ec2_backend.describe_subnets(
                     subnet_ids=[x["SubnetId"]]
                 )[0]
-                x["Ip"] = subnet_info.get_available_subnet_ip(self)
+                x["Ip"] = subnet_info.get_available_subnet_ip(self)  # type: ignore[arg-type]
 
         self._verify_subnet_ips(ip_addresses)
         self._verify_security_group_ids(security_group_ids)
@@ -910,9 +908,9 @@ class Route53ResolverBackend(BaseBackend):
 
         if not value.get("Ip"):
             subnet_info = self.ec2_backend.describe_subnets(
-                subnet_ids=[value.get("SubnetId")]
+                subnet_ids=[value.get("SubnetId")]  # type: ignore[list-item]
             )[0]
-            value["Ip"] = subnet_info.get_available_subnet_ip(self)
+            value["Ip"] = subnet_info.get_available_subnet_ip(self)  # type: ignore[arg-type]
         self._verify_subnet_ips([value], False)
 
         resolver_endpoint.associate_ip_address(value)

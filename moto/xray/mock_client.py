@@ -1,9 +1,11 @@
 import os
 from typing import Any
-from moto.xray.models import xray_backends, XRayBackend
+
 import aws_xray_sdk.core
 from aws_xray_sdk.core.context import Context as AWSContext
 from aws_xray_sdk.core.emitters.udp_emitter import UDPEmitter
+
+from moto.xray.models import XRayBackend, xray_backends
 
 
 class MockEmitter(UDPEmitter):  # type: ignore

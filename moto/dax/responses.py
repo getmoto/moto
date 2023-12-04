@@ -2,8 +2,9 @@ import json
 import re
 
 from moto.core.responses import BaseResponse
+
 from .exceptions import InvalidParameterValueException
-from .models import dax_backends, DAXBackend
+from .models import DAXBackend, dax_backends
 
 
 class DAXResponse(BaseResponse):

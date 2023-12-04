@@ -5,7 +5,8 @@ from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import scheduler_backends, EventBridgeSchedulerBackend
+
+from .models import EventBridgeSchedulerBackend, scheduler_backends
 
 
 class EventBridgeSchedulerResponse(BaseResponse):

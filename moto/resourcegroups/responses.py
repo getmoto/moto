@@ -1,9 +1,9 @@
 import json
-
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
-from .models import resourcegroups_backends, ResourceGroupsBackend
+
+from .models import ResourceGroupsBackend, resourcegroups_backends
 
 
 class ResourceGroupsResponse(BaseResponse):

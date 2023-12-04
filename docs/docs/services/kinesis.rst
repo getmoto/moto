@@ -28,6 +28,7 @@ kinesis
 - [X] add_tags_to_stream
 - [X] create_stream
 - [X] decrease_stream_retention_period
+- [ ] delete_resource_policy
 - [X] delete_stream
 - [X] deregister_stream_consumer
 - [ ] describe_limits
@@ -37,6 +38,7 @@ kinesis
 - [X] disable_enhanced_monitoring
 - [X] enable_enhanced_monitoring
 - [X] get_records
+- [ ] get_resource_policy
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
 - [X] list_shards
@@ -50,6 +52,7 @@ kinesis
 - [X] merge_shards
 - [X] put_record
 - [X] put_records
+- [ ] put_resource_policy
 - [X] register_stream_consumer
 - [X] remove_tags_from_stream
 - [X] split_shard

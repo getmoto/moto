@@ -1,24 +1,23 @@
-import boto3
 import json
-import yaml
-
-import pytest
-from botocore.exceptions import ClientError
 from unittest.mock import patch
 
+import boto3
+import pytest
+import yaml
+from botocore.exceptions import ClientError
+
+from moto import mock_cloudformation, mock_sqs, mock_ssm, settings
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
 from moto.cloudformation.parsing import (
-    resource_class_from_type,
-    parse_condition,
     Output,
+    parse_condition,
+    resource_class_from_type,
 )
-from moto import mock_cloudformation, mock_sqs, mock_ssm, settings
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.sqs.models import Queue
-from moto.s3.models import FakeBucket
 from moto.cloudformation.utils import yaml_tag_constructor
-
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.s3.models import FakeBucket
+from moto.sqs.models import Queue
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",

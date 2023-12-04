@@ -4,7 +4,8 @@ from typing import Any, Dict, Tuple, Union
 from urllib.parse import urlsplit
 
 from moto.core.responses import BaseResponse
-from .models import polly_backends, PollyBackend
+
+from .models import PollyBackend, polly_backends
 from .resources import LANGUAGE_CODES, VOICE_IDS
 
 LEXICON_NAME_REGEX = re.compile(r"^[0-9A-Za-z]{1,20}$")

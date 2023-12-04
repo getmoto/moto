@@ -1,13 +1,14 @@
-import boto3
 import os
-import pytest
+from unittest import SkipTest, mock
+from uuid import uuid4
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
+
 from moto import mock_lambda, mock_s3, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from unittest import mock, SkipTest
-from uuid import uuid4
 
 from .utilities import get_role_name, get_test_zip_file1
 

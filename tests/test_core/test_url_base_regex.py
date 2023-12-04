@@ -1,8 +1,8 @@
 import boto3
-import moto
 import pytest
-from moto import mock_s3
 
+import moto
+from moto import mock_s3
 
 service_names = [
     (d[5:], "")

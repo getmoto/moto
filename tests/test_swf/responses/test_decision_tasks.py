@@ -1,16 +1,15 @@
-from datetime import datetime
 import re
+from datetime import datetime
 from time import sleep
 
+import pytest
 from botocore.exceptions import ClientError
 from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
-import pytest
 
 from moto import mock_swf, settings
 
 from ..utils import setup_workflow_boto3
-
 
 # PollForDecisionTask endpoint
 

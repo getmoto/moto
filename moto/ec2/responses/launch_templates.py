@@ -1,10 +1,11 @@
 from typing import Any
+from xml.dom import minidom
+from xml.etree import ElementTree
+
 from moto.ec2.exceptions import FilterNotImplementedError
 from moto.moto_api._internal import mock_random
-from ._base_response import EC2BaseResponse
 
-from xml.etree import ElementTree
-from xml.dom import minidom
+from ._base_response import EC2BaseResponse
 
 
 def xml_root(name: str) -> ElementTree.Element:

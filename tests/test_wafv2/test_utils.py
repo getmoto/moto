@@ -1,7 +1,7 @@
 import uuid
 
-from moto.wafv2.utils import make_arn_for_wacl
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.wafv2.utils import make_arn_for_wacl
 
 
 def test_make_arn_for_wacl():

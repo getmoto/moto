@@ -1,17 +1,16 @@
 import base64
-from io import BytesIO
 import json
 import time
-from zipfile import ZipFile, ZIP_DEFLATED
 import zlib
+from io import BytesIO
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import boto3
-from botocore.exceptions import ClientError
-from moto import mock_logs, mock_lambda, mock_iam, mock_firehose, mock_s3
-from moto import mock_kinesis
-from moto.core.utils import unix_time_millis
 import pytest
+from botocore.exceptions import ClientError
 
+from moto import mock_firehose, mock_iam, mock_kinesis, mock_lambda, mock_logs, mock_s3
+from moto.core.utils import unix_time_millis
 from tests.markers import requires_docker
 
 
@@ -481,7 +480,7 @@ def test_delete_subscription_filter_errors():
     assert ex.operation_name == "DeleteSubscriptionFilter"
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
-    assert ex.response["Error"]["Message"] == "The specified log group does not exist"
+    assert ex.response["Error"]["Message"] == "The specified log group does not exist."
 
     # when
     with pytest.raises(ClientError) as e:
@@ -530,7 +529,7 @@ def test_put_subscription_filter_errors():
     assert ex.operation_name == "PutSubscriptionFilter"
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "ResourceNotFoundException"
-    assert ex.response["Error"]["Message"] == "The specified log group does not exist"
+    assert ex.response["Error"]["Message"] == "The specified log group does not exist."
 
     # when
     with pytest.raises(ClientError) as e:

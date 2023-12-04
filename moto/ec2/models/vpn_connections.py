@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Optional
-from .core import TaggedEC2Resource
+
 from ..exceptions import InvalidVpnConnectionIdError
 from ..utils import generic_filter, random_vpn_connection_id
+from .core import TaggedEC2Resource
 
 
 class VPNConnection(TaggedEC2Resource):

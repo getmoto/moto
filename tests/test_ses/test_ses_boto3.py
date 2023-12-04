@@ -3,10 +3,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import boto3
-from botocore.exceptions import ClientError
-from botocore.exceptions import ParamValidationError
 import pytest
+from botocore.exceptions import ClientError, ParamValidationError
+
 from moto import mock_ses
+
 from . import ses_aws_verified
 
 

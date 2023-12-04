@@ -1,10 +1,12 @@
 """SESV2Backend class with methods for supported APIs."""
 
+from typing import Any, Dict, List
+
 from moto.core import BackendDict, BaseBackend, BaseModel
-from ..ses.models import ses_backends, Message, RawMessage
-from typing import Dict, List, Any
-from .exceptions import NotFoundException
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+
+from ..ses.models import Message, RawMessage, ses_backends
+from .exceptions import NotFoundException
 
 
 class Contact(BaseModel):

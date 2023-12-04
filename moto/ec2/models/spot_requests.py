@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
@@ -7,14 +7,14 @@ from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
 if TYPE_CHECKING:
     from moto.ec2.models.instances import Instance
     from moto.ec2.models.security_groups import SecurityGroup
-from .core import TaggedEC2Resource
-from .instance_types import INSTANCE_TYPE_OFFERINGS
 from ..utils import (
+    convert_tag_spec,
+    generic_filter,
     random_spot_fleet_request_id,
     random_spot_request_id,
-    generic_filter,
-    convert_tag_spec,
 )
+from .core import TaggedEC2Resource
+from .instance_types import INSTANCE_TYPE_OFFERINGS
 
 
 class LaunchSpecification(BaseModel):

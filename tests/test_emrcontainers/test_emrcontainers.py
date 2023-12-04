@@ -1,12 +1,12 @@
 """Unit tests for emrcontainers-supported APIs."""
-from datetime import datetime, timezone, timedelta
 import re
-from unittest.mock import patch
+from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
+from unittest.mock import patch
 
 import boto3
-from botocore.exceptions import ClientError, ParamValidationError
 import pytest
+from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_emrcontainers, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

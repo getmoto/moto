@@ -1,4 +1,5 @@
 from typing import List
+
 from .generic_type import GenericType
 
 

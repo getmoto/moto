@@ -3,7 +3,7 @@
 Note that ValidationExceptions are accumulative.
 """
 import re
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.route53resolver.exceptions import RRValidationException
 

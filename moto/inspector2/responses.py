@@ -4,7 +4,8 @@ from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import inspector2_backends, Inspector2Backend
+
+from .models import Inspector2Backend, inspector2_backends
 
 
 class Inspector2Response(BaseResponse):

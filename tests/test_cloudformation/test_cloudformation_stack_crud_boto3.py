@@ -1,13 +1,13 @@
-import boto3
 import copy
 import json
 import os
-import pytest
-
-from botocore.exceptions import ClientError
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import (
     mock_cloudformation,
@@ -22,7 +22,6 @@ from moto import (
 )
 from moto.cloudformation import cloudformation_backends
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
 from tests import EXAMPLE_AMI_ID
 
 dummy_template = {

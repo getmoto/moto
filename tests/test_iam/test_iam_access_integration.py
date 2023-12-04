@@ -1,12 +1,13 @@
+import csv
 import datetime
+from unittest import SkipTest
 
 import boto3
-import csv
-from moto import mock_ec2, mock_iam, mock_sts, settings
-from moto.iam.models import iam_backends, IAMBackend
 from dateutil.parser import parse
+
+from moto import mock_ec2, mock_iam, mock_sts, settings
+from moto.iam.models import IAMBackend, iam_backends
 from tests import DEFAULT_ACCOUNT_ID
-from unittest import SkipTest
 
 
 @mock_ec2

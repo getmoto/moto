@@ -2,7 +2,8 @@ import json
 
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import transcribe_backends, TranscribeBackend
+
+from .models import TranscribeBackend, transcribe_backends
 
 
 class TranscribeResponse(BaseResponse):

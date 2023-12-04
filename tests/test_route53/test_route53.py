@@ -2,7 +2,6 @@ import boto3
 import botocore
 import pytest
 import requests
-
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_route53, settings

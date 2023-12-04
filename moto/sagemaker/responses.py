@@ -1,12 +1,12 @@
 import json
 from typing import Any
 
-from moto.sagemaker.exceptions import AWSValidationException
-
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.sagemaker.exceptions import AWSValidationException
 from moto.utilities.aws_headers import amzn_request_id
-from .models import sagemaker_backends, SageMakerModelBackend
+
+from .models import SageMakerModelBackend, sagemaker_backends
 
 
 def format_enum_error(value: str, attribute: str, allowed: Any) -> str:

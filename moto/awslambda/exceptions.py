@@ -1,5 +1,6 @@
-from moto.core.exceptions import JsonRESTError
 from typing import Any
+
+from moto.core.exceptions import JsonRESTError
 
 
 class LambdaClientError(JsonRESTError):
@@ -96,6 +97,16 @@ class UnknownPolicyException(LambdaClientError):
         super().__init__(
             "ResourceNotFoundException",
             "No policy is associated with the given resource.",
+        )
+
+
+class UnknownEventConfig(LambdaClientError):
+    code = 404
+
+    def __init__(self, arn: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"The function {arn} doesn't have an EventInvokeConfig",
         )
 
 

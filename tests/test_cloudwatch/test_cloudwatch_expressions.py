@@ -1,8 +1,9 @@
+from datetime import datetime, timedelta, timezone
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from datetime import datetime, timedelta, timezone
+
 from moto import mock_cloudwatch
 
 

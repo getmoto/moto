@@ -3,8 +3,7 @@ from unittest import SkipTest
 import boto3
 import pytest
 
-from moto import mock_s3
-from moto import settings
+from moto import mock_s3, settings
 
 
 @pytest.fixture(scope="function", name="aws_credentials")

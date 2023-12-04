@@ -2,18 +2,18 @@ import json
 import re
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, Union
+from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.exceptions import JsonRESTError
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
-    underscores_to_camelcase,
     camelcase_to_pascal,
     camelcase_to_underscores,
+    underscores_to_camelcase,
 )
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
 from moto.utilities.constants import JSON_TYPES
-from urllib.parse import urlparse
 
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
@@ -21,15 +21,15 @@ from .constants import (
     MAXIMUM_VISIBILITY_TIMEOUT,
 )
 from .exceptions import (
-    RESTError,
+    BatchEntryIdsNotDistinct,
     EmptyBatchRequest,
     InvalidAttributeName,
-    BatchEntryIdsNotDistinct,
+    RESTError,
 )
-from .models import sqs_backends, SQSBackend
+from .models import SQSBackend, sqs_backends
 from .utils import (
-    parse_message_attributes,
     extract_input_message_attributes,
+    parse_message_attributes,
     validate_message_attributes,
 )
 

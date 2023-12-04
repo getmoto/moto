@@ -1,7 +1,6 @@
 import json
 from typing import Any, Dict
 
-
 _EVENT_S3_OBJECT_CREATED: Dict[str, Any] = {
     "version": "0",
     "id": "17793124-05d4-b198-2fde-7ededc63b103",
@@ -54,7 +53,7 @@ def _send_safe_notification(
 
             for target in applicable_targets:
                 if target.get("Arn", "").startswith("arn:aws:lambda"):
-                    _invoke_lambda(account_id, target.get("Arn"), event=event)
+                    _invoke_lambda(account_id, target.get("Arn"), event=event)  # type: ignore[arg-type]
 
 
 def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
@@ -65,7 +64,7 @@ def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
     body = json.dumps(event)
     lambda_backends[account_id][lmbda_region].invoke(
         function_name=fn_arn,
-        qualifier=None,
+        qualifier=None,  # type: ignore[arg-type]
         body=body,
         headers=dict(),
         response_headers=dict(),

@@ -1,6 +1,30 @@
 Moto Changelog
 ==============
 
+4.2.11
+-----
+Docker Digest for 4.2.11: _sha256:f2a24d8a3440bf397705e461b33a032bbb6d3511cd9c643e71419dd962b3384e_
+
+    New Methods:
+        * Lambda:
+            * DeleteFunctionEventInvokeConfig()
+            * GetFunctionEventInvokeConfig()
+            * ListFunctionEventInvokeConfigs()
+            * PutFunctionEventInvokeConfig()
+            * UpdateFunctionEventInvokeConfig()
+
+        * Logs:
+            * describe_export_tasks()
+
+    Miscellaneous:
+        * DynamoDB: put_item() now returns old item for ConditionalCheckFailed exceptions
+        * DynamoDB: scan() now returns the correct ScannedCount when passing the Limit-parameter
+        * DynamoDB: transact_write_items() now validates that Keys in Update-queries are not empty
+        * IOT: create_thing()/describe_thing() now returns the thingId
+        * Logs: create_export_task() now actually exports the data to S3
+        * ResourceGroupsTaggingAPI: get_resources() now supports ACM certificates
+
+
 4.2.10
 -----
 Docker Digest for 4.2.10: _sha256:f72acd62b994654d01bdec6f5cc779f4ab30083b441e2fb7eff0c13e0bbfdca7_

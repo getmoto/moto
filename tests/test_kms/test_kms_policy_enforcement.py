@@ -1,14 +1,15 @@
-import boto3
 import json
+from unittest import mock
+
+import boto3
 import pytest
 from botocore.exceptions import ClientError
-from unittest import mock
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto import mock_kms
 from moto.kms.exceptions import AccessDeniedException
 from moto.kms.models import Key
 from moto.kms.policy_validator import validate_policy
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 @mock_kms

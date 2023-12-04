@@ -1,15 +1,15 @@
-import boto3
-from unittest import mock
-from botocore.exceptions import ClientError
-from datetime import datetime
-import pytest
 import os
+from datetime import datetime
+from unittest import SkipTest, mock
+from uuid import UUID
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_cognitoidentity, settings
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from unittest import SkipTest
-from uuid import UUID
 
 
 @mock_cognitoidentity

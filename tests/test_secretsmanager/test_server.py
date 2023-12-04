@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
+import unittest
 
 import boto3
 import pytest
-import unittest
 
 import moto.server as server
-from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs, settings
+from moto import mock_iam, mock_lambda, mock_logs, mock_secretsmanager, settings
 from tests.markers import requires_docker
 from tests.test_awslambda.test_lambda import get_test_zip_file1
 

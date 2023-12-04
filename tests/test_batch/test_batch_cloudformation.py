@@ -1,7 +1,9 @@
-import boto3
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_cloudformation
 import json
 from uuid import uuid4
+
+import boto3
+
+from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecs, mock_iam
 
 DEFAULT_REGION = "eu-central-1"
 

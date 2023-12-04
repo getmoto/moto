@@ -1,15 +1,15 @@
-from datetime import datetime
 import json
 import os
 import re
+from datetime import datetime
 from unittest import SkipTest, mock
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
-import pytest
 
-from moto import mock_sts, mock_stepfunctions
+from moto import mock_stepfunctions, mock_sts
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "us-east-1"

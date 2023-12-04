@@ -3,11 +3,15 @@ import sys
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import unquote
 
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.core.utils import path_url
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
-from .exceptions import FunctionAlreadyExists, UnknownFunctionException
-from .models import lambda_backends, LambdaBackend
+
+from .exceptions import (
+    FunctionAlreadyExists,
+    UnknownFunctionException,
+)
+from .models import LambdaBackend, lambda_backends
 
 
 class LambdaResponse(BaseResponse):
@@ -605,3 +609,39 @@ class LambdaResponse(BaseResponse):
             routing_config=routing_config,
         )
         return 201, {}, json.dumps(alias.to_json())
+
+    def event_invoke_config_handler(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        self.setup_class(request, full_url, headers)
+        function_name = unquote(self.path.rsplit("/", 2)[1])
+
+        if self.method == "PUT":
+            response = self.backend.put_function_event_invoke_config(
+                function_name, self.json_body
+            )
+            return 200, {}, json.dumps(response)
+        elif self.method == "GET":
+            response = self.backend.get_function_event_invoke_config(function_name)
+            return 200, {}, json.dumps(response)
+        elif self.method == "DELETE":
+            self.backend.delete_function_event_invoke_config(function_name)
+            return 204, {}, json.dumps({})
+        elif self.method == "POST":
+            response = self.backend.update_function_event_invoke_config(
+                function_name, self.json_body
+            )
+            return 200, {}, json.dumps(response)
+        else:
+            raise NotImplementedError
+
+    def event_invoke_config_list(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        self.setup_class(request, full_url, headers)
+        function_name = unquote(self.path.rsplit("/", 3)[1])
+        return (
+            200,
+            {},
+            json.dumps(self.backend.list_function_event_invoke_configs(function_name)),
+        )

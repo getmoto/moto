@@ -1,4 +1,5 @@
 from typing import Any
+
 from moto.core.exceptions import RESTError
 
 XMLNS_IAM = "https://iam.amazonaws.com/doc/2010-05-08/"

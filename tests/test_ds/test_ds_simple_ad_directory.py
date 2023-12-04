@@ -1,10 +1,9 @@
 """Directory-related unit tests for Simple AD Directory Services."""
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
-from moto import mock_ds
-from moto import settings
+from moto import mock_ds, settings
 from moto.ec2 import mock_ec2
 from moto.moto_api._internal import mock_random
 

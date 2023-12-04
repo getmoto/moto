@@ -1,7 +1,8 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from moto.core import BaseModel
+
 from ..exceptions import (
     SWFUnknownResourceFault,
     SWFWorkflowExecutionAlreadyStartedFault,

@@ -1,7 +1,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import rdsdata_backends, RDSDataServiceBackend
+
+from .models import RDSDataServiceBackend, rdsdata_backends
 
 
 class RDSDataServiceResponse(BaseResponse):

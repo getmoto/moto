@@ -4,15 +4,15 @@ import re
 from typing import Any, Dict, Tuple
 
 from moto.core.responses import BaseResponse
+
+from .exceptions import InvalidParameterException
 from .models import (
-    cognitoidp_backends,
-    find_account_region_by_value,
+    CognitoIdpBackend,
     RegionAgnosticBackend,
     UserStatus,
-    CognitoIdpBackend,
+    cognitoidp_backends,
+    find_account_region_by_value,
 )
-from .exceptions import InvalidParameterException
-
 
 region_agnostic_backend = RegionAgnosticBackend()
 
@@ -469,7 +469,7 @@ class CognitoIdpResponse(BaseResponse):
         ].forgot_password(client_id, username)
         self.response_headers[
             "x-moto-forgot-password-confirmation-code"
-        ] = confirmation_code
+        ] = confirmation_code  # type: ignore[assignment]
         return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening

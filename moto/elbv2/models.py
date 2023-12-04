@@ -1,43 +1,45 @@
 import re
-from jinja2 import Template
-from botocore.exceptions import ParamValidationError
 from collections import OrderedDict
-from typing import Any, List, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
+
+from botocore.exceptions import ParamValidationError
+from jinja2 import Template
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.ec2.models.subnets import Subnet
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from .utils import make_arn_for_target_group
-from .utils import make_arn_for_load_balancer
+
 from .exceptions import (
-    DuplicateLoadBalancerName,
+    ActionTargetGroupNotFoundError,
     DuplicateListenerError,
+    DuplicateLoadBalancerName,
+    DuplicatePriorityError,
     DuplicateTargetGroupName,
+    InvalidActionTypeError,
+    InvalidConditionFieldError,
+    InvalidConditionValueError,
+    InvalidConfigurationRequest,
+    InvalidDescribeRulesRequest,
+    InvalidLoadBalancerActionException,
+    InvalidModifyRuleArgumentsError,
+    InvalidStatusCodeActionTypeError,
     InvalidTargetError,
+    InvalidTargetGroupNameError,
     ListenerNotFoundError,
     LoadBalancerNotFoundError,
+    PriorityInUseError,
+    ResourceInUseError,
+    RuleNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
     TooManyTagsError,
-    PriorityInUseError,
-    InvalidConditionFieldError,
-    InvalidConditionValueError,
-    InvalidActionTypeError,
-    ActionTargetGroupNotFoundError,
-    InvalidDescribeRulesRequest,
-    ResourceInUseError,
-    RuleNotFoundError,
-    DuplicatePriorityError,
-    InvalidTargetGroupNameError,
-    InvalidModifyRuleArgumentsError,
-    InvalidStatusCodeActionTypeError,
-    InvalidLoadBalancerActionException,
     ValidationError,
-    InvalidConfigurationRequest,
 )
+from .utils import make_arn_for_load_balancer, make_arn_for_target_group
 
 ALLOWED_ACTIONS = [
     "redirect",
@@ -419,7 +421,7 @@ class FakeListenerRule(CloudFormationModel):
         listener_rule = elbv2_backend.modify_rule(
             original_resource.arn, conditions, actions
         )
-        return listener_rule
+        return listener_rule  # type: ignore[return-value]
 
 
 class FakeRule(BaseModel):
@@ -1868,7 +1870,7 @@ Member must satisfy regular expression pattern: {expression}"
         """
         Verify the provided certificate exists in either ACM or IAM
         """
-        from moto.acm.models import acm_backends, CertificateNotFound
+        from moto.acm.models import CertificateNotFound, acm_backends
 
         try:
             acm_backend = acm_backends[self.account_id][self.region_name]

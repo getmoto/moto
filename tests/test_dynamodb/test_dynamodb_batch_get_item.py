@@ -1,8 +1,8 @@
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_dynamodb
-from botocore.exceptions import ClientError
 
 
 def _create_user_table():

@@ -1,7 +1,8 @@
-from typing import Any, Dict, List, Tuple
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.moto_api._internal import mock_random as random
 import string
+from typing import Any, Dict, List, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.moto_api._internal import mock_random as random
 
 
 class Pipeline(BaseModel):

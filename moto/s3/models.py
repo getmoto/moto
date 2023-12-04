@@ -1,21 +1,27 @@
+import base64
+import codecs
+import copy
+import datetime
+import itertools
 import json
 import os
-import base64
-import datetime
-import copy
-import itertools
-import codecs
 import string
+import sys
 import tempfile
 import threading
-import sys
 import urllib.parse
-
 from bisect import insort
-from typing import Any, Dict, List, Optional, Set, Tuple, Iterator, Union
 from importlib import reload
-from moto.core import BaseBackend, BaseModel, BackendDict, CloudFormationModel
-from moto.core import CloudWatchMetricProvider
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+
+from moto.cloudwatch.models import MetricDatum
+from moto.core import (
+    BackendDict,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
@@ -23,43 +29,51 @@ from moto.core.utils import (
     unix_time_millis,
     utcnow,
 )
-from moto.cloudwatch.models import MetricDatum
 from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import LowercaseDict, md5_hash
 from moto.s3.exceptions import (
     AccessDeniedByLock,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
-    MissingBucket,
-    InvalidBucketName,
-    InvalidPart,
-    InvalidRequest,
-    EntityTooSmall,
-    MissingKey,
-    InvalidNotificationDestination,
-    MalformedXML,
-    HeadOnDeleteMarker,
-    InvalidStorageClass,
-    InvalidTargetBucketForLogging,
     CrossLocationLoggingProhibitted,
-    NoSuchPublicAccessBlockConfiguration,
+    EntityTooSmall,
+    HeadOnDeleteMarker,
+    InvalidBucketName,
+    InvalidNotificationDestination,
+    InvalidPart,
     InvalidPublicAccessBlockConfiguration,
+    InvalidRequest,
+    InvalidStorageClass,
+    InvalidTagError,
+    InvalidTargetBucketForLogging,
+    MalformedXML,
+    MissingBucket,
+    MissingKey,
+    NoSuchPublicAccessBlockConfiguration,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
-    InvalidTagError,
 )
-from .cloud_formation import cfn_to_api_encryption, is_replacement_update
-from . import notifications
-from .select_object_content import parse_query
-from .utils import _VersionedKeyStore, CaseInsensitiveDict
-from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS, LOGGING_SERVICE_PRINCIPAL
+from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import LowercaseDict, md5_hash
+
 from ..events.notifications import send_notification as events_send_notification
-from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
-from ..settings import s3_allow_crossdomain_access
+from ..settings import (
+    S3_UPLOAD_PART_MIN_SIZE,
+    get_s3_default_key_buffer_size,
+    s3_allow_crossdomain_access,
+)
+from . import notifications
+from .cloud_formation import cfn_to_api_encryption, is_replacement_update
+from .select_object_content import parse_query
+from .utils import (
+    ARCHIVE_STORAGE_CLASSES,
+    LOGGING_SERVICE_PRINCIPAL,
+    STORAGE_CLASS,
+    CaseInsensitiveDict,
+    _VersionedKeyStore,
+)
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
@@ -2619,7 +2633,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
 
-class S3BackendDict(BackendDict):
+class S3BackendDict(BackendDict[S3Backend]):
     """
     Encapsulation class to hold S3 backends.
 

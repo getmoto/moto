@@ -1,7 +1,8 @@
+from unittest import SkipTest
+
 import boto3
 
 from moto import mock_ec2, settings
-from unittest import SkipTest
 
 
 @mock_ec2

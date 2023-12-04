@@ -1,11 +1,12 @@
-import boto3
 import pkgutil
-
-from moto import mock_lambda
 from uuid import uuid4
 
+import boto3
+
+from moto import mock_lambda
 from tests.markers import requires_docker
-from .utilities import get_role_name, _process_lambda
+
+from .utilities import _process_lambda, get_role_name
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"

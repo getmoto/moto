@@ -1,10 +1,12 @@
 import bisect
 import datetime
+import json
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
-import json
-from moto.core import BaseBackend, BackendDict, BaseModel
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.exceptions import AWSError
+
 from .exceptions import BadSegmentException
 
 

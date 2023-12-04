@@ -4,9 +4,9 @@ import re
 from unittest import SkipTest
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-import pytest
 
 from moto import mock_sns, mock_sqs, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

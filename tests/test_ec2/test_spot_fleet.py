@@ -1,11 +1,12 @@
+from uuid import uuid4
+
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from botocore.exceptions import ClientError
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
 
 
 def get_subnet_id(conn):

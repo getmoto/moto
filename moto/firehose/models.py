@@ -11,18 +11,18 @@ Incomplete list of unfinished items:
     are reported back to the user.  Instead an exception is raised.
   - put_record(), put_record_batch() always set "Encrypted" to False.
 """
+import io
+import json
+import warnings
 from base64 import b64decode, b64encode
 from datetime import datetime, timezone
 from gzip import GzipFile
-from typing import Any, Dict, List, Optional, Tuple
-import io
-import json
 from time import time
-import warnings
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 from moto.firehose.exceptions import (
     ConcurrentModificationException,

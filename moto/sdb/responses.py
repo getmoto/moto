@@ -1,5 +1,6 @@
 from moto.core.responses import BaseResponse
-from .models import sdb_backends, SimpleDBBackend
+
+from .models import SimpleDBBackend, sdb_backends
 
 
 class SimpleDBResponse(BaseResponse):

@@ -1,13 +1,13 @@
+from copy import deepcopy
 from typing import Any, Dict, List, Optional
+
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
-    MissingParameterError,
     InvalidParameterCombination,
     InvalidRequest,
+    MissingParameterError,
 )
 from moto.ec2.utils import filter_iam_instance_profiles
-
-from copy import deepcopy
 
 from ._base_response import EC2BaseResponse
 

@@ -1,9 +1,11 @@
+from unittest import TestCase
+
 import boto3
 
 from moto import mock_autoscaling
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from unittest import TestCase
+
 from .utils import setup_networking
 
 

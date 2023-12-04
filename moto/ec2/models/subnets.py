@@ -1,30 +1,32 @@
 import ipaddress
 import itertools
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Tuple, TYPE_CHECKING, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from moto.core import CloudFormationModel
 
 if TYPE_CHECKING:
     from moto.ec2.models.instances import Instance
+
 from moto.ec2.models.availability_zones_and_regions import Zone
+
 from ..exceptions import (
     GenericInvalidParameterValueError,
     InvalidAvailabilityZoneError,
     InvalidCIDRBlockParameterError,
     InvalidParameterValueError,
+    InvalidSubnetCidrBlockAssociationID,
     InvalidSubnetConflictError,
     InvalidSubnetIdError,
     InvalidSubnetRangeError,
-    InvalidSubnetCidrBlockAssociationID,
 )
-from .core import TaggedEC2Resource
-from .availability_zones_and_regions import RegionsAndZonesBackend
 from ..utils import (
-    random_subnet_id,
     generic_filter,
+    random_subnet_id,
     random_subnet_ipv6_cidr_block_association_id,
 )
+from .availability_zones_and_regions import RegionsAndZonesBackend
+from .core import TaggedEC2Resource
 
 
 class Subnet(TaggedEC2Resource, CloudFormationModel):
@@ -411,7 +413,7 @@ class SubnetBackend:
 
     def describe_subnets(
         self, subnet_ids: Optional[List[str]] = None, filters: Optional[Any] = None
-    ) -> Iterable[Subnet]:
+    ) -> List[Subnet]:
         # Extract a list of all subnets
         matches = list(
             itertools.chain(*[x.copy().values() for x in self.subnets.copy().values()])

@@ -1,11 +1,11 @@
 import json
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
 
 from moto.awslambda.exceptions import (
     PreconditionFailedException,
     UnknownPolicyException,
 )
 from moto.moto_api._internal import mock_random
-from typing import Any, Callable, Dict, List, Optional, TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .models import LambdaFunction

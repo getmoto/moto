@@ -2,15 +2,16 @@
 This test lives on its own as it requires moto to be imported after
 setting of MOTO_AMIS_PATH env var, as per ec2 models documentation
 """
-import boto3
+import importlib
 import json
 import os
-import importlib
-from unittest import SkipTest, TestCase, mock
 from pathlib import Path
+from unittest import SkipTest, TestCase, mock
+
+import boto3
 
 import moto
-from moto import settings, mock_ec2
+from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2.models import ec2_backends
 

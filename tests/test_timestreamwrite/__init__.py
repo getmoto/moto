@@ -1,6 +1,7 @@
 import os
 from functools import wraps
-from moto import mock_timestreamwrite, mock_s3, mock_sts
+
+from moto import mock_s3, mock_sts, mock_timestreamwrite
 
 
 def timestreamwrite_aws_verified(func):

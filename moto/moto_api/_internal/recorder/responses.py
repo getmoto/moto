@@ -1,7 +1,9 @@
-from ... import recorder
+from typing import Any
+
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from typing import Any
+
+from ... import recorder
 
 
 class RecorderResponse(BaseResponse):

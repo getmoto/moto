@@ -1,13 +1,13 @@
 import json
+from unittest import SkipTest
 
 import boto3
-import requests
 import pytest
-
+import requests
 from botocore.exceptions import ClientError
+
 from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
-from unittest import SkipTest
 
 
 class TestBucketPolicy:

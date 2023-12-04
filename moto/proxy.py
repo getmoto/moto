@@ -7,7 +7,7 @@ from http.server import ThreadingHTTPServer
 from typing import Any
 
 from moto.moto_proxy import logger
-from moto.moto_proxy.proxy3 import ProxyRequestHandler, with_color, CertificateCreator
+from moto.moto_proxy.proxy3 import CertificateCreator, ProxyRequestHandler, with_color
 
 
 def signal_handler(signum: Any, frame: Any) -> None:  # pylint: disable=unused-argument

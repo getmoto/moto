@@ -3,7 +3,8 @@ import json
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import sagemakerruntime_backends, SageMakerRuntimeBackend
+
+from .models import SageMakerRuntimeBackend, sagemakerruntime_backends
 
 
 class SageMakerRuntimeResponse(BaseResponse):

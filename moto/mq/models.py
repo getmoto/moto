@@ -1,8 +1,9 @@
 import base64
-import xmltodict
-from typing import Any, Dict, List, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+import xmltodict
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
@@ -11,8 +12,8 @@ from .configuration import DEFAULT_CONFIGURATION_DATA
 from .exceptions import (
     UnknownBroker,
     UnknownConfiguration,
-    UnknownUser,
     UnknownEngineType,
+    UnknownUser,
 )
 
 

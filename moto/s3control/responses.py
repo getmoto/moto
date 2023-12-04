@@ -1,13 +1,15 @@
 import json
-import xmltodict
 from typing import Any, Dict, Tuple
+
+import xmltodict
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
 from moto.utilities.aws_headers import amzn_request_id
-from .models import s3control_backends, S3ControlBackend
+
+from .models import S3ControlBackend, s3control_backends
 
 
 class S3ControlResponse(BaseResponse):

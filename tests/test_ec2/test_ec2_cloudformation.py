@@ -1,16 +1,19 @@
+import json
+from uuid import uuid4
+
+import boto3
+import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_cloudformation, mock_ec2
 from tests import EXAMPLE_AMI_ID
-from tests.test_cloudformation.fixtures import ec2_classic_eip
-from tests.test_cloudformation.fixtures import single_instance_with_ebs_volume
-from tests.test_cloudformation.fixtures import vpc_eip
-from tests.test_cloudformation.fixtures import vpc_eni
-from tests.test_cloudformation.fixtures import vpc_single_instance_in_subnet
-from uuid import uuid4
-import boto3
-import json
-import pytest
-
+from tests.test_cloudformation.fixtures import (
+    ec2_classic_eip,
+    single_instance_with_ebs_volume,
+    vpc_eip,
+    vpc_eni,
+    vpc_single_instance_in_subnet,
+)
 
 template_vpc = {
     "AWSTemplateFormatVersion": "2010-09-09",

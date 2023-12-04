@@ -6,14 +6,14 @@ The logic to check the details of VPCs and Subnets is shared between the
 from datetime import datetime, timezone
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ds
 from moto.ec2 import mock_ec2
 from moto.moto_api._internal import mock_random
 
-from .test_ds_simple_ad_directory import TEST_REGION, create_vpc, create_subnets
+from .test_ds_simple_ad_directory import TEST_REGION, create_subnets, create_vpc
 
 
 def create_test_ad_connector(

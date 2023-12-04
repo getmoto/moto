@@ -5,8 +5,18 @@ import os
 import re
 import unittest
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Set, TypeVar, Union, overload
-from typing import ContextManager, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ContextManager,
+    Dict,
+    Optional,
+    Set,
+    TypeVar,
+    Union,
+    overload,
+)
 from unittest.mock import patch
 
 import boto3
@@ -16,11 +26,12 @@ from botocore.config import Config
 from botocore.handlers import BUILTIN_HANDLERS
 
 from moto import settings
-from .base_backend import BackendDict
+
+from .base_backend import SERVICE_BACKEND, BackendDict, BaseBackend
 from .botocore_stubber import BotocoreStubber
 from .custom_responses_mock import (
-    get_response_mock,
     CallbackResponse,
+    get_response_mock,
     not_implemented_callback,
     reset_responses_mock,
 )
@@ -42,13 +53,13 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
     nested_count = 0
     mocks_active = False
 
-    def __init__(self, backends: BackendDict):
+    def __init__(self, backends: BackendDict[SERVICE_BACKEND]):
         from moto.instance_metadata import instance_metadata_backends
         from moto.moto_api._internal.models import moto_api_backend
 
         self.backends = backends
 
-        self.backends_for_urls = []
+        self.backends_for_urls: list[BaseBackend] = []
         default_account_id = DEFAULT_ACCOUNT_ID
         default_backends = [
             instance_metadata_backends[default_account_id]["global"],
@@ -414,7 +425,8 @@ class ServerModeMockAWS(BaseMockAWS):
             # Just started
             self.reset()
 
-        from boto3 import client as real_boto3_client, resource as real_boto3_resource
+        from boto3 import client as real_boto3_client
+        from boto3 import resource as real_boto3_resource
 
         def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
             region = self._get_region(*args, **kwargs)
@@ -478,7 +490,8 @@ class ProxyModeMockAWS(BaseMockAWS):
             # Just started
             self.reset()
 
-        from boto3 import client as real_boto3_client, resource as real_boto3_resource
+        from boto3 import client as real_boto3_client
+        from boto3 import resource as real_boto3_resource
 
         def fake_boto3_client(*args: Any, **kwargs: Any) -> botocore.client.BaseClient:
             kwargs["verify"] = False
@@ -521,7 +534,7 @@ class ProxyModeMockAWS(BaseMockAWS):
 class base_decorator:
     mock_backend = MockAWS
 
-    def __init__(self, backends: BackendDict):
+    def __init__(self, backends: BackendDict[SERVICE_BACKEND]):
         self.backends = backends
 
     @overload

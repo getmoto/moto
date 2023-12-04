@@ -2,19 +2,20 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
-from ..utils import (
-    generic_filter,
-    random_launch_template_id,
-    utc_date_and_time,
-    convert_tag_spec,
-)
+
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
     InvalidLaunchTemplateNameNotFoundError,
     InvalidLaunchTemplateNameNotFoundWithNameError,
     MissingParameterError,
 )
+from ..utils import (
+    convert_tag_spec,
+    generic_filter,
+    random_launch_template_id,
+    utc_date_and_time,
+)
+from .core import TaggedEC2Resource
 
 
 class LaunchTemplateVersion:

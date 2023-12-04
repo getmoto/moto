@@ -1,9 +1,9 @@
-import boto3
 import json
+
+import boto3
 import pytest
 
 from . import s3_aws_verified
-
 
 SIMPLE_JSON = {"a1": "b1", "a2": "b2", "a3": None}
 SIMPLE_JSON2 = {"a1": "b2", "a3": "b3"}

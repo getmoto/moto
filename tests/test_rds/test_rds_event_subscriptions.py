@@ -1,6 +1,6 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_rds
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

@@ -1,6 +1,7 @@
-import boto3
-from unittest import TestCase
 from datetime import timedelta
+from unittest import TestCase
+
+import boto3
 
 from moto import mock_logs
 from moto.core.utils import unix_time_millis, utcnow

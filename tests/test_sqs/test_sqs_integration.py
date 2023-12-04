@@ -4,9 +4,9 @@ import uuid
 
 import boto3
 
-from moto import mock_lambda, mock_sqs, mock_logs
+from moto import mock_lambda, mock_logs, mock_sqs
 from tests.markers import requires_docker
-from tests.test_awslambda.test_lambda import get_test_zip_file1, get_role_name
+from tests.test_awslambda.test_lambda import get_role_name, get_test_zip_file1
 from tests.test_awslambda.utilities import get_test_zip_file_print_event
 
 

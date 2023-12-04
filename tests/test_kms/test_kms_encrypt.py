@@ -1,10 +1,11 @@
 import base64
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_kms
+
 from .test_kms_boto3 import PLAINTEXT_VECTORS, _get_encoded_value
 
 

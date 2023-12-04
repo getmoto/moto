@@ -181,6 +181,10 @@ iot
 - [ ] get_v2_logging_options
 - [ ] list_active_violations
 - [X] list_attached_policies
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_audit_findings
 - [ ] list_audit_mitigation_actions_executions
 - [ ] list_audit_mitigation_actions_tasks
@@ -222,9 +226,21 @@ iot
 - [ ] list_package_versions
 - [ ] list_packages
 - [X] list_policies
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_policy_principals
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_policy_versions
 - [X] list_principal_policies
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_principal_things
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
@@ -236,6 +252,10 @@ iot
 - [ ] list_streams
 - [ ] list_tags_for_resource
 - [X] list_targets_for_policy
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing

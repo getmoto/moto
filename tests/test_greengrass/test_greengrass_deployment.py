@@ -1,9 +1,9 @@
 import json
 
 import boto3
-from botocore.client import ClientError
 import freezegun
 import pytest
+from botocore.client import ClientError
 
 from moto import mock_greengrass
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID

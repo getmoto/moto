@@ -1,16 +1,14 @@
 import datetime
-from unittest import SkipTest, mock
-
 from collections import OrderedDict
 from gzip import compress as gzip_compress
+from unittest import SkipTest, mock
 
 from botocore.awsrequest import AWSPreparedRequest
-
-from moto.core.responses import AWSServiceSpec, BaseResponse
-from moto.core.responses import flatten_json_request_body
-from moto.s3.responses import S3Response
-from moto import settings
 from freezegun import freeze_time
+
+from moto import settings
+from moto.core.responses import AWSServiceSpec, BaseResponse, flatten_json_request_body
+from moto.s3.responses import S3Response
 
 
 def test_flatten_json_request_body():

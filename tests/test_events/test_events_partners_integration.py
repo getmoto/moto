@@ -1,10 +1,11 @@
-import boto3
 import json
 import os
-
 from datetime import datetime
+from unittest import SkipTest, mock
+
+import boto3
+
 from moto import mock_events, mock_logs, settings
-from unittest import mock, SkipTest
 
 
 @mock_events

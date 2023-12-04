@@ -1,10 +1,11 @@
 import json
+import time
 from base64 import b64encode
 from datetime import datetime
-import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends, ECRBackend
+
+from .models import ECRBackend, ecr_backends
 
 
 class ECRResponse(BaseResponse):

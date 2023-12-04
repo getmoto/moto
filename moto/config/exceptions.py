@@ -1,5 +1,6 @@
-from moto.core.exceptions import JsonRESTError
 from typing import Any, List, Optional
+
+from moto.core.exceptions import JsonRESTError
 
 
 class NameTooLongException(JsonRESTError):

@@ -1,11 +1,14 @@
-import boto3
 import json
-
 from copy import deepcopy
+
+import boto3
+
 from moto import mock_cloudformation, mock_ec2, mock_route53
-from tests.test_cloudformation.fixtures import route53_ec2_instance_with_public_ip
-from tests.test_cloudformation.fixtures import route53_health_check
-from tests.test_cloudformation.fixtures import route53_roundrobin
+from tests.test_cloudformation.fixtures import (
+    route53_ec2_instance_with_public_ip,
+    route53_health_check,
+    route53_roundrobin,
+)
 
 template_hosted_zone = {
     "AWSTemplateFormatVersion": "2010-09-09",

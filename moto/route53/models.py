@@ -5,14 +5,18 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-
-from jinja2 import Template
 from typing import Any, Dict, List, Optional, Tuple
 
+from jinja2 import Template
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.moto_api._internal import mock_random as random
 from moto.route53.exceptions import (
+    DnsNameInvalidForZone,
     HostedZoneNotEmpty,
     InvalidActionValue,
     InvalidCloudWatchArn,
+    InvalidInput,
     LastVPCAssociation,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
@@ -21,13 +25,10 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
-    DnsNameInvalidForZone,
     ResourceRecordAlreadyExists,
-    InvalidInput,
 )
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+
 from .utils import PAGINATION_MODEL
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
@@ -290,7 +291,7 @@ class RecordSet(CloudFormationModel):
             else None
         )
         if not hosted_zone:
-            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)
+            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)  # type: ignore[arg-type]
         hosted_zone.delete_rrset({"Name": self.name, "Type": self.type_})
 
 
@@ -469,8 +470,7 @@ class RecordSetGroup(CloudFormationModel):
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
 
-        record_set_group = RecordSetGroup(hosted_zone.id, record_sets)
-        return record_set_group
+        return RecordSetGroup(hosted_zone.id, record_sets)
 
 
 class QueryLoggingConfig(BaseModel):

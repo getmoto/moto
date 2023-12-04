@@ -1,5 +1,6 @@
 from moto.core.responses import BaseResponse
-from .models import neptune_backends, NeptuneBackend
+
+from .models import NeptuneBackend, neptune_backends
 
 
 class NeptuneResponse(BaseResponse):

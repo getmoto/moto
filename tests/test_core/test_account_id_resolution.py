@@ -1,4 +1,5 @@
 import os
+from unittest import SkipTest
 
 import requests
 import xmltodict
@@ -6,8 +7,6 @@ import xmltodict
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.server import ThreadedMotoServer
-from unittest import SkipTest
-
 
 SERVER_PORT = 5001
 BASE_URL = f"http://localhost:{SERVER_PORT}/"

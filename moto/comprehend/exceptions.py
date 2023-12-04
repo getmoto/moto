@@ -1,6 +1,7 @@
 """Exceptions raised by the comprehend service."""
-from moto.core.exceptions import JsonRESTError
 from typing import List
+
+from moto.core.exceptions import JsonRESTError
 
 
 class ResourceNotFound(JsonRESTError):

@@ -3,7 +3,6 @@ import requests
 
 from moto import mock_athena, mock_sts, settings
 
-
 DEFAULT_COLUMN_INFO = [
     {
         "CatalogName": "string",

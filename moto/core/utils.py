@@ -1,10 +1,12 @@
 import datetime
 import inspect
 import re
-from botocore.exceptions import ClientError
 from gzip import decompress
-from typing import Any, Optional, List, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+
+from botocore.exceptions import ClientError
+
 from .common_types import TYPE_RESPONSE
 from .versions import PYTHON_311
 
@@ -100,7 +102,8 @@ class convert_to_flask_response(object):
         return f"{outer}.{self.callback.__name__}"
 
     def __call__(self, args: Any = None, **kwargs: Any) -> Any:
-        from flask import request, Response
+        from flask import Response, request
+
         from moto.moto_api import recorder
 
         try:

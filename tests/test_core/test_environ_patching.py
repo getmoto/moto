@@ -1,4 +1,5 @@
 import os
+
 from moto import mock_ec2, mock_s3
 
 KEY = "AWS_ACCESS_KEY_ID"

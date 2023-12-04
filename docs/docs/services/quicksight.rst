@@ -62,6 +62,7 @@ quicksight
 - [X] delete_group
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
+- [ ] delete_identity_propagation_config
 - [ ] delete_namespace
 - [ ] delete_refresh_schedule
 - [ ] delete_role_custom_permission
@@ -142,6 +143,7 @@ quicksight
 
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
+- [ ] list_identity_propagation_configs
 - [ ] list_ingestions
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
@@ -196,6 +198,7 @@ quicksight
 - [ ] update_folder_permissions
 - [X] update_group
 - [ ] update_iam_policy_assignment
+- [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule

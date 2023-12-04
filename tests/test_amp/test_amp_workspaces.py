@@ -1,9 +1,10 @@
+from uuid import uuid4
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_amp
-from uuid import uuid4
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html

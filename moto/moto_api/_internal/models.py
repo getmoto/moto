@@ -1,6 +1,7 @@
-from moto.core import BaseBackend, DEFAULT_ACCOUNT_ID
-from moto.core.model_instances import reset_model_data
 from typing import Any, Dict, List, Optional
+
+from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend
+from moto.core.model_instances import reset_model_data
 
 
 class MotoAPIBackend(BaseBackend):
@@ -40,7 +41,7 @@ class MotoAPIBackend(BaseBackend):
         account_id: str,
         region: str,
     ) -> None:
-        from moto.athena.models import athena_backends, QueryResults
+        from moto.athena.models import QueryResults, athena_backends
 
         backend = athena_backends[account_id][region]
         results = QueryResults(rows=rows, column_info=column_info)
@@ -70,7 +71,7 @@ class MotoAPIBackend(BaseBackend):
         account_id: str,
         region: str,
     ) -> None:
-        from moto.rdsdata.models import rdsdata_backends, QueryResults
+        from moto.rdsdata.models import QueryResults, rdsdata_backends
 
         backend = rdsdata_backends[account_id][region]
         backend.results_queue.append(

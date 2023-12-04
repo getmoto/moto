@@ -4,7 +4,6 @@ import boto3
 from moto import mock_s3, mock_s3control, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-
 REGION = "us-east-1"
 
 

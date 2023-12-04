@@ -1,9 +1,10 @@
 import json
 import re
 import string
-from moto.moto_api._internal import mock_random as random
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
+
+from moto.moto_api._internal import mock_random as random
 
 
 def networkid_from_managedblockchain_url(full_url: str) -> str:

@@ -1,6 +1,6 @@
-from moto.core.exceptions import RESTError
-from typing import Any, List, Optional, Union, Iterable
+from typing import Any, Iterable, List, Optional, Union
 
+from moto.core.exceptions import RESTError
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
 # `terraform destroy` will complain if the roottag is incorrect

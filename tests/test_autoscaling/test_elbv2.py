@@ -1,8 +1,11 @@
-import boto3
 import unittest
+from uuid import uuid4
+
+import boto3
+
 from moto import mock_autoscaling, mock_elbv2
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
+
 from .utils import setup_networking
 
 

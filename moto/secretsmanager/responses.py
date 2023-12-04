@@ -1,14 +1,14 @@
+import json
 from typing import Any, Dict, List
+
 from moto.core.responses import BaseResponse
 from moto.secretsmanager.exceptions import (
-    InvalidRequestException,
     InvalidParameterException,
+    InvalidRequestException,
     ValidationException,
 )
 
-from .models import secretsmanager_backends, filter_keys, SecretsManagerBackend
-
-import json
+from .models import SecretsManagerBackend, filter_keys, secretsmanager_backends
 
 
 def _validate_filters(filters: List[Dict[str, Any]]) -> None:

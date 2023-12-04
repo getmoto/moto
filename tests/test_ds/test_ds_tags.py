@@ -4,14 +4,14 @@ Simple AD directories are used for test data, but the operations are
 common to the other directory types.
 """
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ds
 from moto.ds.models import Directory
 from moto.ec2 import mock_ec2
 
-from .test_ds_simple_ad_directory import create_test_directory, TEST_REGION
+from .test_ds_simple_ad_directory import TEST_REGION, create_test_directory
 
 
 @mock_ec2

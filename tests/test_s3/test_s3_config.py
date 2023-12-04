@@ -1,4 +1,5 @@
 import json
+
 import pytest
 
 from moto import mock_s3
@@ -376,7 +377,7 @@ def test_s3_notification_config_dict():
 
 @mock_s3
 def test_s3_acl_to_config_dict():
-    from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
+    from moto.s3.models import OWNER, FakeAcl, FakeGrant, FakeGrantee
 
     # With 1 bucket in us-west-2:
     s3_config_query_backend.create_bucket("logbucket", "us-west-2")
@@ -447,7 +448,7 @@ def test_s3_acl_to_config_dict():
 
 @mock_s3
 def test_s3_config_dict():
-    from moto.s3.models import FakeAcl, FakeGrant, FakeGrantee, OWNER
+    from moto.s3.models import OWNER, FakeAcl, FakeGrant, FakeGrantee
 
     # Without any buckets:
     assert not s3_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "some_bucket")

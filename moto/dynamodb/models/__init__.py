@@ -1,41 +1,41 @@
 import copy
 import re
-
 from collections import OrderedDict
-from typing import Any, Dict, Optional, List, Tuple, Union, Set
-from moto.core import BaseBackend, BackendDict
-from moto.core.utils import unix_time
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+from moto.core import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
-from moto.dynamodb.comparisons import get_filter_expression, get_expected
+from moto.core.utils import unix_time
+from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
+    BackupNotFoundException,
+    ConditionalCheckFailed,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
-    ConditionalCheckFailed,
-    TransactionCanceledException,
+    MockValidationException,
     MultipleTransactionsException,
-    TooManyTransactionsException,
-    TableNotFoundException,
+    ResourceInUseException,
     ResourceNotFoundException,
     SourceTableNotFoundException,
-    TableAlreadyExistsException,
-    BackupNotFoundException,
-    ResourceInUseException,
     StreamAlreadyEnabledException,
-    MockValidationException,
+    TableAlreadyExistsException,
+    TableNotFoundException,
+    TooManyTransactionsException,
+    TransactionCanceledException,
     TransactWriteSingleOpException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import (
-    Table,
-    RestoredTable,
+    Backup,
     GlobalSecondaryIndex,
     RestoredPITTable,
-    Backup,
+    RestoredTable,
+    Table,
 )
+from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
-from moto.dynamodb.parsing import partiql
 
 
 class DynamoDBBackend(BaseBackend):

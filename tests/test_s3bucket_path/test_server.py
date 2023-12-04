@@ -1,5 +1,6 @@
 """Test the different server responses."""
 from flask.testing import FlaskClient
+
 import moto.server as server
 
 

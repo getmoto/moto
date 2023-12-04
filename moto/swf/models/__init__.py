@@ -1,12 +1,14 @@
+from time import sleep
 from typing import Any, Dict, List, Optional
-from moto.core import BaseBackend, BackendDict
+
+from moto.core import BackendDict, BaseBackend
 
 from ..exceptions import (
-    SWFUnknownResourceFault,
     SWFDomainAlreadyExistsFault,
     SWFDomainDeprecatedFault,
     SWFTypeAlreadyExistsFault,
     SWFTypeDeprecatedFault,
+    SWFUnknownResourceFault,
     SWFValidationException,
 )
 from .activity_task import ActivityTask  # noqa
@@ -17,9 +19,8 @@ from .generic_type import GenericType, TGenericType  # noqa
 from .history_event import HistoryEvent  # noqa
 from .timeout import Timeout  # noqa
 from .timer import Timer  # noqa
-from .workflow_type import WorkflowType  # noqa
 from .workflow_execution import WorkflowExecution  # noqa
-from time import sleep
+from .workflow_type import WorkflowType  # noqa
 
 KNOWN_SWF_TYPES = {"activity": ActivityType, "workflow": WorkflowType}
 

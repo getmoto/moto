@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_swf
 from moto.core.utils import unix_time, utcnow

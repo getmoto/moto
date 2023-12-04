@@ -1,21 +1,22 @@
-import json
-from datetime import timedelta, datetime
-from typing import Any, Dict, Iterable, List, Tuple, Optional
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core import CloudFormationModel
+from datetime import datetime, timedelta
+from gzip import compress as gzip_compress
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
-from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
-    ResourceNotFoundException,
-    ResourceAlreadyExistsException,
     InvalidParameterException,
     LimitExceededException,
+    ResourceAlreadyExistsException,
+    ResourceNotFoundException,
 )
 from moto.logs.logs_query import execute_query
+from moto.logs.metric_filters import MetricFilters
 from moto.moto_api._internal import mock_random
-from moto.s3.models import s3_backends
+from moto.s3.models import MissingBucket, s3_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+
 from .utils import PAGINATION_MODEL, EventMessageFilter
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -1247,7 +1248,12 @@ class LogsBackend(BaseBackend):
         fromTime: int,
         to: int,
     ) -> str:
-        s3_backends[self.account_id]["global"].get_bucket(destination)
+        try:
+            s3_backends[self.account_id]["global"].get_bucket(destination)
+        except MissingBucket:
+            raise InvalidParameterException(
+                "The given bucket does not exist. Please make sure the bucket is valid."
+            )
         if logGroupName not in self.groups:
             raise ResourceNotFoundException()
         task_id = str(mock_random.uuid4())
@@ -1260,15 +1266,41 @@ class LogsBackend(BaseBackend):
             fromTime,
             to,
         )
-        if fromTime <= datetime.now().timestamp() <= to:
-            logs = self.filter_log_events(
-                logGroupName, [], fromTime, to, None, None, "", False
-            )
-            s3_backends[self.account_id]["global"].put_object(
-                destination, destinationPrefix, json.dumps(logs)
-            )
-            self.export_tasks[task_id].status["code"] = "completed"
-            self.export_tasks[task_id].status["message"] = "Task is completed"
+
+        s3_backends[self.account_id]["global"].put_object(
+            bucket_name=destination,
+            key_name="aws-logs-write-test",
+            value=b"Permission Check Successful",
+        )
+
+        if fromTime <= unix_time_millis(datetime.now()) <= to:
+            for stream_name in self.groups[logGroupName].streams.keys():
+                logs, _, _ = self.filter_log_events(
+                    log_group_name=logGroupName,
+                    log_stream_names=[stream_name],
+                    start_time=fromTime,
+                    end_time=to,
+                    limit=None,
+                    next_token=None,
+                    filter_pattern="",
+                    interleaved=False,
+                )
+                raw_logs = "\n".join(
+                    [
+                        f"{datetime.fromtimestamp(log['timestamp']/1000).strftime('%Y-%m-%dT%H:%M:%S.000Z')} {log['message']}"
+                        for log in logs
+                    ]
+                )
+                folder = str(mock_random.uuid4()) + "/" + stream_name.replace("/", "-")
+                key_name = f"{destinationPrefix}/{folder}/000000.gz"
+                s3_backends[self.account_id]["global"].put_object(
+                    bucket_name=destination,
+                    key_name=key_name,
+                    value=gzip_compress(raw_logs.encode("utf-8")),
+                )
+            self.export_tasks[task_id].status["code"] = "COMPLETED"
+            self.export_tasks[task_id].status["message"] = "Completed successfully"
+
         return task_id
 
     def describe_export_tasks(self, task_id: str) -> List[ExportTask]:

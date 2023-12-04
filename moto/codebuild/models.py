@@ -1,10 +1,12 @@
-from moto.core import BaseBackend, BackendDict, BaseModel
+import datetime
+from collections import defaultdict
+from typing import Any, Dict, List, Optional
+
+from dateutil import parser
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
-from collections import defaultdict
-from dateutil import parser
-from typing import Any, Dict, List, Optional
-import datetime
 
 
 class CodeBuildProjectMetadata(BaseModel):

@@ -1,7 +1,9 @@
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, Iterable, List, Optional
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from typing import Any, Dict, List, Iterable, Optional
+
 from .exceptions import (
     AppNotFoundException,
     ConfigurationProfileNotFound,

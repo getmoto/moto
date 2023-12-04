@@ -1,9 +1,8 @@
 import base64
 from datetime import datetime
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
 from .exceptions import InvalidArgumentError
-
 
 encode_method = base64.encodebytes
 decode_method = base64.decodebytes

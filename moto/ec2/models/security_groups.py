@@ -3,27 +3,29 @@ import itertools
 import json
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
+
 from moto.core import CloudFormationModel
 from moto.core.utils import aws_api_matches
+
 from ..exceptions import (
     InvalidCIDRSubnetError,
-    InvalidPermissionNotFoundError,
     InvalidPermissionDuplicateError,
+    InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
     RulesPerSecurityGroupLimitExceededError,
 )
-from .core import TaggedEC2Resource
 from ..utils import (
-    random_security_group_id,
-    random_security_group_rule_id,
+    is_tag_filter,
     is_valid_cidr,
     is_valid_ipv6_cidr,
-    is_tag_filter,
+    random_security_group_id,
+    random_security_group_rule_id,
     tag_filter_matches,
 )
+from .core import TaggedEC2Resource
 
 
 class SecurityRule:

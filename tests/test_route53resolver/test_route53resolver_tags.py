@@ -1,8 +1,7 @@
 """Route53Resolver-related unit tests focusing on tag-related functionality."""
 import boto3
-from botocore.exceptions import ClientError
-
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_route53resolver
 from moto.ec2 import mock_ec2

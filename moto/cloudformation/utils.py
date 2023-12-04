@@ -1,9 +1,11 @@
-import yaml
 import os
 import string
-from moto.moto_api._internal import mock_random as random
 from typing import Any, List
 from urllib.parse import urlparse
+
+import yaml
+
+from moto.moto_api._internal import mock_random as random
 
 
 def generate_stack_id(stack_name: str, region: str, account: str) -> str:
@@ -56,7 +58,7 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
 
 def validate_template_cfn_lint(template: str) -> List[Any]:
     # Importing cfnlint adds a significant overhead, so we keep it local
-    from cfnlint import decode, core
+    from cfnlint import core, decode
 
     # Save the template to a temporary file -- cfn-lint requires a file
     filename = "file.tmp"
@@ -107,4 +109,4 @@ def get_stack_from_s3_url(template_url: str, account_id: str) -> str:
             key_name = template_url_parts.path.lstrip("/")
 
     key = s3_backends[account_id]["global"].get_object(bucket_name, key_name)
-    return key.value.decode("utf-8")
+    return key.value.decode("utf-8")  # type: ignore[union-attr]

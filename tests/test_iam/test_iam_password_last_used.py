@@ -1,9 +1,11 @@
+from unittest import SkipTest
+
 import boto3
+
 from moto import mock_iam, settings
 from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
-from unittest import SkipTest
 
 
 @mock_iam

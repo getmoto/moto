@@ -83,6 +83,7 @@ stepfunctions
 - [ ] start_sync_execution
 - [X] stop_execution
 - [X] tag_resource
+- [ ] test_state
 - [X] untag_resource
 - [ ] update_map_run
 - [X] update_state_machine

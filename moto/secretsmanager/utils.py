@@ -1,5 +1,6 @@
-import string
 import re
+import string
+
 from moto.moto_api._internal import mock_random as random
 
 

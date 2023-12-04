@@ -29,6 +29,7 @@ logs
 - [ ] cancel_export_task
 - [ ] create_delivery
 - [X] create_export_task
+- [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_account_policy
@@ -38,6 +39,7 @@ logs
 - [ ] delete_delivery_destination_policy
 - [ ] delete_delivery_source
 - [X] delete_destination
+- [ ] delete_log_anomaly_detector
 - [X] delete_log_group
 - [X] delete_log_stream
 - [X] delete_metric_filter
@@ -54,7 +56,11 @@ logs
 - [ ] describe_delivery_destinations
 - [ ] describe_delivery_sources
 - [X] describe_destinations
-- [ ] describe_export_tasks
+- [X] describe_export_tasks
+  
+        Pagination is not yet implemented
+        
+
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
@@ -86,6 +92,7 @@ logs
 - [ ] get_delivery_destination
 - [ ] get_delivery_destination_policy
 - [ ] get_delivery_source
+- [ ] get_log_anomaly_detector
 - [X] get_log_events
 - [ ] get_log_group_fields
 - [ ] get_log_record
@@ -94,6 +101,8 @@ logs
         Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
         
 
+- [ ] list_anomalies
+- [ ] list_log_anomaly_detectors
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
@@ -124,4 +133,6 @@ logs
 - [ ] test_metric_filter
 - [X] untag_log_group
 - [X] untag_resource
+- [ ] update_anomaly
+- [ ] update_log_anomaly_detector
 

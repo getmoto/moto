@@ -1,9 +1,8 @@
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from moto import mock_kinesis
 
+from moto import mock_kinesis
 
 ONE_MB = 2**20
 

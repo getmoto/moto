@@ -1,7 +1,8 @@
-import boto3
-from moto import mock_medialive
 from uuid import uuid4
 
+import boto3
+
+from moto import mock_medialive
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "eu-west-1"

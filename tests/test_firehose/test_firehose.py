@@ -1,13 +1,12 @@
 """Unit tests specific to basic Firehose Delivery Stream-related APIs."""
-from unittest import SkipTest
 import warnings
+from unittest import SkipTest
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
-from moto import mock_firehose
-from moto import settings
+from moto import mock_firehose, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.firehose.models import DeliveryStream
 from moto.moto_api._internal import mock_random

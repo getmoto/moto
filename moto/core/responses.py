@@ -1,16 +1,33 @@
-import boto3
-import functools
 import datetime
+import functools
 import json
 import logging
 import os
 import re
+from collections import OrderedDict, defaultdict
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
+from urllib.parse import parse_qs, parse_qsl, urlparse
+from xml.dom.minidom import parseString as parseXML
+
+import boto3
 import requests
 import xmltodict
+from jinja2 import DictLoader, Environment, Template
+from werkzeug.exceptions import HTTPException
 
-from collections import defaultdict, OrderedDict
 from moto import settings
-from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
+from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -19,23 +36,6 @@ from moto.core.utils import (
     params_sort_function,
 )
 from moto.utilities.utils import load_resource, load_resource_as_bytes
-from jinja2 import Environment, DictLoader, Template
-from typing import (
-    Dict,
-    Union,
-    Any,
-    Tuple,
-    Optional,
-    List,
-    Set,
-    ClassVar,
-    Callable,
-    TypeVar,
-)
-from urllib.parse import parse_qs, parse_qsl, urlparse
-from werkzeug.exceptions import HTTPException
-from xml.dom.minidom import parseString as parseXML
-
 
 log = logging.getLogger(__name__)
 

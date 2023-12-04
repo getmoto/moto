@@ -2,7 +2,8 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import ce_backends, CostExplorerBackend
+
+from .models import CostExplorerBackend, ce_backends
 
 
 class CostExplorerResponse(BaseResponse):

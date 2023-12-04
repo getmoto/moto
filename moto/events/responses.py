@@ -1,7 +1,8 @@
 import json
 from typing import Any, Dict, Tuple
+
 from moto.core.responses import BaseResponse
-from moto.events.models import events_backends, EventsBackend
+from moto.events.models import EventsBackend, events_backends
 
 
 class EventsHandler(BaseResponse):

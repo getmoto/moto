@@ -49,7 +49,7 @@ lambda
 - [X] delete_function
 - [ ] delete_function_code_signing_config
 - [X] delete_function_concurrency
-- [ ] delete_function_event_invoke_config
+- [X] delete_function_event_invoke_config
 - [X] delete_function_url_config
   
         The Qualifier-parameter is not yet implemented
@@ -65,7 +65,7 @@ lambda
 - [ ] get_function_code_signing_config
 - [X] get_function_concurrency
 - [ ] get_function_configuration
-- [ ] get_function_event_invoke_config
+- [X] get_function_event_invoke_config
 - [X] get_function_url_config
   
         The Qualifier-parameter is not yet implemented
@@ -87,7 +87,7 @@ lambda
 - [X] list_aliases
 - [ ] list_code_signing_configs
 - [X] list_event_source_mappings
-- [ ] list_function_event_invoke_configs
+- [X] list_function_event_invoke_configs
 - [ ] list_function_url_configs
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
@@ -113,7 +113,7 @@ lambda
         variable prior to testing.
         
 
-- [ ] put_function_event_invoke_config
+- [X] put_function_event_invoke_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
 - [ ] remove_layer_version_permission
@@ -129,7 +129,7 @@ lambda
 - [X] update_event_source_mapping
 - [X] update_function_code
 - [X] update_function_configuration
-- [ ] update_function_event_invoke_config
+- [X] update_function_event_invoke_config
 - [X] update_function_url_config
   
         The Qualifier-parameter is not yet implemented

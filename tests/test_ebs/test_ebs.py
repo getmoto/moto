@@ -1,6 +1,8 @@
 """Unit tests for ebs-supported APIs."""
-import boto3
 import hashlib
+
+import boto3
+
 from moto import mock_ebs, mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 

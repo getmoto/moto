@@ -1,7 +1,9 @@
 import weakref
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional
+
 from moto.core import CloudFormationModel
+
 from ..exceptions import (
     InvalidVPCPeeringConnectionIdError,
     InvalidVPCPeeringConnectionStateTransitionError,
@@ -9,9 +11,9 @@ from ..exceptions import (
     OperationNotPermitted3,
     OperationNotPermitted5,
 )
+from ..utils import random_vpc_peering_connection_id
 from .core import TaggedEC2Resource
 from .vpcs import VPC
-from ..utils import random_vpc_peering_connection_id
 
 
 class PeeringConnectionStatus:

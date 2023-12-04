@@ -1,29 +1,28 @@
 import base64
 import copy
+import json
 import os
+import re
 import string
 from datetime import datetime
-import json
-import re
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from urllib import parse
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-
 from jinja2 import Template
-from typing import Any, Dict, Optional, Tuple, Union
-from typing import List, Iterable
-from urllib import parse
-from moto.core.exceptions import RESTError
+
 from moto.core import (
     DEFAULT_ACCOUNT_ID,
+    BackendDict,
     BaseBackend,
     BaseModel,
     CloudFormationModel,
-    BackendDict,
 )
+from moto.core.exceptions import RESTError
 from moto.core.utils import (
-    iso_8601_datetime_without_milliseconds,
     iso_8601_datetime_with_milliseconds,
+    iso_8601_datetime_without_milliseconds,
     unix_time,
     utcnow,
 )
@@ -34,33 +33,32 @@ from moto.iam.policy_validation import (
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
+from ..utilities.tagging_service import TaggingService
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import (
-    IAMNotFoundException,
-    IAMConflictException,
-    IAMReportNotPresentException,
-    IAMLimitExceededException,
-    MalformedCertificate,
     DuplicateTags,
-    TagKeyTooBig,
-    InvalidTagCharacters,
-    TooManyTags,
-    TagValueTooBig,
     EntityAlreadyExists,
-    ValidationError,
+    IAMConflictException,
+    IAMLimitExceededException,
+    IAMNotFoundException,
+    IAMReportNotPresentException,
     InvalidInput,
+    InvalidTagCharacters,
+    MalformedCertificate,
     NoSuchEntity,
+    TagKeyTooBig,
+    TagValueTooBig,
+    TooManyTags,
+    ValidationError,
 )
 from .utils import (
+    generate_access_key_id_from_account_id,
     random_access_key,
     random_alphanumeric,
-    random_resource_id,
     random_policy_id,
+    random_resource_id,
     random_role_id,
-    generate_access_key_id_from_account_id,
 )
-from ..utilities.tagging_service import TaggingService
-
 
 # Map to convert service names used in ServiceLinkedRoles
 # The PascalCase should be used as part of the RoleName
@@ -677,7 +675,7 @@ class Role(CloudFormationModel):
         self.tags = tags
         # last_used should be treated as part of the public API
         # https://github.com/getmoto/moto/issues/6859
-        self.last_used = None
+        self.last_used: Optional[datetime] = None
         self.last_used_region = None
         self.description = description
         self.permissions_boundary: Optional[str] = permissions_boundary

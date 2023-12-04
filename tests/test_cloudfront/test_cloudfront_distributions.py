@@ -1,9 +1,11 @@
 import boto3
+import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_cloudfront
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
 from . import cloudfront_test_scaffolding as scaffold
-import pytest
 
 
 @mock_cloudfront

@@ -1,8 +1,10 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 
 from moto import mock_lambda
-from uuid import uuid4
+
 from .utilities import get_role_name, get_test_zip_file1
 
 PYTHON_VERSION = "python3.11"

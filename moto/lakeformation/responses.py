@@ -3,17 +3,17 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
+
+from .exceptions import InvalidInput
 from .models import (
-    lakeformation_backends,
     LakeFormationBackend,
     ListPermissionsResource,
     ListPermissionsResourceDatabase,
     ListPermissionsResourceDataLocation,
     ListPermissionsResourceTable,
     RessourceType,
+    lakeformation_backends,
 )
-
-from .exceptions import InvalidInput
 
 
 class LakeFormationResponse(BaseResponse):
