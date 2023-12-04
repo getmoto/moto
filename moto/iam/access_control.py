@@ -291,9 +291,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         request = self._create_aws_request()
         canonical_request = auth.canonical_request(request)
         string_to_sign = auth.string_to_sign(request, canonical_request)
-        # auth.signature has the wrong type in botocore-stubs
-        # https://github.com/youtype/botocore-stubs/issues/9
-        return auth.signature(string_to_sign, request)  # type: ignore[return-value]
+        return auth.signature(string_to_sign, request)
 
     @staticmethod
     def _get_string_between(
