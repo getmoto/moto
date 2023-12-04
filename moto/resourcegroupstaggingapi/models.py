@@ -18,7 +18,7 @@ from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
-from moto.sqs.models import sqs_backends, SQSBackend
+from moto.sqs.models import SQSBackend, sqs_backends
 from moto.utilities.tagging_service import TaggingService
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
