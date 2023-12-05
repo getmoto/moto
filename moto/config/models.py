@@ -70,7 +70,7 @@ DEFAULT_PAGE_SIZE = 100
 CONFIG_RULE_PAGE_SIZE = 25
 
 # Map the Config resource type to a backend:
-RESOURCE_MAP: Dict[str, ConfigQueryModel] = {
+RESOURCE_MAP: Dict[str, ConfigQueryModel[Any]] = {
     "AWS::S3::Bucket": s3_config_query,
     "AWS::S3::AccountPublicAccessBlock": s3_account_public_access_block_query,
     "AWS::IAM::Role": role_config_query,

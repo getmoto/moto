@@ -70,7 +70,7 @@ class MotoRequestHandler:
         request = AWSPreparedRequest(
             method, full_url, headers, body, stream_output=False
         )
-        request.form_data = form_data
+        request.form_data = form_data  # type: ignore[attr-defined]
         return handler(request, full_url, headers)
 
 
@@ -160,7 +160,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 host=host,
                 path=path,
                 headers=req.headers,
-                body=req_body,
+                body=req_body,  # type: ignore[arg-type]
                 form_data=form_data,
             )
             debug("\t=====RESPONSE========")

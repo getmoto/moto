@@ -1,6 +1,6 @@
 from collections import defaultdict
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Pattern, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Pattern, Tuple, Union
 
 from botocore.awsrequest import AWSResponse
 
@@ -38,7 +38,9 @@ class BotocoreStubber:
         matchers = self.methods[method]
         matchers.append((pattern, response))
 
-    def __call__(self, event_name: str, request: Any, **kwargs: Any) -> AWSResponse:
+    def __call__(
+        self, event_name: str, request: Any, **kwargs: Any
+    ) -> Optional[AWSResponse]:
         if not self.enabled:
             return None
 
@@ -70,6 +72,6 @@ class BotocoreStubber:
                 headers = e.get_headers()  # type: ignore[assignment]
                 body = e.get_body()
             raw_response = MockRawResponse(body)
-            response = AWSResponse(request.url, status, headers, raw_response)
+            response = AWSResponse(request.url, status, headers, raw_response)  # type: ignore[arg-type]
 
         return response

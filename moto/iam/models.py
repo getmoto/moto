@@ -114,7 +114,7 @@ class MFADevice:
 
     @property
     def enabled_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.enable_date)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.enable_date)
 
 
 class VirtualMfaDevice:
@@ -177,7 +177,11 @@ class Policy(CloudFormationModel):
             self.next_version_num = 2
         self.versions = [
             PolicyVersion(
-                self.arn, document, True, self.default_version_id, update_date  # type: ignore
+                self.arn,  # type: ignore[attr-defined]
+                document,
+                True,
+                self.default_version_id,
+                update_date,
             )
         ]
 
@@ -243,7 +247,7 @@ class OpenIDConnectProvider(BaseModel):
 
     @property
     def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
     def _validate(
         self, url: str, thumbprint_list: List[str], client_id_list: List[str]
@@ -315,7 +319,7 @@ class PolicyVersion:
     def __init__(
         self,
         policy_arn: str,
-        document: str,
+        document: Optional[str],
         is_default: bool = False,
         version_id: str = "v1",
         create_date: Optional[datetime] = None,
@@ -343,7 +347,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     def attach_to(self, obj: Union["Role", "Group", "User"]) -> None:
         self.attachment_count += 1
-        obj.managed_policies[self.arn] = self  # type: ignore[assignment]
+        obj.managed_policies[self.arn] = self
 
     def detach_from(self, obj: Union["Role", "Group", "User"]) -> None:
         self.attachment_count -= 1
@@ -412,7 +416,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -449,7 +453,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
         return policy
 
     def __eq__(self, other: Any) -> bool:
-        return self.arn == other.arn
+        return self.arn == other.arn  # type: ignore[no-any-return]
 
     def __hash__(self) -> int:
         return self.arn.__hash__()
@@ -532,7 +536,7 @@ class InlinePolicy(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -556,9 +560,9 @@ class InlinePolicy(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: Any,
+        original_resource: "InlinePolicy",
         new_resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> "InlinePolicy":
@@ -601,7 +605,7 @@ class InlinePolicy(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -705,7 +709,7 @@ class Role(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -736,7 +740,7 @@ class Role(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -850,8 +854,8 @@ class Role(CloudFormationModel):
             return self.arn
         raise UnformattedGetAttTemplateException()
 
-    def get_tags(self) -> List[str]:
-        return [self.tags[tag] for tag in self.tags]  # type: ignore
+    def get_tags(self) -> List[Dict[str, str]]:
+        return [self.tags[tag] for tag in self.tags]
 
     @property
     def description_escaped(self) -> str:
@@ -938,7 +942,7 @@ class InstanceProfile(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -956,7 +960,7 @@ class InstanceProfile(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -1060,7 +1064,7 @@ class SigningCertificate(BaseModel):
 
     @property
     def uploaded_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.upload_date)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
 class AccessKeyLastUsed:
@@ -1071,7 +1075,7 @@ class AccessKeyLastUsed:
 
     @property
     def timestamp(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self._timestamp)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self._timestamp)
 
     def strftime(self, date_format: str) -> str:
         return self._timestamp.strftime(date_format)
@@ -1105,7 +1109,7 @@ class AccessKey(CloudFormationModel):
 
     @property
     def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -1130,7 +1134,7 @@ class AccessKey(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -1146,9 +1150,9 @@ class AccessKey(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: Any,
+        original_resource: "AccessKey",
         new_resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> "AccessKey":
@@ -1170,14 +1174,16 @@ class AccessKey(CloudFormationModel):
             properties = cloudformation_json.get("Properties", {})
             status = properties.get("Status")
             return iam_backends[account_id]["global"].update_access_key(
-                original_resource.user_name, original_resource.access_key_id, status
+                original_resource.user_name,  # type: ignore[arg-type]
+                original_resource.access_key_id,
+                status,
             )
 
     @classmethod
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -1209,7 +1215,7 @@ class SshPublicKey(BaseModel):
 
     @property
     def uploaded_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.upload_date)  # type: ignore
+        return iso_8601_datetime_without_milliseconds(self.upload_date)
 
 
 class Group(BaseModel):
@@ -1221,7 +1227,7 @@ class Group(BaseModel):
         self.create_date = utcnow()
 
         self.users: List[User] = []
-        self.managed_policies: Dict[str, str] = {}
+        self.managed_policies: Dict[str, ManagedPolicy] = {}
         self.policies: Dict[str, str] = {}
 
     @property
@@ -1281,7 +1287,7 @@ class User(CloudFormationModel):
         self.create_date = utcnow()
         self.mfa_devices: Dict[str, MFADevice] = {}
         self.policies: Dict[str, str] = {}
-        self.managed_policies: Dict[str, Dict[str, str]] = {}
+        self.managed_policies: Dict[str, ManagedPolicy] = {}
         self.access_keys: List[AccessKey] = []
         self.ssh_public_keys: List[SshPublicKey] = []
         self.password: Optional[str] = None
@@ -1510,7 +1516,7 @@ class User(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -1523,9 +1529,9 @@ class User(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: Any,
+        original_resource: "User",
         new_resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> "User":
@@ -1556,7 +1562,7 @@ class User(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Any,
+        cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -1796,10 +1802,10 @@ class IAMBackend(BaseBackend):
     def __init__(
         self,
         region_name: str,
-        account_id: Optional[str] = None,
+        account_id: str,
         aws_policies: Optional[List[ManagedPolicy]] = None,
     ):
-        super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
+        super().__init__(region_name=region_name, account_id=account_id)
         self.instance_profiles: Dict[str, InstanceProfile] = {}
         self.roles: Dict[str, Role] = {}
         self.certificates: Dict[str, Certificate] = {}
@@ -1840,7 +1846,7 @@ class IAMBackend(BaseBackend):
         # Do not reset these policies, as they take a long time to load
         aws_policies = self.aws_managed_policies
         self.__dict__ = {}
-        self.__init__(region_name, account_id, aws_policies)  # type: ignore[misc]
+        IAMBackend.__init__(self, region_name, account_id, aws_policies)
 
     def initialize_service_roles(self) -> None:
         pass
@@ -2828,8 +2834,9 @@ class IAMBackend(BaseBackend):
     def delete_access_key_by_name(self, name: str) -> None:
         key = self.access_keys[name]
         try:  # User may have been deleted before their access key...
-            user = self.get_user(key.user_name)  # type: ignore
-            user.delete_access_key(key.access_key_id)
+            if key.user_name is not None:
+                user = self.get_user(key.user_name)
+                user.delete_access_key(key.access_key_id)
         except NoSuchEntity:
             pass
         del self.access_keys[name]

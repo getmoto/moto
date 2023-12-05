@@ -257,7 +257,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def _create_auth(self, credentials: Credentials) -> SigV4Auth:  # type: ignore[misc]
+    def _create_auth(self, credentials: Credentials) -> SigV4Auth:
         raise NotImplementedError()
 
     @staticmethod
