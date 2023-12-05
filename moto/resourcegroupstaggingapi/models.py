@@ -18,6 +18,7 @@ from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
+from moto.sqs.models import SQSBackend, sqs_backends
 from moto.utilities.tagging_service import TaggingService
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
@@ -94,6 +95,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def acm_backend(self) -> AWSCertificateManagerBackend:
         return acm_backends[self.account_id][self.region_name]
+
+    @property
+    def sqs_backend(self) -> SQSBackend:
+        return sqs_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -441,6 +446,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
+
+        # SQS
+        if not resource_type_filters or "sqs" in resource_type_filters:
+            for queue in self.sqs_backend.queues.values():
+                tags = format_tags(queue.tags)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
 
         # VPC
         if (
