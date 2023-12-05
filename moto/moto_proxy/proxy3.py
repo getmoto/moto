@@ -68,7 +68,7 @@ class MotoRequestHandler:
         handler = self.get_handler_for_host(host=host, path=path)
         full_url = host + path
         request = AWSPreparedRequest(
-            method, full_url, headers, body, stream_output=False  # type: ignore[arg-type]
+            method, full_url, headers, body, stream_output=False
         )
         request.form_data = form_data  # type: ignore[attr-defined]
         return handler(request, full_url, headers)
