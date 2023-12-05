@@ -594,9 +594,13 @@ def test_list_hosted_zones_by_dns_name():
     zones = conn.list_hosted_zones_by_name()
     assert len(zones["HostedZones"]) == 4
     assert zones["HostedZones"][0]["Name"] == "test.b.com."
+    assert zones["HostedZones"][0]["CallerReference"] == str(hash("foo"))
     assert zones["HostedZones"][1]["Name"] == "my.test.net."
+    assert zones["HostedZones"][1]["CallerReference"] == str(hash("baz"))
     assert zones["HostedZones"][2]["Name"] == "test.a.org."
+    assert zones["HostedZones"][2]["CallerReference"] == str(hash("bar"))
     assert zones["HostedZones"][3]["Name"] == "test.a.org."
+    assert zones["HostedZones"][3]["CallerReference"] == str(hash("bar"))
 
 
 @mock_route53
