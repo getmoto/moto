@@ -33,10 +33,7 @@ class BotocoreStubber:
         self.methods.clear()
 
     def register_response(
-        self,
-        method: str,
-        pattern: Pattern[str],
-        response: Callable[..., TYPE_RESPONSE],
+        self, method: str, pattern: Pattern[str], response: Callable[..., TYPE_RESPONSE]
     ) -> None:
         matchers = self.methods[method]
         matchers.append((pattern, response))
