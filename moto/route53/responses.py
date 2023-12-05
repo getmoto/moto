@@ -660,6 +660,7 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
    <HostedZone>
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
+      <CallerReference>{{ zone.caller_reference }}</CallerReference>
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         {% if zone.comment %}
@@ -689,6 +690,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       <HostedZone>
          <Id>/hostedzone/{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
+         <CallerReference>{{ zone.caller_reference }}</CallerReference>
          <Config>
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
@@ -711,6 +713,7 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
       <HostedZone>
          <Id>/hostedzone/{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
+         <CallerReference>{{ zone.caller_reference }}</CallerReference>
          <Config>
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
