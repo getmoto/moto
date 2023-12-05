@@ -740,7 +740,7 @@ def test_get_resources_sqs():
 
     # Test tag filtering
     resp = rtapi.get_resources(
-        ResourceTypeFilters=["elasticloadbalancing:targetgroup"],
+        ResourceTypeFilters=["sqs"],
         TagFilters=[{"Key": "Test", "Values": ["1"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
