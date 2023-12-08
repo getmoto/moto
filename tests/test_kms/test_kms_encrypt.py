@@ -6,13 +6,15 @@ from botocore.exceptions import ClientError
 
 from moto import mock_kms
 
+from . import kms_aws_verified
 from .test_kms_boto3 import PLAINTEXT_VECTORS, _get_encoded_value
 
 
-@mock_kms
-def test_create_key_with_empty_content():
+@pytest.mark.aws_verified
+@kms_aws_verified
+def test_encrypt_key_with_empty_content():
     client_kms = boto3.client("kms", region_name="ap-northeast-1")
-    metadata = client_kms.create_key(Policy="my policy")["KeyMetadata"]
+    metadata = client_kms.create_key()["KeyMetadata"]
     with pytest.raises(ClientError) as exc:
         client_kms.encrypt(KeyId=metadata["KeyId"], Plaintext="")
     err = exc.value.response["Error"]
@@ -21,6 +23,23 @@ def test_create_key_with_empty_content():
         err["Message"]
         == "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
+    client_kms.schedule_key_deletion(KeyId=metadata["KeyId"], PendingWindowInDays=7)
+
+
+@pytest.mark.aws_verified
+@kms_aws_verified
+def test_encrypt_key_with_large_content():
+    client_kms = boto3.client("kms", region_name="ap-northeast-1")
+    metadata = client_kms.create_key()["KeyMetadata"]
+    with pytest.raises(ClientError) as exc:
+        client_kms.encrypt(KeyId=metadata["KeyId"], Plaintext=b"x" * 4097)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length less than or equal to 4096"
+    )
+    client_kms.schedule_key_deletion(KeyId=metadata["KeyId"], PendingWindowInDays=7)
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)

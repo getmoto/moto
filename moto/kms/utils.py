@@ -379,6 +379,10 @@ def encrypt(
         raise ValidationException(
             "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
         )
+    if len(plaintext) > 4096:
+        raise ValidationException(
+            "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length less than or equal to 4096"
+        )
 
     iv = os.urandom(IV_LEN)
     aad = _serialize_encryption_context(encryption_context=encryption_context)
