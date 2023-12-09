@@ -1055,7 +1055,8 @@ class BatchBackend(BaseBackend):
             if job.status not in (JobStatus.FAILED, JobStatus.SUCCEEDED):
                 job.stop = True
                 # Try to join
-                job.join(0.2)
+                if job.is_alive():
+                    job.join(0.2)
 
         super().reset()
 
