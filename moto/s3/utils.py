@@ -24,6 +24,12 @@ user_settable_fields = {
     "expires",
     "content-disposition",
     "x-robots-tag",
+    "x-amz-checksum-algorithm",
+    "x-amz-content-sha256",
+    "x-amz-content-crc32",
+    "x-amz-content-crc32c",
+    "x-amz-content-sha1",
+    "x-amz-website-redirect-location",
 }
 ARCHIVE_STORAGE_CLASSES = [
     "GLACIER",
@@ -190,7 +196,7 @@ class _VersionedKeyStore(dict):  # type: ignore
     values = itervalues = _itervalues  # type: ignore
 
 
-def compute_checksum(body: bytes, algorithm: str) -> bytes:
+def compute_checksum(body: bytes, algorithm: str, encode_base64: bool = True) -> bytes:
     if algorithm == "SHA1":
         hashed_body = _hash(hashlib.sha1, (body,))
     elif algorithm == "CRC32C":
@@ -205,7 +211,10 @@ def compute_checksum(body: bytes, algorithm: str) -> bytes:
         hashed_body = binascii.crc32(body).to_bytes(4, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))
-    return base64.b64encode(hashed_body)
+    if encode_base64:
+        return base64.b64encode(hashed_body)
+    else:
+        return hashed_body
 
 
 def _hash(fn: Any, args: Any) -> bytes:

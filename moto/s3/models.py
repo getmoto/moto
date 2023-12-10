@@ -73,6 +73,7 @@ from .utils import (
     STORAGE_CLASS,
     CaseInsensitiveDict,
     _VersionedKeyStore,
+    compute_checksum,
 )
 
 MAX_BUCKET_NAME_LENGTH = 63
@@ -399,10 +400,14 @@ class FakeMultipart(BaseModel):
         self.sse_encryption = sse_encryption
         self.kms_key_id = kms_key_id
 
-    def complete(self, body: Iterator[Tuple[int, str]]) -> Tuple[bytes, str]:
+    def complete(
+        self, body: Iterator[Tuple[int, str]]
+    ) -> Tuple[bytes, str, Optional[str]]:
+        checksum_algo = self.metadata.get("x-amz-checksum-algorithm")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
+        checksum = bytearray()
 
         last = None
         count = 0
@@ -418,6 +423,10 @@ class FakeMultipart(BaseModel):
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])  # type: ignore
             total.extend(part.value)
+            if checksum_algo:
+                checksum.extend(
+                    compute_checksum(part.value, checksum_algo, encode_base64=False)
+                )
             last = part
             count += 1
 
@@ -426,7 +435,11 @@ class FakeMultipart(BaseModel):
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
-        return total, f"{full_etag.hexdigest()}-{count}"
+        if checksum_algo:
+            encoded_checksum = compute_checksum(checksum, checksum_algo).decode("utf-8")
+        else:
+            encoded_checksum = None
+        return total, f"{full_etag.hexdigest()}-{count}", encoded_checksum
 
     def set_part(self, part_id: int, value: bytes) -> FakeKey:
         if part_id < 1:
@@ -2319,13 +2332,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def complete_multipart_upload(
         self, bucket_name: str, multipart_id: str, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[FakeMultipart, bytes, str]:
+    ) -> Tuple[FakeMultipart, bytes, str, Optional[str]]:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        value, etag = multipart.complete(body)
+        value, etag, checksum = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
-        return multipart, value, etag
+        return multipart, value, etag, checksum
 
     def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
         bucket = self.get_bucket(bucket_name)
@@ -2338,7 +2351,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         multipart = bucket.multiparts[multipart_id]
         return multipart.set_part(part_id, value)
 
-    def copy_part(
+    def upload_part_copy(
         self,
         dest_bucket_name: str,
         multipart_id: str,

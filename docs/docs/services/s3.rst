@@ -159,6 +159,6 @@ s3
         
 
 - [X] upload_part
-- [ ] upload_part_copy
+- [X] upload_part_copy
 - [ ] write_get_object_response
 

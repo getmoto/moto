@@ -1507,7 +1507,7 @@ class S3Response(BaseResponse):
                 if self.backend.get_object(
                     src_bucket, src_key, version_id=src_version_id
                 ):
-                    key = self.backend.copy_part(
+                    key = self.backend.upload_part_copy(
                         bucket_name,
                         upload_id,
                         part_number,
@@ -1707,6 +1707,8 @@ class S3Response(BaseResponse):
                 response_headers.update(
                     {"Checksum": {f"Checksum{checksum_algorithm}": checksum_value}}
                 )
+                # By default, the checksum-details for the copy will be the same as the original
+                # But if another algorithm is provided during the copy-operation, we override the values
                 new_key.checksum_algorithm = checksum_algorithm
                 new_key.checksum_value = checksum_value
 
@@ -2252,12 +2254,13 @@ class S3Response(BaseResponse):
         if query.get("uploadId"):
             multipart_id = query["uploadId"][0]
 
-            multipart, value, etag = self.backend.complete_multipart_upload(
+            multipart, value, etag, checksum = self.backend.complete_multipart_upload(
                 bucket_name, multipart_id, self._complete_multipart_body(body)
             )
             if value is None:
                 return 400, {}, ""
 
+            headers: Dict[str, Any] = {}
             key = self.backend.put_object(
                 bucket_name,
                 multipart.key_name,
@@ -2269,6 +2272,13 @@ class S3Response(BaseResponse):
                 kms_key_id=multipart.kms_key_id,
             )
             key.set_metadata(multipart.metadata)
+
+            if checksum:
+                key.checksum_algorithm = multipart.metadata.get(
+                    "x-amz-checksum-algorithm"
+                )
+                key.checksum_value = checksum
+
             self.backend.set_key_tags(key, multipart.tags)
             self.backend.put_object_acl(
                 bucket_name=bucket_name,
@@ -2277,7 +2287,6 @@ class S3Response(BaseResponse):
             )
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
-            headers: Dict[str, Any] = {}
             if key.version_id:
                 headers["x-amz-version-id"] = key.version_id
 
