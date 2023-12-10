@@ -34,6 +34,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.exceptions import (
     AccessDeniedByLock,
+    BadRequest,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
@@ -2161,7 +2162,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def get_object_tagging(self, key: FakeKey) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(key.arn)
 
-    def set_key_tags(
+    def put_object_tagging(
         self,
         key: Optional[FakeKey],
         tags: Optional[Dict[str, str]],
@@ -2169,12 +2170,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> FakeKey:
         if key is None:
             raise MissingKey(key=key_name)
-        boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
-        errmsg = self.tagger.validate_tags(boto_tags_dict)
+        tags_input = self.tagger.convert_dict_to_tags_input(tags)
+        # Validation custom to S3
+        if tags:
+            if len(tags_input) > 10:
+                raise BadRequest("Object tags cannot be greater than 10")
+            if any([tagkey.startswith("aws") for tagkey in tags.keys()]):
+                raise InvalidTagError("Your TagKey cannot be prefixed with aws:")
+        # Validation shared across all services
+        errmsg = self.tagger.validate_tags(tags_input)
         if errmsg:
             raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
-        self.tagger.tag_resource(key.arn, boto_tags_dict)
+        self.tagger.tag_resource(key.arn, tags_input)
         return key
 
     def get_bucket_tagging(self, bucket_name: str) -> Dict[str, List[Dict[str, str]]]:
