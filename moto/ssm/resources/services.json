@@ -6521,6 +6521,31 @@
               }
             }
           },
+          "b2bi": {
+            "longName": {
+              "Value": "AWS B2B Data Interchange"
+            },
+            "regions": {
+              "us-east-1": {
+                "Value": "us-east-1",
+                "endpoint": {
+                  "Value": "b2bi.us-east-1.amazonaws.com"
+                }
+              },
+              "us-east-2": {
+                "Value": "us-east-2",
+                "endpoint": {
+                  "Value": "b2bi.us-east-2.amazonaws.com"
+                }
+              },
+              "us-west-2": {
+                "Value": "us-west-2",
+                "endpoint": {
+                  "Value": "b2bi.us-west-2.amazonaws.com"
+                }
+              }
+            }
+          },
           "backup": {
             "Value": "backup",
             "longName": {
@@ -8671,6 +8696,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "cloud9.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "cloud9.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14388,6 +14422,15 @@
               "Value": "https://aws.amazon.com/connect/"
             },
             "regions": {
+              "af-south-1": {
+                "Value": "af-south-1",
+                "endpoint": {
+                  "Value": "connect.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -19351,7 +19394,7 @@
                   "Value": "ec2.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "ap-southeast-1": {
@@ -19378,7 +19421,7 @@
                   "Value": "ec2.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "ap-southeast-4": {
@@ -19387,7 +19430,7 @@
                   "Value": "ec2.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "ca-central-1": {
@@ -19432,7 +19475,7 @@
                   "Value": "ec2.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "eu-north-1": {
@@ -19459,7 +19502,7 @@
                   "Value": "ec2.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "eu-west-1": {
@@ -19495,7 +19538,7 @@
                   "Value": "ec2.il-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "me-central-1": {
@@ -19504,7 +19547,7 @@
                   "Value": "ec2.me-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "me-south-1": {
@@ -24492,7 +24535,7 @@
           "fis": {
             "Value": "fis",
             "longName": {
-              "Value": "AWS Fault Injection Simulator"
+              "Value": "AWS Fault Injection Service"
             },
             "marketingHomeURL": {
               "Value": "https://aws.amazon.com/fis/"
@@ -47952,6 +47995,9 @@
             "longName": {
               "Value": "AWS Resource Explorer"
             },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/resourceexplorer/"
+            },
             "regions": {
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
@@ -49508,6 +49554,12 @@
               },
               "us-east-2": {
                 "Value": "us-east-2"
+              },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1"
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1"
               },
               "us-west-1": {
                 "Value": "us-west-1"
@@ -60017,7 +60069,19 @@
             "longName": {
               "Value": "AWS Telco Network Builder"
             },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/tnb/"
+            },
             "regions": {
+              "ap-northeast-2": {
+                "Value": "ap-northeast-2",
+                "endpoint": {
+                  "Value": "tnb.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-2": {
                 "Value": "ap-southeast-2",
                 "endpoint": {
@@ -60045,10 +60109,37 @@
                   "Value": "HTTPS"
                 }
               },
+              "eu-north-1": {
+                "Value": "eu-north-1",
+                "endpoint": {
+                  "Value": "tnb.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-south-2": {
+                "Value": "eu-south-2",
+                "endpoint": {
+                  "Value": "tnb.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-west-3": {
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "tnb.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sa-east-1": {
+                "Value": "sa-east-1",
+                "endpoint": {
+                  "Value": "tnb.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
