@@ -6257,7 +6257,7 @@
 
 ## s3
 <details>
-<summary>64% implemented</summary>
+<summary>65% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -6356,7 +6356,7 @@
 - [ ] restore_object
 - [X] select_object_content
 - [X] upload_part
-- [ ] upload_part_copy
+- [X] upload_part_copy
 - [ ] write_get_object_response
 </details>
 
