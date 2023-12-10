@@ -888,7 +888,7 @@ class S3Response(BaseResponse):
         elif "tagging" in querystring:
             tagging = self._bucket_tagging_from_body()
             self.backend.put_bucket_tagging(bucket_name, tagging)
-            return ""
+            return 204, {}, ""
         elif "website" in querystring:
             self.backend.set_bucket_website_configuration(bucket_name, self.body)
             return ""
@@ -1629,7 +1629,7 @@ class S3Response(BaseResponse):
                 bucket_name, key_name, version_id=version_id
             )
             tagging = self._tagging_from_xml(body)
-            self.backend.set_key_tags(key_to_tag, tagging, key_name)
+            self.backend.put_object_tagging(key_to_tag, tagging, key_name)
             return 200, response_headers, ""
 
         if "x-amz-copy-source" in request.headers:
@@ -1692,7 +1692,7 @@ class S3Response(BaseResponse):
             tdirective = request.headers.get("x-amz-tagging-directive")
             if tdirective == "REPLACE":
                 tagging = self._tagging_from_headers(request.headers)
-                self.backend.set_key_tags(new_key, tagging)
+                self.backend.put_object_tagging(new_key, tagging)
             if key_to_copy.version_id != "null":
                 response_headers[
                     "x-amz-copy-source-version-id"
@@ -1742,7 +1742,7 @@ class S3Response(BaseResponse):
         )
         if checksum_algorithm:
             new_key.checksum_algorithm = checksum_algorithm
-        self.backend.set_key_tags(new_key, tagging)
+        self.backend.put_object_tagging(new_key, tagging)
 
         response_headers.update(new_key.response_dict)
         # Remove content-length - the response body is empty for this request
@@ -2279,7 +2279,7 @@ class S3Response(BaseResponse):
                 )
                 key.checksum_value = checksum
 
-            self.backend.set_key_tags(key, multipart.tags)
+            self.backend.put_object_tagging(key, multipart.tags)
             self.backend.put_object_acl(
                 bucket_name=bucket_name,
                 key_name=key.name,
