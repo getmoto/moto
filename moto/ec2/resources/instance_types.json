@@ -58,6 +58,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -141,6 +142,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -224,6 +226,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -307,6 +310,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -389,6 +393,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -472,6 +477,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -558,6 +564,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -654,6 +661,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ]
@@ -750,6 +758,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -857,6 +866,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -960,6 +970,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1063,6 +1074,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -1168,6 +1180,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1261,6 +1274,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1354,6 +1368,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1451,6 +1466,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1549,6 +1565,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1639,6 +1656,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1735,6 +1753,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1842,6 +1861,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -1954,6 +1974,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2073,6 +2094,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2170,6 +2192,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2269,6 +2292,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2373,6 +2397,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2463,6 +2488,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2551,6 +2577,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2647,6 +2674,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2751,6 +2779,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2857,6 +2886,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -2967,6 +2997,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3066,6 +3097,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3166,6 +3198,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3268,6 +3301,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3364,6 +3398,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3473,6 +3508,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3589,6 +3625,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3707,6 +3744,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3829,6 +3867,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -3940,6 +3979,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4052,6 +4092,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4166,6 +4207,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4274,6 +4316,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4383,6 +4426,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4502,6 +4546,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4626,6 +4671,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4757,6 +4803,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4866,6 +4913,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -4977,6 +5025,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5093,6 +5142,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5195,6 +5245,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5295,6 +5346,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5394,6 +5446,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5506,6 +5559,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5603,6 +5657,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5705,6 +5760,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5809,6 +5865,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5902,6 +5959,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -5990,6 +6048,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6086,6 +6145,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6194,6 +6254,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6300,6 +6361,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6404,6 +6466,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6506,6 +6569,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6612,6 +6676,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6716,6 +6781,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6822,6 +6888,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -6927,6 +6994,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -7023,6 +7091,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -7111,6 +7180,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -7206,6 +7276,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7342,6 +7413,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7494,6 +7566,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7590,6 +7663,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7694,6 +7768,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7814,6 +7889,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7904,6 +7980,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -7986,6 +8063,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8069,6 +8147,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8173,6 +8252,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8321,6 +8401,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8485,6 +8566,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8593,6 +8675,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8709,6 +8792,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8841,6 +8925,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -8943,6 +9028,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9037,6 +9123,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9132,6 +9219,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9170,7 +9258,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 28500,
@@ -9224,6 +9312,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9363,6 +9452,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9515,6 +9605,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9611,6 +9702,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9715,6 +9807,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9835,6 +9928,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -9925,6 +10019,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -10014,6 +10109,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -10111,6 +10207,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10174,7 +10271,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6i.16xlarge",
@@ -10218,6 +10315,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10329,6 +10427,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10448,6 +10547,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10548,6 +10648,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10675,6 +10776,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10774,6 +10876,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10877,6 +10980,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -10970,6 +11074,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11058,6 +11163,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11167,6 +11273,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11286,6 +11393,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11409,6 +11517,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11540,6 +11649,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11652,6 +11762,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11791,6 +11902,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -11902,6 +12014,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12017,6 +12130,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12122,6 +12236,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12222,6 +12337,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12319,6 +12435,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12438,6 +12555,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12565,6 +12683,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12683,6 +12802,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12792,6 +12912,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -12918,6 +13039,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13021,6 +13143,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13132,6 +13255,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13232,6 +13356,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13320,6 +13445,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13412,6 +13538,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13514,6 +13641,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13618,6 +13746,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13726,6 +13855,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13823,6 +13953,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -13929,6 +14060,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14036,6 +14168,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14134,6 +14267,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14234,6 +14368,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14325,6 +14460,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14411,6 +14547,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14494,6 +14631,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -14587,6 +14725,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -14726,6 +14865,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -14878,6 +15018,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -14974,6 +15115,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15078,6 +15220,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15198,6 +15341,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15288,6 +15432,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15373,6 +15518,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15456,6 +15602,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15560,6 +15707,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15711,6 +15859,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15875,6 +16024,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -15983,6 +16133,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16099,6 +16250,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16231,6 +16383,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16333,6 +16486,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16428,6 +16582,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16520,6 +16675,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16659,6 +16815,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16811,6 +16968,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -16907,6 +17065,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -17011,6 +17170,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -17131,6 +17291,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -17221,6 +17382,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -17304,6 +17466,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -17396,6 +17559,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -17510,6 +17674,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -17632,6 +17797,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -17770,6 +17936,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -17867,6 +18034,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18004,6 +18172,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18102,6 +18271,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18208,6 +18378,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18298,6 +18469,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18383,6 +18555,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18466,6 +18639,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18503,7 +18677,7 @@
   "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -18570,6 +18744,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18609,7 +18784,7 @@
   "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -18676,6 +18851,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18719,7 +18895,7 @@
   "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -18786,6 +18962,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -18830,7 +19007,7 @@
   "AutoRecoverySupported": false,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -18897,6 +19074,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19006,6 +19184,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19115,6 +19294,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19226,6 +19406,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19341,6 +19522,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19450,6 +19632,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19569,6 +19752,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19678,6 +19862,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19789,6 +19974,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -19902,6 +20088,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20017,6 +20204,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20158,6 +20346,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20287,6 +20476,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20426,6 +20616,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20556,6 +20747,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20674,6 +20866,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20784,6 +20977,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -20902,6 +21096,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21012,6 +21207,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21130,6 +21326,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21246,6 +21443,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21365,6 +21563,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21481,6 +21680,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21598,6 +21798,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21716,6 +21917,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21839,6 +22041,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -21974,6 +22177,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22110,6 +22314,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22232,6 +22437,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22359,6 +22565,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22484,6 +22691,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22597,6 +22805,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22721,6 +22930,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22838,6 +23048,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -22955,6 +23166,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -23069,6 +23281,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -23186,6 +23399,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -23300,6 +23514,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -23417,6 +23632,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -23531,6 +23747,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -23628,6 +23845,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -23793,6 +24011,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -23902,6 +24121,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -24019,6 +24239,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -24151,6 +24372,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -24247,6 +24469,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -24351,6 +24574,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -24468,6 +24692,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -24573,6 +24798,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -24682,6 +24908,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -24795,6 +25022,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -24905,6 +25133,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25034,6 +25263,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25127,6 +25357,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25220,6 +25451,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25313,6 +25545,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25399,6 +25632,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -25484,6 +25718,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -25569,6 +25804,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -25663,6 +25899,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25769,6 +26006,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25871,6 +26109,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -25981,6 +26220,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26085,6 +26325,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26202,6 +26443,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26307,6 +26549,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26416,6 +26659,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26533,6 +26777,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26634,6 +26879,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26729,6 +26975,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26840,6 +27087,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -26962,6 +27210,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27093,6 +27342,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27202,6 +27452,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27312,6 +27563,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27425,6 +27677,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27530,6 +27783,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27630,6 +27884,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -27737,6 +27992,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -27901,6 +28157,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -28009,6 +28266,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -28125,6 +28383,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -28257,6 +28516,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -28359,6 +28619,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -28468,6 +28729,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -28599,6 +28861,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -28722,6 +28985,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -28853,6 +29117,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -28967,6 +29232,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -29106,6 +29372,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -29221,6 +29488,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -29344,6 +29612,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -29449,6 +29718,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -29549,6 +29819,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -29656,6 +29927,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -29820,6 +30092,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -29928,6 +30201,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -30044,6 +30318,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -30176,6 +30451,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -30278,6 +30554,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -30391,6 +30668,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -30523,6 +30801,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -30633,6 +30912,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -30747,6 +31027,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -30856,6 +31137,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -30973,6 +31255,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -31091,6 +31374,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -31206,6 +31490,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -31310,6 +31595,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -31418,6 +31704,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -31534,6 +31821,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -31666,6 +31954,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -31768,6 +32057,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -31869,6 +32159,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -31972,6 +32263,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ]
@@ -32059,6 +32351,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -32147,6 +32440,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -32243,6 +32537,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ]
@@ -32338,6 +32633,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ]
@@ -32442,6 +32738,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ]
@@ -32542,6 +32839,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ]
@@ -32644,6 +32942,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -32742,6 +33041,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -32837,6 +33137,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -32933,6 +33234,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33026,6 +33328,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33125,6 +33428,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33230,6 +33534,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33323,6 +33628,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33420,6 +33726,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33510,6 +33817,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33606,6 +33914,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33713,6 +34022,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33824,6 +34134,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -33942,6 +34253,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34039,6 +34351,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34138,6 +34451,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34241,6 +34555,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34331,6 +34646,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34419,6 +34735,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34515,6 +34832,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34614,6 +34932,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34722,6 +35041,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34822,6 +35142,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -34919,6 +35240,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35018,6 +35340,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35120,6 +35443,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35216,6 +35540,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35324,6 +35649,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35435,6 +35761,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35555,6 +35882,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35667,6 +35995,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35776,6 +36105,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -35887,6 +36217,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36001,6 +36332,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36109,6 +36441,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36217,6 +36550,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36336,6 +36670,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36459,6 +36794,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36589,6 +36925,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36698,6 +37035,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36809,6 +37147,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -36924,6 +37263,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37026,6 +37366,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37126,6 +37467,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37234,6 +37576,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37353,6 +37696,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37479,6 +37823,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37610,6 +37955,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37719,6 +38065,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37830,6 +38177,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -37945,6 +38293,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38050,6 +38399,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38150,6 +38500,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38247,6 +38598,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38354,6 +38706,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38468,6 +38821,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38587,6 +38941,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38684,6 +39039,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38783,6 +39139,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38886,6 +39243,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -38979,6 +39337,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39067,6 +39426,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39167,6 +39527,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39274,6 +39635,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39371,6 +39733,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39469,6 +39832,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39570,6 +39934,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39663,6 +40028,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39751,6 +40117,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39848,6 +40215,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -39953,6 +40321,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40056,6 +40425,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40160,6 +40530,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40262,6 +40633,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40368,6 +40740,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40472,6 +40845,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40578,6 +40952,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40683,6 +41058,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40779,6 +41155,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40867,6 +41244,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -40962,6 +41340,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41098,6 +41477,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41250,6 +41630,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41346,6 +41727,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41450,6 +41832,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41570,6 +41953,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41660,6 +42044,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41742,6 +42127,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41825,6 +42211,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -41929,6 +42316,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42077,6 +42465,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42241,6 +42630,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42349,6 +42739,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42465,6 +42856,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42597,6 +42989,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42699,6 +43092,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42793,6 +43187,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42888,6 +43283,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -42985,6 +43381,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43092,6 +43489,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43203,6 +43601,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43322,6 +43721,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43422,6 +43822,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43549,6 +43950,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43648,6 +44050,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43751,6 +44154,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43844,6 +44248,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -43932,6 +44337,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44041,6 +44447,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44160,6 +44567,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44283,6 +44691,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44414,6 +44823,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44526,6 +44936,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44665,6 +45076,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44776,6 +45188,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44891,6 +45304,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -44996,6 +45410,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45096,6 +45511,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45205,6 +45621,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45336,6 +45753,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45475,6 +45893,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45605,6 +46024,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45726,6 +46146,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45864,6 +46285,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -45979,6 +46401,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46102,6 +46525,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46214,6 +46638,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46314,6 +46739,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46411,6 +46837,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46530,6 +46957,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46657,6 +47085,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46775,6 +47204,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -46884,6 +47314,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47010,6 +47441,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47113,6 +47545,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47224,6 +47657,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47324,6 +47758,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47412,6 +47847,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47504,6 +47940,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47606,6 +48043,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47710,6 +48148,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47818,6 +48257,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -47915,6 +48355,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48021,6 +48462,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48128,6 +48570,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48226,6 +48669,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48326,6 +48770,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48417,6 +48862,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48503,6 +48949,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48586,6 +49033,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -48679,6 +49127,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -48818,6 +49267,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -48970,6 +49420,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49066,6 +49517,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49170,6 +49622,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49290,6 +49743,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49380,6 +49834,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49465,6 +49920,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49548,6 +50004,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49652,6 +50109,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49803,6 +50261,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -49967,6 +50426,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -50075,6 +50535,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -50191,6 +50652,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -50323,6 +50785,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -50425,6 +50888,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -50520,6 +50984,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -50611,6 +51076,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -50704,6 +51170,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -50801,6 +51268,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -50906,6 +51374,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -50996,6 +51465,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51088,6 +51558,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51202,6 +51673,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51324,6 +51796,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51462,6 +51935,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51559,6 +52033,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51696,6 +52171,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51794,6 +52270,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51900,6 +52377,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -51990,6 +52468,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -52075,6 +52554,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -52158,6 +52638,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -52248,6 +52729,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64_mac"
    ],
@@ -52328,6 +52810,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Apple",
    "SupportedArchitectures": [
     "arm64_mac"
    ],
@@ -52408,6 +52891,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Apple",
    "SupportedArchitectures": [
     "arm64_mac"
    ],
@@ -52488,6 +52972,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Apple",
    "SupportedArchitectures": [
     "arm64_mac"
    ],
@@ -52583,6 +53068,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -52701,6 +53187,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -52819,6 +53306,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -52923,6 +53411,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -53041,6 +53530,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -53147,6 +53637,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -53280,6 +53771,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -53442,6 +53934,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -53800,6 +54293,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -53910,6 +54404,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54016,6 +54511,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54118,6 +54614,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54220,6 +54717,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54323,6 +54821,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54415,6 +54914,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54520,6 +55020,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54613,6 +55114,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54710,6 +55212,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54815,6 +55318,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -54905,6 +55409,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55001,6 +55506,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55108,6 +55614,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55219,6 +55726,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55337,6 +55845,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55434,6 +55943,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55533,6 +56043,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55636,6 +56147,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55726,6 +56238,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55814,6 +56327,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -55910,6 +56424,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56009,6 +56524,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56117,6 +56633,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56217,6 +56734,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56314,6 +56832,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56413,6 +56932,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56515,6 +57035,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56611,6 +57132,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56719,6 +57241,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56830,6 +57353,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -56950,6 +57474,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57062,6 +57587,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57171,6 +57697,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57282,6 +57809,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57396,6 +57924,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57504,6 +58033,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57600,6 +58130,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57707,6 +58238,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57818,6 +58350,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -57937,6 +58470,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58034,6 +58568,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58133,6 +58668,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58236,6 +58772,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58326,6 +58863,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58414,6 +58952,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58523,6 +59062,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58642,6 +59182,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58765,6 +59306,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -58895,6 +59437,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59004,6 +59547,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59115,6 +59659,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59230,6 +59775,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59332,6 +59878,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59432,6 +59979,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59540,6 +60088,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59659,6 +60208,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59785,6 +60335,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -59916,6 +60467,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60025,6 +60577,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60136,6 +60689,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60251,6 +60805,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60356,6 +60911,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60456,6 +61012,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60553,6 +61110,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60660,6 +61218,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60774,6 +61333,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60893,6 +61453,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -60990,6 +61551,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61089,6 +61651,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61192,6 +61755,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61285,6 +61849,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61373,6 +61938,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61470,6 +62036,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61575,6 +62142,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61678,6 +62246,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61782,6 +62351,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61884,6 +62454,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -61990,6 +62561,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -62094,6 +62666,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -62200,6 +62773,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -62302,6 +62876,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -62398,6 +62973,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -62486,6 +63062,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -62581,6 +63158,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -62717,6 +63295,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -62869,6 +63448,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -62965,6 +63545,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63069,6 +63650,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63189,6 +63771,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63279,6 +63862,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63361,6 +63945,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63444,6 +64029,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63548,6 +64134,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63696,6 +64283,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63860,6 +64448,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -63968,6 +64557,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -64084,6 +64674,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -64216,6 +64807,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -64318,6 +64910,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -64412,6 +65005,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -64507,6 +65101,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -64604,6 +65199,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -64711,6 +65307,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -64822,6 +65419,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -64941,6 +65539,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65041,6 +65640,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65168,6 +65768,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65267,6 +65868,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65370,6 +65972,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65463,6 +66066,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65551,6 +66155,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65660,6 +66265,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65779,6 +66385,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -65902,6 +66509,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66033,6 +66641,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66145,6 +66754,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66284,6 +66894,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66395,6 +67006,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66510,6 +67122,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66615,6 +67228,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66715,6 +67329,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66824,6 +67439,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -66955,6 +67571,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67094,6 +67711,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67224,6 +67842,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67345,6 +67964,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67483,6 +68103,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67598,6 +68219,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67721,6 +68343,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67833,6 +68456,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -67933,6 +68557,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68030,6 +68655,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68149,6 +68775,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68276,6 +68903,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68394,6 +69022,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68503,6 +69132,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68629,6 +69259,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68732,6 +69363,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68843,6 +69475,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -68943,6 +69576,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69031,6 +69665,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69123,6 +69758,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69225,6 +69861,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69329,6 +69966,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69437,6 +70075,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69534,6 +70173,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69640,6 +70280,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69747,6 +70388,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69845,6 +70487,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -69945,6 +70588,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -70036,6 +70680,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -70122,6 +70767,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -70205,6 +70851,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -70298,6 +70945,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -70437,6 +71085,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -70589,6 +71238,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -70685,6 +71335,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -70789,6 +71440,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -70909,6 +71561,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -70999,6 +71652,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71084,6 +71738,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71167,6 +71822,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71237,7 +71893,7 @@
   "InstanceStorageSupported": true,
   "InstanceType": "r7gd.12xlarge",
   "MemoryInfo": {
-   "SizeInMiB": 262144
+   "SizeInMiB": 393216
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
@@ -71271,6 +71927,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71422,6 +72079,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71586,6 +72244,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71694,6 +72353,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71776,7 +72436,7 @@
   "InstanceStorageSupported": true,
   "InstanceType": "r7gd.8xlarge",
   "MemoryInfo": {
-   "SizeInMiB": 196608
+   "SizeInMiB": 262144
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
@@ -71810,6 +72470,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -71942,6 +72603,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -72044,6 +72706,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -72139,6 +72802,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -72231,6 +72895,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -72345,6 +73010,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -72467,6 +73133,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -72605,6 +73272,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -72702,6 +73370,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -72839,6 +73508,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -72937,6 +73607,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73043,6 +73714,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73133,6 +73805,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73218,6 +73891,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73301,6 +73975,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73393,6 +74068,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73507,6 +74183,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73629,6 +74306,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73726,6 +74404,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73847,6 +74526,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -73945,6 +74625,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74051,6 +74732,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74141,6 +74823,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74226,6 +74909,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74309,6 +74993,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74392,6 +75077,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -74467,6 +75153,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74541,6 +75228,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -74615,6 +75303,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -74690,6 +75379,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -74765,6 +75455,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -74839,6 +75530,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "i386",
     "x86_64"
@@ -74914,6 +75606,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75001,6 +75694,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75097,6 +75791,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75192,6 +75887,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75287,6 +75983,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75382,6 +76079,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75477,6 +76175,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75572,6 +76271,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75667,6 +76367,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75763,6 +76464,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75858,6 +76560,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -75953,6 +76656,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -76048,6 +76752,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -76143,6 +76848,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -76238,6 +76944,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AMD",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -76328,6 +77035,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76423,6 +77131,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76512,6 +77221,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76601,6 +77311,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76690,6 +77401,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76779,6 +77491,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76868,6 +77581,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -76972,6 +77686,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77127,6 +77842,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77368,6 +78084,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77489,6 +78206,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77605,6 +78323,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77721,6 +78440,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77837,6 +78557,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -77953,6 +78674,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78069,6 +78791,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78184,6 +78907,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78302,6 +79026,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78393,6 +79118,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78482,6 +79208,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78585,6 +79312,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78703,6 +79431,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78821,6 +79550,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -78938,6 +79668,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -79043,6 +79774,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -79160,6 +79892,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -79269,6 +80002,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -79386,6 +80120,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -79489,6 +80224,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -79637,6 +80373,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -79801,6 +80538,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -79909,6 +80647,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -80025,6 +80764,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -80157,6 +80897,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -80259,6 +81000,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -80353,6 +81095,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -80448,6 +81191,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "AWS",
    "SupportedArchitectures": [
     "arm64"
    ],
@@ -80552,6 +81296,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -80670,6 +81415,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -80799,6 +81545,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -80935,6 +81682,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81030,6 +81778,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81148,6 +81897,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81274,6 +82024,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81381,6 +82132,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81515,6 +82267,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81621,6 +82374,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81733,6 +82487,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81828,6 +82583,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -81923,6 +82679,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82025,6 +82782,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82117,6 +82875,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82211,6 +82970,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82307,6 +83067,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82407,6 +83168,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82507,6 +83269,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82625,6 +83388,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82734,6 +83498,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82844,6 +83609,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -82957,6 +83723,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -83059,6 +83826,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
@@ -83159,6 +83927,7 @@
    ]
   },
   "ProcessorInfo": {
+   "Manufacturer": "Intel",
    "SupportedArchitectures": [
     "x86_64"
    ],
