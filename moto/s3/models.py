@@ -1845,19 +1845,32 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
         last_name = None
 
-        def key_or_version_match(ver: Union[FakeKey, FakeDeleteMarker]) -> bool:
-            if key_marker is None:
-                return True
+        skip_versions = True
+        last_item_added: Union[None, FakeKey, FakeDeleteMarker] = None
+        for version in all_versions:
+            # Pagination
+            if skip_versions:
+                if key_marker is None:
+                    # If KeyMarker is not supplied, we do not skip anything
+                    skip_versions = False
+                elif not version_id_marker:
+                    # Only KeyMarker is supplied, and it will be set to the last item of the previous page
+                    # We skip all versions with ``name < key_marker``
+                    # Because our list is ordered, we keep everything where ``name >= key_marker`` (i.e.: the next page)
+                    skip_versions = version.name < key_marker
+                    continue
+                elif (
+                    version.name == key_marker
+                    and version.version_id == version_id_marker
+                ):
+                    # KeyMarker and VersionIdMarker are set to the last item of the previous page
+                    # Which means we should still skip the current version
+                    # But continue processing all subsequent versions
+                    skip_versions = False
+                    continue
+                else:
+                    continue
 
-            if version_id_marker is None or version_id_marker == "":
-                return ver.name >= key_marker
-
-            return ver.name == key_marker and ver.version_id == version_id_marker
-
-        for version in itertools.dropwhile(
-            lambda ver: not key_or_version_match(ver),
-            all_versions,
-        ):
             name = version.name
             # guaranteed to be sorted - so the first key with this name will be the latest
             version.is_latest = name != last_name
@@ -1882,6 +1895,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 common_prefixes.add(prefix_including_delimiter)
                 name = prefix_including_delimiter
                 is_common_prefix = True
+            elif last_item_added:
+                name = last_item_added.name
 
             # Only return max_keys items.
             if (
@@ -1889,19 +1904,26 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 and len(requested_versions) + len(delete_markers) + len(common_prefixes)
                 >= max_keys
             ):
+
                 next_key_marker = name
-                next_version_id_marker = (
-                    version.version_id if not is_common_prefix else None
-                )
+                if is_common_prefix:
+                    # No NextToken when returning common prefixes
+                    next_version_id_marker = None
+                elif last_item_added is not None:
+                    # NextToken is set to the (version of the) latest item
+                    next_version_id_marker = last_item_added.version_id
+                else:
+                    # Should only happen when max_keys == 0, so when we do not have a last item
+                    next_version_id_marker = None
                 break
 
             if not is_common_prefix:
+                last_item_added = version
                 # Differentiate between FakeKey and FakeDeleteMarkers
                 if not isinstance(version, FakeKey):
                     delete_markers.append(version)
-                    continue
-
-                requested_versions.append(version)
+                else:
+                    requested_versions.append(version)
 
         return (
             requested_versions,
