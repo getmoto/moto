@@ -2627,6 +2627,245 @@ def test_list_object_versions_with_versioning_enabled_late():
 
 
 @mock_s3
+def test_list_object_versions_with_paging():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "000" + str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    obj1ver1 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver1")
+    obj1ver2 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver2")
+    obj1ver3 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver3")
+
+    page1 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+    )
+
+    # Page should have two versions only, and should be truncated.
+    assert len(page1["Versions"]) == 2
+    assert "DeleteMarkers" not in page1
+    assert page1["IsTruncated"] is True
+
+    # This should be obj1 ver3 (latest).
+    assert page1["Versions"][0]["VersionId"] == obj1ver3["VersionId"]
+    assert page1["Versions"][0]["IsLatest"] is True
+
+    # This should be obj1 ver2.
+    assert page1["Versions"][1]["VersionId"] == obj1ver2["VersionId"]
+
+    # The next key/version markers should point to obj1 ver1.
+    assert "NextKeyMarker" in page1
+    assert page1["NextKeyMarker"] == "obj1"
+    assert "NextVersionIdMarker" in page1
+    assert page1["NextVersionIdMarker"] == obj1ver1["VersionId"]
+
+    # Second page should be the last page and have the oldest version.
+    page2 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+        KeyMarker=page1["NextKeyMarker"],
+        VersionIdMarker=page1["NextVersionIdMarker"],
+    )
+
+    # Page should have one version only, and not be truncated.
+    assert len(page2["Versions"]) == 1
+    assert "DeleteMarkers" not in page2
+    assert page2["IsTruncated"] is False
+    assert "NextKeyMarker" not in page2
+    assert "NextVersionIdMarker" not in page2
+
+    # This should be obj1 ver1.
+    assert page2["Versions"][0]["VersionId"] == obj1ver1["VersionId"]
+
+
+@mock_s3
+def test_list_object_versions_with_paging_and_delete_markers():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "000" + str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    # A mix of versions and delete markers.
+    obj1ver1 = s3_client.put_object(Bucket=bucket_name, Key="obj1", Body=b"ver1")
+    obj2ver1 = s3_client.put_object(Bucket=bucket_name, Key="obj2", Body=b"ver1")
+    obj1dmk1 = s3_client.delete_object(Bucket=bucket_name, Key="obj1")
+    obj1dmk2 = s3_client.delete_object(Bucket=bucket_name, Key="obj1")
+    obj1dmk3 = s3_client.delete_object(Bucket=bucket_name, Key="obj1")
+    obj2dmk1 = s3_client.delete_object(Bucket=bucket_name, Key="obj2")
+
+    page1 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+    )
+
+    # Page should have one version and one delete marker, and be truncated.
+    assert "Versions" not in page1
+    assert len(page1["DeleteMarkers"]) == 2
+    assert page1["IsTruncated"] is True
+
+    # This should be obj1 dmk3 (latest).
+    assert page1["DeleteMarkers"][0]["VersionId"] == obj1dmk3["VersionId"]
+    assert page1["DeleteMarkers"][0]["IsLatest"] is True
+
+    # This should be obj1 dmk2.
+    assert page1["DeleteMarkers"][1]["VersionId"] == obj1dmk2["VersionId"]
+
+    # The next key/version markers should point to obj1 dmk1.
+    assert "NextKeyMarker" in page1
+    assert page1["NextKeyMarker"] == "obj1"
+    assert "NextVersionIdMarker" in page1
+    assert page1["NextVersionIdMarker"] == obj1dmk1["VersionId"]
+
+    page2 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+        KeyMarker=page1["NextKeyMarker"],
+        VersionIdMarker=page1["NextVersionIdMarker"],
+    )
+
+    # Page should have one version and one delete marker, and be truncated.
+    assert len(page2["Versions"]) == 1
+    assert len(page2["DeleteMarkers"]) == 1
+    assert page2["IsTruncated"] is True
+
+    # This should be obj1 ver1.
+    assert page2["Versions"][0]["VersionId"] == obj1ver1["VersionId"]
+
+    # This should be obj1 dmk1.
+    assert page2["DeleteMarkers"][0]["VersionId"] == obj1dmk1["VersionId"]
+
+    # The next key/version markers should point to obj2 dmk1.
+    assert "NextKeyMarker" in page2
+    assert page2["NextKeyMarker"] == "obj2"
+    assert "NextVersionIdMarker" in page2
+    assert page2["NextVersionIdMarker"] == obj2dmk1["VersionId"]
+
+    page3 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        MaxKeys=2,
+        KeyMarker=page2["NextKeyMarker"],
+        VersionIdMarker=page2["NextVersionIdMarker"],
+    )
+
+    # Page should have one version and one delete marker, and not be truncated.
+    assert len(page3["Versions"]) == 1
+    assert len(page3["DeleteMarkers"]) == 1
+    assert page3["IsTruncated"] is False
+
+    # This should be obj2 ver1.
+    assert page3["Versions"][0]["VersionId"] == obj2ver1["VersionId"]
+
+    # This should be obj2 dmk1 (latest).
+    assert page3["DeleteMarkers"][0]["VersionId"] == obj2dmk1["VersionId"]
+    assert page3["DeleteMarkers"][0]["IsLatest"]
+
+    # There should not be any next key/version marker.
+    assert "NextKeyMarker" not in page3
+    assert "NextVersionIdMarker" not in page3
+
+
+@mock_s3
+def test_list_object_versions_with_paging_and_delimiter():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "000" + str(uuid4())
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+
+    # Copied from test_list_object_versions_with_delimiter.
+    for key_index in list(range(1, 5)) + list(range(10, 14)):
+        for version_index in range(1, 4):
+            body = f"data-{version_index}".encode("UTF-8")
+            s3_client.put_object(
+                Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
+            )
+            s3_client.put_object(
+                Bucket=bucket_name, Key=f"key{key_index}-without-data", Body=b""
+            )
+
+    page1 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Delimiter="with-",
+        Prefix="key1",
+        KeyMarker="key11",
+        MaxKeys=5,
+    )
+
+    assert "Versions" in page1
+    assert len(page1["Versions"]) == 3
+    assert [v["Key"] for v in page1["Versions"]] == [
+        "key11-without-data",
+        "key11-without-data",
+        "key11-without-data",
+    ]
+
+    assert "CommonPrefixes" in page1
+    assert [p["Prefix"] for p in page1["CommonPrefixes"]] == [
+        "key11-with-",
+        "key12-with-",
+    ]
+
+    assert page1["IsTruncated"] is True
+    assert page1["NextKeyMarker"] == "key12-with-"
+    assert "NextVersionIdMarker" not in page1
+
+    page2 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Delimiter="with-",
+        Prefix="key1",
+        KeyMarker="key12-with-",
+        VersionIdMarker="",
+        MaxKeys=5,
+    )
+
+    assert "Versions" in page2
+    assert len(page2["Versions"]) == 4
+    assert [v["Key"] for v in page2["Versions"]] == [
+        "key12-without-data",
+        "key12-without-data",
+        "key12-without-data",
+        "key13-without-data",
+    ]
+
+    assert "CommonPrefixes" in page2
+    assert [p["Prefix"] for p in page2["CommonPrefixes"]] == [
+        "key13-with-",
+    ]
+
+    assert page2["IsTruncated"] is True
+    assert page2["NextKeyMarker"] == "key13-without-data"
+    assert "NextVersionIdMarker" in page2  # FIXME check VersionId?
+
+    page3 = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Delimiter="with-",
+        Prefix="key1",
+        KeyMarker="key13-without-data",
+        VersionIdMarker=page2["NextVersionIdMarker"],
+        MaxKeys=5,
+    )
+
+    assert "Versions" in page3
+    assert len(page3["Versions"]) == 2
+    assert [v["Key"] for v in page3["Versions"]] == [
+        "key13-without-data",
+        "key13-without-data",
+    ]
+
+    assert "CommonPrefixes" not in page3
+
+    assert page3["IsTruncated"] is False
+    assert "NextKeyMarker" not in page3
+    assert "NextVersionIdMarker" not in page3
+
+
+@mock_s3
 def test_bad_prefix_list_object_versions():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"

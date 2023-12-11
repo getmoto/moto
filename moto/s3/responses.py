@@ -615,17 +615,31 @@ class S3Response(BaseResponse):
         elif "versions" in querystring:
             delimiter = querystring.get("delimiter", [None])[0]
             key_marker = querystring.get("key-marker", [None])[0]
+            max_keys = int(querystring.get("max-keys", [1000])[0])
             prefix = querystring.get("prefix", [""])[0]
+            version_id_marker = querystring.get("version-id-marker", [None])[0]
 
             bucket = self.backend.get_bucket(bucket_name)
             (
                 versions,
                 common_prefixes,
                 delete_markers,
+                next_key_marker,
+                next_version_id_marker,
             ) = self.backend.list_object_versions(
-                bucket_name, delimiter=delimiter, key_marker=key_marker, prefix=prefix
+                bucket_name,
+                delimiter=delimiter,
+                key_marker=key_marker,
+                max_keys=max_keys,
+                prefix=prefix,
+                version_id_marker=version_id_marker,
             )
             key_list = versions
+
+            is_truncated = False
+            if next_key_marker is not None:
+                is_truncated = True
+
             template = self.response_template(S3_BUCKET_GET_VERSIONS)
 
             return (
@@ -637,10 +651,13 @@ class S3Response(BaseResponse):
                     delete_marker_list=delete_markers,
                     bucket=bucket,
                     prefix=prefix,
-                    max_keys=1000,
+                    max_keys=max_keys,
                     delimiter=delimiter,
                     key_marker=key_marker,
-                    is_truncated="false",
+                    version_id_marker=version_id_marker,
+                    is_truncated=is_truncated,
+                    next_key_marker=next_key_marker,
+                    next_version_id_marker=next_version_id_marker,
                 ),
             )
         elif "encryption" in querystring:
@@ -2603,8 +2620,17 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
     {% endif %}
     <Delimiter>{{ delimiter }}</Delimiter>
     <KeyMarker>{{ key_marker or "" }}</KeyMarker>
+    <VersionIdMarker>{{ version_id_marker or "" }}</VersionIdMarker>
     <MaxKeys>{{ max_keys }}</MaxKeys>
-    <IsTruncated>{{ is_truncated }}</IsTruncated>
+    {% if is_truncated %}
+    <IsTruncated>true</IsTruncated>
+    <NextKeyMarker>{{ next_key_marker }}</NextKeyMarker>
+    {% if next_version_id_marker %}
+    <NextVersionIdMarker>{{ next_version_id_marker }}</NextVersionIdMarker>
+    {% endif %}
+    {% else %}
+    <IsTruncated>false</IsTruncated>
+    {% endif %}
     {% for key in key_list %}
     <Version>
         <Key>{{ key.name }}</Key>

@@ -1820,13 +1820,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         delimiter: Optional[str] = None,
         key_marker: Optional[str] = None,
+        max_keys: Optional[int] = 1000,
         prefix: str = "",
-    ) -> Tuple[List[FakeKey], List[str], List[FakeDeleteMarker]]:
+        version_id_marker: Optional[str] = None,
+    ) -> Tuple[
+        List[FakeKey], List[str], List[FakeDeleteMarker], Optional[str], Optional[str]
+    ]:
         bucket = self.get_bucket(bucket_name)
 
-        common_prefixes: List[str] = []
+        common_prefixes: Set[str] = set()
         requested_versions: List[FakeKey] = []
         delete_markers: List[FakeDeleteMarker] = []
+        next_key_marker: Optional[str] = None
+        next_version_id_marker: Optional[str] = None
         all_versions = list(
             itertools.chain(
                 *(
@@ -1838,37 +1844,72 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # sort by name, revert last-modified-date
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
         last_name = None
-        for version in all_versions:
+
+        def key_or_version_match(ver: Union[FakeKey, FakeDeleteMarker]) -> bool:
+            if key_marker is None:
+                return True
+
+            if version_id_marker is None or version_id_marker == "":
+                return ver.name >= key_marker
+
+            return ver.name == key_marker and ver.version_id == version_id_marker
+
+        for version in itertools.dropwhile(
+            lambda ver: not key_or_version_match(ver),
+            all_versions,
+        ):
             name = version.name
             # guaranteed to be sorted - so the first key with this name will be the latest
             version.is_latest = name != last_name
             if version.is_latest:
                 last_name = name
-            # skip all keys that alphabetically come before keymarker
-            if key_marker and name < key_marker:
-                continue
+
             # Filter for keys that start with prefix
             if not name.startswith(prefix):
                 continue
             # separate keys that contain the same string between the prefix and the first occurrence of the delimiter
+            is_common_prefix = False
             if delimiter and delimiter in name[len(prefix) :]:
                 end_of_delimiter = (
                     len(prefix) + name[len(prefix) :].index(delimiter) + len(delimiter)
                 )
                 prefix_including_delimiter = name[0:end_of_delimiter]
-                common_prefixes.append(prefix_including_delimiter)
-                continue
 
-            # Differentiate between FakeKey and FakeDeleteMarkers
-            if not isinstance(version, FakeKey):
-                delete_markers.append(version)
-                continue
+                # Skip already-processed common prefix.
+                if prefix_including_delimiter == key_marker:
+                    continue
 
-            requested_versions.append(version)
+                common_prefixes.add(prefix_including_delimiter)
+                name = prefix_including_delimiter
+                is_common_prefix = True
 
-        common_prefixes = sorted(set(common_prefixes))
+            # Only return max_keys items.
+            if (
+                max_keys is not None
+                and len(requested_versions) + len(delete_markers) + len(common_prefixes)
+                >= max_keys
+            ):
+                next_key_marker = name
+                next_version_id_marker = (
+                    version.version_id if not is_common_prefix else None
+                )
+                break
 
-        return requested_versions, common_prefixes, delete_markers
+            if not is_common_prefix:
+                # Differentiate between FakeKey and FakeDeleteMarkers
+                if not isinstance(version, FakeKey):
+                    delete_markers.append(version)
+                    continue
+
+                requested_versions.append(version)
+
+        return (
+            requested_versions,
+            sorted(common_prefixes),
+            delete_markers,
+            next_key_marker,
+            next_version_id_marker,
+        )
 
     def get_bucket_policy(self, bucket_name: str) -> Optional[bytes]:
         return self.get_bucket(bucket_name).policy
