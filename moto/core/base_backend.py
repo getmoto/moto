@@ -190,6 +190,8 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
       account_specific_backend[region: str] = backend: BaseBackend
     """
 
+    session = Session()
+
     def __init__(
         self,
         service_name: str,
@@ -198,18 +200,24 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         use_boto3_regions: bool,
         additional_regions: Optional[List[str]],
     ):
+        self._id = str(uuid4())
         self.service_name = service_name
         self.account_id = account_id
         self.backend = backend
         self.regions = []
         if use_boto3_regions:
-            sess = Session()
-            for partition in sess.get_available_partitions():
-                self.regions.extend(
-                    sess.get_available_regions(service_name, partition_name=partition)
-                )
+            self.regions.extend(self._generate_regions(service_name))
         self.regions.extend(additional_regions or [])
-        self._id = str(uuid4())
+
+    @lru_cache()
+    def _generate_regions(self, service_name: str) -> List[str]:
+        regions = []
+        for partition in AccountSpecificBackend.session.get_available_partitions():
+            partition_regions = AccountSpecificBackend.session.get_available_regions(
+                service_name, partition_name=partition
+            )
+            regions.extend(partition_regions)
+        return regions
 
     def __hash__(self) -> int:  # type: ignore[override]
         return hash(self._id)
