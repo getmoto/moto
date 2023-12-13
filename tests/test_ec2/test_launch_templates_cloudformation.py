@@ -293,4 +293,7 @@ def test_two_launch_templates():
     )
 
     launch_templates = ec2_client.describe_launch_templates()
-    assert launch_templates["LaunchTemplates"][0]['LaunchTemplateName'] != launch_templates["LaunchTemplates"][1]['LaunchTemplateName']
+    assert (
+        launch_templates["LaunchTemplates"][0]["LaunchTemplateName"]
+        != launch_templates["LaunchTemplates"][1]["LaunchTemplateName"]
+    )
