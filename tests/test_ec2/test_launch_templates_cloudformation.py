@@ -16,9 +16,13 @@ def test_asg_with_latest_launch_template_version():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     autoscaling_client = boto3.client("autoscaling", region_name="us-west-1")
 
-    subnet1 = ec2.create_subnet(CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1a")
+    subnet1 = ec2.create_subnet(
+        CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1a"
+    )
 
-    subnet2 = ec2.create_subnet(CidrBlock="10.0.2.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1b")
+    subnet2 = ec2.create_subnet(
+        CidrBlock="10.0.2.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1b"
+    )
 
     autoscaling_group_name = str(uuid4())
 
@@ -26,43 +30,40 @@ def test_asg_with_latest_launch_template_version():
 
     version_attribute = "LatestVersionNumber"
 
-    template_json = json.dumps({
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
-        "Resources": {
-            "LaunchTemplate": {
-                "Type": "AWS::EC2::LaunchTemplate",
-                "Properties": {
-                    "LaunchTemplateName": "launch-template-test",
-                    "LaunchTemplateData": {
-                        "ImageId": EXAMPLE_AMI_ID,
-                        "InstanceType": "t3.small",
-                        "UserData": ""
-                    }
-                }
-            },
-            "AutoScalingGroup": {
-                "Type": "AWS::AutoScaling::AutoScalingGroup",
-                "Properties": {
-                    "AutoScalingGroupName": autoscaling_group_name,
-                    "VPCZoneIdentifier": [subnet1.id],
-                    "LaunchTemplate": {
-                        "LaunchTemplateId": {
-                            "Ref": "LaunchTemplate"
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
+            "Resources": {
+                "LaunchTemplate": {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID,
+                            "InstanceType": "t3.small",
+                            "UserData": "",
                         },
-                        "Version": {
-                            "Fn::GetAtt": [
-                                "LaunchTemplate",
-                                version_attribute
-                            ]
-                        }
                     },
-                    "MinSize": 1,
-                    "MaxSize": 1
-                }
-            }
+                },
+                "AutoScalingGroup": {
+                    "Type": "AWS::AutoScaling::AutoScalingGroup",
+                    "Properties": {
+                        "AutoScalingGroupName": autoscaling_group_name,
+                        "VPCZoneIdentifier": [subnet1.id],
+                        "LaunchTemplate": {
+                            "LaunchTemplateId": {"Ref": "LaunchTemplate"},
+                            "Version": {
+                                "Fn::GetAtt": ["LaunchTemplate", version_attribute]
+                            },
+                        },
+                        "MinSize": 1,
+                        "MaxSize": 1,
+                    },
+                },
+            },
         }
-    })
+    )
 
     cf_client.create_stack(
         StackName=stack_name,
@@ -71,43 +72,40 @@ def test_asg_with_latest_launch_template_version():
         OnFailure="DELETE",
     )
 
-    template_json = json.dumps({
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
-        "Resources": {
-            "LaunchTemplate": {
-                "Type": "AWS::EC2::LaunchTemplate",
-                "Properties": {
-                    "LaunchTemplateName": "launch-template-test",
-                    "LaunchTemplateData": {
-                        "ImageId": EXAMPLE_AMI_ID2,
-                        "InstanceType": "t3.medium",
-                        "UserData": ""
-                    }
-                }
-            },
-            "AutoScalingGroup": {
-                "Type": "AWS::AutoScaling::AutoScalingGroup",
-                "Properties": {
-                    "AutoScalingGroupName": autoscaling_group_name,
-                    "VPCZoneIdentifier": [subnet2.id],
-                    "LaunchTemplate": {
-                        "LaunchTemplateId": {
-                            "Ref": "LaunchTemplate"
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
+            "Resources": {
+                "LaunchTemplate": {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID2,
+                            "InstanceType": "t3.medium",
+                            "UserData": "",
                         },
-                        "Version": {
-                            "Fn::GetAtt": [
-                                "LaunchTemplate",
-                                version_attribute
-                            ]
-                        }
                     },
-                    "MinSize": 1,
-                    "MaxSize": 2
-                }
-            }
+                },
+                "AutoScalingGroup": {
+                    "Type": "AWS::AutoScaling::AutoScalingGroup",
+                    "Properties": {
+                        "AutoScalingGroupName": autoscaling_group_name,
+                        "VPCZoneIdentifier": [subnet2.id],
+                        "LaunchTemplate": {
+                            "LaunchTemplateId": {"Ref": "LaunchTemplate"},
+                            "Version": {
+                                "Fn::GetAtt": ["LaunchTemplate", version_attribute]
+                            },
+                        },
+                        "MinSize": 1,
+                        "MaxSize": 2,
+                    },
+                },
+            },
         }
-    })
+    )
 
     cf_client.update_stack(
         StackName=stack_name,
@@ -121,7 +119,10 @@ def test_asg_with_latest_launch_template_version():
         ]
     )["AutoScalingGroups"][0]
 
-    assert autoscaling_group["LaunchTemplate"]["LaunchTemplateName"] == "launch-template-test"
+    assert (
+        autoscaling_group["LaunchTemplate"]["LaunchTemplateName"]
+        == "launch-template-test"
+    )
     assert autoscaling_group["LaunchTemplate"]["Version"] == "2"
 
 
@@ -134,9 +135,13 @@ def test_asg_with_default_launch_template_version():
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     autoscaling_client = boto3.client("autoscaling", region_name="us-west-1")
 
-    subnet1 = ec2.create_subnet(CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1a")
+    subnet1 = ec2.create_subnet(
+        CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1a"
+    )
 
-    subnet2 = ec2.create_subnet(CidrBlock="10.0.2.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1b")
+    subnet2 = ec2.create_subnet(
+        CidrBlock="10.0.2.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1b"
+    )
 
     autoscaling_group_name = str(uuid4())
 
@@ -144,43 +149,40 @@ def test_asg_with_default_launch_template_version():
 
     version_attribute = "DefaultVersionNumber"
 
-    template_json = json.dumps({
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
-        "Resources": {
-            "LaunchTemplate": {
-                "Type": "AWS::EC2::LaunchTemplate",
-                "Properties": {
-                    "LaunchTemplateName": "launch-template-test",
-                    "LaunchTemplateData": {
-                        "ImageId": EXAMPLE_AMI_ID,
-                        "InstanceType": "t3.small",
-                        "UserData": ""
-                    }
-                }
-            },
-            "AutoScalingGroup": {
-                "Type": "AWS::AutoScaling::AutoScalingGroup",
-                "Properties": {
-                    "AutoScalingGroupName": autoscaling_group_name,
-                    "VPCZoneIdentifier": [subnet1.id],
-                    "LaunchTemplate": {
-                        "LaunchTemplateId": {
-                            "Ref": "LaunchTemplate"
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
+            "Resources": {
+                "LaunchTemplate": {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID,
+                            "InstanceType": "t3.small",
+                            "UserData": "",
                         },
-                        "Version": {
-                            "Fn::GetAtt": [
-                                "LaunchTemplate",
-                                version_attribute
-                            ]
-                        }
                     },
-                    "MinSize": 1,
-                    "MaxSize": 1
-                }
-            }
+                },
+                "AutoScalingGroup": {
+                    "Type": "AWS::AutoScaling::AutoScalingGroup",
+                    "Properties": {
+                        "AutoScalingGroupName": autoscaling_group_name,
+                        "VPCZoneIdentifier": [subnet1.id],
+                        "LaunchTemplate": {
+                            "LaunchTemplateId": {"Ref": "LaunchTemplate"},
+                            "Version": {
+                                "Fn::GetAtt": ["LaunchTemplate", version_attribute]
+                            },
+                        },
+                        "MinSize": 1,
+                        "MaxSize": 1,
+                    },
+                },
+            },
         }
-    })
+    )
 
     cf_client.create_stack(
         StackName=stack_name,
@@ -189,43 +191,40 @@ def test_asg_with_default_launch_template_version():
         OnFailure="DELETE",
     )
 
-    template_json = json.dumps({
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
-        "Resources": {
-            "LaunchTemplate": {
-                "Type": "AWS::EC2::LaunchTemplate",
-                "Properties": {
-                    "LaunchTemplateName": "launch-template-test",
-                    "LaunchTemplateData": {
-                        "ImageId": EXAMPLE_AMI_ID2,
-                        "InstanceType": "t3.medium",
-                        "UserData": ""
-                    }
-                }
-            },
-            "AutoScalingGroup": {
-                "Type": "AWS::AutoScaling::AutoScalingGroup",
-                "Properties": {
-                    "AutoScalingGroupName": autoscaling_group_name,
-                    "VPCZoneIdentifier": [subnet2.id],
-                    "LaunchTemplate": {
-                        "LaunchTemplateId": {
-                            "Ref": "LaunchTemplate"
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Description": "AWS CloudFormation Template to create an ASG group with LaunchTemplate",
+            "Resources": {
+                "LaunchTemplate": {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID2,
+                            "InstanceType": "t3.medium",
+                            "UserData": "",
                         },
-                        "Version": {
-                            "Fn::GetAtt": [
-                                "LaunchTemplate",
-                                version_attribute
-                            ]
-                        }
                     },
-                    "MinSize": 1,
-                    "MaxSize": 2
-                }
-            }
+                },
+                "AutoScalingGroup": {
+                    "Type": "AWS::AutoScaling::AutoScalingGroup",
+                    "Properties": {
+                        "AutoScalingGroupName": autoscaling_group_name,
+                        "VPCZoneIdentifier": [subnet2.id],
+                        "LaunchTemplate": {
+                            "LaunchTemplateId": {"Ref": "LaunchTemplate"},
+                            "Version": {
+                                "Fn::GetAtt": ["LaunchTemplate", version_attribute]
+                            },
+                        },
+                        "MinSize": 1,
+                        "MaxSize": 2,
+                    },
+                },
+            },
         }
-    })
+    )
 
     cf_client.update_stack(
         StackName=stack_name,
@@ -239,5 +238,8 @@ def test_asg_with_default_launch_template_version():
         ]
     )["AutoScalingGroups"][0]
 
-    assert autoscaling_group["LaunchTemplate"]["LaunchTemplateName"] == "launch-template-test"
+    assert (
+        autoscaling_group["LaunchTemplate"]["LaunchTemplateName"]
+        == "launch-template-test"
+    )
     assert autoscaling_group["LaunchTemplate"]["Version"] == "1"

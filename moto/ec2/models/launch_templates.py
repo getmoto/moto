@@ -194,7 +194,11 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
-        return attr in ["DefaultVersionNumber", "LaunchTemplateId", "LatestVersionNumber"]
+        return attr in [
+            "DefaultVersionNumber",
+            "LaunchTemplateId",
+            "LatestVersionNumber",
+        ]
 
     def get_cfn_attribute(self, attribute_name: str) -> str:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
