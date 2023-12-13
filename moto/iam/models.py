@@ -474,12 +474,8 @@ class AWSManagedPolicy(ManagedPolicy):
             default_version_id=data.get("DefaultVersionId"),
             path=data.get("Path"),
             document=json.dumps(data.get("Document")),
-            create_date=datetime.strptime(
-                data.get("CreateDate"), "%Y-%m-%dT%H:%M:%S+00:00"  # type: ignore[arg-type]
-            ),
-            update_date=datetime.strptime(
-                data.get("UpdateDate"), "%Y-%m-%dT%H:%M:%S+00:00"  # type: ignore[arg-type]
-            ),
+            create_date=datetime.fromisoformat(data["CreateDate"]),
+            update_date=datetime.fromisoformat(data["UpdateDate"]),
         )
 
     @property
