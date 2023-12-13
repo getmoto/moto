@@ -740,11 +740,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         new = other_template["Resources"]
 
         resource_names_by_action = {
-            "Add": set(new) - set(old),
-            "Modify": set(
-                name for name in new if name in old and new[name] != old[name]
-            ),
-            "Remove": set(old) - set(new),
+            "Add": [name for name in new if name not in old],
+            "Modify": [name for name in new if name in old and new[name] != old[name]],
+            "Remove": [name for name in old if name not in new],
         }
 
         return resource_names_by_action
