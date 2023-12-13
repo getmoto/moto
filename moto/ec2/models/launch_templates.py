@@ -204,11 +204,11 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "DefaultVersionNumber":
-            return self.default_version_number
+            return str(self.default_version_number)
         if attribute_name == "LaunchTemplateId":
             return self.id
         if attribute_name == "LatestVersionNumber":
-            return self.latest_version_number
+            return str(self.latest_version_number)
         raise UnformattedGetAttTemplateException()
 
 
