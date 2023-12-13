@@ -27,6 +27,7 @@ def test_asg_with_latest_launch_template_version():
     autoscaling_group_name = str(uuid4())
 
     stack_name = str(uuid4())
+    launch_template_name = str(uuid4())[0:6]
 
     version_attribute = "LatestVersionNumber"
 
@@ -38,7 +39,7 @@ def test_asg_with_latest_launch_template_version():
                 "LaunchTemplate": {
                     "Type": "AWS::EC2::LaunchTemplate",
                     "Properties": {
-                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateName": launch_template_name,
                         "LaunchTemplateData": {
                             "ImageId": EXAMPLE_AMI_ID,
                             "InstanceType": "t3.small",
@@ -80,7 +81,7 @@ def test_asg_with_latest_launch_template_version():
                 "LaunchTemplate": {
                     "Type": "AWS::EC2::LaunchTemplate",
                     "Properties": {
-                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateName": launch_template_name,
                         "LaunchTemplateData": {
                             "ImageId": EXAMPLE_AMI_ID2,
                             "InstanceType": "t3.medium",
@@ -121,7 +122,7 @@ def test_asg_with_latest_launch_template_version():
 
     assert (
         autoscaling_group["LaunchTemplate"]["LaunchTemplateName"]
-        == "launch-template-test"
+        == launch_template_name
     )
     assert autoscaling_group["LaunchTemplate"]["Version"] == "2"
 
@@ -146,6 +147,7 @@ def test_asg_with_default_launch_template_version():
     autoscaling_group_name = str(uuid4())
 
     stack_name = str(uuid4())
+    launch_template_name = str(uuid4())[0:6]
 
     version_attribute = "DefaultVersionNumber"
 
@@ -157,7 +159,7 @@ def test_asg_with_default_launch_template_version():
                 "LaunchTemplate": {
                     "Type": "AWS::EC2::LaunchTemplate",
                     "Properties": {
-                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateName": launch_template_name,
                         "LaunchTemplateData": {
                             "ImageId": EXAMPLE_AMI_ID,
                             "InstanceType": "t3.small",
@@ -199,7 +201,7 @@ def test_asg_with_default_launch_template_version():
                 "LaunchTemplate": {
                     "Type": "AWS::EC2::LaunchTemplate",
                     "Properties": {
-                        "LaunchTemplateName": "launch-template-test",
+                        "LaunchTemplateName": launch_template_name,
                         "LaunchTemplateData": {
                             "ImageId": EXAMPLE_AMI_ID2,
                             "InstanceType": "t3.medium",
@@ -240,6 +242,6 @@ def test_asg_with_default_launch_template_version():
 
     assert (
         autoscaling_group["LaunchTemplate"]["LaunchTemplateName"]
-        == "launch-template-test"
+        == launch_template_name
     )
     assert autoscaling_group["LaunchTemplate"]["Version"] == "1"
