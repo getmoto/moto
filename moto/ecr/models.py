@@ -276,7 +276,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id or account_id
         self.image_digest = digest
-        self.image_pushed_at = str(datetime.now(timezone.utc).isoformat())
+        self.image_pushed_at = int(datetime.now(timezone.utc).timestamp())
         self.last_scan: Optional[datetime] = None
 
     def _create_digest(self) -> None:
