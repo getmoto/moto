@@ -38,16 +38,12 @@ def generate_access_key_id_from_account_id(
 
 
 def random_alphanumeric(length: int) -> str:
-    return "".join(
-        str(random.choice(string.ascii_letters + string.digits + "+" + "/"))
-        for _ in range(length)
-    )
+    options = string.ascii_letters + string.digits + "+" + "/"
+    return "".join(random.choices(options, k=length))
 
 
 def random_resource_id(size: int = 20) -> str:
-    chars = list(range(10)) + list(string.ascii_lowercase)
-
-    return "".join(str(random.choice(chars)) for x in range(size))
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=size))
 
 
 def random_role_id(account_id: str) -> str:
@@ -57,12 +53,8 @@ def random_role_id(account_id: str) -> str:
 
 
 def random_access_key() -> str:
-    return "".join(
-        str(random.choice(string.ascii_uppercase + string.digits)) for _ in range(16)
-    )
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=16))
 
 
 def random_policy_id() -> str:
-    return "A" + "".join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(20)
-    )
+    return "A" + "".join(random.choices(string.ascii_uppercase + string.digits, k=20))
