@@ -6,6 +6,7 @@ import os
 import re
 from collections import OrderedDict, defaultdict
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -40,6 +41,13 @@ from moto.utilities.utils import load_resource, load_resource_as_bytes
 log = logging.getLogger(__name__)
 
 JINJA_ENVS: Dict[type, Environment] = {}
+
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+
+    P = ParamSpec("P")
+
+T = TypeVar("T")
 
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
@@ -173,13 +181,13 @@ class ActionAuthenticatorMixin(object):
         self._authenticate_and_authorize_action(S3IAMRequest, resource)
 
     @staticmethod
-    def set_initial_no_auth_action_count(initial_no_auth_action_count: int) -> Callable[..., Callable[..., TYPE_RESPONSE]]:  # type: ignore[misc]
+    def set_initial_no_auth_action_count(
+        initial_no_auth_action_count: int,
+    ) -> "Callable[[Callable[P, T]], Callable[P, T]]":
         _test_server_mode_endpoint = settings.test_server_mode_endpoint()
 
-        def decorator(
-            function: Callable[..., TYPE_RESPONSE]
-        ) -> Callable[..., TYPE_RESPONSE]:
-            def wrapper(*args: Any, **kwargs: Any) -> TYPE_RESPONSE:
+        def decorator(function: "Callable[P, T]") -> "Callable[P, T]":
+            def wrapper(*args: "P.args", **kwargs: "P.kwargs") -> T:
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
                         f"{_test_server_mode_endpoint}/moto-api/reset-auth",

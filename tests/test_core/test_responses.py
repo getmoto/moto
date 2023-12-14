@@ -1,9 +1,10 @@
 import datetime
 from collections import OrderedDict
 from gzip import compress as gzip_compress
+from typing import Any, Dict
 from unittest import SkipTest, mock
 
-from botocore.awsrequest import AWSPreparedRequest
+from botocore.awsrequest import AWSPreparedRequest, HTTPHeaders
 from freezegun import freeze_time
 
 from moto import settings
@@ -11,10 +12,10 @@ from moto.core.responses import AWSServiceSpec, BaseResponse, flatten_json_reque
 from moto.s3.responses import S3Response
 
 
-def test_flatten_json_request_body():
+def test_flatten_json_request_body() -> None:
     spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json").input_spec("RunJobFlow")
 
-    body = {
+    body: Dict[str, Any] = {
         "Name": "cluster",
         "Instances": {
             "Ec2KeyName": "ec2key",
@@ -93,13 +94,15 @@ def test_flatten_json_request_body():
         assert props == body["Configurations"][idx]["Properties"]
 
 
-def test_parse_qs_unicode_decode_error():
+def test_parse_qs_unicode_decode_error() -> None:
     body = b'{"key": "%D0"}, "C": "#0 = :0"}'
-    request = AWSPreparedRequest("GET", "http://request", {"foo": "bar"}, body, False)
+    headers = HTTPHeaders()
+    headers["foo"] = "bar"
+    request = AWSPreparedRequest("GET", "http://request", headers, body, False)
     BaseResponse().setup_class(request, request.url, request.headers)
 
 
-def test_get_params():
+def test_get_params() -> None:
     subject = BaseResponse()
     subject.querystring = OrderedDict(
         [
@@ -150,7 +153,7 @@ def test_get_params():
     }
 
 
-def test_get_dict_list_params():
+def test_get_dict_list_params() -> None:
     subject = BaseResponse()
     subject.querystring = OrderedDict(
         [
@@ -168,7 +171,7 @@ def test_get_dict_list_params():
     assert result == {"VpcSecurityGroupId": ["sg-123", "sg-456", "sg-789"]}
 
 
-def test_response_environment_preserved_by_type():
+def test_response_environment_preserved_by_type() -> None:
     """Ensure Jinja environment is cached by response type."""
 
     class ResponseA(BaseResponse):
@@ -214,7 +217,7 @@ def test_response_environment_preserved_by_type():
     "moto.core.responses.settings.PRETTIFY_RESPONSES",
     new_callable=mock.PropertyMock(return_value=True),
 )
-def test_jinja_render_prettify(m_env_var):
+def test_jinja_render_prettify(m_env_var: Any) -> None:  # type: ignore[misc]
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
             "It is not possible to set the environment variable in server mode"
@@ -228,12 +231,12 @@ def test_jinja_render_prettify(m_env_var):
     assert m_env_var
 
 
-def test_response_metadata():
+def test_response_metadata() -> None:
     # Setup
     frozen_time = datetime.datetime(
         2023, 5, 20, 10, 20, 30, tzinfo=datetime.timezone.utc
     )
-    request = AWSPreparedRequest("GET", "http://request", {}, None, False)
+    request = AWSPreparedRequest("GET", "http://request", HTTPHeaders(), None, False)
 
     # Execute
     with freeze_time(frozen_time):
@@ -246,12 +249,14 @@ def test_response_metadata():
         assert bc.response_headers["date"] == "Sat, 20 May 2023 10:20:30 GMT"
 
 
-def test_compression_gzip():
+def test_compression_gzip() -> None:
     body = '{"key": "%D0"}, "C": "#0 = :0"}'
+    headers = HTTPHeaders()
+    headers["Content-Encoding"] = "gzip"
     request = AWSPreparedRequest(
         "GET",
         url="http://request",
-        headers={"Content-Encoding": "gzip"},
+        headers=headers,
         body=_gzip_compress_body(body),
         stream_output=False,
     )
@@ -261,12 +266,14 @@ def test_compression_gzip():
     assert body == response.body
 
 
-def test_compression_gzip_in_s3():
+def test_compression_gzip_in_s3() -> None:
     body = b"some random data"
+    headers = HTTPHeaders()
+    headers["Content-Encoding"] = "gzip"
     request = AWSPreparedRequest(
         "GET",
         url="http://request",
-        headers={"Content-Encoding": "gzip"},
+        headers=headers,
         body=body,
         stream_output=False,
     )
@@ -276,6 +283,6 @@ def test_compression_gzip_in_s3():
     assert body == response.body.encode("utf-8")
 
 
-def _gzip_compress_body(body: str):
+def _gzip_compress_body(body: str) -> bytes:
     assert isinstance(body, str)
     return gzip_compress(data=body.encode("utf-8"))
