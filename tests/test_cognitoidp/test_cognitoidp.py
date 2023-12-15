@@ -4350,6 +4350,61 @@ def test_admin_setting_mfa_totp_and_sms():
 
 
 @mock_cognitoidp
+def test_admin_initiate_auth_when_token_totp_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    access_token = result["access_token"]
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    client_id = result["client_id"]
+    password = result["password"]
+    conn.associate_software_token(AccessToken=access_token)
+    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+
+    # Set MFA TOTP and SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": False},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 2
+    assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
+
+    # Initiate auth with TOTP
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "PASSWORD": password,
+        },
+    )
+
+    assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
+    assert result["Session"] != ""
+
+    # Respond to challenge with TOTP
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="SOFTWARE_TOKEN_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": "123456",
+            "USERNAME": username,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
+@mock_cognitoidp
 def test_admin_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
