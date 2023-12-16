@@ -11,12 +11,12 @@ class Token:
     _TOKEN_INSTANCE = None
     MINUS_SIGN = "-"
     PLUS_SIGN = "+"
-    SPACE_SIGN = " "
     EQUAL_SIGN = "="
     OPEN_ROUND_BRACKET = "("
     CLOSE_ROUND_BRACKET = ")"
     COMMA = ","
     SPACE = " "
+    NEW_LINE = "\n"
     DOT = "."
     OPEN_SQUARE_BRACKET = "["
     CLOSE_SQUARE_BRACKET = "]"
@@ -24,12 +24,12 @@ class Token:
     SPECIAL_CHARACTERS = [
         MINUS_SIGN,
         PLUS_SIGN,
-        SPACE_SIGN,
         EQUAL_SIGN,
         OPEN_ROUND_BRACKET,
         CLOSE_ROUND_BRACKET,
         COMMA,
         SPACE,
+        NEW_LINE,
         DOT,
         OPEN_SQUARE_BRACKET,
         CLOSE_SQUARE_BRACKET,
@@ -193,7 +193,7 @@ class ExpressionTokenizer(object):
             else:
                 self.process_staged_characters()
 
-                if character == Token.SPACE:
+                if character in [Token.SPACE, Token.NEW_LINE]:
                     if (
                         len(self.token_list) > 0
                         and self.token_list[-1].type == Token.WHITESPACE
