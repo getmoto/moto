@@ -1449,6 +1449,19 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if (
+                user.software_token_mfa_enabled
+                and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
+            ):
+                session = str(random.uuid4())
+                self.sessions[session] = user_pool
+
+                return {
+                    "ChallengeName": "SOFTWARE_TOKEN_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
             return self._log_user_in(user_pool, client, username)
         elif auth_flow in (AuthFlow.REFRESH_TOKEN, AuthFlow.REFRESH_TOKEN_AUTH):
             refresh_token: str = auth_parameters.get("REFRESH_TOKEN")  # type: ignore[assignment]
