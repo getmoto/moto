@@ -785,8 +785,6 @@ class DynamoDBBackend(BaseBackend):
         self, statement: str, parameters: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
-        Only SELECT-statements are supported for now.
-
         Pagination is not yet implemented.
 
         Parsing is highly experimental - please raise an issue if you find any bugs.
@@ -799,7 +797,29 @@ class DynamoDBBackend(BaseBackend):
                 item.to_json()["Attributes"] for item in table.all_items()
             ]
 
-        return partiql.query(statement, source_data, parameters)
+        return_data, updates_per_table = partiql.query(
+            statement, source_data, parameters
+        )
+
+        for table_name, updates in updates_per_table.items():
+            table = self.tables[table_name]
+            for before, after in updates:
+                if after is None and before is not None:
+                    # DELETE
+                    hash_key = DynamoType(before[table.hash_key_attr])
+                    if table.range_key_attr:
+                        range_key = DynamoType(before[table.range_key_attr])
+                    else:
+                        range_key = None
+                    table.delete_item(hash_key, range_key)
+                elif before is None and after is not None:
+                    # CREATE
+                    table.put_item(after)
+                elif before is not None and after is not None:
+                    # UPDATE
+                    table.put_item(after)
+
+        return return_data
 
     def execute_transaction(
         self, statements: List[Dict[str, Any]]
