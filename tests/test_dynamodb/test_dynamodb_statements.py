@@ -260,3 +260,109 @@ def test_execute_statement_with_all_clauses(table_name=None):
     partiql_statement = f"SELECT pk FROM \"{table_name}\" WHERE (contains(\"NameLower\", 'code') OR contains(\"DescriptionLower\", 'code')) AND Category = 'free' AND Price >= 0 AND Price <= 1 AND FreeTier IS NOT MISSING AND attribute_type(\"FreeTier\", 'N')"
     items = dynamodb_client.execute_statement(Statement=partiql_statement)["Items"]
     assert items == [{"pk": {"S": "0"}}]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_insert_data(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    create_items(table_name)
+    resp = client.execute_statement(
+        Statement=f"INSERT INTO \"{table_name}\" value {{'pk': 'msg3'}}"
+    )
+    assert resp["Items"] == []
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert len(items) == 3
+    assert {"pk": {"S": "msg3"}} in items
+
+    # More advanced insertion
+    client.execute_statement(
+        Statement=f"INSERT INTO \"{table_name}\" value {{'pk': 'msg4', 'attr':{{'sth': ['other']}}}}"
+    )
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert len(items) == 4
+    assert {
+        "pk": {"S": "msg4"},
+        "attr": {"M": {"sth": {"L": [{"S": "other"}]}}},
+    } in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_update_data(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    create_items(table_name)
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert item1 in items
+    assert item2 in items  # unchanged
+
+    # Update existing attr
+    client.execute_statement(
+        Statement=f"UPDATE \"{table_name}\" SET body='other' WHERE pk='msg1'"
+    )
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert len(items) == 2
+    updated_item = item1.copy()
+    updated_item["body"] = {"S": "other"}
+    assert updated_item in items
+    assert item2 in items  # unchanged
+
+    # Set new attr
+    client.execute_statement(
+        Statement=f"UPDATE \"{table_name}\" SET new_attr='asdf' WHERE pk='msg1'"
+    )
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert len(items) == 2
+    updated_item["new_attr"] = {"S": "asdf"}
+    assert updated_item in items
+    assert item2 in items
+
+    # Remove attr
+    client.execute_statement(
+        Statement=f"UPDATE \"{table_name}\" REMOVE new_attr WHERE pk='msg1'"
+    )
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert len(items) == 2
+    updated_item.pop("new_attr")
+    assert updated_item in items
+    assert item2 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_delete_data(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    create_items(table_name)
+
+    client.execute_statement(Statement=f"DELETE FROM \"{table_name}\" WHERE pk='msg1'")
+
+    items = client.scan(TableName=table_name)["Items"]
+    assert items == [item2]
+
+
+@mock_dynamodb
+def test_delete_data__with_sort_key():
+    client = boto3.client("dynamodb", "us-east-1")
+    client.create_table(
+        TableName="test",
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    client.put_item(TableName="test", Item={"pk": {"S": "msg"}, "sk": {"S": "sth"}})
+
+    client.execute_statement(Statement="DELETE FROM \"test\" WHERE pk='msg'")
+
+    assert client.scan(TableName="test")["Items"] == []
