@@ -692,6 +692,10 @@
   "Location": "apse2-az1"
  },
  {
+  "InstanceType": "hpc6a.48xlarge",
+  "Location": "apse2-az1"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "apse2-az1"
  },

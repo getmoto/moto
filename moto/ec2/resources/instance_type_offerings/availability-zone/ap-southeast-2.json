@@ -2872,6 +2872,10 @@
   "Location": "ap-southeast-2b"
  },
  {
+  "InstanceType": "hpc6a.48xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "ap-southeast-2b"
  },

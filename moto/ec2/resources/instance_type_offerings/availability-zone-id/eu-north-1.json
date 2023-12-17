@@ -1944,6 +1944,22 @@
   "Location": "eun1-az2"
  },
  {
+  "InstanceType": "hpc7a.12xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "hpc7a.24xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "hpc7a.48xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "hpc7a.96xlarge",
+  "Location": "eun1-az2"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eun1-az2"
  },
