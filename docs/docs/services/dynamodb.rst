@@ -55,8 +55,6 @@ dynamodb
 - [ ] enable_kinesis_streaming_destination
 - [X] execute_statement
   
-        Only SELECT-statements are supported for now.
-
         Pagination is not yet implemented.
 
         Parsing is highly experimental - please raise an issue if you find any bugs.

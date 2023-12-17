@@ -3966,7 +3966,7 @@
 
 ## iot
 <details>
-<summary>32% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -3988,6 +3988,7 @@
 - [ ] create_authorizer
 - [ ] create_billing_group
 - [X] create_certificate_from_csr
+- [ ] create_certificate_provider
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
@@ -4020,6 +4021,7 @@
 - [ ] delete_billing_group
 - [X] delete_ca_certificate
 - [X] delete_certificate
+- [ ] delete_certificate_provider
 - [ ] delete_custom_metric
 - [ ] delete_dimension
 - [X] delete_domain_configuration
@@ -4057,6 +4059,7 @@
 - [ ] describe_billing_group
 - [X] describe_ca_certificate
 - [X] describe_certificate
+- [ ] describe_certificate_provider
 - [ ] describe_custom_metric
 - [ ] describe_default_authorizer
 - [ ] describe_detect_mitigation_actions_task
@@ -4116,6 +4119,7 @@
 - [ ] list_authorizers
 - [ ] list_billing_groups
 - [ ] list_ca_certificates
+- [ ] list_certificate_providers
 - [X] list_certificates
 - [X] list_certificates_by_ca
 - [ ] list_custom_metrics
@@ -4196,6 +4200,7 @@
 - [ ] update_billing_group
 - [X] update_ca_certificate
 - [X] update_certificate
+- [ ] update_certificate_provider
 - [ ] update_custom_metric
 - [ ] update_dimension
 - [X] update_domain_configuration
@@ -4611,6 +4616,7 @@
 - [X] put_resource_policy
 - [X] put_retention_policy
 - [X] put_subscription_filter
+- [ ] start_live_tail
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
@@ -5531,6 +5537,7 @@
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_dashboard
+- [ ] update_dashboard_links
 - [ ] update_dashboard_permissions
 - [ ] update_dashboard_published_version
 - [ ] update_data_set
@@ -6530,6 +6537,7 @@
 - [ ] delete_association
 - [ ] delete_cluster
 - [ ] delete_code_repository
+- [ ] delete_compilation_job
 - [ ] delete_context
 - [ ] delete_data_quality_job_definition
 - [ ] delete_device_fleet
@@ -7868,6 +7876,7 @@
 - mobile
 - mturk
 - mwaa
+- neptune-graph
 - neptunedata
 - network-firewall
 - networkmanager

@@ -93,6 +93,7 @@ sagemaker
 - [ ] delete_association
 - [ ] delete_cluster
 - [ ] delete_code_repository
+- [ ] delete_compilation_job
 - [ ] delete_context
 - [ ] delete_data_quality_job_definition
 - [ ] delete_device_fleet
