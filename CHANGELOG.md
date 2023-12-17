@@ -1,6 +1,23 @@
 Moto Changelog
 ==============
 
+4.2.12
+------
+
+    Miscellaneous:
+        * AWSLambda: list_functions() now returns a default PackageType (ZIP) if not specified
+        * CloudFormation: AWS::EC2::LaunchTemplate resources now support Fn::GetAtt operations
+        * CognitoIDP: admin_initiate_auth() now correctly returns a Challenge when 2FA is enabled
+        * DynamoDB: execute_statement() now supports INSERT/UPDATE/DELETE queries
+        * EC2: describe_availability_zones() now supports the ZoneNames/ZoneIds-parameters
+        * KMS: encrypt() now validates payloads that are too large
+        * ResourceGroupTaggingAPI: get_resources() now supports SQS queues
+        * Route53: list_hosted_zone()/list_hosted_zones_by_name() now return the CallerReference
+        * S3: copy() now respects the ExtraArgs-parameter when using MultiPart uploads
+        * S3: list_object_versions() now supports pagination
+        * S3: put_object_tagging() now validates the number of tags provided
+
+
 4.2.11
 -----
 Docker Digest for 4.2.11: _sha256:f2a24d8a3440bf397705e461b33a032bbb6d3511cd9c643e71419dd962b3384e_

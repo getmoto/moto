@@ -256,6 +256,11 @@ ec2
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
+  
+        The following parameters are supported: ZoneIds, ZoneNames, Filters
+        The following filters are supported: zone-id, zone-type, zone-name, region-name, state
+        
+
 - [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs

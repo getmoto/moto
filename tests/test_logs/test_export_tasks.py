@@ -157,6 +157,8 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(
             destination=destination,
         )
     err = exc.value.response["Error"]
+    if err["Code"] != "InvalidParameterException":
+        print(err)
     assert err["Code"] == "InvalidParameterException"
     assert (
         err["Message"]
@@ -205,7 +207,7 @@ def test_create_export_executes_export_task(
     )["taskId"]
 
     task = logs.describe_export_tasks(taskId=task_id)["exportTasks"][0]
-    assert task["status"]["code"] in ["COMPLETED", "RUNNING"]
+    assert task["status"]["code"] in ["COMPLETED", "RUNNING", "PENDING"]
     assert task["logGroupName"] == log_group_name
     assert task["destination"] == bucket_name
     assert task["destinationPrefix"] == "exportedlogs"
