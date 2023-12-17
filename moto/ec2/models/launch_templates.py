@@ -192,6 +192,25 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
         backend.delete_launch_template(name, None)
 
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "DefaultVersionNumber",
+            "LaunchTemplateId",
+            "LatestVersionNumber",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "DefaultVersionNumber":
+            return str(self.default_version_number)
+        if attribute_name == "LaunchTemplateId":
+            return self.id
+        if attribute_name == "LatestVersionNumber":
+            return str(self.latest_version_number)
+        raise UnformattedGetAttTemplateException()
+
 
 class LaunchTemplateBackend:
     def __init__(self) -> None:
