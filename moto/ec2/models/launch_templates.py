@@ -13,6 +13,7 @@ from ..utils import (
     convert_tag_spec,
     generic_filter,
     random_launch_template_id,
+    random_launch_template_name,
     utc_date_and_time,
 )
 from .core import TaggedEC2Resource
@@ -140,6 +141,9 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         tag_spec = convert_tag_spec(
             properties.get("TagSpecifications", {}), tag_key="Tags"
         )
+
+        if name is None:
+            name = random_launch_template_name()
 
         launch_template = backend.create_launch_template(
             name, description, data, tag_spec

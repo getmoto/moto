@@ -245,3 +245,55 @@ def test_asg_with_default_launch_template_version():
         == launch_template_name
     )
     assert autoscaling_group["LaunchTemplate"]["Version"] == "1"
+
+
+@mock_autoscaling
+@mock_cloudformation
+@mock_ec2
+def test_two_launch_templates():
+    cf_client = boto3.client("cloudformation", region_name="us-west-1")
+    ec2_client = boto3.client("ec2", region_name="us-west-1")
+
+    stack_name = str(uuid4())
+
+    template_json = json.dumps(
+        {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Description": "AWS CloudFormation Template to create two LaunchTemplate",
+            "Resources": {
+                "LaunchTemplate0": {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID,
+                            "InstanceType": "t3.small",
+                            "UserData": "",
+                        },
+                    },
+                },
+                "LaunchTemplate1": {
+                    "Type": "AWS::EC2::LaunchTemplate",
+                    "Properties": {
+                        "LaunchTemplateData": {
+                            "ImageId": EXAMPLE_AMI_ID,
+                            "InstanceType": "t3.medium",
+                            "UserData": "",
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    cf_client.create_stack(
+        StackName=stack_name,
+        TemplateBody=template_json,
+        Capabilities=["CAPABILITY_NAMED_IAM"],
+        OnFailure="DELETE",
+    )
+
+    launch_templates = ec2_client.describe_launch_templates()
+    assert (
+        launch_templates["LaunchTemplates"][0]["LaunchTemplateName"]
+        != launch_templates["LaunchTemplates"][1]["LaunchTemplateName"]
+    )

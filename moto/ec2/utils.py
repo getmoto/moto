@@ -233,6 +233,10 @@ def random_launch_template_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
 
 
+def random_launch_template_name() -> str:
+    return f"LaunchTemplate_{random_resource_id(size=12)}"
+
+
 def random_iam_instance_profile_association_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["iam-instance-profile-association"])
 
