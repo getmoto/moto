@@ -850,7 +850,7 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
                 <defaultNetworkCardIndex>{{ instance_type.get('NetworkInfo', {}).get('DefaultNetworkCardIndex', 0) | int }}</defaultNetworkCardIndex>
                 <efaSupported>{{ instance_type.get('NetworkInfo', {}).get('EfaSupported', False) }}</efaSupported>
                 <enaSrdSupported>{{ instance_type.get('NetworkInfo', {}).get('EnaSrdSupported', False) }}</enaSrdSupported>
-                <enaSupport>{{ instance_type.get('NetworkInfo', {}).get('EnaSupported', False) }}</enaSupport>
+                <enaSupport>{{ instance_type.get('NetworkInfo', {}).get('EnaSupport', 'unsupported') }}</enaSupport>
                 <encryptionInTransitSupported>{{ instance_type.get('NetworkInfo', {}).get('EncryptionInTransitSupported', False) }}</encryptionInTransitSupported>
                 <ipv4AddressesPerInterface>{{ instance_type.get('NetworkInfo', {}).get('Ipv4AddressesPerInterface', 0) | int }}</ipv4AddressesPerInterface>
                 <ipv6AddressesPerInterface>{{ instance_type.get('NetworkInfo', {}).get('Ipv6AddressesPerInterface', 0) | int }}</ipv6AddressesPerInterface>
