@@ -1485,7 +1485,6 @@ class CognitoIdpBackend(BaseBackend):
 
     def admin_respond_to_auth_challenge(
         self,
-        user_pool_id: str,
         session: str,
         client_id: str,
         challenge_name: str,
@@ -2209,7 +2208,6 @@ class RegionAgnosticBackend:
 
     def admin_respond_to_auth_challenge(
         self,
-        user_pool_id: str,
         session: str,
         client_id: str,
         challenge_name: str,
@@ -2217,7 +2215,7 @@ class RegionAgnosticBackend:
     ) -> Dict[str, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.admin_respond_to_auth_challenge(
-            user_pool_id, session, client_id, challenge_name, challenge_responses
+            session, client_id, challenge_name, challenge_responses
         )
 
     def respond_to_auth_challenge(
