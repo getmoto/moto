@@ -15,10 +15,10 @@ RESOURCE_NOT_FOUND_ERROR_MESSAGE = "Query does not exist."
 
 @pytest.fixture(autouse=True, name="client")
 def fixture_client():
-    yield boto3.client("redshift-data", region_name=REGION)
+    with mock_redshiftdata():
+        yield boto3.client("redshift-data", region_name=REGION)
 
 
-@mock_redshiftdata
 def test_cancel_statement_throws_exception_when_uuid_invalid(client):
     statement_id = "test"
 
@@ -30,7 +30,6 @@ def test_cancel_statement_throws_exception_when_uuid_invalid(client):
     )
 
 
-@mock_redshiftdata
 def test_cancel_statement_throws_exception_when_statement_not_found(client):
     statement_id = "890f1253-595b-4608-a0d1-73f933ccd0a0"
 
@@ -42,7 +41,6 @@ def test_cancel_statement_throws_exception_when_statement_not_found(client):
     )
 
 
-@mock_redshiftdata
 def test_describe_statement_throws_exception_when_uuid_invalid(client):
     statement_id = "test"
 
@@ -54,7 +52,6 @@ def test_describe_statement_throws_exception_when_uuid_invalid(client):
     )
 
 
-@mock_redshiftdata
 def test_describe_statement_throws_exception_when_statement_not_found(client):
     statement_id = "890f1253-595b-4608-a0d1-73f933ccd0a0"
 
@@ -66,7 +63,6 @@ def test_describe_statement_throws_exception_when_statement_not_found(client):
     )
 
 
-@mock_redshiftdata
 def test_get_statement_result_throws_exception_when_uuid_invalid(client):
     statement_id = "test"
 
@@ -78,7 +74,6 @@ def test_get_statement_result_throws_exception_when_uuid_invalid(client):
     )
 
 
-@mock_redshiftdata
 def test_get_statement_result_throws_exception_when_statement_not_found(client):
     statement_id = "890f1253-595b-4608-a0d1-73f933ccd0a0"
 
@@ -90,7 +85,6 @@ def test_get_statement_result_throws_exception_when_statement_not_found(client):
     )
 
 
-@mock_redshiftdata
 def test_execute_statement_and_cancel_statement(client):
     cluster_identifier = "cluster_identifier"
     database = "database"
@@ -115,7 +109,6 @@ def test_execute_statement_and_cancel_statement(client):
     assert cancel_response["Status"] is True
 
 
-@mock_redshiftdata
 def test_execute_statement_and_describe_statement(client):
     cluster_identifier = "cluster_identifier"
     database = "database"
@@ -146,7 +139,6 @@ def test_execute_statement_and_describe_statement(client):
     assert describe_response["Status"] == "STARTED"
 
 
-@mock_redshiftdata
 def test_execute_statement_and_get_statement_result(client):
     cluster_identifier = "cluster_identifier"
     database = "database"
