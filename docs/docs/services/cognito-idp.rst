@@ -46,7 +46,7 @@ cognito-idp
 - [ ] admin_list_user_auth_events
 - [X] admin_remove_user_from_group
 - [X] admin_reset_user_password
-- [ ] admin_respond_to_auth_challenge
+- [X] admin_respond_to_auth_challenge
 - [X] admin_set_user_mfa_preference
 - [X] admin_set_user_password
 - [ ] admin_set_user_settings

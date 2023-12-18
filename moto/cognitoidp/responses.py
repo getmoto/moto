@@ -449,6 +449,18 @@ class CognitoIdpResponse(BaseResponse):
 
         return json.dumps(auth_result)
 
+    def admin_respond_to_auth_challenge(self) -> str:
+        user_pool_id = self._get_param("UserPoolId")
+        session = self._get_param("Session")
+        client_id = self._get_param("ClientId")
+        challenge_name = self._get_param("ChallengeName")
+        challenge_responses = self._get_param("ChallengeResponses")
+        auth_result = region_agnostic_backend.admin_respond_to_auth_challenge(
+            user_pool_id, session, client_id, challenge_name, challenge_responses
+        )
+
+        return json.dumps(auth_result)
+
     def respond_to_auth_challenge(self) -> str:
         session = self._get_param("Session")
         client_id = self._get_param("ClientId")
