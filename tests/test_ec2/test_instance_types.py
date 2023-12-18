@@ -14,8 +14,11 @@ def test_describe_instance_types():
     assert "InstanceType" in instance_types["InstanceTypes"][0]
     assert "SizeInMiB" in instance_types["InstanceTypes"][0]["MemoryInfo"]
 
-    ena_support = set(t["NetworkInfo"]["EnaSupport"] for t in instance_types["InstanceTypes"])
+    ena_support = set(
+        t["NetworkInfo"]["EnaSupport"] for t in instance_types["InstanceTypes"]
+    )
     assert ena_support == {"required", "unsupported", "supported"}
+
 
 @mock_ec2
 def test_describe_instance_types_filter_by_type():
