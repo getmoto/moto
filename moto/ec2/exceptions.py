@@ -1,7 +1,5 @@
 from typing import Any, Iterable, List, Optional, Union
 
-from jinja2 import DictLoader, Environment
-
 from moto.core.exceptions import RESTError
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
@@ -25,9 +23,7 @@ class EC2ClientError(RESTError):
     # EC2 uses <RequestID> as tag name in the XML response
     request_id_tag_name = "RequestID"
     extended_templates = {"custom_response": EC2_ERROR_RESPONSE}
-    env = Environment(
-        loader=DictLoader(RESTError.extended_templates(extended_templates))
-    )
+    env = RESTError.extended_environment(extended_templates)
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "custom_response")

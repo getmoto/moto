@@ -96,10 +96,11 @@ class RESTError(HTTPException):
         return err
 
     @classmethod
-    def extended_templates(cls, extended_templates: Dict) -> Dict:
+    def extended_environment(cls, extended_templates: Dict) -> Environment:
         # Can be simplified to cls.templates | extended_templates when we drop Python 3.8 support
         # https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
-        return dict(cls.templates.items() | extended_templates.items())
+        templates = dict(cls.templates.items() | extended_templates.items())
+        return Environment(loader=DictLoader(templates))
 
 
 class DryRunClientError(RESTError):

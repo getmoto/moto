@@ -1,7 +1,5 @@
 from typing import Any
 
-from jinja2 import DictLoader, Environment
-
 from moto.core.exceptions import RESTError
 
 ERROR_WITH_ACCESS_POINT_NAME = """{% extends 'wrapped_single_error' %}
@@ -19,9 +17,7 @@ class S3ControlError(RESTError):
         "ap_not_found": ERROR_WITH_ACCESS_POINT_NAME,
         "apf_not_found": ERROR_WITH_ACCESS_POINT_POLICY,
     }
-    env = Environment(
-        loader=DictLoader(RESTError.extended_templates(extended_templates))
-    )
+    env = RESTError.extended_environment(extended_templates)
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")

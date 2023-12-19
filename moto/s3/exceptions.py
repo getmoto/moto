@@ -1,7 +1,5 @@
 from typing import TYPE_CHECKING, Any, Optional, Union
 
-from jinja2 import DictLoader, Environment
-
 from moto.core.exceptions import RESTError
 
 if TYPE_CHECKING:
@@ -52,9 +50,7 @@ class S3ClientError(RESTError):
         "range_error": ERROR_WITH_RANGE,
         "storage_error": ERROR_WITH_STORAGE_CLASS,
     }
-    env = Environment(
-        loader=DictLoader(RESTError.extended_templates(extended_templates))
-    )
+    env = RESTError.extended_environment(extended_templates)
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")
