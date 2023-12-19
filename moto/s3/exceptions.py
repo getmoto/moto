@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from jinja2 import DictLoader, Environment
 from moto.core.exceptions import RESTError
 
 if TYPE_CHECKING:
@@ -40,6 +41,17 @@ ERROR_WITH_STORAGE_CLASS = """{% extends 'single_error' %}
 class S3ClientError(RESTError):
     # S3 API uses <RequestID> as the XML tag in response messages
     request_id_tag_name = "RequestID"
+
+    extended_templates = {
+        "bucket_error": ERROR_WITH_BUCKET_NAME,
+        "key_error": ERROR_WITH_KEY_NAME,
+        "argument_error": ERROR_WITH_ARGUMENT,
+        "error_uploadid": ERROR_WITH_UPLOADID,
+        "condition_error": ERROR_WITH_CONDITION_NAME,
+        "range_error": ERROR_WITH_RANGE,
+        "storage_error": ERROR_WITH_STORAGE_CLASS,
+    }
+    env = Environment(loader=DictLoader(RESTError.templates | extended_templates))
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")

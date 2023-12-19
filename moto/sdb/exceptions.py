@@ -2,6 +2,7 @@
 from typing import Any
 
 from moto.core.exceptions import RESTError
+from jinja2 import DictLoader, Environment
 
 SDB_ERROR = """<?xml version="1.0"?>
 <Response>
@@ -18,6 +19,8 @@ SDB_ERROR = """<?xml version="1.0"?>
 
 class InvalidParameterError(RESTError):
     code = 400
+    extended_templates = {"sdb_error": SDB_ERROR}
+    env = Environment(loader=DictLoader(RESTError.templates | extended_templates))
 
     def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "sdb_error")
@@ -37,10 +40,11 @@ class InvalidDomainName(InvalidParameterError):
 
 class UnknownDomainName(RESTError):
     code = 400
+    extended_templates = {"sdb_error": SDB_ERROR}
+    env = Environment(loader=DictLoader(RESTError.templates | extended_templates))
 
     def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "sdb_error")
-        self.templates["sdb_error"] = SDB_ERROR
         kwargs["error_type"] = "NoSuchDomain"
         kwargs["message"] = "The specified domain does not exist."
         super().__init__(**kwargs)

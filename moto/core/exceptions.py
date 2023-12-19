@@ -54,6 +54,7 @@ class RESTError(HTTPException):
         "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
         "error": ERROR_RESPONSE,
     }
+    env = Environment(loader=DictLoader(templates))
 
     def __init__(
         self, error_type: str, message: str, template: str = "error", **kwargs: Any
@@ -63,8 +64,7 @@ class RESTError(HTTPException):
         self.message = message
 
         if template in self.templates.keys():
-            env = Environment(loader=DictLoader(self.templates))
-            self.description: str = env.get_template(template).render(
+            self.description: str = self.env.get_template(template).render(
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
