@@ -1,6 +1,7 @@
 from typing import Any
 
 from jinja2 import DictLoader, Environment
+
 from moto.core.exceptions import RESTError
 
 EXCEPTION_RESPONSE = """<?xml version="1.0"?>
@@ -17,7 +18,9 @@ EXCEPTION_RESPONSE = """<?xml version="1.0"?>
 class CloudFrontException(RESTError):
     code = 400
     extended_templates = {"cferror": EXCEPTION_RESPONSE}
-    env = Environment(loader=DictLoader(RESTError.templates | extended_templates))
+    env = Environment(
+        loader=DictLoader(RESTError.extended_templates(extended_templates))
+    )
 
     def __init__(self, error_type: str, message: str, **kwargs: Any):
         kwargs.setdefault("template", "cferror")

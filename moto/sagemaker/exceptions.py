@@ -1,6 +1,7 @@
 from typing import Any
 
 from jinja2 import DictLoader, Environment
+
 from moto.core.exceptions import AWSError, JsonRESTError, RESTError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
@@ -10,7 +11,9 @@ ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
 
 class SagemakerClientError(RESTError):
     extended_templates = {"model_error": ERROR_WITH_MODEL_NAME}
-    env = Environment(loader=DictLoader(RESTError.templates | extended_templates))
+    env = Environment(
+        loader=DictLoader(RESTError.extended_templates(extended_templates))
+    )
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")

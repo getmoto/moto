@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from jinja2 import DictLoader, Environment
 from werkzeug.exceptions import HTTPException
@@ -64,7 +64,7 @@ class RESTError(HTTPException):
         self.message = message
 
         if template in self.templates.keys():
-            self.description: str = self.env.get_template(template).render(
+            self.description: str = self.__class__.env.get_template(template).render(
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
@@ -94,6 +94,12 @@ class RESTError(HTTPException):
         err = JsonRESTError(error_type=self.error_type, message=self.message)
         err.code = self.code
         return err
+
+    @classmethod
+    def extended_templates(cls, extended_templates: Dict) -> Dict:
+        # Can be simplified to cls.templates | extended_templates when we drop Python 3.8 support
+        # https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+        return dict(cls.templates.items() | extended_templates.items())
 
 
 class DryRunClientError(RESTError):
