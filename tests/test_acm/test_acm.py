@@ -385,7 +385,7 @@ def test_request_certificate():
 
 
 @mock_acm
-def test_request_certificate_with_tags():
+def test_request_certificate_with_optional_arguments():
     client = boto3.client("acm", region_name="eu-central-1")
 
     token = str(uuid.uuid4())
@@ -401,6 +401,13 @@ def test_request_certificate_with_tags():
     )
     assert "CertificateArn" in resp
     arn_1 = resp["CertificateArn"]
+
+    cert = client.describe_certificate(CertificateArn=arn_1)["Certificate"]
+    assert len(cert["SubjectAlternativeNames"]) == 3
+    assert len(cert["DomainValidationOptions"]) == 3
+    assert {option["DomainName"] for option in cert["DomainValidationOptions"]} == set(
+        cert["SubjectAlternativeNames"]
+    )
 
     resp = client.list_tags_for_certificate(CertificateArn=arn_1)
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}
