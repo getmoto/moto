@@ -337,25 +337,32 @@ class CertBundle(BaseModel):
                 "ExtendedKeyUsages": [],
                 "RenewalEligibility": "INELIGIBLE",
                 "Options": {"CertificateTransparencyLoggingPreference": "ENABLED"},
-                "DomainValidationOptions": [{"DomainName": self.common_name}],
             }
         }
 
+        domain_names = set(sans + [self.common_name])
+        validation_options = []
+
         if self.status == "PENDING_VALIDATION":
-            result["Certificate"]["DomainValidationOptions"][0][
-                "ValidationDomain"
-            ] = self.common_name
-            result["Certificate"]["DomainValidationOptions"][0][
-                "ValidationStatus"
-            ] = self.status
-            result["Certificate"]["DomainValidationOptions"][0]["ResourceRecord"] = {
-                "Name": f"_d930b28be6c5927595552b219965053e.{self.common_name}.",
-                "Type": "CNAME",
-                "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
-            }
-            result["Certificate"]["DomainValidationOptions"][0][
-                "ValidationMethod"
-            ] = "DNS"
+            for san in domain_names:
+                resource_record = {
+                    "Name": f"_d930b28be6c5927595552b219965053e.{san}.",
+                    "Type": "CNAME",
+                    "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
+                }
+                validation_options.append(
+                    {
+                        "DomainName": san,
+                        "ValidationDomain": san,
+                        "ValidationStatus": self.status,
+                        "ValidationMethod": "DNS",
+                        "ResourceRecord": resource_record,
+                    }
+                )
+        else:
+            validation_options = [{"DomainName": name} for name in domain_names]
+        result["Certificate"]["DomainValidationOptions"] = validation_options
+
         if self.type == "IMPORTED":
             result["Certificate"]["ImportedAt"] = datetime_to_epoch(self.created_at)
         else:

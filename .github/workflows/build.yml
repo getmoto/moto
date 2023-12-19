@@ -82,6 +82,10 @@ jobs:
     needs: lint
     uses: ./.github/workflows/tests_sdk_ruby.yml
 
+  terraformexamplestest:
+    needs: lint
+    uses: ./.github/workflows/tests_terraform_examples.yml
+
   test:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
