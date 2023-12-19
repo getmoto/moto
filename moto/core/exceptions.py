@@ -96,7 +96,7 @@ class RESTError(HTTPException):
         return err
 
     @classmethod
-    def extended_environment(cls, extended_templates: Dict) -> Environment:
+    def extended_environment(cls, extended_templates: Dict[str, str]) -> Environment:
         # Can be simplified to cls.templates | extended_templates when we drop Python 3.8 support
         # https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
         templates = dict(cls.templates.items() | extended_templates.items())
