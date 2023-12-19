@@ -23,7 +23,6 @@ class InvalidParameterError(RESTError):
 
     def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "sdb_error")
-        self.templates["sdb_error"] = SDB_ERROR
         kwargs["error_type"] = "InvalidParameterValue"
         super().__init__(**kwargs)
 

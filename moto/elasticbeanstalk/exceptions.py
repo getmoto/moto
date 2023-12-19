@@ -21,7 +21,6 @@ class ElasticBeanstalkException(RESTError):
 
     def __init__(self, code: str, message: str, **kwargs: Any):
         kwargs.setdefault("template", "ecerror")
-        self.templates["ecerror"] = EXCEPTION_RESPONSE
         super().__init__(code, message)
 
 

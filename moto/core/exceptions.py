@@ -63,7 +63,7 @@ class RESTError(HTTPException):
         self.error_type = error_type
         self.message = message
 
-        if template in self.templates.keys():
+        if template in self.env.list_templates():
             self.description: str = self.__class__.env.get_template(template).render(
                 error_type=error_type,
                 message=message,
