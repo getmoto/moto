@@ -17,6 +17,9 @@ class SagemakerClientError(RESTError):
 
 
 class ModelError(RESTError):
+    extended_templates = {"model_error": ERROR_WITH_MODEL_NAME}
+    env = RESTError.extended_environment(extended_templates)
+
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "model_error")
         super().__init__(*args, **kwargs)
