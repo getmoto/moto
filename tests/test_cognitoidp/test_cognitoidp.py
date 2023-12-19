@@ -1532,7 +1532,8 @@ def test_group_in_access_token():
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -1585,7 +1586,8 @@ def test_group_in_id_token():
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -2749,7 +2751,8 @@ def authentication_flow(conn, auth_flow):
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -4388,7 +4391,8 @@ def test_admin_initiate_auth_when_token_totp_enabled():
     assert result["Session"] != ""
 
     # Respond to challenge with TOTP
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         ClientId=client_id,
         ChallengeName="SOFTWARE_TOKEN_MFA",
         Session=result["Session"],

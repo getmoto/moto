@@ -50,7 +50,7 @@ jobs:
         kill $(lsof -t -i:5005)
     - name: Archive Proxy logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: motoproxy-${{ matrix.python-version }}
         path: |
