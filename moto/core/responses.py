@@ -35,6 +35,7 @@ from moto.core.utils import (
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
+    utcfromtimestamp,
 )
 from moto.utilities.utils import load_resource, load_resource_as_bytes
 
@@ -1076,11 +1077,7 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
     elif vtype == "double":
         return str(value)
     elif vtype == "timestamp":
-        return (
-            datetime.datetime.utcfromtimestamp(value)
-            .replace(tzinfo=datetime.timezone.utc)
-            .isoformat()
-        )
+        return utcfromtimestamp(value).replace(tzinfo=datetime.timezone.utc).isoformat()
     elif vtype == "string":
         return str(value)
     elif value is None:
