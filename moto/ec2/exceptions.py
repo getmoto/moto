@@ -22,10 +22,11 @@ class EC2ClientError(RESTError):
     code = 400
     # EC2 uses <RequestID> as tag name in the XML response
     request_id_tag_name = "RequestID"
+    extended_templates = {"custom_response": EC2_ERROR_RESPONSE}
+    env = RESTError.extended_environment(extended_templates)
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "custom_response")
-        self.templates["custom_response"] = EC2_ERROR_RESPONSE
         super().__init__(*args, **kwargs)
 
 
