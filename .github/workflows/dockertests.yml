@@ -90,7 +90,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: motoserver-${{ matrix.python-version }}
+        name: custom_port
         path: |
           serverlogs1/*
 
@@ -148,7 +148,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: motoserver-${{ matrix.python-version }}
+        name: custom_name
         path: |
           serverlogs2/*
 
@@ -207,6 +207,6 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: motoserver-${{ matrix.python-version }}
+        name: custom_mode
         path: |
           serverlogs3/*
