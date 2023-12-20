@@ -167,11 +167,10 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
         properties = cloudformation_json["Properties"]
 
-        name = properties.get("LaunchTemplateName")
         data = properties.get("LaunchTemplateData")
         description = properties.get("VersionDescription")
 
-        launch_template = backend.get_launch_template_by_name(name)
+        launch_template = backend.get_launch_template(original_resource.id)
 
         launch_template.create_version(data, description)
 

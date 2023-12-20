@@ -334,6 +334,10 @@ def test_launch_template_unnamed_update():
         OnFailure="DELETE",
     )
 
+    launch_templates = ec2_client.describe_launch_templates()["LaunchTemplates"]
+    assert len(launch_templates) == 1
+    launch_template_id = launch_templates[0]["LaunchTemplateId"]
+
     template_json = json.dumps(
         {
             "AWSTemplateFormatVersion": "2010-09-09",
@@ -358,3 +362,7 @@ def test_launch_template_unnamed_update():
         TemplateBody=template_json,
         Capabilities=["CAPABILITY_NAMED_IAM"],
     )
+
+    launch_templates = ec2_client.describe_launch_templates()["LaunchTemplates"]
+    assert len(launch_templates) == 1
+    assert launch_template_id == launch_templates[0]["LaunchTemplateId"]
