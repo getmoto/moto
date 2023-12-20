@@ -848,9 +848,9 @@ class Table(CloudFormationModel):
             passes_all_conditions = True
             for attribute_name in filters:
                 attribute = item.attrs.get(attribute_name)
+                (comparison_operator, comparison_objs) = filters[attribute_name]
 
                 if attribute:
-                    (comparison_operator, comparison_objs) = filters[attribute_name]
                     # Attribute found
                     if not attribute.compare(comparison_operator, comparison_objs):
                         passes_all_conditions = False

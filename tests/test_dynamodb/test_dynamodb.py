@@ -1617,6 +1617,50 @@ def test_bad_scan_filter():
 
 
 @mock_dynamodb
+def test_scan_with_scanfilter():
+    table_name = "my-table"
+    item = {"partitionKey": "pk-2", "my-attr": 42}
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    res = boto3.resource("dynamodb", region_name="us-east-1")
+    res.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = res.Table(table_name)
+    table.put_item(Item={"partitionKey": "pk-1"})
+    table.put_item(Item=item)
+
+    # ScanFilter: EQ
+    # The DynamoDB table-resource sends the AttributeValueList in the wrong format
+    # So this operation never finds any data, in Moto or AWS
+    table.scan(
+        ScanFilter={
+            "my-attr": {"AttributeValueList": [{"N": "42"}], "ComparisonOperator": "EQ"}
+        }
+    )
+
+    # ScanFilter: EQ
+    # If we use the boto3-client, we do receive the correct data
+    items = client.scan(
+        TableName=table_name,
+        ScanFilter={
+            "partitionKey": {
+                "AttributeValueList": [{"S": "pk-1"}],
+                "ComparisonOperator": "EQ",
+            }
+        },
+    )["Items"]
+    assert items == [{"partitionKey": {"S": "pk-1"}}]
+
+    # ScanFilter: NONE
+    # Note that we can use the table-resource here, because we're not using the AttributeValueList
+    items = table.scan(ScanFilter={"my-attr": {"ComparisonOperator": "NULL"}})["Items"]
+    assert items == [{"partitionKey": "pk-1"}]
+
+
+@mock_dynamodb
 def test_duplicate_create():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
