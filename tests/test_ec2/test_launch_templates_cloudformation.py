@@ -334,9 +334,14 @@ def test_launch_template_unnamed_update():
         OnFailure="DELETE",
     )
 
-    launch_templates = ec2_client.describe_launch_templates()["LaunchTemplates"]
-    assert len(launch_templates) == 1
-    launch_template_id = launch_templates[0]["LaunchTemplateId"]
+    launch_template_resource = cf_client.describe_stack_resources(
+        StackName=stack_name, LogicalResourceId="LaunchTemplate"
+    )["StackResources"][0]
+    launch_template_id = launch_template_resource["PhysicalResourceId"]
+    launch_template = ec2_client.describe_launch_templates(
+        LaunchTemplateIds=[launch_template_id]
+    )["LaunchTemplates"][0]
+    assert launch_template["LatestVersionNumber"] == 1
 
     template_json = json.dumps(
         {
@@ -363,6 +368,13 @@ def test_launch_template_unnamed_update():
         Capabilities=["CAPABILITY_NAMED_IAM"],
     )
 
-    launch_templates = ec2_client.describe_launch_templates()["LaunchTemplates"]
-    assert len(launch_templates) == 1
-    assert launch_template_id == launch_templates[0]["LaunchTemplateId"]
+    updated_launch_template_resource = cf_client.describe_stack_resources(
+        StackName=stack_name, LogicalResourceId="LaunchTemplate"
+    )["StackResources"][0]
+    updated_launch_template_id = updated_launch_template_resource["PhysicalResourceId"]
+    updated_launch_template = ec2_client.describe_launch_templates(
+        LaunchTemplateIds=[updated_launch_template_id]
+    )["LaunchTemplates"][0]
+
+    assert launch_template_id == updated_launch_template_id
+    assert updated_launch_template["LatestVersionNumber"] == 2
