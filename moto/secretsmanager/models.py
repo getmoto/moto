@@ -4,7 +4,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core import BackendDict, BaseBackend, BaseModel
-from moto.core.utils import utcnow
+from moto.core.utils import utcfromtimestamp, utcnow
 from moto.moto_api._internal import mock_random
 
 from .exceptions import (
@@ -273,7 +273,7 @@ class SecretsManagerBackend(BaseBackend):
         return identifier in self.secrets
 
     def _unix_time_secs(self, dt: datetime.datetime) -> float:
-        epoch = datetime.datetime.utcfromtimestamp(0)
+        epoch = utcfromtimestamp(0)
         return (dt - epoch).total_seconds()
 
     def _client_request_token_validator(self, client_request_token: str) -> None:

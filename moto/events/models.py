@@ -5,7 +5,6 @@ import re
 import sys
 import warnings
 from collections import OrderedDict
-from datetime import datetime
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
@@ -20,6 +19,7 @@ from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
     unix_time,
     unix_time_millis,
+    utcfromtimestamp,
 )
 from moto.events.exceptions import (
     IllegalStatusException,
@@ -170,7 +170,7 @@ class Rule(CloudFormationModel):
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            datetime.utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])
         )
 
         log_stream_name = str(random.uuid4())
@@ -202,7 +202,7 @@ class Rule(CloudFormationModel):
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            datetime.utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])
         )
 
         if group_id:

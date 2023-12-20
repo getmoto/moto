@@ -12,6 +12,7 @@ from freezegun import freeze_time
 
 from moto import mock_cloudwatch, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import utcnow
 
 
 @mock_cloudwatch
@@ -1912,7 +1913,7 @@ def test_get_metric_data_queries():
     verify that >= 10 queries can still be parsed
     there was an error with the order of parsing items, leading to IndexError
     """
-    now = datetime.utcnow().replace(microsecond=0)
+    now = utcnow().replace(microsecond=0)
     start_time = now - timedelta(minutes=10)
     end_time = now + timedelta(minutes=5)
     original_query = {
