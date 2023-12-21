@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ["acm"]
+        service: ["acm", "route53"]
 
     steps:
     - uses: actions/checkout@v4
@@ -30,4 +30,7 @@ jobs:
     - name: Run tests
       run: |
         mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
-        cd other_langs/terraform/${{ matrix.service }} && terraform init && terraform apply --auto-approve
+        cd other_langs/terraform/${{ matrix.service }}
+        terraform init
+        terraform apply --auto-approve
+        terraform apply -destroy --auto-approve
