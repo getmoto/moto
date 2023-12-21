@@ -314,6 +314,27 @@ class ChangeList(List[Dict[str, Any]]):
         item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
         return super().__contains__(item)
 
+    def has_insert_or_update(self, new_rr_set: Dict[str, Any]) -> bool:
+        """
+        Check if a CREATE or UPSERT record exists where the name and type is the same as the provided record
+        If the existing record has TTL/ResourceRecords, the new TTL should have the same
+        """
+        for change in self:
+            if change["Action"] in ["CREATE", "UPSERT"]:
+                rr_set = change["ResourceRecordSet"]
+                if (
+                    rr_set["Name"] == new_rr_set["Name"].strip(".")
+                    and rr_set["Type"] == new_rr_set["Type"]
+                ):
+                    if "TTL" in rr_set:
+                        if rr_set["TTL"] == new_rr_set.get("TTL") and rr_set[
+                            "ResourceRecords"
+                        ] == new_rr_set.get("ResourceRecords"):
+                            return True
+                    else:
+                        return True
+        return False
+
 
 class FakeZone(CloudFormationModel):
     def __init__(
@@ -632,13 +653,8 @@ class Route53Backend(BaseBackend):
         for value in change_list:
             if value["Action"] == "DELETE":
                 # To delete a resource record set, you must specify all the same values that you specified when you created it.
-                corresponding_create = copy.deepcopy(value)
-                corresponding_create["Action"] = "CREATE"
-                corresponding_upsert = copy.deepcopy(value)
-                corresponding_upsert["Action"] = "UPSERT"
-                if (
-                    corresponding_create not in the_zone.rr_changes
-                    and corresponding_upsert not in the_zone.rr_changes
+                if not the_zone.rr_changes.has_insert_or_update(
+                    value["ResourceRecordSet"]
                 ):
                     msg = f"Invalid request: Expected exactly one of [AliasTarget, all of [TTL, and ResourceRecords], or TrafficPolicyInstanceId], but found none in Change with [Action=DELETE, Name={value['ResourceRecordSet']['Name']}, Type={value['ResourceRecordSet']['Type']}, SetIdentifier={value['ResourceRecordSet'].get('SetIdentifier', 'null')}]"
                     raise InvalidInput(msg)
