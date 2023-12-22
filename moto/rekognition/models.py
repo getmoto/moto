@@ -46,6 +46,17 @@ class RekognitionBackend(BaseBackend):
             self._text_model_version(),
         )
 
+    def compare_faces(
+        self,
+    ) -> Tuple[List[Dict[str, Any]], str, str, List[Dict[str, Any]], Dict[str, Any],]:
+        return (
+            self._face_matches(),
+            "ROTATE_90",
+            "ROTATE_90",
+            self._unmatched_faces(),
+            self.source_image_face(),
+        )
+
     # private
 
     def _job_id(self) -> str:
@@ -338,6 +349,114 @@ class RekognitionBackend(BaseBackend):
                 },
             },
         ]
+
+    def _face_matches(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "Face": {
+                    "BoundingBox": {
+                        "Width": 0.5521978139877319,
+                        "Top": 0.1203877404332161,
+                        "Left": 0.23626373708248138,
+                        "Height": 0.3126954436302185,
+                    },
+                    "Confidence": 99.98751068115234,
+                    "Pose": {
+                        "Yaw": -82.36799621582031,
+                        "Roll": -62.13221740722656,
+                        "Pitch": 0.8652129173278809,
+                    },
+                    "Quality": {
+                        "Sharpness": 99.99880981445312,
+                        "Brightness": 54.49755096435547,
+                    },
+                    "Landmarks": [
+                        {
+                            "Y": 0.2996366024017334,
+                            "X": 0.41685718297958374,
+                            "Type": "eyeLeft",
+                        },
+                        {
+                            "Y": 0.2658946216106415,
+                            "X": 0.4414493441581726,
+                            "Type": "eyeRight",
+                        },
+                        {
+                            "Y": 0.3465650677680969,
+                            "X": 0.48636093735694885,
+                            "Type": "nose",
+                        },
+                        {
+                            "Y": 0.30935320258140564,
+                            "X": 0.6251809000968933,
+                            "Type": "mouthLeft",
+                        },
+                        {
+                            "Y": 0.26942989230155945,
+                            "X": 0.6454493403434753,
+                            "Type": "mouthRight",
+                        },
+                    ],
+                },
+                "Similarity": 100.0,
+            }
+        ]
+
+    def _unmatched_faces(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "BoundingBox": {
+                    "Width": 0.4890109896659851,
+                    "Top": 0.6566604375839233,
+                    "Left": 0.10989011079072952,
+                    "Height": 0.278298944234848,
+                },
+                "Confidence": 99.99992370605469,
+                "Pose": {
+                    "Yaw": 51.51519012451172,
+                    "Roll": -110.32493591308594,
+                    "Pitch": -2.322134017944336,
+                },
+                "Quality": {
+                    "Sharpness": 99.99671173095703,
+                    "Brightness": 57.23163986206055,
+                },
+                "Landmarks": [
+                    {
+                        "Y": 0.8288310766220093,
+                        "X": 0.3133862614631653,
+                        "Type": "eyeLeft",
+                    },
+                    {
+                        "Y": 0.7632885575294495,
+                        "X": 0.28091415762901306,
+                        "Type": "eyeRight",
+                    },
+                    {"Y": 0.7417283654212952, "X": 0.3631140887737274, "Type": "nose"},
+                    {
+                        "Y": 0.8081989884376526,
+                        "X": 0.48565614223480225,
+                        "Type": "mouthLeft",
+                    },
+                    {
+                        "Y": 0.7548204660415649,
+                        "X": 0.46090251207351685,
+                        "Type": "mouthRight",
+                    },
+                ],
+            }
+        ]
+
+    def source_image_face(self) -> Dict[str, Any]:
+        return {
+            "BoundingBox": {
+                "Width": 0.5521978139877319,
+                "Top": 0.1203877404332161,
+                "Left": 0.23626373708248138,
+                "Height": 0.3126954436302185,
+            },
+            "Confidence": 99.98751068115234,
+        }
 
 
 rekognition_backends = BackendDict(RekognitionBackend, "rekognition")

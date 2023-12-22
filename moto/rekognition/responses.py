@@ -58,6 +58,25 @@ class RekognitionResponse(BaseResponse):
             )
         )
 
+    def compare_faces(self) -> str:
+        (
+            face_matches,
+            source_image_orientation_correction,
+            target_image_orientation_correction,
+            unmatched_faces,
+            source_image_face,
+        ) = self.rekognition_backend.compare_faces()
+
+        return json.dumps(
+            dict(
+                FaceMatches=face_matches,
+                SourceImageOrientationCorrection=source_image_orientation_correction,
+                TargetImageOrientationCorrection=target_image_orientation_correction,
+                UnmatchedFaces=unmatched_faces,
+                SourceImageFace=source_image_face,
+            )
+        )
+
     def start_face_search(self) -> TYPE_RESPONSE:
         headers = {"Content-Type": "application/x-amz-json-1.1"}
         job_id = self.rekognition_backend.start_face_search()
