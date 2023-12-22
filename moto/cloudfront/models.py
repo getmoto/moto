@@ -3,7 +3,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
@@ -270,10 +269,6 @@ class CloudFrontBackend(BaseBackend):
         self.invalidations: Dict[str, List[Invalidation]] = dict()
         self.origin_access_controls: Dict[str, OriginAccessControl] = dict()
         self.tagger = TaggingService()
-
-        state_manager.register_default_transition(
-            "cloudfront::distribution", transition={"progression": "manual", "times": 1}
-        )
 
     def create_distribution(
         self, distribution_config: Dict[str, Any], tags: List[Dict[str, str]]

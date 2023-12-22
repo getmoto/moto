@@ -9,7 +9,6 @@ from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time
 from moto.ec2 import ec2_backends
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 
@@ -961,11 +960,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.tasks: Dict[str, Dict[str, Task]] = {}
         self.services: Dict[str, Service] = {}
         self.container_instances: Dict[str, Dict[str, ContainerInstance]] = {}
-
-        state_manager.register_default_transition(
-            model_name="ecs::task",
-            transition={"progression": "manual", "times": 1},
-        )
 
     @staticmethod
     def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]

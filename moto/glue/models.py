@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time, utcnow
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 
@@ -112,10 +111,6 @@ class GlueBackend(BaseBackend):
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
-
-        state_manager.register_default_transition(
-            model_name="glue::job_run", transition={"progression": "immediate"}
-        )
 
     @staticmethod
     def default_vpc_endpoint_service(

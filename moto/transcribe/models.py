@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from moto.core import BackendDict, BaseBackend, BaseModel
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 
@@ -479,22 +478,6 @@ class TranscribeBackend(BaseBackend):
         self.transcriptions: Dict[str, FakeTranscriptionJob] = {}
         self.medical_vocabularies: Dict[str, FakeMedicalVocabulary] = {}
         self.vocabularies: Dict[str, FakeVocabulary] = {}
-
-        state_manager.register_default_transition(
-            "transcribe::vocabulary", transition={"progression": "manual", "times": 1}
-        )
-        state_manager.register_default_transition(
-            "transcribe::medicalvocabulary",
-            transition={"progression": "manual", "times": 1},
-        )
-        state_manager.register_default_transition(
-            "transcribe::transcriptionjob",
-            transition={"progression": "manual", "times": 1},
-        )
-        state_manager.register_default_transition(
-            "transcribe::medicaltranscriptionjob",
-            transition={"progression": "manual", "times": 1},
-        )
 
     @staticmethod
     def default_vpc_endpoint_service(

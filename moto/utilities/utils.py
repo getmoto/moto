@@ -22,7 +22,7 @@ def load_resource(package: str, resource: str) -> Any:
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
-    return load_resource_as_bytes(package, resource).decode("utf-8")  # type: ignore
+    return load_resource_as_bytes(package, resource).decode("utf-8")
 
 
 def load_resource_as_bytes(package: str, resource: str) -> bytes:

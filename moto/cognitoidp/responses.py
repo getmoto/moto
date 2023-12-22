@@ -14,12 +14,13 @@ from .models import (
     find_account_region_by_value,
 )
 
-region_agnostic_backend = RegionAgnosticBackend()
-
 
 class CognitoIdpResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="cognito-idp")
+
+    def _get_region_agnostic_backend(self) -> RegionAgnosticBackend:
+        return RegionAgnosticBackend(self.current_account, self.region)
 
     @property
     def parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -353,7 +354,7 @@ class CognitoIdpResponse(BaseResponse):
 
     def get_user(self) -> str:
         access_token = self._get_param("AccessToken")
-        user = region_agnostic_backend.get_user(access_token=access_token)
+        user = self._get_region_agnostic_backend().get_user(access_token=access_token)
         return json.dumps(user.to_json(extended=True, attributes_key="UserAttributes"))
 
     def list_users(self) -> str:
@@ -454,7 +455,8 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
-        auth_result = region_agnostic_backend.admin_respond_to_auth_challenge(
+        backend = self._get_region_agnostic_backend()
+        auth_result = backend.admin_respond_to_auth_challenge(
             session, client_id, challenge_name, challenge_responses
         )
 
@@ -465,7 +467,7 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         challenge_name = self._get_param("ChallengeName")
         challenge_responses = self._get_param("ChallengeResponses")
-        auth_result = region_agnostic_backend.respond_to_auth_challenge(
+        auth_result = self._get_region_agnostic_backend().respond_to_auth_challenge(
             session, client_id, challenge_name, challenge_responses
         )
 
@@ -474,7 +476,9 @@ class CognitoIdpResponse(BaseResponse):
     def forgot_password(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
-        account, region = find_account_region_by_value("client_id", client_id)
+        account, region = find_account_region_by_value(
+            "client_id", client_id, fallback=(self.current_account, self.region)
+        )
         confirmation_code, response = cognitoidp_backends[account][
             region
         ].forgot_password(client_id, username)
@@ -492,7 +496,9 @@ class CognitoIdpResponse(BaseResponse):
         username = self._get_param("Username")
         password = self._get_param("Password")
         confirmation_code = self._get_param("ConfirmationCode")
-        account, region = find_account_region_by_value("client_id", client_id)
+        account, region = find_account_region_by_value(
+            "client_id", client_id, fallback=(self.current_account, self.region)
+        )
         cognitoidp_backends[account][region].confirm_forgot_password(
             client_id, username, password, confirmation_code
         )
@@ -503,7 +509,9 @@ class CognitoIdpResponse(BaseResponse):
         access_token = self._get_param("AccessToken")
         previous_password = self._get_param("PreviousPassword")
         proposed_password = self._get_param("ProposedPassword")
-        account, region = find_account_region_by_value("access_token", access_token)
+        account, region = find_account_region_by_value(
+            "access_token", access_token, fallback=(self.current_account, self.region)
+        )
         cognitoidp_backends[account][region].change_password(
             access_token, previous_password, proposed_password
         )
@@ -573,7 +581,7 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
-        user = region_agnostic_backend.sign_up(
+        user = self._get_region_agnostic_backend().sign_up(
             client_id=client_id,
             username=username,
             password=password,
@@ -589,7 +597,9 @@ class CognitoIdpResponse(BaseResponse):
     def confirm_sign_up(self) -> str:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
-        region_agnostic_backend.confirm_sign_up(client_id=client_id, username=username)
+        self._get_region_agnostic_backend().confirm_sign_up(
+            client_id=client_id, username=username
+        )
         return ""
 
     def initiate_auth(self) -> str:
@@ -597,7 +607,7 @@ class CognitoIdpResponse(BaseResponse):
         auth_flow = self._get_param("AuthFlow")
         auth_parameters = self._get_param("AuthParameters")
 
-        auth_result = region_agnostic_backend.initiate_auth(
+        auth_result = self._get_region_agnostic_backend().initiate_auth(
             client_id, auth_flow, auth_parameters
         )
 
