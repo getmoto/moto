@@ -94,6 +94,72 @@ def test_data_lake_settings():
 
 
 @mock_lakeformation
+def test_grant_permissions():
+    client = boto3.client("lakeformation", region_name="us-east-2")
+
+    resp = client.grant_permissions(
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["ALL"],
+    )
+    del resp["ResponseMetadata"]
+    assert resp == {}
+    resp = client.list_permissions()
+    assert resp["PrincipalResourcePermissions"] == [
+        {
+            "Principal": {"DataLakePrincipalIdentifier": "asdf"},
+            "Resource": {"Database": {"Name": "db"}},
+            "Permissions": ["ALL"],
+            "PermissionsWithGrantOption": [],
+        }
+    ]
+
+
+@mock_lakeformation
+def test_grant_permissions_idempotent():
+    client = boto3.client("lakeformation", region_name="us-east-2")
+
+    for _ in range(2):
+        resp = client.grant_permissions(
+            Principal={"DataLakePrincipalIdentifier": "asdf"},
+            Resource={"Database": {"Name": "db"}},
+            Permissions=["ALL"],
+        )
+        del resp["ResponseMetadata"]
+        assert resp == {}
+    resp = client.list_permissions()
+    assert resp["PrincipalResourcePermissions"] == [
+        {
+            "Principal": {"DataLakePrincipalIdentifier": "asdf"},
+            "Resource": {"Database": {"Name": "db"}},
+            "Permissions": ["ALL"],
+            "PermissionsWithGrantOption": [],
+        }
+    ]
+
+
+@mock_lakeformation
+def test_grant_permissions_staggered():
+    client = boto3.client("lakeformation", region_name="us-east-2")
+    client.grant_permissions(
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["DESCRIBE"],
+    )
+    client.grant_permissions(
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["CREATE_TABLE"],
+    )
+
+    resp = client.list_permissions()
+    assert len(resp["PrincipalResourcePermissions"]) == 1
+    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == set(
+        ["DESCRIBE", "CREATE_TABLE"]
+    )
+
+
+@mock_lakeformation
 def test_list_permissions():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 
@@ -448,14 +514,25 @@ def test_revoke_permissions():
 
     # list all
     resp = client.list_permissions()
-    assert resp["PrincipalResourcePermissions"] == [
-        {
-            "Principal": {"DataLakePrincipalIdentifier": "asdf"},
-            "Resource": {"Database": {"Name": "db"}},
-            "Permissions": ["SELECT", "ALTER"],
-            "PermissionsWithGrantOption": ["SELECT", "DROP"],
-        }
-    ]
+    print(resp["PrincipalResourcePermissions"])
+    assert resp["PrincipalResourcePermissions"][0]["Principal"] == {
+        "DataLakePrincipalIdentifier": "asdf"
+    }
+    assert resp["PrincipalResourcePermissions"][0]["Resource"] == {
+        "Database": {"Name": "db"}
+    }
+    # compare as sets to be order independent
+    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == set(
+        ["SELECT", "ALTER"]
+    )
+    assert set(
+        resp["PrincipalResourcePermissions"][0]["PermissionsWithGrantOption"]
+    ) == set(
+        [
+            "SELECT",
+            "DROP",
+        ]
+    )
 
 
 @mock_lakeformation
