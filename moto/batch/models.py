@@ -22,7 +22,6 @@ from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
 from moto.logs.models import LogsBackend, logs_backends
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
@@ -1013,10 +1012,6 @@ class BatchBackend(BaseBackend):
         self._job_definitions: Dict[str, JobDefinition] = {}
         self._jobs: Dict[str, Job] = {}
         self._scheduling_policies: Dict[str, SchedulingPolicy] = {}
-
-        state_manager.register_default_transition(
-            "batch::job", transition={"progression": "manual", "times": 1}
-        )
 
     @property
     def iam_backend(self) -> IAMBackend:

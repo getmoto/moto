@@ -29,7 +29,6 @@ from moto.core.utils import (
     unix_time_millis,
     utcnow,
 )
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.exceptions import (
@@ -1614,10 +1613,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         super().__init__(region_name, account_id)
         self.buckets: Dict[str, FakeBucket] = {}
         self.tagger = TaggingService()
-
-        state_manager.register_default_transition(
-            "s3::keyrestore", transition={"progression": "immediate"}
-        )
 
     def reset(self) -> None:
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys

@@ -254,9 +254,6 @@ class MockAll(ContextDecorator):
 
 mock_all = MockAll
 
-# import logging
-# logging.getLogger('boto').setLevel(logging.CRITICAL)
-
 __title__ = "moto"
 __version__ = "4.2.13.dev"
 

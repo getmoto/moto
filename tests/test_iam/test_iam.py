@@ -1,6 +1,7 @@
 import csv
 import json
 from datetime import datetime
+from unittest import SkipTest
 from urllib import parse
 from uuid import uuid4
 
@@ -3580,6 +3581,8 @@ def test_role_list_config_discovered_resources():
 
 @mock_iam
 def test_role_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Using backend directly - no point in testing ServerMode")
     from moto.iam.config import policy_config_query, role_config_query
     from moto.iam.utils import random_policy_id, random_role_id
 
@@ -4189,6 +4192,8 @@ def test_policy_list_config_discovered_resources():
 
 @mock_iam
 def test_policy_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Using backend directly - no point in testing ServerMode")
     from moto.iam.config import policy_config_query, role_config_query
     from moto.iam.utils import random_policy_id
 

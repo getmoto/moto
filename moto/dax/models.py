@@ -3,7 +3,6 @@ from typing import Any, Dict, Iterable, List
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.paginator import paginate
@@ -166,10 +165,6 @@ class DAXBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._clusters: Dict[str, DaxCluster] = dict()
         self._tagger = TaggingService()
-
-        state_manager.register_default_transition(
-            model_name="dax::cluster", transition={"progression": "manual", "times": 4}
-        )
 
     @property
     def clusters(self) -> Dict[str, DaxCluster]:
