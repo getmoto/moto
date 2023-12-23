@@ -3,11 +3,9 @@ import json
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 from typing import Dict, Any, Optional, Union, List
-from typing_extensions import Literal
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.panorama.type import DEVICE_AGGREGATED_STATUS_TYPE, PROVISIONING_STATUS_TYPE
 from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
 from moto.utilities.paginator import paginate
 
@@ -60,6 +58,11 @@ class Device(BaseObject):
         network_configuration: Optional[Dict[str, Any]],
         tags: Optional[Dict[str, str]],
     ) -> None:
+        # ManagedState is a class that helps us manage the state of a resource.
+        # A Panorama Device has a lot of different states that has their own lifecycle.
+        # To make all this states in the same object, and avoid changing ManagedState,
+        # we use a ManagedState for each state and we manage them in the Device class.
+        # Each ManagedState has a name composed with attribute name and device name to make subscription easier.
         self.__device_aggregated_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_aggregated_status",
             transitions=[("AWAITING_PROVISIONING", "PENDING"), ("PENDING", "ONLINE")],
@@ -87,7 +90,7 @@ class Device(BaseObject):
         self.alternate_softwares = [
             {"Version": "0.2.1"},
         ]
-        self.brand: Literal["AWS_PANORAMA", "LENOVO"] = "AWS_PANORAMA"
+        self.brand: str = "AWS_PANORAMA"  # AWS_PANORAMA | LENOVO
         self.created_time = datetime.now(tzutc())
         self.last_updated_time = datetime.now(tzutc())
         self.current_networking_status = {
@@ -109,26 +112,22 @@ class Device(BaseObject):
             },
         }
         self.current_software = "6.2.1"
-        self.device_connection_status: Literal[
-            "ONLINE", "OFFLINE", "AWAITING_CREDENTIALS", "NOT_AVAILABLE", "ERROR"
-        ] = "ONLINE"
+        self.device_connection_status: str = "ONLINE"  # "ONLINE"|"OFFLINE"|"AWAITING_CREDENTIALS"|"NOT_AVAILABLE"|"ERROR"
         self.latest_device_job = {"JobType": "REBOOT", "Status": "COMPLETED"}
         self.latest_software = "6.2.1"
         self.lease_expiration_time = datetime.now(tzutc()) + timedelta(days=5)
         self.serial_number = "GAD81E29013274749"
-        self.type: Literal[
-            "PANORAMA_APPLIANCE_DEVELOPER_KIT", "PANORAMA_APPLIANCE"
-        ] = "PANORAMA_APPLIANCE"
+        self.type: str = "PANORAMA_APPLIANCE"  # "PANORAMA_APPLIANCE_DEVELOPER_KIT", "PANORAMA_APPLIANCE"
 
     @property
-    def device_aggregated_status(self) -> DEVICE_AGGREGATED_STATUS_TYPE:
-        _device_aggregated_status: DEVICE_AGGREGATED_STATUS_TYPE = self.__device_aggregated_status_manager.status  # type: ignore[assignment]
+    def device_aggregated_status(self) -> str:
+        _device_aggregated_status: str = self.__device_aggregated_status_manager.status  # type: ignore[assignment]
         self.__device_aggregated_status_manager.advance()
         return _device_aggregated_status
 
     @property
-    def provisioning_status(self) -> PROVISIONING_STATUS_TYPE:
-        _provisioning_status: PROVISIONING_STATUS_TYPE = self.__device_provisioning_status_manager.status  # type: ignore[assignment]
+    def provisioning_status(self) -> str:
+        _provisioning_status: str = self.__device_provisioning_status_manager.status  # type: ignore[assignment]
         self.__device_provisioning_status_manager.advance()
         return _provisioning_status
 
@@ -249,12 +248,10 @@ class PanoramaBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_devices(
         self,
-        device_aggregated_status_filter: DEVICE_AGGREGATED_STATUS_TYPE,
+        device_aggregated_status_filter: str,
         name_filter: str,
-        sort_by: Literal[
-            "DEVICE_ID", "CREATED_TIME", "NAME", "DEVICE_AGGREGATED_STATUS"
-        ],
-        sort_order: Literal["ASCENDING", "DESCENDING"],
+        sort_by: str,  # "DEVICE_ID", "CREATED_TIME", "NAME", "DEVICE_AGGREGATED_STATUS"
+        sort_order: str,  # "ASCENDING", "DESCENDING"
     ) -> List[Device]:
         devices_list = list(
             filter(
