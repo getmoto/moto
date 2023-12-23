@@ -203,7 +203,7 @@ class Device(BaseObject):
             ),
             "DeviceId": self.device_id,
             "IotThingName": self.iot_thing_name,
-            "Status": "AWAITING_PROVISIONING",
+            "Status": self.provisioning_status,
         }
 
     @property

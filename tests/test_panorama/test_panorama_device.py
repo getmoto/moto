@@ -16,8 +16,13 @@ from botocore.exceptions import ClientError
 @mock_panorama
 def test_provision_device() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
+    given_device_name = "test-device-name"
+    state_manager.set_transition(
+        model_name=f"panorama::device_{given_device_name}_provisioning_status",
+        transition={"progression": "manual", "times": 1},
+    )
     resp = client.provision_device(
-        Description="test device description",
+        Description=given_device_name,
         Name="test-device-name",
         NetworkingConfiguration={
             "Ethernet0": {
