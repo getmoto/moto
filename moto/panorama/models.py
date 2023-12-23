@@ -82,6 +82,9 @@ class Device(BaseObject):
         self.network_configuration = network_configuration
         self.tags = tags
 
+        self.certificates = base64.b64encode("certificate".encode("utf-8")).decode(
+                "utf-8"
+            )
         self.arn = (
             f"arn:aws:panorama:{self.region_name}:{self.account_id}:device/{self.name}"
         )
@@ -204,9 +207,7 @@ class Device(BaseObject):
     def response_provision(self) -> Dict[str, Union[str, bytes]]:
         return {
             "Arn": self.arn,
-            "Certificates": base64.b64encode("certificate".encode("utf-8")).decode(
-                "utf-8"
-            ),
+            "Certificates": self.certificates,
             "DeviceId": self.device_id,
             "IotThingName": self.iot_thing_name,
             "Status": self.provisioning_status,
