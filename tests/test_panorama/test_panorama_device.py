@@ -15,6 +15,8 @@ from botocore.exceptions import ClientError
 
 @mock_panorama
 def test_provision_device() -> None:
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't use ManagedState in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     given_device_name = "test-device-name"
     state_manager.set_transition(
@@ -141,6 +143,8 @@ def test_describe_device() -> None:
 
 @mock_panorama
 def test_provision_device_aggregated_status_lifecycle() -> None:
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't use ManagedState in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     given_device_name = "test-device-name"
     state_manager.set_transition(
@@ -372,6 +376,8 @@ def test_list_devices_sort_by(sort_by: str, indexes: List[int]) -> None:
 
 @mock_panorama
 def test_list_devices_device_aggregated_status_filter() -> None:
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't use ManagedState in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",
