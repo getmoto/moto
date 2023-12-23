@@ -37,11 +37,7 @@ class PanoramaResponse(BaseResponse):
         device_aggregated_status_filter = self._get_param(
             "DeviceAggregatedStatusFilter"
         )
-        max_results = (
-            int(self._get_param("MaxResults"))
-            if self._get_param("MaxResults")
-            else None
-        )
+        max_results = self._get_int_param("MaxResults")
         name_filter = self._get_param("NameFilter")
         next_token = self._get_param("NextToken")
         sort_by = self._get_param("SortBy")
