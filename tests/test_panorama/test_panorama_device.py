@@ -63,10 +63,15 @@ def test_describe_device() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
+    given_device_name = "test-device-name"
+    state_manager.set_transition(
+        model_name=f"panorama::device_{given_device_name}_provisioning_status",
+        transition={"progression": "immediate"},
+    )
     with freeze_time("2020-01-01 12:00:00"):
         resp = client.provision_device(
             Description="test device description",
-            Name="test-device-name",
+            Name=given_device_name,
             NetworkingConfiguration={
                 "Ethernet0": {
                     "ConnectionType": "STATIC_IP",
@@ -370,7 +375,7 @@ def test_list_devices_device_aggregated_status_filter() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",
-        transition={"progression": "manual", "times": 0},
+        transition={"progression": "manual", "times": 1},
     )
     _ = client.provision_device(
         Description="test device description 1",
@@ -382,11 +387,8 @@ def test_list_devices_device_aggregated_status_filter() -> None:
         Name="test-device-name-2",
         Tags={"Key": "test-key", "Value": "test-value"},
     )
+    # Need two advance to go from not-a-status to Pending
     client.describe_device(DeviceId=resp_2["DeviceId"])
-    state_manager.set_transition(
-        model_name="panorama::device_test-device-name-2_aggregated_status",
-        transition={"progression": "manual", "times": 10},
-    )
 
     resp = client.list_devices(DeviceAggregatedStatusFilter="PENDING")
 

@@ -65,11 +65,12 @@ class Device(BaseObject):
         # Each ManagedState has a name composed with attribute name and device name to make subscription easier.
         self.__device_aggregated_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_aggregated_status",
-            transitions=[("AWAITING_PROVISIONING", "PENDING"), ("PENDING", "ONLINE")],
+            transitions=[("NOT-A-STATUS", "AWAITING_PROVISIONING"), ("AWAITING_PROVISIONING", "PENDING"), ("PENDING", "ONLINE")],
         )
         self.__device_provisioning_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_provisioning_status",
             transitions=[
+                ("NOT-A-STATUS", "AWAITING_PROVISIONING"),
                 ("AWAITING_PROVISIONING", "PENDING"),
                 ("PENDING", "SUCCEEDED"),
             ],
@@ -121,15 +122,20 @@ class Device(BaseObject):
 
     @property
     def device_aggregated_status(self) -> str:
-        _device_aggregated_status: str = self.__device_aggregated_status_manager.status  # type: ignore[assignment]
+        # _device_aggregated_status: str = self.__device_aggregated_status_manager.status  # type: ignore[assignment]
+        # self.__device_aggregated_status_manager.advance()
+        # return _device_aggregated_status
         self.__device_aggregated_status_manager.advance()
-        return _device_aggregated_status
+        return self.__device_aggregated_status_manager.status
+
 
     @property
     def provisioning_status(self) -> str:
-        _provisioning_status: str = self.__device_provisioning_status_manager.status  # type: ignore[assignment]
+        # _provisioning_status: str = self.__device_provisioning_status_manager.status  # type: ignore[assignment]
+        # self.__device_provisioning_status_manager.advance()
+        # return _provisioning_status
         self.__device_provisioning_status_manager.advance()
-        return _provisioning_status
+        return self.__device_provisioning_status_manager.status
 
     def response_object(self) -> Dict[str, Any]:
         response_object = super().gen_response_object()
