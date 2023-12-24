@@ -1,16 +1,15 @@
 from datetime import datetime
 from typing import List
 from unittest import SkipTest
-import pytest
-
-from dateutil.tz import tzutc
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_panorama, settings
 from moto.moto_api import state_manager
-from botocore.exceptions import ClientError
 
 
 @mock_panorama

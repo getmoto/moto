@@ -2,7 +2,8 @@ import json
 import urllib
 
 from moto.core.responses import BaseResponse
-from .models import panorama_backends, PanoramaBackend
+
+from .models import PanoramaBackend, panorama_backends
 
 
 class PanoramaResponse(BaseResponse):

@@ -66,7 +66,7 @@ lakeformation
 - [ ] list_lake_formation_opt_ins
 - [X] list_lf_tags
 - [X] list_permissions
-
+  
         No pagination has been implemented yet.
         
 
@@ -87,3 +87,4 @@ lakeformation
 - [ ] update_resource
 - [ ] update_table_objects
 - [ ] update_table_storage_optimizer
+

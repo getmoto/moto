@@ -1,8 +1,9 @@
 import base64
 import json
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
+
 from dateutil.tz import tzutc
-from typing import Dict, Any, Optional, Union, List
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
