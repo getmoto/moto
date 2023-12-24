@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 @requires_docker
 @pytest.mark.order(0)
-def test_docker_package_is_available():
+def test_docker_package_is_available() -> None:
     try:
         import docker  # noqa: F401   # pylint: disable=unused-import
     except ImportError as err:
@@ -22,7 +22,7 @@ def test_docker_package_is_available():
 
 @requires_docker
 @pytest.mark.order(0)
-def test_docker_is_running_and_available():
+def test_docker_is_running_and_available() -> None:
     import docker
     from docker.errors import DockerException
 

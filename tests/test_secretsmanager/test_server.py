@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 import json
+import unittest
 
 import boto3
 import pytest
 
 import moto.server as server
-from moto import mock_secretsmanager, mock_lambda, mock_iam, mock_logs, settings
+from moto import mock_iam, mock_lambda, mock_logs, mock_secretsmanager, settings
 from tests.markers import requires_docker
 from tests.test_awslambda.test_lambda import get_test_zip_file1
 
 DEFAULT_SECRET_NAME = "test-secret"
+
+
+@pytest.fixture(scope="function", autouse=True)
+def skip_in_server_mode():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("No point in testing this in ServerMode")
 
 
 @mock_secretsmanager
@@ -329,11 +336,7 @@ def test_rotate_secret_that_is_still_rotating():
 
     create_secret = test_client.post(
         "/",
-        data={
-            "Name": DEFAULT_SECRET_NAME,
-            "SecretString": "foosecret",
-            # "VersionStages": ["AWSPENDING"],
-        },
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
         headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
     )
     create_secret = json.loads(create_secret.data.decode("utf-8"))
@@ -450,78 +453,77 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
     assert json_data["__type"] == "InvalidParameterException"
 
 
-if not settings.TEST_SERVER_MODE:
+@mock_iam
+@mock_lambda
+@mock_logs
+@mock_secretsmanager
+@requires_docker
+def test_rotate_secret_lambda_invocations():
+    conn = boto3.client("iam", region_name="us-east-1")
+    logs_conn = boto3.client("logs", region_name="us-east-1")
+    role = conn.create_role(
+        RoleName="role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+    )
 
-    @mock_iam
-    @mock_lambda
-    @mock_logs
-    @mock_secretsmanager
-    @requires_docker
-    def test_rotate_secret_lambda_invocations():
-        conn = boto3.client("iam", region_name="us-east-1")
-        logs_conn = boto3.client("logs", region_name="us-east-1")
-        role = conn.create_role(
-            RoleName="role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
-        )
+    conn = boto3.client("lambda", region_name="us-east-1")
+    func = conn.create_function(
+        FunctionName="testFunction",
+        Code={"ZipFile": get_test_zip_file1()},
+        Handler="lambda_function.lambda_handler",
+        Runtime="python3.11",
+        Role=role["Role"]["Arn"],
+    )
 
-        conn = boto3.client("lambda", region_name="us-east-1")
-        func = conn.create_function(
-            FunctionName="testFunction",
-            Code={"ZipFile": get_test_zip_file1()},
-            Handler="lambda_function.lambda_handler",
-            Runtime="python3.11",
-            Role=role["Role"]["Arn"],
-        )
+    secretsmanager_backend = server.create_backend_app("secretsmanager")
+    secretsmanager_client = secretsmanager_backend.test_client()
 
-        secretsmanager_backend = server.create_backend_app("secretsmanager")
-        secretsmanager_client = secretsmanager_backend.test_client()
+    secretsmanager_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
 
-        secretsmanager_client.post(
-            "/",
-            data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
-            headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
-        )
+    with pytest.raises(logs_conn.exceptions.ResourceNotFoundException):
+        # The log group doesn't exist yet
+        logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
 
-        with pytest.raises(logs_conn.exceptions.ResourceNotFoundException):
-            # The log group doesn't exist yet
-            logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
+    secretsmanager_client.post(
+        "/",
+        data={
+            "SecretId": DEFAULT_SECRET_NAME,
+            "RotationLambdaARN": func["FunctionArn"],
+        },
+        headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+    )
 
-        secretsmanager_client.post(
-            "/",
-            data={
-                "SecretId": DEFAULT_SECRET_NAME,
-                "RotationLambdaARN": func["FunctionArn"],
-            },
-            headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
-        )
+    # The log group now exists and has been logged to 4 times (for each invocation)
+    logs = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
+    assert len(logs["logStreams"]) == 4
 
-        # The log group now exists and has been logged to 4 times (for each invocation)
-        logs = logs_conn.describe_log_streams(logGroupName="/aws/lambda/testFunction")
-        assert len(logs["logStreams"]) == 4
 
-    @mock_iam
-    @mock_lambda
-    @mock_logs
-    @mock_secretsmanager
-    def test_rotate_secret_with_incorrect_lambda_arn():
-        secretsmanager_backend = server.create_backend_app("secretsmanager")
-        secretsmanager_client = secretsmanager_backend.test_client()
+@mock_iam
+@mock_lambda
+@mock_logs
+@mock_secretsmanager
+def test_rotate_secret_with_incorrect_lambda_arn():
+    secretsmanager_backend = server.create_backend_app("secretsmanager")
+    secretsmanager_client = secretsmanager_backend.test_client()
 
-        secretsmanager_client.post(
-            "/",
-            data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
-            headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
-        )
+    secretsmanager_client.post(
+        "/",
+        data={"Name": DEFAULT_SECRET_NAME, "SecretString": "foosecret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
 
-        resp = secretsmanager_client.post(
-            "/",
-            data={"SecretId": DEFAULT_SECRET_NAME, "RotationLambdaARN": "notarealarn"},
-            headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
-        )
-        json_data = json.loads(resp.data.decode("utf-8"))
-        assert json_data["message"] == "Resource not found for ARN 'notarealarn'."
-        assert json_data["__type"] == "ResourceNotFoundException"
-        assert resp.status_code == 404
+    resp = secretsmanager_client.post(
+        "/",
+        data={"SecretId": DEFAULT_SECRET_NAME, "RotationLambdaARN": "notarealarn"},
+        headers={"X-Amz-Target": "secretsmanager.RotateSecret"},
+    )
+    json_data = json.loads(resp.data.decode("utf-8"))
+    assert json_data["message"] == "Resource not found for ARN 'notarealarn'."
+    assert json_data["__type"] == "ResourceNotFoundException"
+    assert resp.status_code == 404
 
 
 @mock_secretsmanager

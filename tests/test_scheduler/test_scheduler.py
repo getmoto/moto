@@ -1,9 +1,10 @@
 """Unit tests for scheduler-supported APIs."""
+from datetime import datetime
+
 import boto3
 import pytest
-
 from botocore.client import ClientError
-from datetime import datetime
+
 from moto import mock_scheduler
 from moto.core import DEFAULT_ACCOUNT_ID
 

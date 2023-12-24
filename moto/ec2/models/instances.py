@@ -2,18 +2,18 @@ import contextlib
 import copy
 import warnings
 from collections import OrderedDict
-from typing import Any, Dict, ItemsView, List, Tuple, Optional, Set
-from moto import settings
+from typing import Any, Dict, ItemsView, List, Optional, Set, Tuple
 
+from moto import settings
 from moto.core import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, utcnow
-from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
-from moto.ec2.models.launch_templates import LaunchTemplateVersion
+from moto.ec2.models.fleets import Fleet
 from moto.ec2.models.instance_types import (
     INSTANCE_TYPE_OFFERINGS,
     InstanceTypeOfferingBackend,
 )
+from moto.ec2.models.launch_templates import LaunchTemplateVersion
 from moto.ec2.models.security_groups import SecurityGroup
 from moto.ec2.models.subnets import Subnet
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
@@ -27,8 +27,8 @@ from ..exceptions import (
     InvalidParameterCombination,
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
-    OperationNotPermitted4,
     InvalidSubnetIdError,
+    OperationNotPermitted4,
 )
 from ..utils import (
     convert_tag_spec,
@@ -296,7 +296,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         ec2_backend = ec2_backends[account_id][region_name]
         security_group_ids = properties.get("SecurityGroups", [])
         group_names = [
-            ec2_backend.get_security_group_from_id(group_id).name
+            ec2_backend.get_security_group_from_id(group_id).name  # type: ignore[union-attr]
             for group_id in security_group_ids
         ]
 

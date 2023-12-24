@@ -1,6 +1,8 @@
-import boto3
 import os
+
+import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_glacier
 
@@ -48,8 +50,8 @@ def test_delete_archive():
     delete = client.delete_archive(vaultName="asdf", archiveId=archive["archiveId"])
     assert delete["ResponseMetadata"]["HTTPStatusCode"] == 204
 
-    with pytest.raises(Exception):
-        # Not ideal - but this will throw an error if the archvie does not exist
+    with pytest.raises(ClientError) as exc:
+        # Not ideal - but this will throw an error if the archive does not exist
         # Which is a good indication that the deletion went through
         client.initiate_job(
             vaultName="myname",
@@ -58,3 +60,5 @@ def test_delete_archive():
                 "Type": "archive-retrieval",
             },
         )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "VaultNotFound"

@@ -1,9 +1,11 @@
+import copy
+
 import boto3
 
 from moto import mock_autoscaling, mock_ec2
+from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
-from tests import EXAMPLE_AMI_ID
 
 
 @mock_autoscaling
@@ -229,6 +231,72 @@ def test_describe_tags_filter_by_propgateatlaunch():
             "PropagateAtLaunch": True,
         }
     ]
+
+
+@mock_autoscaling
+def test_describe_tags_filter_by_key_or_value():
+    subnet = setup_networking()["subnet1"]
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    create_asgs(client, subnet)
+
+    tags = client.describe_tags(Filters=[{"Name": "key", "Values": ["test_key"]}])[
+        "Tags"
+    ]
+    assert tags == [
+        {
+            "ResourceId": "test_asg",
+            "ResourceType": "auto-scaling-group",
+            "Key": "test_key",
+            "Value": "updated_test_value",
+            "PropagateAtLaunch": True,
+        }
+    ]
+
+    tags = client.describe_tags(Filters=[{"Name": "value", "Values": ["test_value2"]}])[
+        "Tags"
+    ]
+    assert tags == [
+        {
+            "ResourceId": "test_asg",
+            "ResourceType": "auto-scaling-group",
+            "Key": "test_key2",
+            "Value": "test_value2",
+            "PropagateAtLaunch": False,
+        }
+    ]
+
+
+@mock_autoscaling
+def test_create_20_tags_auto_scaling_group():
+    """test to verify that the tag-members are sorted correctly, and there is no regression for
+    https://github.com/getmoto/moto/issues/6033
+    """
+    subnet = setup_networking()["subnet1"]
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    original = {
+        "ResourceId": "test_asg",
+        "PropagateAtLaunch": True,
+    }
+    tags = []
+    for i in range(0, 20):
+        cp = copy.deepcopy(original)
+        cp["Key"] = f"test_key{i}"
+        cp["Value"] = f"random-value-{i}"
+        tags.append(cp)
+    client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        Tags=tags,
+        VPCZoneIdentifier=subnet,
+    )
 
 
 def create_asgs(client, subnet):

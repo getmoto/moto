@@ -1,41 +1,41 @@
-from base64 import b64encode, b64decode
-from collections import OrderedDict
-from gzip import GzipFile
 import datetime
 import io
+import itertools
 import json
 import re
-import itertools
-
+from base64 import b64decode, b64encode
+from collections import OrderedDict
+from gzip import GzipFile
 from operator import attrgetter
-from typing import Any, Dict, List, Optional, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
+
 from .exceptions import (
     ConsumerNotFound,
-    StreamNotFoundError,
-    StreamCannotBeUpdatedError,
-    ShardNotFoundError,
-    ResourceInUseError,
-    ResourceNotFoundError,
     InvalidArgumentError,
-    InvalidRetentionPeriod,
     InvalidDecreaseRetention,
     InvalidIncreaseRetention,
-    ValidationException,
+    InvalidRetentionPeriod,
     RecordSizeExceedsLimit,
-    TotalRecordsSizeExceedsLimit,
+    ResourceInUseError,
+    ResourceNotFoundError,
+    ShardNotFoundError,
+    StreamCannotBeUpdatedError,
+    StreamNotFoundError,
     TooManyRecords,
+    TotalRecordsSizeExceedsLimit,
+    ValidationException,
 )
 from .utils import (
-    compose_shard_iterator,
-    compose_new_shard_iterator,
-    decompose_shard_iterator,
     PAGINATION_MODEL,
+    compose_new_shard_iterator,
+    compose_shard_iterator,
+    decompose_shard_iterator,
 )
 
 

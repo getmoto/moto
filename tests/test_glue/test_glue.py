@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ParamValidationError
 from botocore.client import ClientError
+from botocore.exceptions import ParamValidationError
 
 from moto import mock_glue
 

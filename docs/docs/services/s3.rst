@@ -32,6 +32,7 @@ s3
 - [X] copy_object
 - [X] create_bucket
 - [X] create_multipart_upload
+- [ ] create_session
 - [X] delete_bucket
 - [ ] delete_bucket_analytics_configuration
 - [X] delete_bucket_cors
@@ -91,6 +92,7 @@ s3
 - [ ] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
+- [ ] list_directory_buckets
 - [ ] list_multipart_uploads
 - [X] list_object_versions
 - [X] list_objects
@@ -142,8 +144,8 @@ s3
 - [X] put_object_legal_hold
 - [X] put_object_lock_configuration
 - [X] put_object_retention
-- [ ] put_object_tagging
-- [ ] put_public_access_block
+- [X] put_object_tagging
+- [X] put_public_access_block
 - [ ] restore_object
 - [X] select_object_content
   
@@ -157,6 +159,6 @@ s3
         
 
 - [X] upload_part
-- [ ] upload_part_copy
+- [X] upload_part_copy
 - [ ] write_get_object_response
 

@@ -1,23 +1,21 @@
-import json
-from datetime import datetime
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, ec
-import itertools
-from unittest import mock
-from dateutil.tz import tzutc
 import base64
+import itertools
+import json
 import os
-
+from datetime import datetime
+from unittest import mock
 
 import boto3
 import botocore.exceptions
-from botocore.exceptions import ClientError
-from freezegun import freeze_time
 import pytest
+from botocore.exceptions import ClientError
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from dateutil.tz import tzutc
+from freezegun import freeze_time
 
 from moto import mock_kms
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
 
 PLAINTEXT_VECTORS = [
     b"some encodeable plaintext",

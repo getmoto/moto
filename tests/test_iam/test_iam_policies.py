@@ -1,8 +1,9 @@
-import boto3
 import json
-import pytest
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_iam
 
 invalid_policy_document_test_cases = [

@@ -1,14 +1,14 @@
+from typing import Any, List
 from unittest import SkipTest
 
 import boto3
 import pytest
 
-from moto import mock_s3
-from moto import settings
+from moto import mock_s3, settings
 
 
 @pytest.fixture(scope="function", name="aws_credentials")
-def fixture_aws_credentials(monkeypatch):
+def fixture_aws_credentials(monkeypatch: Any) -> None:  # type: ignore[misc]
     """Mocked AWS Credentials for moto."""
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this in ServerMode.")
@@ -19,8 +19,8 @@ def fixture_aws_credentials(monkeypatch):
 
 
 def test_mock_works_with_client_created_inside(
-    aws_credentials,
-):  # pylint: disable=unused-argument
+    aws_credentials: Any,  # pylint: disable=unused-argument
+) -> None:
     m = mock_s3()
     m.start()
     client = boto3.client("s3", region_name="us-east-1")
@@ -31,8 +31,8 @@ def test_mock_works_with_client_created_inside(
 
 
 def test_mock_works_with_client_created_outside(
-    aws_credentials,
-):  # pylint: disable=unused-argument
+    aws_credentials: Any,  # pylint: disable=unused-argument
+) -> None:
     # Create the boto3 client first
     outside_client = boto3.client("s3", region_name="us-east-1")
 
@@ -51,8 +51,8 @@ def test_mock_works_with_client_created_outside(
 
 
 def test_mock_works_with_resource_created_outside(
-    aws_credentials,
-):  # pylint: disable=unused-argument
+    aws_credentials: Any,  # pylint: disable=unused-argument
+) -> None:
     # Create the boto3 client first
     outside_resource = boto3.resource("s3", region_name="us-east-1")
 
@@ -69,7 +69,7 @@ def test_mock_works_with_resource_created_outside(
     m.stop()
 
 
-def test_patch_can_be_called_on_a_mocked_client():
+def test_patch_can_be_called_on_a_mocked_client() -> None:
     # start S3 after the mock, ensuring that the client contains our event-handler
     m = mock_s3()
     m.start()
@@ -91,14 +91,14 @@ def test_patch_can_be_called_on_a_mocked_client():
     m.stop()
 
 
-def test_patch_client_does_not_work_for_random_parameters():
+def test_patch_client_does_not_work_for_random_parameters() -> None:
     from moto.core import patch_client
 
     with pytest.raises(Exception, match="Argument sth should be of type boto3.client"):
-        patch_client("sth")
+        patch_client("sth")  # type: ignore[arg-type]
 
 
-def test_patch_resource_does_not_work_for_random_parameters():
+def test_patch_resource_does_not_work_for_random_parameters() -> None:
     from moto.core import patch_resource
 
     with pytest.raises(
@@ -108,16 +108,16 @@ def test_patch_resource_does_not_work_for_random_parameters():
 
 
 class ImportantBusinessLogic:
-    def __init__(self):
+    def __init__(self) -> None:
         self._s3 = boto3.client("s3", region_name="us-east-1")
 
-    def do_important_things(self):
+    def do_important_things(self) -> List[str]:
         return self._s3.list_buckets()["Buckets"]
 
 
 def test_mock_works_when_replacing_client(
-    aws_credentials,
-):  # pylint: disable=unused-argument
+    aws_credentials: Any,  # pylint: disable=unused-argument
+) -> None:
     logic = ImportantBusinessLogic()
 
     m = mock_s3()

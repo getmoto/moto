@@ -1,20 +1,21 @@
 import json
+from typing import Dict, Iterable, List, Tuple, Union
 
 from dateutil.parser import parse as dtparse
-from typing import Dict, List, Iterable, Tuple, Union
+
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
+
+from .exceptions import InvalidParameterCombination, ValidationError
 from .models import (
-    cloudwatch_backends,
     CloudWatchBackend,
-    MetricDataQuery,
-    MetricStat,
-    Metric,
     Dimension,
     FakeAlarm,
+    Metric,
+    MetricDataQuery,
+    MetricStat,
+    cloudwatch_backends,
 )
-from .exceptions import InvalidParameterCombination, ValidationError
-
 
 ERROR_RESPONSE = Tuple[str, Dict[str, int]]
 

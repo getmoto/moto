@@ -1,8 +1,7 @@
 """Unit tests for route53resolver rule association-related APIs."""
 import boto3
-from botocore.exceptions import ClientError
-
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_route53resolver
 from moto.ec2 import mock_ec2

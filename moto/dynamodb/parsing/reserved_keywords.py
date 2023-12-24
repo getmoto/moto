@@ -1,4 +1,5 @@
 from typing import List, Optional
+
 from moto.utilities.utils import load_resource_as_str
 
 

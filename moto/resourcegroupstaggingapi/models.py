@@ -1,23 +1,25 @@
-from typing import Any, Dict, List, Iterator, Optional, Tuple
-from moto.core import BaseBackend, BackendDict
-from moto.core.exceptions import RESTError
-from moto.moto_api._internal import mock_random
-from moto.utilities.tagging_service import TaggingService
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-from moto.s3.models import s3_backends, S3Backend
+from moto.acm.models import AWSCertificateManagerBackend, acm_backends
+from moto.awslambda.models import LambdaBackend, lambda_backends
+from moto.core import BackendDict, BaseBackend
+from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
-from moto.elb.models import elb_backends, ELBBackend
-from moto.elbv2.models import elbv2_backends, ELBv2Backend
-from moto.glue.models import glue_backends, GlueBackend
-from moto.kinesis.models import kinesis_backends, KinesisBackend
-from moto.logs.models import logs_backends, LogsBackend
-from moto.kms.models import kms_backends, KmsBackend
-from moto.rds.models import rds_backends, RDSBackend
-from moto.glacier.models import glacier_backends, GlacierBackend
-from moto.redshift.models import redshift_backends, RedshiftBackend
-from moto.emr.models import emr_backends, ElasticMapReduceBackend
-from moto.awslambda.models import lambda_backends, LambdaBackend
-from moto.ecs.models import ecs_backends, EC2ContainerServiceBackend
+from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
+from moto.elb.models import ELBBackend, elb_backends
+from moto.elbv2.models import ELBv2Backend, elbv2_backends
+from moto.emr.models import ElasticMapReduceBackend, emr_backends
+from moto.glacier.models import GlacierBackend, glacier_backends
+from moto.glue.models import GlueBackend, glue_backends
+from moto.kinesis.models import KinesisBackend, kinesis_backends
+from moto.kms.models import KmsBackend, kms_backends
+from moto.logs.models import LogsBackend, logs_backends
+from moto.moto_api._internal import mock_random
+from moto.rds.models import RDSBackend, rds_backends
+from moto.redshift.models import RedshiftBackend, redshift_backends
+from moto.s3.models import S3Backend, s3_backends
+from moto.sqs.models import SQSBackend, sqs_backends
+from moto.utilities.tagging_service import TaggingService
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -90,6 +92,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.account_id][self.region_name]
 
+    @property
+    def acm_backend(self) -> AWSCertificateManagerBackend:
+        return acm_backends[self.account_id][self.region_name]
+
+    @property
+    def sqs_backend(self) -> SQSBackend:
+        return sqs_backends[self.account_id][self.region_name]
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -118,7 +128,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     and v in vl
                 )
 
-        def tag_filter(tag_list: List[Dict[str, str]]) -> bool:
+        # Any in this case means: str | Optional[str]
+        # When we drop Python 3.7 we should look into replacing this with a TypedDict
+        def tag_filter(tag_list: List[Dict[str, Any]]) -> bool:
             result = []
             if tag_filters:
                 for f in filters:
@@ -131,19 +143,27 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 return True
 
-        def format_tags(tags: Dict[str, str]) -> List[Dict[str, str]]:
+        def format_tags(tags: Dict[str, Any]) -> List[Dict[str, Any]]:
             result = []
             for key, value in tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 
         def format_tag_keys(
-            tags: List[Dict[str, str]], keys: List[str]
-        ) -> List[Dict[str, str]]:
+            tags: List[Dict[str, Any]], keys: List[str]
+        ) -> List[Dict[str, Any]]:
             result = []
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
             return result
+
+        # ACM
+        if not resource_type_filters or "acm" in resource_type_filters:
+            for certificate in self.acm_backend._certificates.values():
+                tags = format_tags(certificate.tags)
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
 
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:
@@ -426,6 +446,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
+
+        # SQS
+        if not resource_type_filters or "sqs" in resource_type_filters:
+            for queue in self.sqs_backend.queues.values():
+                tags = format_tags(queue.tags)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
 
         # VPC
         if (

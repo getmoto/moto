@@ -1,12 +1,11 @@
 import copy
-from collections import namedtuple
-from typing import Any, Dict, Tuple, Optional
-
-from botocore.utils import merge_dicts
-
-from collections import OrderedDict
 import datetime
 import re
+from collections import OrderedDict, namedtuple
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
+
+from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
 FilterDef = namedtuple(
@@ -20,6 +19,49 @@ FilterDef = namedtuple(
         "description",
     ],
 )
+
+
+class DbInstanceEngine(str, Enum):
+
+    # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds/client/create_db_instance.html
+    # 2023-11-08
+    AURORA_MYSQL = "aurora-mysql"
+    AURORA_POSTGRESQL = "aurora-postgresql"
+    CUSTOM_ORACLE_EE = "custom-oracle-ee"
+    CUSTOM_ORACLE_EE_CDB = "custom-oracle-ee-cdb"
+    CUSTOM_SQLSERVER_EE = "custom-sqlserver-ee"
+    CUSTOM_SQLSERVER_SE = "custom-sqlserver-se"
+    CUSTOM_SQLSERVER_WEB = "custom-sqlserver-web"
+    MARIADB = "mariadb"
+    MYSQL = "mysql"
+    ORACLE_EE = "oracle-ee"
+    ORACLE_EE_CDB = "oracle-ee-cdb"
+    ORACLE_SE2 = "oracle-se2"
+    ORACLE_SE2_CDB = "oracle-se2-cdb"
+    POSTGRES = "postgres"
+    SQLSERVER_EE = "sqlserver-ee"
+    SQLSERVER_SE = "sqlserver-se"
+    SQLSERVER_EX = "sqlserver-ex"
+    SQLSERVER_WEB = "sqlserver-web"
+
+    @classmethod
+    def valid_db_instance_engine(self) -> List[str]:
+        return sorted([item.value for item in DbInstanceEngine])
+
+
+class ClusterEngine(str, Enum):
+    AURORA_POSTGRESQL = "aurora-postgresql"
+    AURORA_MYSQL = "aurora-mysql"
+    RDS_POSTGRESQL = "postgres"
+    RDS_MYSQL = "mysql"
+
+    @classmethod
+    def list_cluster_engines(self) -> List[str]:
+        return sorted([item.value for item in ClusterEngine])
+
+    @classmethod
+    def serverless_engines(self) -> List[str]:
+        return [ClusterEngine.AURORA_MYSQL, ClusterEngine.AURORA_POSTGRESQL]
 
 
 def get_object_value(obj: Any, attr: str) -> Any:

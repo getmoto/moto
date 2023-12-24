@@ -3,7 +3,17 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
-from .models import lakeformation_backends, LakeFormationBackend
+
+from .exceptions import InvalidInput
+from .models import (
+    LakeFormationBackend,
+    ListPermissionsResource,
+    ListPermissionsResourceDatabase,
+    ListPermissionsResourceDataLocation,
+    ListPermissionsResourceTable,
+    RessourceType,
+    lakeformation_backends,
+)
 
 
 class LakeFormationResponse(BaseResponse):
@@ -87,7 +97,70 @@ class LakeFormationResponse(BaseResponse):
 
     def list_permissions(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
-        permissions = self.lakeformation_backend.list_permissions(catalog_id)
+        principal = self._get_param("Principal")
+        resource = self._get_param("Resource")
+        resource_type_param = self._get_param("ResourceType")
+        if principal is not None and resource is None:
+            # Error message is the exact string returned by the AWS-CLI
+            raise InvalidInput(
+                "An error occurred (InvalidInputException) when calling the ListPermissions operation: Resource is mandatory if Principal is set in the input."
+            )
+
+        if resource_type_param is None:
+            resource_type = None
+        else:
+            resource_type = RessourceType(resource_type_param)
+
+        if resource is None:
+            list_permission_resource = None
+        else:
+            database_sub_dictionary = resource.get("Database")
+            table_sub_dictionary = resource.get("Table")
+            catalog_sub_dictionary = resource.get("Catalog")
+            data_location_sub_dictionary = resource.get("DataLocation")
+
+            if database_sub_dictionary is None:
+                database = None
+            else:
+                database = ListPermissionsResourceDatabase(
+                    name=database_sub_dictionary.get("Name"),
+                    catalog_id=database_sub_dictionary.get("CatalogId"),
+                )
+
+            if table_sub_dictionary is None:
+                table = None
+            else:
+                table = ListPermissionsResourceTable(
+                    database_name=table_sub_dictionary.get("DatabaseName"),
+                    name=table_sub_dictionary.get("Name"),
+                    catalog_id=table_sub_dictionary.get("CatalogId"),
+                    table_wildcard=table_sub_dictionary.get("TableWildcard"),
+                )
+
+            if data_location_sub_dictionary is None:
+                data_location = None
+            else:
+                data_location = ListPermissionsResourceDataLocation(
+                    resource_arn=data_location_sub_dictionary.get("ResourceArn"),
+                    catalog_id=data_location_sub_dictionary.get("CatalogId"),
+                )
+
+            list_permission_resource = ListPermissionsResource(
+                catalog=catalog_sub_dictionary,
+                database=database,
+                table=table,
+                table_with_columns=None,
+                data_location=data_location,
+                data_cells_filter=None,
+                lf_tag=None,
+                lf_tag_policy=None,
+            )
+        permissions = self.lakeformation_backend.list_permissions(
+            catalog_id=catalog_id,
+            principal=principal,
+            resource=list_permission_resource,
+            resource_type=resource_type,
+        )
         return json.dumps({"PrincipalResourcePermissions": permissions})
 
     def create_lf_tag(self) -> str:

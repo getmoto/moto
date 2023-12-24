@@ -1,25 +1,26 @@
-from typing import Any, Dict, List, Optional, Set, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from moto.core import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
+
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,
-    InvalidSnapshotIdError,
-    InvalidSnapshotInUse,
-    InvalidVolumeIdError,
-    VolumeInUseError,
-    InvalidVolumeAttachmentError,
-    InvalidVolumeDetachmentError,
     InvalidParameterDependency,
     InvalidParameterValueError,
+    InvalidSnapshotIdError,
+    InvalidSnapshotInUse,
+    InvalidVolumeAttachmentError,
+    InvalidVolumeDetachmentError,
+    InvalidVolumeIdError,
+    VolumeInUseError,
 )
-from .core import TaggedEC2Resource
 from ..utils import (
+    generic_filter,
     random_snapshot_id,
     random_volume_id,
-    generic_filter,
     utc_date_and_time,
 )
+from .core import TaggedEC2Resource
 
 IOPS_REQUIRED_VOLUME_TYPES = ["io1", "io2"]
 IOPS_SUPPORTED_VOLUME_TYPES = ["gp3", "io1", "io2"]
@@ -95,12 +96,11 @@ class VolumeAttachment(CloudFormationModel):
         volume_id = properties["VolumeId"]
 
         ec2_backend = ec2_backends[account_id][region_name]
-        attachment = ec2_backend.attach_volume(
+        return ec2_backend.attach_volume(  # type: ignore[return-value]
             volume_id=volume_id,
             instance_id=instance_id,
             device_path=properties["Device"],
         )
-        return attachment
 
 
 class Volume(TaggedEC2Resource, CloudFormationModel):

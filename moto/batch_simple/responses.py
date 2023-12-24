@@ -1,5 +1,5 @@
 from ..batch.responses import BatchResponse
-from .models import batch_simple_backends, BatchBackend
+from .models import BatchBackend, batch_simple_backends
 
 
 class BatchSimpleResponse(BatchResponse):
@@ -9,4 +9,4 @@ class BatchSimpleResponse(BatchResponse):
         :return: Batch Backend
         :rtype: moto.batch.models.BatchBackend
         """
-        return batch_simple_backends[self.current_account][self.region]
+        return batch_simple_backends[self.current_account][self.region]  # type: ignore[return-value]

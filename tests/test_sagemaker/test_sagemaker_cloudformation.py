@@ -1,18 +1,18 @@
 import re
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_cloudformation, mock_sagemaker
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .cloudformation_test_configs import (
-    NotebookInstanceTestConfig,
-    NotebookInstanceLifecycleConfigTestConfig,
-    ModelTestConfig,
     EndpointConfigTestConfig,
     EndpointTestConfig,
+    ModelTestConfig,
+    NotebookInstanceLifecycleConfigTestConfig,
+    NotebookInstanceTestConfig,
 )
 
 

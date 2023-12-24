@@ -49,6 +49,7 @@ iot
 - [ ] create_authorizer
 - [ ] create_billing_group
 - [X] create_certificate_from_csr
+- [ ] create_certificate_provider
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
@@ -85,6 +86,7 @@ iot
 - [ ] delete_billing_group
 - [X] delete_ca_certificate
 - [X] delete_certificate
+- [ ] delete_certificate_provider
 - [ ] delete_custom_metric
 - [ ] delete_dimension
 - [X] delete_domain_configuration
@@ -130,6 +132,7 @@ iot
 - [ ] describe_billing_group
 - [X] describe_ca_certificate
 - [X] describe_certificate
+- [ ] describe_certificate_provider
 - [ ] describe_custom_metric
 - [ ] describe_default_authorizer
 - [ ] describe_detect_mitigation_actions_task
@@ -181,6 +184,10 @@ iot
 - [ ] get_v2_logging_options
 - [ ] list_active_violations
 - [X] list_attached_policies
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_audit_findings
 - [ ] list_audit_mitigation_actions_executions
 - [ ] list_audit_mitigation_actions_tasks
@@ -189,6 +196,7 @@ iot
 - [ ] list_authorizers
 - [ ] list_billing_groups
 - [ ] list_ca_certificates
+- [ ] list_certificate_providers
 - [X] list_certificates
   
         Pagination is not yet implemented
@@ -222,9 +230,21 @@ iot
 - [ ] list_package_versions
 - [ ] list_packages
 - [X] list_policies
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_policy_principals
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_policy_versions
 - [X] list_principal_policies
+  
+        Pagination is not yet implemented
+        
+
 - [X] list_principal_things
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
@@ -236,6 +256,10 @@ iot
 - [ ] list_streams
 - [ ] list_tags_for_resource
 - [X] list_targets_for_policy
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_targets_for_security_profile
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
@@ -301,6 +325,7 @@ iot
         
 
 - [X] update_certificate
+- [ ] update_certificate_provider
 - [ ] update_custom_metric
 - [ ] update_dimension
 - [X] update_domain_configuration

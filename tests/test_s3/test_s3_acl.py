@@ -4,10 +4,11 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
-
 from botocore.exceptions import ClientError
 from botocore.handlers import disable_signing
+
 from moto import mock_s3, settings
+
 from .test_s3 import add_proxy_details
 
 DEFAULT_REGION_NAME = "us-east-1"
@@ -332,8 +333,8 @@ def test_acl_setting_via_headers_boto3():
 
 @mock_s3
 def test_raise_exception_for_grant_and_acl():
-    client = boto3.client("s3")
-    s3_resource = boto3.resource("s3")
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "bucketname"
     client.create_bucket(Bucket=bucket_name)
     bucket = s3_resource.Bucket(bucket_name)

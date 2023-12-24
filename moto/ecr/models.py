@@ -3,23 +3,23 @@ import json
 import re
 from collections import namedtuple
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
+    ImageAlreadyExistsException,
     ImageNotFoundException,
-    RepositoryNotFoundException,
+    InvalidParameterException,
+    LifecyclePolicyNotFoundException,
+    LimitExceededException,
+    RegistryPolicyNotFoundException,
     RepositoryAlreadyExistsException,
     RepositoryNotEmptyException,
-    InvalidParameterException,
-    ImageAlreadyExistsException,
+    RepositoryNotFoundException,
     RepositoryPolicyNotFoundException,
-    LifecyclePolicyNotFoundException,
-    RegistryPolicyNotFoundException,
-    LimitExceededException,
     ScanNotFoundException,
     ValidationException,
 )
@@ -69,7 +69,7 @@ class Repository(BaseObject, CloudFormationModel):
         account_id: str,
         region_name: str,
         repository_name: str,
-        registry_id: str,
+        registry_id: Optional[str],
         encryption_config: Optional[Dict[str, str]],
         image_scan_config: str,
         image_tag_mutablility: str,
@@ -276,7 +276,7 @@ class Image(BaseObject):
         self.repository = repository
         self.registry_id = registry_id or account_id
         self.image_digest = digest
-        self.image_pushed_at = str(datetime.now(timezone.utc).isoformat())
+        self.image_pushed_at = int(datetime.now(timezone.utc).timestamp())
         self.last_scan: Optional[datetime] = None
 
     def _create_digest(self) -> None:
@@ -467,7 +467,7 @@ class ECRBackend(BaseBackend):
     def create_repository(
         self,
         repository_name: str,
-        registry_id: str,
+        registry_id: Optional[str],
         encryption_config: Dict[str, str],
         image_scan_config: Any,
         image_tag_mutablility: str,
@@ -560,6 +560,7 @@ class ECRBackend(BaseBackend):
         image_manifest: str,
         image_tag: str,
         image_manifest_mediatype: Optional[str] = None,
+        digest: Optional[str] = None,
     ) -> Image:
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
@@ -577,8 +578,8 @@ class ECRBackend(BaseBackend):
             parsed_image_manifest["imageManifest"] = image_manifest_mediatype
         else:
             if "mediaType" not in parsed_image_manifest:
-                raise Exception(
-                    "image manifest mediatype not provided in manifest or parameter"
+                raise InvalidParameterException(
+                    message="image manifest mediatype not provided in manifest or parameter"
                 )
             else:
                 image_manifest_mediatype = parsed_image_manifest["mediaType"]
@@ -612,6 +613,7 @@ class ECRBackend(BaseBackend):
                 image_manifest,
                 repository_name,
                 image_manifest_mediatype,
+                digest,
             )
             repository.images.append(image)
             if existing_images_with_matching_tag:

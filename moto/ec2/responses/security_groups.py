@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Tuple
+
 from ._base_response import EC2BaseResponse
 
 

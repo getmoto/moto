@@ -1,6 +1,6 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_rds
 
@@ -21,7 +21,7 @@ def test_add_instance_as_cluster_member():
         DBInstanceIdentifier="dbi",
         DBClusterIdentifier="dbci",
         DBInstanceClass="db.r5.large",
-        Engine="aurora-postgresql",
+        Engine="mysql",
     )
 
     cluster = client.describe_db_clusters()["DBClusters"][0]
@@ -53,7 +53,7 @@ def test_remove_instance_from_cluster():
         DBInstanceIdentifier="dbi",
         DBClusterIdentifier="dbci",
         DBInstanceClass="db.r5.large",
-        Engine="aurora-postgresql",
+        Engine="mysql",
     )
 
     client.delete_db_instance(
@@ -74,7 +74,7 @@ def test_add_instance_to_serverless_cluster():
 
     _ = client.create_db_cluster(
         DBClusterIdentifier="dbci",
-        Engine="aurora",
+        Engine="aurora-postgresql",
         EngineMode="serverless",
         MasterUsername="masterusername",
         MasterUserPassword="hunter2_",
@@ -89,3 +89,42 @@ def test_add_instance_to_serverless_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == "Instances cannot be added to Aurora Serverless clusters."
+
+
+@mock_rds
+def test_delete_db_cluster_fails_if_cluster_contains_db_instances():
+    cluster_identifier = "test-cluster"
+    instance_identifier = "test-instance"
+    client = boto3.client("rds", "us-east-1")
+    client.create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+        MasterUsername="test-user",
+        MasterUserPassword="password",
+    )
+    client.create_db_instance(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+        DBInstanceIdentifier=instance_identifier,
+        DBInstanceClass="db.t4g.medium",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_cluster(
+            DBClusterIdentifier=cluster_identifier,
+            SkipFinalSnapshot=True,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidDBClusterStateFault"
+    assert (
+        err["Message"]
+        == "Cluster cannot be deleted, it still contains DB instances in non-deleting state."
+    )
+    client.delete_db_instance(
+        DBInstanceIdentifier=instance_identifier,
+        SkipFinalSnapshot=True,
+    )
+    cluster = client.delete_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        SkipFinalSnapshot=True,
+    ).get("DBCluster")
+    assert cluster["DBClusterIdentifier"] == cluster_identifier

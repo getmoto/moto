@@ -1,14 +1,14 @@
+from datetime import datetime
+from unittest import SkipTest
+from uuid import uuid4
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
-from datetime import datetime
+
 from moto import mock_ec2, settings
-from uuid import uuid4
-from unittest import SkipTest
 
 from .helpers import check_private_key
-
 
 ED25519_PUBLIC_KEY_OPENSSH = b"""\
 ssh-ed25519 \

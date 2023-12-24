@@ -1,11 +1,28 @@
 import importlib
 import sys
 from contextlib import ContextDecorator
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    overload,
+)
 
-from moto.core.models import BaseMockAWS
+from moto.core.models import BaseDecorator, BaseMockAWS, base_decorator
 
-TEST_METHOD = TypeVar("TEST_METHOD", bound=Callable[..., Any])
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+
+    from moto.xray import XRaySegment as xray_segment_type
+
+    P = ParamSpec("P")
+
+
+T = TypeVar("T")
 
 
 def lazy_load(
@@ -13,15 +30,38 @@ def lazy_load(
     element: str,
     boto3_name: Optional[str] = None,
     backend: Optional[str] = None,
-) -> Callable[..., BaseMockAWS]:
-    def f(*args: Any, **kwargs: Any) -> Any:
+) -> BaseDecorator:
+    @overload
+    def f(func: None = None) -> BaseMockAWS:
+        ...
+
+    @overload
+    def f(func: "Callable[P, T]") -> "Callable[P, T]":
+        ...
+
+    def f(
+        func: "Optional[Callable[P, T]]" = None,
+    ) -> "Union[BaseMockAWS, Callable[P, T]]":
         module = importlib.import_module(module_name, "moto")
-        return getattr(module, element)(*args, **kwargs)
+        decorator: base_decorator = getattr(module, element)
+        return decorator(func)
 
     setattr(f, "name", module_name.replace(".", ""))
     setattr(f, "element", element)
     setattr(f, "boto3_name", boto3_name or f.name)  # type: ignore[attr-defined]
     setattr(f, "backend", backend or f"{f.name}_backends")  # type: ignore[attr-defined]
+    return f
+
+
+def load_xray_segment() -> Callable[[], "xray_segment_type"]:
+    def f() -> "xray_segment_type":
+        # We can't use `lazy_load` here
+        # XRaySegment will always be run as a context manager
+        # I.e.: no function is passed directly: `with XRaySegment()`
+        from moto.xray import XRaySegment as xray_segment
+
+        return xray_segment()
+
     return f
 
 
@@ -42,6 +82,12 @@ mock_applicationautoscaling = lazy_load(
 mock_autoscaling = lazy_load(".autoscaling", "mock_autoscaling")
 mock_lambda = lazy_load(
     ".awslambda", "mock_lambda", boto3_name="lambda", backend="lambda_backends"
+)
+mock_lambda_simple = lazy_load(
+    ".awslambda_simple",
+    "mock_lambda_simple",
+    boto3_name="lambda",
+    backend="lambda_simple_backends",
 )
 mock_batch = lazy_load(".batch", "mock_batch")
 mock_batch_simple = lazy_load(
@@ -138,7 +184,7 @@ mock_polly = lazy_load(".polly", "mock_polly")
 mock_quicksight = lazy_load(".quicksight", "mock_quicksight")
 mock_ram = lazy_load(".ram", "mock_ram")
 mock_rds = lazy_load(".rds", "mock_rds")
-mock_rdsdata = lazy_load(".rdsdata", "mock_rdsdata")
+mock_rdsdata = lazy_load(".rdsdata", "mock_rdsdata", boto3_name="rds-data")
 mock_redshift = lazy_load(".redshift", "mock_redshift")
 mock_redshiftdata = lazy_load(
     ".redshiftdata", "mock_redshiftdata", boto3_name="redshift-data"
@@ -184,7 +230,7 @@ mock_timestreamwrite = lazy_load(
     ".timestreamwrite", "mock_timestreamwrite", boto3_name="timestream-write"
 )
 mock_transcribe = lazy_load(".transcribe", "mock_transcribe")
-XRaySegment = lazy_load(".xray", "XRaySegment")
+XRaySegment = load_xray_segment()
 mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
@@ -208,19 +254,16 @@ class MockAll(ContextDecorator):
 
 mock_all = MockAll
 
-# import logging
-# logging.getLogger('boto').setLevel(logging.CRITICAL)
-
 __title__ = "moto"
-__version__ = "4.2.8.dev"
+__version__ = "4.2.13.dev"
 
 
 try:
     # Need to monkey-patch botocore requests back to underlying urllib3 classes
-    from botocore.awsrequest import (
-        HTTPSConnectionPool,
-        HTTPConnectionPool,
+    from botocore.awsrequest import (  # type: ignore[attr-defined]
         HTTPConnection,
+        HTTPConnectionPool,
+        HTTPSConnectionPool,
         VerifiedHTTPSConnection,
     )
 except ImportError:

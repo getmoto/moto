@@ -1,22 +1,23 @@
 import datetime
 from collections import OrderedDict
-from typing import Any, Dict, List, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.ec2.models import ec2_backends
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidInstanceIdError
+from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random
+
 from .exceptions import (
     BadHealthCheckDefinition,
-    DuplicateLoadBalancerName,
+    CertificateNotFoundException,
     DuplicateListenerError,
+    DuplicateLoadBalancerName,
     EmptyListenersError,
     InvalidSecurityGroupError,
     LoadBalancerNotFoundError,
     NoActiveLoadBalancerFoundError,
     PolicyNotFoundError,
     TooManyTagsError,
-    CertificateNotFoundException,
 )
 from .policies import (
     AppCookieStickinessPolicy,
@@ -169,16 +170,22 @@ class FakeLoadBalancer(CloudFormationModel):
         port_policies: Dict[str, Any] = {}
         for policy in policies:
             policy_name = policy["PolicyName"]
-            other_policy = OtherPolicy(policy_name, "", [])
-            elb_backend.create_lb_other_policy(new_elb.name, other_policy)
+            policy_type_name = policy["PolicyType"]
+            policy_attrs = policy["Attributes"]
+            elb_backend.create_load_balancer_policy(
+                load_balancer_name=new_elb.name,
+                policy_name=policy_name,
+                policy_type_name=policy_type_name,
+                policy_attrs=policy_attrs,
+            )
             for port in policy.get("InstancePorts", []):
                 policies_for_port: Any = port_policies.get(port, set())
                 policies_for_port.add(policy_name)
                 port_policies[port] = policies_for_port
 
         for port, policies in port_policies.items():
-            elb_backend.set_load_balancer_policies_of_backend_server(
-                new_elb.name, port, list(policies)
+            elb_backend.set_load_balancer_policies_for_backend_server(
+                new_elb.name, int(port), list(policies)
             )
 
         health_check = properties.get("HealthCheck")
@@ -552,7 +559,7 @@ class ELBBackend(BaseBackend):
         if access_log:
             load_balancer.attributes["access_log"] = access_log
 
-    def create_lb_other_policy(
+    def create_load_balancer_policy(
         self,
         load_balancer_name: str,
         policy_name: str,
@@ -586,7 +593,7 @@ class ELBBackend(BaseBackend):
         load_balancer.policies.append(policy)
         return load_balancer
 
-    def set_load_balancer_policies_of_backend_server(
+    def set_load_balancer_policies_for_backend_server(
         self, load_balancer_name: str, instance_port: int, policies: List[str]
     ) -> FakeLoadBalancer:
         load_balancer = self.get_load_balancer(load_balancer_name)
@@ -613,7 +620,7 @@ class ELBBackend(BaseBackend):
         return load_balancer
 
     def _register_certificate(self, ssl_certificate_id: str, dns_name: str) -> None:
-        from moto.acm.models import acm_backends, CertificateNotFound
+        from moto.acm.models import CertificateNotFound, acm_backends
 
         acm_backend = acm_backends[self.account_id][self.region_name]
         try:

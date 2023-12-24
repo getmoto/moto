@@ -1,16 +1,17 @@
-from base64 import b64decode
-from typing import Any, Dict, List, Optional, Tuple
 import datetime
 import re
+from base64 import b64decode
+from typing import Any, Dict, List, Optional, Tuple
+
 import xmltodict
 
-from moto.core import BaseBackend, BaseModel, BackendDict
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
-from moto.iam.models import iam_backends, AccessKey
+from moto.iam.models import AccessKey, iam_backends
 from moto.sts.utils import (
-    random_session_token,
     DEFAULT_STS_SESSION_DURATION,
     random_assumed_role_id,
+    random_session_token,
 )
 
 

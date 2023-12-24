@@ -1,11 +1,12 @@
 """Unit tests for apigatewaymanagementapi-supported APIs."""
+from unittest import SkipTest
+
 import boto3
 
 from moto import mock_apigatewaymanagementapi, settings
-from moto.core.versions import is_werkzeug_2_3_x
 from moto.apigatewaymanagementapi.models import apigatewaymanagementapi_backends
+from moto.core.versions import is_werkzeug_2_3_x
 from tests import DEFAULT_ACCOUNT_ID
-from unittest import SkipTest
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html

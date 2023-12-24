@@ -2,39 +2,84 @@ import ipaddress
 import json
 import weakref
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
 from operator import itemgetter
+from typing import Any, Dict, List, Optional
 
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
+
 from ..exceptions import (
     CidrLimitExceeded,
-    UnsupportedTenancy,
     DefaultVpcAlreadyExists,
     DependencyViolationError,
     InvalidCIDRBlockParameterError,
-    InvalidServiceName,
     InvalidFilter,
     InvalidNextToken,
     InvalidParameterValueError,
+    InvalidServiceName,
     InvalidVpcCidrBlockAssociationIdError,
+    InvalidVpcEndPointIdError,
     InvalidVPCIdError,
     InvalidVPCRangeError,
     OperationNotPermitted,
-    InvalidVpcEndPointIdError,
+    UnsupportedTenancy,
 )
-from .availability_zones_and_regions import RegionsAndZonesBackend
 from ..utils import (
-    random_ipv6_cidr,
-    random_vpc_ep_id,
-    random_private_ip,
     create_dns_entries,
-    random_vpc_id,
-    random_vpc_cidr_association_id,
     generic_filter,
+    random_ipv6_cidr,
+    random_private_ip,
+    random_vpc_cidr_association_id,
+    random_vpc_ep_id,
+    random_vpc_id,
     utc_date_and_time,
 )
+from .availability_zones_and_regions import RegionsAndZonesBackend
+from .core import TaggedEC2Resource
 
+# We used to load the entirety of Moto into memory, and check every module if it's supported
+# But having a fixed list is much more performant
+# Maintaining it is more difficult, but the contents of this list does not change very often
+IMPLEMENTED_ENDPOINT_SERVICES = [
+    "acm",
+    "applicationautoscaling",
+    "athena",
+    "autoscaling",
+    "lambda",
+    "cloudformation",
+    "cloudwatch",
+    "codecommit",
+    "codepipeline",
+    "config",
+    "datasync",
+    "dms",
+    "ds",
+    "dynamodb",
+    "ec2",
+    "ecr",
+    "ecs",
+    "elasticbeanstalk",
+    "elbv2",
+    "emr",
+    "events",
+    "firehose",
+    "glue",
+    "iot",
+    "kinesis",
+    "kms",
+    "logs",
+    "rds",
+    "redshift",
+    "route53resolver",
+    "s3",
+    "sagemaker",
+    "secretsmanager",
+    "sns",
+    "sqs",
+    "ssm",
+    "sts",
+    "transcribe",
+    "xray",
+]
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
 DEFAULT_VPC_ENDPOINT_SERVICES: List[Dict[str, str]] = []
 
@@ -43,7 +88,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     DEFAULT_POLICY = {
         "Version": "2008-10-17",
-        "Statement ": [
+        "Statement": [
             {"Effect": "Allow", "Principal": "*", "Action": "*", "Resource": "*"}
         ],
     }
@@ -724,7 +769,8 @@ class VPCBackend:
 
         from moto import backends  # pylint: disable=import-outside-toplevel
 
-        for _backends in backends.service_backends():
+        for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
+            _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
             account_backend = _backends[account_id]
             if region in account_backend:
                 service = account_backend[region].default_vpc_endpoint_service(

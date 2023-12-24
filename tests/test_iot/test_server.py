@@ -1,7 +1,7 @@
 import json
-import pytest
-
 from urllib.parse import quote
+
+import pytest
 
 import moto.server as server
 from moto import mock_iot

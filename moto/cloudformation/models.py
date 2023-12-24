@@ -1,34 +1,34 @@
-from datetime import datetime, timedelta
 import json
-import yaml
-
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Iterable, Tuple, Union, Type
+from datetime import datetime, timedelta
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
+
+import yaml
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
     utcnow,
 )
 from moto.moto_api._internal import mock_random
+from moto.organizations.models import OrganizationsBackend, organizations_backends
 from moto.sns.models import sns_backends
-from moto.organizations.models import organizations_backends, OrganizationsBackend
 
 from .custom_model import CustomModel
-from .parsing import ResourceMap, Output, OutputMap, Export
+from .exceptions import StackSetNotEmpty, StackSetNotFoundException, ValidationError
+from .parsing import Export, Output, OutputMap, ResourceMap
 from .utils import (
     generate_changeset_id,
     generate_stack_id,
     generate_stackset_arn,
     generate_stackset_id,
-    yaml_tag_constructor,
-    validate_template_cfn_lint,
     get_stack_from_s3_url,
+    validate_template_cfn_lint,
+    yaml_tag_constructor,
 )
-from .exceptions import ValidationError, StackSetNotEmpty, StackSetNotFoundException
 
 
 class FakeStackSet(BaseModel):

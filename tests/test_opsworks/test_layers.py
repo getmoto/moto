@@ -1,6 +1,7 @@
 import boto3
-from freezegun import freeze_time
 import pytest
+from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_opsworks
 
@@ -42,7 +43,7 @@ def test_create_layer_response():
     assert "LayerId" in response
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_layer(
             StackId=stack_id, Type="custom", Name="TestLayer", Shortname="_"
         )
@@ -51,7 +52,7 @@ def test_create_layer_response():
     )
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_layer(
             StackId=stack_id, Type="custom", Name="_", Shortname="TestLayerShortName"
         )
@@ -60,7 +61,7 @@ def test_create_layer_response():
     ) in exc.value.response["Error"]["Message"]
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_layer(
             StackId="nothere", Type="custom", Name="TestLayer", Shortname="_"
         )
@@ -91,20 +92,20 @@ def test_describe_layers():
     assert rv1["Layers"][0]["Name"] == "TestLayer"
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_layers(StackId=stack_id, LayerIds=[layer_id])
     assert exc.value.response["Error"]["Message"] == (
         "Please provide one or more layer IDs or a stack ID"
     )
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_layers(StackId="nothere")
     assert exc.value.response["Error"]["Message"] == (
         "Unable to find stack with ID nothere"
     )
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_layers(LayerIds=["nothere"])
     assert exc.value.response["Error"]["Message"] == "nothere"

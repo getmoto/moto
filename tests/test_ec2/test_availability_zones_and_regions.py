@@ -1,7 +1,7 @@
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_ec2
 
 
@@ -36,6 +36,45 @@ def test_boto3_availability_zones():
         resp = conn.describe_availability_zones()
         for rec in resp["AvailabilityZones"]:
             assert region in rec["ZoneName"]
+
+
+@mock_ec2
+def test_availability_zones__parameters():
+    us_east = boto3.client("ec2", "us-east-1")
+    zones = us_east.describe_availability_zones(ZoneNames=["us-east-1b"])[
+        "AvailabilityZones"
+    ]
+    assert len(zones) == 1
+    assert zones[0]["ZoneId"] == "use1-az1"
+
+    zones = us_east.describe_availability_zones(ZoneNames=["us-east-1a", "us-east-1b"])[
+        "AvailabilityZones"
+    ]
+    assert len(zones) == 2
+    assert set([zone["ZoneId"] for zone in zones]) == {"use1-az1", "use1-az6"}
+
+    zones = us_east.describe_availability_zones(ZoneIds=["use1-az1"])[
+        "AvailabilityZones"
+    ]
+    assert len(zones) == 1
+    assert zones[0]["ZoneId"] == "use1-az1"
+
+    zones = us_east.describe_availability_zones(
+        Filters=[{"Name": "state", "Values": ["unavailable"]}]
+    )["AvailabilityZones"]
+    assert zones == []
+
+    zones = us_east.describe_availability_zones(
+        Filters=[{"Name": "zone-id", "Values": ["use1-az2"]}]
+    )["AvailabilityZones"]
+    assert len(zones) == 1
+    assert zones[0]["ZoneId"] == "use1-az2"
+
+    zones = us_east.describe_availability_zones(
+        Filters=[{"Name": "zone-name", "Values": ["us-east-1b"]}]
+    )["AvailabilityZones"]
+    assert len(zones) == 1
+    assert zones[0]["ZoneId"] == "use1-az1"
 
 
 @mock_ec2

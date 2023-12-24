@@ -1,44 +1,44 @@
 import random
 import time
+from threading import Thread
+from typing import Any, List, Optional
+
 import pytest
 
-from moto.core import BaseBackend, BackendDict, DEFAULT_ACCOUNT_ID
-from moto.core.base_backend import AccountSpecificBackend
-
 from moto.autoscaling.models import AutoScalingBackend
+from moto.core import DEFAULT_ACCOUNT_ID, BackendDict, BaseBackend
+from moto.core.base_backend import AccountSpecificBackend
 from moto.ec2.models import EC2Backend
 from moto.elbv2.models import ELBv2Backend
 
-from threading import Thread
-
 
 class ExampleBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
 
-def test_backend_dict_returns_nothing_by_default():
+def test_backend_dict_returns_nothing_by_default() -> None:
     backend_dict = BackendDict(ExampleBackend, "ebs")
     assert list(backend_dict.items()) == []
 
 
-def test_account_specific_dict_contains_known_regions():
+def test_account_specific_dict_contains_known_regions() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2")
     assert isinstance(backend_dict["account"]["eu-north-1"], ExampleBackend)
 
 
-def test_backend_dict_does_not_contain_unknown_regions():
+def test_backend_dict_does_not_contain_unknown_regions() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2")
     assert "mars-south-1" not in backend_dict["account"]
 
 
-def test_backend_dict_fails_when_retrieving_unknown_regions():
+def test_backend_dict_fails_when_retrieving_unknown_regions() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2")
     with pytest.raises(KeyError):
         backend_dict["account"]["mars-south-1"]  # pylint: disable=pointless-statement
 
 
-def test_backend_dict_can_retrieve_for_specific_account():
+def test_backend_dict_can_retrieve_for_specific_account() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2")
 
     # Random account does not exist
@@ -56,12 +56,12 @@ def test_backend_dict_can_retrieve_for_specific_account():
     assert regional_backend.account_id == "012345"
 
 
-def test_backend_dict_can_ignore_boto3_regions():
+def test_backend_dict_can_ignore_boto3_regions() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2", use_boto3_regions=False)
     assert backend_dict["account"].get("us-east-1") is None
 
 
-def test_backend_dict_can_specify_additional_regions():
+def test_backend_dict_can_specify_additional_regions() -> None:
     backend_dict = BackendDict(
         ExampleBackend, "ec2", additional_regions=["region1", "global"]
     )["123456"]
@@ -75,15 +75,15 @@ def test_backend_dict_can_specify_additional_regions():
 
 class TestMultiThreadedAccess:
     class SlowExampleBackend(BaseBackend):
-        def __init__(self, region_name, account_id):
+        def __init__(self, region_name: str, account_id: str):
             super().__init__(region_name, account_id)
             time.sleep(0.1)
-            self.data = []
+            self.data: List[int] = []
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         self.backend = BackendDict(TestMultiThreadedAccess.SlowExampleBackend, "ec2")
 
-    def test_access_a_slow_backend_concurrently(self):
+    def test_access_a_slow_backend_concurrently(self) -> None:
         """None
         Usecase that we want to avoid:
 
@@ -104,7 +104,7 @@ class TestMultiThreadedAccess:
         Thread 2 adds a new value to the list
         """
 
-        def access(random_number):
+        def access(random_number: int) -> None:
             self.backend["123456789012"]["us-east-1"].data.append(random_number)
 
         threads = []
@@ -120,7 +120,7 @@ class TestMultiThreadedAccess:
         assert len(self.backend["123456789012"]["us-east-1"].data) == 15
 
 
-def test_backend_dict_can_be_hashed():
+def test_backend_dict_can_be_hashed() -> None:
     hashes = []
     for backend in [ExampleBackend, set, list, BaseBackend]:
         hashes.append(BackendDict(backend, "n/a").__hash__())
@@ -128,7 +128,7 @@ def test_backend_dict_can_be_hashed():
     assert len(set(hashes)) == 4
 
 
-def test_account_specific_dict_can_be_hashed():
+def test_account_specific_dict_can_be_hashed() -> None:
     hashes = []
     ids = ["01234567912", "01234567911", "01234567913", "000000000000", "0"]
     for accnt_id in ids:
@@ -138,7 +138,12 @@ def test_account_specific_dict_can_be_hashed():
     assert len(set(hashes)) == 5
 
 
-def _create_asb(account_id, backend=None, use_boto3_regions=False, regions=None):
+def _create_asb(
+    account_id: str,
+    backend: Any = None,
+    use_boto3_regions: bool = False,
+    regions: Optional[List[str]] = None,
+) -> Any:
     return AccountSpecificBackend(
         service_name="ec2",
         account_id=account_id,
@@ -148,7 +153,7 @@ def _create_asb(account_id, backend=None, use_boto3_regions=False, regions=None)
     )
 
 
-def test_multiple_backends_cache_behaviour():
+def test_multiple_backends_cache_behaviour() -> None:
     ec2 = BackendDict(EC2Backend, "ec2")
     ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
     assert type(ec2_useast1) == EC2Backend
@@ -173,7 +178,7 @@ def test_multiple_backends_cache_behaviour():
     assert type(as_1) == AutoScalingBackend
 
 
-def test_backenddict_cache_hits_and_misses():
+def test_backenddict_cache_hits_and_misses() -> None:
     backend = BackendDict(ExampleBackend, "ebs")
     backend.__getitem__.cache_clear()
 
@@ -214,7 +219,7 @@ def test_backenddict_cache_hits_and_misses():
     assert backend.__getitem__.cache_info().currsize == 2
 
 
-def test_asb_cache_hits_and_misses():
+def test_asb_cache_hits_and_misses() -> None:
     backend = BackendDict(ExampleBackend, "ebs")
     acb = backend["accnt_id"]
     acb.__getitem__.cache_clear()

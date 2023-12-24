@@ -1,28 +1,28 @@
 import re
 from copy import copy
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional, Tuple
 from os import getenv
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto import settings
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time, pascal_to_camelcase, remap_nested_keys
-
-from ..ec2.utils import random_private_ip
+from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time
 from moto.ec2 import ec2_backends
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 
+from ..ec2.utils import random_private_ip
 from .exceptions import (
-    EcsClientException,
-    ServiceNotFoundException,
-    TaskDefinitionNotFoundException,
-    TaskSetNotFoundException,
     ClusterNotFoundException,
+    EcsClientException,
     InvalidParameterException,
     RevisionNotFoundException,
+    ServiceNotFoundException,
+    TaskDefinitionMemoryError,
+    TaskDefinitionMissingPropertyError,
+    TaskDefinitionNotFoundException,
+    TaskSetNotFoundException,
     UnknownAccountSettingException,
 )
 
@@ -435,9 +435,10 @@ class Task(BaseObject, ManagedState):
             return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.cluster_name}/{self.id}"
         return f"arn:aws:ecs:{self.region_name}:{self._account_id}:task/{self.id}"
 
-    @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self, include_tags: bool = True) -> Dict[str, Any]:  # type: ignore
         response_object = self.gen_response_object()
+        if not include_tags:
+            response_object.pop("tags", None)
         response_object["taskArn"] = self.task_arn
         response_object["lastStatus"] = self.last_status
         return response_object
@@ -690,7 +691,9 @@ class Service(BaseObject, CloudFormationModel):
         ):
             # TODO: LoadBalancers
             # TODO: Role
-            ecs_backend.delete_service(cluster_name, service_name)
+            ecs_backend.delete_service(
+                original_resource.cluster_name, service_name, force=True
+            )
             return ecs_backend.create_service(
                 cluster_name,
                 new_resource_name,
@@ -958,11 +961,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services: Dict[str, Service] = {}
         self.container_instances: Dict[str, Dict[str, ContainerInstance]] = {}
 
-        state_manager.register_default_transition(
-            model_name="ecs::task",
-            transition={"progression": "manual", "times": 1},
-        )
-
     @staticmethod
     def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Default VPC endpoint service."""
@@ -1180,6 +1178,8 @@ class EC2ContainerServiceBackend(BaseBackend):
                     f"Tasks using the Fargate launch type do not support pidMode '{pid_mode}'. The supported value for pidMode is 'task'."
                 )
 
+        self._validate_container_defs(memory, container_definitions)
+
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
             revision = (last_id or 0) + 1
@@ -1211,6 +1211,23 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.task_definitions[family][revision] = task_definition
 
         return task_definition
+
+    @staticmethod
+    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
+        # The capitalised keys are passed by Cloudformation
+        for cd in container_definitions:
+            if "name" not in cd and "Name" not in cd:
+                raise TaskDefinitionMissingPropertyError("name")
+            if "image" not in cd and "Image" not in cd:
+                raise TaskDefinitionMissingPropertyError("image")
+            if (
+                "memory" not in cd
+                and "Memory" not in cd
+                and "memoryReservation" not in cd
+                and "MemoryReservation" not in cd
+                and not memory
+            ):
+                raise TaskDefinitionMemoryError(cd["name"])
 
     def list_task_definitions(self, family_prefix: str) -> List[str]:
         task_arns = []
@@ -1450,12 +1467,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.tasks[cluster.name][task.task_arn] = task
         return tasks
 
-    def describe_tasks(
-        self,
-        cluster_str: str,
-        tasks: Optional[str],
-        include: Optional[List[str]] = None,
-    ) -> List[Task]:
+    def describe_tasks(self, cluster_str: str, tasks: Optional[str]) -> List[Task]:
         """
         Only include=TAGS is currently supported.
         """
@@ -1474,22 +1486,18 @@ class EC2ContainerServiceBackend(BaseBackend):
                 ):
                     task.advance()
                     response.append(task)
-        if "TAGS" in (include or []):
-            return response
 
-        for task in response:
-            task.tags = []
         return response
 
     def list_tasks(
         self,
-        cluster_str: str,
-        container_instance: Optional[str],
-        family: str,
-        started_by: str,
-        service_name: str,
-        desiredStatus: str,
-    ) -> List[str]:
+        cluster_str: Optional[str] = None,
+        container_instance: Optional[str] = None,
+        family: Optional[str] = None,
+        started_by: Optional[str] = None,
+        service_name: Optional[str] = None,
+        desiredStatus: Optional[str] = None,
+    ) -> List[Task]:
         filtered_tasks = []
         for tasks in self.tasks.values():
             for task in tasks.values():
@@ -1533,7 +1541,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 filter(lambda t: t.desired_status == desiredStatus, filtered_tasks)
             )
 
-        return [t.task_arn for t in filtered_tasks]
+        return filtered_tasks
 
     def stop_task(self, cluster_str: str, task_str: str, reason: str) -> Task:
         cluster = self._get_cluster(cluster_str)
@@ -1836,7 +1844,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
         if not force and container_instance.running_tasks_count > 0:
-            raise Exception("Found running tasks on the instance.")
+            raise JsonRESTError(
+                error_type="InvalidParameter",
+                message="Found running tasks on the instance.",
+            )
         # Currently assume that people might want to do something based around deregistered instances
         # with tasks left running on them - but nothing if no tasks were running already
         elif force and container_instance.running_tasks_count > 0:
@@ -2056,6 +2067,10 @@ class EC2ContainerServiceBackend(BaseBackend):
             return task_def
         elif parsed_arn["service"] == "capacity-provider":
             return self._get_provider(parsed_arn["id"])
+        elif parsed_arn["service"] == "task":
+            for task in self.list_tasks():
+                if task.task_arn == resource_arn:
+                    return task
         raise NotImplementedError()
 
     def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:

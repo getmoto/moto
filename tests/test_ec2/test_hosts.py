@@ -1,7 +1,8 @@
+from uuid import uuid4
+
 import boto3
 
 from moto import mock_ec2
-from uuid import uuid4
 
 
 @mock_ec2
@@ -26,6 +27,7 @@ def test_describe_hosts_with_instancefamily():
 
     host = client.describe_hosts(HostIds=host_ids)["Hosts"][0]
 
+    assert "AllocationTime" in host
     assert host["HostProperties"]["InstanceFamily"] == "c5"
 
 

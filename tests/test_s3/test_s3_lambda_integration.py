@@ -8,11 +8,10 @@ from moto import mock_lambda, mock_logs, mock_s3, mock_sns, mock_sqs
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.markers import requires_docker
 from tests.test_awslambda.utilities import (
-    get_test_zip_file_print_event,
     get_role_name,
+    get_test_zip_file_print_event,
     wait_for_log_msg,
 )
-
 
 REGION_NAME = "us-east-1"
 

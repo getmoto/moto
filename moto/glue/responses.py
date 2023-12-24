@@ -3,7 +3,8 @@ from typing import Any, Dict, List
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import glue_backends, GlueBackend, FakeJob, FakeCrawler, FakeSession
+
+from .models import FakeCrawler, FakeJob, FakeSession, GlueBackend, glue_backends
 
 
 class GlueResponse(BaseResponse):

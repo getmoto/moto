@@ -1,7 +1,9 @@
 import json
+
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import redshiftdata_backends, RedshiftDataAPIServiceBackend
+
+from .models import RedshiftDataAPIServiceBackend, redshiftdata_backends
 
 
 class RedshiftDataAPIServiceResponse(BaseResponse):

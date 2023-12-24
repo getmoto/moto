@@ -1,20 +1,22 @@
-from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Tuple, Optional
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core import CloudFormationModel
+from datetime import datetime, timedelta
+from gzip import compress as gzip_compress
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
-from moto.logs.metric_filters import MetricFilters
 from moto.logs.exceptions import (
-    ResourceNotFoundException,
-    ResourceAlreadyExistsException,
     InvalidParameterException,
     LimitExceededException,
+    ResourceAlreadyExistsException,
+    ResourceNotFoundException,
 )
 from moto.logs.logs_query import execute_query
+from moto.logs.metric_filters import MetricFilters
 from moto.moto_api._internal import mock_random
-from moto.s3.models import s3_backends
+from moto.s3.models import MissingBucket, s3_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+
 from .utils import PAGINATION_MODEL, EventMessageFilter
 
 MAX_RESOURCE_POLICIES_PER_REGION = 10
@@ -410,7 +412,9 @@ class LogGroup(CloudFormationModel):
         **kwargs: Any,
     ) -> "LogGroup":
         properties = cloudformation_json["Properties"]
-        tags = properties.get("Tags", {})
+        tags = properties.get("Tags", [])
+        tags = dict([tag.values() for tag in tags])
+
         return logs_backends[account_id][region_name].create_log_group(
             resource_name, tags, **properties
         )
@@ -717,6 +721,39 @@ class LogResourcePolicy(CloudFormationModel):
         logs_backends[account_id][region_name].delete_resource_policy(resource_name)
 
 
+class ExportTask(BaseModel):
+    def __init__(
+        self,
+        task_id: str,
+        task_name: str,
+        log_group_name: str,
+        destination: str,
+        destination_prefix: str,
+        from_time: int,
+        to: int,
+    ):
+        self.task_id = task_id
+        self.task_name = task_name
+        self.log_group_name = log_group_name
+        self.destination = destination
+        self.destination_prefix = destination_prefix
+        self.from_time = from_time
+        self.to = to
+        self.status = {"code": "active", "message": "Task is active"}
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "taskId": self.task_id,
+            "taskName": self.task_name,
+            "logGroupName": self.log_group_name,
+            "destination": self.destination,
+            "destinationPrefix": self.destination_prefix,
+            "from": self.from_time,
+            "to": self.to,
+            "status": self.status,
+        }
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -726,6 +763,7 @@ class LogsBackend(BaseBackend):
         self.resource_policies: Dict[str, LogResourcePolicy] = dict()
         self.destinations: Dict[str, Destination] = dict()
         self.tagger = TaggingService()
+        self.export_tasks: Dict[str, ExportTask] = dict()
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1202,12 +1240,79 @@ class LogsBackend(BaseBackend):
         return self.queries[query_id]
 
     def create_export_task(
-        self, log_group_name: str, destination: Dict[str, Any]
+        self,
+        taskName: str,
+        logGroupName: str,
+        destination: str,
+        destinationPrefix: str,
+        fromTime: int,
+        to: int,
     ) -> str:
-        s3_backends[self.account_id]["global"].get_bucket(destination)
-        if log_group_name not in self.groups:
+        try:
+            s3_backends[self.account_id]["global"].get_bucket(destination)
+        except MissingBucket:
+            raise InvalidParameterException(
+                "The given bucket does not exist. Please make sure the bucket is valid."
+            )
+        if logGroupName not in self.groups:
             raise ResourceNotFoundException()
-        return str(mock_random.uuid4())
+        task_id = str(mock_random.uuid4())
+        self.export_tasks[task_id] = ExportTask(
+            task_id,
+            taskName,
+            logGroupName,
+            destination,
+            destinationPrefix,
+            fromTime,
+            to,
+        )
+
+        s3_backends[self.account_id]["global"].put_object(
+            bucket_name=destination,
+            key_name="aws-logs-write-test",
+            value=b"Permission Check Successful",
+        )
+
+        if fromTime <= unix_time_millis(datetime.now()) <= to:
+            for stream_name in self.groups[logGroupName].streams.keys():
+                logs, _, _ = self.filter_log_events(
+                    log_group_name=logGroupName,
+                    log_stream_names=[stream_name],
+                    start_time=fromTime,
+                    end_time=to,
+                    limit=None,
+                    next_token=None,
+                    filter_pattern="",
+                    interleaved=False,
+                )
+                raw_logs = "\n".join(
+                    [
+                        f"{datetime.fromtimestamp(log['timestamp']/1000).strftime('%Y-%m-%dT%H:%M:%S.000Z')} {log['message']}"
+                        for log in logs
+                    ]
+                )
+                folder = str(mock_random.uuid4()) + "/" + stream_name.replace("/", "-")
+                key_name = f"{destinationPrefix}/{folder}/000000.gz"
+                s3_backends[self.account_id]["global"].put_object(
+                    bucket_name=destination,
+                    key_name=key_name,
+                    value=gzip_compress(raw_logs.encode("utf-8")),
+                )
+            self.export_tasks[task_id].status["code"] = "COMPLETED"
+            self.export_tasks[task_id].status["message"] = "Completed successfully"
+
+        return task_id
+
+    def describe_export_tasks(self, task_id: str) -> List[ExportTask]:
+        """
+        Pagination is not yet implemented
+        """
+        if task_id:
+            if task_id not in self.export_tasks:
+                raise ResourceNotFoundException()
+            return [self.export_tasks[task_id]]
+        else:
+            return list(self.export_tasks.values())
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)

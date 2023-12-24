@@ -2,10 +2,10 @@ import json
 import re
 from typing import Any, Callable, Optional
 
-from .exceptions import InvalidParameterException
-
 from moto.core.responses import BaseResponse
-from .models import logs_backends, LogsBackend
+
+from .exceptions import InvalidParameterException
+from .models import LogsBackend, logs_backends
 
 # See http://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/Welcome.html
 
@@ -433,12 +433,21 @@ class LogsResponse(BaseResponse):
         return json.dumps(query.to_result_json())
 
     def create_export_task(self) -> str:
-        log_group_name = self._get_param("logGroupName")
-        destination = self._get_param("destination")
         task_id = self.logs_backend.create_export_task(
-            log_group_name=log_group_name, destination=destination
+            logGroupName=self._get_param("logGroupName"),
+            fromTime=self._get_int_param("from"),
+            to=self._get_int_param("to"),
+            destination=self._get_param("destination"),
+            destinationPrefix=self._get_param("destinationPrefix", "exportedlogs"),
+            taskName=self._get_param("taskName"),
         )
         return json.dumps(dict(taskId=str(task_id)))
+
+    def describe_export_tasks(self) -> str:
+        task_id = self._get_param("taskId")
+
+        tasks = self.logs_backend.describe_export_tasks(task_id=task_id)
+        return json.dumps({"exportTasks": [t.to_json() for t in tasks]})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("resourceArn")

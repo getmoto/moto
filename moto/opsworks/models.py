@@ -1,8 +1,9 @@
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, List, Optional
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
-from typing import Any, Dict, List, Optional
 
 from .exceptions import ResourceNotFoundException, ValidationException
 

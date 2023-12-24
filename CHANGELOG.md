@@ -1,6 +1,111 @@
 Moto Changelog
 ==============
 
+4.2.12
+------
+
+    Miscellaneous:
+        * AWSLambda: list_functions() now returns a default PackageType (ZIP) if not specified
+        * CloudFormation: AWS::EC2::LaunchTemplate resources now support Fn::GetAtt operations
+        * CognitoIDP: admin_initiate_auth() now correctly returns a Challenge when 2FA is enabled
+        * DynamoDB: execute_statement() now supports INSERT/UPDATE/DELETE queries
+        * EC2: describe_availability_zones() now supports the ZoneNames/ZoneIds-parameters
+        * KMS: encrypt() now validates payloads that are too large
+        * ResourceGroupTaggingAPI: get_resources() now supports SQS queues
+        * Route53: list_hosted_zone()/list_hosted_zones_by_name() now return the CallerReference
+        * S3: copy() now respects the ExtraArgs-parameter when using MultiPart uploads
+        * S3: list_object_versions() now supports pagination
+        * S3: put_object_tagging() now validates the number of tags provided
+
+
+4.2.11
+-----
+Docker Digest for 4.2.11: _sha256:f2a24d8a3440bf397705e461b33a032bbb6d3511cd9c643e71419dd962b3384e_
+
+    New Methods:
+        * Lambda:
+            * DeleteFunctionEventInvokeConfig()
+            * GetFunctionEventInvokeConfig()
+            * ListFunctionEventInvokeConfigs()
+            * PutFunctionEventInvokeConfig()
+            * UpdateFunctionEventInvokeConfig()
+
+        * Logs:
+            * describe_export_tasks()
+
+    Miscellaneous:
+        * DynamoDB: put_item() now returns old item for ConditionalCheckFailed exceptions
+        * DynamoDB: scan() now returns the correct ScannedCount when passing the Limit-parameter
+        * DynamoDB: transact_write_items() now validates that Keys in Update-queries are not empty
+        * IOT: create_thing()/describe_thing() now returns the thingId
+        * Logs: create_export_task() now actually exports the data to S3
+        * ResourceGroupsTaggingAPI: get_resources() now supports ACM certificates
+
+
+4.2.10
+-----
+Docker Digest for 4.2.10: _sha256:f72acd62b994654d01bdec6f5cc779f4ab30083b441e2fb7eff0c13e0bbfdca7_
+
+    New Methods:
+        * CognitoIdentity: list_identity_pools()
+
+    Miscellaneous:
+        * Autoscaling: describe_tags() now supports the key/value filters
+        * CloudFormation: AWS::Logs::LogGroup now supports tags
+        * CloudWatch: get_metric_data() no longer throws an error when supplying >10 queries
+        * CognitoIdentity: get_credentials_for_identity() now returns Expiration as a number, fixing compatibility with the GoLang SDK
+        * EFS: describe_access_points() now supports the FileSystemId-parameter
+        * LakeFormation: list_permissions() now supports the DataLocation-parameter
+        * LakeFormation: register_resource() now throws an exception when registering an existing resource
+        * SQS: Ensure all responses are in JSON-format when required, fixing compatibility with the Ruby SDK
+
+
+4.2.9
+-----
+Docker Digest for 4.2.9: _sha256:4e9d89322b5ca9196fa7efda78b1269580be7aa6879894950e2728edc946573f_
+
+    General:
+        * Fix compatibility with botocore 1.32.1
+
+    Miscellaneous:
+        * ECS: Tagging is now supported for Tasks
+        * LakeFormation: deregister_resource() now throws the correct error for unknown resources
+        * LakeFormation: list_permissions() now supports Parameters
+        * RDS: create_db_instance() now validates the engine parameter
+        * Transcribe: TranscriptionJobs now support the Subtitles-parameter
+
+4.2.8
+-----
+Docker Digest for 4.2.8: _sha256:937315c79dedcc86506fc22a60502fd73d0e6f3a6f3e5fc614dd3164740e1191_
+
+    General:
+        * Support for Python 3.12
+        * Support for a Simple Lambda backend, that will mock functions without invoking a Docker container.
+          Use the decorator `mock_lambda_simple` for this feature.
+
+    New Methods:
+        * IdentityStore:
+            * describe_group()
+
+        * Signer:
+            * list_tags_by_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * DynamoDB: create_table() now throws an error when supplying an unknown KeyType
+        * DynamoDB: query() now throws an error when supplying a ExpressionAttributeValue that doesn't start with a ':'
+        * EC2: describe_hosts() now returns the AllocationTime-attribute
+        * ECS: register_task_definition() now throws an exception if the ContainerDefinition has missing keys
+        * ECR: describe_images() now returns the supplied imageDigest-values, instead of random values
+        * EFS: AccessPoints now have the correct identifier format
+        * Lambda: Various methods now support the FunctionName in the format 'name:qualifier'
+        * MQ: create_configuration() is now possible for engine-type 'RABBITMQ'
+        * RDS: create_db_cluster() now throws an error if the provided engine is not supported
+        * RDS: create_db_instance() now throws an error if the provided engine does not match the cluster engine
+        * RDS: delete_db_cluster() now throws an error if any instances are still active
+        * SageMaker: list_model_packages() and list_model_package_groups() no longer throw an error on pagination
+
 4.2.7
 -----
 Docker Digest for 4.2.7: _sha256:9149597856f5ce195ef451df1a1b96aa8db0692c4b8ed1f7952fc02952733103_

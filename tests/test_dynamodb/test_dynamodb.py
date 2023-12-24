@@ -1,19 +1,20 @@
-import boto3
-import pytest
-import uuid
 import re
-from botocore.exceptions import ClientError
+import uuid
 from datetime import datetime
 from decimal import Decimal
 
+import boto3
+import pytest
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.dynamodb.types import Binary
+from botocore.exceptions import ClientError
+
+import moto.dynamodb.comparisons
+import moto.dynamodb.models
 from moto import mock_dynamodb, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.dynamodb import dynamodb_backends
 
-import moto.dynamodb.comparisons
-import moto.dynamodb.models
 from . import dynamodb_aws_verified
 
 
@@ -1616,6 +1617,50 @@ def test_bad_scan_filter():
 
 
 @mock_dynamodb
+def test_scan_with_scanfilter():
+    table_name = "my-table"
+    item = {"partitionKey": "pk-2", "my-attr": 42}
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    res = boto3.resource("dynamodb", region_name="us-east-1")
+    res.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "partitionKey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "partitionKey", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    table = res.Table(table_name)
+    table.put_item(Item={"partitionKey": "pk-1"})
+    table.put_item(Item=item)
+
+    # ScanFilter: EQ
+    # The DynamoDB table-resource sends the AttributeValueList in the wrong format
+    # So this operation never finds any data, in Moto or AWS
+    table.scan(
+        ScanFilter={
+            "my-attr": {"AttributeValueList": [{"N": "42"}], "ComparisonOperator": "EQ"}
+        }
+    )
+
+    # ScanFilter: EQ
+    # If we use the boto3-client, we do receive the correct data
+    items = client.scan(
+        TableName=table_name,
+        ScanFilter={
+            "partitionKey": {
+                "AttributeValueList": [{"S": "pk-1"}],
+                "ComparisonOperator": "EQ",
+            }
+        },
+    )["Items"]
+    assert items == [{"partitionKey": {"S": "pk-1"}}]
+
+    # ScanFilter: NONE
+    # Note that we can use the table-resource here, because we're not using the AttributeValueList
+    items = table.scan(ScanFilter={"my-attr": {"ComparisonOperator": "NULL"}})["Items"]
+    assert items == [{"partitionKey": "pk-1"}]
+
+
+@mock_dynamodb
 def test_duplicate_create():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -1846,7 +1891,7 @@ def test_describe_continuous_backups_errors():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     # when
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as e:
         client.describe_continuous_backups(TableName="not-existing-table")
 
     # then
@@ -1930,7 +1975,7 @@ def test_update_continuous_backups_errors():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     # when
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as e:
         client.update_continuous_backups(
             TableName="not-existing-table",
             PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
@@ -3686,7 +3731,7 @@ def test_transact_write_items_put():
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_transact_write_items_put_conditional_expressions(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -3731,7 +3776,7 @@ def test_transact_write_items_put_conditional_expressions(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified
+@dynamodb_aws_verified()
 def test_transact_write_items_failure__return_item(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.put_item(TableName=table_name, Item={"pk": {"S": "foo2"}})

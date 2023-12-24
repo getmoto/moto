@@ -1,41 +1,41 @@
 import copy
 import re
-
 from collections import OrderedDict
-from typing import Any, Dict, Optional, List, Tuple, Union, Set
-from moto.core import BaseBackend, BackendDict
-from moto.core.utils import unix_time
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+
+from moto.core import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
-from moto.dynamodb.comparisons import get_filter_expression, get_expected
+from moto.core.utils import unix_time
+from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
+    BackupNotFoundException,
+    ConditionalCheckFailed,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
-    ConditionalCheckFailed,
-    TransactionCanceledException,
+    MockValidationException,
     MultipleTransactionsException,
-    TooManyTransactionsException,
-    TableNotFoundException,
+    ResourceInUseException,
     ResourceNotFoundException,
     SourceTableNotFoundException,
-    TableAlreadyExistsException,
-    BackupNotFoundException,
-    ResourceInUseException,
     StreamAlreadyEnabledException,
-    MockValidationException,
+    TableAlreadyExistsException,
+    TableNotFoundException,
+    TooManyTransactionsException,
+    TransactionCanceledException,
     TransactWriteSingleOpException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import (
-    Table,
-    RestoredTable,
+    Backup,
     GlobalSecondaryIndex,
     RestoredPITTable,
-    Backup,
+    RestoredTable,
+    Table,
 )
+from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
-from moto.dynamodb.parsing import partiql
 
 
 class DynamoDBBackend(BaseBackend):
@@ -225,6 +225,7 @@ class DynamoDBBackend(BaseBackend):
         expression_attribute_names: Optional[Dict[str, Any]] = None,
         expression_attribute_values: Optional[Dict[str, Any]] = None,
         overwrite: bool = False,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         table = self.get_table(table_name)
         return table.put_item(
@@ -234,6 +235,7 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_names,
             expression_attribute_values,
             overwrite,
+            return_values_on_condition_check_failure,
         )
 
     def get_table_keys_name(
@@ -317,7 +319,7 @@ class DynamoDBBackend(BaseBackend):
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
         expr_names: Optional[Dict[str, str]] = None,
-        expr_values: Optional[Dict[str, str]] = None,
+        expr_values: Optional[Dict[str, Dict[str, str]]] = None,
         filter_expression: Optional[str] = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
@@ -783,8 +785,6 @@ class DynamoDBBackend(BaseBackend):
         self, statement: str, parameters: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
-        Only SELECT-statements are supported for now.
-
         Pagination is not yet implemented.
 
         Parsing is highly experimental - please raise an issue if you find any bugs.
@@ -797,7 +797,29 @@ class DynamoDBBackend(BaseBackend):
                 item.to_json()["Attributes"] for item in table.all_items()
             ]
 
-        return partiql.query(statement, source_data, parameters)
+        return_data, updates_per_table = partiql.query(
+            statement, source_data, parameters
+        )
+
+        for table_name, updates in updates_per_table.items():
+            table = self.tables[table_name]
+            for before, after in updates:
+                if after is None and before is not None:
+                    # DELETE
+                    hash_key = DynamoType(before[table.hash_key_attr])
+                    if table.range_key_attr:
+                        range_key = DynamoType(before[table.range_key_attr])
+                    else:
+                        range_key = None
+                    table.delete_item(hash_key, range_key)
+                elif before is None and after is not None:
+                    # CREATE
+                    table.put_item(after)
+                elif before is not None and after is not None:
+                    # UPDATE
+                    table.put_item(after)
+
+        return return_data
 
     def execute_transaction(
         self, statements: List[Dict[str, Any]]

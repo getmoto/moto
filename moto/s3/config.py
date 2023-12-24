@@ -1,12 +1,13 @@
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core.exceptions import InvalidNextTokenException
 from moto.core.common_models import ConfigQueryModel
+from moto.core.exceptions import InvalidNextTokenException
 from moto.s3 import s3_backends
+from moto.s3.models import S3Backend
 
 
-class S3ConfigQuery(ConfigQueryModel):
+class S3ConfigQuery(ConfigQueryModel[S3Backend]):
     def list_config_service_resources(
         self,
         account_id: str,
@@ -103,7 +104,7 @@ class S3ConfigQuery(ConfigQueryModel):
         resource_region: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         # Get the bucket:
-        bucket = self.backends[account_id]["global"].buckets.get(resource_id, {})
+        bucket = self.backends[account_id]["global"].buckets.get(resource_id)
 
         if not bucket:
             return None

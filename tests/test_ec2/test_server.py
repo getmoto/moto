@@ -1,5 +1,6 @@
 """Test the different server responses."""
 import re
+
 import xmltodict
 
 import moto.server as server

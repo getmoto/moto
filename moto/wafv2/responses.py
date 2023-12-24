@@ -1,8 +1,10 @@
 import json
+
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import GLOBAL_REGION, wafv2_backends, WAFV2Backend
+
+from .models import GLOBAL_REGION, WAFV2Backend, wafv2_backends
 
 
 class WAFV2Response(BaseResponse):

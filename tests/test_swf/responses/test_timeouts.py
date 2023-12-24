@@ -6,8 +6,7 @@ from freezegun import freeze_time
 
 from moto import mock_swf, settings
 
-from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION
-from ..utils import setup_workflow_boto3
+from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow_boto3
 
 
 # Activity Task Heartbeat timeout

@@ -2,28 +2,27 @@ import datetime
 import re
 from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 
 from .exceptions import (
     BadRequestException,
-    ResourceNotFoundException,
     InvalidRequestException,
-    ResourceLimitExceededException,
     ResourceAlreadyExistsException,
+    ResourceLimitExceededException,
+    ResourceNotFoundException,
 )
-
 from .utils import (
-    get_network_id,
-    get_member_id,
-    get_proposal_id,
-    get_invitation_id,
-    member_name_exist_in_network,
-    number_of_members_in_network,
     admin_password_ok,
+    get_invitation_id,
+    get_member_id,
+    get_network_id,
     get_node_id,
-    number_of_nodes_in_member,
+    get_proposal_id,
+    member_name_exist_in_network,
     nodes_in_member,
+    number_of_members_in_network,
+    number_of_nodes_in_member,
 )
 
 FRAMEWORKS = [

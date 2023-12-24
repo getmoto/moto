@@ -1,7 +1,6 @@
 import json
 import os
 import pathlib
-
 from functools import lru_cache
 from typing import List, Optional
 

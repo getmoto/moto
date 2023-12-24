@@ -6,13 +6,12 @@ from unittest import SkipTest, TestCase
 
 import boto3
 
-from moto import settings, mock_s3
+from moto import mock_s3, settings
 from moto.dynamodb.models import DynamoDBBackend
-from moto.s3 import models as s3model, s3_backends
+from moto.s3 import models as s3model
+from moto.s3 import s3_backends
 from moto.s3.responses import S3Response
-
 from tests import DEFAULT_ACCOUNT_ID
-
 
 TEST_BUCKET = "my-bucket"
 TEST_BUCKET_VERSIONED = "versioned-bucket"
@@ -324,7 +323,9 @@ def test_verify_key_can_be_copied_after_disposing():
     #
     # This test verifies the copy-operation succeeds, it will just not
     # have any data.
-    key = s3model.FakeKey(name="test", bucket_name="bucket", value="sth")
+    key = s3model.FakeKey(
+        name="test", bucket_name="bucket", value="sth", account_id=DEFAULT_ACCOUNT_ID
+    )
     assert not key._value_buffer.closed
     key.dispose()
     assert key._value_buffer.closed

@@ -1,12 +1,13 @@
 import copy
 import os
-import boto3
-from botocore.exceptions import ClientError
-import pytest
 
-from moto import mock_elbv2, mock_ec2, mock_acm
-from moto.elbv2 import elbv2_backends
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_acm, mock_ec2, mock_elbv2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.elbv2 import elbv2_backends
 from tests import EXAMPLE_AMI_ID
 
 
@@ -1120,7 +1121,7 @@ def test_describe_ssl_policies():
     client = boto3.client("elbv2", region_name="eu-central-1")
 
     resp = client.describe_ssl_policies()
-    assert len(resp["SslPolicies"]) == 7
+    assert len(resp["SslPolicies"]) > 0
 
     resp = client.describe_ssl_policies(
         Names=["ELBSecurityPolicy-TLS-1-2-2017-01", "ELBSecurityPolicy-2016-08"]

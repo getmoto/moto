@@ -1,52 +1,56 @@
 import base64
-import time
-from collections import defaultdict
+import calendar
 import copy
-from datetime import datetime
-from gzip import GzipFile
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
-from sys import platform
-
-import docker
-import docker.errors
 import hashlib
 import io
+import json
 import logging
 import os
-import json
 import re
-import zipfile
 import tarfile
-import calendar
 import threading
-import weakref
+import time
 import warnings
+import weakref
+import zipfile
+from collections import defaultdict
+from datetime import datetime
+from gzip import GzipFile
+from sys import platform
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+
 import requests.exceptions
 
+from moto import settings
 from moto.awslambda.policy import Policy
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import unix_time_millis, iso_8601_datetime_with_nanoseconds, utcnow
-from moto.utilities.utils import load_resource_as_bytes
-from moto.iam.models import iam_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.core.utils import iso_8601_datetime_with_nanoseconds, unix_time_millis, utcnow
+from moto.dynamodb import dynamodb_backends
+from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.ecr.exceptions import ImageNotFoundException
+from moto.ecr.models import ecr_backends
+from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.models import iam_backends
 from moto.logs.models import logs_backends
 from moto.moto_api._internal import mock_random as random
-from moto.s3.models import s3_backends, FakeKey
-from moto.ecr.models import ecr_backends
 from moto.s3.exceptions import MissingBucket, MissingKey
-from moto import settings
+from moto.s3.models import FakeKey, s3_backends
+from moto.sqs import sqs_backends
+from moto.utilities.docker_utilities import DockerModel
+from moto.utilities.utils import load_resource_as_bytes
+
 from .exceptions import (
     ConflictException,
     CrossAccountNotAllowed,
     FunctionUrlConfigNotFound,
-    InvalidRoleFormat,
     InvalidParameterValueException,
+    InvalidRoleFormat,
+    UnknownAliasException,
+    UnknownEventConfig,
+    UnknownFunctionException,
     UnknownLayerException,
     UnknownLayerVersionException,
-    UnknownFunctionException,
-    UnknownAliasException,
     ValidationException,
 )
 from .utils import (
@@ -56,10 +60,6 @@ from .utils import (
     make_layer_ver_arn,
     split_layer_arn,
 )
-from moto.sqs import sqs_backends
-from moto.dynamodb import dynamodb_backends
-from moto.dynamodbstreams import dynamodbstreams_backends
-from moto.utilities.docker_utilities import DockerModel
 
 logger = logging.getLogger(__name__)
 
@@ -157,6 +157,8 @@ class _DockerDataVolumeContext:
         with self.__class__._lock:
             self._vol_ref.refcount -= 1  # type: ignore[union-attr]
             if self._vol_ref.refcount == 0:  # type: ignore[union-attr]
+                import docker.errors
+
                 try:
                     self._vol_ref.volume.remove()  # type: ignore[union-attr]
                 except docker.errors.APIError as e:
@@ -240,6 +242,8 @@ class _DockerDataVolumeLayerContext:
         with self.__class__._lock:
             self._vol_ref.refcount -= 1  # type: ignore[union-attr]
             if self._vol_ref.refcount == 0:  # type: ignore[union-attr]
+                import docker.errors
+
                 try:
                     self._vol_ref.volume.remove()  # type: ignore[union-attr]
                 except docker.errors.APIError as e:
@@ -289,6 +293,72 @@ def _validate_s3_bucket_and_key(
                 "Error occurred while GetObject. S3 Error Code: NoSuchKey. S3 Error Message: The specified key does not exist.",
             )
     return key
+
+
+class EventInvokeConfig:
+    def __init__(self, arn: str, last_modified: str, config: Dict[str, Any]) -> None:
+        self.config = config
+        self.validate_max()
+        self.validate()
+        self.arn = arn
+        self.last_modified = last_modified
+
+    def validate_max(self) -> None:
+        if "MaximumRetryAttempts" in self.config:
+            mra = self.config["MaximumRetryAttempts"]
+            if mra > 2:
+                raise ValidationException(
+                    mra,
+                    "maximumRetryAttempts",
+                    "Member must have value less than or equal to 2",
+                )
+
+            # < 0 validation done by botocore
+        if "MaximumEventAgeInSeconds" in self.config:
+            mra = self.config["MaximumEventAgeInSeconds"]
+            if mra > 21600:
+                raise ValidationException(
+                    mra,
+                    "maximumEventAgeInSeconds",
+                    "Member must have value less than or equal to 21600",
+                )
+
+            # < 60 validation done by botocore
+
+    def validate(self) -> None:
+        # https://docs.aws.amazon.com/lambda/latest/dg/API_OnSuccess.html
+        regex = r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+        pattern = re.compile(regex)
+
+        if self.config["DestinationConfig"]:
+            destination_config = self.config["DestinationConfig"]
+            if (
+                "OnSuccess" in destination_config
+                and "Destination" in destination_config["OnSuccess"]
+            ):
+                contents = destination_config["OnSuccess"]["Destination"]
+                if not pattern.match(contents):
+                    raise ValidationException(
+                        contents,
+                        "destinationConfig.onSuccess.destination",
+                        f"Member must satisfy regular expression pattern: {regex}",
+                    )
+            if (
+                "OnFailure" in destination_config
+                and "Destination" in destination_config["OnFailure"]
+            ):
+                contents = destination_config["OnFailure"]["Destination"]
+                if not pattern.match(contents):
+                    raise ValidationException(
+                        contents,
+                        "destinationConfig.onFailure.destination",
+                        f"Member must satisfy regular expression pattern: {regex}",
+                    )
+
+    def response(self) -> Dict[str, Any]:
+        response = {"FunctionArn": self.arn, "LastModified": self.last_modified}
+        response.update(self.config)
+        return response
 
 
 class ImageConfig:
@@ -537,7 +607,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.policy: Optional[Policy] = None
+        self.policy = Policy(self)
         self.url_config: Optional[FunctionUrlConfig] = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
@@ -546,10 +616,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.ephemeral_storage: str
         self.code_digest: str
         self.code_bytes: bytes
+        self.event_invoke_config: List[EventInvokeConfig] = []
 
         self.description = spec.get("Description", "")
         self.memory_size = spec.get("MemorySize", 128)
-        self.package_type = spec.get("PackageType", None)
+        self.package_type = spec.get("PackageType", "Zip")
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
         self.layers: List[Dict[str, str]] = self._get_layers_data(
@@ -580,7 +651,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         self._set_function_code(self.code)
 
-        self.function_arn = make_function_arn(
+        self.function_arn: str = make_function_arn(
             self.region, self.account_id, self.function_name
         )
 
@@ -657,7 +728,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         ]
         if not all(layer_versions):
             raise UnknownLayerVersionException(layers_versions_arns)
-        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions]
+        # The `if lv` part is not necessary - we know there are no None's, because of the `all()`-check earlier
+        # But MyPy does not seem to understand this
+        # The `type: ignore` is because `code_size` is an int, and we're returning Dict[str, str]
+        # We should convert the return-type into a TypedDict the moment we drop Py3.7 support
+        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv]  # type: ignore
 
     def get_code_signing_config(self) -> Dict[str, Any]:
         return {
@@ -857,6 +932,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             return s
 
     def _invoke_lambda(self, event: Optional[str] = None) -> Tuple[str, bool, str]:
+        import docker
+        import docker.errors
+
         # Create the LogGroup if necessary, to write the result to
         self.logs_backend.ensure_log_group(self.logs_group_name)
         # TODO: context not yet implemented
@@ -1271,7 +1349,7 @@ class EventSourceMapping(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         event_source_uuid = original_resource.uuid
         lambda_backend = lambda_backends[account_id][region_name]
-        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)
+        return lambda_backend.update_event_source_mapping(event_source_uuid, properties)  # type: ignore[return-value]
 
     @classmethod
     def delete_from_cloudformation_json(  # type: ignore[misc]
@@ -1321,7 +1399,7 @@ class LambdaVersion(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
         func = lambda_backends[account_id][region_name].publish_function(function_name)
-        spec = {"Version": func.version}
+        spec = {"Version": func.version}  # type: ignore[union-attr]
         return LambdaVersion(spec)
 
 
@@ -1349,8 +1427,10 @@ class LambdaStorage(object):
         return None
 
     def _get_function_aliases(self, function_name: str) -> Dict[str, LambdaAlias]:
-        fn = self.get_function_by_name_or_arn(function_name)
-        return self._aliases[fn.function_arn]
+        fn = self.get_function_by_name_or_arn_with_qualifier(function_name)
+        # Split ARN to retrieve an ARN without a qualifier present
+        [arn, _, _] = self.split_function_arn(fn.function_arn)
+        return self._aliases[arn]
 
     def delete_alias(self, name: str, function_name: str) -> None:
         aliases = self._get_function_aliases(function_name)
@@ -1372,7 +1452,9 @@ class LambdaStorage(object):
         description: str,
         routing_config: str,
     ) -> LambdaAlias:
-        fn = self.get_function_by_name_or_arn(function_name, function_version)
+        fn = self.get_function_by_name_or_arn_with_qualifier(
+            function_name, function_version
+        )
         aliases = self._get_function_aliases(function_name)
         if name in aliases:
             arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
@@ -1401,34 +1483,71 @@ class LambdaStorage(object):
         alias = self.get_alias(name, function_name)
 
         # errors if new function version doesn't exist
-        self.get_function_by_name_or_arn(function_name, function_version)
+        self.get_function_by_name_or_arn_with_qualifier(function_name, function_version)
 
         alias.update(description, function_version, routing_config)
         return alias
 
-    def get_function_by_name(
-        self, name: str, qualifier: Optional[str] = None
-    ) -> Optional[LambdaFunction]:
+    def get_function_by_name_forbid_qualifier(self, name: str) -> LambdaFunction:
+        """
+        Get function by name forbidding a qualifier
+        :raises: UnknownFunctionException if function not found
+        :raises: InvalidParameterValue if qualifier is provided
+        """
+
+        if name.count(":") == 1:
+            raise InvalidParameterValueException("Cannot provide qualifier")
+
         if name not in self._functions:
-            return None
+            raise self.construct_unknown_function_exception(name)
 
+        return self._get_latest(name)
+
+    def get_function_by_name_with_qualifier(
+        self, name: str, qualifier: Optional[str] = None
+    ) -> LambdaFunction:
+        """
+        Get function by name with an optional qualifier
+        :raises: UnknownFunctionException if function not found
+        """
+
+        # Function name may contain an alias
+        # <fn_name>:<alias_name>
+        if ":" in name:
+            # Prefer qualifier in name over qualifier arg
+            [name, qualifier] = name.split(":")
+
+        # Find without qualifier
         if qualifier is None:
-            return self._get_latest(name)
+            return self.get_function_by_name_forbid_qualifier(name)
 
+        if name not in self._functions:
+            raise self.construct_unknown_function_exception(name, qualifier)
+
+        # Find by latest
         if qualifier.lower() == "$latest":
             return self._functions[name]["latest"]
 
+        # Find by version
         found_version = self._get_version(name, qualifier)
         if found_version:
             return found_version
 
+        # Find by alias
         aliases = self._get_function_aliases(name)
-
         if qualifier in aliases:
-            alias = aliases[qualifier]
-            return self._get_version(name, alias.function_version)
+            alias_version = aliases[qualifier].function_version
 
-        return None
+            # Find by alias pointing to latest
+            if alias_version.lower() == "$latest":
+                return self._functions[name]["latest"]
+
+            # Find by alias pointing to version
+            found_alias = self._get_version(name, alias_version)
+            if found_alias:
+                return found_alias
+
+        raise self.construct_unknown_function_exception(name, qualifier)
 
     def list_versions_by_function(self, name: str) -> Iterable[LambdaFunction]:
         if name not in self._functions:
@@ -1443,28 +1562,74 @@ class LambdaStorage(object):
         return sorted(aliases.values(), key=lambda alias: alias.name)
 
     def get_arn(self, arn: str) -> Optional[LambdaFunction]:
+        [arn_without_qualifier, _, _] = self.split_function_arn(arn)
+        return self._arns.get(arn_without_qualifier, None)
+
+    def split_function_arn(self, arn: str) -> Tuple[str, str, Optional[str]]:
+        """
+        Handy utility to parse an ARN into:
+        - ARN without qualifier
+        - Function name
+        - Optional qualifier
+        """
+        qualifier = None
         # Function ARN may contain an alias
         # arn:aws:lambda:region:account_id:function:<fn_name>:<alias_name>
         if ":" in arn.split(":function:")[-1]:
+            qualifier = arn.split(":")[-1]
             # arn = arn:aws:lambda:region:account_id:function:<fn_name>
             arn = ":".join(arn.split(":")[0:-1])
-        return self._arns.get(arn, None)
+        name = arn.split(":")[-1]
+        return arn, name, qualifier
 
-    def get_function_by_name_or_arn(
+    def get_function_by_name_or_arn_forbid_qualifier(
+        self, name_or_arn: str
+    ) -> LambdaFunction:
+        """
+        Get function by name or arn forbidding a qualifier
+        :raises: UnknownFunctionException if function not found
+        :raises: InvalidParameterValue if qualifier is provided
+        """
+
+        if name_or_arn.startswith("arn:aws"):
+            [_, name, qualifier] = self.split_function_arn(name_or_arn)
+
+            if qualifier is not None:
+                raise InvalidParameterValueException("Cannot provide qualifier")
+
+            return self.get_function_by_name_forbid_qualifier(name)
+        else:
+            # name_or_arn is not an arn
+            return self.get_function_by_name_forbid_qualifier(name_or_arn)
+
+    def get_function_by_name_or_arn_with_qualifier(
         self, name_or_arn: str, qualifier: Optional[str] = None
     ) -> LambdaFunction:
-        fn = self.get_function_by_name(name_or_arn, qualifier) or self.get_arn(
-            name_or_arn
-        )
-        if fn is None:
-            if name_or_arn.startswith("arn:aws"):
-                arn = name_or_arn
-            else:
-                arn = make_function_arn(self.region_name, self.account_id, name_or_arn)
-            if qualifier:
+        """
+        Get function by name or arn with an optional qualifier
+        :raises: UnknownFunctionException if function not found
+        """
+
+        if name_or_arn.startswith("arn:aws"):
+            [_, name, qualifier_in_arn] = self.split_function_arn(name_or_arn)
+            return self.get_function_by_name_with_qualifier(
+                name, qualifier_in_arn or qualifier
+            )
+        else:
+            return self.get_function_by_name_with_qualifier(name_or_arn, qualifier)
+
+    def construct_unknown_function_exception(
+        self, name_or_arn: str, qualifier: Optional[str] = None
+    ) -> UnknownFunctionException:
+        if name_or_arn.startswith("arn:aws"):
+            arn = name_or_arn
+        else:
+            # name_or_arn is a function name with optional qualifier <func_name>[:<qualifier>]
+            arn = make_function_arn(self.region_name, self.account_id, name_or_arn)
+            # Append explicit qualifier to arn only if the name doesn't already have it
+            if qualifier and ":" not in name_or_arn:
                 arn = f"{arn}:{qualifier}"
-            raise UnknownFunctionException(arn)
-        return fn
+        return UnknownFunctionException(arn)
 
     def put_function(self, fn: LambdaFunction) -> None:
         valid_role = re.match(InvalidRoleFormat.pattern, fn.role)
@@ -1485,14 +1650,12 @@ class LambdaStorage(object):
             self._functions[fn.function_name]["latest"] = fn
         else:
             self._functions[fn.function_name] = {"latest": fn, "versions": []}
-        # instantiate a new policy for this version of the lambda
-        fn.policy = Policy(fn)
         self._arns[fn.function_arn] = fn
 
     def publish_function(
         self, name_or_arn: str, description: str = ""
     ) -> Optional[LambdaFunction]:
-        function = self.get_function_by_name_or_arn(name_or_arn)
+        function = self.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         name = function.function_name
         if name not in self._functions:
             return None
@@ -1517,7 +1680,19 @@ class LambdaStorage(object):
         return fn
 
     def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
-        function = self.get_function_by_name_or_arn(name_or_arn, qualifier)
+        # Qualifier may be explicitly passed or part of function name or ARN, extract it here
+        if name_or_arn.startswith("arn:aws"):
+            # Extract from ARN
+            if ":" in name_or_arn.split(":function:")[-1]:
+                qualifier = name_or_arn.split(":")[-1]
+        else:
+            # Extract from function name
+            if ":" in name_or_arn:
+                qualifier = name_or_arn.split(":")[1]
+
+        function = self.get_function_by_name_or_arn_with_qualifier(
+            name_or_arn, qualifier
+        )
         name = function.function_name
         if not qualifier:
             # Something is still reffing this so delete all arns
@@ -1529,8 +1704,11 @@ class LambdaStorage(object):
 
             del self._functions[name]
 
-        elif qualifier == "$LATEST":
-            self._functions[name]["latest"] = None
+        else:
+            if qualifier == "$LATEST":
+                self._functions[name]["latest"] = None
+            else:
+                self._functions[name]["versions"].remove(function)
 
             # If theres no functions left
             if (
@@ -1538,18 +1716,6 @@ class LambdaStorage(object):
                 and not self._functions[name]["latest"]
             ):
                 del self._functions[name]
-
-        else:
-            fn = self.get_function_by_name(name, qualifier)
-            if fn:
-                self._functions[name]["versions"].remove(fn)
-
-                # If theres no functions left
-                if (
-                    not self._functions[name]["versions"]
-                    and not self._functions[name]["latest"]
-                ):
-                    del self._functions[name]
 
         self._aliases[function.function_arn] = {}
 
@@ -1678,6 +1844,8 @@ class LambdaBackend(BaseBackend):
         # Note that this option will be ignored if MOTO_DOCKER_NETWORK_NAME is also set
         MOTO_DOCKER_NETWORK_MODE=host moto_server
 
+    _-_-_-_
+
     The Docker images used by Moto are taken from the following repositories:
 
     - `mlupin/docker-lambda` (for recent versions)
@@ -1689,6 +1857,8 @@ class LambdaBackend(BaseBackend):
 
         MOTO_DOCKER_LAMBDA_IMAGE=mlupin/docker-lambda
 
+    _-_-_-_
+
     Use the following environment variable if you want to configure the data directory used by the Docker containers:
 
     .. sourcecode:: bash
@@ -1696,6 +1866,15 @@ class LambdaBackend(BaseBackend):
         MOTO_LAMBDA_DATA_DIR=/tmp/data
 
     .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
+
+    _-_-_-_
+
+    If you want to mock the Lambda-containers invocation without starting a Docker-container, use the simple decorator:
+
+    .. sourcecode:: python
+
+        @mock_lambda_simple
+
     """
 
     def __init__(self, region_name: str, account_id: str):
@@ -1778,21 +1957,27 @@ class LambdaBackend(BaseBackend):
         The Qualifier-parameter is not yet implemented.
         Function URLs are not yet mocked, so invoking them will fail
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         return function.create_url_config(config)
 
     def delete_function_url_config(self, name_or_arn: str) -> None:
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         function.delete_url_config()
 
     def get_function_url_config(self, name_or_arn: str) -> FunctionUrlConfig:
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         if not function:
             raise UnknownFunctionException(arn=name_or_arn)
         return function.get_url_config()
@@ -1803,7 +1988,9 @@ class LambdaBackend(BaseBackend):
         """
         The Qualifier-parameter is not yet implemented
         """
-        function = self._lambdas.get_function_by_name_or_arn(name_or_arn)
+        function = self._lambdas.get_function_by_name_or_arn_forbid_qualifier(
+            name_or_arn
+        )
         return function.update_url_config(config)
 
     def create_event_source_mapping(self, spec: Dict[str, Any]) -> EventSourceMapping:
@@ -1813,9 +2000,9 @@ class LambdaBackend(BaseBackend):
                 raise RESTError("InvalidParameterValueException", f"Missing {param}")
 
         # Validate function name
-        func = self._lambdas.get_function_by_name_or_arn(spec.get("FunctionName", ""))
-        if not func:
-            raise RESTError("ResourceNotFoundException", "Invalid FunctionName")
+        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            spec.get("FunctionName", "")
+        )
 
         # Validate queue
         sqs_backend = sqs_backends[self.account_id][self.region_name]
@@ -1882,7 +2069,7 @@ class LambdaBackend(BaseBackend):
     def get_function(
         self, function_name_or_arn: str, qualifier: Optional[str] = None
     ) -> LambdaFunction:
-        return self._lambdas.get_function_by_name_or_arn(
+        return self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name_or_arn, qualifier
         )
 
@@ -1907,7 +2094,9 @@ class LambdaBackend(BaseBackend):
 
         for key in spec.keys():
             if key == "FunctionName":
-                func = self._lambdas.get_function_by_name_or_arn(spec[key])
+                func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+                    spec[key]
+                )
                 esm.function_arn = func.function_arn
             elif key == "BatchSize":
                 esm.batch_size = spec[key]
@@ -2020,7 +2209,9 @@ class LambdaBackend(BaseBackend):
                 }
             ]
         }
-        func = self._lambdas.get_function_by_name_or_arn(function_name, qualifier)
+        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            function_name, qualifier
+        )
         func.invoke(json.dumps(event), {}, {})
 
     def send_dynamodb_items(
@@ -2071,14 +2262,14 @@ class LambdaBackend(BaseBackend):
         func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
 
     def list_tags(self, resource: str) -> Dict[str, str]:
-        return self._lambdas.get_function_by_name_or_arn(resource).tags
+        return self._lambdas.get_function_by_name_or_arn_with_qualifier(resource).tags
 
     def tag_resource(self, resource: str, tags: Dict[str, str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn(resource)
+        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
         fn.tags.update(tags)
 
     def untag_resource(self, resource: str, tagKeys: List[str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn(resource)
+        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
         for key in tagKeys:
             fn.tags.pop(key, None)
 
@@ -2098,10 +2289,10 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.get_code_signing_config()
 
-    def get_policy(self, function_name: str) -> str:
-        fn = self.get_function(function_name)
-        if not fn:
-            raise UnknownFunctionException(function_name)
+    def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
+        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            function_name, qualifier
+        )
         return fn.policy.wire_format()  # type: ignore[union-attr]
 
     def update_function_code(
@@ -2120,7 +2311,7 @@ class LambdaBackend(BaseBackend):
     ) -> Optional[Dict[str, Any]]:
         fn = self.get_function(function_name, qualifier)
 
-        return fn.update_configuration(body) if fn else None
+        return fn.update_configuration(body)
 
     def invoke(
         self,
@@ -2134,12 +2325,9 @@ class LambdaBackend(BaseBackend):
         Invoking a Function with PackageType=Image is not yet supported.
         """
         fn = self.get_function(function_name, qualifier)
-        if fn:
-            payload = fn.invoke(body, headers, response_headers)
-            response_headers["Content-Length"] = str(len(payload))
-            return payload
-        else:
-            return None
+        payload = fn.invoke(body, headers, response_headers)
+        response_headers["Content-Length"] = str(len(payload))
+        return payload
 
     def put_function_concurrency(
         self, function_name: str, reserved_concurrency: str
@@ -2181,6 +2369,44 @@ class LambdaBackend(BaseBackend):
     def get_function_concurrency(self, function_name: str) -> str:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
+
+    def put_function_event_invoke_config(
+        self, function_name: str, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        fn = self.get_function(function_name)
+        event_config = EventInvokeConfig(fn.function_arn, fn.last_modified, config)
+        fn.event_invoke_config.append(event_config)
+        return event_config.response()
+
+    def update_function_event_invoke_config(
+        self, function_name: str, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        # partial functionality, the update function just does a put
+        # instead of partial update
+        return self.put_function_event_invoke_config(function_name, config)
+
+    def get_function_event_invoke_config(self, function_name: str) -> Dict[str, Any]:
+        fn = self.get_function(function_name)
+        if fn.event_invoke_config:
+            response = fn.event_invoke_config[0]
+            return response.response()
+        else:
+            raise UnknownEventConfig(fn.function_arn)
+
+    def delete_function_event_invoke_config(self, function_name: str) -> None:
+        if self.get_function_event_invoke_config(function_name):
+            fn = self.get_function(function_name)
+            fn.event_invoke_config = []
+
+    def list_function_event_invoke_configs(self, function_name: str) -> Dict[str, Any]:
+        response: Dict[str, List[Dict[str, Any]]] = {"FunctionEventInvokeConfigs": []}
+        try:
+            response["FunctionEventInvokeConfigs"] = [
+                self.get_function_event_invoke_config(function_name)
+            ]
+            return response
+        except UnknownEventConfig:
+            return response
 
 
 def do_validate_s3() -> bool:

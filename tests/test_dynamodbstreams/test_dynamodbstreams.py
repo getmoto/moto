@@ -1,6 +1,6 @@
+import boto3
 import pytest
 
-import boto3
 from moto import mock_dynamodb, mock_dynamodbstreams
 
 

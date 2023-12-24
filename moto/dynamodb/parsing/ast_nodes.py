@@ -4,6 +4,7 @@ from abc import abstractmethod
 from collections import deque
 
 from moto.dynamodb.models import DynamoType
+
 from ..exceptions import DuplicateUpdateExpression, TooManyAddClauses
 
 

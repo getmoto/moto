@@ -1,10 +1,11 @@
-import xmltodict
 from typing import Any, Dict
 from urllib.parse import unquote
 
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
-from .models import cloudfront_backends, CloudFrontBackend
+import xmltodict
 
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
+
+from .models import CloudFrontBackend, cloudfront_backends
 
 XMLNS = "http://cloudfront.amazonaws.com/doc/2020-05-31/"
 

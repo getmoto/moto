@@ -2,52 +2,60 @@ import copy
 import os
 import re
 import string
-
-from collections import defaultdict
-from jinja2 import Template
+from collections import OrderedDict, defaultdict
 from re import compile as re_compile
-from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Iterable, Tuple, Union
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from jinja2 import Template
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
-from moto.neptune.models import neptune_backends, NeptuneBackend
+from moto.neptune.models import NeptuneBackend, neptune_backends
 from moto.utilities.utils import load_resource
+
 from .exceptions import (
-    RDSClientError,
     DBClusterNotFoundError,
+    DBClusterParameterGroupNotFoundError,
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
+    DBClusterToBeDeletedHasActiveMembers,
     DBInstanceNotFoundError,
-    DBSnapshotNotFoundError,
-    DBSecurityGroupNotFoundError,
-    DBSubnetGroupNotFoundError,
     DBParameterGroupNotFoundError,
-    DBClusterParameterGroupNotFoundError,
-    OptionGroupNotFoundFaultError,
-    InvalidDBClusterStateFaultError,
-    InvalidDBInstanceStateError,
-    SnapshotQuotaExceededError,
+    DBSecurityGroupNotFoundError,
     DBSnapshotAlreadyExistsError,
-    InvalidParameterValue,
-    InvalidParameterCombination,
-    InvalidDBClusterStateFault,
-    InvalidDBInstanceIdentifier,
-    InvalidGlobalClusterStateFault,
-    ExportTaskNotFoundError,
+    DBSnapshotNotFoundError,
+    DBSubnetGroupNotFoundError,
     ExportTaskAlreadyExistsError,
+    ExportTaskNotFoundError,
+    InvalidDBClusterStateFault,
+    InvalidDBClusterStateFaultError,
+    InvalidDBInstanceEngine,
+    InvalidDBInstanceIdentifier,
+    InvalidDBInstanceStateError,
     InvalidExportSourceStateError,
-    SubscriptionNotFoundError,
+    InvalidGlobalClusterStateFault,
+    InvalidParameterCombination,
+    InvalidParameterValue,
+    OptionGroupNotFoundFaultError,
+    RDSClientError,
+    SnapshotQuotaExceededError,
     SubscriptionAlreadyExistError,
+    SubscriptionNotFoundError,
 )
 from .utils import (
+    ClusterEngine,
+    DbInstanceEngine,
     FilterDef,
     apply_filter,
     merge_filters,
-    validate_filters,
     valid_preferred_maintenance_window,
+    validate_filters,
 )
+
+if TYPE_CHECKING:
+    from moto.ec2.models.subnets import Subnet
 
 
 def find_cluster(cluster_arn: str) -> "Cluster":
@@ -127,6 +135,17 @@ class Cluster:
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.deletion_protection = kwargs.get("deletion_protection")
         self.engine = kwargs.get("engine")
+        if self.engine not in ClusterEngine.list_cluster_engines():
+            raise InvalidParameterValue(
+                (
+                    "Engine '{engine}' is not supported "
+                    "to satisfy constraint: Member must satisfy enum value set: "
+                    "{valid_engines}"
+                ).format(
+                    engine=self.engine,
+                    valid_engines=ClusterEngine.list_cluster_engines(),
+                )
+            )
         self.engine_version = kwargs.get("engine_version") or Cluster.default_engine_version(self.engine)  # type: ignore
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
@@ -554,6 +573,10 @@ class Database(CloudFormationModel):
         self.account_id: str = kwargs["account_id"]
         self.region_name: str = kwargs["region"]
         self.engine = kwargs.get("engine")
+        if self.engine not in DbInstanceEngine.valid_db_instance_engine():
+            raise InvalidParameterValue(
+                f"Value {self.engine} for parameter Engine is invalid. Reason: engine {self.engine} not supported"
+            )
         self.engine_version = kwargs.get("engine_version", None)
         if not self.engine_version and self.engine in self.default_engine_versions:
             self.engine_version = self.default_engine_versions[self.engine]
@@ -600,12 +623,11 @@ class Database(CloudFormationModel):
             self.availability_zone = f"{self.region_name}a"
         self.multi_az = kwargs.get("multi_az")
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
+        self.db_subnet_group = None
         if self.db_subnet_group_name:
             self.db_subnet_group = rds_backends[self.account_id][
                 self.region_name
             ].describe_db_subnet_groups(self.db_subnet_group_name)[0]
-        else:
-            self.db_subnet_group = None
         self.security_groups = kwargs.get("security_groups", [])
         self.vpc_security_group_ids = kwargs.get("vpc_security_group_ids", [])
         self.preferred_maintenance_window = kwargs.get("preferred_maintenance_window")
@@ -1072,7 +1094,7 @@ class Database(CloudFormationModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_instance(self.db_instance_identifier)
+        backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
 
 
 class DatabaseSnapshot(BaseModel):
@@ -1383,10 +1405,10 @@ class SecurityGroup(CloudFormationModel):
                     security_group.authorize_cidr(ingress_value)
                 elif ingress_type == "EC2SecurityGroupName":
                     subnet = ec2_backend.get_security_group_from_name(ingress_value)
-                    security_group.authorize_security_group(subnet)
+                    security_group.authorize_security_group(subnet)  # type: ignore[arg-type]
                 elif ingress_type == "EC2SecurityGroupId":
                     subnet = ec2_backend.get_security_group_from_id(ingress_value)
-                    security_group.authorize_security_group(subnet)
+                    security_group.authorize_security_group(subnet)  # type: ignore[arg-type]
         return security_group
 
     def get_tags(self) -> List[Dict[str, str]]:
@@ -1411,7 +1433,7 @@ class SubnetGroup(CloudFormationModel):
         self,
         subnet_name: str,
         description: str,
-        subnets: List[Any],
+        subnets: "List[Subnet]",
         tags: List[Dict[str, str]],
         region: str,
         account_id: str,
@@ -1589,9 +1611,16 @@ class RDSBackend(BaseBackend):
         if cluster_id is not None:
             cluster = self.clusters.get(cluster_id)
             if cluster is not None:
-                if cluster.engine == "aurora" and cluster.engine_mode == "serverless":
+                if (
+                    cluster.engine in ClusterEngine.serverless_engines()
+                    and cluster.engine_mode == "serverless"
+                ):
                     raise InvalidParameterValue(
                         "Instances cannot be added to Aurora Serverless clusters."
+                    )
+                if database.engine != cluster.engine:
+                    raise InvalidDBInstanceEngine(
+                        str(database.engine), str(cluster.engine)
                     )
                 cluster.cluster_members.append(database_id)
         self.databases[database_id] = database
@@ -1873,18 +1902,16 @@ class RDSBackend(BaseBackend):
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
-    def describe_db_subnet_groups(
-        self, subnet_group_name: str
-    ) -> Iterable[SubnetGroup]:
+    def describe_db_subnet_groups(self, subnet_group_name: str) -> List[SubnetGroup]:
         if subnet_group_name:
             if subnet_group_name in self.subnet_groups:
                 return [self.subnet_groups[subnet_group_name]]
             else:
                 raise DBSubnetGroupNotFoundError(subnet_group_name)
-        return self.subnet_groups.values()
+        return list(self.subnet_groups.values())
 
     def modify_db_subnet_group(
-        self, subnet_name: str, description: str, subnets: List[str]
+        self, subnet_name: str, description: str, subnets: "List[Subnet]"
     ) -> SubnetGroup:
         subnet_group = self.subnet_groups.pop(subnet_name)
         if not subnet_group:
@@ -2339,7 +2366,8 @@ class RDSBackend(BaseBackend):
                 raise InvalidParameterValue(
                     "Can't delete Cluster with protection enabled"
                 )
-
+            if cluster.cluster_members:
+                raise DBClusterToBeDeletedHasActiveMembers()
             global_id = cluster.global_cluster_identifier or ""
             if global_id in self.global_clusters:
                 self.remove_from_global_cluster(global_id, cluster_identifier)
@@ -2867,7 +2895,7 @@ class DBParameterGroup(CloudFormationModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_parameter_group(self.name)
+        backend.delete_db_parameter_group(self.name)  # type: ignore[arg-type]
 
     @staticmethod
     def cloudformation_name_type() -> str:

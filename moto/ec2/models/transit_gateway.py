@@ -1,12 +1,14 @@
 from typing import Any, Dict, List, Optional
+
 from moto.core import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
-from .core import TaggedEC2Resource
+
 from ..utils import (
-    random_transit_gateway_id,
     describe_tag_filter,
+    random_transit_gateway_id,
 )
+from .core import TaggedEC2Resource
 
 
 class TransitGateway(TaggedEC2Resource, CloudFormationModel):

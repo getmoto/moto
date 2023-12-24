@@ -1,27 +1,31 @@
 import base64
+import hashlib
 import json
 import os
 from unittest import SkipTest, mock
-import boto3
-import hashlib
-import pytest
+from uuid import uuid4
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
-from tests.test_ecr.test_ecr_helpers import _create_image_manifest
-from moto import mock_lambda, mock_s3, mock_ecr, settings
+
+from moto import mock_ecr, mock_lambda, mock_s3, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
+from tests.test_ecr.test_ecr_helpers import _create_image_manifest
+
+from . import lambda_aws_verified
 from .utilities import (
+    _process_lambda,
+    create_invalid_lambda,
     get_role_name,
     get_test_zip_file1,
     get_test_zip_file2,
     get_test_zip_file3,
-    create_invalid_lambda,
-    _process_lambda,
 )
 
 PYTHON_VERSION = "python3.11"
+LAMBDA_FUNC_NAME = "test"
 _lambda_region = "us-west-2"
 boto3.setup_default_session(region_name=_lambda_region)
 
@@ -37,10 +41,14 @@ def test_lambda_regions(region):
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_lambda
-def test_list_functions():
+@pytest.mark.aws_verified
+@lambda_aws_verified
+def test_list_functions(iam_role_arn=None):
+    sts = boto3.client("sts", "eu-west-2")
+    account_id = sts.get_caller_identity()["Account"]
+
     conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
+    function_name = "moto_test_" + str(uuid4())[0:6]
     initial_list = conn.list_functions()["Functions"]
     initial_names = [f["FunctionName"] for f in initial_list]
     assert function_name not in initial_names
@@ -48,10 +56,14 @@ def test_list_functions():
     conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
+        Role=iam_role_arn,
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
     )
+
+    wait_for_func = conn.get_waiter("function_active")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
+
     names = [f["FunctionName"] for f in conn.list_functions()["Functions"]]
     assert function_name in names
 
@@ -59,25 +71,30 @@ def test_list_functions():
     func_list = conn.list_functions()["Functions"]
     our_functions = [f for f in func_list if f["FunctionName"] == function_name]
     assert len(our_functions) == 1
+    assert our_functions[0]["PackageType"] == "Zip"
 
     # FunctionVersion=ALL means we should get a list of all versions
     full_list = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in full_list if f["FunctionName"] == function_name]
     assert len(our_functions) == 2
+    for func in our_functions:
+        assert func["PackageType"] == "Zip"
 
     v1 = [f for f in our_functions if f["Version"] == "1"][0]
     assert v1["Description"] == "v2"
     assert (
         v1["FunctionArn"]
-        == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:1"
+        == f"arn:aws:lambda:{_lambda_region}:{account_id}:function:{function_name}:1"
     )
 
     latest = [f for f in our_functions if f["Version"] == "$LATEST"][0]
     assert latest["Description"] == ""
     assert (
         latest["FunctionArn"]
-        == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:$LATEST"
+        == f"arn:aws:lambda:{_lambda_region}:{account_id}:function:{function_name}:$LATEST"
     )
+
+    conn.delete_function(FunctionName=function_name)
 
 
 @mock_lambda
@@ -186,6 +203,7 @@ def test_create_function_from_zipfile():
         "Description": "test lambda function",
         "Timeout": 3,
         "MemorySize": 128,
+        "PackageType": "Zip",
         "CodeSha256": base64.b64encode(hashlib.sha256(zip_content).digest()).decode(
             "utf-8"
         ),
@@ -591,6 +609,22 @@ def test_get_function():
         == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:$LATEST"
     )
 
+    # Test get function with version
+    result = conn.get_function(FunctionName=function_name, Qualifier="1")
+    assert result["Configuration"]["Version"] == "1"
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+
+    # Test get function with version inside of name
+    result = conn.get_function(FunctionName=f"{function_name}:1")
+    assert result["Configuration"]["Version"] == "1"
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+
     # Test get function when can't find function name
     with pytest.raises(conn.exceptions.ResourceNotFoundException):
         conn.get_function(FunctionName="junk", Qualifier="$LATEST")
@@ -724,6 +758,22 @@ def test_get_function_by_arn():
     result = conn.get_function(FunctionName=fnc["FunctionArn"])
     assert result["Configuration"]["FunctionName"] == function_name
 
+    # Test with version
+    result = conn.get_function(FunctionName=fnc["FunctionArn"], Qualifier="1")
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+    assert result["Configuration"]["Version"] == "1"
+
+    # Test with version inside of ARN
+    result = conn.get_function(FunctionName=f"{fnc['FunctionArn']}:1")
+    assert result["Configuration"]["Version"] == "1"
+    assert (
+        result["Configuration"]["FunctionArn"]
+        == f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{function_name}:1"
+    )
+
 
 @mock_lambda
 @mock_s3
@@ -760,7 +810,7 @@ def test_delete_function():
 
     assert success_result == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
-    func_list = conn.list_functions()["Functions"]
+    func_list = conn.list_functions(FunctionVersion="ALL")["Functions"]
     our_functions = [f for f in func_list if f["FunctionName"] == function_name]
     assert len(our_functions) == 0
 
@@ -930,6 +980,7 @@ def test_list_create_list_get_delete_list():
             "FunctionName": function_name,
             "Handler": "lambda_function.lambda_handler",
             "MemorySize": 128,
+            "PackageType": "Zip",
             "Role": get_role_name(),
             "Runtime": PYTHON_VERSION,
             "Timeout": 3,
@@ -1592,18 +1643,41 @@ def test_multiple_qualifiers():
     qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
     assert qualis == ["$LATEST", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
 
+    # Test delete with function name and qualifier
     client.delete_function(FunctionName=fn_name, Qualifier="4")
-    client.delete_function(FunctionName=fn_name, Qualifier="5")
+    # Test delete with ARN and qualifier
+    client.delete_function(
+        FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}",
+        Qualifier="5",
+    )
+    # Test delete with qualifier part of function name
+    client.delete_function(FunctionName=fn_name + ":8")
+    # Test delete with qualifier inside ARN
+    client.delete_function(
+        FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}:9"
+    )
 
     resp = client.list_versions_by_function(FunctionName=fn_name)["Versions"]
     qualis = [fn["FunctionArn"].split(":")[-1] for fn in resp]
-    assert qualis == ["$LATEST", "1", "2", "3", "6", "7", "8", "9", "10"]
+    assert qualis == ["$LATEST", "1", "2", "3", "6", "7", "10"]
 
     fn = client.get_function(FunctionName=fn_name, Qualifier="6")["Configuration"]
     assert (
         fn["FunctionArn"]
         == f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:{fn_name}:6"
     )
+
+
+@mock_lambda
+def test_delete_non_existent():
+    client = boto3.client("lambda", "us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_function(
+            FunctionName=f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:function:nonexistent:9"
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
 def test_get_role_name_utility_race_condition():
@@ -1788,3 +1862,334 @@ def test_put_function_concurrency_i_can_has_math():
     assert exc.value.response["Error"]["Code"] == "InvalidParameterValueException"
     response = conn.get_function_concurrency(FunctionName=function_name_2)
     assert response["ReservedConcurrentExecutions"] == 100
+
+
+@mock_lambda
+@pytest.mark.parametrize(
+    "config",
+    [
+        {
+            "OnSuccess": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnFailure": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnSuccess": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+            "OnSuccess": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+        },
+    ],
+)
+def test_put_event_invoke_config(config):
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # the name has to match ARNs in pytest parameterize
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+
+    # Execute
+    result = client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Verify
+    assert result["FunctionArn"] == arn_1
+    assert result["DestinationConfig"] == config
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+@pytest.mark.parametrize(
+    "config",
+    [
+        {
+            "OnSuccess": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnFailure": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": f"arn:aws:lambda:us-west-2:123456789012:function:{LAMBDA_FUNC_NAME}-2"
+            },
+            "OnSuccess": {},
+        },
+        {
+            "OnFailure": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+            "OnSuccess": {
+                "Destination": "arn:aws:lambda:us-west-2:123456789012:function:test-2"
+            },
+        },
+    ],
+)
+def test_update_event_invoke_config(config):
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # the name has to match ARNs in pytest parameterize
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+
+    # Execute
+    result = client.update_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Verify
+    assert result["FunctionArn"] == arn_1
+    assert result["DestinationConfig"] == config
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+def test_put_event_invoke_config_errors_1():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    config = {
+        "OnSuccess": {"Destination": "invalid"},
+        "OnFailure": {},
+    }
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        "Value 'invalid' at 'destinationConfig.onSuccess.destination' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern: "
+        r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+    )
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
+
+@mock_lambda
+def test_put_event_invoke_config_errors_2():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnFailure": {"Destination": "invalid"},
+        "OnSuccess": {},
+    }
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        "Value 'invalid' at 'destinationConfig.onFailure.destination' failed to satisfy constraint: "
+        "Member must satisfy regular expression pattern: "
+        r"^$|arn:(aws[a-zA-Z0-9-]*):([a-zA-Z0-9\-])+:([a-z]{2}(-gov)?-[a-z]+-\d{1})?:(\d{12})?:(.*)"
+    )
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+def test_put_event_invoke_config_errors_3():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    test_val = 5
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, MaximumRetryAttempts=test_val
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        f"Value '{test_val}' at 'maximumRetryAttempts' failed to satisfy constraint: "
+        "Member must have value less than or equal to 2"
+    )
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
+
+@mock_lambda
+def test_put_event_invoke_config_errors_4():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    test_val = 44444
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.put_function_event_invoke_config(
+            FunctionName=LAMBDA_FUNC_NAME, MaximumEventAgeInSeconds=test_val
+        )
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "1 validation error detected: "
+        f"Value '{test_val}' at 'maximumEventAgeInSeconds' failed to satisfy constraint: "
+        "Member must have value less than or equal to 21600"
+    )
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
+
+@mock_lambda
+def test_get_event_invoke_config():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnFailure": {"Destination": arn_2},
+        "OnSuccess": {"Destination": arn_2},
+    }
+    client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Execute
+    result = client.get_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
+
+    # Verify
+    assert result["DestinationConfig"] == config
+    assert result["FunctionArn"] == arn_1
+    assert "LastModified" in result
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+def test_list_event_invoke_configs():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {
+        "OnFailure": {"Destination": arn_2},
+        "OnSuccess": {"Destination": arn_2},
+    }
+
+    # Execute
+    result = client.list_function_event_invoke_configs(FunctionName=LAMBDA_FUNC_NAME)
+
+    # Verify
+    assert "FunctionEventInvokeConfigs" in result
+    assert result["FunctionEventInvokeConfigs"] == []
+
+    # Execute
+    client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+    result = client.list_function_event_invoke_configs(FunctionName=LAMBDA_FUNC_NAME)
+
+    # Verify
+    assert len(result["FunctionEventInvokeConfigs"]) == 1
+    assert result["FunctionEventInvokeConfigs"][0]["DestinationConfig"] == config
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+@mock_lambda
+def test_get_event_invoke_config_empty():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        client.get_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
+
+    err = exc.value.response
+
+    # Verify
+    assert err["Error"]["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Error"]["Message"]
+        == f"The function {arn_1} doesn't have an EventInvokeConfig"
+    )
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+
+
+@mock_lambda
+def test_delete_event_invoke_config():
+    # Setup
+    client = boto3.client("lambda", _lambda_region)
+    arn_1 = setup_lambda(client, LAMBDA_FUNC_NAME)["FunctionArn"]
+
+    # the name has to match ARNs in pytest parameterize
+    arn_2 = setup_lambda(client, f"{LAMBDA_FUNC_NAME}-2")["FunctionArn"]
+    config = {"OnSuccess": {"Destination": arn_2}, "OnFailure": {}}
+    client.put_function_event_invoke_config(
+        FunctionName=LAMBDA_FUNC_NAME, DestinationConfig=config
+    )
+
+    # Execute
+    result = client.delete_function_event_invoke_config(FunctionName=LAMBDA_FUNC_NAME)
+    # Verify
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 204
+
+    # Clean up for servertests
+    client.delete_function(FunctionName=arn_1)
+    client.delete_function(FunctionName=arn_2)
+
+
+def setup_lambda(client, name):
+    zip_content = get_test_zip_file1()
+    return client.create_function(
+        FunctionName=name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )

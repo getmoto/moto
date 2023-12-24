@@ -1,9 +1,11 @@
+from uuid import uuid4
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_firehose
-from uuid import uuid4
+
 from .test_firehose import sample_s3_dest_config
 
 

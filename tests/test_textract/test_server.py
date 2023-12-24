@@ -1,5 +1,6 @@
 """Test different server responses."""
 import json
+
 import moto.server as server
 from moto import mock_textract
 

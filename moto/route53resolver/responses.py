@@ -4,7 +4,7 @@ import json
 from moto.core.exceptions import InvalidToken
 from moto.core.responses import BaseResponse
 from moto.route53resolver.exceptions import InvalidNextTokenException
-from moto.route53resolver.models import route53resolver_backends, Route53ResolverBackend
+from moto.route53resolver.models import Route53ResolverBackend, route53resolver_backends
 from moto.route53resolver.validations import validate_args
 
 

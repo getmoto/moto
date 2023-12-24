@@ -1,9 +1,11 @@
+from uuid import uuid4
+
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_glacier
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
 
 
 @mock_glacier
@@ -31,8 +33,10 @@ def test_delete_vault_boto3():
 
     client.delete_vault(vaultName="myvault")
 
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         client.describe_vault(vaultName="myvault")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "VaultNotFound"
 
 
 @mock_glacier

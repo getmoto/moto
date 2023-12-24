@@ -1,6 +1,8 @@
-import boto3
 import json
 from copy import deepcopy
+
+import boto3
+
 from moto import mock_cloudformation, mock_ecs
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys
 
@@ -177,6 +179,7 @@ def test_update_service_through_cloudformation_should_trigger_replacement():
     cfn_conn = boto3.client("cloudformation", region_name="us-west-1")
     cfn_conn.create_stack(StackName="test_stack", TemplateBody=template_json1)
     template2 = deepcopy(template1)
+    template2["Resources"]["testCluster"]["Properties"]["ClusterName"] = "updated name"
     template2["Resources"]["testService"]["Properties"]["DesiredCount"] = 5
     template2_json = json.dumps(template2)
     cfn_conn.update_stack(StackName="test_stack", TemplateBody=template2_json)

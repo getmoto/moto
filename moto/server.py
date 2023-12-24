@@ -7,12 +7,13 @@ from typing import Any, List, Optional
 
 from werkzeug.serving import run_simple
 
+# Expose ThreadedMotoServer as a public symbol according to PEP-561
+from moto.moto_server.threaded_moto_server import (  # pylint: disable=unused-import
+    ThreadedMotoServer as ThreadedMotoServer,
+)
 from moto.moto_server.werkzeug_app import (
     DomainDispatcherApplication,
     create_backend_app,
-)
-from moto.moto_server.threaded_moto_server import (  # noqa # pylint: disable=unused-import
-    ThreadedMotoServer,
 )
 
 

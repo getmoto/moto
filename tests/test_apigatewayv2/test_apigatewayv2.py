@@ -1,8 +1,8 @@
 """Unit tests for apigatewayv2-supported APIs."""
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_apigatewayv2
 
 # See our Development Tips on writing tests for hints on how to write good tests:

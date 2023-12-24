@@ -1,13 +1,14 @@
 import re
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
-from moto.core import BaseBackend, BackendDict, BaseModel
+from collections import OrderedDict
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from .utils import make_arn_for_wacl
-from .exceptions import WAFV2DuplicateItemException, WAFNonexistentItemException
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from collections import OrderedDict
+
+from .exceptions import WAFNonexistentItemException, WAFV2DuplicateItemException
+from .utils import make_arn_for_wacl
 
 if TYPE_CHECKING:
     from moto.apigateway.models import Stage

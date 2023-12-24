@@ -1,8 +1,7 @@
-import json
 import hashlib
+import json
 import pkgutil
-
-from typing import Any, Dict, Iterator, List, TypeVar, Tuple, Optional, MutableMapping
+from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
 
 
 def str2bool(v: Any) -> Optional[bool]:
@@ -23,7 +22,7 @@ def load_resource(package: str, resource: str) -> Any:
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
-    return load_resource_as_bytes(package, resource).decode("utf-8")  # type: ignore
+    return load_resource_as_bytes(package, resource).decode("utf-8")
 
 
 def load_resource_as_bytes(package: str, resource: str) -> bytes:

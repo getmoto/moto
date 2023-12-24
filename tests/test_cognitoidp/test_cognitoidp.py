@@ -1,25 +1,21 @@
 import base64
 import datetime
-
-import boto3
+import hashlib
+import hmac
 import json
 import os
 import random
 import re
-
-from unittest import mock
-import moto.cognitoidp.models
-import requests
-import hmac
-import hashlib
 import uuid
+from unittest import SkipTest, mock
 
-
+import boto3
+import pytest
+import requests
 from botocore.exceptions import ClientError, ParamValidationError
 from jose import jws, jwt
-from unittest import SkipTest
-import pytest
 
+import moto.cognitoidp.models
 from moto import mock_cognitoidp, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -1536,7 +1532,8 @@ def test_group_in_access_token():
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -1589,7 +1586,8 @@ def test_group_in_id_token():
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -2753,7 +2751,8 @@ def authentication_flow(conn, auth_flow):
 
     # This sets a new password and logs the user in (creates tokens)
     new_password = "P2$Sword"
-    result = conn.respond_to_auth_challenge(
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
         Session=result["Session"],
         ClientId=client_id,
         ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -4351,6 +4350,62 @@ def test_admin_setting_mfa_totp_and_sms():
     result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
     assert len(result["UserMFASettingList"]) == 0
     assert result["PreferredMfaSetting"] == ""
+
+
+@mock_cognitoidp
+def test_admin_initiate_auth_when_token_totp_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    access_token = result["access_token"]
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    client_id = result["client_id"]
+    password = result["password"]
+    conn.associate_software_token(AccessToken=access_token)
+    conn.verify_software_token(AccessToken=access_token, UserCode="123456")
+
+    # Set MFA TOTP and SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": False},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 2
+    assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
+
+    # Initiate auth with TOTP
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "PASSWORD": password,
+        },
+    )
+
+    assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
+    assert result["Session"] != ""
+
+    # Respond to challenge with TOTP
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        ChallengeName="SOFTWARE_TOKEN_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": "123456",
+            "USERNAME": username,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
 
 @mock_cognitoidp

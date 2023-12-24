@@ -142,7 +142,7 @@ template = {
                 "DBName": {"Ref": "DBName"},
                 "AllocatedStorage": {"Ref": "DBAllocatedStorage"},
                 "DBInstanceClass": {"Ref": "DBInstanceClass"},
-                "Engine": "MySQL",
+                "Engine": "mysql",
                 "DBSubnetGroupName": {
                     "Fn::If": [
                         "Is-EC2-VPC",

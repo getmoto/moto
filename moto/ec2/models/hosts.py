@@ -1,6 +1,9 @@
-from .core import TaggedEC2Resource
-from ..utils import generic_filter, random_dedicated_host_id
 from typing import Any, Dict, List, Optional
+
+from moto.core.utils import unix_time
+
+from ..utils import generic_filter, random_dedicated_host_id
+from .core import TaggedEC2Resource
 
 
 class Host(TaggedEC2Resource):
@@ -21,6 +24,7 @@ class Host(TaggedEC2Resource):
         self.instance_family: Optional[str] = instance_family
         self.auto_placement = auto_placement or "on"
         self.ec2_backend = backend
+        self.allocation_time = unix_time()
 
     def release(self) -> None:
         self.state = "released"

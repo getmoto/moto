@@ -1,8 +1,8 @@
-from werkzeug.exceptions import HTTPException
-from jinja2 import DictLoader, Environment
-from typing import Any, List, Tuple, Optional
 import json
+from typing import Any, Dict, List, Optional, Tuple
 
+from jinja2 import DictLoader, Environment
+from werkzeug.exceptions import HTTPException
 
 SINGLE_ERROR_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <Error>
@@ -54,6 +54,7 @@ class RESTError(HTTPException):
         "wrapped_single_error": WRAPPED_SINGLE_ERROR_RESPONSE,
         "error": ERROR_RESPONSE,
     }
+    env = Environment(loader=DictLoader(templates))
 
     def __init__(
         self, error_type: str, message: str, template: str = "error", **kwargs: Any
@@ -62,9 +63,8 @@ class RESTError(HTTPException):
         self.error_type = error_type
         self.message = message
 
-        if template in self.templates.keys():
-            env = Environment(loader=DictLoader(self.templates))
-            self.description: str = env.get_template(template).render(
+        if template in self.env.list_templates():
+            self.description: str = self.__class__.env.get_template(template).render(
                 error_type=error_type,
                 message=message,
                 request_id_tag=self.request_id_tag_name,
@@ -94,6 +94,13 @@ class RESTError(HTTPException):
         err = JsonRESTError(error_type=self.error_type, message=self.message)
         err.code = self.code
         return err
+
+    @classmethod
+    def extended_environment(cls, extended_templates: Dict[str, str]) -> Environment:
+        # Can be simplified to cls.templates | extended_templates when we drop Python 3.8 support
+        # https://docs.python.org/3/library/stdtypes.html#mapping-types-dict
+        templates = dict(cls.templates.items() | extended_templates.items())
+        return Environment(loader=DictLoader(templates))
 
 
 class DryRunClientError(RESTError):

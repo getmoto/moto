@@ -1,10 +1,11 @@
 import json
+import time
 from base64 import b64encode
 from datetime import datetime
-import time
 
 from moto.core.responses import BaseResponse
-from .models import ecr_backends, ECRBackend
+
+from .models import ECRBackend, ecr_backends
 
 
 class ECRResponse(BaseResponse):
@@ -57,8 +58,9 @@ class ECRResponse(BaseResponse):
         image_manifest = self._get_param("imageManifest")
         image_tag = self._get_param("imageTag")
         image_manifest_media_type = self._get_param("imageManifestMediaType")
+        digest = self._get_param("imageDigest")
         image = self.ecr_backend.put_image(
-            repository_str, image_manifest, image_tag, image_manifest_media_type
+            repository_str, image_manifest, image_tag, image_manifest_media_type, digest
         )
 
         return json.dumps({"image": image.response_object})

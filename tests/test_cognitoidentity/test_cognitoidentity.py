@@ -1,15 +1,15 @@
-import boto3
-from unittest import mock
-from botocore.exceptions import ClientError
-from datetime import datetime
-import pytest
 import os
+from datetime import datetime
+from unittest import SkipTest, mock
+from uuid import UUID
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_cognitoidentity, settings
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from unittest import SkipTest
-from uuid import UUID
 
 
 @mock_cognitoidentity
@@ -240,3 +240,15 @@ def test_list_identities():
     identities = conn.list_identities(IdentityPoolId=identity_pool_id, MaxResults=123)
     assert "IdentityPoolId" in identities and "Identities" in identities
     assert identity_id in [x["IdentityId"] for x in identities["Identities"]]
+
+
+@mock_cognitoidentity
+def test_list_identity_pools():
+    conn = boto3.client("cognito-identity", "us-west-2")
+    identity_pool_data = conn.create_identity_pool(
+        IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True
+    )
+    identity_pool_id = identity_pool_data["IdentityPoolId"]
+    identity_data = conn.list_identity_pools(MaxResults=10)
+    assert identity_pool_id == identity_data["IdentityPools"][0]["IdentityPoolId"]
+    assert "test_identity_pool" == identity_data["IdentityPools"][0]["IdentityPoolName"]

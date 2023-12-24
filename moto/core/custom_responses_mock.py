@@ -1,13 +1,15 @@
-import responses
 import types
-from io import BytesIO
 from http.client import responses as http_responses
-from typing import Any, Dict, List, Tuple, Optional
+from io import BytesIO
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+
+import responses
 from werkzeug.wrappers import Request
-from .responses import TYPE_RESPONSE
 
 from moto.core.versions import is_responses_0_17_x
+
+from .responses import TYPE_RESPONSE
 
 
 class CallbackResponse(responses.CallbackResponse):

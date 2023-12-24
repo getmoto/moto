@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
+import re
 import socket
 import ssl
-import re
 from http.server import BaseHTTPRequestHandler
-from subprocess import check_output, CalledProcessError
+from subprocess import CalledProcessError, check_output
 from threading import Lock
 from typing import Any, Dict
 
 from botocore.awsrequest import AWSPreparedRequest
-from moto.backends import get_backend
+
 from moto.backend_index import backend_url_patterns
-from moto.core import BackendDict, DEFAULT_ACCOUNT_ID
+from moto.backends import get_backend
+from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
 from moto.core.exceptions import RESTError
+
 from . import debug, error, info, with_color
-from .utils import get_body_from_form_data
 from .certificate_creator import CertificateCreator
+from .utils import get_body_from_form_data
 
 # Adapted from https://github.com/xxlv/proxy3
 
@@ -68,7 +70,7 @@ class MotoRequestHandler:
         request = AWSPreparedRequest(
             method, full_url, headers, body, stream_output=False
         )
-        request.form_data = form_data
+        request.form_data = form_data  # type: ignore[attr-defined]
         return handler(request, full_url, headers)
 
 
@@ -158,7 +160,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 host=host,
                 path=path,
                 headers=req.headers,
-                body=req_body,
+                body=req_body,  # type: ignore[arg-type]
                 form_data=form_data,
             )
             debug("\t=====RESPONSE========")

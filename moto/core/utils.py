@@ -1,10 +1,12 @@
 import datetime
 import inspect
 import re
-from botocore.exceptions import ClientError
 from gzip import decompress
-from typing import Any, Optional, List, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+
+from botocore.exceptions import ClientError
+
 from .common_types import TYPE_RESPONSE
 from .versions import PYTHON_311
 
@@ -100,7 +102,8 @@ class convert_to_flask_response(object):
         return f"{outer}.{self.callback.__name__}"
 
     def __call__(self, args: Any = None, **kwargs: Any) -> Any:
-        from flask import request, Response
+        from flask import Response, request
+
         from moto.moto_api import recorder
 
         try:
@@ -179,13 +182,31 @@ def str_to_rfc_1123_datetime(value: str) -> datetime.datetime:
 
 def unix_time(dt: Optional[datetime.datetime] = None) -> float:
     dt = dt or utcnow()
-    epoch = datetime.datetime.utcfromtimestamp(0)
+    epoch = utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
 def unix_time_millis(dt: Optional[datetime.datetime] = None) -> float:
     return unix_time(dt) * 1000.0
+
+
+def utcfromtimestamp(value: int) -> datetime.datetime:
+    """
+    Return the UTC datetime corresponding to the POSIX timestamp, with tzinfo None. The resulting object is naive.
+    """
+    # Python 3.12 starts throwing deprecation warnings for utcfromtimestamp()
+    # The docs recommend to use fromtimestamp(UTC) instead
+    #
+    # fromtimestamp(UTC) creates an aware datetime - but utcfromtimestamp() creates a naive datetime
+    # That's why we have to `replace(tzinfo=None)` to make now(UTC) naive.
+    if PYTHON_311:
+        # Only available from 3.11
+        from datetime import UTC  # type: ignore
+
+        return datetime.datetime.fromtimestamp(value, tz=UTC).replace(tzinfo=None)
+    else:
+        return datetime.datetime.utcfromtimestamp(value)
 
 
 def utcnow() -> datetime.datetime:
@@ -195,7 +216,7 @@ def utcnow() -> datetime.datetime:
     # now(UTC) creates an aware datetime - but utcnow() creates a naive datetime
     # That's why we have to `replace(tzinfo=None)` to make now(UTC) naive.
     if PYTHON_311:
-        # Only available in 3.11
+        # Only available from 3.11
         from datetime import UTC  # type: ignore
 
         return datetime.datetime.now(UTC).replace(tzinfo=None)
@@ -326,16 +347,19 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     return region
 
 
-def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, Any]:
+def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, int, str]:
     """
-    Comparison function used to sort params appropriately taking tags non
-    alphabetical order into consideration
+    sort by <string-prefix>.member.<integer>.<string-postfix>:
+    in case there are more than 10 members, the default-string sort would lead to IndexError when parsing the content.
+
+    Note: currently considers only the first occurence of `member`, but there may be cases with nested members
     """
     key, _ = item
-    if key.startswith("Tags.member"):
-        member_num = int(key.split(".")[2])
-        return ("Tags.member", member_num)
-    return item
+
+    match = re.search(r"(.*?member)\.(\d+)(.*)", key)
+    if match:
+        return (match.group(1), int(match.group(2)), match.group(3))
+    return (key, 0, "")
 
 
 def gzip_decompress(body: bytes) -> bytes:

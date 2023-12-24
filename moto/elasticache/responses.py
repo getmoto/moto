@@ -1,7 +1,7 @@
 from moto.core.responses import BaseResponse
 
-from .exceptions import PasswordTooShort, PasswordRequired
-from .models import elasticache_backends, ElastiCacheBackend
+from .exceptions import PasswordRequired, PasswordTooShort
+from .models import ElastiCacheBackend, elasticache_backends
 
 
 class ElastiCacheResponse(BaseResponse):

@@ -1,6 +1,7 @@
-from moto.moto_api._internal import mock_random as random
-import string
 import base64
+import string
+
+from moto.moto_api._internal import mock_random as random
 
 AWS_ROLE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 ACCOUNT_OFFSET = 549755813888  # int.from_bytes(base64.b32decode(b"QAAAAAAA"), byteorder="big"), start value
@@ -37,16 +38,12 @@ def generate_access_key_id_from_account_id(
 
 
 def random_alphanumeric(length: int) -> str:
-    return "".join(
-        str(random.choice(string.ascii_letters + string.digits + "+" + "/"))
-        for _ in range(length)
-    )
+    options = string.ascii_letters + string.digits + "+" + "/"
+    return "".join(random.choices(options, k=length))
 
 
 def random_resource_id(size: int = 20) -> str:
-    chars = list(range(10)) + list(string.ascii_lowercase)
-
-    return "".join(str(random.choice(chars)) for x in range(size))
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=size))
 
 
 def random_role_id(account_id: str) -> str:
@@ -56,12 +53,8 @@ def random_role_id(account_id: str) -> str:
 
 
 def random_access_key() -> str:
-    return "".join(
-        str(random.choice(string.ascii_uppercase + string.digits)) for _ in range(16)
-    )
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=16))
 
 
 def random_policy_id() -> str:
-    return "A" + "".join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(20)
-    )
+    return "A" + "".join(random.choices(string.ascii_uppercase + string.digits, k=20))

@@ -1,12 +1,13 @@
-import requests
+import json
+from unittest import SkipTest, TestCase
 
 import boto3
-import json
 import pytest
+import requests
 from botocore.exceptions import ClientError
+
 from moto import mock_autoscaling, mock_s3, mock_sqs, settings
 from moto.core.model_instances import model_data, reset_model_data
-from unittest import SkipTest, TestCase
 
 base_url = (
     "http://localhost:5000"
@@ -17,7 +18,7 @@ data_url = f"{base_url}/moto-api/data.json"
 
 
 @mock_sqs
-def test_reset_api():
+def test_reset_api() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
     assert len(conn.list_queues()["QueueUrls"]) == 1
@@ -29,7 +30,7 @@ def test_reset_api():
 
 
 @mock_sqs
-def test_data_api():
+def test_data_api() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
 
@@ -40,7 +41,7 @@ def test_data_api():
 
 
 @mock_s3
-def test_overwriting_s3_object_still_returns_data():
+def test_overwriting_s3_object_still_returns_data() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this behaves the same in ServerMode")
     s3 = boto3.client("s3", region_name="us-east-1")
@@ -52,7 +53,7 @@ def test_overwriting_s3_object_still_returns_data():
 
 
 @mock_autoscaling
-def test_creation_error__data_api_still_returns_thing():
+def test_creation_error__data_api_still_returns_thing() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this behaves the same in ServerMode")
     # Timeline:
@@ -77,7 +78,7 @@ def test_creation_error__data_api_still_returns_thing():
 
     from moto.moto_api._internal.urls import response_instance
 
-    _, _, x = response_instance.model_data(None, None, None)
+    _, _, x = response_instance.model_data(None, "None", None)
 
     as_objects = json.loads(x)["autoscaling"]
     assert len(as_objects["FakeAutoScalingGroup"]) >= 1
@@ -86,7 +87,7 @@ def test_creation_error__data_api_still_returns_thing():
     assert "test_asg" in names
 
 
-def test_model_data_is_emptied_as_necessary():
+def test_model_data_is_emptied_as_necessary() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("We're only interested in the decorator performance here")
 
@@ -96,24 +97,24 @@ def test_model_data_is_emptied_as_necessary():
     # No instances exist, because we have just reset it
     for classes_per_service in model_data.values():
         for _class in classes_per_service.values():
-            assert _class.instances == []
+            assert _class.instances == []  # type: ignore[attr-defined]
 
     with mock_sqs():
         # When just starting a mock, it is empty
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
-                assert _class.instances == []
+                assert _class.instances == []  # type: ignore[attr-defined]
 
         # After creating a queue, some data will be present
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
 
-        assert len(model_data["sqs"]["Queue"].instances) == 1
+        assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
 
     # But after the mock ends, it is empty again
     for classes_per_service in model_data.values():
         for _class in classes_per_service.values():
-            assert _class.instances == []
+            assert _class.instances == []  # type: ignore[attr-defined]
 
     # When we have multiple/nested mocks, the data should still be present after the first mock ends
     with mock_sqs():
@@ -121,24 +122,24 @@ def test_model_data_is_emptied_as_necessary():
         conn.create_queue(QueueName="queue1")
         with mock_s3():
             # The data should still be here - instances should not reset if another mock is still active
-            assert len(model_data["sqs"]["Queue"].instances) == 1
+            assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
         # The data should still be here - the inner mock has exited, but the outer mock is still active
-        assert len(model_data["sqs"]["Queue"].instances) == 1
+        assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
 
 
 @mock_sqs
 class TestModelDataResetForClassDecorator(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
             raise SkipTest("We're only interested in the decorator performance here")
 
         # No data is present at the beginning
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
-                assert _class.instances == []
+                assert _class.instances == []  # type: ignore[attr-defined]
 
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
 
-    def test_should_find_bucket(self):
-        assert len(model_data["sqs"]["Queue"].instances) == 1
+    def test_should_find_bucket(self) -> None:
+        assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]

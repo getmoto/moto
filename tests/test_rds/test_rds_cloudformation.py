@@ -3,8 +3,10 @@ import json
 import boto3
 
 from moto import mock_cloudformation, mock_ec2, mock_rds
-from tests.test_cloudformation.fixtures import rds_mysql_with_db_parameter_group
-from tests.test_cloudformation.fixtures import rds_mysql_with_read_replica
+from tests.test_cloudformation.fixtures import (
+    rds_mysql_with_db_parameter_group,
+    rds_mysql_with_read_replica,
+)
 
 
 @mock_ec2

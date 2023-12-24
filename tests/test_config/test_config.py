@@ -2,12 +2,12 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
+from unittest import SkipTest
 
 import boto3
+import pytest
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from unittest import SkipTest
-import pytest
 
 from moto import mock_s3
 from moto.config import mock_config

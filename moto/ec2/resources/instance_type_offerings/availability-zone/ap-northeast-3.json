@@ -2116,6 +2116,42 @@
   "Location": "ap-northeast-3c"
  },
  {
+  "InstanceType": "m6g.12xlarge",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.16xlarge",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.2xlarge",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.4xlarge",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.8xlarge",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.large",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.medium",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.metal",
+  "Location": "ap-northeast-3c"
+ },
+ {
+  "InstanceType": "m6g.xlarge",
+  "Location": "ap-northeast-3c"
+ },
+ {
   "InstanceType": "m6gd.12xlarge",
   "Location": "ap-northeast-3c"
  },

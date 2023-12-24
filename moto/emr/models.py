@@ -1,20 +1,22 @@
+import warnings
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
-import warnings
 
 from dateutil.parser import parse as dtparse
-from moto.core import BaseBackend, BackendDict, BaseModel
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.emr.exceptions import (
     InvalidRequestException,
-    ValidationException,
     ResourceNotFoundException,
+    ValidationException,
 )
+
 from .utils import (
-    random_instance_group_id,
-    random_cluster_id,
-    random_step_id,
     CamelToUnderscoresWalker,
     EmrSecurityGroupManager,
+    random_cluster_id,
+    random_instance_group_id,
+    random_step_id,
 )
 
 EXAMPLE_AMI_ID = "ami-12c6146b"

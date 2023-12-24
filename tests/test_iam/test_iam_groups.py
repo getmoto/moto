@@ -1,16 +1,16 @@
+import json
 from datetime import datetime
 
 import boto3
-import json
-
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzlocal
+from freezegun import freeze_time
+
 from moto import mock_iam, settings
+from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
-from moto.backends import get_backend
-from freezegun import freeze_time
-from dateutil.tz import tzlocal
 
 MOCK_POLICY = """
 {

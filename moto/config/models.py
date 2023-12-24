@@ -2,64 +2,61 @@
 import json
 import re
 import time
-
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 from moto.config.exceptions import (
-    InvalidResourceTypeException,
-    InvalidDeliveryFrequency,
+    DuplicateTags,
+    InsufficientPermissionsException,
     InvalidConfigurationRecorderNameException,
-    NameTooLongException,
-    MaxNumberOfConfigurationRecordersExceededException,
-    InvalidRecordingGroupException,
-    NoSuchConfigurationRecorderException,
-    NoAvailableConfigurationRecorderException,
     InvalidDeliveryChannelNameException,
-    NoSuchBucketException,
+    InvalidDeliveryFrequency,
+    InvalidLimitException,
+    InvalidNextTokenException,
+    InvalidParameterValueException,
+    InvalidRecordingGroupException,
+    InvalidResourceParameters,
+    InvalidResourceTypeException,
+    InvalidResultTokenException,
     InvalidS3KeyPrefixException,
     InvalidS3KmsKeyArnException,
     InvalidSNSTopicARNException,
-    MaxNumberOfDeliveryChannelsExceededException,
-    NoAvailableDeliveryChannelException,
-    NoSuchDeliveryChannelException,
-    LastDeliveryChannelDeleteFailedException,
-    TagKeyTooBig,
-    TooManyTags,
-    TagValueTooBig,
-    TooManyAccountSources,
-    InvalidParameterValueException,
-    InvalidNextTokenException,
-    NoSuchConfigurationAggregatorException,
     InvalidTagCharacters,
-    DuplicateTags,
-    InvalidLimitException,
-    InvalidResourceParameters,
-    TooManyResourceIds,
-    ResourceNotDiscoveredException,
-    ResourceNotFoundException,
-    TooManyResourceKeys,
-    InvalidResultTokenException,
-    ValidationException,
-    NoSuchOrganizationConformancePackException,
+    LastDeliveryChannelDeleteFailedException,
     MaxNumberOfConfigRulesExceededException,
-    InsufficientPermissionsException,
+    MaxNumberOfConfigurationRecordersExceededException,
+    MaxNumberOfDeliveryChannelsExceededException,
+    MissingRequiredConfigRuleParameterException,
+    NameTooLongException,
+    NoAvailableConfigurationRecorderException,
+    NoAvailableDeliveryChannelException,
+    NoSuchBucketException,
     NoSuchConfigRuleException,
+    NoSuchConfigurationAggregatorException,
+    NoSuchConfigurationRecorderException,
+    NoSuchDeliveryChannelException,
+    NoSuchOrganizationConformancePackException,
     NoSuchRetentionConfigurationException,
     ResourceInUseException,
-    MissingRequiredConfigRuleParameterException,
+    ResourceNotDiscoveredException,
+    ResourceNotFoundException,
+    TagKeyTooBig,
+    TagValueTooBig,
+    TooManyAccountSources,
+    TooManyResourceIds,
+    TooManyResourceKeys,
+    TooManyTags,
+    ValidationException,
 )
-
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.common_models import ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import utcnow
-from moto.iam.config import role_config_query, policy_config_query
+from moto.iam.config import policy_config_query, role_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
 from moto.s3control.config import s3_account_public_access_block_query
 from moto.utilities.utils import load_resource
-
 
 POP_STRINGS = [
     "capitalizeStart",
@@ -73,7 +70,7 @@ DEFAULT_PAGE_SIZE = 100
 CONFIG_RULE_PAGE_SIZE = 25
 
 # Map the Config resource type to a backend:
-RESOURCE_MAP: Dict[str, ConfigQueryModel] = {
+RESOURCE_MAP: Dict[str, ConfigQueryModel[Any]] = {
     "AWS::S3::Bucket": s3_config_query,
     "AWS::S3::AccountPublicAccessBlock": s3_account_public_access_block_query,
     "AWS::IAM::Role": role_config_query,

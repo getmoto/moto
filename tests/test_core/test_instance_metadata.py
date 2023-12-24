@@ -9,13 +9,13 @@ else:
 
 
 @mock_ec2
-def test_latest_meta_data():
+def test_latest_meta_data() -> None:
     res = requests.get(f"{BASE_URL}/latest/meta-data/")
     assert res.content == b"iam"
 
 
 @mock_ec2
-def test_meta_data_iam():
+def test_meta_data_iam() -> None:
     res = requests.get(f"{BASE_URL}/latest/meta-data/iam")
     json_response = res.json()
     default_role = json_response["security-credentials"]["default-role"]
@@ -26,13 +26,13 @@ def test_meta_data_iam():
 
 
 @mock_ec2
-def test_meta_data_security_credentials():
+def test_meta_data_security_credentials() -> None:
     res = requests.get(f"{BASE_URL}/latest/meta-data/iam/security-credentials/")
     assert res.content == b"default-role"
 
 
 @mock_ec2
-def test_meta_data_default_role():
+def test_meta_data_default_role() -> None:
     res = requests.get(
         f"{BASE_URL}/latest/meta-data/iam/security-credentials/default-role"
     )

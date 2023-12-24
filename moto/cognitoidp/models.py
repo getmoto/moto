@@ -1,40 +1,43 @@
 import datetime
+import enum
 import json
 import os
+import re
 import time
 import typing
-import enum
-import re
-from jose import jws
 from collections import OrderedDict
-from typing import Any, Dict, List, Tuple, Optional, Set
-from moto.core import BaseBackend, BackendDict, BaseModel
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from jose import jws
+
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
-from .exceptions import (
-    AliasExistsException,
-    GroupExistsException,
-    NotAuthorizedError,
-    ResourceNotFoundError,
-    UserNotFoundError,
-    UsernameExistsException,
-    UserNotConfirmedException,
-    InvalidParameterException,
-    ExpiredCodeException,
-    InvalidPasswordException,
-)
-from .utils import (
-    create_id,
-    check_secret_hash,
-    generate_id,
-    validate_username_format,
-    flatten_attrs,
-    expand_attrs,
-    PAGINATION_MODEL,
-)
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import md5_hash
+
 from ..settings import get_cognito_idp_user_pool_id_strategy
+from .exceptions import (
+    AliasExistsException,
+    ExpiredCodeException,
+    GroupExistsException,
+    InvalidParameterException,
+    InvalidPasswordException,
+    NotAuthorizedError,
+    ResourceNotFoundError,
+    UsernameExistsException,
+    UserNotConfirmedException,
+    UserNotFoundError,
+)
+from .utils import (
+    PAGINATION_MODEL,
+    check_secret_hash,
+    create_id,
+    expand_attrs,
+    flatten_attrs,
+    generate_id,
+    validate_username_format,
+)
 
 
 class UserStatus(str, enum.Enum):
@@ -1446,6 +1449,19 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if (
+                user.software_token_mfa_enabled
+                and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
+            ):
+                session = str(random.uuid4())
+                self.sessions[session] = user_pool
+
+                return {
+                    "ChallengeName": "SOFTWARE_TOKEN_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
             return self._log_user_in(user_pool, client, username)
         elif auth_flow in (AuthFlow.REFRESH_TOKEN, AuthFlow.REFRESH_TOKEN_AUTH):
             refresh_token: str = auth_parameters.get("REFRESH_TOKEN")  # type: ignore[assignment]
@@ -1467,6 +1483,27 @@ class CognitoIdpBackend(BaseBackend):
             # We shouldn't get here due to enum validation of auth_flow
             return None  # type: ignore[return-value]
 
+    def admin_respond_to_auth_challenge(
+        self,
+        session: str,
+        client_id: str,
+        challenge_name: str,
+        challenge_responses: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """
+        Responds to an authentication challenge, as an administrator.
+
+        The only differences between this admin endpoint and public endpoint are not relevant and so we can safely call
+        the public endpoint to do the work:
+        - The admin endpoint requires a user pool id along with a session; the public endpoint searches across all pools
+        - ContextData is passed in; we don't use it
+
+        ref: https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminRespondToAuthChallenge.html
+        """
+        return self.respond_to_auth_challenge(
+            session, client_id, challenge_name, challenge_responses
+        )
+
     def respond_to_auth_challenge(
         self,
         session: str,
@@ -1474,6 +1511,11 @@ class CognitoIdpBackend(BaseBackend):
         challenge_name: str,
         challenge_responses: Dict[str, str],
     ) -> Dict[str, Any]:
+        """
+        Responds to an authentication challenge, from public client.
+
+        ref: https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_RespondToAuthChallenge.html
+        """
         if challenge_name == "PASSWORD_VERIFIER":
             session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")  # type: ignore[assignment]
 
@@ -2120,6 +2162,10 @@ class RegionAgnosticBackend:
     # Without authentication-header, we lose the context of which region the request was send to
     # This backend will cycle through all backends as a workaround
 
+    def __init__(self, account_id: str, region_name: str):
+        self.account_id = account_id
+        self.region_name = region_name
+
     def _find_backend_by_access_token(self, access_token: str) -> CognitoIdpBackend:
         for account_specific_backends in cognitoidp_backends.values():
             for region, backend in account_specific_backends.items():
@@ -2128,7 +2174,7 @@ class RegionAgnosticBackend:
                 for p in backend.user_pools.values():
                     if access_token in p.access_tokens:
                         return backend
-        return backend
+        return cognitoidp_backends[self.account_id][self.region_name]
 
     def _find_backend_for_clientid(self, client_id: str) -> CognitoIdpBackend:
         for account_specific_backends in cognitoidp_backends.values():
@@ -2138,7 +2184,7 @@ class RegionAgnosticBackend:
                 for p in backend.user_pools.values():
                     if client_id in p.clients:
                         return backend
-        return backend
+        return cognitoidp_backends[self.account_id][self.region_name]
 
     def sign_up(
         self,
@@ -2164,6 +2210,18 @@ class RegionAgnosticBackend:
         backend = self._find_backend_by_access_token(access_token)
         return backend.get_user(access_token)
 
+    def admin_respond_to_auth_challenge(
+        self,
+        session: str,
+        client_id: str,
+        challenge_name: str,
+        challenge_responses: Dict[str, str],
+    ) -> Dict[str, Any]:
+        backend = self._find_backend_for_clientid(client_id)
+        return backend.admin_respond_to_auth_challenge(
+            session, client_id, challenge_name, challenge_responses
+        )
+
     def respond_to_auth_challenge(
         self,
         session: str,
@@ -2183,7 +2241,9 @@ cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
 # password) have no authorization header from which to extract the region.
-def find_account_region_by_value(key: str, value: str) -> Tuple[str, str]:
+def find_account_region_by_value(
+    key: str, value: str, fallback: Tuple[str, str]
+) -> Tuple[str, str]:
     for account_id, account_specific_backend in cognitoidp_backends.items():
         for region, backend in account_specific_backend.items():
             for user_pool in backend.user_pools.values():
@@ -2195,4 +2255,4 @@ def find_account_region_by_value(key: str, value: str) -> Tuple[str, str]:
     # If we can't find the `client_id` or `access_token`, we just pass
     # back a default backend region, which will raise the appropriate
     # error message (e.g. NotAuthorized or NotFound).
-    return account_id, region
+    return fallback

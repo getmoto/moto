@@ -1,24 +1,23 @@
-import string
+import collections.abc as collections_abc
+import copy
 import functools
 import json
 import logging
-import copy
-import warnings
 import re
-
-import collections.abc as collections_abc
+import string
+import warnings
 from functools import lru_cache
 from typing import (
     Any,
     Dict,
-    List,
-    Union,
     Iterable,
     Iterator,
+    List,
     Optional,
     Tuple,
-    TypeVar,
     Type,
+    TypeVar,
+    Union,
 )
 
 # This ugly section of imports is necessary because we
@@ -34,6 +33,9 @@ from moto.awslambda import models as lambda_models  # noqa  # pylint: disable=al
 from moto.batch import models as batch_models  # noqa  # pylint: disable=all
 from moto.cloudformation.custom_model import CustomModel
 from moto.cloudwatch import models as cw_models  # noqa  # pylint: disable=all
+
+# End ugly list of imports
+from moto.core import CloudFormationModel
 from moto.datapipeline import models as data_models  # noqa  # pylint: disable=all
 from moto.dynamodb import models as ddb_models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models
@@ -51,26 +53,23 @@ from moto.rds import models as rds_models  # noqa  # pylint: disable=all
 from moto.redshift import models as redshift_models  # noqa  # pylint: disable=all
 from moto.route53 import models as route53_models  # noqa  # pylint: disable=all
 from moto.s3 import models as s3_models  # noqa  # pylint: disable=all
+from moto.s3.models import s3_backends
+from moto.s3.utils import bucket_and_name_from_url
 from moto.sagemaker import models as sagemaker_models  # noqa  # pylint: disable=all
 from moto.sns import models as sns_models  # noqa  # pylint: disable=all
 from moto.sqs import models as sqs_models  # noqa  # pylint: disable=all
-from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
 from moto.ssm import models as ssm_models  # noqa  # pylint: disable=all
-
-# End ugly list of imports
-
-from moto.core import CloudFormationModel
-from moto.s3.models import s3_backends
-from moto.s3.utils import bucket_and_name_from_url
 from moto.ssm import ssm_backends
-from .utils import random_suffix
+from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
+
 from .exceptions import (
     ExportNotFound,
     MissingParameterError,
     UnformattedGetAttTemplateException,
-    ValidationError,
     UnsupportedAttribute,
+    ValidationError,
 )
+from .utils import random_suffix
 
 CF_MODEL = TypeVar("CF_MODEL", bound=CloudFormationModel)
 
@@ -599,9 +598,10 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
                     key = s3_backends[self._account_id]["global"].get_object(
-                        bucket_name, name
+                        bucket_name,  # type: ignore[arg-type]
+                        name,
                     )
-                    self._parsed_resources.update(json.loads(key.value))
+                    self._parsed_resources.update(json.loads(key.value))  # type: ignore[union-attr]
 
     def parse_ssm_parameter(self, value: str, value_type: str) -> str:
         # The Value in SSM parameters is the SSM parameter path
@@ -610,9 +610,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         parameter = ssm_backends[self._account_id][self._region_name].get_parameter(
             value
         )
-        actual_value = parameter.value
+        actual_value = parameter.value  # type: ignore[union-attr]
         if value_type.find("List") > 0:
-            return actual_value.split(",")
+            return actual_value.split(",")  # type: ignore[return-value]
         return actual_value
 
     def load_parameters(self) -> None:
@@ -740,11 +740,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         new = other_template["Resources"]
 
         resource_names_by_action = {
-            "Add": set(new) - set(old),
-            "Modify": set(
-                name for name in new if name in old and new[name] != old[name]
-            ),
-            "Remove": set(old) - set(new),
+            "Add": [name for name in new if name not in old],
+            "Modify": [name for name in new if name in old and new[name] != old[name]],
+            "Remove": [name for name in old if name not in new],
         }
 
         return resource_names_by_action

@@ -1,12 +1,11 @@
-import pytest
+from uuid import uuid4
 
 import boto3
-
+import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_s3, mock_logs
+from moto import mock_ec2, mock_logs, mock_s3
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from uuid import uuid4
 
 
 @mock_s3
@@ -663,6 +662,7 @@ def test_describe_flow_logs_filtering():
     )["FlowLogs"]
     assert len(fl_by_tag_key) == 0
 
+    # NotYetImplemented
     with pytest.raises(Exception):
         client.describe_flow_logs(Filters=[{"Name": "unknown", "Values": ["foobar"]}])
 

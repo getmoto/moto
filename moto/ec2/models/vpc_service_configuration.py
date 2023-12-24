@@ -1,8 +1,10 @@
 from typing import Any, Dict, List, Optional
+
 from moto.core import CloudFormationModel
 from moto.moto_api._internal import mock_random
-from .core import TaggedEC2Resource
+
 from ..exceptions import UnknownVpcEndpointService
+from .core import TaggedEC2Resource
 
 
 class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):

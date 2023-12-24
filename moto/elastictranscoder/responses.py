@@ -1,9 +1,11 @@
-from typing import Any, Optional
-from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
-from .models import elastictranscoder_backends, ElasticTranscoderBackend
 import json
 import re
+from typing import Any, Optional
+
+from moto.core.common_types import TYPE_RESPONSE
+from moto.core.responses import BaseResponse
+
+from .models import ElasticTranscoderBackend, elastictranscoder_backends
 
 
 class ElasticTranscoderResponse(BaseResponse):

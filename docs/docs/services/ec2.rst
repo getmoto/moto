@@ -48,6 +48,7 @@ ec2
 - [ ] associate_enclave_certificate_iam_role
 - [X] associate_iam_instance_profile
 - [ ] associate_instance_event_window
+- [ ] associate_ipam_byoasn
 - [ ] associate_ipam_resource_discovery
 - [ ] associate_nat_gateway_address
 - [X] associate_route_table
@@ -242,6 +243,7 @@ ec2
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
 - [ ] deprovision_byoip_cidr
+- [ ] deprovision_ipam_byoasn
 - [ ] deprovision_ipam_pool_cidr
 - [ ] deprovision_public_ipv4_pool_cidr
 - [X] deregister_image
@@ -254,9 +256,15 @@ ec2
 - [ ] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
+  
+        The following parameters are supported: ZoneIds, ZoneNames, Filters
+        The following filters are supported: zone-id, zone-type, zone-name, region-name, state
+        
+
 - [ ] describe_aws_network_performance_metric_subscriptions
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
+- [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
@@ -306,10 +314,12 @@ ec2
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
 - [X] describe_instance_status
+- [ ] describe_instance_topology
 - [X] describe_instance_type_offerings
 - [X] describe_instance_types
 - [X] describe_instances
 - [X] describe_internet_gateways
+- [ ] describe_ipam_byoasn
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations
@@ -325,6 +335,7 @@ ec2
 - [ ] describe_local_gateway_virtual_interface_groups
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
+- [ ] describe_locked_snapshots
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -436,6 +447,7 @@ ec2
 - [ ] disable_image_deprecation
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
+- [ ] disable_snapshot_block_public_access
 - [X] disable_transit_gateway_route_table_propagation
 - [ ] disable_vgw_route_propagation
 - [X] disable_vpc_classic_link
@@ -445,6 +457,7 @@ ec2
 - [ ] disassociate_enclave_certificate_iam_role
 - [X] disassociate_iam_instance_profile
 - [ ] disassociate_instance_event_window
+- [ ] disassociate_ipam_byoasn
 - [ ] disassociate_ipam_resource_discovery
 - [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
@@ -465,6 +478,7 @@ ec2
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
+- [ ] enable_snapshot_block_public_access
 - [X] enable_transit_gateway_route_table_propagation
 - [ ] enable_vgw_route_propagation
 - [ ] enable_volume_io
@@ -492,6 +506,7 @@ ec2
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
 - [ ] get_ipam_discovered_accounts
+- [ ] get_ipam_discovered_public_addresses
 - [ ] get_ipam_discovered_resource_cidrs
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
@@ -505,6 +520,7 @@ ec2
 - [ ] get_reserved_instances_exchange_quote
 - [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
+- [ ] get_snapshot_block_public_access_state
 - [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
@@ -527,6 +543,7 @@ ec2
 - [ ] import_volume
 - [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
+- [ ] lock_snapshot
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
 - [ ] modify_capacity_reservation
@@ -599,8 +616,10 @@ ec2
 - [ ] move_address_to_vpc
 - [ ] move_byoip_cidr_to_ipam
 - [ ] provision_byoip_cidr
+- [ ] provision_ipam_byoasn
 - [ ] provision_ipam_pool_cidr
 - [ ] provision_public_ipv4_pool_cidr
+- [ ] purchase_capacity_block
 - [ ] purchase_host_reservation
 - [ ] purchase_reserved_instances_offering
 - [ ] purchase_scheduled_instances
@@ -675,6 +694,7 @@ ec2
 - [X] unassign_ipv6_addresses
 - [X] unassign_private_ip_addresses
 - [ ] unassign_private_nat_gateway_address
+- [ ] unlock_snapshot
 - [ ] unmonitor_instances
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress

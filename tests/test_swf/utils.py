@@ -1,8 +1,7 @@
 import boto3
 
 from moto.core import DEFAULT_ACCOUNT_ID
-from moto.swf.models import ActivityType, Domain, WorkflowType, WorkflowExecution
-
+from moto.swf.models import ActivityType, Domain, WorkflowExecution, WorkflowType
 
 # Some useful constants
 # Here are some activity timeouts we use in moto/swf tests ; they're extracted

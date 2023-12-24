@@ -1,7 +1,8 @@
 import json
-from flask.testing import FlaskClient
 from typing import Any, Dict
 from urllib.parse import urlencode
+
+from flask.testing import FlaskClient
 from werkzeug.routing import BaseConverter
 
 

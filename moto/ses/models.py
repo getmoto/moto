@@ -1,33 +1,34 @@
-import json
-import email
 import datetime
-from email.mime.base import MIMEBase
-from email.utils import formataddr, getaddresses, parseaddr
-from email.mime.multipart import MIMEMultipart
+import email
+import json
 from email.encoders import encode_7or8bit
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.utils import formataddr, getaddresses, parseaddr
 from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
+
 from .exceptions import (
-    MessageRejectedError,
+    ConfigurationSetAlreadyExists,
     ConfigurationSetDoesNotExist,
     EventDestinationAlreadyExists,
-    TemplateNameAlreadyExists,
-    ValidationError,
     InvalidParameterValue,
     InvalidRenderingParameterException,
-    TemplateDoesNotExist,
-    RuleDoesNotExist,
-    RuleSetNameAlreadyExists,
-    RuleSetDoesNotExist,
+    MessageRejectedError,
     RuleAlreadyExists,
-    ConfigurationSetAlreadyExists,
+    RuleDoesNotExist,
+    RuleSetDoesNotExist,
+    RuleSetNameAlreadyExists,
+    TemplateDoesNotExist,
+    TemplateNameAlreadyExists,
+    ValidationError,
 )
+from .feedback import BOUNCE, COMMON_MAIL, COMPLAINT, DELIVERY
 from .template import parse_template
 from .utils import get_random_message_id, is_valid_address
-from .feedback import COMMON_MAIL, BOUNCE, COMPLAINT, DELIVERY
 
 RECIPIENT_LIMIT = 50
 
@@ -331,7 +332,8 @@ class SESBackend(BaseBackend):
                     message = self.__generate_feedback__(msg_type)
                     if message:
                         sns_backends[self.account_id][self.region_name].publish(
-                            message, arn=sns_topic
+                            message,  # type: ignore[arg-type]
+                            arn=sns_topic,
                         )
 
     def send_raw_email(

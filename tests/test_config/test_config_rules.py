@@ -9,12 +9,12 @@ import json
 from string import ascii_lowercase
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
-from moto.config import mock_config
-from moto.config.models import ConfigRule, CONFIG_RULE_PAGE_SIZE
 from moto import settings
+from moto.config import mock_config
+from moto.config.models import CONFIG_RULE_PAGE_SIZE, ConfigRule
 from moto.moto_api._internal import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"

@@ -1,15 +1,16 @@
 import json
-
-from boto3 import Session
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core.exceptions import InvalidNextTokenException
+from boto3 import Session
+
 from moto.core.common_models import ConfigQueryModel
+from moto.core.exceptions import InvalidNextTokenException
 from moto.core.utils import unix_time, utcnow
 from moto.s3control import s3control_backends
+from moto.s3control.models import S3ControlBackend
 
 
-class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel):
+class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
     def list_config_service_resources(
         self,
         account_id: str,

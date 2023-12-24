@@ -2,9 +2,9 @@ from unittest import TestCase
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_cognitoidp
-from botocore.exceptions import ClientError
 
 
 @mock_cognitoidp

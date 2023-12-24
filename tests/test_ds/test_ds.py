@@ -6,14 +6,14 @@ common to the other directory types.
 from datetime import datetime, timezone
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ds
 from moto.ec2 import mock_ec2
 from moto.moto_api._internal import mock_random
 
-from .test_ds_simple_ad_directory import create_test_directory, TEST_REGION
+from .test_ds_simple_ad_directory import TEST_REGION, create_test_directory
 
 
 @mock_ec2

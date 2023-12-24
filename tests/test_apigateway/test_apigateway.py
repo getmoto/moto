@@ -1,13 +1,12 @@
 import json
 
 import boto3
-from freezegun import freeze_time
+import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_apigateway, mock_cognitoidp, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-import pytest
-
 from tests import DEFAULT_ACCOUNT_ID
 
 

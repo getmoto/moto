@@ -64,7 +64,6 @@ autoscaling
 - [X] describe_tags
   
         Pagination is not yet implemented.
-        Only the `auto-scaling-group` and `propagate-at-launch` filters are implemented.
         
 
 - [ ] describe_termination_policy_types

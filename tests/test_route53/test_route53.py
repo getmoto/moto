@@ -2,7 +2,6 @@ import boto3
 import botocore
 import pytest
 import requests
-
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_route53, settings
@@ -595,9 +594,13 @@ def test_list_hosted_zones_by_dns_name():
     zones = conn.list_hosted_zones_by_name()
     assert len(zones["HostedZones"]) == 4
     assert zones["HostedZones"][0]["Name"] == "test.b.com."
+    assert zones["HostedZones"][0]["CallerReference"] == str(hash("foo"))
     assert zones["HostedZones"][1]["Name"] == "my.test.net."
+    assert zones["HostedZones"][1]["CallerReference"] == str(hash("baz"))
     assert zones["HostedZones"][2]["Name"] == "test.a.org."
+    assert zones["HostedZones"][2]["CallerReference"] == str(hash("bar"))
     assert zones["HostedZones"][3]["Name"] == "test.a.org."
+    assert zones["HostedZones"][3]["CallerReference"] == str(hash("bar"))
 
 
 @mock_route53
@@ -726,7 +729,10 @@ def test_change_resource_record_sets_crud_valid():
 
 
 @mock_route53
-def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
+@pytest.mark.parametrize("multi_value_answer", [True, False, None])
+def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
+    multi_value_answer,
+):
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
         Name="db.",
@@ -754,6 +760,10 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
             }
         ],
     }
+    if multi_value_answer is not None:
+        txt_record_endpoint_payload["Changes"][0]["ResourceRecordSet"][
+            "MultiValueAnswer"
+        ] = multi_value_answer
     conn.change_resource_record_sets(
         HostedZoneId=hosted_zone_id, ChangeBatch=txt_record_endpoint_payload
     )
@@ -781,6 +791,10 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars():
             }
         ],
     }
+    if multi_value_answer is not None:
+        txt_record_with_special_char_endpoint_payload["Changes"][0][
+            "ResourceRecordSet"
+        ]["MultiValueAnswer"] = multi_value_answer
     conn.change_resource_record_sets(
         HostedZoneId=hosted_zone_id,
         ChangeBatch=txt_record_with_special_char_endpoint_payload,
@@ -827,7 +841,7 @@ def test_change_resource_record_set__delete_should_match_create():
         "HostedZone"
     ]["Id"]
 
-    create_call = client.change_resource_record_sets(
+    client.change_resource_record_sets(
         HostedZoneId=hosted_zone_id,
         ChangeBatch={
             "Changes": [
@@ -843,8 +857,6 @@ def test_change_resource_record_set__delete_should_match_create():
             ]
         },
     )
-    waiter = client.get_waiter("resource_record_sets_changed")
-    waiter.wait(Id=create_call["ChangeInfo"]["Id"])
 
     with pytest.raises(ClientError) as exc:
         client.change_resource_record_sets(

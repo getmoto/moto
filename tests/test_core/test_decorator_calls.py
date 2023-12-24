@@ -1,12 +1,12 @@
+import unittest
+from typing import Any
+from unittest import SkipTest
+
 import boto3
 import pytest
-import unittest
-
 from botocore.exceptions import ClientError
-from typing import Any
+
 from moto import mock_ec2, mock_kinesis, mock_s3, settings
-from moto.core.models import BaseMockAWS
-from unittest import SkipTest
 
 """
 Test the different ways that the decorator can be used
@@ -48,7 +48,7 @@ def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]  #
 def test_decorator_start_and_stop() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Authentication always works in ServerMode")
-    mock: BaseMockAWS = mock_ec2()
+    mock = mock_ec2()
     mock.start()
     client = boto3.client("ec2", region_name="us-west-1")
     assert client.describe_addresses()["Addresses"] == []
@@ -85,7 +85,7 @@ class Tester:
 @mock_s3
 class TesterWithSetup(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = boto3.client("s3")
+        self.client = boto3.client("s3", region_name="us-east-1")
         self.client.create_bucket(Bucket="mybucket")
 
     def test_still_the_same(self) -> None:

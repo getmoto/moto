@@ -3,8 +3,7 @@ from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
 
-from .models import efs_backends, EFSBackend
-
+from .models import EFSBackend, efs_backends
 
 TYPE_RESPONSE = Tuple[str, Dict[str, Union[str, int]]]
 
@@ -170,7 +169,10 @@ class EFSResponse(BaseResponse):
 
     def describe_access_points(self) -> TYPE_RESPONSE:
         access_point_id = self._get_param("AccessPointId")
-        access_points = self.efs_backend.describe_access_points(access_point_id)
+        file_system_id = self._get_param("FileSystemId")
+        access_points = self.efs_backend.describe_access_points(
+            access_point_id, file_system_id
+        )
         resp = [ap.info_json() for ap in access_points]
         return json.dumps({"AccessPoints": resp}), {"Content-Type": "application/json"}
 

@@ -1,19 +1,21 @@
-import boto3
 import json
-import pytest
 import time
 import uuid
-
-from botocore.exceptions import ClientError
-from moto import mock_dynamodb, mock_lambda, mock_logs, mock_sns, mock_sqs
 from uuid import uuid4
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_dynamodb, mock_lambda, mock_logs, mock_sns, mock_sqs
+
+from ..markers import requires_docker
 from .utilities import (
     get_role_name,
     get_test_zip_file3,
-    wait_for_log_msg,
     get_test_zip_file_error,
+    wait_for_log_msg,
 )
-from ..markers import requires_docker
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"

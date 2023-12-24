@@ -1,11 +1,12 @@
 import datetime
 import json
 import re
-
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.utils import utcnow
+
 from .exceptions import InvalidNameException, ResourceNotFoundError
 from .utils import get_random_identity_id
 
@@ -139,12 +140,11 @@ class CognitoIdentityBackend(BaseBackend):
         duration = 90
         now = utcnow()
         expiration = now + datetime.timedelta(seconds=duration)
-        expiration_str = str(iso_8601_datetime_with_milliseconds(expiration))
         return json.dumps(
             {
                 "Credentials": {
                     "AccessKeyId": "TESTACCESSKEY12345",
-                    "Expiration": expiration_str,
+                    "Expiration": expiration.timestamp(),
                     "SecretKey": "ABCSECRETKEY",
                     "SessionToken": "ABC12345",
                 },
@@ -173,6 +173,18 @@ class CognitoIdentityBackend(BaseBackend):
         The MaxResults-parameter has not yet been implemented
         """
         return json.dumps(self.pools_identities[identity_pool_id])
+
+    def list_identity_pools(self) -> str:
+        """
+        The MaxResults-parameter has not yet been implemented
+        """
+        return json.dumps(
+            {
+                "IdentityPools": [
+                    json.loads(pool.to_json()) for pool in self.identity_pools.values()
+                ]
+            }
+        )
 
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

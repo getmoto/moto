@@ -1,10 +1,9 @@
 import datetime
 import time
-import pytest
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
-
 from dateutil.tz import tzlocal
 
 from moto import mock_kinesis

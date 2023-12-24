@@ -209,6 +209,10 @@ def test_run_transcription_job_all_params():
             "MaxAlternatives": 6,
             "VocabularyName": vocabulary_name,
         },
+        "Subtitles": {
+            "Formats": ["srt", "vtt"],
+            "OutputStartIndex": 1,
+        },
         # Missing `ContentRedaction`, `JobExecutionSettings`,
         # `VocabularyFilterName`, `LanguageModel`
     }
@@ -268,6 +272,18 @@ def test_run_transcription_job_all_params():
             f"/{args['OutputBucketName']}"
             f"/{args['TranscriptionJobName']}.json"
         ),
+    }
+    assert transcription_job["Subtitles"] == {
+        "Formats": args["Subtitles"]["Formats"],
+        "OutputStartIndex": 1,
+        "SubtitleFileUris": [
+            (
+                f"https://s3.{region_name}.amazonaws.com"
+                f"/{args['OutputBucketName']}"
+                f"/{args['TranscriptionJobName']}.{format}"
+            )
+            for format in args["Subtitles"]["Formats"]
+        ],
     }
 
 
@@ -329,6 +345,11 @@ def test_run_transcription_job_minimal_params():
     assert (
         f"https://s3.{region_name}.amazonaws.com/aws-transcribe-{region_name}-prod/"
     ) in transcription_job["Transcript"]["TranscriptFileUri"]
+    assert transcription_job["Subtitles"] == {
+        "Formats": [],
+        "OutputStartIndex": 0,
+        "SubtitleFileUris": [],
+    }
 
     # Delete
     client.delete_transcription_job(TranscriptionJobName=job_name)
@@ -348,7 +369,8 @@ def test_run_transcription_job_s3output_params():
         "LanguageCode": "en-US",
         "Media": {"MediaFileUri": "s3://my-bucket/my-media-file.wav"},
         "OutputBucketName": "my-output-bucket",
-        "OutputKey": "bucket-key",
+        "OutputKey": "bucket.json.key.json",
+        "Subtitles": {"Formats": ["vtt", "srt"]},
     }
     resp = client.start_transcription_job(**args)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -379,8 +401,16 @@ def test_run_transcription_job_s3output_params():
     assert "Transcript" in transcription_job
     # Check aws hosted bucket
     assert (
-        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket-key/MyJob.json"
+        "https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket.json.key.json"
     ) in transcription_job["Transcript"]["TranscriptFileUri"]
+    assert transcription_job["Subtitles"] == {
+        "Formats": args["Subtitles"]["Formats"],
+        "SubtitleFileUris": [
+            f"https://s3.us-east-1.amazonaws.com/my-output-bucket/bucket.json.key.{format}"
+            for format in args["Subtitles"]["Formats"]
+        ],
+    }
+
     # A new job without an "OutputKey"
     job_name = "MyJob2"
     args = {

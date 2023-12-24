@@ -1,26 +1,26 @@
 import itertools
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from moto.packages.boto.ec2.blockdevicemapping import (
-    BlockDeviceType,
-    BlockDeviceMapping,
-)
-from moto.ec2.exceptions import InvalidInstanceIdError
-
-from collections import OrderedDict
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
+from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import EC2Backend
 from moto.ec2.models.instances import Instance
-from moto.elb.models import elb_backends, ELBBackend
-from moto.elbv2.models import elbv2_backends, ELBv2Backend
 from moto.elb.exceptions import LoadBalancerNotFoundError
+from moto.elb.models import ELBBackend, elb_backends
+from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.moto_api._internal import mock_random as random
+from moto.packages.boto.ec2.blockdevicemapping import (
+    BlockDeviceMapping,
+    BlockDeviceType,
+)
+
 from .exceptions import (
     AutoscalingClientError,
-    ResourceContentionError,
     InvalidInstanceError,
+    ResourceContentionError,
     ValidationError,
 )
 
@@ -28,6 +28,10 @@ from .exceptions import (
 DEFAULT_COOLDOWN = 300
 
 ASG_NAME_TAG = "aws:autoscaling:groupName"
+
+
+def make_int(value: Union[None, str, int]) -> Optional[int]:
+    return int(value) if value is not None else value
 
 
 class InstanceState:
@@ -406,13 +410,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
         min_size: Optional[int],
         launch_config_name: str,
         launch_template: Dict[str, Any],
-        vpc_zone_identifier: str,
+        vpc_zone_identifier: Optional[str],
         default_cooldown: Optional[int],
         health_check_period: Optional[int],
         health_check_type: Optional[str],
         load_balancers: List[str],
         target_group_arns: List[str],
-        placement_group: str,
+        placement_group: Optional[str],
         termination_policies: List[str],
         autoscaling_backend: "AutoScalingBackend",
         ec2_backend: EC2Backend,
@@ -472,10 +476,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
     @tags.setter
     def tags(self, tags: List[Dict[str, str]]) -> None:
         for tag in tags:
-            if "resource_id" not in tag or not tag["resource_id"]:
-                tag["resource_id"] = self.name
-            if "resource_type" not in tag or not tag["resource_type"]:
-                tag["resource_type"] = "auto-scaling-group"
+            if "ResourceId" not in tag or not tag["ResourceId"]:
+                tag["ResourceId"] = self.name
+            if "ResourceType" not in tag or not tag["ResourceType"]:
+                tag["ResourceType"] = "auto-scaling-group"
         self._tags = tags
 
     @property
@@ -941,9 +945,6 @@ class AutoScalingBackend(BaseBackend):
     def delete_launch_configuration(self, launch_configuration_name: str) -> None:
         self.launch_configurations.pop(launch_configuration_name, None)
 
-    def make_int(self, value: Union[None, str, int]) -> Optional[int]:
-        return int(value) if value is not None else value
-
     def put_scheduled_update_group_action(
         self,
         name: str,
@@ -955,9 +956,9 @@ class AutoScalingBackend(BaseBackend):
         end_time: str,
         recurrence: str,
     ) -> FakeScheduledAction:
-        max_size = self.make_int(max_size)
-        min_size = self.make_int(min_size)
-        desired_capacity = self.make_int(desired_capacity)
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
 
         scheduled_action = FakeScheduledAction(
             name=name,
@@ -1010,13 +1011,13 @@ class AutoScalingBackend(BaseBackend):
         min_size: Union[None, str, int],
         launch_config_name: str,
         launch_template: Dict[str, Any],
-        vpc_zone_identifier: str,
+        vpc_zone_identifier: Optional[str],
         default_cooldown: Optional[int],
         health_check_period: Union[None, str, int],
         health_check_type: Optional[str],
         load_balancers: List[str],
         target_group_arns: List[str],
-        placement_group: str,
+        placement_group: Optional[str],
         termination_policies: List[str],
         tags: List[Dict[str, str]],
         capacity_rebalance: bool = False,
@@ -1024,10 +1025,10 @@ class AutoScalingBackend(BaseBackend):
         instance_id: Optional[str] = None,
         mixed_instance_policy: Optional[Dict[str, Any]] = None,
     ) -> FakeAutoScalingGroup:
-        max_size = self.make_int(max_size)
-        min_size = self.make_int(min_size)
-        desired_capacity = self.make_int(desired_capacity)
-        default_cooldown = self.make_int(default_cooldown)
+        max_size = make_int(max_size)
+        min_size = make_int(min_size)
+        desired_capacity = make_int(desired_capacity)
+        default_cooldown = make_int(default_cooldown)
 
         # Verify only a single launch config-like parameter is provided.
         params = [
@@ -1064,9 +1065,7 @@ class AutoScalingBackend(BaseBackend):
             launch_template=launch_template,
             vpc_zone_identifier=vpc_zone_identifier,
             default_cooldown=default_cooldown,
-            health_check_period=self.make_int(health_check_period)
-            if health_check_period
-            else 300,
+            health_check_period=make_int(health_check_period or 300),
             health_check_type=health_check_type,
             load_balancers=load_balancers,
             target_group_arns=target_group_arns,
@@ -1376,31 +1375,31 @@ class AutoScalingBackend(BaseBackend):
 
     def create_or_update_tags(self, tags: List[Dict[str, str]]) -> None:
         for tag in tags:
-            group_name = tag["resource_id"]
+            group_name = tag["ResourceId"]
             group = self.autoscaling_groups[group_name]
             old_tags = group.tags
 
             new_tags = []
             # if key was in old_tags, update old tag
             for old_tag in old_tags:
-                if old_tag["key"] == tag["key"]:
+                if old_tag["Key"] == tag["Key"]:
                     new_tags.append(tag)
                 else:
                     new_tags.append(old_tag)
 
             # if key was never in old_tag's add it (create tag)
-            if not any(new_tag["key"] == tag["key"] for new_tag in new_tags):
+            if not any(new_tag["Key"] == tag["Key"] for new_tag in new_tags):
                 new_tags.append(tag)
 
             group.tags = new_tags
 
     def delete_tags(self, tags: List[Dict[str, str]]) -> None:
         for tag_to_delete in tags:
-            group_name = tag_to_delete["resource_id"]
-            key_to_delete = tag_to_delete["key"]
+            group_name = tag_to_delete["ResourceId"]
+            key_to_delete = tag_to_delete["Key"]
             group = self.autoscaling_groups[group_name]
             old_tags = group.tags
-            group.tags = [x for x in old_tags if x["key"] != key_to_delete]
+            group.tags = [x for x in old_tags if x["Key"] != key_to_delete]
 
     def attach_load_balancers(
         self, group_name: str, load_balancer_names: List[str]
@@ -1558,20 +1557,21 @@ class AutoScalingBackend(BaseBackend):
     def describe_tags(self, filters: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
         Pagination is not yet implemented.
-        Only the `auto-scaling-group` and `propagate-at-launch` filters are implemented.
         """
         resources = self.autoscaling_groups.values()
         tags = list(itertools.chain(*[r.tags for r in resources]))
         for f in filters:
             if f["Name"] == "auto-scaling-group":
-                tags = [t for t in tags if t["resource_id"] in f["Values"]]
+                tags = [t for t in tags if t["ResourceId"] in f["Values"]]
             if f["Name"] == "propagate-at-launch":
                 values = [v.lower() for v in f["Values"]]
                 tags = [
-                    t
-                    for t in tags
-                    if t.get("propagate_at_launch", "").lower() in values
+                    t for t in tags if t.get("PropagateAtLaunch", "").lower() in values
                 ]
+            if f["Name"] == "key":
+                tags = [t for t in tags if t["Key"] in f["Values"]]
+            if f["Name"] == "value":
+                tags = [t for t in tags if t["Value"] in f["Values"]]
         return tags
 
     def enable_metrics_collection(self, group_name: str, metrics: List[str]) -> None:

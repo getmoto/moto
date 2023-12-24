@@ -75,6 +75,7 @@ stepfunctions
 - [X] list_state_machines
 - [X] list_tags_for_resource
 - [ ] publish_state_machine_version
+- [ ] redrive_execution
 - [ ] send_task_failure
 - [ ] send_task_heartbeat
 - [ ] send_task_success
@@ -82,6 +83,7 @@ stepfunctions
 - [ ] start_sync_execution
 - [X] stop_execution
 - [X] tag_resource
+- [ ] test_state
 - [X] untag_resource
 - [ ] update_map_run
 - [X] update_state_machine

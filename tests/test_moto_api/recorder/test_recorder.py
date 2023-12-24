@@ -1,20 +1,22 @@
 import base64
-import boto3
 import json
-import requests
 import os
+from unittest import SkipTest, TestCase
+
+import boto3
+import requests
+
 from moto import (
-    settings,
     mock_apigateway,
     mock_dynamodb,
     mock_ec2,
     mock_s3,
     mock_timestreamwrite,
+    settings,
 )
 from moto.moto_api import recorder
 from moto.server import ThreadedMotoServer
 from tests import EXAMPLE_AMI_ID
-from unittest import SkipTest, TestCase
 
 
 @mock_apigateway

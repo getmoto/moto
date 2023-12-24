@@ -1,8 +1,8 @@
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
-from moto import mock_elbv2, mock_ec2
+from moto import mock_ec2, mock_elbv2
 
 default_action = {
     "FixedResponseConfig": {"StatusCode": "200", "ContentType": "text/plain"},

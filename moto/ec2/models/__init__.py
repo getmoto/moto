@@ -1,53 +1,55 @@
 from typing import Any, Dict, List
-from moto.core import BaseBackend, BackendDict
+
+from moto.core import BackendDict, BaseBackend
+
 from ..exceptions import (
     EC2ClientError,
     InvalidID,
     MissingParameterError,
     MotoNotImplementedError,
 )
+from ..utils import (
+    EC2_RESOURCE_TO_PREFIX,
+    get_prefix,
+    is_valid_resource_id,
+)
 from .amis import AmiBackend
+from .availability_zones_and_regions import RegionsAndZonesBackend
 from .carrier_gateways import CarrierGatewayBackend
 from .customer_gateways import CustomerGatewayBackend
 from .dhcp_options import DHCPOptionsSetBackend
 from .elastic_block_store import EBSBackend
 from .elastic_ip_addresses import ElasticAddressBackend
 from .elastic_network_interfaces import NetworkInterfaceBackend
-from .hosts import HostsBackend
 from .fleets import FleetsBackend
 from .flow_logs import FlowLogsBackend
+from .hosts import HostsBackend
+from .iam_instance_profile import IamInstanceProfileAssociationBackend
+from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
+from .instances import InstanceBackend
+from .internet_gateways import (
+    EgressOnlyInternetGatewayBackend,
+    InternetGatewayBackend,
+)
 from .key_pairs import KeyPairBackend
 from .launch_templates import LaunchTemplateBackend
 from .managed_prefixes import ManagedPrefixListBackend
-from .iam_instance_profile import IamInstanceProfileAssociationBackend
-from .internet_gateways import (
-    InternetGatewayBackend,
-    EgressOnlyInternetGatewayBackend,
-)
-from .instances import InstanceBackend
-from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
 from .nat_gateways import NatGatewayBackend
 from .network_acls import NetworkAclBackend
-from .availability_zones_and_regions import RegionsAndZonesBackend
 from .route_tables import RouteBackend
 from .security_groups import SecurityGroupBackend
 from .spot_requests import SpotRequestBackend
 from .subnets import SubnetBackend
 from .tags import TagBackend
 from .transit_gateway import TransitGatewayBackend
-from .transit_gateway_route_tables import TransitGatewayRouteTableBackend
 from .transit_gateway_attachments import TransitGatewayAttachmentBackend
-from .vpn_gateway import VpnGatewayBackend
-from .vpn_connections import VPNConnectionBackend
-from .vpcs import VPCBackend
+from .transit_gateway_route_tables import TransitGatewayRouteTableBackend
 from .vpc_peering_connections import VPCPeeringConnectionBackend
 from .vpc_service_configuration import VPCServiceConfigurationBackend
+from .vpcs import VPCBackend
+from .vpn_connections import VPNConnectionBackend
+from .vpn_gateway import VpnGatewayBackend
 from .windows import WindowsBackend
-from ..utils import (
-    EC2_RESOURCE_TO_PREFIX,
-    is_valid_resource_id,
-    get_prefix,
-)
 
 
 def validate_resource_ids(resource_ids: List[str]) -> bool:
@@ -71,7 +73,7 @@ class SettingsBackend:
         ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         ec2_backend.ebs_encryption_by_default = True
 
-    def get_ebs_encryption_by_default(self) -> None:
+    def get_ebs_encryption_by_default(self) -> bool:
         ec2_backend = ec2_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
         return ec2_backend.ebs_encryption_by_default
 

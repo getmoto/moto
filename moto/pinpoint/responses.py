@@ -1,11 +1,12 @@
 """Handles incoming pinpoint requests, invokes methods, returns responses."""
 import json
 from typing import Any
+from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from urllib.parse import unquote
-from .models import pinpoint_backends, PinpointBackend
+
+from .models import PinpointBackend, pinpoint_backends
 
 
 class PinpointResponse(BaseResponse):

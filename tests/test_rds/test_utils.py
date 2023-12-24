@@ -1,13 +1,13 @@
 import pytest
 
 from moto.rds.utils import (
+    ORDERABLE_DB_INSTANCE_ENCODING,
     FilterDef,
     apply_filter,
+    decode_orderable_db_instance,
+    encode_orderable_db_instance,
     merge_filters,
     validate_filters,
-    encode_orderable_db_instance,
-    decode_orderable_db_instance,
-    ORDERABLE_DB_INSTANCE_ENCODING,
 )
 
 

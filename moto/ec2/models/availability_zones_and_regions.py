@@ -1,5 +1,7 @@
-from boto3 import Session
 from typing import Any, Dict, List, Optional
+
+from boto3 import Session
+
 from moto.utilities.utils import filter_resources
 
 
@@ -22,6 +24,7 @@ class Zone:
         self.region_name = region_name
         self.zone_id = zone_id
         self.zone_type = zone_type
+        self.state = "available"
 
 
 class RegionsAndZonesBackend:
@@ -316,8 +319,15 @@ class RegionsAndZonesBackend:
         return ret
 
     def describe_availability_zones(
-        self, filters: Optional[List[Dict[str, Any]]] = None
+        self,
+        filters: Optional[List[Dict[str, Any]]] = None,
+        zone_names: Optional[List[str]] = None,
+        zone_ids: Optional[List[str]] = None,
     ) -> List[Zone]:
+        """
+        The following parameters are supported: ZoneIds, ZoneNames, Filters
+        The following filters are supported: zone-id, zone-type, zone-name, region-name, state
+        """
         # We might not have any zones for the current region, if it was introduced recently
         zones = self.zones.get(self.region_name, [])  # type: ignore[attr-defined]
         attr_pairs = (
@@ -325,10 +335,13 @@ class RegionsAndZonesBackend:
             ("zone-type", "zone_type"),
             ("zone-name", "name"),
             ("region-name", "region_name"),
+            ("state", "state"),
         )
         result = zones
         if filters:
             result = filter_resources(zones, filters, attr_pairs)
+        result = [r for r in result if not zone_ids or r.zone_id in zone_ids]
+        result = [r for r in result if not zone_names or r.name in zone_names]
         return result
 
     def get_zone_by_name(self, name: str) -> Optional[Zone]:

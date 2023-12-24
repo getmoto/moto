@@ -2,7 +2,8 @@ import json
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import rekognition_backends, RekognitionBackend
+
+from .models import RekognitionBackend, rekognition_backends
 
 
 class RekognitionResponse(BaseResponse):

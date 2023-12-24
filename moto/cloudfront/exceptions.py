@@ -1,5 +1,6 @@
-from moto.core.exceptions import RESTError
 from typing import Any
+
+from moto.core.exceptions import RESTError
 
 EXCEPTION_RESPONSE = """<?xml version="1.0"?>
 <ErrorResponse xmlns="http://cloudfront.amazonaws.com/doc/2020-05-31/">
@@ -14,10 +15,11 @@ EXCEPTION_RESPONSE = """<?xml version="1.0"?>
 
 class CloudFrontException(RESTError):
     code = 400
+    extended_templates = {"cferror": EXCEPTION_RESPONSE}
+    env = RESTError.extended_environment(extended_templates)
 
     def __init__(self, error_type: str, message: str, **kwargs: Any):
         kwargs.setdefault("template", "cferror")
-        self.templates["cferror"] = EXCEPTION_RESPONSE
         super().__init__(error_type, message, **kwargs)
 
 

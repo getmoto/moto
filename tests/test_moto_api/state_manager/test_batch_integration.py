@@ -1,10 +1,10 @@
+from unittest import SkipTest
+
+from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, mock_logs, settings
+from moto.moto_api import state_manager
 from tests.markers import requires_docker
 from tests.test_batch import _get_clients, _setup
-from tests.test_batch.test_batch_jobs import prepare_job, _wait_for_job_status
-
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs, settings
-from moto.moto_api import state_manager
-from unittest import SkipTest
+from tests.test_batch.test_batch_jobs import _wait_for_job_status, prepare_job
 
 
 @mock_logs

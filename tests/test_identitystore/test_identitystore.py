@@ -10,7 +10,6 @@ from botocore.exceptions import ClientError
 from moto import mock_identitystore
 from moto.moto_api._internal import mock_random
 
-
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
@@ -432,6 +431,7 @@ def test_list_groups():
             {
                 "GroupId": group_id,
                 "DisplayName": display_name,
+                "ExternalIds": [],
                 "Description": description,
                 "IdentityStoreId": identity_store_id,
             }
@@ -476,6 +476,7 @@ def test_list_groups_filter():
     expected_group = {
         "GroupId": group_id,
         "DisplayName": display_name,
+        "ExternalIds": [],
         "Description": description,
         "IdentityStoreId": identity_store_id,
     }
@@ -731,6 +732,40 @@ def test_delete_user_doesnt_exist():
     client.delete_user(
         IdentityStoreId=identity_store_id, UserId=str(mock_random.uuid4())
     )
+
+
+@mock_identitystore
+def test_create_describe_group() -> None:
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    group_name, group_descriprion, group_id = __create_test_group(
+        client, identity_store_id
+    )
+
+    client_response = client.describe_group(
+        IdentityStoreId=identity_store_id, GroupId=group_id
+    )
+    assert client_response["GroupId"] == group_id
+    assert client_response["DisplayName"] == group_name
+    assert client_response["Description"] == group_descriprion
+    assert client_response["IdentityStoreId"] == identity_store_id
+
+
+@mock_identitystore
+def test_describe_group_doesnt_exist() -> None:
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_group(IdentityStoreId=identity_store_id, GroupId=str(uuid4()))
+
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "GROUP not found."
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["ResourceType"] == "GROUP"
+    assert err.response["Message"] == "GROUP not found."
+    assert "RequestId" in err.response
 
 
 def __create_test_group(client, store_id: str):

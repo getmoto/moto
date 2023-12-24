@@ -1,4 +1,5 @@
 from typing import Any, Optional
+
 from moto.core.exceptions import JsonRESTError
 
 
@@ -10,7 +11,8 @@ class ResourceNotFoundException(LogsClientError):
     def __init__(self, msg: Optional[str] = None):
         self.code = 400
         super().__init__(
-            "ResourceNotFoundException", msg or "The specified log group does not exist"
+            "ResourceNotFoundException",
+            msg or "The specified log group does not exist.",
         )
 
 

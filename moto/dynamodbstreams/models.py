@@ -1,11 +1,11 @@
-import os
-import json
 import base64
+import json
+import os
 from typing import Any, Dict, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.dynamodb.models import dynamodb_backends, DynamoDBBackend
-from moto.dynamodb.models.table import Table, StreamShard
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
+from moto.dynamodb.models.table import StreamShard, Table
 from moto.dynamodb.models.utilities import DynamoJsonEncoder
 
 

@@ -1,8 +1,10 @@
 from typing import Any, Dict, List, Optional
+
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
-from ..exceptions import InvalidVpnGatewayIdError, InvalidVpnGatewayAttachmentError
+
+from ..exceptions import InvalidVpnGatewayAttachmentError, InvalidVpnGatewayIdError
 from ..utils import generic_filter, random_vpn_gateway_id
+from .core import TaggedEC2Resource
 
 
 class VPCGatewayAttachment(CloudFormationModel):

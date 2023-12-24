@@ -1,8 +1,9 @@
-import boto3
 import os
+from unittest import SkipTest, mock
+
+import boto3
 
 from moto import mock_ec2, mock_ssm, settings
-from unittest import mock, SkipTest
 
 
 # The default AMIs are not loaded for our test case, to speed things up

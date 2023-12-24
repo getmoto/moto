@@ -1,12 +1,12 @@
 """Test different server responses."""
 import io
 from unittest.mock import patch
-from urllib.parse import urlparse, parse_qs
-import xmltodict
+from urllib.parse import parse_qs, urlparse
 
-from flask.testing import FlaskClient
 import pytest
 import requests
+import xmltodict
+from flask.testing import FlaskClient
 
 import moto.server as server
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer

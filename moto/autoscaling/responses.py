@@ -1,7 +1,8 @@
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32, amzn_request_id
-from .models import autoscaling_backends, AutoScalingBackend
+
+from .models import AutoScalingBackend, autoscaling_backends
 
 
 class AutoScalingResponse(BaseResponse):
@@ -93,7 +94,7 @@ class AutoScalingResponse(BaseResponse):
             target_group_arns=self._get_multi_param("TargetGroupARNs.member"),
             placement_group=self._get_param("PlacementGroup"),
             termination_policies=self._get_multi_param("TerminationPolicies.member"),
-            tags=self._get_list_prefix("Tags.member"),
+            tags=params.get("Tags", []),
             capacity_rebalance=self._get_bool_param("CapacityRebalance", False),
             new_instances_protected_from_scale_in=self._get_bool_param(
                 "NewInstancesProtectedFromScaleIn", False
@@ -260,16 +261,14 @@ class AutoScalingResponse(BaseResponse):
         return template.render()
 
     def create_or_update_tags(self) -> str:
-        tags = self._get_list_prefix("Tags.member")
-
-        self.autoscaling_backend.create_or_update_tags(tags)
+        self.autoscaling_backend.create_or_update_tags(
+            self._get_params().get("Tags", [])
+        )
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
     def delete_tags(self) -> str:
-        tags = self._get_list_prefix("Tags.member")
-
-        self.autoscaling_backend.delete_tags(tags)
+        self.autoscaling_backend.delete_tags(self._get_params().get("Tags", []))
         template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
         return template.render()
 
@@ -1427,11 +1426,11 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://autoscaling.amaz
     <Tags>
 {% for tag in tags %}
       <member>
-        <ResourceId>{{ tag.resource_id }}</ResourceId>
-        <ResourceType>{{ tag.resource_type }}</ResourceType>
-        <Key>{{ tag.key }}</Key>
-        <Value>{{ tag.value }}</Value>
-        <PropagateAtLaunch>{{ tag.propagate_at_launch }}</PropagateAtLaunch>
+        <ResourceId>{{ tag.resource_id or tag.ResourceId }}</ResourceId>
+        <ResourceType>{{ tag.resource_type or tag.ResourceType }}</ResourceType>
+        <Key>{{ tag.key or tag.Key }}</Key>
+        <Value>{{ tag.value or tag.Value }}</Value>
+        <PropagateAtLaunch>{{ tag.propagate_at_launch or tag.PropagateAtLaunch }}</PropagateAtLaunch>
       </member>
 {% endfor %}
     </Tags>

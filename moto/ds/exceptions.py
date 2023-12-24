@@ -1,6 +1,7 @@
 """Exceptions raised by the Directory Service service."""
-from moto.core.exceptions import JsonRESTError
 from typing import List, Tuple
+
+from moto.core.exceptions import JsonRESTError
 
 
 class DsValidationException(JsonRESTError):

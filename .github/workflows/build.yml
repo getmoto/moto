@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get pip cache dir
@@ -40,12 +40,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: cache
     strategy:
+      fail-fast: false
       matrix:
-        python-version: [3.9]
+        python-version: [3.9, "3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     # Retrieve the previously cached dependencies
@@ -78,6 +79,14 @@ jobs:
     needs: lint
     uses: ./.github/workflows/tests_sdk_dotnet.yml
 
+  rubytest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_ruby.yml
+
+  terraformexamplestest:
+    needs: lint
+    uses: ./.github/workflows/tests_terraform_examples.yml
+
   test:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
@@ -96,6 +105,10 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+      pull-requests: write
     needs: [dotnettest, javatest, test, testserver ]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
     steps:
@@ -103,7 +116,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Update & Build
@@ -113,8 +126,6 @@ jobs:
           python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
       - name: Build Docker release
         run: |
           docker build -t motoserver/moto . --tag moto:latest

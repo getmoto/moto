@@ -3,7 +3,8 @@ import json
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from .models import emrserverless_backends, EMRServerlessBackend
+
+from .models import EMRServerlessBackend, emrserverless_backends
 
 DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""

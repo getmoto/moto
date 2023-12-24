@@ -1,17 +1,17 @@
-import boto3
 import copy
 import json
-import pytest
 import unittest
+from random import randint
+from unittest import SkipTest
+from uuid import uuid4
 
+import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2 import ec2_backends
-from random import randint
-from uuid import uuid4
-from unittest import SkipTest
 
 
 @mock_ec2

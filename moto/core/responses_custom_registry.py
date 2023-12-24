@@ -1,7 +1,9 @@
 # This will only exist in responses >= 0.17
-import responses
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+import responses
+
 from .custom_responses_mock import CallbackResponse, not_implemented_callback
 
 

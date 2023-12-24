@@ -1,18 +1,18 @@
 import copy
 import datetime
-from datetime import timezone
 import hashlib
 import json
 import pkgutil
-import yaml
+from datetime import timezone
 
 import boto3
 import botocore.exceptions
-from botocore.exceptions import ClientError
 import pytest
+import yaml
+from botocore.exceptions import ClientError
 
-from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto import mock_ssm
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 def _get_yaml_template():

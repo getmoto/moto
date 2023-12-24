@@ -5,7 +5,11 @@ class AvailabilityZonesAndRegions(EC2BaseResponse):
     def describe_availability_zones(self) -> str:
         self.error_on_dryrun()
         filters = self._filters_from_querystring()
-        zones = self.ec2_backend.describe_availability_zones(filters)
+        zone_names = self._get_multi_param("ZoneName")
+        zone_ids = self._get_multi_param("ZoneId")
+        zones = self.ec2_backend.describe_availability_zones(
+            filters, zone_names=zone_names, zone_ids=zone_ids
+        )
         template = self.response_template(DESCRIBE_ZONES_RESPONSE)
         return template.render(zones=zones)
 

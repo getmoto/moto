@@ -1,21 +1,27 @@
+import base64
+import codecs
+import copy
+import datetime
+import itertools
 import json
 import os
-import base64
-import datetime
-import copy
-import itertools
-import codecs
 import string
+import sys
 import tempfile
 import threading
-import sys
 import urllib.parse
-
 from bisect import insort
-from typing import Any, Dict, List, Optional, Set, Tuple, Iterator, Union
 from importlib import reload
-from moto.core import BaseBackend, BaseModel, BackendDict, CloudFormationModel
-from moto.core import CloudWatchMetricProvider
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+
+from moto.cloudwatch.models import MetricDatum
+from moto.core import (
+    BackendDict,
+    BaseBackend,
+    BaseModel,
+    CloudFormationModel,
+    CloudWatchMetricProvider,
+)
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds_s3,
     rfc_1123_datetime,
@@ -23,43 +29,52 @@ from moto.core.utils import (
     unix_time_millis,
     utcnow,
 )
-from moto.cloudwatch.models import MetricDatum
-from moto.moto_api import state_manager
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import LowercaseDict, md5_hash
 from moto.s3.exceptions import (
     AccessDeniedByLock,
+    BadRequest,
     BucketAlreadyExists,
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
-    MissingBucket,
-    InvalidBucketName,
-    InvalidPart,
-    InvalidRequest,
-    EntityTooSmall,
-    MissingKey,
-    InvalidNotificationDestination,
-    MalformedXML,
-    HeadOnDeleteMarker,
-    InvalidStorageClass,
-    InvalidTargetBucketForLogging,
     CrossLocationLoggingProhibitted,
-    NoSuchPublicAccessBlockConfiguration,
+    EntityTooSmall,
+    HeadOnDeleteMarker,
+    InvalidBucketName,
+    InvalidNotificationDestination,
+    InvalidPart,
     InvalidPublicAccessBlockConfiguration,
+    InvalidRequest,
+    InvalidStorageClass,
+    InvalidTagError,
+    InvalidTargetBucketForLogging,
+    MalformedXML,
+    MissingBucket,
+    MissingKey,
+    NoSuchPublicAccessBlockConfiguration,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
-    InvalidTagError,
 )
-from .cloud_formation import cfn_to_api_encryption, is_replacement_update
-from . import notifications
-from .select_object_content import parse_query
-from .utils import _VersionedKeyStore, CaseInsensitiveDict
-from .utils import ARCHIVE_STORAGE_CLASSES, STORAGE_CLASS, LOGGING_SERVICE_PRINCIPAL
+from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import LowercaseDict, md5_hash
+
 from ..events.notifications import send_notification as events_send_notification
-from ..settings import get_s3_default_key_buffer_size, S3_UPLOAD_PART_MIN_SIZE
-from ..settings import s3_allow_crossdomain_access
+from ..settings import (
+    S3_UPLOAD_PART_MIN_SIZE,
+    get_s3_default_key_buffer_size,
+    s3_allow_crossdomain_access,
+)
+from . import notifications
+from .cloud_formation import cfn_to_api_encryption, is_replacement_update
+from .select_object_content import parse_query
+from .utils import (
+    ARCHIVE_STORAGE_CLASSES,
+    LOGGING_SERVICE_PRINCIPAL,
+    STORAGE_CLASS,
+    CaseInsensitiveDict,
+    _VersionedKeyStore,
+    compute_checksum,
+)
 
 MAX_BUCKET_NAME_LENGTH = 63
 MIN_BUCKET_NAME_LENGTH = 3
@@ -89,7 +104,7 @@ class FakeKey(BaseModel, ManagedState):
         self,
         name: str,
         value: bytes,
-        account_id: Optional[str] = None,
+        account_id: str,
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
@@ -363,6 +378,7 @@ class FakeMultipart(BaseModel):
         self,
         key_name: str,
         metadata: CaseInsensitiveDict,  # type: ignore
+        account_id: str,
         storage: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         acl: Optional["FakeAcl"] = None,
@@ -371,6 +387,7 @@ class FakeMultipart(BaseModel):
     ):
         self.key_name = key_name
         self.metadata = metadata
+        self.account_id = account_id
         self.storage = storage
         self.tags = tags
         self.acl = acl
@@ -383,10 +400,14 @@ class FakeMultipart(BaseModel):
         self.sse_encryption = sse_encryption
         self.kms_key_id = kms_key_id
 
-    def complete(self, body: Iterator[Tuple[int, str]]) -> Tuple[bytes, str]:
+    def complete(
+        self, body: Iterator[Tuple[int, str]]
+    ) -> Tuple[bytes, str, Optional[str]]:
+        checksum_algo = self.metadata.get("x-amz-checksum-algorithm")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
+        checksum = bytearray()
 
         last = None
         count = 0
@@ -402,6 +423,10 @@ class FakeMultipart(BaseModel):
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])  # type: ignore
             total.extend(part.value)
+            if checksum_algo:
+                checksum.extend(
+                    compute_checksum(part.value, checksum_algo, encode_base64=False)
+                )
             last = part
             count += 1
 
@@ -410,14 +435,18 @@ class FakeMultipart(BaseModel):
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
-        return total, f"{full_etag.hexdigest()}-{count}"
+        if checksum_algo:
+            encoded_checksum = compute_checksum(checksum, checksum_algo).decode("utf-8")
+        else:
+            encoded_checksum = None
+        return total, f"{full_etag.hexdigest()}-{count}", encoded_checksum
 
     def set_part(self, part_id: int, value: bytes) -> FakeKey:
         if part_id < 1:
             raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(
-            part_id, value, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
+            part_id, value, account_id=self.account_id, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
         )
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first
@@ -1585,10 +1614,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self.buckets: Dict[str, FakeBucket] = {}
         self.tagger = TaggingService()
 
-        state_manager.register_default_transition(
-            "s3::keyrestore", transition={"progression": "immediate"}
-        )
-
     def reset(self) -> None:
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
@@ -1790,13 +1815,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         delimiter: Optional[str] = None,
         key_marker: Optional[str] = None,
+        max_keys: Optional[int] = 1000,
         prefix: str = "",
-    ) -> Tuple[List[FakeKey], List[str], List[FakeDeleteMarker]]:
+        version_id_marker: Optional[str] = None,
+    ) -> Tuple[
+        List[FakeKey], List[str], List[FakeDeleteMarker], Optional[str], Optional[str]
+    ]:
         bucket = self.get_bucket(bucket_name)
 
-        common_prefixes: List[str] = []
+        common_prefixes: Set[str] = set()
         requested_versions: List[FakeKey] = []
         delete_markers: List[FakeDeleteMarker] = []
+        next_key_marker: Optional[str] = None
+        next_version_id_marker: Optional[str] = None
         all_versions = list(
             itertools.chain(
                 *(
@@ -1808,37 +1839,94 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # sort by name, revert last-modified-date
         all_versions.sort(key=lambda r: (r.name, -unix_time_millis(r.last_modified)))
         last_name = None
+
+        skip_versions = True
+        last_item_added: Union[None, FakeKey, FakeDeleteMarker] = None
         for version in all_versions:
+            # Pagination
+            if skip_versions:
+                if key_marker is None:
+                    # If KeyMarker is not supplied, we do not skip anything
+                    skip_versions = False
+                elif not version_id_marker:
+                    # Only KeyMarker is supplied, and it will be set to the last item of the previous page
+                    # We skip all versions with ``name < key_marker``
+                    # Because our list is ordered, we keep everything where ``name >= key_marker`` (i.e.: the next page)
+                    skip_versions = version.name < key_marker
+                    continue
+                elif (
+                    version.name == key_marker
+                    and version.version_id == version_id_marker
+                ):
+                    # KeyMarker and VersionIdMarker are set to the last item of the previous page
+                    # Which means we should still skip the current version
+                    # But continue processing all subsequent versions
+                    skip_versions = False
+                    continue
+                else:
+                    continue
+
             name = version.name
             # guaranteed to be sorted - so the first key with this name will be the latest
             version.is_latest = name != last_name
             if version.is_latest:
                 last_name = name
-            # skip all keys that alphabetically come before keymarker
-            if key_marker and name < key_marker:
-                continue
+
             # Filter for keys that start with prefix
             if not name.startswith(prefix):
                 continue
             # separate keys that contain the same string between the prefix and the first occurrence of the delimiter
+            is_common_prefix = False
             if delimiter and delimiter in name[len(prefix) :]:
                 end_of_delimiter = (
                     len(prefix) + name[len(prefix) :].index(delimiter) + len(delimiter)
                 )
                 prefix_including_delimiter = name[0:end_of_delimiter]
-                common_prefixes.append(prefix_including_delimiter)
-                continue
 
-            # Differentiate between FakeKey and FakeDeleteMarkers
-            if not isinstance(version, FakeKey):
-                delete_markers.append(version)
-                continue
+                # Skip already-processed common prefix.
+                if prefix_including_delimiter == key_marker:
+                    continue
 
-            requested_versions.append(version)
+                common_prefixes.add(prefix_including_delimiter)
+                name = prefix_including_delimiter
+                is_common_prefix = True
+            elif last_item_added:
+                name = last_item_added.name
 
-        common_prefixes = sorted(set(common_prefixes))
+            # Only return max_keys items.
+            if (
+                max_keys is not None
+                and len(requested_versions) + len(delete_markers) + len(common_prefixes)
+                >= max_keys
+            ):
 
-        return requested_versions, common_prefixes, delete_markers
+                next_key_marker = name
+                if is_common_prefix:
+                    # No NextToken when returning common prefixes
+                    next_version_id_marker = None
+                elif last_item_added is not None:
+                    # NextToken is set to the (version of the) latest item
+                    next_version_id_marker = last_item_added.version_id
+                else:
+                    # Should only happen when max_keys == 0, so when we do not have a last item
+                    next_version_id_marker = None
+                break
+
+            if not is_common_prefix:
+                last_item_added = version
+                # Differentiate between FakeKey and FakeDeleteMarkers
+                if not isinstance(version, FakeKey):
+                    delete_markers.append(version)
+                else:
+                    requested_versions.append(version)
+
+        return (
+            requested_versions,
+            sorted(common_prefixes),
+            delete_markers,
+            next_key_marker,
+            next_version_id_marker,
+        )
 
     def get_bucket_policy(self, bucket_name: str) -> Optional[bytes]:
         return self.get_bucket(bucket_name).policy
@@ -2132,7 +2220,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def get_object_tagging(self, key: FakeKey) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(key.arn)
 
-    def set_key_tags(
+    def put_object_tagging(
         self,
         key: Optional[FakeKey],
         tags: Optional[Dict[str, str]],
@@ -2140,12 +2228,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> FakeKey:
         if key is None:
             raise MissingKey(key=key_name)
-        boto_tags_dict = self.tagger.convert_dict_to_tags_input(tags)
-        errmsg = self.tagger.validate_tags(boto_tags_dict)
+        tags_input = self.tagger.convert_dict_to_tags_input(tags)
+        # Validation custom to S3
+        if tags:
+            if len(tags_input) > 10:
+                raise BadRequest("Object tags cannot be greater than 10")
+            if any([tagkey.startswith("aws") for tagkey in tags.keys()]):
+                raise InvalidTagError("Your TagKey cannot be prefixed with aws:")
+        # Validation shared across all services
+        errmsg = self.tagger.validate_tags(tags_input)
         if errmsg:
             raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
-        self.tagger.tag_resource(key.arn, boto_tags_dict)
+        self.tagger.tag_resource(key.arn, tags_input)
         return key
 
     def get_bucket_tagging(self, bucket_name: str) -> Dict[str, List[Dict[str, str]]]:
@@ -2233,7 +2328,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise InvalidRequest("PutBucketAccelerateConfiguration")
         bucket.set_accelerate_configuration(accelerate_configuration)
 
-    def put_bucket_public_access_block(
+    def put_public_access_block(
         self, bucket_name: str, pub_block_config: Optional[Dict[str, Any]]
     ) -> None:
         bucket = self.get_bucket(bucket_name)
@@ -2289,6 +2384,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         multipart = FakeMultipart(
             key_name,
             metadata,
+            account_id=self.account_id,
             storage=storage_type,
             tags=tags,
             acl=acl,
@@ -2302,13 +2398,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def complete_multipart_upload(
         self, bucket_name: str, multipart_id: str, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[FakeMultipart, bytes, str]:
+    ) -> Tuple[FakeMultipart, bytes, str, Optional[str]]:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        value, etag = multipart.complete(body)
+        value, etag, checksum = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
-        return multipart, value, etag
+        return multipart, value, etag, checksum
 
     def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
         bucket = self.get_bucket(bucket_name)
@@ -2321,7 +2417,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         multipart = bucket.multiparts[multipart_id]
         return multipart.set_part(part_id, value)
 
-    def copy_part(
+    def upload_part_copy(
         self,
         dest_bucket_name: str,
         multipart_id: str,
@@ -2616,7 +2712,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
 
-class S3BackendDict(BackendDict):
+class S3BackendDict(BackendDict[S3Backend]):
     """
     Encapsulation class to hold S3 backends.
 

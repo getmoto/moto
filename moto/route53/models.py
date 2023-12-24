@@ -5,14 +5,18 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-
-from jinja2 import Template
 from typing import Any, Dict, List, Optional, Tuple
 
+from jinja2 import Template
+
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.moto_api._internal import mock_random as random
 from moto.route53.exceptions import (
+    DnsNameInvalidForZone,
     HostedZoneNotEmpty,
     InvalidActionValue,
     InvalidCloudWatchArn,
+    InvalidInput,
     LastVPCAssociation,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
@@ -21,13 +25,10 @@ from moto.route53.exceptions import (
     NoSuchQueryLoggingConfig,
     PublicZoneVPCAssociation,
     QueryLoggingConfigAlreadyExists,
-    DnsNameInvalidForZone,
     ResourceRecordAlreadyExists,
-    InvalidInput,
 )
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+
 from .utils import PAGINATION_MODEL
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
@@ -230,9 +231,8 @@ class RecordSet(CloudFormationModel):
 
         zone_name = properties.get("HostedZoneName")
         backend = route53_backends[account_id]["global"]
-        if zone_name:
-            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
-        else:
+        hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
+        if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
         record_set = hosted_zone.add_rrset(properties)
         return record_set
@@ -267,9 +267,8 @@ class RecordSet(CloudFormationModel):
 
         zone_name = properties.get("HostedZoneName")
         backend = route53_backends[account_id]["global"]
-        if zone_name:
-            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
-        else:
+        hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
+        if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
 
         try:
@@ -286,9 +285,13 @@ class RecordSet(CloudFormationModel):
     ) -> None:
         """Not exposed as part of the Route 53 API - used for CloudFormation"""
         backend = route53_backends[account_id]["global"]
-        hosted_zone = backend.get_hosted_zone_by_name(self.hosted_zone_name)
+        hosted_zone = (
+            backend.get_hosted_zone_by_name(self.hosted_zone_name)
+            if self.hosted_zone_name
+            else None
+        )
         if not hosted_zone:
-            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)
+            hosted_zone = backend.get_hosted_zone(self.hosted_zone_id)  # type: ignore[arg-type]
         hosted_zone.delete_rrset({"Name": self.name, "Type": self.type_})
 
 
@@ -310,6 +313,27 @@ class ChangeList(List[Dict[str, Any]]):
     def __contains__(self, item: Any) -> bool:
         item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
         return super().__contains__(item)
+
+    def has_insert_or_update(self, new_rr_set: Dict[str, Any]) -> bool:
+        """
+        Check if a CREATE or UPSERT record exists where the name and type is the same as the provided record
+        If the existing record has TTL/ResourceRecords, the new TTL should have the same
+        """
+        for change in self:
+            if change["Action"] in ["CREATE", "UPSERT"]:
+                rr_set = change["ResourceRecordSet"]
+                if (
+                    rr_set["Name"] == new_rr_set["Name"].strip(".")
+                    and rr_set["Type"] == new_rr_set["Type"]
+                ):
+                    if "TTL" in rr_set:
+                        if rr_set["TTL"] == new_rr_set.get("TTL") and rr_set[
+                            "ResourceRecords"
+                        ] == new_rr_set.get("ResourceRecords"):
+                            return True
+                    else:
+                        return True
+        return False
 
 
 class FakeZone(CloudFormationModel):
@@ -460,16 +484,14 @@ class RecordSetGroup(CloudFormationModel):
 
         zone_name = properties.get("HostedZoneName")
         backend = route53_backends[account_id]["global"]
-        if zone_name:
-            hosted_zone = backend.get_hosted_zone_by_name(zone_name)
-        else:
+        hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
+        if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
         record_sets = properties["RecordSets"]
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
 
-        record_set_group = RecordSetGroup(hosted_zone.id, record_sets)
-        return record_set_group
+        return RecordSetGroup(hosted_zone.id, record_sets)
 
 
 class QueryLoggingConfig(BaseModel):
@@ -631,13 +653,8 @@ class Route53Backend(BaseBackend):
         for value in change_list:
             if value["Action"] == "DELETE":
                 # To delete a resource record set, you must specify all the same values that you specified when you created it.
-                corresponding_create = copy.deepcopy(value)
-                corresponding_create["Action"] = "CREATE"
-                corresponding_upsert = copy.deepcopy(value)
-                corresponding_upsert["Action"] = "UPSERT"
-                if (
-                    corresponding_create not in the_zone.rr_changes
-                    and corresponding_upsert not in the_zone.rr_changes
+                if not the_zone.rr_changes.has_insert_or_update(
+                    value["ResourceRecordSet"]
                 ):
                     msg = f"Invalid request: Expected exactly one of [AliasTarget, all of [TTL, and ResourceRecords], or TrafficPolicyInstanceId], but found none in Change with [Action=DELETE, Name={value['ResourceRecordSet']['Name']}, Type={value['ResourceRecordSet']['Type']}, SetIdentifier={value['ResourceRecordSet'].get('SetIdentifier', 'null')}]"
                     raise InvalidInput(msg)

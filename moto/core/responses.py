@@ -1,45 +1,54 @@
-import boto3
-import functools
 import datetime
+import functools
 import json
 import logging
 import os
 import re
+from collections import OrderedDict, defaultdict
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
+from urllib.parse import parse_qs, parse_qsl, urlparse
+from xml.dom.minidom import parseString as parseXML
+
+import boto3
 import requests
 import xmltodict
+from jinja2 import DictLoader, Environment, Template
+from werkzeug.exceptions import HTTPException
 
-from collections import defaultdict, OrderedDict
 from moto import settings
-from moto.core.common_types import TYPE_RESPONSE, TYPE_IF_NONE
+from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError
 from moto.core.utils import (
     camelcase_to_underscores,
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
+    utcfromtimestamp,
 )
-from moto.utilities.utils import load_resource
-from jinja2 import Environment, DictLoader, Template
-from typing import (
-    Dict,
-    Union,
-    Any,
-    Tuple,
-    Optional,
-    List,
-    Set,
-    ClassVar,
-    Callable,
-    TypeVar,
-)
-from urllib.parse import parse_qs, parse_qsl, urlparse
-from werkzeug.exceptions import HTTPException
-from xml.dom.minidom import parseString as parseXML
-
+from moto.utilities.utils import load_resource, load_resource_as_bytes
 
 log = logging.getLogger(__name__)
 
 JINJA_ENVS: Dict[type, Environment] = {}
+
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec
+
+    P = ParamSpec("P")
+
+T = TypeVar("T")
 
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
@@ -173,13 +182,13 @@ class ActionAuthenticatorMixin(object):
         self._authenticate_and_authorize_action(S3IAMRequest, resource)
 
     @staticmethod
-    def set_initial_no_auth_action_count(initial_no_auth_action_count: int) -> Callable[..., Callable[..., TYPE_RESPONSE]]:  # type: ignore[misc]
+    def set_initial_no_auth_action_count(
+        initial_no_auth_action_count: int,
+    ) -> "Callable[[Callable[P, T]], Callable[P, T]]":
         _test_server_mode_endpoint = settings.test_server_mode_endpoint()
 
-        def decorator(
-            function: Callable[..., TYPE_RESPONSE]
-        ) -> Callable[..., TYPE_RESPONSE]:
-            def wrapper(*args: Any, **kwargs: Any) -> TYPE_RESPONSE:
+        def decorator(function: "Callable[P, T]") -> "Callable[P, T]":
+            def wrapper(*args: "P.args", **kwargs: "P.kwargs") -> T:
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
                         f"{_test_server_mode_endpoint}/moto-api/reset-auth",
@@ -533,6 +542,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
+
         if action in method_names:
             method = getattr(self, action)
             try:
@@ -960,7 +970,12 @@ class AWSServiceSpec(object):
     """
 
     def __init__(self, path: str):
-        spec = load_resource("botocore", path)
+        try:
+            spec = load_resource("botocore", path)
+        except FileNotFoundError:
+            # botocore >= 1.32.1 sends compressed files
+            compressed = load_resource_as_bytes("botocore", f"{path}.gz")
+            spec = json.loads(gzip_decompress(compressed).decode("utf-8"))
 
         self.metadata = spec["metadata"]
         self.operations = spec["operations"]
@@ -1062,11 +1077,7 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
     elif vtype == "double":
         return str(value)
     elif vtype == "timestamp":
-        return (
-            datetime.datetime.utcfromtimestamp(value)
-            .replace(tzinfo=datetime.timezone.utc)
-            .isoformat()
-        )
+        return utcfromtimestamp(value).replace(tzinfo=datetime.timezone.utc).isoformat()
     elif vtype == "string":
         return str(value)
     elif value is None:

@@ -2,6 +2,7 @@
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_comprehend
 from moto.comprehend.models import (
     CANNED_DETECT_RESPONSE,

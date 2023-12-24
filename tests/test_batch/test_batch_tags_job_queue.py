@@ -1,7 +1,8 @@
-from . import _get_clients, _setup
-
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs
 from uuid import uuid4
+
+from moto import mock_batch, mock_ec2, mock_ecs, mock_iam
+
+from . import _get_clients, _setup
 
 
 @mock_ec2

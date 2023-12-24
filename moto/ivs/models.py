@@ -1,9 +1,10 @@
 """IVSBackend class with methods for supported APIs."""
-from typing import Optional, Any, List, Dict, Tuple
-from moto.core import BaseBackend, BackendDict
+from typing import Any, Dict, List, Optional, Tuple
+
+from moto.core import BackendDict, BaseBackend
 from moto.ivs.exceptions import ResourceNotFoundException
-from moto.utilities.paginator import paginate
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 
 
 class IVSBackend(BaseBackend):

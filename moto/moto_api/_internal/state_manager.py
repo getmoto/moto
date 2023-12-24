@@ -1,6 +1,5 @@
 from typing import Any, Dict, List
 
-
 DEFAULT_TRANSITION = {"progression": "immediate"}
 
 

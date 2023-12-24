@@ -1,7 +1,6 @@
 import logging
 import sys
 
-
 log_format = "%(levelname)s %(asctime)s - %(message)s"
 logging.basicConfig(stream=sys.stdout, format=log_format)
 logger = logging.getLogger("MOTO_PROXY")

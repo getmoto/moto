@@ -10,6 +10,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
+
 from moto import mock_ec2, mock_iam, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID

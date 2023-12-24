@@ -45,15 +45,6 @@ An example model could look like this:
     from moto.moto_api import state_manager
 
     class Backend():
-        def __init__():
-            # This is how we register the model, and specify the default transition-behaviour
-            # Typically this is done when constructing the Backend-class
-            state_manager.register_default_transition(
-                # This name should be the same as the name used in NewModel
-                model_name="new::model",
-                # Any transition-config is possible - this is a good default option though
-                transition={"progression": "immediate"},
-            )
 
         def list_resources():
             for ec2_instance in all_resources:
@@ -76,3 +67,14 @@ An example model could look like this:
             # Make sure that each way (describe, list, get_, ) calls the advance()-method, and the resource can actually progress to the next state
             resource.advance()
             return resource
+
+Make sure that the model is registered with the StateManager. This can be done in `moto/moto_api/__init__.py`:
+
+.. sourcecode:: python
+
+    state_manager.register_default_transition(
+        # This name should be the same as the name used in NewModel
+        model_name="new::model",
+        # Any transition-config is possible - this is a good default option though
+        transition={"progression": "immediate"},
+    )

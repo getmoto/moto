@@ -1,4 +1,5 @@
 from urllib.parse import urlencode
+
 import moto.server as server
 
 
@@ -19,7 +20,7 @@ def test_create_db_instance():
         "Action": "CreateDBInstance",
         "DBInstanceIdentifier": "hi",
         "DBInstanceClass": "db.m4.large",
-        "Engine": "aurora",
+        "Engine": "aurora-mysql",
         "StorageType": "standard",
         "Port": 3306,
     }

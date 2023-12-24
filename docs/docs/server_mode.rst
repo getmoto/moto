@@ -84,6 +84,7 @@ See the following example:
             in_mem_client = boto3.client("s3")
             buckets = in_mem_client.list_buckets()["Buckets"]
             self.assertEqual([b["Name"] for b in buckets], ["test"])
+
 This example shows it is possible to create state using the TreadedMotoServer, and access that state using the usual decorators.  :raw-html:`<br />`
 Note that the decorators will destroy any resources on start, so make sure to not accidentally destroy any resources created by the ThreadedMotoServer that should be kept.
 
@@ -98,8 +99,8 @@ This is stored in two different repositories:
 
 .. code-block:: bash
 
-    docker run motoserver/moto:latest
-    docker run ghcr.io/getmoto/motoserver:latest
+    docker run --rm -p 5000:5000 --name moto motoserver/moto:latest
+    docker run --rm -p 5000:5000 --name moto ghcr.io/getmoto/motoserver:latest
 
 Example docker-compose.yaml 
  Look at `server.py <https://github.com/getmoto/moto/blob/master/moto/server.py>`_ to find more environment variables.
@@ -118,6 +119,10 @@ Example Usage
 --------------
 
 To use Moto in your tests, pass the `endpoint_url`-parameter to the SDK of your choice.
+
+For some SDK's, this can be configured using the environment variable `AWS_ENDPOINT_URL`. See the official AWS documentation: https://docs.aws.amazon.com/sdkref/latest/guide/feature-ss-endpoints.html
+
+If your SDK does not support this, here are some code samples to set this parameter the old-fashioned way.
 
 In Python:
 

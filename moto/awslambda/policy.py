@@ -1,18 +1,21 @@
 import json
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
 
 from moto.awslambda.exceptions import (
     PreconditionFailedException,
     UnknownPolicyException,
 )
 from moto.moto_api._internal import mock_random
-from typing import Any, Callable, Dict, List, Optional, TypeVar
+
+if TYPE_CHECKING:
+    from .models import LambdaFunction
 
 
 TYPE_IDENTITY = TypeVar("TYPE_IDENTITY")
 
 
 class Policy:
-    def __init__(self, parent: Any):  # Parent should be a LambdaFunction
+    def __init__(self, parent: "LambdaFunction"):
         self.revision = str(mock_random.uuid4())
         self.statements: List[Dict[str, Any]] = []
         self.parent = parent
@@ -72,8 +75,6 @@ class Policy:
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
     def decode_policy(self, obj: Dict[str, Any]) -> "Policy":
-        # import pydevd
-        # pydevd.settrace("localhost", port=5678)
         policy = Policy(self.parent)
         policy.revision = obj.get("RevisionId", "")
 

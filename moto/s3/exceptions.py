@@ -1,4 +1,5 @@
-from typing import Any, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, Union
+
 from moto.core.exceptions import RESTError
 
 if TYPE_CHECKING:
@@ -40,9 +41,19 @@ class S3ClientError(RESTError):
     # S3 API uses <RequestID> as the XML tag in response messages
     request_id_tag_name = "RequestID"
 
+    extended_templates = {
+        "bucket_error": ERROR_WITH_BUCKET_NAME,
+        "key_error": ERROR_WITH_KEY_NAME,
+        "argument_error": ERROR_WITH_ARGUMENT,
+        "error_uploadid": ERROR_WITH_UPLOADID,
+        "condition_error": ERROR_WITH_CONDITION_NAME,
+        "range_error": ERROR_WITH_RANGE,
+        "storage_error": ERROR_WITH_STORAGE_CLASS,
+    }
+    env = RESTError.extended_environment(extended_templates)
+
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")
-        self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(*args, **kwargs)
 
 
@@ -53,7 +64,6 @@ class InvalidArgumentError(S3ClientError):
         kwargs.setdefault("template", "argument_error")
         kwargs["name"] = name
         kwargs["value"] = value
-        self.templates["argument_error"] = ERROR_WITH_ARGUMENT
         super().__init__("InvalidArgument", message, *args, **kwargs)
 
 
@@ -64,10 +74,16 @@ class AccessForbidden(S3ClientError):
         super().__init__("AccessForbidden", msg)
 
 
+class BadRequest(S3ClientError):
+    code = 403
+
+    def __init__(self, msg: str):
+        super().__init__("BadRequest", msg)
+
+
 class BucketError(S3ClientError):
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "bucket_error")
-        self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(*args, **kwargs)
 
 
@@ -76,7 +92,6 @@ class BucketAlreadyExists(BucketError):
 
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "bucket_error")
-        self.templates["bucket_error"] = ERROR_WITH_BUCKET_NAME
         super().__init__(
             "BucketAlreadyExists",
             (
@@ -103,7 +118,6 @@ class MissingKey(S3ClientError):
 
     def __init__(self, **kwargs: Any):
         kwargs.setdefault("template", "key_error")
-        self.templates["key_error"] = ERROR_WITH_KEY_NAME
         super().__init__("NoSuchKey", "The specified key does not exist.", **kwargs)
 
 
@@ -121,7 +135,6 @@ class InvalidVersion(S3ClientError):
         kwargs.setdefault("template", "argument_error")
         kwargs["name"] = "versionId"
         kwargs["value"] = version_id
-        self.templates["argument_error"] = ERROR_WITH_ARGUMENT
         super().__init__(
             "InvalidArgument", "Invalid version id specified", *args, **kwargs
         )
@@ -428,7 +441,6 @@ class NoSuchUpload(S3ClientError):
     def __init__(self, upload_id: Union[int, str], *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "error_uploadid")
         kwargs["upload_id"] = upload_id
-        self.templates["error_uploadid"] = ERROR_WITH_UPLOADID
         super().__init__(
             "NoSuchUpload",
             "The specified upload does not exist. The upload ID may be invalid, or the upload may have been aborted or completed.",
@@ -442,7 +454,6 @@ class PreconditionFailed(S3ClientError):
 
     def __init__(self, failed_condition: str, **kwargs: Any):
         kwargs.setdefault("template", "condition_error")
-        self.templates["condition_error"] = ERROR_WITH_CONDITION_NAME
         super().__init__(
             "PreconditionFailed",
             "At least one of the pre-conditions you specified did not hold",
@@ -456,7 +467,6 @@ class InvalidRange(S3ClientError):
 
     def __init__(self, range_requested: str, actual_size: str, **kwargs: Any):
         kwargs.setdefault("template", "range_error")
-        self.templates["range_error"] = ERROR_WITH_RANGE
         super().__init__(
             "InvalidRange",
             "The requested range is not satisfiable",
@@ -480,7 +490,6 @@ class InvalidObjectState(BucketError):
 
     def __init__(self, storage_class: Optional[str], **kwargs: Any):
         kwargs.setdefault("template", "storage_error")
-        self.templates["storage_error"] = ERROR_WITH_STORAGE_CLASS
         super().__init__(
             error_type="InvalidObjectState",
             message="The operation is not valid for the object's storage class",

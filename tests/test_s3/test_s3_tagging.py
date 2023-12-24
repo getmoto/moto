@@ -1,10 +1,12 @@
 import boto3
-from botocore.client import ClientError
 import pytest
 import requests
+from botocore.client import ClientError
 
 from moto import mock_s3, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
+
+from . import s3_aws_verified
 from .test_s3 import add_proxy_details
 
 
@@ -20,12 +22,11 @@ def test_get_bucket_tagging_unknown_bucket():
     )
 
 
-@mock_s3
-def test_put_object_with_tagging():
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_object_with_tagging(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
     key = "key-with-tags"
-    s3_client.create_bucket(Bucket=bucket_name)
 
     # using system tags will fail
     with pytest.raises(ClientError) as err:
@@ -33,34 +34,34 @@ def test_put_object_with_tagging():
             Bucket=bucket_name, Key=key, Body="test", Tagging="aws:foo=bar"
         )
 
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "InvalidTag"
+    err = err.value.response["Error"]
+    assert err["Code"] == "InvalidTag"
+    assert err["Message"] == "Your TagKey cannot be prefixed with aws:"
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test", Tagging="foo=bar")
 
-    assert {"Key": "foo", "Value": "bar"} in s3_client.get_object_tagging(
-        Bucket=bucket_name, Key=key
-    )["TagSet"]
+    tags = s3_client.get_object_tagging(Bucket=bucket_name, Key=key)
+    assert {"Key": "foo", "Value": "bar"} in tags["TagSet"]
 
     resp = s3_client.get_object(Bucket=bucket_name, Key=key)
     assert resp["TagCount"] == 1
 
     s3_client.delete_object_tagging(Bucket=bucket_name, Key=key)
 
-    assert s3_client.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"] == []
+    tags = s3_client.get_object_tagging(Bucket=bucket_name, Key=key)
+    assert tags["TagSet"] == []
 
 
-@mock_s3
-def test_put_bucket_tagging():
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_bucket_tagging(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    s3_client.create_bucket(Bucket=bucket_name)
 
     # With 1 tag:
     resp = s3_client.put_bucket_tagging(
         Bucket=bucket_name, Tagging={"TagSet": [{"Key": "TagOne", "Value": "ValueOne"}]}
     )
-    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     # With multiple tags:
     resp = s3_client.put_bucket_tagging(
@@ -74,11 +75,7 @@ def test_put_bucket_tagging():
         },
     )
 
-    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    # No tags is also OK:
-    resp = s3_client.put_bucket_tagging(Bucket=bucket_name, Tagging={"TagSet": []})
-    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
     # With duplicate tag keys:
     with pytest.raises(ClientError) as err:
@@ -91,11 +88,9 @@ def test_put_bucket_tagging():
                 ]
             },
         )
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "InvalidTag"
-    assert err_value.response["Error"]["Message"] == (
-        "Cannot provide multiple Tags with the same key"
-    )
+    err = err.value.response["Error"]
+    assert err["Code"] == "InvalidTag"
+    assert err["Message"] == "Cannot provide multiple Tags with the same key"
 
     # Cannot put tags that are "system" tags - i.e. tags that start with "aws:"
     with pytest.raises(ClientError) as ce_exc:
@@ -103,11 +98,9 @@ def test_put_bucket_tagging():
             Bucket=bucket_name,
             Tagging={"TagSet": [{"Key": "aws:sometag", "Value": "nope"}]},
         )
-    err_value = ce_exc.value
-    assert err_value.response["Error"]["Code"] == "InvalidTag"
-    assert err_value.response["Error"]["Message"] == (
-        "System tags cannot be added/updated by requester"
-    )
+    err = ce_exc.value.response["Error"]
+    assert err["Code"] == "InvalidTag"
+    assert err["Message"] == "System tags cannot be added/updated by requester"
 
     # This is OK though:
     s3_client.put_bucket_tagging(
@@ -116,11 +109,11 @@ def test_put_bucket_tagging():
     )
 
 
-@mock_s3
-def test_get_bucket_tagging():
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_get_bucket_tagging(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    s3_client.create_bucket(Bucket=bucket_name)
+
     s3_client.put_bucket_tagging(
         Bucket=bucket_name,
         Tagging={
@@ -135,16 +128,18 @@ def test_get_bucket_tagging():
     resp = s3_client.get_bucket_tagging(Bucket=bucket_name)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert len(resp["TagSet"]) == 2
+    assert {"Key": "TagOne", "Value": "ValueOne"} in resp["TagSet"]
+    assert {"Key": "TagTwo", "Value": "ValueTwo"} in resp["TagSet"]
 
     # With no tags:
     s3_client.put_bucket_tagging(Bucket=bucket_name, Tagging={"TagSet": []})
 
-    with pytest.raises(ClientError) as err:
+    with pytest.raises(ClientError) as exc:
         s3_client.get_bucket_tagging(Bucket=bucket_name)
 
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "NoSuchTagSet"
-    assert err_value.response["Error"]["Message"] == "The TagSet does not exist"
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchTagSet"
+    assert err["Message"] == "The TagSet does not exist"
 
 
 @mock_s3
@@ -174,12 +169,11 @@ def test_delete_bucket_tagging():
     assert err_value.response["Error"]["Message"] == "The TagSet does not exist"
 
 
-@mock_s3
-def test_put_object_tagging():
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_put_object_tagging(bucket_name=None):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
     key = "key-with-tags"
-    s3_client.create_bucket(Bucket=bucket_name)
 
     with pytest.raises(ClientError) as err:
         s3_client.put_object_tagging(
@@ -193,13 +187,10 @@ def test_put_object_tagging():
             },
         )
 
-    err_value = err.value
-    assert err_value.response["Error"] == {
-        "Code": "NoSuchKey",
-        "Message": "The specified key does not exist.",
-        "Key": "key-with-tags",
-        "RequestID": "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
-    }
+    err = err.value.response["Error"]
+    assert err["Code"] == "NoSuchKey"
+    assert err["Message"] == "The specified key does not exist."
+    assert err["Key"] == key
 
     s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
 
@@ -213,6 +204,19 @@ def test_put_object_tagging():
 
     err_value = err.value
     assert err_value.response["Error"]["Code"] == "InvalidTag"
+
+    # Can't put more than 10 tags at the same time
+    with pytest.raises(ClientError) as exc:
+        s3_client.put_object_tagging(
+            Bucket=bucket_name,
+            Key=key,
+            Tagging={
+                "TagSet": [{"Key": f"tag{i}", "Value": "too_many"} for i in range(11)]
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "BadRequest"
+    assert err["Message"] == "Object tags cannot be greater than 10"
 
     resp = s3_client.put_object_tagging(
         Bucket=bucket_name,
@@ -463,7 +467,7 @@ def test_objects_tagging_with_same_key_name():
 
 @mock_s3
 def test_generate_url_for_tagged_object():
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="my-bucket")
     s3_client.put_object(
         Bucket="my-bucket", Key="test.txt", Body=b"abc", Tagging="MyTag=value"

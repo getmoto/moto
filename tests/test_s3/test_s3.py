@@ -1,29 +1,28 @@
 import datetime
-from gzip import GzipFile
-from io import BytesIO
 import json
 import os
 import pickle
-from unittest import SkipTest
-from urllib.parse import urlparse, parse_qs
 import uuid
-from uuid import uuid4
 import zlib
+from gzip import GzipFile
+from io import BytesIO
+from unittest import SkipTest
+from urllib.parse import parse_qs, urlparse
 
 import boto3
-from botocore.client import ClientError
 import botocore.exceptions
-from botocore.handlers import disable_signing
-from freezegun import freeze_time
 import pytest
 import requests
+from botocore.client import ClientError
+from botocore.handlers import disable_signing
+from freezegun import freeze_time
 
-from moto import settings, mock_s3, mock_config
-from moto.moto_api import state_manager
-from moto.core.utils import utcnow
-from moto import moto_proxy
-from moto.s3.responses import DEFAULT_REGION_NAME
 import moto.s3.models as s3model
+from moto import mock_config, mock_s3, moto_proxy, settings
+from moto.core.utils import utcnow
+from moto.moto_api import state_manager
+from moto.s3.responses import DEFAULT_REGION_NAME
+from tests import DEFAULT_ACCOUNT_ID
 
 from . import s3_aws_verified
 
@@ -44,12 +43,13 @@ class MyModel:
 @mock_s3
 def test_keys_are_pickleable():
     """Keys must be pickleable due to boto3 implementation details."""
-    key = s3model.FakeKey("name", b"data!")
+    key = s3model.FakeKey("name", b"data!", account_id=DEFAULT_ACCOUNT_ID)
     assert key.value == b"data!"
 
     pickled = pickle.dumps(key)
     loaded = pickle.loads(pickled)
     assert loaded.value == key.value
+    assert loaded.account_id == key.account_id
 
 
 @mock_s3
@@ -599,10 +599,10 @@ def test_cannot_restore_standard_class_object():
     bucket.create()
 
     key = bucket.put_object(Key="the-key", Body=b"somedata")
-    with pytest.raises(Exception) as err:
+    with pytest.raises(ClientError) as exc:
         key.restore_object(RestoreRequest={"Days": 1})
 
-    err = err.value.response["Error"]
+    err = exc.value.response["Error"]
     assert err["Code"] == "InvalidObjectState"
     assert err["StorageClass"] == "STANDARD"
     assert err["Message"] == (
@@ -644,48 +644,6 @@ def test_key_version():
 
     key = client.get_object(Bucket="foobar", Key="the-key")
     assert key["VersionId"] == versions[-1]
-
-
-@mock_s3
-def test_list_versions():
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
-    bucket.create()
-    bucket.Versioning().enable()
-
-    key_versions = []
-
-    key = bucket.put_object(Key="the-key", Body=b"Version 1")
-    key_versions.append(key.version_id)
-    key = bucket.put_object(Key="the-key", Body=b"Version 2")
-    key_versions.append(key.version_id)
-    assert len(key_versions) == 2
-
-    versions = client.list_object_versions(Bucket="foobar")["Versions"]
-    assert len(versions) == 2
-
-    assert versions[0]["Key"] == "the-key"
-    assert versions[0]["VersionId"] == key_versions[1]
-    resp = client.get_object(Bucket="foobar", Key="the-key")
-    assert resp["Body"].read() == b"Version 2"
-    resp = client.get_object(
-        Bucket="foobar", Key="the-key", VersionId=versions[0]["VersionId"]
-    )
-    assert resp["Body"].read() == b"Version 2"
-
-    assert versions[1]["Key"] == "the-key"
-    assert versions[1]["VersionId"] == key_versions[0]
-    resp = client.get_object(
-        Bucket="foobar", Key="the-key", VersionId=versions[1]["VersionId"]
-    )
-    assert resp["Body"].read() == b"Version 1"
-
-    bucket.put_object(Key="the2-key", Body=b"Version 1")
-
-    assert len(list(bucket.objects.all())) == 2
-    versions = client.list_object_versions(Bucket="foobar", Prefix="the2")["Versions"]
-    assert len(versions) == 1
 
 
 @mock_s3
@@ -2380,268 +2338,6 @@ def test_put_bucket_notification_errors():
         err.value.response["Error"]["Message"]
         == "The event is not supported for notifications"
     )
-
-
-@mock_s3
-def test_list_object_versions():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "000" + str(uuid4())
-    key = "key-with-versions"
-    s3_client.create_bucket(Bucket=bucket_name)
-    s3_client.put_bucket_versioning(
-        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
-    )
-    items = (b"v1", b"v2")
-    for body in items:
-        s3_client.put_object(Bucket=bucket_name, Key=key, Body=body)
-    response = s3_client.list_object_versions(Bucket=bucket_name)
-    # Two object versions should be returned
-    assert len(response["Versions"]) == 2
-    keys = {item["Key"] for item in response["Versions"]}
-    assert keys == {key}
-
-    # the first item in the list should be the latest
-    assert response["Versions"][0]["IsLatest"] is True
-
-    # Test latest object version is returned
-    response = s3_client.get_object(Bucket=bucket_name, Key=key)
-    assert response["Body"].read() == items[-1]
-
-
-@mock_s3
-def test_list_object_versions_with_delimiter():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "000" + str(uuid4())
-    s3_client.create_bucket(Bucket=bucket_name)
-    s3_client.put_bucket_versioning(
-        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
-    )
-    for key_index in list(range(1, 5)) + list(range(10, 14)):
-        for version_index in range(1, 4):
-            body = f"data-{version_index}".encode("UTF-8")
-            s3_client.put_object(
-                Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
-            )
-            s3_client.put_object(
-                Bucket=bucket_name, Key=f"key{key_index}-without-data", Body=b""
-            )
-    response = s3_client.list_object_versions(Bucket=bucket_name)
-    # All object versions should be returned
-    # 8 keys * 2 (one with, one without) * 3 versions per key
-    assert len(response["Versions"]) == 48
-
-    # Use start of key as delimiter
-    response = s3_client.list_object_versions(Bucket=bucket_name, Delimiter="key1")
-    assert response["CommonPrefixes"] == [{"Prefix": "key1"}]
-    assert response["Delimiter"] == "key1"
-    # 3 keys that do not contain the phrase 'key1' (key2, key3, key4) * * 2 *  3
-    assert len(response["Versions"]) == 18
-
-    # Use in-between key as delimiter
-    response = s3_client.list_object_versions(Bucket=bucket_name, Delimiter="-with-")
-    assert response["CommonPrefixes"] == [
-        {"Prefix": "key1-with-"},
-        {"Prefix": "key10-with-"},
-        {"Prefix": "key11-with-"},
-        {"Prefix": "key12-with-"},
-        {"Prefix": "key13-with-"},
-        {"Prefix": "key2-with-"},
-        {"Prefix": "key3-with-"},
-        {"Prefix": "key4-with-"},
-    ]
-
-    assert response["Delimiter"] == "-with-"
-    # key(1/10/11/12/13)-without, key(2/3/4)-without
-    assert len(response["Versions"]) == (8 * 1 * 3)
-
-    # Use in-between key as delimiter
-    response = s3_client.list_object_versions(Bucket=bucket_name, Delimiter="1-with-")
-    assert response["CommonPrefixes"] == (
-        [{"Prefix": "key1-with-"}, {"Prefix": "key11-with-"}]
-    )
-    assert response["Delimiter"] == "1-with-"
-    assert len(response["Versions"]) == 42
-    all_keys = {v["Key"] for v in response["Versions"]}
-    assert "key1-without-data" in all_keys
-    assert "key1-with-data" not in all_keys
-    assert "key4-with-data" in all_keys
-    assert "key4-without-data" in all_keys
-
-    # Use in-between key as delimiter + prefix
-    response = s3_client.list_object_versions(
-        Bucket=bucket_name, Prefix="key1", Delimiter="with-"
-    )
-    assert response["CommonPrefixes"] == [
-        {"Prefix": "key1-with-"},
-        {"Prefix": "key10-with-"},
-        {"Prefix": "key11-with-"},
-        {"Prefix": "key12-with-"},
-        {"Prefix": "key13-with-"},
-    ]
-    assert response["Delimiter"] == "with-"
-    assert response["KeyMarker"] == ""
-    assert "NextKeyMarker" not in response
-    assert len(response["Versions"]) == 15
-    all_keys = {v["Key"] for v in response["Versions"]}
-    assert all_keys == {
-        "key1-without-data",
-        "key10-without-data",
-        "key11-without-data",
-        "key13-without-data",
-        "key12-without-data",
-    }
-
-    # Start at KeyMarker, and filter using Prefix+Delimiter for all subsequent keys
-    response = s3_client.list_object_versions(
-        Bucket=bucket_name, Prefix="key1", Delimiter="with-", KeyMarker="key11"
-    )
-    assert response["CommonPrefixes"] == [
-        {"Prefix": "key11-with-"},
-        {"Prefix": "key12-with-"},
-        {"Prefix": "key13-with-"},
-    ]
-    assert response["Delimiter"] == "with-"
-    assert response["KeyMarker"] == "key11"
-    assert "NextKeyMarker" not in response
-    assert len(response["Versions"]) == 9
-    all_keys = {v["Key"] for v in response["Versions"]}
-    assert all_keys == (
-        {"key11-without-data", "key12-without-data", "key13-without-data"}
-    )
-
-    # Delimiter with Prefix being the entire key
-    response = s3_client.list_object_versions(
-        Bucket=bucket_name, Prefix="key1-with-data", Delimiter="-"
-    )
-    assert len(response["Versions"]) == 3
-    assert "CommonPrefixes" not in response
-
-    # Delimiter without prefix
-    response = s3_client.list_object_versions(Bucket=bucket_name, Delimiter="-with-")
-    assert len(response["CommonPrefixes"]) == 8
-    assert {"Prefix": "key1-with-"} in response["CommonPrefixes"]
-    # Should return all keys -without-data
-    assert len(response["Versions"]) == 24
-
-
-@mock_s3
-def test_list_object_versions_with_delimiter_for_deleted_objects():
-    bucket_name = "tests_bucket"
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    # Create bucket with versioning
-    client.create_bucket(Bucket=bucket_name)
-    client.put_bucket_versioning(
-        Bucket=bucket_name,
-        VersioningConfiguration={"MFADelete": "Disabled", "Status": "Enabled"},
-    )
-
-    # Create a history of objects
-    for pos in range(2):
-        client.put_object(
-            Bucket=bucket_name, Key=f"obj_{pos}", Body=f"object {pos}".encode("utf-8")
-        )
-
-    for pos in range(2):
-        client.put_object(
-            Bucket=bucket_name,
-            Key=f"hist_obj_{pos}",
-            Body=f"history object {pos}".encode("utf-8"),
-        )
-        for hist_pos in range(2):
-            client.put_object(
-                Bucket=bucket_name,
-                Key=f"hist_obj_{pos}",
-                Body=f"object {pos} {hist_pos}".encode("utf-8"),
-            )
-
-    for pos in range(2):
-        client.put_object(
-            Bucket=bucket_name,
-            Key=f"del_obj_{pos}",
-            Body=f"deleted object {pos}".encode("utf-8"),
-        )
-        client.delete_object(Bucket=bucket_name, Key=f"del_obj_{pos}")
-
-    # Verify we only retrieve the DeleteMarkers that have this prefix
-    objs = client.list_object_versions(Bucket=bucket_name)
-    assert [dm["Key"] for dm in objs["DeleteMarkers"]] == ["del_obj_0", "del_obj_1"]
-
-    hist_objs = client.list_object_versions(Bucket=bucket_name, Prefix="hist_obj")
-    assert "DeleteMarkers" not in hist_objs
-
-    del_objs = client.list_object_versions(Bucket=bucket_name, Prefix="del_obj_0")
-    assert [dm["Key"] for dm in del_objs["DeleteMarkers"]] == ["del_obj_0"]
-
-
-@mock_s3
-def test_list_object_versions_with_versioning_disabled():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-versions"
-    s3_client.create_bucket(Bucket=bucket_name)
-    items = (b"v1", b"v2")
-    for body in items:
-        s3_client.put_object(Bucket=bucket_name, Key=key, Body=body)
-    response = s3_client.list_object_versions(Bucket=bucket_name)
-
-    # One object version should be returned
-    assert len(response["Versions"]) == 1
-    assert response["Versions"][0]["Key"] == key
-
-    # The version id should be the string null
-    assert response["Versions"][0]["VersionId"] == "null"
-
-    # Test latest object version is returned
-    response = s3_client.get_object(Bucket=bucket_name, Key=key)
-    assert "VersionId" not in response["ResponseMetadata"]["HTTPHeaders"]
-    assert response["Body"].read() == items[-1]
-
-
-@mock_s3
-def test_list_object_versions_with_versioning_enabled_late():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-versions"
-    s3_client.create_bucket(Bucket=bucket_name)
-    items = (b"v1", b"v2")
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body=b"v1")
-    s3_client.put_bucket_versioning(
-        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
-    )
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body=b"v2")
-    response = s3_client.list_object_versions(Bucket=bucket_name)
-
-    # Two object versions should be returned
-    assert len(response["Versions"]) == 2
-    keys = {item["Key"] for item in response["Versions"]}
-    assert keys == {key}
-
-    # There should still be a null version id.
-    versions_id = {item["VersionId"] for item in response["Versions"]}
-    assert "null" in versions_id
-
-    # Test latest object version is returned
-    response = s3_client.get_object(Bucket=bucket_name, Key=key)
-    assert response["Body"].read() == items[-1]
-
-
-@mock_s3
-def test_bad_prefix_list_object_versions():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "mybucket"
-    key = "key-with-versions"
-    bad_prefix = "key-that-does-not-exist"
-    s3_client.create_bucket(Bucket=bucket_name)
-    s3_client.put_bucket_versioning(
-        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
-    )
-    items = (b"v1", b"v2")
-    for body in items:
-        s3_client.put_object(Bucket=bucket_name, Key=key, Body=body)
-    response = s3_client.list_object_versions(Bucket=bucket_name, Prefix=bad_prefix)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert "Versions" not in response
-    assert "DeleteMarkers" not in response
 
 
 @mock_s3

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BaseBackend, BackendDict
+from moto.core import BackendDict, BaseBackend
 
 
 class QueryResults:

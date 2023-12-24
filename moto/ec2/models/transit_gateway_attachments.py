@@ -1,12 +1,14 @@
-from collections import defaultdict
 import weakref
-from typing import Any, Dict, List, Optional, Iterator
+from collections import defaultdict
+from typing import Any, Dict, Iterator, List, Optional
+
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
-from moto.utilities.utils import merge_multiple_dicts, filter_resources
+from moto.utilities.utils import filter_resources, merge_multiple_dicts
+
+from ..exceptions import InvalidParameterValueErrorPeeringAttachment
+from ..utils import describe_tag_filter, random_transit_gateway_attachment_id
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
-from ..exceptions import InvalidParameterValueErrorPeeringAttachment
-from ..utils import random_transit_gateway_attachment_id, describe_tag_filter
 
 
 class TransitGatewayAttachment(TaggedEC2Resource):

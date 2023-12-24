@@ -1,12 +1,14 @@
 import json
-import boto3
 from typing import Any, Dict, List, Optional, Tuple
-from moto.core.exceptions import InvalidNextTokenException
+
+import boto3
+
 from moto.core.common_models import ConfigQueryModel
-from moto.iam import iam_backends
+from moto.core.exceptions import InvalidNextTokenException
+from moto.iam.models import IAMBackend, iam_backends
 
 
-class RoleConfigQuery(ConfigQueryModel):
+class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
     def list_config_service_resources(
         self,
         account_id: str,
@@ -30,24 +32,25 @@ class RoleConfigQuery(ConfigQueryModel):
             return [], None
 
         # Filter by resource name or ids
-        if resource_name or resource_ids:
-            filtered_roles = []
-            # resource_name takes precedence over resource_ids
-            if resource_name:
-                for role in role_list:
-                    if role.name == resource_name:
-                        filtered_roles = [role]
-                        break
-                # but if both are passed, it must be a subset
-                if filtered_roles and resource_ids:
-                    if filtered_roles[0].id not in resource_ids:
-                        return [], None
-            else:
-                for role in role_list:
-                    if role.id in resource_ids:  # type: ignore[operator]
-                        filtered_roles.append(role)
+        # resource_name takes precedence over resource_ids
+        filtered_roles = []
+        if resource_name:
+            for role in role_list:
+                if role.name == resource_name:
+                    filtered_roles = [role]
+                    break
+            # but if both are passed, it must be a subset
+            if filtered_roles and resource_ids:
+                if filtered_roles[0].id not in resource_ids:
+                    return [], None
 
             # Filtered roles are now the subject for the listing
+            role_list = filtered_roles
+
+        elif resource_ids:
+            for role in role_list:
+                if role.id in resource_ids:
+                    filtered_roles.append(role)
             role_list = filtered_roles
 
         if aggregator:
@@ -75,7 +78,6 @@ class RoleConfigQuery(ConfigQueryModel):
                     duplicate_role_list.append(
                         {
                             "_id": f"{role.id}{region}",  # this is only for sorting, isn't returned outside of this function
-                            "type": "AWS::IAM::Role",
                             "id": role.id,
                             "name": role.name,
                             "region": region,
@@ -87,7 +89,10 @@ class RoleConfigQuery(ConfigQueryModel):
         else:
             # Non-aggregated queries are in the else block, and we can treat these like a normal config resource
             # Pagination logic, sort by role id
-            sorted_roles = sorted(role_list, key=lambda role: role.id)  # type: ignore[attr-defined]
+            sorted_roles = [
+                {"_id": role.id, "id": role.id, "name": role.name, "region": "global"}
+                for role in sorted(role_list, key=lambda role: role.id)
+            ]
 
         new_token = None
 
@@ -100,27 +105,27 @@ class RoleConfigQuery(ConfigQueryModel):
                 start = next(
                     index
                     for (index, r) in enumerate(sorted_roles)
-                    if next_token == (r["_id"] if aggregator else r.id)  # type: ignore[attr-defined]
+                    if next_token == r["_id"]
                 )
             except StopIteration:
                 raise InvalidNextTokenException()
 
         # Get the list of items to collect:
-        role_list = sorted_roles[start : (start + limit)]
+        collected_role_list = sorted_roles[start : (start + limit)]
 
         if len(sorted_roles) > (start + limit):
             record = sorted_roles[start + limit]
-            new_token = record["_id"] if aggregator else record.id  # type: ignore[attr-defined]
+            new_token = record["_id"]
 
         return (
             [
                 {
                     "type": "AWS::IAM::Role",
-                    "id": role["id"] if aggregator else role.id,  # type: ignore[attr-defined]
-                    "name": role["name"] if aggregator else role.name,  # type: ignore[attr-defined]
-                    "region": role["region"] if aggregator else "global",
+                    "id": role["id"],
+                    "name": role["name"],
+                    "region": role["region"],
                 }
-                for role in role_list
+                for role in collected_role_list
             ],
             new_token,
         )
@@ -134,7 +139,7 @@ class RoleConfigQuery(ConfigQueryModel):
         resource_region: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
 
-        role = self.backends[account_id]["global"].roles.get(resource_id, {})
+        role = self.backends[account_id]["global"].roles.get(resource_id)
 
         if not role:
             return None
@@ -156,7 +161,7 @@ class RoleConfigQuery(ConfigQueryModel):
         return config_data
 
 
-class PolicyConfigQuery(ConfigQueryModel):
+class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
     def list_config_service_resources(
         self,
         account_id: str,
@@ -192,25 +197,25 @@ class PolicyConfigQuery(ConfigQueryModel):
             return [], None
 
         # Filter by resource name or ids
-        if resource_name or resource_ids:
-            filtered_policies = []
-            # resource_name takes precedence over resource_ids
-            if resource_name:
-                for policy in policy_list:
-                    if policy.name == resource_name:
-                        filtered_policies = [policy]
-                        break
-                # but if both are passed, it must be a subset
-                if filtered_policies and resource_ids:
-                    if filtered_policies[0].id not in resource_ids:
-                        return [], None
-
-            else:
-                for policy in policy_list:
-                    if policy.id in resource_ids:  # type: ignore[operator]
-                        filtered_policies.append(policy)
+        # resource_name takes precedence over resource_ids
+        filtered_policies = []
+        if resource_name:
+            for policy in policy_list:
+                if policy.name == resource_name:
+                    filtered_policies = [policy]
+                    break
+            # but if both are passed, it must be a subset
+            if filtered_policies and resource_ids:
+                if filtered_policies[0].id not in resource_ids:
+                    return [], None
 
             # Filtered roles are now the subject for the listing
+            policy_list = filtered_policies
+
+        elif resource_ids:
+            for policy in policy_list:
+                if policy.id in resource_ids:
+                    filtered_policies.append(policy)
             policy_list = filtered_policies
 
         if aggregator:
@@ -238,7 +243,6 @@ class PolicyConfigQuery(ConfigQueryModel):
                     duplicate_policy_list.append(
                         {
                             "_id": f"{policy.id}{region}",  # this is only for sorting, isn't returned outside of this function
-                            "type": "AWS::IAM::Policy",
                             "id": policy.id,
                             "name": policy.name,
                             "region": region,
@@ -253,7 +257,15 @@ class PolicyConfigQuery(ConfigQueryModel):
         else:
             # Non-aggregated queries are in the else block, and we can treat these like a normal config resource
             # Pagination logic, sort by role id
-            sorted_policies = sorted(policy_list, key=lambda role: role.id)  # type: ignore[attr-defined]
+            sorted_policies = [
+                {
+                    "_id": policy.id,
+                    "id": policy.id,
+                    "name": policy.name,
+                    "region": "global",
+                }
+                for policy in sorted(policy_list, key=lambda role: role.id)
+            ]
 
         new_token = None
 
@@ -266,27 +278,27 @@ class PolicyConfigQuery(ConfigQueryModel):
                 start = next(
                     index
                     for (index, p) in enumerate(sorted_policies)
-                    if next_token == (p["_id"] if aggregator else p.id)  # type: ignore[attr-defined]
+                    if next_token == p["_id"]
                 )
             except StopIteration:
                 raise InvalidNextTokenException()
 
         # Get the list of items to collect:
-        policy_list = sorted_policies[start : (start + limit)]
+        collected_policy_list = sorted_policies[start : (start + limit)]
 
         if len(sorted_policies) > (start + limit):
             record = sorted_policies[start + limit]
-            new_token = record["_id"] if aggregator else record.id  # type: ignore[attr-defined]
+            new_token = record["_id"]
 
         return (
             [
                 {
                     "type": "AWS::IAM::Policy",
-                    "id": policy["id"] if aggregator else policy.id,  # type: ignore[attr-defined]
-                    "name": policy["name"] if aggregator else policy.name,  # type: ignore[attr-defined]
-                    "region": policy["region"] if aggregator else "global",
+                    "id": policy["id"],
+                    "name": policy["name"],
+                    "region": policy["region"],
                 }
-                for policy in policy_list
+                for policy in collected_policy_list
             ],
             new_token,
         )

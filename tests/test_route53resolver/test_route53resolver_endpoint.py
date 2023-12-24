@@ -2,12 +2,11 @@
 from datetime import datetime, timezone
 
 import boto3
+import pytest
+from botocore.config import Config
 from botocore.exceptions import ClientError
 
-import pytest
-
-from moto import mock_route53resolver
-from moto import settings
+from moto import mock_route53resolver, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2 import mock_ec2
 from moto.moto_api._internal import mock_random
@@ -76,8 +75,10 @@ def create_test_endpoint(client, ec2_client, name=None, tags=None):
 
 @mock_route53resolver
 def test_route53resolver_invalid_create_endpoint_args():
-    """Test invalid arguments to the create_resolver_endpoint API."""
-    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    # Some validation is now part of botocore-1.34.3
+    # Disable validation to verify that Moto has the same validation
+    config = Config(parameter_validation=False)
+    client = boto3.client("route53resolver", region_name=TEST_REGION, config=config)
     random_num = mock_random.get_random_hex(10)
 
     # Verify ValidationException error messages are accumulated properly:
@@ -165,8 +166,10 @@ def test_route53resolver_invalid_create_endpoint_args():
 @mock_ec2
 @mock_route53resolver
 def test_route53resolver_bad_create_endpoint_subnets():
-    """Test bad subnet scenarios for create_resolver_endpoint API."""
-    client = boto3.client("route53resolver", region_name=TEST_REGION)
+    # Some validation is now part of botocore-1.34.3
+    # Disable validation to verify that Moto has the same validation
+    config = Config(parameter_validation=False)
+    client = boto3.client("route53resolver", region_name=TEST_REGION, config=config)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
     random_num = mock_random.get_random_hex(10)
 

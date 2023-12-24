@@ -5,6 +5,8 @@ exclude_lines =
     raise NotImplemented.
     return NotImplemented
     def __repr__
+    if TYPE_CHECKING:
+    ^\s*\.\.\.$
 
 [run]
 include = moto/*

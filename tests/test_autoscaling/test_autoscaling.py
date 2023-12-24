@@ -1,12 +1,14 @@
+from uuid import uuid4
+
 import boto3
 import pytest
-
 from botocore.exceptions import ClientError
+
 from moto import mock_autoscaling, mock_ec2
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
-from uuid import uuid4
-from .utils import setup_networking, setup_instance_with_networking
+
+from .utils import setup_instance_with_networking, setup_networking
 
 
 @mock_autoscaling

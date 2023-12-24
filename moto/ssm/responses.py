@@ -2,8 +2,9 @@ import json
 from typing import Any, Dict, Tuple, Union
 
 from moto.core.responses import BaseResponse
-from .exceptions import ValidationException, ParameterAlreadyExists
-from .models import ssm_backends, SimpleSystemManagerBackend
+
+from .exceptions import ValidationException
+from .models import SimpleSystemManagerBackend, ssm_backends
 
 
 class SimpleSystemManagerResponse(BaseResponse):
@@ -270,10 +271,12 @@ class SimpleSystemManagerResponse(BaseResponse):
         allowed_pattern = self._get_param("AllowedPattern")
         keyid = self._get_param("KeyId")
         overwrite = self._get_param("Overwrite", False)
-        tags = self._get_param("Tags", [])
+        tags = self._get_param("Tags")
         data_type = self._get_param("DataType", "text")
+        tier = self._get_param("Tier")
+        policies = self._get_param("Policies")
 
-        result = self.ssm_backend.put_parameter(
+        param = self.ssm_backend.put_parameter(
             name,
             description,
             value,
@@ -283,12 +286,11 @@ class SimpleSystemManagerResponse(BaseResponse):
             overwrite,
             tags,
             data_type,
+            tier=tier,
+            policies=policies,
         )
 
-        if result is None:
-            raise ParameterAlreadyExists
-
-        response = {"Version": result}
+        response = {"Version": param.version}
         return json.dumps(response)
 
     def get_parameter_history(self) -> Union[str, Tuple[str, Dict[str, int]]]:

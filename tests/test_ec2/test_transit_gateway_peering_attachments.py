@@ -1,4 +1,5 @@
 import os
+from unittest import SkipTest, mock
 
 import boto3
 import pytest
@@ -6,7 +7,6 @@ from botocore.exceptions import ClientError
 
 from moto import mock_ec2, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from unittest import SkipTest, mock
 
 
 @mock_ec2

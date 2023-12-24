@@ -15,9 +15,9 @@ except ImportError:
     )
     raise
 
-import moto.backends as backends
 import moto.backend_index as backend_index
-from moto.core import BackendDict, DEFAULT_ACCOUNT_ID
+import moto.backends as backends
+from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
 from moto.core.utils import convert_to_flask_response
 
 from .utilities import AWSTestHelper, RegexConverter
@@ -57,7 +57,9 @@ class DomainDispatcherApplication:
     """
 
     def __init__(
-        self, create_app: Callable[[str], Flask], service: Optional[str] = None
+        self,
+        create_app: Callable[[backends.SERVICE_NAMES], Flask],
+        service: Optional[str] = None,
     ):
         self.create_app = create_app
         self.lock = Lock()
@@ -260,7 +262,7 @@ class DomainDispatcherApplication:
         return backend_app(environ, start_response)
 
 
-def create_backend_app(service: str) -> Flask:
+def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     from werkzeug.routing import Map
 
     current_file = os.path.abspath(__file__)
@@ -292,7 +294,7 @@ def create_backend_app(service: str) -> Flask:
     for url_path, handler in backend.flask_paths.items():
         view_func = convert_to_flask_response(handler)
         if handler.__name__ == "dispatch":
-            endpoint = f"{handler.__self__.__name__}.dispatch"
+            endpoint = f"{handler.__self__.__name__}.dispatch"  # type: ignore[attr-defined]
         else:
             endpoint = view_func.__name__
 

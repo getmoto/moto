@@ -1,7 +1,7 @@
 import boto3
 import pytest
-
 from botocore.client import ClientError
+
 from moto import mock_s3control
 
 

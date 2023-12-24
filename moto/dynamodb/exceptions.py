@@ -1,8 +1,8 @@
 import json
 from typing import Any, Dict, List, Optional
+
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
-
 
 ERROR_TYPE_PREFIX = "com.amazonaws.dynamodb.v20120810#"
 
@@ -17,6 +17,13 @@ class MockValidationException(DynamodbException):
     def __init__(self, message: str):
         super().__init__(MockValidationException.error_type, message=message)
         self.exception_msg = message
+
+
+class KeyIsEmptyStringException(MockValidationException):
+    def __init__(self, empty_key: str):
+        super().__init__(
+            message=f"One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {empty_key}"
+        )
 
 
 class InvalidIndexNameError(MockValidationException):
@@ -368,3 +375,9 @@ class TransactWriteSingleOpException(MockValidationException):
 class SerializationException(DynamodbException):
     def __init__(self, msg: str):
         super().__init__(error_type="SerializationException", message=msg)
+
+
+class UnknownKeyType(MockValidationException):
+    def __init__(self, key_type: str, position: str):
+        msg = f"1 validation error detected: Value '{key_type}' at '{position}' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
+        super().__init__(msg)

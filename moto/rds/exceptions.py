@@ -1,4 +1,5 @@
 from jinja2 import Template
+
 from moto.core.exceptions import RESTError
 
 
@@ -79,6 +80,14 @@ class InvalidDBClusterStateFaultError(RDSClientError):
         super().__init__(
             "InvalidDBClusterStateFault",
             f"Invalid DB type, when trying to perform StopDBInstance on {database_identifier}e. See AWS RDS documentation on rds.stop_db_instance",
+        )
+
+
+class DBClusterToBeDeletedHasActiveMembers(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidDBClusterStateFault",
+            "Cluster cannot be deleted, it still contains DB instances in non-deleting state.",
         )
 
 
@@ -200,4 +209,12 @@ class InvalidDBInstanceIdentifier(InvalidParameterValue):
             "The parameter DBInstanceIdentifier is not a valid identifier. "
             "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
             "and must not end with a hyphen or contain two consecutive hyphens."
+        )
+
+
+class InvalidDBInstanceEngine(InvalidParameterCombination):
+    def __init__(self, instance_engine: str, cluster_engine: str) -> None:
+        super().__init__(
+            f"The engine name requested for your DB instance ({instance_engine}) doesn't match "
+            f"the engine name of your DB cluster ({cluster_engine})."
         )

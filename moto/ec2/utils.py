@@ -1,17 +1,17 @@
 import base64
 import fnmatch
-import re
 import ipaddress
+import re
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PublicKey,
     Ed25519PrivateKey,
+    Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from typing import Any, Dict, List, Set, TypeVar, Tuple, Optional, Union
 
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
@@ -231,6 +231,10 @@ def random_transit_gateway_attachment_id() -> str:
 
 def random_launch_template_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
+
+
+def random_launch_template_name() -> str:
+    return f"LaunchTemplate_{random_resource_id(size=12)}"
 
 
 def random_iam_instance_profile_association_id() -> str:

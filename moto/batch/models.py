@@ -1,42 +1,41 @@
 import datetime
-import dateutil.parser
 import logging
 import re
 import threading
 import time
-
-from sys import platform
 from itertools import cycle
+from sys import platform
 from time import sleep
-from typing import Any, Dict, List, Tuple, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from moto.core import BaseBackend, BackendDict, BaseModel, CloudFormationModel
-from moto.iam.models import iam_backends, IAMBackend
-from moto.ec2.models import ec2_backends, EC2Backend
-from moto.ec2.models.instances import Instance
-from moto.ecs.models import ecs_backends, EC2ContainerServiceBackend
-from moto.logs.models import logs_backends, LogsBackend
-from moto.utilities.tagging_service import TaggingService
+import dateutil.parser
 
-from .exceptions import InvalidParameterValueException, ClientException, ValidationError
-from .utils import (
-    make_arn_for_compute_env,
-    make_arn_for_job_queue,
-    make_arn_for_job,
-    make_arn_for_task_def,
-    lowercase_first_key,
-    JobStatus,
-)
-from moto.ec2.exceptions import InvalidSubnetIdError
-from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
-from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
-from moto.iam.exceptions import IAMNotFoundException
+from moto import settings
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis
-from moto.moto_api import state_manager
+from moto.ec2.exceptions import InvalidSubnetIdError
+from moto.ec2.models import EC2Backend, ec2_backends
+from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAMILIES
+from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
+from moto.ec2.models.instances import Instance
+from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
+from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.models import IAMBackend, iam_backends
+from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
-from moto import settings
+from moto.utilities.tagging_service import TaggingService
+
+from .exceptions import ClientException, InvalidParameterValueException, ValidationError
+from .utils import (
+    JobStatus,
+    lowercase_first_key,
+    make_arn_for_compute_env,
+    make_arn_for_job,
+    make_arn_for_job_queue,
+    make_arn_for_task_def,
+)
 
 logger = logging.getLogger(__name__)
 COMPUTE_ENVIRONMENT_NAME_REGEX = re.compile(
@@ -114,16 +113,13 @@ class ComputeEnvironment(CloudFormationModel):
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
-        env = backend.create_compute_environment(
+        return backend.create_compute_environment(
             resource_name,
             properties["Type"],
             properties.get("State", "ENABLED"),
             lowercase_first_key(properties["ComputeResources"]),
             properties["ServiceRole"],
         )
-        arn = env[1]
-
-        return backend.get_compute_environment_by_arn(arn)
 
 
 class JobQueue(CloudFormationModel):
@@ -209,16 +205,13 @@ class JobQueue(CloudFormationModel):
             for dict_item in properties["ComputeEnvironmentOrder"]
         ]
 
-        queue = backend.create_job_queue(
+        return backend.create_job_queue(
             queue_name=resource_name,
             priority=properties["Priority"],
             state=properties.get("State", "ENABLED"),
             compute_env_order=compute_envs,
-            schedule_policy={},
+            schedule_policy=None,
         )
-        arn = queue[1]
-
-        return backend.get_job_queue_by_arn(arn)
 
 
 class JobDefinition(CloudFormationModel):
@@ -447,29 +440,26 @@ class JobDefinition(CloudFormationModel):
     ) -> "JobDefinition":
         backend = batch_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
-        res = backend.register_job_definition(
+        return backend.register_job_definition(
             def_name=resource_name,
             parameters=lowercase_first_key(properties.get("Parameters", {})),
             _type="container",
             tags=lowercase_first_key(properties.get("Tags", {})),
             retry_strategy=lowercase_first_key(properties["RetryStrategy"]),
             container_properties=(
-                lowercase_first_key(properties["ContainerProperties"])
+                lowercase_first_key(properties["ContainerProperties"])  # type: ignore[arg-type]
                 if "ContainerProperties" in properties
                 else None
             ),
             node_properties=(
-                lowercase_first_key(properties["NodeProperties"])
+                lowercase_first_key(properties["NodeProperties"])  # type: ignore[arg-type]
                 if "NodeProperties" in properties
                 else None
             ),
             timeout=lowercase_first_key(properties.get("timeout", {})),
-            platform_capabilities=None,
-            propagate_tags=None,
+            platform_capabilities=None,  # type: ignore[arg-type]
+            propagate_tags=None,  # type: ignore[arg-type]
         )
-        arn = res[1]
-
-        return backend.get_job_definition_by_arn(arn)
 
 
 class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
@@ -1023,10 +1013,6 @@ class BatchBackend(BaseBackend):
         self._jobs: Dict[str, Job] = {}
         self._scheduling_policies: Dict[str, SchedulingPolicy] = {}
 
-        state_manager.register_default_transition(
-            "batch::job", transition={"progression": "manual", "times": 1}
-        )
-
     @property
     def iam_backend(self) -> IAMBackend:
         """
@@ -1064,7 +1050,8 @@ class BatchBackend(BaseBackend):
             if job.status not in (JobStatus.FAILED, JobStatus.SUCCEEDED):
                 job.stop = True
                 # Try to join
-                job.join(0.2)
+                if job.is_alive():
+                    job.join(0.2)
 
         super().reset()
 
@@ -1219,7 +1206,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_resources: Dict[str, Any],
         service_role: str,
-    ) -> Tuple[str, str]:
+    ) -> ComputeEnvironment:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
             raise InvalidParameterValueException(
@@ -1304,7 +1291,7 @@ class BatchBackend(BaseBackend):
         ecs_cluster = self.ecs_backend.create_cluster(cluster_name)
         new_comp_env.set_ecs(ecs_cluster.arn, cluster_name)
 
-        return compute_environment_name, new_comp_env.arn
+        return new_comp_env
 
     def _validate_compute_resources(self, cr: Dict[str, Any]) -> None:
         """
@@ -1504,7 +1491,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_env_order: List[Dict[str, str]],
         tags: Optional[Dict[str, str]] = None,
-    ) -> Tuple[str, str]:
+    ) -> JobQueue:
         for variable, var_name in (
             (queue_name, "jobQueueName"),
             (priority, "priority"),
@@ -1550,7 +1537,7 @@ class BatchBackend(BaseBackend):
         )
         self._job_queues[queue.arn] = queue
 
-        return queue_name, queue.arn
+        return queue
 
     def describe_job_queues(
         self, job_queues: Optional[List[str]] = None
@@ -1644,7 +1631,7 @@ class BatchBackend(BaseBackend):
         timeout: Dict[str, int],
         platform_capabilities: List[str],
         propagate_tags: bool,
-    ) -> Tuple[str, str, int]:
+    ) -> JobDefinition:
         if def_name is None:
             raise ClientException("jobDefinitionName must be provided")
 
@@ -1683,7 +1670,7 @@ class BatchBackend(BaseBackend):
 
         self._job_definitions[job_def.arn] = job_def
 
-        return def_name, job_def.arn, job_def.revision
+        return job_def
 
     def deregister_job_definition(self, def_name: str) -> None:
         job_def = self.get_job_definition_by_arn(def_name)

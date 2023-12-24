@@ -54,7 +54,9 @@ rds
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
 - [X] create_global_cluster
+- [ ] create_integration
 - [X] create_option_group
+- [ ] create_tenant_database
 - [ ] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
@@ -72,7 +74,9 @@ rds
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
 - [X] delete_global_cluster
+- [ ] delete_integration
 - [X] delete_option_group
+- [ ] delete_tenant_database
 - [ ] deregister_db_proxy_targets
 - [ ] describe_account_attributes
 - [ ] describe_blue_green_deployments
@@ -97,6 +101,7 @@ rds
 - [ ] describe_db_proxy_targets
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
+- [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
 - [ ] describe_engine_default_cluster_parameters
@@ -106,6 +111,7 @@ rds
 - [ ] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
+- [ ] describe_integrations
 - [X] describe_option_group_options
 - [X] describe_option_groups
 - [X] describe_orderable_db_instance_options
@@ -117,6 +123,7 @@ rds
 - [ ] describe_reserved_db_instances
 - [ ] describe_reserved_db_instances_offerings
 - [ ] describe_source_regions
+- [ ] describe_tenant_databases
 - [ ] describe_valid_db_instance_modifications
 - [ ] download_db_log_file_portion
 - [ ] failover_db_cluster
@@ -141,6 +148,7 @@ rds
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
 - [X] modify_option_group
+- [ ] modify_tenant_database
 - [X] promote_read_replica
 - [X] promote_read_replica_db_cluster
 - [ ] purchase_reserved_db_instances_offering

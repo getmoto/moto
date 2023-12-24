@@ -1,12 +1,19 @@
 """Test the different server responses."""
 import json
 import re
+import unittest
 
 import pytest
 import xmltodict
 
 import moto.server as server
-from moto import mock_redshift
+from moto import mock_redshift, settings
+
+
+@pytest.fixture(scope="function", autouse=True)
+def skip_in_server_mode():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("No point in testing this in ServerMode")
 
 
 @mock_redshift

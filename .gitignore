@@ -36,3 +36,6 @@ moto/moto_proxy/certs/*.conf
 other_langs/tests_java/target
 other_langs/tests_dotnet/ExampleTestProject/bin
 other_langs/tests_dotnet/ExampleTestProject/obj
+other_langs/tests_ruby/Gemfile.lock
+other_langs/terraform/*/.terraform*
+other_langs/terraform/*/terraform*

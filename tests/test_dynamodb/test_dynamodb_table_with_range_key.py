@@ -1,12 +1,12 @@
 from decimal import Decimal
+from uuid import uuid4
 
 import boto3
+import pytest
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
-import pytest
 
 from moto import mock_dynamodb
-from uuid import uuid4
 
 
 @mock_dynamodb
@@ -1170,24 +1170,42 @@ def test_scan_by_index():
     assert res["Count"] == 3
     assert len(res["Items"]) == 3
 
+    res = dynamodb.scan(TableName="test", Limit=1)
+    assert res["Count"] == 1
+    assert res["ScannedCount"] == 1
+
+    res = dynamodb.scan(TableName="test", ExclusiveStartKey=res["LastEvaluatedKey"])
+    assert res["Count"] == 2
+    assert res["ScannedCount"] == 2
+
     res = dynamodb.scan(TableName="test", IndexName="test_gsi")
     assert res["Count"] == 2
+    assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
     res = dynamodb.scan(TableName="test", IndexName="test_gsi", Limit=1)
     assert res["Count"] == 1
+    assert res["ScannedCount"] == 1
     assert len(res["Items"]) == 1
     last_eval_key = res["LastEvaluatedKey"]
     assert last_eval_key["id"]["S"] == "1"
     assert last_eval_key["gsi_col"]["S"] == "1"
     assert last_eval_key["gsi_range_key"]["S"] == "1"
 
+    res = dynamodb.scan(
+        TableName="test", IndexName="test_gsi", ExclusiveStartKey=last_eval_key
+    )
+    assert res["Count"] == 1
+    assert res["ScannedCount"] == 1
+
     res = dynamodb.scan(TableName="test", IndexName="test_lsi")
     assert res["Count"] == 2
+    assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
     res = dynamodb.scan(TableName="test", IndexName="test_lsi", Limit=1)
     assert res["Count"] == 1
+    assert res["ScannedCount"] == 1
     assert len(res["Items"]) == 1
     last_eval_key = res["LastEvaluatedKey"]
     assert last_eval_key["id"]["S"] == "1"

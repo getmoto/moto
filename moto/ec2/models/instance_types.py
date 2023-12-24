@@ -1,10 +1,11 @@
 import pathlib
-from typing import Any, Dict, List, Optional
 from os import listdir
-from ..utils import generic_filter
+from typing import Any, Dict, List, Optional
 
 from moto.utilities.utils import load_resource
+
 from ..exceptions import InvalidFilter, InvalidInstanceTypeError
+from ..utils import generic_filter
 
 INSTANCE_TYPES: Dict[str, Any] = load_resource(
     __name__, "../resources/instance_types.json"

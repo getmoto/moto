@@ -2,6 +2,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
 from . import fixture_efs  # noqa # pylint: disable=unused-import
 
 
@@ -98,6 +99,30 @@ def test_describe_access_points__multiple(efs, file_system):
 
     resp = efs.describe_access_points()
     assert len(resp["AccessPoints"]) == 2
+
+
+def test_describe_access_points__filters(efs):
+    fs_id1 = efs.create_file_system(CreationToken="foobarbaz")["FileSystemId"]
+    fs_id2 = efs.create_file_system(CreationToken="bazbarfoo")["FileSystemId"]
+
+    ap_id1 = efs.create_access_point(ClientToken="ct", FileSystemId=fs_id1)[
+        "AccessPointId"
+    ]
+    ap_id2 = efs.create_access_point(ClientToken="ct", FileSystemId=fs_id2)[
+        "AccessPointId"
+    ]
+
+    resp = efs.describe_access_points(FileSystemId=fs_id1)
+    assert len(resp["AccessPoints"]) == 1
+    assert resp.get("NextToken") is None
+    assert resp["AccessPoints"][0]["FileSystemId"] == fs_id1
+    assert resp["AccessPoints"][0]["AccessPointId"] == ap_id1
+
+    resp = efs.describe_access_points(AccessPointId=ap_id2)
+    assert len(resp["AccessPoints"]) == 1
+    assert resp.get("NextToken") is None
+    assert resp["AccessPoints"][0]["FileSystemId"] == fs_id2
+    assert resp["AccessPoints"][0]["AccessPointId"] == ap_id2
 
 
 def test_delete_access_points(efs, file_system):

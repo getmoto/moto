@@ -1,24 +1,26 @@
-from collections import defaultdict
 import copy
+from collections import defaultdict
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
-from typing import Any, Dict, Optional, List, Tuple, Iterator, Sequence
 from moto.core import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
-from moto.dynamodb.comparisons import get_filter_expression, get_expected
+from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
-    InvalidIndexNameError,
-    HashKeyTooLong,
-    RangeKeyTooLong,
     ConditionalCheckFailed,
+    HashKeyTooLong,
     InvalidAttributeTypeError,
-    MockValidationException,
     InvalidConversion,
+    InvalidIndexNameError,
+    MockValidationException,
+    RangeKeyTooLong,
     SerializationException,
 )
-from moto.dynamodb.models.utilities import dynamo_json_dump
-from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from moto.dynamodb.models.dynamo_type import DynamoType, Item
+from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.moto_api._internal import mock_random
+
+RESULT_SIZE_LIMIT = 1000000  # DynamoDB has a 1MB size limit
 
 
 class SecondaryIndex(BaseModel):
@@ -517,6 +519,7 @@ class Table(CloudFormationModel):
         expression_attribute_names: Optional[Dict[str, str]] = None,
         expression_attribute_values: Optional[Dict[str, Any]] = None,
         overwrite: bool = False,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         if self.hash_key_attr not in item_attrs.keys():
             raise MockValidationException(
@@ -571,7 +574,13 @@ class Table(CloudFormationModel):
                 expression_attribute_values,
             )
             if not condition_op.expr(current):
-                raise ConditionalCheckFailed
+                if (
+                    return_values_on_condition_check_failure == "ALL_OLD"
+                    and current is not None
+                ):
+                    raise ConditionalCheckFailed(item=current.to_json()["Attributes"])
+                else:
+                    raise ConditionalCheckFailed
 
         if range_value:
             self.items[hash_value][range_value] = item
@@ -806,7 +815,8 @@ class Table(CloudFormationModel):
         index_name: Optional[str] = None,
         projection_expression: Optional[List[List[str]]] = None,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-        results = []
+        results: List[Item] = []
+        result_size = 0
         scanned_count = 0
 
         if index_name:
@@ -815,14 +825,30 @@ class Table(CloudFormationModel):
         else:
             items = self.all_items()
 
+        last_evaluated_key = None
+        processing_previous_page = exclusive_start_key is not None
         for item in items:
-            scanned_count += 1
+            # Cycle through the previous page of results
+            # When we encounter our start key, we know we've reached the end of the previous page
+            if processing_previous_page:
+                if self._item_equals_dct(item, exclusive_start_key):
+                    processing_previous_page = False
+                continue
+
+            # Check wether we've reached the limit of our result set
+            # That can be either in number, or in size
+            reached_length_limit = len(results) == limit
+            reached_size_limit = (result_size + item.size()) > RESULT_SIZE_LIMIT
+            if reached_length_limit or reached_size_limit:
+                last_evaluated_key = self._get_last_evaluated_key(
+                    results[-1], index_name
+                )
+                break
+
             passes_all_conditions = True
-            for (
-                attribute_name,
-                (comparison_operator, comparison_objs),
-            ) in filters.items():
+            for attribute_name in filters:
                 attribute = item.attrs.get(attribute_name)
+                (comparison_operator, comparison_objs) = filters[attribute_name]
 
                 if attribute:
                     # Attribute found
@@ -839,17 +865,17 @@ class Table(CloudFormationModel):
                     break
 
             if passes_all_conditions:
-                results.append(item)
+                if index_name:
+                    index = self.get_index(index_name)
+                    results.append(index.project(copy.deepcopy(item)))
+                else:
+                    results.append(copy.deepcopy(item))
+                result_size += item.size()
 
-        results = copy.deepcopy(results)
-        if index_name:
-            index = self.get_index(index_name)
-            results = [index.project(r) for r in results]
+            scanned_count += 1
 
-        results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key, scanned_index=index_name
-        )
-
+        # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html#Query.FilterExpression
+        # the filter expression should be evaluated after the query.
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
 
@@ -857,6 +883,13 @@ class Table(CloudFormationModel):
             results = [r.project(projection_expression) for r in results]
 
         return results, scanned_count, last_evaluated_key
+
+    def _item_equals_dct(self, item: Item, dct: Dict[str, Any]) -> bool:
+        hash_key = DynamoType(dct.get(self.hash_key_attr))  # type: ignore[arg-type]
+        range_key = dct.get(self.range_key_attr) if self.range_key_attr else None
+        if range_key is not None:
+            range_key = DynamoType(range_key)
+        return item.hash_key == hash_key and item.range_key == range_key
 
     def _trim_results(
         self,
@@ -866,44 +899,39 @@ class Table(CloudFormationModel):
         scanned_index: Optional[str] = None,
     ) -> Tuple[List[Item], Optional[Dict[str, Any]]]:
         if exclusive_start_key is not None:
-            hash_key = DynamoType(exclusive_start_key.get(self.hash_key_attr))  # type: ignore[arg-type]
-            range_key = (
-                exclusive_start_key.get(self.range_key_attr)
-                if self.range_key_attr
-                else None
-            )
-            if range_key is not None:
-                range_key = DynamoType(range_key)
             for i in range(len(results)):
-                if (
-                    results[i].hash_key == hash_key
-                    and results[i].range_key == range_key
-                ):
+                if self._item_equals_dct(results[i], exclusive_start_key):
                     results = results[i + 1 :]
                     break
 
         last_evaluated_key = None
-        size_limit = 1000000  # DynamoDB has a 1MB size limit
         item_size = sum(res.size() for res in results)
-        if item_size > size_limit:
+        if item_size > RESULT_SIZE_LIMIT:
             item_size = idx = 0
-            while item_size + results[idx].size() < size_limit:
+            while item_size + results[idx].size() < RESULT_SIZE_LIMIT:
                 item_size += results[idx].size()
                 idx += 1
             limit = min(limit, idx) if limit else idx
         if limit and len(results) > limit:
             results = results[:limit]
-            last_evaluated_key = {self.hash_key_attr: results[-1].hash_key}
-            if self.range_key_attr is not None and results[-1].range_key is not None:
-                last_evaluated_key[self.range_key_attr] = results[-1].range_key
-
-            if scanned_index:
-                index = self.get_index(scanned_index)
-                idx_col_list = [i["AttributeName"] for i in index.schema]
-                for col in idx_col_list:
-                    last_evaluated_key[col] = results[-1].attrs[col]
+            last_evaluated_key = self._get_last_evaluated_key(
+                last_result=results[-1], index_name=scanned_index
+            )
 
         return results, last_evaluated_key
+
+    def _get_last_evaluated_key(
+        self, last_result: Item, index_name: Optional[str]
+    ) -> Dict[str, Any]:
+        last_evaluated_key = {self.hash_key_attr: last_result.hash_key}
+        if self.range_key_attr is not None and last_result.range_key is not None:
+            last_evaluated_key[self.range_key_attr] = last_result.range_key
+        if index_name:
+            index = self.get_index(index_name)
+            idx_col_list = [i["AttributeName"] for i in index.schema]
+            for col in idx_col_list:
+                last_evaluated_key[col] = last_result.attrs[col]
+        return last_evaluated_key
 
     def delete(self, account_id: str, region_name: str) -> None:
         from moto.dynamodb.models import dynamodb_backends

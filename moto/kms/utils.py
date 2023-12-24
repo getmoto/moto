@@ -1,27 +1,26 @@
-from abc import abstractmethod, ABCMeta
-from collections import namedtuple
-from typing import Any, Dict, Tuple, List
-from enum import Enum
 import io
 import os
 import struct
-from moto.moto_api._internal import mock_random
+from abc import ABCMeta, abstractmethod
+from collections import namedtuple
+from enum import Enum
+from typing import Any, Dict, List, Tuple
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives._asymmetric import AsymmetricPadding
-from cryptography.hazmat.primitives.asymmetric import rsa, padding, ec
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+from moto.moto_api._internal import mock_random
 
 from .exceptions import (
-    InvalidCiphertextException,
     AccessDeniedException,
+    InvalidCiphertextException,
     NotFoundException,
     ValidationException,
 )
-
 
 MASTER_KEY_LEN = 32
 KEY_ID_LEN = 36
@@ -379,6 +378,10 @@ def encrypt(
     if plaintext == b"":
         raise ValidationException(
             "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length greater than or equal to 1"
+        )
+    if len(plaintext) > 4096:
+        raise ValidationException(
+            "1 validation error detected: Value at 'plaintext' failed to satisfy constraint: Member must have length less than or equal to 4096"
         )
 
     iv = os.urandom(IV_LEN)

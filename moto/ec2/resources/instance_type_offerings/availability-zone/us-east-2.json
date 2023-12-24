@@ -656,6 +656,14 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "c7i.xlarge",
   "Location": "us-east-2a"
  },
@@ -1728,6 +1736,14 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "us-east-2a"
  },
@@ -1757,6 +1773,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "us-east-2a"
  },
  {
@@ -2469,6 +2489,14 @@
  },
  {
   "InstanceType": "r7i.large",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
   "Location": "us-east-2a"
  },
  {
@@ -3353,6 +3381,14 @@
  },
  {
   "InstanceType": "c7i.large",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
   "Location": "us-east-2b"
  },
  {
@@ -4452,6 +4488,14 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "us-east-2b"
  },
@@ -5213,6 +5257,14 @@
  },
  {
   "InstanceType": "r7i.large",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
   "Location": "us-east-2b"
  },
  {
@@ -6089,6 +6141,14 @@
  },
  {
   "InstanceType": "c7i.large",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
   "Location": "us-east-2c"
  },
  {
@@ -7164,6 +7224,14 @@
   "Location": "us-east-2c"
  },
  {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "us-east-2c"
+ },
+ {
   "InstanceType": "m7i.xlarge",
   "Location": "us-east-2c"
  },
@@ -7905,6 +7973,14 @@
  },
  {
   "InstanceType": "r7i.large",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7i.metal-24xl",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7i.metal-48xl",
   "Location": "us-east-2c"
  },
  {

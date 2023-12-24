@@ -28,6 +28,7 @@ opensearch
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_inbound_connection
+- [ ] add_data_source
 - [X] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
@@ -36,6 +37,7 @@ opensearch
 - [ ] create_outbound_connection
 - [ ] create_package
 - [ ] create_vpc_endpoint
+- [ ] delete_data_source
 - [X] delete_domain
 - [ ] delete_inbound_connection
 - [ ] delete_outbound_connection
@@ -58,10 +60,12 @@ opensearch
 - [ ] describe_vpc_endpoints
 - [ ] dissociate_package
 - [X] get_compatible_versions
+- [ ] get_data_source
 - [ ] get_domain_maintenance_status
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
+- [ ] list_data_sources
 - [ ] list_domain_maintenances
 - [X] list_domain_names
 - [ ] list_domains_for_package
@@ -79,6 +83,7 @@ opensearch
 - [ ] revoke_vpc_endpoint_access
 - [ ] start_domain_maintenance
 - [ ] start_service_software_update
+- [ ] update_data_source
 - [X] update_domain_config
 - [ ] update_package
 - [ ] update_scheduled_action

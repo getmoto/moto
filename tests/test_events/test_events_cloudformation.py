@@ -1,12 +1,12 @@
-import pytest
 import copy
+import json
 from string import Template
 
 import boto3
-import json
+import pytest
 from botocore.exceptions import ClientError
-from moto import mock_cloudformation, mock_events
 
+from moto import mock_cloudformation, mock_events
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 archive_template = Template(

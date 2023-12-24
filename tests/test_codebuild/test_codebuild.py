@@ -1,9 +1,11 @@
+from uuid import uuid1
+
 import boto3
+import pytest
+from botocore.exceptions import ClientError, ParamValidationError
+
 from moto import mock_codebuild
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from botocore.exceptions import ClientError, ParamValidationError
-from uuid import uuid1
-import pytest
 
 
 @mock_codebuild

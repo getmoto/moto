@@ -16,10 +16,11 @@ EXCEPTION_RESPONSE = """<?xml version="1.0"?>
 class ElasticBeanstalkException(RESTError):
 
     code = 400
+    extended_templates = {"ecerror": EXCEPTION_RESPONSE}
+    env = RESTError.extended_environment(extended_templates)
 
     def __init__(self, code: str, message: str, **kwargs: Any):
         kwargs.setdefault("template", "ecerror")
-        self.templates["ecerror"] = EXCEPTION_RESPONSE
         super().__init__(code, message)
 
 

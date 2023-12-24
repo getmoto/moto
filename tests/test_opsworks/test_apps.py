@@ -1,6 +1,7 @@
 import boto3
-from freezegun import freeze_time
 import pytest
+from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_opsworks
 
@@ -32,12 +33,12 @@ def test_create_app_response():
     assert "AppId" in response
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_app(StackId=stack_id, Type="other", Name="TestApp")
     assert r'already an app named "TestApp"' in exc.value.response["Error"]["Message"]
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.create_app(StackId="nothere", Type="other", Name="TestApp")
     assert exc.value.response["Error"]["Message"] == "nothere"
 
@@ -61,20 +62,20 @@ def test_describe_apps():
     assert rv1["Apps"][0]["Name"] == "TestApp"
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_apps(StackId=stack_id, AppIds=[app_id])
     assert exc.value.response["Error"]["Message"] == (
         "Please provide one or more app IDs or a stack ID"
     )
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_apps(StackId="nothere")
     assert exc.value.response["Error"]["Message"] == (
         "Unable to find stack with ID nothere"
     )
 
     # ClientError
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.describe_apps(AppIds=["nothere"])
     assert exc.value.response["Error"]["Message"] == "nothere"

@@ -5,7 +5,8 @@ from urllib.parse import unquote
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import databrew_backends, DataBrewBackend
+
+from .models import DataBrewBackend, databrew_backends
 
 
 class DataBrewResponse(BaseResponse):

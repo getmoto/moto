@@ -1,6 +1,7 @@
 from enum import Enum
-from typing import Any, List, Dict, Tuple, Optional
-from moto.dynamodb.exceptions import MockValidationException
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from moto.dynamodb.exceptions import KeyIsEmptyStringException, MockValidationException
 from moto.utilities.tokenizer import GenericTokenizer
 
 
@@ -19,7 +20,7 @@ def get_key(schema: List[Dict[str, str]], key_type: str) -> Optional[str]:
 
 def parse_expression(
     key_condition_expression: str,
-    expression_attribute_values: Dict[str, str],
+    expression_attribute_values: Dict[str, Dict[str, str]],
     expression_attribute_names: Dict[str, str],
     schema: List[Dict[str, str]],
 ) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
@@ -35,7 +36,7 @@ def parse_expression(
     current_stage: Optional[EXPRESSION_STAGES] = None
     current_phrase = ""
     key_name = comparison = ""
-    key_values = []
+    key_values: List[Union[Dict[str, str], str]] = []
     results: List[Tuple[str, str, Any]] = []
     tokenizer = GenericTokenizer(key_condition_expression)
     for crnt_char in tokenizer:
@@ -209,6 +210,8 @@ def validate_schema(
         )
     if comparison != "=":
         raise MockValidationException("Query key condition not supported")
+    if "S" in hash_value and hash_value["S"] == "":
+        raise KeyIsEmptyStringException(index_hash_key)  # type: ignore[arg-type]
 
     index_range_key = get_key(schema, "RANGE")
     range_key, range_comparison, range_values = next(
@@ -219,9 +222,12 @@ def validate_schema(
         ),
         (None, None, []),
     )
-    if index_range_key and len(results) > 1 and range_key != index_range_key:
-        raise MockValidationException(
-            f"Query condition missed key schema element: {index_range_key}"
-        )
+    if index_range_key:
+        if len(results) > 1 and range_key != index_range_key:
+            raise MockValidationException(
+                f"Query condition missed key schema element: {index_range_key}"
+            )
+        if {"S": ""} in range_values:
+            raise KeyIsEmptyStringException(index_range_key)
 
     return hash_value, range_comparison, range_values  # type: ignore[return-value]

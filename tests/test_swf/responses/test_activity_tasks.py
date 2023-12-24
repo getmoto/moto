@@ -1,16 +1,13 @@
 import re
 from unittest import SkipTest
 
+import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-import pytest
 
-from moto import mock_swf
-from moto import settings
+from moto import mock_swf, settings
 
-from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION
-from ..utils import setup_workflow_boto3
-
+from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow_boto3
 
 # PollForActivityTask endpoint
 

@@ -1,7 +1,7 @@
 import xmltodict
 
-from moto import mock_cloudfront
 import moto.server as server
+from moto import mock_cloudfront
 
 
 @mock_cloudfront

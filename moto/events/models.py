@@ -1,32 +1,32 @@
 import copy
+import json
 import os
 import re
-import requests
-import json
 import sys
 import warnings
-from datetime import datetime
+from collections import OrderedDict
 from enum import Enum, unique
 from json import JSONDecodeError
-from operator import lt, le, eq, ge, gt
+from operator import eq, ge, gt, le, lt
 from typing import Any, Dict, List, Optional, Tuple
 
-from collections import OrderedDict
+import requests
 
 from moto import settings
+from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core import BaseBackend, BackendDict, CloudFormationModel, BaseModel
 from moto.core.utils import (
+    iso_8601_datetime_without_milliseconds,
     unix_time,
     unix_time_millis,
-    iso_8601_datetime_without_milliseconds,
+    utcfromtimestamp,
 )
 from moto.events.exceptions import (
-    ValidationException,
-    ResourceNotFoundException,
-    ResourceAlreadyExistsException,
-    InvalidEventPatternException,
     IllegalStatusException,
+    InvalidEventPatternException,
+    ResourceAlreadyExistsException,
+    ResourceNotFoundException,
+    ValidationException,
 )
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.arns import parse_arn
@@ -170,7 +170,7 @@ class Rule(CloudFormationModel):
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            datetime.utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])
         )
 
         log_stream_name = str(random.uuid4())
@@ -187,8 +187,8 @@ class Rule(CloudFormationModel):
         archive = events_backends[self.account_id][self.region_name].archives.get(
             archive_name
         )
-        if archive.uuid == archive_uuid:
-            archive.events.append(event)
+        if archive.uuid == archive_uuid:  # type: ignore[union-attr]
+            archive.events.append(event)  # type: ignore[arg-type,union-attr]
 
     def _find_api_destination(self, resource_id: str) -> "Destination":
         backend: "EventsBackend" = events_backends[self.account_id][self.region_name]
@@ -202,7 +202,7 @@ class Rule(CloudFormationModel):
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            datetime.utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])
         )
 
         if group_id:

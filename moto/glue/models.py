@@ -1,62 +1,62 @@
 import json
+import re
 import time
 from collections import OrderedDict
 from datetime import datetime
-import re
 from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.moto_api import state_manager
-from moto.moto_api._internal import mock_random
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time, utcnow
+from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
-from .exceptions import (
-    JsonRESTError,
-    CrawlerRunningException,
-    CrawlerNotRunningException,
-    CrawlerAlreadyExistsException,
-    CrawlerNotFoundException,
-    DatabaseAlreadyExistsException,
-    DatabaseNotFoundException,
-    TableAlreadyExistsException,
-    TableNotFoundException,
-    PartitionAlreadyExistsException,
-    PartitionNotFoundException,
-    VersionNotFoundException,
-    JobNotFoundException,
-    JobRunNotFoundException,
-    ConcurrentRunsExceededException,
-    SchemaVersionNotFoundFromSchemaVersionIdException,
-    SchemaVersionNotFoundFromSchemaIdException,
-    SchemaNotFoundException,
-    SchemaVersionMetadataAlreadyExistsException,
-    SessionAlreadyExistsException,
-    SessionNotFoundException,
-    IllegalSessionStateException,
-    TriggerNotFoundException,
-)
-from .utils import PartitionFilter
-from .glue_schema_registry_utils import (
-    validate_registry_id,
-    validate_schema_id,
-    validate_schema_params,
-    get_schema_version_if_definition_exists,
-    validate_registry_params,
-    validate_schema_version_params,
-    validate_schema_definition_length,
-    validate_schema_version_metadata_pattern_and_length,
-    validate_number_of_schema_version_metadata_allowed,
-    get_put_schema_version_metadata_response,
-    validate_register_schema_version_params,
-    delete_schema_response,
-)
-from .glue_schema_registry_constants import (
-    DEFAULT_REGISTRY_NAME,
-    AVAILABLE_STATUS,
-    DELETING_STATUS,
-)
+
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
+from .exceptions import (
+    ConcurrentRunsExceededException,
+    CrawlerAlreadyExistsException,
+    CrawlerNotFoundException,
+    CrawlerNotRunningException,
+    CrawlerRunningException,
+    DatabaseAlreadyExistsException,
+    DatabaseNotFoundException,
+    IllegalSessionStateException,
+    JobNotFoundException,
+    JobRunNotFoundException,
+    JsonRESTError,
+    PartitionAlreadyExistsException,
+    PartitionNotFoundException,
+    SchemaNotFoundException,
+    SchemaVersionMetadataAlreadyExistsException,
+    SchemaVersionNotFoundFromSchemaIdException,
+    SchemaVersionNotFoundFromSchemaVersionIdException,
+    SessionAlreadyExistsException,
+    SessionNotFoundException,
+    TableAlreadyExistsException,
+    TableNotFoundException,
+    TriggerNotFoundException,
+    VersionNotFoundException,
+)
+from .glue_schema_registry_constants import (
+    AVAILABLE_STATUS,
+    DEFAULT_REGISTRY_NAME,
+    DELETING_STATUS,
+)
+from .glue_schema_registry_utils import (
+    delete_schema_response,
+    get_put_schema_version_metadata_response,
+    get_schema_version_if_definition_exists,
+    validate_number_of_schema_version_metadata_allowed,
+    validate_register_schema_version_params,
+    validate_registry_id,
+    validate_registry_params,
+    validate_schema_definition_length,
+    validate_schema_id,
+    validate_schema_params,
+    validate_schema_version_metadata_pattern_and_length,
+    validate_schema_version_params,
+)
+from .utils import PartitionFilter
 
 
 class GlueBackend(BaseBackend):
@@ -111,10 +111,6 @@ class GlueBackend(BaseBackend):
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
-
-        state_manager.register_default_transition(
-            model_name="glue::job_run", transition={"progression": "immediate"}
-        )
 
     @staticmethod
     def default_vpc_endpoint_service(

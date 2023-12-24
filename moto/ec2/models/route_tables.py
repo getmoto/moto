@@ -4,21 +4,21 @@ from typing import Any, Dict, List, Optional, Set
 from moto.core import CloudFormationModel
 from moto.ec2.models.carrier_gateways import CarrierGateway
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
-from moto.ec2.models.internet_gateways import EgressOnlyInternetGateway
 from moto.ec2.models.instances import Instance
+from moto.ec2.models.internet_gateways import EgressOnlyInternetGateway
 from moto.ec2.models.managed_prefixes import ManagedPrefixList
 from moto.ec2.models.nat_gateways import NatGateway
 from moto.ec2.models.transit_gateway import TransitGateway
 from moto.ec2.models.vpc_peering_connections import VPCPeeringConnection
 from moto.ec2.models.vpn_gateway import VpnGateway
-from .core import TaggedEC2Resource
+
 from ..exceptions import (
     DependencyViolationError,
-    InvalidRouteError,
-    InvalidRouteTableIdError,
     InvalidAssociationIdError,
     InvalidDestinationCIDRBlockParameterError,
     InvalidParameterValueErrorReplaceRoute,
+    InvalidRouteError,
+    InvalidRouteTableIdError,
     RouteAlreadyExistsError,
     RouteNotSupportedError,
 )
@@ -26,9 +26,10 @@ from ..utils import (
     EC2_RESOURCE_TO_PREFIX,
     generate_route_id,
     generic_filter,
-    random_subnet_association_id,
     random_route_table_id,
+    random_subnet_association_id,
 )
+from .core import TaggedEC2Resource
 
 
 class RouteTable(TaggedEC2Resource, CloudFormationModel):

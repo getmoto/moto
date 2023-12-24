@@ -1,14 +1,16 @@
-import botocore.exceptions
 import datetime
-import pytest
 import time
+from unittest import SkipTest
 from uuid import uuid4
 
-from moto import mock_batch, mock_iam, mock_ec2, mock_ecs, mock_logs
+import botocore.exceptions
+import pytest
+
+from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, mock_logs, settings
 from tests import DEFAULT_ACCOUNT_ID
 
-from . import _get_clients, _setup
 from ..markers import requires_docker
+from . import DEFAULT_REGION, _get_clients, _setup
 
 
 @mock_logs
@@ -134,6 +136,39 @@ def test_submit_job_array_size():
     assert child_job_1["status"] == "SUCCEEDED"
     # Child job was executed
     assert len(child_job_1["attempts"]) == 1
+
+
+@mock_ec2
+@mock_ecs
+@mock_iam
+@mock_batch
+@pytest.mark.network
+@requires_docker
+def test_submit_job_array_size__reset_while_job_is_running():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("No point testing this in ServerMode")
+
+    # Setup
+    job_definition_name = f"echo_{str(uuid4())[0:6]}"
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    commands = ["echo", "hello"]
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+    _, queue_arn = prepare_job(batch_client, commands, iam_arn, job_definition_name)
+
+    # Execute
+    batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        arrayProperties={"size": 2},
+    )
+
+    from moto.batch import batch_backends
+
+    # This method will try to join on (wait for) any created JobThreads
+    # The parent of the ArrayJobs is created, but never started
+    # So we need to make sure that we don't join on any Threads that are never started in the first place
+    batch_backends[DEFAULT_ACCOUNT_ID][DEFAULT_REGION].reset()
 
 
 @mock_logs
@@ -409,6 +444,7 @@ def test_terminate_job_empty_argument_strings():
 @mock_ecs
 @mock_iam
 @mock_batch
+@requires_docker
 def test_cancel_pending_job():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)

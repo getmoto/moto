@@ -5,12 +5,12 @@ import uuid
 
 import boto3
 import botocore.exceptions
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_ssm
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ssm.models import PARAMETER_VERSION_LIMIT, PARAMETER_HISTORY_MAX_RESULTS
+from moto.ssm.models import PARAMETER_HISTORY_MAX_RESULTS, PARAMETER_VERSION_LIMIT
 from tests import EXAMPLE_AMI_ID
 
 
@@ -262,6 +262,7 @@ def test_put_parameter(name):
     )
     new_data_type = "aws:ec2:image"
 
+    # Cannot have tags and overwrite at the same time
     with pytest.raises(ClientError) as ex:
         response = client.put_parameter(
             Name=name,
@@ -299,6 +300,128 @@ def test_put_parameter(name):
     assert response["Parameters"][0]["ARN"] == (
         f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
     )
+
+
+@pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
+@mock_ssm
+def test_put_parameter_overwrite_preserves_metadata(name):
+    test_tag_key = "TestKey"
+    test_tag_value = "TestValue"
+    test_description = "A test parameter"
+    test_pattern = ".*"
+    test_key_id = "someKeyId"
+    client = boto3.client("ssm", region_name="us-east-1")
+    response = client.put_parameter(
+        Name=name,
+        Description=test_description,
+        Value="value",
+        Type="String",
+        Tags=[{"Key": test_tag_key, "Value": test_tag_value}],
+        AllowedPattern=test_pattern,
+        KeyId=test_key_id,
+        Tier="Standard",
+        Policies='["Expiration"]',
+    )
+
+    assert response["Version"] == 1
+
+    response = client.get_parameters(Names=[name], WithDecryption=False)
+
+    assert len(response["Parameters"]) == 1
+    assert response["Parameters"][0]["Name"] == name
+    assert response["Parameters"][0]["Value"] == "value"
+    assert response["Parameters"][0]["Type"] == "String"
+    assert response["Parameters"][0]["Version"] == 1
+    assert response["Parameters"][0]["DataType"] == "text"
+    assert isinstance(response["Parameters"][0]["LastModifiedDate"], datetime.datetime)
+    assert response["Parameters"][0]["ARN"] == (
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
+    )
+    initial_modification_date = response["Parameters"][0]["LastModifiedDate"]
+
+    # Verify that the tag got set
+    response = client.list_tags_for_resource(ResourceType="Parameter", ResourceId=name)
+
+    assert len(response["TagList"]) == 1
+    assert response["TagList"][0]["Key"] == test_tag_key
+    assert response["TagList"][0]["Value"] == test_tag_value
+
+    # Verify description is set
+    response = client.describe_parameters(
+        ParameterFilters=[
+            {
+                "Key": "Name",
+                "Option": "Equals",
+                "Values": [name],
+            },
+        ]
+    )
+    assert len(response["Parameters"]) == 1
+    assert response["Parameters"][0]["Description"] == test_description
+    assert response["Parameters"][0]["AllowedPattern"] == test_pattern
+    assert response["Parameters"][0]["KeyId"] == test_key_id
+
+    # Overwrite just the value
+    response = client.put_parameter(Name=name, Value="value 2", Overwrite=True)
+
+    assert response["Version"] == 2
+
+    response = client.get_parameters(Names=[name], WithDecryption=False)
+
+    assert len(response["Parameters"]) == 1
+    assert response["Parameters"][0]["Name"] == name
+    assert response["Parameters"][0]["Value"] == "value 2"
+    assert response["Parameters"][0]["Type"] == "String"
+    assert response["Parameters"][0]["Version"] == 2
+    assert response["Parameters"][0]["DataType"] == "text"
+    assert response["Parameters"][0]["LastModifiedDate"] != initial_modification_date
+    assert response["Parameters"][0]["ARN"] == (
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/{name}"
+    )
+
+    # Verify that tags are unchanged
+    response = client.list_tags_for_resource(ResourceType="Parameter", ResourceId=name)
+
+    assert len(response["TagList"]) == 1
+    assert response["TagList"][0]["Key"] == test_tag_key
+    assert response["TagList"][0]["Value"] == test_tag_value
+
+    # Verify description/tier/policies is unchanged
+    response = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Equals", "Values": [name]}]
+    )
+    assert len(response["Parameters"]) == 1
+    assert response["Parameters"][0]["Description"] == test_description
+    assert response["Parameters"][0]["AllowedPattern"] == test_pattern
+    assert response["Parameters"][0]["KeyId"] == test_key_id
+    assert response["Parameters"][0]["Tier"] == "Standard"
+    assert response["Parameters"][0]["Policies"] == [
+        {
+            "PolicyStatus": "Finished",
+            "PolicyText": "Expiration",
+            "PolicyType": "Expiration",
+        }
+    ]
+
+
+@mock_ssm
+def test_put_parameter_with_invalid_policy():
+    name = "some_param"
+    test_description = "A test parameter"
+    client = boto3.client("ssm", region_name="us-east-1")
+    client.put_parameter(
+        Name=name,
+        Description=test_description,
+        Value="value",
+        Type="String",
+        Policies="invalid json",
+    )
+
+    # Verify that an invalid policy does not break anything
+    param = client.describe_parameters(
+        ParameterFilters=[{"Key": "Name", "Option": "Equals", "Values": [name]}]
+    )["Parameters"][0]
+    assert "Policies" not in param
 
 
 @mock_ssm

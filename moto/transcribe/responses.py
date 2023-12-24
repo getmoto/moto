@@ -2,7 +2,8 @@ import json
 
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
-from .models import transcribe_backends, TranscribeBackend
+
+from .models import TranscribeBackend, transcribe_backends
 
 
 class TranscribeResponse(BaseResponse):
@@ -32,6 +33,7 @@ class TranscribeResponse(BaseResponse):
             identify_language=self._get_param("IdentifyLanguage"),
             identify_multiple_languages=self._get_param("IdentifyMultipleLanguages"),
             language_options=self._get_param("LanguageOptions"),
+            subtitles=self._get_param("Subtitles"),
         )
         return json.dumps(response)
 

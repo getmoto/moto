@@ -1,10 +1,10 @@
-import boto3
-import pytest
-
-from botocore.exceptions import ClientError
-from moto import mock_ec2
 from uuid import uuid4
 
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_ec2
 
 VPC_CIDR = "10.0.0.0/16"
 BAD_VPC = "vpc-deadbeef"

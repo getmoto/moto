@@ -42,6 +42,7 @@ quicksight
 - [X] create_ingestion
 - [ ] create_namespace
 - [ ] create_refresh_schedule
+- [ ] create_role_membership
 - [ ] create_template
 - [ ] create_template_alias
 - [ ] create_theme
@@ -61,8 +62,11 @@ quicksight
 - [X] delete_group
 - [ ] delete_group_membership
 - [ ] delete_iam_policy_assignment
+- [ ] delete_identity_propagation_config
 - [ ] delete_namespace
 - [ ] delete_refresh_schedule
+- [ ] delete_role_custom_permission
+- [ ] delete_role_membership
 - [ ] delete_template
 - [ ] delete_template_alias
 - [ ] delete_theme
@@ -100,6 +104,7 @@ quicksight
 - [ ] describe_ip_restriction
 - [ ] describe_namespace
 - [ ] describe_refresh_schedule
+- [ ] describe_role_custom_permission
 - [ ] describe_template
 - [ ] describe_template_alias
 - [ ] describe_template_definition
@@ -138,9 +143,11 @@ quicksight
 
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
+- [ ] list_identity_propagation_configs
 - [ ] list_ingestions
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
+- [ ] list_role_memberships
 - [ ] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
@@ -181,6 +188,7 @@ quicksight
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_dashboard
+- [ ] update_dashboard_links
 - [ ] update_dashboard_permissions
 - [ ] update_dashboard_published_version
 - [ ] update_data_set
@@ -191,9 +199,11 @@ quicksight
 - [ ] update_folder_permissions
 - [X] update_group
 - [ ] update_iam_policy_assignment
+- [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule
+- [ ] update_role_custom_permission
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions

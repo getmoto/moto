@@ -7,9 +7,8 @@
 
 """
 import boto3
-from botocore.exceptions import ClientError
-from botocore.exceptions import ParamValidationError
 import pytest
+from botocore.exceptions import ClientError, ParamValidationError
 
 from moto.config import mock_config
 from moto.config.models import MAX_TAGS_IN_ARG

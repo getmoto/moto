@@ -1,18 +1,19 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Iterable
+from typing import Any, Dict, Iterable, List
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
-from moto.neptune.responses import NeptuneResponse
 from moto.neptune.responses import (
     CREATE_GLOBAL_CLUSTER_TEMPLATE,
-    DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE,
     DELETE_GLOBAL_CLUSTER_TEMPLATE,
+    DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE,
     REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE,
+    NeptuneResponse,
 )
-from .models import rds_backends, RDSBackend
+
 from .exceptions import DBParameterGroupNotFoundError
+from .models import RDSBackend, rds_backends
 
 
 class RDSResponse(BaseResponse):

@@ -2,19 +2,21 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 from moto.core import CloudFormationModel
-from .core import TaggedEC2Resource
-from ..utils import (
-    generic_filter,
-    random_launch_template_id,
-    utc_date_and_time,
-    convert_tag_spec,
-)
+
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
     InvalidLaunchTemplateNameNotFoundError,
     InvalidLaunchTemplateNameNotFoundWithNameError,
     MissingParameterError,
 )
+from ..utils import (
+    convert_tag_spec,
+    generic_filter,
+    random_launch_template_id,
+    random_launch_template_name,
+    utc_date_and_time,
+)
+from .core import TaggedEC2Resource
 
 
 class LaunchTemplateVersion:
@@ -140,6 +142,9 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
             properties.get("TagSpecifications", {}), tag_key="Tags"
         )
 
+        if name is None:
+            name = random_launch_template_name()
+
         launch_template = backend.create_launch_template(
             name, description, data, tag_spec
         )
@@ -162,11 +167,10 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
         properties = cloudformation_json["Properties"]
 
-        name = properties.get("LaunchTemplateName")
         data = properties.get("LaunchTemplateData")
         description = properties.get("VersionDescription")
 
-        launch_template = backend.get_launch_template_by_name(name)
+        launch_template = backend.get_launch_template(original_resource.id)
 
         launch_template.create_version(data, description)
 
@@ -190,6 +194,25 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         name = properties.get("LaunchTemplateName")
 
         backend.delete_launch_template(name, None)
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "DefaultVersionNumber",
+            "LaunchTemplateId",
+            "LatestVersionNumber",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "DefaultVersionNumber":
+            return str(self.default_version_number)
+        if attribute_name == "LaunchTemplateId":
+            return self.id
+        if attribute_name == "LatestVersionNumber":
+            return str(self.latest_version_number)
+        raise UnformattedGetAttTemplateException()
 
 
 class LaunchTemplateBackend:

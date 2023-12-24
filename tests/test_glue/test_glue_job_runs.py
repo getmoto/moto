@@ -1,10 +1,12 @@
+from unittest import SkipTest
+
 import pytest
 from botocore.client import ClientError
-from unittest import SkipTest
 
 from moto import mock_glue, settings
 from moto.moto_api import state_manager
-from .test_glue import create_test_job, create_glue_client
+
+from .test_glue import create_glue_client, create_test_job
 
 
 @mock_glue

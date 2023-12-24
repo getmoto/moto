@@ -1,11 +1,12 @@
-import boto3
 import os
-import pytest
 import sys
-
-from botocore.exceptions import ClientError
-from moto import mock_apigateway, settings
 from unittest import SkipTest
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+
+from moto import mock_apigateway, settings
 
 
 @mock_apigateway

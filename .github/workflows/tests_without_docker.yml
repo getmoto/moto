@@ -1,0 +1,44 @@
+# Verify that the `TESTS_SKIP_REQUIRES_DOCKER` environment variable works
+# Or in other words:
+# Verify that all tests that require Docker have the @requires_docker decorator
+
+name: Unit tests without Docker
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'  # every day at 1AM
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Update pip
+      run: |
+        python -m pip install --upgrade pip
+    - name: Install project dependencies
+      run: |
+        pip install -r requirements-dev.txt
+        pip install pytest-github-actions-annotate-failures
+    # We should be skipping all tests that require Docker
+    # Uninstalling the module enforces that all tests are indeed skipped
+    - name: Uninstall Docker
+      run: |
+        sudo systemctl stop docker
+        sudo systemctl stop docker.socket
+    - name: Test with pytest
+      env:
+        TESTS_SKIP_REQUIRES_DOCKER: true
+      run: |
+        pytest tests

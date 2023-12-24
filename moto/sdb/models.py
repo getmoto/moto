@@ -2,9 +2,10 @@
 import re
 from collections import defaultdict
 from threading import Lock
-from typing import Any, Dict, List, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
+
 from .exceptions import InvalidDomainName, UnknownDomainName
 
 

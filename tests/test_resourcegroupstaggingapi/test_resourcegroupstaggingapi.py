@@ -3,15 +3,19 @@ import json
 import boto3
 from botocore.client import ClientError
 
-from moto import mock_ec2
-from moto import mock_elbv2
-from moto import mock_kms
-from moto import mock_resourcegroupstaggingapi
-from moto import mock_s3
-from moto import mock_lambda
-from moto import mock_iam
-from moto import mock_cloudformation
-from moto import mock_ecs
+from moto import (
+    mock_acm,
+    mock_cloudformation,
+    mock_ec2,
+    mock_ecs,
+    mock_elbv2,
+    mock_iam,
+    mock_kms,
+    mock_lambda,
+    mock_resourcegroupstaggingapi,
+    mock_s3,
+    mock_sqs,
+)
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
@@ -73,6 +77,44 @@ def test_get_resources_cloudformation():
     )
     assert len(resp["ResourceTagMappingList"]) == 1
     assert stack_two in resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_acm
+@mock_resourcegroupstaggingapi
+def test_get_resources_acm():
+    client = boto3.client("acm", region_name="us-east-1")
+    cert_blue = client.request_certificate(
+        DomainName="helloworldone.com",
+        ValidationMethod="DNS",
+        Tags=[
+            {"Key": "TagKey1", "Value": "TagValue1"},
+            {"Key": "TagKey2", "Value": "TagValue2"},
+            {"Key": "Color", "Value": "Blue"},
+        ],
+    )
+    client.request_certificate(
+        DomainName="helloworldtwo.com",
+        ValidationMethod="DNS",
+        Tags=[
+            {"Key": "TagKey1", "Value": "TagValue1"},
+            {"Key": "TagKey2", "Value": ""},
+            {"Key": "Color", "Value": "Green"},
+        ],
+    )
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resources_no_filter = rgta_client.get_resources(
+        ResourceTypeFilters=["acm"],
+    )
+    assert len(resources_no_filter["ResourceTagMappingList"]) == 2
+
+    resources_blue_filter = rgta_client.get_resources(
+        TagFilters=[{"Key": "Color", "Values": ["Blue"]}]
+    )
+    assert len(resources_blue_filter["ResourceTagMappingList"]) == 1
+    assert (
+        cert_blue["CertificateArn"]
+        == resources_blue_filter["ResourceTagMappingList"][0]["ResourceARN"]
+    )
 
 
 @mock_ecs
@@ -672,6 +714,37 @@ def test_get_resources_lambda():
 
     resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
     assert_response(resp, [rectangle_arn])
+
+
+@mock_sqs
+@mock_resourcegroupstaggingapi
+def test_get_resources_sqs():
+    sqs = boto3.resource("sqs", region_name="eu-central-1")
+
+    # Create two tagged SQS queues
+    for i in range(1, 3):
+        i_str = str(i)
+
+        sqs.create_queue(
+            QueueName="sqs-tag-value-" + i_str,
+            tags={
+                "Test": i_str,
+            },
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
+
+    # Basic test
+    resp = rtapi.get_resources(ResourceTypeFilters=["sqs"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["sqs"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
 @mock_resourcegroupstaggingapi

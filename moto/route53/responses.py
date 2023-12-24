@@ -1,16 +1,16 @@
 """Handles Route53 API requests, invokes method and returns response."""
 import re
+from typing import Any
 from urllib.parse import parse_qs
 
-from jinja2 import Template
-from typing import Any
 import xmltodict
+from jinja2 import Template
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.route53.exceptions import InvalidChangeBatch
-from moto.route53.models import route53_backends, Route53Backend
+from moto.route53.models import Route53Backend, route53_backends
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
 
@@ -660,6 +660,7 @@ CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route5
    <HostedZone>
       <Id>/hostedzone/{{ zone.id }}</Id>
       <Name>{{ zone.name }}</Name>
+      <CallerReference>{{ zone.caller_reference }}</CallerReference>
       <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
       <Config>
         {% if zone.comment %}
@@ -689,6 +690,7 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       <HostedZone>
          <Id>/hostedzone/{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
+         <CallerReference>{{ zone.caller_reference }}</CallerReference>
          <Config>
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>
@@ -711,6 +713,7 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
       <HostedZone>
          <Id>/hostedzone/{{ zone.id }}</Id>
          <Name>{{ zone.name }}</Name>
+         <CallerReference>{{ zone.caller_reference }}</CallerReference>
          <Config>
             {% if zone.comment %}
                 <Comment>{{ zone.comment }}</Comment>

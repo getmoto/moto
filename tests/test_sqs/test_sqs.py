@@ -9,19 +9,19 @@ from uuid import uuid4
 
 import boto3
 import botocore.exceptions
+import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
-import pytest
 
 from moto import mock_sqs, settings
-from moto.utilities.distutils_version import LooseVersion
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
-    Queue,
+    MAXIMUM_MESSAGE_LENGTH,
     MAXIMUM_MESSAGE_SIZE_ATTR_LOWER_BOUND,
     MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND,
-    MAXIMUM_MESSAGE_LENGTH,
+    Queue,
 )
+from moto.utilities.distutils_version import LooseVersion
 
 TEST_POLICY = """
 {
@@ -2831,13 +2831,11 @@ def test_send_message_to_fifo_without_message_group_id():
         Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
 
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as exc:
         queue.send_message(MessageBody="message-1")
-    ex = e.value
-    assert ex.response["Error"]["Code"] == "MissingParameter"
-    assert ex.response["Error"]["Message"] == (
-        "The request must contain the parameter MessageGroupId."
-    )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
+    assert err["Message"] == "The request must contain the parameter MessageGroupId."
 
 
 @mock_sqs
@@ -2848,13 +2846,11 @@ def test_send_messages_to_fifo_without_message_group_id():
         Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
     )
 
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as exc:
         queue.send_messages(Entries=[{"Id": "id_1", "MessageBody": "body_1"}])
-    ex = e.value
-    assert ex.response["Error"]["Code"] == "MissingParameter"
-    assert ex.response["Error"]["Message"] == (
-        "The request must contain the parameter MessageGroupId."
-    )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
+    assert err["Message"] == "The request must contain the parameter MessageGroupId."
 
 
 @mock_sqs
@@ -2862,10 +2858,10 @@ def test_maximum_message_size_attribute_default():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(QueueName=str(uuid4()))
     assert int(queue.attributes["MaximumMessageSize"]) == MAXIMUM_MESSAGE_LENGTH
-    with pytest.raises(Exception) as e:
+    with pytest.raises(ClientError) as exc:
         queue.send_message(MessageBody="a" * (MAXIMUM_MESSAGE_LENGTH + 1))
-    ex = e.value
-    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
 
 
 @mock_sqs

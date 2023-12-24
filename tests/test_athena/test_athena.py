@@ -1,9 +1,9 @@
-from botocore.exceptions import ClientError
-import pytest
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_athena, settings
-from moto.athena.models import athena_backends, QueryResults
+from moto.athena.models import QueryResults, athena_backends
 from moto.core import DEFAULT_ACCOUNT_ID
 
 

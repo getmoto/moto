@@ -1,5 +1,6 @@
 from typing import Any
-from moto.core.exceptions import RESTError, JsonRESTError, AWSError
+
+from moto.core.exceptions import AWSError, JsonRESTError, RESTError
 
 ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
 {% block extra %}<ModelName>{{ model }}</ModelName>{% endblock %}
@@ -7,16 +8,20 @@ ERROR_WITH_MODEL_NAME = """{% extends 'single_error' %}
 
 
 class SagemakerClientError(RESTError):
+    extended_templates = {"model_error": ERROR_WITH_MODEL_NAME}
+    env = RESTError.extended_environment(extended_templates)
+
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "single_error")
-        self.templates["model_error"] = ERROR_WITH_MODEL_NAME
         super().__init__(*args, **kwargs)
 
 
 class ModelError(RESTError):
+    extended_templates = {"model_error": ERROR_WITH_MODEL_NAME}
+    env = RESTError.extended_environment(extended_templates)
+
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("template", "model_error")
-        self.templates["model_error"] = ERROR_WITH_MODEL_NAME
         super().__init__(*args, **kwargs)
 
 

@@ -1,27 +1,28 @@
-import re
 import json
+import re
 from typing import Any, Dict, List, Optional
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, utcnow
 from moto.organizations import utils
 from moto.organizations.exceptions import (
-    InvalidInputException,
+    AccountAlreadyRegisteredException,
+    AccountNotFoundException,
+    AccountNotRegisteredException,
+    AWSOrganizationsNotInUseException,
+    ConstraintViolationException,
     DuplicateOrganizationalUnitException,
     DuplicatePolicyException,
-    AccountNotFoundException,
-    ConstraintViolationException,
-    AccountAlreadyRegisteredException,
-    AWSOrganizationsNotInUseException,
-    AccountNotRegisteredException,
-    RootNotFoundException,
+    InvalidInputException,
     PolicyNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
+    RootNotFoundException,
     TargetNotFoundException,
 )
 from moto.utilities.paginator import paginate
+
 from .utils import PAGINATION_MODEL
 
 

@@ -1,9 +1,9 @@
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
-from .models import mediaconnect_backends, MediaConnectBackend
 
-from urllib.parse import unquote
+from .models import MediaConnectBackend, mediaconnect_backends
 
 
 class MediaConnectResponse(BaseResponse):

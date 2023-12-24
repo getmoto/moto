@@ -1,6 +1,8 @@
 import json
+
 from moto.core.responses import BaseResponse
-from .models import config_backends, ConfigBackend
+
+from .models import ConfigBackend, config_backends
 
 
 class ConfigResponse(BaseResponse):

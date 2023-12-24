@@ -1,11 +1,10 @@
-from moto.core import BaseBackend, BackendDict
-from moto.moto_api import state_manager
-from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.moto_api._internal import mock_random as random
-from moto.utilities.utils import load_resource
 import datetime
 from typing import Any, Dict, List, Optional
 
+from moto.core import BackendDict, BaseBackend
+from moto.moto_api._internal import mock_random as random
+from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.utilities.utils import load_resource
 
 checks_json = "resources/describe_trusted_advisor_checks.json"
 ADVISOR_CHECKS = load_resource(__name__, checks_json)
@@ -66,10 +65,6 @@ class SupportBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.check_status: Dict[str, str] = {}
         self.cases: Dict[str, SupportCase] = {}
-
-        state_manager.register_default_transition(
-            model_name="support::case", transition={"progression": "manual", "times": 1}
-        )
 
     def describe_trusted_advisor_checks(self) -> List[Dict[str, Any]]:
         """

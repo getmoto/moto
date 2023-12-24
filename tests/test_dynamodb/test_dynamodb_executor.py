@@ -1,11 +1,11 @@
 import pytest
 
-from moto.dynamodb.exceptions import IncorrectOperandType, IncorrectDataType
-from moto.dynamodb.models import Item, DynamoType
+from moto.dynamodb.exceptions import IncorrectDataType, IncorrectOperandType
+from moto.dynamodb.models import DynamoType, Item
 from moto.dynamodb.parsing.ast_nodes import (
     UpdateExpression,
-    UpdateExpressionAddClause,
     UpdateExpressionAddAction,
+    UpdateExpressionAddClause,
     UpdateExpressionRemoveAction,
     UpdateExpressionSetAction,
 )

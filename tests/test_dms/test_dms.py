@@ -1,7 +1,8 @@
-from botocore.exceptions import ClientError
+import json
+
 import boto3
 import pytest
-import json
+from botocore.exceptions import ClientError
 
 from moto import mock_dms
 

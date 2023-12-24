@@ -1,8 +1,8 @@
 import datetime
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_ec2, mock_kms, mock_rds
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -482,7 +482,7 @@ def test_get_databases():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -492,7 +492,7 @@ def test_get_databases():
         DBInstanceIdentifier="db-master-2",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -554,7 +554,7 @@ def test_modify_db_instance():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -586,7 +586,7 @@ def test_modify_db_instance_not_existent_db_parameter_group_name():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -608,7 +608,7 @@ def test_modify_db_instance_valid_preferred_maintenance_window():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -632,7 +632,7 @@ def test_modify_db_instance_valid_preferred_maintenance_window_uppercase():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -656,7 +656,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_more_than_24_ho
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -679,7 +679,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_less_than_30_mi
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -702,7 +702,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_value():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -725,7 +725,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_format():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -751,7 +751,7 @@ def test_modify_db_instance_maintenance_backup_window_no_spill():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -777,7 +777,7 @@ def test_modify_db_instance_maintenance_backup_window_maintenance_spill():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -803,7 +803,7 @@ def test_modify_db_instance_maintenance_backup_window_backup_spill():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -829,7 +829,7 @@ def test_modify_db_instance_maintenance_backup_window_both_spill():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -855,7 +855,7 @@ def test_rename_db_instance():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -892,7 +892,7 @@ def test_reboot_db_instance():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -1484,7 +1484,7 @@ def test_list_tags_db():
         DBInstanceIdentifier="db-with-tags",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -1507,7 +1507,7 @@ def test_add_tags_db():
         DBInstanceIdentifier="db-without-tags",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -1535,7 +1535,7 @@ def test_remove_tags_db():
         DBInstanceIdentifier="db-with-tags",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -1807,7 +1807,7 @@ def test_add_security_group_to_database():
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
-        Engine="db.m1.small",
+        Engine="postgres",
         MasterUsername="root",
         MasterUserPassword="hunter2",
         Port=1234,
@@ -2627,6 +2627,26 @@ def test_validate_db_identifier():
             DBInstanceIdentifier="valid-1-id" * 10,
         )
     validation_helper(exc)
+
+
+@mock_rds
+def test_createdb_instance_engine_with_invalid_value():
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
+    with pytest.raises(ClientError) as exc:
+        client.create_db_instance(
+            DBInstanceIdentifier="test-db-instance",
+            Engine="invalid-engine",
+            DBName="staging-postgres",
+            DBInstanceClass="db.m1.small",
+        )
+
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "Value invalid-engine for parameter Engine is invalid. Reason: engine invalid-engine not supported"
+    )
 
 
 def validation_helper(exc):

@@ -1,10 +1,11 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
 import json
-
-from moto.core.responses import BaseResponse, TYPE_RESPONSE
 from typing import Any
 from urllib.parse import unquote
-from .models import appsync_backends, AppSyncBackend
+
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
+
+from .models import AppSyncBackend, appsync_backends
 
 
 class AppSyncResponse(BaseResponse):

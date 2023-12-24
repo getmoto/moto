@@ -2,11 +2,12 @@
 from uuid import uuid4
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_lambda
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+
 from .utilities import (
     get_role_name,
     get_test_zip_file1,
@@ -394,9 +395,11 @@ def test_update_alias_routingconfig():
 
 
 @mock_lambda
-def test_get_function_using_alias():
+@pytest.mark.parametrize("qualifierIn", ["NAME", "SEPARATE", "BOTH"])
+def test_get_function_using_alias(qualifierIn):
     client = boto3.client("lambda", region_name="us-east-2")
     fn_name = str(uuid4())[0:6]
+    fn_qualifier = "live"
 
     client.create_function(
         FunctionName=fn_name,
@@ -408,9 +411,20 @@ def test_get_function_using_alias():
     client.publish_version(FunctionName=fn_name)
     client.publish_version(FunctionName=fn_name)
 
-    client.create_alias(FunctionName=fn_name, Name="live", FunctionVersion="1")
+    client.create_alias(FunctionName=fn_name, Name=fn_qualifier, FunctionVersion="1")
 
-    fn = client.get_function(FunctionName=fn_name, Qualifier="live")["Configuration"]
+    if qualifierIn == "NAME":
+        fn = client.get_function(FunctionName=f"{fn_name}:{fn_qualifier}")[
+            "Configuration"
+        ]
+    elif qualifierIn == "SEPARATE":
+        fn = client.get_function(FunctionName=fn_name, Qualifier=fn_qualifier)[
+            "Configuration"
+        ]
+    elif qualifierIn == "BOTH":
+        fn = client.get_function(
+            FunctionName=f"{fn_name}:{fn_qualifier}", Qualifier=fn_qualifier
+        )["Configuration"]
     assert (
         fn["FunctionArn"]
         == f"arn:aws:lambda:us-east-2:{ACCOUNT_ID}:function:{fn_name}:1"

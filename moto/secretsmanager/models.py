@@ -1,31 +1,30 @@
-import time
-import json
 import datetime
+import json
+import time
+from typing import Any, Dict, List, Optional, Tuple
 
-from typing import Any, Dict, List, Tuple, Optional
-
-from moto.core import BaseBackend, BackendDict, BaseModel
-from moto.core.utils import utcnow
+from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.utils import utcfromtimestamp, utcnow
 from moto.moto_api._internal import mock_random
+
 from .exceptions import (
-    SecretNotFoundException,
-    SecretHasNoValueException,
+    ClientError,
     InvalidParameterException,
+    InvalidRequestException,
     ResourceExistsException,
     ResourceNotFoundException,
+    SecretHasNoValueException,
+    SecretNotFoundException,
     SecretStageVersionMismatchException,
-    InvalidRequestException,
-    ClientError,
 )
-from .utils import random_password, secret_arn, get_secret_name_from_partial_arn
 from .list_secrets.filters import (
+    description_filter,
     filter_all,
+    name_filter,
     tag_key,
     tag_value,
-    description_filter,
-    name_filter,
 )
-
+from .utils import get_secret_name_from_partial_arn, random_password, secret_arn
 
 _filter_functions = {
     "all": filter_all,
@@ -274,7 +273,7 @@ class SecretsManagerBackend(BaseBackend):
         return identifier in self.secrets
 
     def _unix_time_secs(self, dt: datetime.datetime) -> float:
-        epoch = datetime.datetime.utcfromtimestamp(0)
+        epoch = utcfromtimestamp(0)
         return (dt - epoch).total_seconds()
 
     def _client_request_token_validator(self, client_request_token: str) -> None:

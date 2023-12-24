@@ -1,16 +1,17 @@
 import os
+
 from moto import mock_ec2, mock_s3
 
 KEY = "AWS_ACCESS_KEY_ID"
 
 
-def test_aws_keys_are_patched():
+def test_aws_keys_are_patched() -> None:
     with mock_ec2():
         patched_value = os.environ[KEY]
         assert patched_value == "FOOBARKEY"
 
 
-def test_aws_keys_can_be_none():
+def test_aws_keys_can_be_none() -> None:
     """
     Verify that the os.environ[KEY] can be None
     Patching the None-value shouldn't be an issue

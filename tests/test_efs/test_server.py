@@ -1,9 +1,10 @@
 import re
+from unittest import SkipTest
+
 import pytest
 
-from moto import mock_efs, mock_ec2
 import moto.server as server
-
+from moto import mock_ec2, mock_efs, settings
 
 FILE_SYSTEMS = "/2015-02-01/file-systems"
 MOUNT_TARGETS = "/2015-02-01/mount-targets"
@@ -20,6 +21,8 @@ def fixture_aws_credentials(monkeypatch):
 
 @pytest.fixture(scope="function", name="efs_client")
 def fixture_efs_client(aws_credentials):  # pylint: disable=unused-argument
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Using server directly - no point in testing ServerMode")
     with mock_efs():
         yield server.create_backend_app("efs").test_client()
 

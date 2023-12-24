@@ -1,8 +1,8 @@
 import re
 
 import boto3
-from botocore.exceptions import ClientError
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_sagemaker
 from moto.sagemaker.models import VpcConfig
