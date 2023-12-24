@@ -65,7 +65,11 @@ class Device(BaseObject):
         # Each ManagedState has a name composed with attribute name and device name to make subscription easier.
         self.__device_aggregated_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_aggregated_status",
-            transitions=[("NOT-A-STATUS", "AWAITING_PROVISIONING"), ("AWAITING_PROVISIONING", "PENDING"), ("PENDING", "ONLINE")],
+            transitions=[
+                ("NOT-A-STATUS", "AWAITING_PROVISIONING"),
+                ("AWAITING_PROVISIONING", "PENDING"),
+                ("PENDING", "ONLINE"),
+            ],
         )
         self.__device_provisioning_status_manager = ManagedState(
             model_name=f"panorama::device_{name}_provisioning_status",
@@ -83,8 +87,8 @@ class Device(BaseObject):
         self.tags = tags
 
         self.certificates = base64.b64encode("certificate".encode("utf-8")).decode(
-                "utf-8"
-            )
+            "utf-8"
+        )
         self.arn = (
             f"arn:aws:panorama:{self.region_name}:{self.account_id}:device/{self.name}"
         )
@@ -125,20 +129,13 @@ class Device(BaseObject):
 
     @property
     def device_aggregated_status(self) -> str:
-        # _device_aggregated_status: str = self.__device_aggregated_status_manager.status  # type: ignore[assignment]
-        # self.__device_aggregated_status_manager.advance()
-        # return _device_aggregated_status
         self.__device_aggregated_status_manager.advance()
-        return self.__device_aggregated_status_manager.status
-
+        return self.__device_aggregated_status_manager.status  # type: ignore[return-value]
 
     @property
     def provisioning_status(self) -> str:
-        # _provisioning_status: str = self.__device_provisioning_status_manager.status  # type: ignore[assignment]
-        # self.__device_provisioning_status_manager.advance()
-        # return _provisioning_status
         self.__device_provisioning_status_manager.advance()
-        return self.__device_provisioning_status_manager.status
+        return self.__device_provisioning_status_manager.status  # type: ignore[return-value]
 
     def response_object(self) -> Dict[str, Any]:
         response_object = super().gen_response_object()
