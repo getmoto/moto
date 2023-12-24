@@ -1528,6 +1528,22 @@
   "Location": "ap-southeast-3b"
  },
  {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "ap-southeast-3b"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "ap-southeast-3c"
  },
