@@ -91,6 +91,18 @@ class RekognitionResponse(BaseResponse):
             )
         )
 
+    def detect_text(self) -> str:
+        (
+            text_detections,
+            text_model_version,
+        ) = self.rekognition_backend.detect_text()
+        return json.dumps(
+            dict(
+                TextDetections=text_detections,
+                TextModelVersion=text_model_version,
+            )
+        )
+
     def start_face_search(self) -> TYPE_RESPONSE:
         headers = {"Content-Type": "application/x-amz-json-1.1"}
         job_id = self.rekognition_backend.start_face_search()
