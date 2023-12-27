@@ -2162,6 +2162,10 @@ class RegionAgnosticBackend:
     # Without authentication-header, we lose the context of which region the request was send to
     # This backend will cycle through all backends as a workaround
 
+    def __init__(self, account_id: str, region_name: str):
+        self.account_id = account_id
+        self.region_name = region_name
+
     def _find_backend_by_access_token(self, access_token: str) -> CognitoIdpBackend:
         for account_specific_backends in cognitoidp_backends.values():
             for region, backend in account_specific_backends.items():
@@ -2170,7 +2174,7 @@ class RegionAgnosticBackend:
                 for p in backend.user_pools.values():
                     if access_token in p.access_tokens:
                         return backend
-        return backend
+        return cognitoidp_backends[self.account_id][self.region_name]
 
     def _find_backend_for_clientid(self, client_id: str) -> CognitoIdpBackend:
         for account_specific_backends in cognitoidp_backends.values():
@@ -2180,7 +2184,7 @@ class RegionAgnosticBackend:
                 for p in backend.user_pools.values():
                     if client_id in p.clients:
                         return backend
-        return backend
+        return cognitoidp_backends[self.account_id][self.region_name]
 
     def sign_up(
         self,
@@ -2237,7 +2241,9 @@ cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")
 # Hack to help moto-server process requests on localhost, where the region isn't
 # specified in the host header. Some endpoints (change password, confirm forgot
 # password) have no authorization header from which to extract the region.
-def find_account_region_by_value(key: str, value: str) -> Tuple[str, str]:
+def find_account_region_by_value(
+    key: str, value: str, fallback: Tuple[str, str]
+) -> Tuple[str, str]:
     for account_id, account_specific_backend in cognitoidp_backends.items():
         for region, backend in account_specific_backend.items():
             for user_pool in backend.user_pools.values():
@@ -2249,4 +2255,4 @@ def find_account_region_by_value(key: str, value: str) -> Tuple[str, str]:
     # If we can't find the `client_id` or `access_token`, we just pass
     # back a default backend region, which will raise the appropriate
     # error message (e.g. NotAuthorized or NotFound).
-    return account_id, region
+    return fallback

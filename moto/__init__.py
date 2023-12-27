@@ -178,6 +178,7 @@ mock_neptune = lazy_load(".rds", "mock_rds", boto3_name="neptune")
 mock_opensearch = lazy_load(".opensearch", "mock_opensearch")
 mock_opsworks = lazy_load(".opsworks", "mock_opsworks")
 mock_organizations = lazy_load(".organizations", "mock_organizations")
+mock_panorama = lazy_load(".panorama", "mock_panorama")
 mock_personalize = lazy_load(".personalize", "mock_personalize")
 mock_pinpoint = lazy_load(".pinpoint", "mock_pinpoint")
 mock_polly = lazy_load(".polly", "mock_polly")
@@ -253,9 +254,6 @@ class MockAll(ContextDecorator):
 
 
 mock_all = MockAll
-
-# import logging
-# logging.getLogger('boto').setLevel(logging.CRITICAL)
 
 __title__ = "moto"
 __version__ = "4.2.13.dev"
