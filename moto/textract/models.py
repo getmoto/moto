@@ -42,6 +42,13 @@ class TextractBackend(BaseBackend):
             raise InvalidJobIdException()
         return job
 
+    def detect_document_text(self) -> Dict[str, Any]:
+        return {
+            "Blocks": TextractBackend.BLOCKS,
+            "DetectDocumentTextModelVersion": "1.0",
+            "DocumentMetadata": {"Pages": TextractBackend.PAGES},
+        }
+
     def start_document_text_detection(self, document_location: str) -> str:
         """
         The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
