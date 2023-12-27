@@ -57,6 +57,13 @@ class RekognitionBackend(BaseBackend):
             self.source_image_face(),
         )
 
+    def detect_labels(self) -> Tuple[List[Dict[str, Any]], Dict[str, Any], str]:
+        return (
+            self._mobile_phone_label(),
+            self._image_properties(),
+            "3.0",
+        )
+
     # private
 
     def _job_id(self) -> str:
@@ -456,6 +463,95 @@ class RekognitionBackend(BaseBackend):
                 "Height": 0.3126954436302185,
             },
             "Confidence": 99.98751068115234,
+        }
+
+    def _mobile_phone_label(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "Name": "Mobile Phone",
+                "Parents": [{"Name": "Phone"}],
+                "Aliases": [{"Name": "Cell Phone"}],
+                "Categories": [{"Name": "Technology and Computing"}],
+                "Confidence": 99.9364013671875,
+                "Instances": [
+                    {
+                        "BoundingBox": {
+                            "Width": 0.26779675483703613,
+                            "Height": 0.8562285900115967,
+                            "Left": 0.3604024350643158,
+                            "Top": 0.09245597571134567,
+                        },
+                        "Confidence": 99.9364013671875,
+                        "DominantColors": [
+                            {
+                                "Red": 120,
+                                "Green": 137,
+                                "Blue": 132,
+                                "HexCode": "3A7432",
+                                "SimplifiedColor": "red",
+                                "CssColor": "fuscia",
+                                "PixelPercentage": 40.10,
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+
+    def _image_properties(self) -> Dict[str, Any]:
+        return {
+            "ImageProperties": {
+                "Quality": {
+                    "Brightness": 40,
+                    "Sharpness": 40,
+                    "Contrast": 24,
+                },
+                "DominantColors": [
+                    {
+                        "Red": 120,
+                        "Green": 137,
+                        "Blue": 132,
+                        "HexCode": "3A7432",
+                        "SimplifiedColor": "red",
+                        "CssColor": "fuscia",
+                        "PixelPercentage": 40.10,
+                    }
+                ],
+                "Foreground": {
+                    "Quality": {
+                        "Brightness": 40,
+                        "Sharpness": 40,
+                    },
+                    "DominantColors": [
+                        {
+                            "Red": 200,
+                            "Green": 137,
+                            "Blue": 132,
+                            "HexCode": "3A7432",
+                            "CSSColor": "",
+                            "SimplifiedColor": "red",
+                            "PixelPercentage": 30.70,
+                        }
+                    ],
+                },
+                "Background": {
+                    "Quality": {
+                        "Brightness": 40,
+                        "Sharpness": 40,
+                    },
+                    "DominantColors": [
+                        {
+                            "Red": 200,
+                            "Green": 137,
+                            "Blue": 132,
+                            "HexCode": "3A7432",
+                            "CSSColor": "",
+                            "SimplifiedColor": "Red",
+                            "PixelPercentage": 10.20,
+                        }
+                    ],
+                },
+            }
         }
 
 

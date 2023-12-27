@@ -62,6 +62,18 @@ def test_compare_faces():
 
 
 @mock_rekognition
+def test_detect_labels():
+    client = boto3.client("rekognition", region_name="ap-southeast-1")
+
+    resp = client.detect_labels(
+        Image={"S3Object": {"Bucket": "string", "Name": "name.jpg"}}, MaxLabels=10
+    )
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "Labels" in resp
+
+
+@mock_rekognition
 def test_get_face_search():
     client = boto3.client("rekognition", region_name="us-east-2")
     job_id = "".join(

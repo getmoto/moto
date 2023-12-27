@@ -77,6 +77,20 @@ class RekognitionResponse(BaseResponse):
             )
         )
 
+    def detect_labels(self) -> str:
+        (
+            labels,
+            image_properties,
+            label_model_version,
+        ) = self.rekognition_backend.detect_labels()
+        return json.dumps(
+            dict(
+                Labels=labels,
+                ImageProperties=image_properties,
+                LabelModelVersion=label_model_version,
+            )
+        )
+
     def start_face_search(self) -> TYPE_RESPONSE:
         headers = {"Content-Type": "application/x-amz-json-1.1"}
         job_id = self.rekognition_backend.start_face_search()
