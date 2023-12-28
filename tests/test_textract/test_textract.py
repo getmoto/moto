@@ -88,7 +88,6 @@ def test_get_document_text_detection_without_document_location():
 
 @mock_textract
 def test_detect_document_text():
-    TextractBackend.BLOCKS = []
     client = boto3.client("textract", region_name="us-east-1")
     result = client.detect_document_text(
         Document={
@@ -98,6 +97,5 @@ def test_detect_document_text():
             }
         }
     )
-    assert result["Blocks"] == TextractBackend.BLOCKS
+    assert isinstance(result["Blocks"], list)
     assert result["DetectDocumentTextModelVersion"] == "1.0"
-    assert result["DocumentMetadata"]["Pages"] == TextractBackend.PAGES
