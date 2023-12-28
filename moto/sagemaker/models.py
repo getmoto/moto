@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 from dateutil.tz import tzutc
 
@@ -1105,6 +1105,12 @@ class ModelPackage(BaseObject):
             "AdditionalInferenceSpecifications",
             "SkipModelValidation",
         ]
+        if (
+            "ModelPackageGroupName" in response_object
+            and response_object["ModelPackageGroupName"]
+            == response_object["ModelPackageName"]
+        ):
+            del response_object["ModelPackageName"]
         return {
             k: v
             for k, v in response_object.items()
@@ -3295,6 +3301,8 @@ class SageMakerModelBackend(BaseBackend):
             )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
+            if model_package_group_name.startswith("arn:aws"):
+                model_package_group_name = model_package_group_name.split("/")[-1]
         model_package_summary_list = list(
             filter(
                 lambda x: (
@@ -3377,7 +3385,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_model_package(
         self,
-        model_package_name: str,
+        model_package_name: Optional[str],
         model_package_group_name: Optional[str],
         model_package_description: Optional[str],
         inference_specification: Any,
@@ -3397,15 +3405,25 @@ class SageMakerModelBackend(BaseBackend):
         additional_inference_specifications: Any,
     ) -> str:
         model_package_version = None
-        if model_package_group_name is not None:
+        if model_package_group_name and model_package_name:
+            raise AWSValidationException(
+                "An error occurred (ValidationException) when calling the CreateModelPackage operation: Both ModelPackageName and ModelPackageGroupName are provided in the input. Cannot determine which one to use."
+            )
+        elif not model_package_group_name and not model_package_name:
+            raise AWSValidationException(
+                "An error ocurred (ValidationException) when calling the CreateModelPackag operation: Missing ARN."
+            )
+        elif model_package_group_name:
+            model_package_name = model_package_group_name
             model_packages_for_group = [
                 x
                 for x in self.model_packages.values()
                 if x.model_package_group_name == model_package_group_name
             ]
             model_package_version = len(model_packages_for_group) + 1
+
         model_package = ModelPackage(
-            model_package_name=model_package_name,
+            model_package_name=cast(str, model_package_name),
             model_package_group_name=model_package_group_name,
             model_package_description=model_package_description,
             inference_specification=inference_specification,
