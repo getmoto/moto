@@ -368,7 +368,7 @@ def test_update_model_package_given_additional_inference_specifications_to_add()
 
 
 @mock_sagemaker
-def test_update_model_package_shoudl_update_last_modified_information():
+def test_update_model_package_should_update_last_modified_information():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
