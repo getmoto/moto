@@ -108,10 +108,12 @@ class ScheduleGroup(BaseModel):
 
     def get_schedule(self, name: str) -> Schedule:
         if name not in self.schedules:
-            raise ScheduleNotFound
+            raise ScheduleNotFound(name)
         return self.schedules[name]
 
     def delete_schedule(self, name: str) -> None:
+        if name not in self.schedules:
+            raise ScheduleNotFound(name)
         self.schedules.pop(name)
 
     def to_dict(self) -> Dict[str, Any]:
