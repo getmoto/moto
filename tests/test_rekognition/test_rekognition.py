@@ -44,6 +44,48 @@ def test_start_text_detection():
 
 
 @mock_rekognition
+def test_compare_faces():
+    client = boto3.client("rekognition", region_name="ap-southeast-1")
+    sourceimage = {
+        "S3Object": {"Bucket": "string", "Name": "string", "Version": "string"}
+    }
+    targetimage = {
+        "S3Object": {"Bucket": "string", "Name": "string", "Version": "string"}
+    }
+
+    resp = client.compare_faces(
+        SimilarityThreshold=80, SourceImage=sourceimage, TargetImage=targetimage
+    )
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "FaceMatches" in resp
+
+
+@mock_rekognition
+def test_detect_labels():
+    client = boto3.client("rekognition", region_name="ap-southeast-1")
+
+    resp = client.detect_labels(
+        Image={"S3Object": {"Bucket": "string", "Name": "name.jpg"}}, MaxLabels=10
+    )
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "Labels" in resp
+
+
+@mock_rekognition
+def test_detect_text():
+    client = boto3.client("rekognition", region_name="ap-southeast-1")
+
+    resp = client.detect_text(
+        Image={"S3Object": {"Bucket": "string", "Name": "name.jpg"}}
+    )
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "TextDetections" in resp
+
+
+@mock_rekognition
 def test_get_face_search():
     client = boto3.client("rekognition", region_name="us-east-2")
     job_id = "".join(

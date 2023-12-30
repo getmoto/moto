@@ -84,3 +84,18 @@ def test_get_document_text_detection_without_document_location():
         'Parameter validation failed:\nMissing required parameter in input: "DocumentLocation"'
         in e.value.args
     )
+
+
+@mock_textract
+def test_detect_document_text():
+    client = boto3.client("textract", region_name="us-east-1")
+    result = client.detect_document_text(
+        Document={
+            "S3Object": {
+                "Bucket": "bucket",
+                "Name": "name.jpg",
+            }
+        }
+    )
+    assert isinstance(result["Blocks"], list)
+    assert result["DetectDocumentTextModelVersion"] == "1.0"

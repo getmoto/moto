@@ -24,6 +24,22 @@ def test_textract_start_text_detection():
 
 
 @mock_textract
+def test_detect_document_text():
+    backend = server.create_backend_app("textract")
+    test_client = backend.test_client()
+    headers = {"X-Amz-Target": "X-Amz-Target=Textract.DetectDocumentText"}
+    request_body = {
+        "DocumentLocation": {
+            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version"}
+        }
+    }
+    resp = test_client.post("/", headers=headers, json=request_body)
+    data = json.loads(resp.data.decode("utf-8"))
+    assert resp.status_code == 200
+    assert isinstance(data["Blocks"], list)
+
+
+@mock_textract
 def test_textract_start_text_detection_without_document_location():
     backend = server.create_backend_app("textract")
     test_client = backend.test_client()
