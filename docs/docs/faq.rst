@@ -19,6 +19,14 @@ Is Moto concurrency safe?
 
 No. Moto is not designed for multithreaded access/multiprocessing.
 
+Moto's internal state, encompassing resource creations and modifications, is managed within the context of the thread in which it is invoked. In a multithreading environment, Python's threading model involves creating a new thread that initially copies the global context from the main thread. However, it's crucial to understand that this copy is a one-time snapshot at the moment of thread creation.
+
+If Moto is employed to mock AWS services in a secondary thread, resources created or modified within that thread may not be visible to other threads or the main thread. The initial copy of the global context to the new thread means that the secondary thread depends on the state from the main thread in a read-only manner. Subsequent modifications or creations within the secondary thread do not propagate back to the main thread or affect the global context of other threads.
+
+For example, if you are using Moto to mock the AWS Cognito IDP service and create users, and these operations are performed in a thread separate from the main application logic, the application may not be able to see the users created in the secondary thread. This limitation arises because, in Python, the new thread's initial state is a copy of the main thread's state, and any changes in one thread do not automatically reflect in other threads and vice versa.
+
+It is essential to consider this behavior when using Moto in scenarios involving multiple threads. For tests that require resource modifications, such as creating or updating AWS resources, it is recommended to ensure that Moto operations are performed within the same thread context as the application or test logic to ensure consistent behavior.
+
 Why am I getting RUST errors when installing Moto?
 ####################################################
 
