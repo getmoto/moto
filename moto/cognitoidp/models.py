@@ -909,7 +909,7 @@ class CognitoResourceServer(BaseModel):
             "Name": self.name,
         }
 
-        if len(self.scopes) != 0:
+        if self.scopes:
             res.update({"Scopes": self.scopes})
 
         return res

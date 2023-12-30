@@ -3579,6 +3579,26 @@ def test_create_resource_server():
 
 
 @mock_cognitoidp
+def test_create_resource_server_with_no_scopes():
+    client = boto3.client("cognito-idp", "us-west-2")
+    name = str(uuid.uuid4())
+    res = client.create_user_pool(PoolName=name)
+
+    user_pool_id = res["UserPool"]["Id"]
+    identifier = "http://localhost.localdomain"
+    name = "local server"
+
+    res = client.create_resource_server(
+        UserPoolId=user_pool_id, Identifier=identifier, Name=name
+    )
+
+    assert res["ResourceServer"]["UserPoolId"] == user_pool_id
+    assert res["ResourceServer"]["Identifier"] == identifier
+    assert res["ResourceServer"]["Name"] == name
+    assert "Scopes" not in res["ResourceServer"]
+
+
+@mock_cognitoidp
 def test_describe_resource_server():
 
     # Create a user pool to attach a resource server to
