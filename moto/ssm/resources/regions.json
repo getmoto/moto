@@ -20655,6 +20655,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackage": {
+                "Value": "mediapackage",
+                "endpoint": {
+                  "Value": "mediapackage.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackage-vod": {
+                "Value": "mediapackage-vod",
+                "endpoint": {
+                  "Value": "mediapackage-vod.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -35316,6 +35334,15 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-featurestore-runtime": {
+                "Value": "sagemaker-featurestore-runtime",
+                "endpoint": {
+                  "Value": "featurestore-runtime.sagemaker.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
