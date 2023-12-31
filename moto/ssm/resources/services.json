@@ -39813,6 +39813,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "mediapackage.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -39969,6 +39978,15 @@
                 "Value": "ap-southeast-2",
                 "endpoint": {
                   "Value": "mediapackage-vod.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "mediapackage-vod.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52343,6 +52361,15 @@
                 "Value": "eu-south-1",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-south-2": {
+                "Value": "eu-south-2",
+                "endpoint": {
+                  "Value": "featurestore-runtime.sagemaker.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
