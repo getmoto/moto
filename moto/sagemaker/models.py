@@ -3,7 +3,7 @@ import os
 import random
 import string
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 from dateutil.tz import tzutc
 
@@ -1004,6 +1004,7 @@ class ModelPackage(BaseObject):
         client_token: str,
         region_name: str,
         account_id: str,
+        model_package_type: str,
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> None:
         fake_user_profile_name = "fake-user-profile-name"
@@ -1032,6 +1033,7 @@ class ModelPackage(BaseObject):
         self.inference_specification = inference_specification
         self.source_algorithm_specification = source_algorithm_specification
         self.validation_specification = validation_specification
+        self.model_package_type = model_package_type
         self.model_package_status_details = {
             "ValidationStatuses": [
                 {
@@ -1105,6 +1107,10 @@ class ModelPackage(BaseObject):
             "AdditionalInferenceSpecifications",
             "SkipModelValidation",
         ]
+        if self.model_package_type == "Versioned":
+            del response_object["ModelPackageName"]
+        elif self.model_package_type == "Unversioned":
+            del response_object["ModelPackageGroupName"]
         return {
             k: v
             for k, v in response_object.items()
@@ -3295,6 +3301,8 @@ class SageMakerModelBackend(BaseBackend):
             )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
+            if model_package_group_name.startswith("arn:aws"):
+                model_package_group_name = model_package_group_name.split("/")[-1]
         model_package_summary_list = list(
             filter(
                 lambda x: (
@@ -3377,7 +3385,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_model_package(
         self,
-        model_package_name: str,
+        model_package_name: Optional[str],
         model_package_group_name: Optional[str],
         model_package_description: Optional[str],
         inference_specification: Any,
@@ -3397,15 +3405,32 @@ class SageMakerModelBackend(BaseBackend):
         additional_inference_specifications: Any,
     ) -> str:
         model_package_version = None
-        if model_package_group_name is not None:
+        if model_package_group_name and model_package_name:
+            raise AWSValidationException(
+                "An error occurred (ValidationException) when calling the CreateModelPackage operation: Both ModelPackageName and ModelPackageGroupName are provided in the input. Cannot determine which one to use."
+            )
+        elif not model_package_group_name and not model_package_name:
+            raise AWSValidationException(
+                "An error ocurred (ValidationException) when calling the CreateModelPackag operation: Missing ARN."
+            )
+        elif model_package_group_name:
+            model_package_type = "Versioned"
+            model_package_name = model_package_group_name
             model_packages_for_group = [
                 x
                 for x in self.model_packages.values()
                 if x.model_package_group_name == model_package_group_name
             ]
+            if model_package_group_name not in self.model_package_groups:
+                raise AWSValidationException(
+                    "An error ocurred (ValidationException) when calling the CreateModelPackage operation: Model Package Group does not exist."
+                )
             model_package_version = len(model_packages_for_group) + 1
+        else:
+            model_package_type = "Unversioned"
+
         model_package = ModelPackage(
-            model_package_name=model_package_name,
+            model_package_name=cast(str, model_package_name),
             model_package_group_name=model_package_group_name,
             model_package_description=model_package_description,
             inference_specification=inference_specification,
@@ -3427,6 +3452,7 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             account_id=self.account_id,
             client_token=client_token,
+            model_package_type=model_package_type,
         )
         self.model_package_name_mapping[
             model_package.model_package_name
