@@ -447,6 +447,17 @@ def test_create_model_package_should_raise_error_when_package_name_and_group_are
     )
 
 
+@mock_sagemaker
+def test_create_model_package_should_raise_error_when_model_package_group_provided_not_exist():
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        _ = client.create_model_package(
+            ModelPackageGroupName="TestModelPackageGroupNotExist",
+            ModelPackageDescription="test-model-package-description",
+        )
+    assert "Model Package Group does not exist." in str(exc.value)
+
+
 @pytest.mark.parametrize(
     "model_approval_status",
     ["Approved", "Rejected", "PendingManualApproval"],

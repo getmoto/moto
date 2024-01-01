@@ -3421,6 +3421,10 @@ class SageMakerModelBackend(BaseBackend):
                 for x in self.model_packages.values()
                 if x.model_package_group_name == model_package_group_name
             ]
+            if model_package_group_name not in self.model_package_groups:
+                raise AWSValidationException(
+                    "An error ocurred (ValidationException) when calling the CreateModelPackage operation: Model Package Group does not exist."
+                )
             model_package_version = len(model_packages_for_group) + 1
         else:
             model_package_type = "Unversioned"
