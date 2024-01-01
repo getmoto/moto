@@ -1004,6 +1004,7 @@ class ModelPackage(BaseObject):
         client_token: str,
         region_name: str,
         account_id: str,
+        model_package_type: str,
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> None:
         fake_user_profile_name = "fake-user-profile-name"
@@ -1032,6 +1033,7 @@ class ModelPackage(BaseObject):
         self.inference_specification = inference_specification
         self.source_algorithm_specification = source_algorithm_specification
         self.validation_specification = validation_specification
+        self.model_package_type = model_package_type
         self.model_package_status_details = {
             "ValidationStatuses": [
                 {
@@ -1105,12 +1107,10 @@ class ModelPackage(BaseObject):
             "AdditionalInferenceSpecifications",
             "SkipModelValidation",
         ]
-        if (
-            "ModelPackageGroupName" in response_object
-            and response_object["ModelPackageGroupName"]
-            == response_object["ModelPackageName"]
-        ):
+        if self.model_package_type == "Versioned":
             del response_object["ModelPackageName"]
+        elif self.model_package_type == "Unversioned":
+            del response_object["ModelPackageGroupName"]
         return {
             k: v
             for k, v in response_object.items()
@@ -3414,6 +3414,7 @@ class SageMakerModelBackend(BaseBackend):
                 "An error ocurred (ValidationException) when calling the CreateModelPackag operation: Missing ARN."
             )
         elif model_package_group_name:
+            model_package_type = "Versioned"
             model_package_name = model_package_group_name
             model_packages_for_group = [
                 x
@@ -3421,6 +3422,8 @@ class SageMakerModelBackend(BaseBackend):
                 if x.model_package_group_name == model_package_group_name
             ]
             model_package_version = len(model_packages_for_group) + 1
+        else:
+            model_package_type = "Unversioned"
 
         model_package = ModelPackage(
             model_package_name=cast(str, model_package_name),
@@ -3445,6 +3448,7 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             account_id=self.account_id,
             client_token=client_token,
+            model_package_type=model_package_type,
         )
         self.model_package_name_mapping[
             model_package.model_package_name
