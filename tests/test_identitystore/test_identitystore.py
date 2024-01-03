@@ -560,6 +560,61 @@ def test_list_group_memberships():
             next_token = list_response["NextToken"]
 
 
+@mock_identitystore
+def test_list_group_memberships_for_member():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    start = 0
+    end = 5000
+    batch_size = 321
+    next_token = None
+    membership_ids = []
+
+    user_id = __create_and_verify_sparse_user(client, identity_store_id)["UserId"]
+    for i in range(end):
+        group_id = client.create_group(
+            IdentityStoreId=identity_store_id,
+            DisplayName=f"test_group_{i}",
+            Description="description",
+        )["GroupId"]
+        create_response = client.create_group_membership(
+            IdentityStoreId=identity_store_id,
+            GroupId=group_id,
+            MemberId={"UserId": user_id},
+        )
+        membership_ids.append((create_response["MembershipId"], user_id))
+
+    for iteration in range(start, end, batch_size):
+        last_iteration = end - iteration <= batch_size
+        expected_size = batch_size if not last_iteration else end - iteration
+        end_index = iteration + expected_size
+
+        if next_token is not None:
+            list_response = client.list_group_memberships_for_member(
+                IdentityStoreId=identity_store_id,
+                MemberId={"UserId": user_id},
+                MaxResults=batch_size,
+                NextToken=next_token,
+            )
+        else:
+            list_response = client.list_group_memberships_for_member(
+                IdentityStoreId=identity_store_id,
+                MemberId={"UserId": user_id},
+                MaxResults=batch_size,
+            )
+
+        assert len(list_response["GroupMemberships"]) == expected_size
+        __check_membership_list_values(
+            list_response["GroupMemberships"], membership_ids[iteration:end_index]
+        )
+        if last_iteration:
+            assert "NextToken" not in list_response
+        else:
+            assert "NextToken" in list_response
+            next_token = list_response["NextToken"]
+
+
 def __check_membership_list_values(members, expected):
     assert len(members) == len(expected)
     for i in range(len(expected)):

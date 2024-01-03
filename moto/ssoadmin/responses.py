@@ -97,6 +97,28 @@ class SSOAdminResponse(BaseResponse):
 
         return json.dumps(dict(AccountAssignments=assignments, NextToken=next_token))
 
+    def list_account_assignments_for_principal(self) -> str:
+        filter_ = self._get_param("Filter", {})
+        instance_arn = self._get_param("InstanceArn")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        principal_id = self._get_param("PrincipalId")
+        principal_type = self._get_param("PrincipalType")
+
+        (
+            assignments,
+            next_token,
+        ) = self.ssoadmin_backend.list_account_assignments_for_principal(
+            filter_=filter_,
+            instance_arn=instance_arn,
+            max_results=max_results,
+            next_token=next_token,
+            principal_id=principal_id,
+            principal_type=principal_type,
+        )
+
+        return json.dumps(dict(AccountAssignments=assignments, NextToken=next_token))
+
     def create_permission_set(self) -> str:
         name = self._get_param("Name")
         description = self._get_param("Description")
