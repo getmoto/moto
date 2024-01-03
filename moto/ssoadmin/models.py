@@ -5,7 +5,7 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 
-from .exceptions import ResourceNotFound
+from .exceptions import ResourceNotFoundException
 from .utils import PAGINATION_MODEL
 
 
@@ -59,6 +59,7 @@ class PermissionSet(BaseModel):
         self.relay_state = relay_state
         self.tags = tags
         self.created_date = unix_time()
+        self.inline_policy = ""
 
     def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
         summary: Dict[str, Any] = {
@@ -155,7 +156,7 @@ class SSOAdminBackend(BaseBackend):
                 and principal_id_match
             ):
                 return account
-        raise ResourceNotFound
+        raise ResourceNotFoundException
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_account_assignments(
@@ -273,7 +274,10 @@ class SSOAdminBackend(BaseBackend):
             )
             if instance_arn_match and permission_set_match:
                 return permission_set
-        raise ResourceNotFound
+        ps_id = permission_set_arn.split("/")[-1]
+        raise ResourceNotFoundException(
+            message=f"Could not find PermissionSet with id {ps_id}"
+        )
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:
@@ -282,6 +286,33 @@ class SSOAdminBackend(BaseBackend):
             if permission_set.instance_arn == instance_arn:
                 permission_sets.append(permission_set)
         return permission_sets
+
+    def put_inline_policy_to_permission_set(
+        self, instance_arn: str, permission_set_arn: str, inline_policy: str
+    ) -> None:
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        permission_set.inline_policy = inline_policy
+
+    def get_inline_policy_for_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> str:
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        return permission_set.inline_policy
+
+    def delete_inline_policy_from_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> None:
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        permission_set.inline_policy = ""
 
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")

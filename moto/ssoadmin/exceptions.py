@@ -2,6 +2,10 @@
 from moto.core.exceptions import JsonRESTError
 
 
-class ResourceNotFound(JsonRESTError):
-    def __init__(self) -> None:
-        super().__init__("ResourceNotFound", "Account not found")
+class ResourceNotFoundException(JsonRESTError):
+    def __init__(self, message: str = "Account not found") -> None:
+        super().__init__(
+            error_type="ResourceNotFoundException",
+            message=message,
+            code="ResourceNotFoundException",
+        )
