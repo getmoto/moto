@@ -384,11 +384,12 @@ class FakeStack(CloudFormationModel):
         self.name = name
         self.account_id = account_id
         self.template = template
+        self.template_dict: Dict[str, Any]
         if template != {}:
             self._parse_template()
             self.description = self.template_dict.get("Description")
         else:
-            self.template_dict: Dict[str, Any] = {}
+            self.template_dict = {}
             self.description = None
         self.parameters = parameters
         self.region_name = region_name
@@ -412,12 +413,8 @@ class FakeStack(CloudFormationModel):
         self.status = "CREATE_PENDING"
 
     def has_template(self, other_template: str) -> bool:
-        our_template = (
-            self.template
-            if isinstance(self.template, dict)
-            else json.loads(self.template)
-        )
-        return our_template == json.loads(other_template)
+        self._parse_template()
+        return self.template_dict == json.loads(other_template)
 
     def has_parameters(self, other_parameters: Dict[str, Any]) -> bool:
         return self.parameters == other_parameters
