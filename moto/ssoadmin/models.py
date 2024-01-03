@@ -399,7 +399,7 @@ class SSOAdminBackend(BaseBackend):
 
     def _detach_managed_policy(
         self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
-    ):
+    ) -> None:
         # ensure permission_set exists
         permissionset = self._find_permission_set(
             instance_arn,
