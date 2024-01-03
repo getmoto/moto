@@ -33,7 +33,7 @@ dummy_template = {
         "EC2Instance1": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
-                "ImageId": 123,
+                "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "dummy",
                 "InstanceType": "t2.micro",
                 "Tags": [
