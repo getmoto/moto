@@ -118,7 +118,7 @@ def test_delete_account_assignment_unknown():
             PrincipalId=principal_id,
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFound"
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_ssoadmin
@@ -391,7 +391,7 @@ def test_update_permission_set_unknown():
             RelayState="https://console.aws.amazon.com/s3",
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFound"
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_ssoadmin
@@ -428,7 +428,7 @@ def test_describe_permission_set_unknown():
             PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFound"
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_ssoadmin
@@ -451,7 +451,7 @@ def test_delete_permission_set():
             PermissionSetArn=permission_set["PermissionSetArn"],
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFound"
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_ssoadmin
@@ -464,7 +464,7 @@ def test_delete_permission_set_unknown():
             PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "ResourceNotFound"
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_ssoadmin

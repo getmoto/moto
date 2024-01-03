@@ -160,3 +160,32 @@ class SSOAdminResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
+
+    def put_inline_policy_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        inline_policy = self._get_param("InlinePolicy")
+        self.ssoadmin_backend.put_inline_policy_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            inline_policy=inline_policy,
+        )
+        return json.dumps({})
+
+    def get_inline_policy_for_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        inline_policy = self.ssoadmin_backend.get_inline_policy_for_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps({"InlinePolicy": inline_policy})
+
+    def delete_inline_policy_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        self.ssoadmin_backend.delete_inline_policy_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps({})
