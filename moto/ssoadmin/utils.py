@@ -30,4 +30,11 @@ PAGINATION_MODEL = {
             "PrincipalType",
         ],
     },
+    "list_managed_policies_in_permission_set": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "result_key": "AttachedManagedPolicies",
+        "unique_attribute": ["arn"],
+    },
 }

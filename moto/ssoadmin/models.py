@@ -1,12 +1,21 @@
+import json
 from typing import Any, Dict, List
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
+from moto.iam.aws_managed_policies import aws_managed_policies_data
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import (
+    ConflictException,
+    ResourceNotFoundException,
+    ServiceQuotaExceededException,
+)
 from .utils import PAGINATION_MODEL
+
+# https://docs.aws.amazon.com/singlesignon/latest/userguide/limits.html
+MAX_MANAGED_POLICIES_PER_PERMISSION_SET = 20
 
 
 class AccountAssignment(BaseModel):
@@ -60,6 +69,10 @@ class PermissionSet(BaseModel):
         self.tags = tags
         self.created_date = unix_time()
         self.inline_policy = ""
+        self.managed_policies: List[ManagedPolicy] = list()
+        self.total_managed_policies_attached = (
+            0  # this will also include customer managed policies
+        )
 
     def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
         summary: Dict[str, Any] = {
@@ -83,6 +96,17 @@ class PermissionSet(BaseModel):
         )
 
 
+class ManagedPolicy(BaseModel):
+    def __init__(self, arn: str, name: str):
+        self.arn = arn
+        self.name = name
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ManagedPolicy):
+            return False
+        return self.arn == other.arn
+
+
 class SSOAdminBackend(BaseBackend):
     """Implementation of SSOAdmin APIs."""
 
@@ -90,6 +114,9 @@ class SSOAdminBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.account_assignments: List[AccountAssignment] = list()
         self.permission_sets: List[PermissionSet] = list()
+        self.aws_managed_policies: Dict[str, Any] = json.loads(
+            aws_managed_policies_data
+        )
 
     def create_account_assignment(
         self,
@@ -157,6 +184,22 @@ class SSOAdminBackend(BaseBackend):
             ):
                 return account
         raise ResourceNotFoundException
+
+    def _find_managed_policy(self, managed_policy_arn: str) -> ManagedPolicy:
+        """
+        Checks to make sure the managed policy exists.
+        This pulls from moto/iam/aws_managed_policies.py
+        """
+        # arn:aws:iam::aws:policy/SecurityAudit
+        policy_name = managed_policy_arn.split("/")[-1]
+        if managed_policy := self.aws_managed_policies.get(policy_name, None):
+            path = managed_policy.get("path", "/")
+            expected_arn = f"arn:aws:iam::aws:policy{path}{policy_name}"
+            if managed_policy_arn == expected_arn:
+                return ManagedPolicy(managed_policy_arn, policy_name)
+        raise ResourceNotFoundException(
+            f"Policy does not exist with ARN: {managed_policy_arn}"
+        )
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_account_assignments(
@@ -313,6 +356,72 @@ class SSOAdminBackend(BaseBackend):
             permission_set_arn,
         )
         permission_set.inline_policy = ""
+
+    def attach_managed_policy_to_permission_set(
+        self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
+    ) -> None:
+        permissionset = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+
+        managed_policy = self._find_managed_policy(managed_policy_arn)
+
+        permissionset_id = permission_set_arn.split("/")[-1]
+        if managed_policy in permissionset.managed_policies:
+            raise ConflictException(
+                f"Permission set with id {permissionset_id} already has a typed link attachment to a manged policy with {managed_policy_arn}"
+            )
+
+        if (
+            permissionset.total_managed_policies_attached
+            >= MAX_MANAGED_POLICIES_PER_PERMISSION_SET
+        ):
+            permissionset_id = permission_set_arn.split("/")[-1]
+            raise ServiceQuotaExceededException(
+                f"You have exceeded AWS SSO limits. Cannot create ManagedPolicy more than {MAX_MANAGED_POLICIES_PER_PERMISSION_SET} for id {permissionset_id}. Please refer to https://docs.aws.amazon.com/singlesignon/latest/userguide/limits.html"
+            )
+
+        permissionset.managed_policies.append(managed_policy)
+        permissionset.total_managed_policies_attached += 1
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_managed_policies_in_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+    ) -> List[ManagedPolicy]:
+        permissionset = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        return permissionset.managed_policies
+
+    def _detach_managed_policy(
+        self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
+    ):
+        # ensure permission_set exists
+        permissionset = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+
+        for managed_policy in permissionset.managed_policies:
+            if managed_policy.arn == managed_policy_arn:
+                permissionset.managed_policies.remove(managed_policy)
+                permissionset.total_managed_policies_attached -= 1
+                return
+
+        raise ResourceNotFoundException(
+            f"Could not find ManagedPolicy with arn {managed_policy_arn}"
+        )
+
+    def detach_managed_policy_from_permission_set(
+        self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
+    ) -> None:
+        self._detach_managed_policy(
+            instance_arn, permission_set_arn, managed_policy_arn
+        )
 
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")

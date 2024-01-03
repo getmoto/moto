@@ -195,3 +195,52 @@ class SSOAdminResponse(BaseResponse):
             permission_set_arn=permission_set_arn,
         )
         return json.dumps({})
+
+    def attach_managed_policy_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        managed_policy_arn = self._get_param("ManagedPolicyArn")
+        self.ssoadmin_backend.attach_managed_policy_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            managed_policy_arn=managed_policy_arn,
+        )
+        return json.dumps({})
+
+    def list_managed_policies_in_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        (
+            managed_policies,
+            next_token,
+        ) = self.ssoadmin_backend.list_managed_policies_in_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        managed_policies_response = [
+            {"Arn": managed_policy.arn, "Name": managed_policy.name}
+            for managed_policy in managed_policies
+        ]
+        return json.dumps(
+            {
+                "AttachedManagedPolicies": managed_policies_response,
+                "NextToken": next_token,
+            }
+        )
+
+    def detach_managed_policy_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        managed_policy_arn = self._get_param("ManagedPolicyArn")
+        self.ssoadmin_backend.detach_managed_policy_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            managed_policy_arn=managed_policy_arn,
+        )
+        return json.dumps({})

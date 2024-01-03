@@ -5,6 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_ssoadmin
+from moto.iam.aws_managed_policies import aws_managed_policies_data
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -13,6 +14,11 @@ DUMMY_PERMISSIONSET_ID = (
     "arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo"
 )
 DUMMY_INSTANCE_ARN = "arn:aws:sso:::instance/ins-aaaabbbbccccdddd"
+
+
+@pytest.fixture(name="managed_policies")
+def get_managed_policies():
+    return json.loads(aws_managed_policies_data)
 
 
 def create_permissionset(client) -> str:
@@ -130,3 +136,195 @@ def test_delete_inline_policy_to_permissionset():
     )
 
     assert response["InlinePolicy"] == ""
+
+
+@mock_ssoadmin
+def test_attach_managed_policy_to_permission_set():
+    client = boto3.client("sso-admin", region_name="us-east-1")
+
+    permission_set_arn = create_permissionset(client)
+    permissionset_id = permission_set_arn.split("/")[-1]
+    managed_policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+    client.attach_managed_policy_to_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        ManagedPolicyArn=managed_policy_arn,
+    )
+
+    response = client.list_managed_policies_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+    )
+
+    assert response["AttachedManagedPolicies"][0]["Name"] == "AdministratorAccess"
+    assert (
+        response["AttachedManagedPolicies"][0]["Arn"]
+        == "arn:aws:iam::aws:policy/AdministratorAccess"
+    )
+
+    # test for managed policy that is already attached
+    with pytest.raises(ClientError) as e:
+        client.attach_managed_policy_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            ManagedPolicyArn=managed_policy_arn,
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+    assert (
+        err["Message"]
+        == f"Permission set with id {permissionset_id} already has a typed link attachment to a manged policy with {managed_policy_arn}"
+    )
+
+    # test for managed policy that does not exist
+    not_exist_managed_policy_arn = "arn:aws:iam::aws:policy/DoesNotExist"
+    with pytest.raises(ClientError) as e:
+        client.attach_managed_policy_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            ManagedPolicyArn=not_exist_managed_policy_arn,
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Policy does not exist with ARN: arn:aws:iam::aws:policy/DoesNotExist"
+    )
+
+
+@mock_ssoadmin
+def test_list_managed_policies_quota_limit(managed_policies):
+    """
+    Tests exceeding the managed policy quota limit.
+    """
+    managed_policies_to_attach = []
+    policy_count = 0
+    for policy_name in managed_policies:
+        path = managed_policies[policy_name]["Path"]
+        # only attach policies with path "/"
+        if path != "/":
+            continue
+        managed_policies_to_attach.append(policy_name)
+        policy_count += 1
+        if policy_count >= 21:  # 20 is the quota limit
+            break
+
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+    permission_set_id = permission_set_arn.split("/")[-1]
+
+    arn_string = "arn:aws:iam::aws:policy/"
+    with pytest.raises(ClientError) as e:
+        # the 21st policy should exceed the quota limit
+        for managed_policy in managed_policies_to_attach:
+            client.attach_managed_policy_to_permission_set(
+                InstanceArn=DUMMY_INSTANCE_ARN,
+                PermissionSetArn=permission_set_arn,
+                ManagedPolicyArn=arn_string + managed_policy,
+            )
+    err = e.value.response["Error"]
+    assert err["Code"] == "ServiceQuotaExceededException"
+    assert (
+        err["Message"]
+        == f"You have exceeded AWS SSO limits. Cannot create ManagedPolicy more than 20 for id {permission_set_id}. Please refer to https://docs.aws.amazon.com/singlesignon/latest/userguide/limits.html"
+    )
+
+
+@mock_ssoadmin
+def test_list_managed_policies_in_permission_set(managed_policies):
+    """
+    Tests functionality of listing aws managed policies attached to a permission set.
+    This also tests the pagination functionality.
+    """
+    client = boto3.client("sso-admin", region_name="us-east-1")
+
+    arn_string = "arn:aws:iam::aws:policy/"
+
+    # create a dummy permission set
+    permission_set_arn = create_permissionset(client)
+
+    managed_policies_names = list(managed_policies.keys())
+
+    # attach 3 good managed policies
+    for idx in range(3):
+        managed_policy_name = managed_policies_names[idx]
+
+        client.attach_managed_policy_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            ManagedPolicyArn=arn_string + managed_policy_name,
+        )
+
+    response = client.list_managed_policies_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        MaxResults=2,
+    )
+
+    managed_policies = []
+
+    assert len(response["AttachedManagedPolicies"]) == 2
+    managed_policies.extend(response["AttachedManagedPolicies"])
+    next_token = response["NextToken"]
+
+    response = client.list_managed_policies_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        MaxResults=2,
+        NextToken=next_token,
+    )
+
+    assert len(response["AttachedManagedPolicies"]) == 1
+    managed_policies.extend(response["AttachedManagedPolicies"])
+
+    # ensure the 3 unique managed policies were returned
+    actual_managed_policy_names = [
+        managed_policy["Name"] for managed_policy in managed_policies
+    ]
+    expected_managed_policy_names = managed_policies_names[:3]
+    assert all(
+        name in actual_managed_policy_names for name in expected_managed_policy_names
+    )
+
+
+@mock_ssoadmin
+def test_detach_managed_policy_from_permission_set():
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+    managed_policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+
+    # test for managed policy that is not attached
+    with pytest.raises(ClientError) as e:
+        client.detach_managed_policy_from_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            ManagedPolicyArn=managed_policy_arn,
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"] == f"Could not find ManagedPolicy with arn {managed_policy_arn}"
+    )
+
+    # attach managed policy
+    client.attach_managed_policy_to_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        ManagedPolicyArn=managed_policy_arn,
+    )
+
+    # detach managed policy
+    client.detach_managed_policy_from_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        ManagedPolicyArn=managed_policy_arn,
+    )
+
+    # ensure managed policy is detached
+    response = client.list_managed_policies_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+    )
+
+    assert len(response["AttachedManagedPolicies"]) == 0
