@@ -2326,7 +2326,7 @@ def test_update_changeset_yaml_and_json():
     conn = boto3.client("cloudformation")
     conn.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_yaml)
 
-    # Test
+    # Execute
     response = conn.create_change_set(
         StackName=TEST_STACK_NAME,
         TemplateBody=dummy_template_json,
