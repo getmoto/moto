@@ -157,12 +157,10 @@ class SSOAdminBackend(BaseBackend):
                 return account
         raise ResourceNotFound
 
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_account_assignments(
         self, instance_arn: str, account_id: str, permission_set_arn: str
     ) -> List[Dict[str, Any]]:
-        """
-        Pagination has not yet been implemented
-        """
         account_assignments = []
         for assignment in self.account_assignments:
             if (
@@ -172,7 +170,7 @@ class SSOAdminBackend(BaseBackend):
             ):
                 account_assignments.append(
                     {
-                        "AccountId": account_id,
+                        "AccountId": assignment.target_id,
                         "PermissionSetArn": assignment.permission_set_arn,
                         "PrincipalType": assignment.principal_type,
                         "PrincipalId": assignment.principal_id,

@@ -23,4 +23,4 @@ def test_ssoadmin_list():
     resp = test_client.post("/", headers=headers, data=json.dumps(data))
 
     assert resp.status_code == 200
-    assert json.loads(resp.data) == {"AccountAssignments": []}
+    assert json.loads(resp.data) == {"AccountAssignments": [], "NextToken": None}
