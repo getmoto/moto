@@ -9,6 +9,10 @@ from moto import mock_ssoadmin
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
+DUMMY_PERMISSIONSET_ID = (
+    "arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo"
+)
+DUMMY_INSTANCE_ARN = "arn:aws:sso:::instance/ins-aaaabbbbccccdddd"
 
 
 @mock_ssoadmin
@@ -184,6 +188,140 @@ def test_list_account_assignments():
             "PrincipalId": principal_id,
         }
     ]
+
+
+@mock_ssoadmin
+def test_list_account_assignments_for_principal():
+    client = boto3.client("sso-admin", region_name="us-west-2")
+
+    id_1 = str(uuid4())
+    id_2 = str(uuid4())
+
+    dummy_account_assignments = [
+        {
+            "InstanceArn": DUMMY_INSTANCE_ARN,
+            "TargetId": "111111111111",
+            "TargetType": "AWS_ACCOUNT",
+            "PermissionSetArn": DUMMY_PERMISSIONSET_ID,
+            "PrincipalType": "USER",
+            "PrincipalId": id_1,
+        },
+        {
+            "InstanceArn": DUMMY_INSTANCE_ARN,
+            "TargetId": "222222222222",
+            "TargetType": "AWS_ACCOUNT",
+            "PermissionSetArn": DUMMY_PERMISSIONSET_ID,
+            "PrincipalType": "USER",
+            "PrincipalId": id_2,
+        },
+        {
+            "InstanceArn": DUMMY_INSTANCE_ARN,
+            "TargetId": "333333333333",
+            "TargetType": "AWS_ACCOUNT",
+            "PermissionSetArn": DUMMY_PERMISSIONSET_ID,
+            "PrincipalType": "USER",
+            "PrincipalId": id_2,
+        },
+        {
+            "InstanceArn": DUMMY_INSTANCE_ARN,
+            "TargetId": "222222222222",
+            "TargetType": "AWS_ACCOUNT",
+            "PermissionSetArn": DUMMY_PERMISSIONSET_ID,
+            "PrincipalType": "GROUP",
+            "PrincipalId": id_2,
+        },
+    ]
+
+    # create the account assignments from above
+    for dummy_account_assignment in dummy_account_assignments:
+        client.create_account_assignment(**dummy_account_assignment)
+
+    # check user 1 assignments in all accounts
+    response = client.list_account_assignments_for_principal(
+        InstanceArn=DUMMY_INSTANCE_ARN, PrincipalId=id_1, PrincipalType="USER"
+    )
+    assert len(response["AccountAssignments"]) == 1
+    assert response["AccountAssignments"][0]["PrincipalId"] == id_1
+
+    # check user 2 in a single account
+    response = client.list_account_assignments_for_principal(
+        Filter={"AccountId": "222222222222"},
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PrincipalId=id_2,
+        PrincipalType="USER",
+    )
+    assert len(response["AccountAssignments"]) == 1
+    assert response["AccountAssignments"][0]["PrincipalId"] == id_2
+    assert response["AccountAssignments"][0]["AccountId"] == "222222222222"
+
+    # check group with id 2 is only returned
+    response = client.list_account_assignments_for_principal(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PrincipalId=id_2,
+        PrincipalType="GROUP",
+    )
+    assert len(response["AccountAssignments"]) == 1
+    assert response["AccountAssignments"][0]["PrincipalId"] == id_2
+
+    # check empty response
+    response = client.list_account_assignments_for_principal(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PrincipalId=str(uuid4()),
+        PrincipalType="USER",
+    )
+
+    assert len(response["AccountAssignments"]) == 0
+
+
+@mock_ssoadmin
+def test_list_account_assignments_for_principal_pagination():
+    client = boto3.client("sso-admin", region_name="us-east-2")
+
+    user_id = str(uuid4())
+
+    dummy_account_assignments = []
+    for x in range(3):
+        dummy_account_assignments.append(
+            {
+                "InstanceArn": DUMMY_INSTANCE_ARN,
+                "TargetId": str(x) * 12,
+                "TargetType": "AWS_ACCOUNT",
+                "PermissionSetArn": DUMMY_PERMISSIONSET_ID,
+                "PrincipalType": "USER",
+                "PrincipalId": user_id,
+            },
+        )
+
+    for dummy_account_assignment in dummy_account_assignments:
+        client.create_account_assignment(**dummy_account_assignment)
+
+    account_assignments = []
+
+    response = client.list_account_assignments_for_principal(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PrincipalId=user_id,
+        PrincipalType="USER",
+        MaxResults=2,
+    )
+
+    assert len(response["AccountAssignments"]) == 2
+    account_assignments.extend(response["AccountAssignments"])
+    next_token = response["NextToken"]
+
+    response = client.list_account_assignments_for_principal(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PrincipalId=user_id,
+        PrincipalType="USER",
+        MaxResults=2,
+        NextToken=next_token,
+    )
+
+    assert len(response["AccountAssignments"]) == 1
+    account_assignments.extend(response["AccountAssignments"])
+
+    assert set(
+        [account_assignment["AccountId"] for account_assignment in account_assignments]
+    ) == set(["000000000000", "111111111111", "222222222222"])
 
 
 @mock_ssoadmin
