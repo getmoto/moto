@@ -180,6 +180,33 @@ class SSOAdminBackend(BaseBackend):
                 )
         return account_assignments
 
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_account_assignments_for_principal(
+        self,
+        filter_: Dict[str, Any],
+        instance_arn: str,
+        principal_id: str,
+        principal_type: str,
+    ) -> List[Dict[str, Any]]:
+        return [
+            {
+                "AccountId": account_assignment.target_id,
+                "PermissionSetArn": account_assignment.permission_set_arn,
+                "PrincipalId": account_assignment.principal_id,
+                "PrincipalType": account_assignment.principal_type,
+            }
+            for account_assignment in self.account_assignments
+            if all(
+                [
+                    filter_.get("AccountId", account_assignment.target_id)
+                    == account_assignment.target_id,
+                    principal_id == account_assignment.principal_id,
+                    principal_type == account_assignment.principal_type,
+                    instance_arn == account_assignment.instance_arn,
+                ]
+            )
+        ]
+
     def create_permission_set(
         self,
         name: str,
