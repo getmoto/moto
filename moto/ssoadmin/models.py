@@ -190,7 +190,6 @@ class SSOAdminBackend(BaseBackend):
         Checks to make sure the managed policy exists.
         This pulls from moto/iam/aws_managed_policies.py
         """
-        # arn:aws:iam::aws:policy/SecurityAudit
         policy_name = managed_policy_arn.split("/")[-1]
         if managed_policy := self.aws_managed_policies.get(policy_name, None):
             path = managed_policy.get("path", "/")
