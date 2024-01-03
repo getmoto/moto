@@ -10,7 +10,19 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "result_key": "PermissionSets",
+        "result_key": "AccountAssignments",
+        "unique_attribute": [
+            "AccountId",
+            "PermissionSetArn",
+            "PrincipalId",
+            "PrincipalType",
+        ],
+    },
+    "list_account_assignments": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "result_key": "AccountAssignments",
         "unique_attribute": [
             "AccountId",
             "PermissionSetArn",

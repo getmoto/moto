@@ -191,6 +191,66 @@ def test_list_account_assignments():
 
 
 @mock_ssoadmin
+def test_list_account_assignments_pagination():
+    client = boto3.client("sso-admin", region_name="ap-southeast-1")
+    DUMMY_AWS_ACCOUNT_ID = "111111111111"
+
+    dummy_account_assignments = []
+    for _ in range(3):
+        dummy_account_assignments.append(
+            {
+                "InstanceArn": DUMMY_INSTANCE_ARN,
+                "TargetId": DUMMY_AWS_ACCOUNT_ID,
+                "TargetType": "AWS_ACCOUNT",
+                "PermissionSetArn": DUMMY_PERMISSIONSET_ID,
+                "PrincipalType": "USER",
+                "PrincipalId": str(uuid4()),
+            },
+        )
+
+    for dummy_account_assignment in dummy_account_assignments:
+        client.create_account_assignment(**dummy_account_assignment)
+
+    account_assignments = []
+
+    response = client.list_account_assignments(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        AccountId=DUMMY_AWS_ACCOUNT_ID,
+        PermissionSetArn=DUMMY_PERMISSIONSET_ID,
+        MaxResults=2,
+    )
+
+    assert len(response["AccountAssignments"]) == 2
+    account_assignments.extend(response["AccountAssignments"])
+
+    next_token = response["NextToken"]
+
+    response = client.list_account_assignments(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        AccountId=DUMMY_AWS_ACCOUNT_ID,
+        PermissionSetArn=DUMMY_PERMISSIONSET_ID,
+        MaxResults=2,
+        NextToken=next_token,
+    )
+
+    assert len(response["AccountAssignments"]) == 1
+    account_assignments.extend(response["AccountAssignments"])
+
+    # ensure 3 unique assignments returned
+    assert (
+        len(
+            set(
+                [
+                    account_assignment["PrincipalId"]
+                    for account_assignment in account_assignments
+                ]
+            )
+        )
+        == 3
+    )
+
+
+@mock_ssoadmin
 def test_list_account_assignments_for_principal():
     client = boto3.client("sso-admin", region_name="us-west-2")
 
