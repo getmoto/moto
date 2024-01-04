@@ -1896,6 +1896,7 @@ class SageMakerModelBackend(BaseBackend):
             "experiment-trial-component": self.trial_components,
             "processing-job": self.processing_jobs,
             "pipeline": self.pipelines,
+            "model-package-group": self.model_package_groups,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -3205,7 +3206,7 @@ class SageMakerModelBackend(BaseBackend):
             model_package_group_description=model_package_group_description,
             account_id=self.account_id,
             region_name=self.region_name,
-            tags=tags,
+            tags=tags or [],
         )
         return self.model_package_groups[
             model_package_group_name
