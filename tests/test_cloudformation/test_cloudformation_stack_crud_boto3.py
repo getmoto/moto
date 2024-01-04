@@ -123,6 +123,21 @@ Resources:
     Parameters:
 """
 
+dummy_update_template_yaml = """---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+Resources:
+  Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-12c6146b
+
+"""
+
 dummy_template_yaml_with_short_form_func = """---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Stack1 with yaml template
@@ -1361,13 +1376,21 @@ def test_create_change_set_from_s3_url():
     )
 
 
+@pytest.mark.parametrize(
+    "stack_template,change_template",
+    [
+        pytest.param(dummy_template_yaml, dummy_update_template_json),
+        pytest.param(dummy_template_json, dummy_update_template_json),
+        pytest.param(dummy_template_yaml, dummy_update_template_yaml),
+    ],
+)
 @mock_cloudformation
 @mock_ec2
-def test_describe_change_set():
+def test_describe_change_set(stack_template, change_template):
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     cf.create_change_set(
         StackName="NewStack",
-        TemplateBody=dummy_template_json,
+        TemplateBody=stack_template,
         ChangeSetName="NewChangeSet",
         ChangeSetType="CREATE",
     )
@@ -1409,7 +1432,7 @@ def test_describe_change_set():
     # create another change set to update the stack
     cf.create_change_set(
         StackName="NewStack",
-        TemplateBody=dummy_update_template_json,
+        TemplateBody=change_template,
         ChangeSetName="NewChangeSet2",
         ChangeSetType="UPDATE",
         Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
@@ -2319,21 +2342,3 @@ def get_role_name():
                 AssumeRolePolicyDocument="some policy",
                 Path="/my-path/",
             )["Role"]["Arn"]
-
-
-@mock_cloudformation()
-def test_update_changeset_yaml_and_json():
-    # Setup
-    cf = boto3.client("cloudformation", region_name=REGION_NAME)
-    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_yaml)
-
-    # Execute
-    response = cf.create_change_set(
-        StackName=TEST_STACK_NAME,
-        TemplateBody=dummy_template_json,
-        ChangeSetName="test",
-        ChangeSetType="UPDATE",
-    )
-
-    # Verify
-    assert response

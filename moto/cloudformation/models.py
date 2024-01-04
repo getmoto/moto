@@ -414,7 +414,7 @@ class FakeStack(CloudFormationModel):
 
     def has_template(self, other_template: str) -> bool:
         self._parse_template()
-        return self.template_dict == json.loads(other_template)
+        return self.template_dict == self.parse_template(other_template)
 
     def has_parameters(self, other_parameters: Dict[str, Any]) -> bool:
         return self.parameters == other_parameters
@@ -462,11 +462,15 @@ class FakeStack(CloudFormationModel):
         self.events.append(event)
 
     def _parse_template(self) -> None:
+        self.template_dict = self.parse_template(self.template)  # type: ignore[arg-type]
+
+    @staticmethod
+    def parse_template(template: str) -> Dict[str, Any]:  # type: ignore[misc]
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
-            self.template_dict = yaml.load(self.template, Loader=yaml.Loader)  # type: ignore[arg-type]
+            return yaml.load(template, Loader=yaml.Loader)
         except (ParserError, ScannerError):
-            self.template_dict = json.loads(self.template)  # type: ignore[arg-type]
+            return json.loads(template)
 
     @property
     def stack_parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
