@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -114,9 +114,7 @@ class SSOAdminBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.account_assignments: List[AccountAssignment] = list()
         self.permission_sets: List[PermissionSet] = list()
-        self.aws_managed_policies: Dict[str, Any] = json.loads(
-            aws_managed_policies_data
-        )
+        self.aws_managed_policies: Optional[Dict[str, Any]] = None
 
     def create_account_assignment(
         self,
@@ -190,6 +188,10 @@ class SSOAdminBackend(BaseBackend):
         Checks to make sure the managed policy exists.
         This pulls from moto/iam/aws_managed_policies.py
         """
+        # Lazy loading of aws managed policies file
+        if self.aws_managed_policies is None:
+            self.aws_managed_policies = json.loads(aws_managed_policies_data)
+
         policy_name = managed_policy_arn.split("/")[-1]
         managed_policy = self.aws_managed_policies.get(policy_name, None)
         if managed_policy is not None:
@@ -364,7 +366,6 @@ class SSOAdminBackend(BaseBackend):
             instance_arn,
             permission_set_arn,
         )
-
         managed_policy = self._find_managed_policy(managed_policy_arn)
 
         permissionset_id = permission_set_arn.split("/")[-1]
