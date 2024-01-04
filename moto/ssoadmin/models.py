@@ -70,6 +70,7 @@ class PermissionSet(BaseModel):
         self.created_date = unix_time()
         self.inline_policy = ""
         self.managed_policies: List[ManagedPolicy] = list()
+        self.customer_managed_policies: List[CustomerManagedPolicy] = list()
         self.total_managed_policies_attached = (
             0  # this will also include customer managed policies
         )
@@ -105,6 +106,17 @@ class ManagedPolicy(BaseModel):
         if not isinstance(other, ManagedPolicy):
             return False
         return self.arn == other.arn
+
+
+class CustomerManagedPolicy(BaseModel):
+    def __init__(self, name: str, path: str = "/"):
+        self.name = name
+        self.path = path
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, CustomerManagedPolicy):
+            return False
+        return f"{self.path}{self.name}" == f"{other.path}{other.name}"
 
 
 class SSOAdminBackend(BaseBackend):
@@ -422,6 +434,82 @@ class SSOAdminBackend(BaseBackend):
     ) -> None:
         self._detach_managed_policy(
             instance_arn, permission_set_arn, managed_policy_arn
+        )
+
+    def attach_customer_managed_policy_reference_to_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        customer_managed_policy_reference: Dict[str, str],
+    ) -> None:
+        permissionset = self._find_permission_set(
+            permission_set_arn=permission_set_arn, instance_arn=instance_arn
+        )
+
+        name = customer_managed_policy_reference["Name"]
+        path = customer_managed_policy_reference.get("Path", "/")  # default path is "/"
+        customer_managed_policy = CustomerManagedPolicy(name=name, path=path)
+
+        if customer_managed_policy in permissionset.customer_managed_policies:
+            raise ConflictException(
+                f"Given customer managed policy with name: {name}  and path {path} already attached"
+            )
+
+        if (
+            permissionset.total_managed_policies_attached
+            >= MAX_MANAGED_POLICIES_PER_PERMISSION_SET
+        ):
+            raise ServiceQuotaExceededException(
+                f"Cannot attach managed policy: number of attached managed policies is already at maximum {MAX_MANAGED_POLICIES_PER_PERMISSION_SET}"
+            )
+
+        permissionset.customer_managed_policies.append(customer_managed_policy)
+        permissionset.total_managed_policies_attached += 1
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_customer_managed_policy_references_in_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> List[CustomerManagedPolicy]:
+        permissionset = self._find_permission_set(
+            permission_set_arn=permission_set_arn, instance_arn=instance_arn
+        )
+        return permissionset.customer_managed_policies
+
+    def _detach_customer_managed_policy_from_permissionset(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        customer_managed_policy_reference: Dict[str, str],
+    ) -> None:
+        permissionset = self._find_permission_set(
+            permission_set_arn=permission_set_arn, instance_arn=instance_arn
+        )
+        path: str = customer_managed_policy_reference.get("Path", "/")
+        name: str = customer_managed_policy_reference["Name"]
+
+        for customer_managed_policy in permissionset.customer_managed_policies:
+            if (
+                customer_managed_policy.name == name
+                and customer_managed_policy.path == path
+            ):
+                permissionset.customer_managed_policies.remove(customer_managed_policy)
+                permissionset.total_managed_policies_attached -= 1
+                return
+
+        raise ResourceNotFoundException(
+            f"Given managed policy with name: {name}  and path {path} does not exist on PermissionSet"
+        )
+
+    def detach_customer_managed_policy_reference_from_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        customer_managed_policy_reference: Dict[str, str],
+    ) -> None:
+        self._detach_customer_managed_policy_from_permissionset(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            customer_managed_policy_reference=customer_managed_policy_reference,
         )
 
 

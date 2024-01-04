@@ -37,4 +37,11 @@ PAGINATION_MODEL = {
         "result_key": "AttachedManagedPolicies",
         "unique_attribute": ["arn"],
     },
+    "list_customer_managed_policy_references_in_permission_set": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "result_key": "CustomerManagedPolicyReferences",
+        "unique_attribute": ["name", "path"],
+    },
 }
