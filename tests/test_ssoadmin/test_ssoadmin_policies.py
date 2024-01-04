@@ -328,3 +328,153 @@ def test_detach_managed_policy_from_permission_set():
     )
 
     assert len(response["AttachedManagedPolicies"]) == 0
+
+
+@mock_ssoadmin
+def test_attach_customer_managed_policy_reference_to_permission_set():
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+
+    policy_name = "test-policy"
+    policy_path = "/test-path/"
+
+    client.attach_customer_managed_policy_reference_to_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        CustomerManagedPolicyReference={
+            "Name": policy_name,
+            "Path": policy_path,
+        },
+    )
+
+    response = client.list_customer_managed_policy_references_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+    )
+
+    assert len(response["CustomerManagedPolicyReferences"]) == 1
+    assert response["CustomerManagedPolicyReferences"][0]["Name"] == policy_name
+    assert response["CustomerManagedPolicyReferences"][0]["Path"] == policy_path
+
+    # test for customer managed policy that is already attached
+    with pytest.raises(ClientError) as e:
+        client.attach_customer_managed_policy_reference_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            CustomerManagedPolicyReference={
+                "Name": policy_name,
+                "Path": policy_path,
+            },
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+    assert (
+        err["Message"]
+        == f"Given customer managed policy with name: {policy_name}  and path {policy_path} already attached"
+    )
+
+
+@mock_ssoadmin
+def test_list_customer_managed_policy_references_in_permission_set():
+    """
+    Tests listing customer managed policies including pagination.
+    """
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+
+    policy_name = "test-policy-"
+
+    # attach 3 customer managed policies
+    for idx in range(3):
+        client.attach_customer_managed_policy_reference_to_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            CustomerManagedPolicyReference={"Name": f"{policy_name}{idx}"},
+        )
+
+    response = client.list_customer_managed_policy_references_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        MaxResults=2,
+    )
+
+    customer_managed_policy_names = []
+
+    assert len(response["CustomerManagedPolicyReferences"]) == 2
+    next_token = response["NextToken"]
+    for name in response["CustomerManagedPolicyReferences"]:
+        customer_managed_policy_names.append(name["Name"])
+
+    response = client.list_customer_managed_policy_references_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        MaxResults=2,
+        NextToken=next_token,
+    )
+    for name in response["CustomerManagedPolicyReferences"]:
+        customer_managed_policy_names.append(name["Name"])
+
+    assert len(response["CustomerManagedPolicyReferences"]) == 1
+
+    # ensure the 3 unique customer managed policies were returned
+    assert len(set(customer_managed_policy_names)) == 3
+
+
+@mock_ssoadmin
+def test_detach_customer_managed_policy_reference_from_permission_set():
+    client = boto3.client("sso-admin", region_name="us-east-1")
+    permission_set_arn = create_permissionset(client)
+
+    # trying to detach a policy that doesn't exist yet
+    with pytest.raises(ClientError) as e:
+        client.detach_customer_managed_policy_reference_from_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            CustomerManagedPolicyReference={
+                "Name": "test-policy",
+            },
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"]
+        == "Given managed policy with name: test-policy  and path / does not exist on PermissionSet"
+    )
+
+    # attach a policy
+    client.attach_customer_managed_policy_reference_to_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        CustomerManagedPolicyReference={
+            "Name": "test-policy",
+            "Path": "/some-path/",
+        },
+    )
+
+    # try to detach the policy but default path (should fail)
+    with pytest.raises(ClientError) as e:
+        client.detach_customer_managed_policy_reference_from_permission_set(
+            InstanceArn=DUMMY_INSTANCE_ARN,
+            PermissionSetArn=permission_set_arn,
+            CustomerManagedPolicyReference={
+                "Name": "test-policy",
+            },
+        )
+
+    # detach the policy
+    client.detach_customer_managed_policy_reference_from_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+        CustomerManagedPolicyReference={
+            "Name": "test-policy",
+            "Path": "/some-path/",
+        },
+    )
+
+    # ensure policy is detached
+    response = client.list_customer_managed_policy_references_in_permission_set(
+        InstanceArn=DUMMY_INSTANCE_ARN,
+        PermissionSetArn=permission_set_arn,
+    )
+
+    assert len(response["CustomerManagedPolicyReferences"]) == 0

@@ -244,3 +244,59 @@ class SSOAdminResponse(BaseResponse):
             managed_policy_arn=managed_policy_arn,
         )
         return json.dumps({})
+
+    def attach_customer_managed_policy_reference_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        customer_managed_policy_reference = self._get_param(
+            "CustomerManagedPolicyReference"
+        )
+        self.ssoadmin_backend.attach_customer_managed_policy_reference_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            customer_managed_policy_reference=customer_managed_policy_reference,
+        )
+        return json.dumps({})
+
+    def list_customer_managed_policy_references_in_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        (
+            customer_managed_policy_references,
+            next_token,
+        ) = self.ssoadmin_backend.list_customer_managed_policy_references_in_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        customer_managed_policy_references_response = [
+            {
+                "Name": customer_managed_policy_reference.name,
+                "Path": customer_managed_policy_reference.path,
+            }
+            for customer_managed_policy_reference in customer_managed_policy_references
+        ]
+        return json.dumps(
+            {
+                "CustomerManagedPolicyReferences": customer_managed_policy_references_response,
+                "NextToken": next_token,
+            }
+        )
+
+    def detach_customer_managed_policy_reference_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        customer_managed_policy_reference = self._get_param(
+            "CustomerManagedPolicyReference"
+        )
+        self.ssoadmin_backend.detach_customer_managed_policy_reference_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            customer_managed_policy_reference=customer_managed_policy_reference,
+        )
+        return json.dumps({})
