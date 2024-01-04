@@ -384,11 +384,12 @@ class FakeStack(CloudFormationModel):
         self.name = name
         self.account_id = account_id
         self.template = template
+        self.template_dict: Dict[str, Any]
         if template != {}:
             self._parse_template()
             self.description = self.template_dict.get("Description")
         else:
-            self.template_dict: Dict[str, Any] = {}
+            self.template_dict = {}
             self.description = None
         self.parameters = parameters
         self.region_name = region_name
@@ -412,12 +413,8 @@ class FakeStack(CloudFormationModel):
         self.status = "CREATE_PENDING"
 
     def has_template(self, other_template: str) -> bool:
-        our_template = (
-            self.template
-            if isinstance(self.template, dict)
-            else json.loads(self.template)
-        )
-        return our_template == json.loads(other_template)
+        self._parse_template()
+        return self.template_dict == self.parse_template(other_template)
 
     def has_parameters(self, other_parameters: Dict[str, Any]) -> bool:
         return self.parameters == other_parameters
@@ -465,11 +462,15 @@ class FakeStack(CloudFormationModel):
         self.events.append(event)
 
     def _parse_template(self) -> None:
+        self.template_dict = self.parse_template(self.template)  # type: ignore[arg-type]
+
+    @staticmethod
+    def parse_template(template: str) -> Dict[str, Any]:  # type: ignore[misc]
         yaml.add_multi_constructor("", yaml_tag_constructor)
         try:
-            self.template_dict = yaml.load(self.template, Loader=yaml.Loader)  # type: ignore[arg-type]
+            return yaml.load(template, Loader=yaml.Loader)
         except (ParserError, ScannerError):
-            self.template_dict = json.loads(self.template)  # type: ignore[arg-type]
+            return json.loads(template)
 
     @property
     def stack_parameters(self) -> Dict[str, Any]:  # type: ignore[misc]

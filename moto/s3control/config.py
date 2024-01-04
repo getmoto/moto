@@ -131,7 +131,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
 
         # Format the PAB to the AWS Config format:
         creation_time = utcnow()
-        config_data = {
+        config_data: Dict[str, Any] = {
             "version": "1.3",
             "accountId": account_id,
             "configurationItemCaptureTime": str(creation_time),
