@@ -191,7 +191,8 @@ class SSOAdminBackend(BaseBackend):
         This pulls from moto/iam/aws_managed_policies.py
         """
         policy_name = managed_policy_arn.split("/")[-1]
-        if managed_policy := self.aws_managed_policies.get(policy_name, None):
+        managed_policy = self.aws_managed_policies.get(policy_name, None)
+        if managed_policy is not None:
             path = managed_policy.get("path", "/")
             expected_arn = f"arn:aws:iam::aws:policy{path}{policy_name}"
             if managed_policy_arn == expected_arn:
