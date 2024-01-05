@@ -65,6 +65,6 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: motoserver
+        name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}
         path: |
           serverlogs/*
