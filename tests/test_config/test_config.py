@@ -1985,6 +1985,7 @@ def test_put_evaluations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "FailedEvaluations": [],
         "ResponseMetadata": {"HTTPStatusCode": 200},

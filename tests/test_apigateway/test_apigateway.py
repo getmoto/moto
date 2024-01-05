@@ -296,6 +296,7 @@ def test_create_resource():
     # this is hard to match against, so remove it
     root_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     root_resource["ResponseMetadata"].pop("RetryAttempts", None)
+    root_resource["ResponseMetadata"].pop("RequestId")
     assert root_resource == {
         "path": "/",
         "id": root_id,
@@ -340,6 +341,7 @@ def test_child_resource():
     # this is hard to match against, so remove it
     child_resource["ResponseMetadata"].pop("HTTPHeaders", None)
     child_resource["ResponseMetadata"].pop("RetryAttempts", None)
+    child_resource["ResponseMetadata"].pop("RequestId")
     assert child_resource == {
         "path": "/users/tags",
         "pathPart": "tags",
@@ -373,6 +375,7 @@ def test_create_method():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "httpMethod": "GET",
         "authorizationType": "none",
@@ -407,6 +410,7 @@ def test_create_method_apikeyrequired():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "httpMethod": "GET",
         "authorizationType": "none",
@@ -431,7 +435,7 @@ def test_create_method_response():
         restApiId=api_id, resourceId=root_id, httpMethod="GET", authorizationType="none"
     )
 
-    response = client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
+    client.get_method(restApiId=api_id, resourceId=root_id, httpMethod="GET")
 
     response = client.put_method_response(
         restApiId=api_id, resourceId=root_id, httpMethod="GET", statusCode="200"
@@ -439,6 +443,7 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "ResponseMetadata": {"HTTPStatusCode": 201},
         "statusCode": "200",
@@ -450,6 +455,7 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "ResponseMetadata": {"HTTPStatusCode": 200},
         "statusCode": "200",
@@ -461,6 +467,7 @@ def test_create_method_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
 
@@ -540,6 +547,7 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "ResponseMetadata": {"HTTPStatusCode": 201},
         "httpMethod": "POST",
@@ -560,6 +568,7 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "ResponseMetadata": {"HTTPStatusCode": 200},
         "httpMethod": "POST",
@@ -578,6 +587,7 @@ def test_integrations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response["resourceMethods"]["GET"]["httpMethod"] == "GET"
     assert response["resourceMethods"]["GET"]["authorizationType"] == "none"
     assert response["resourceMethods"]["GET"]["methodIntegration"] == {
@@ -678,6 +688,7 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "statusCode": "200",
         "selectionPattern": "foobar",
@@ -695,6 +706,7 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "statusCode": "200",
         "selectionPattern": "foobar",
@@ -710,6 +722,7 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response["methodIntegration"]["integrationResponses"] == {
         "200": {
             "responseTemplates": {},  # Note: TF compatibility
@@ -760,6 +773,7 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "statusCode": "200",
         "selectionPattern": "foobar",
@@ -774,6 +788,7 @@ def test_integration_response():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "statusCode": "200",
         "selectionPattern": "foobar",
@@ -810,6 +825,7 @@ def test_update_authorizer_configuration():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "id": authorizer_id,
         "name": authorizer_name,
@@ -903,6 +919,7 @@ def test_create_authorizer():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "id": authorizer_id,
         "name": authorizer_name,
@@ -928,6 +945,7 @@ def test_create_authorizer():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
 
     assert response["items"][0]["id"] in [authorizer_id, authorizer_id2]
     assert response["items"][1]["id"] in [authorizer_id, authorizer_id2]
@@ -945,6 +963,7 @@ def test_create_authorizer():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
 
     assert response == {
         "name": new_authorizer_name_with_vars,
@@ -992,6 +1011,7 @@ def test_delete_authorizer():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "id": authorizer_id,
         "name": authorizer_name,
@@ -1069,6 +1089,7 @@ def test_put_integration_response_with_response_template():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "statusCode": "200",
         "selectionPattern": "foobar",

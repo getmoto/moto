@@ -4,7 +4,6 @@ from typing import Dict, Iterable, List, Tuple, Union
 from dateutil.parser import parse as dtparse
 
 from moto.core.responses import BaseResponse
-from moto.utilities.aws_headers import amzn_request_id
 
 from .exceptions import InvalidParameterCombination, ValidationError
 from .models import (
@@ -32,7 +31,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(ERROR_RESPONSE_TEMPLATE)
         return template.render(code=code, message=message), dict(status=status)
 
-    @amzn_request_id
     def put_metric_alarm(self) -> str:
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
@@ -132,7 +130,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
         return template.render(alarm=alarm)
 
-    @amzn_request_id
     def describe_alarms(self) -> str:
         action_prefix = self._get_param("ActionPrefix")
         alarm_name_prefix = self._get_param("AlarmNamePrefix")
@@ -160,14 +157,12 @@ class CloudWatchResponse(BaseResponse):
             metric_alarms=metric_alarms, composite_alarms=composite_alarms
         )
 
-    @amzn_request_id
     def delete_alarms(self) -> str:
         alarm_names = self._get_multi_param("AlarmNames.member")
         self.cloudwatch_backend.delete_alarms(alarm_names)
         template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
         return template.render()
 
-    @amzn_request_id
     def put_metric_data(self) -> str:
         namespace = self._get_param("Namespace")
         metric_data = self._get_multi_param("MetricData.member")
@@ -175,7 +170,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
         return template.render()
 
-    @amzn_request_id
     def get_metric_data(self) -> str:
         params = self._get_params()
         start = dtparse(params["StartTime"])
@@ -196,7 +190,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(GET_METRIC_DATA_TEMPLATE)
         return template.render(results=results)
 
-    @amzn_request_id
     def get_metric_statistics(self) -> str:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -228,7 +221,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
 
-    @amzn_request_id
     def list_metrics(self) -> str:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -240,7 +232,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics, next_token=next_token)
 
-    @amzn_request_id
     def delete_dashboards(self) -> Union[str, ERROR_RESPONSE]:
         dashboards = self._get_multi_param("DashboardNames.member")
         if dashboards is None:
@@ -253,7 +244,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
         return template.render()
 
-    @amzn_request_id
     def describe_alarm_history(self) -> None:
         raise NotImplementedError()
 
@@ -268,7 +258,6 @@ class CloudWatchResponse(BaseResponse):
                 metric_filtered_alarms.append(alarm)
         return metric_filtered_alarms
 
-    @amzn_request_id
     def describe_alarms_for_metric(self) -> str:
         alarms = self.cloudwatch_backend.get_all_alarms()
         namespace = self._get_param("Namespace")
@@ -277,15 +266,12 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(DESCRIBE_METRIC_ALARMS_TEMPLATE)
         return template.render(alarms=filtered_alarms)
 
-    @amzn_request_id
     def disable_alarm_actions(self) -> str:
         raise NotImplementedError()
 
-    @amzn_request_id
     def enable_alarm_actions(self) -> str:
         raise NotImplementedError()
 
-    @amzn_request_id
     def get_dashboard(self) -> Union[str, ERROR_RESPONSE]:
         dashboard_name = self._get_param("DashboardName")
 
@@ -296,7 +282,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(GET_DASHBOARD_TEMPLATE)
         return template.render(dashboard=dashboard)
 
-    @amzn_request_id
     def list_dashboards(self) -> str:
         prefix = self._get_param("DashboardNamePrefix", "")
 
@@ -305,7 +290,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_DASHBOARD_RESPONSE)
         return template.render(dashboards=dashboards)
 
-    @amzn_request_id
     def put_dashboard(self) -> Union[str, ERROR_RESPONSE]:
         name = self._get_param("DashboardName")
         body = self._get_param("DashboardBody")
@@ -320,7 +304,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_DASHBOARD_RESPONSE)
         return template.render()
 
-    @amzn_request_id
     def set_alarm_state(self) -> str:
         alarm_name = self._get_param("AlarmName")
         reason = self._get_param("StateReason")
@@ -334,7 +317,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(SET_ALARM_STATE_TEMPLATE)
         return template.render()
 
-    @amzn_request_id
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
 
@@ -343,7 +325,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
         return template.render(tags=tags)
 
-    @amzn_request_id
     def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
         tags = self._get_multi_param("Tags.member")
@@ -353,7 +334,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(TAG_RESOURCE_TEMPLATE)
         return template.render()
 
-    @amzn_request_id
     def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
         tag_keys = self._get_multi_param("TagKeys.member")

@@ -12,7 +12,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     underscores_to_camelcase,
 )
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 from moto.utilities.constants import JSON_TYPES
 
 from .constants import (
@@ -134,7 +134,6 @@ class SQSResponse(BaseResponse):
         return visibility_timeout
 
     @amz_crc32  # crc last as request_id can edit XML
-    @amzn_request_id
     def call_action(self) -> TYPE_RESPONSE:
         status_code, headers, body = super().call_action()
         if status_code == 404:

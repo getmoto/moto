@@ -8,7 +8,6 @@ from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
-from moto.utilities.aws_headers import amzn_request_id
 
 from .exceptions import MissingParameterError, ValidationError
 from .models import CloudFormationBackend, FakeStack, cloudformation_backends
@@ -153,7 +152,6 @@ class CloudFormationResponse(BaseResponse):
                 return True
         return False
 
-    @amzn_request_id
     def create_change_set(self) -> str:
         stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
@@ -220,7 +218,6 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE)
         return template.render(change_set=change_set)
 
-    @amzn_request_id
     def execute_change_set(self) -> str:
         stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
