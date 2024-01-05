@@ -7,16 +7,10 @@ url_bases = [
 
 
 url_paths = {
-    "{0}/v1/apps$": PinpointResponse.method_dispatch(PinpointResponse.apps),
-    "{0}/v1/apps/(?P<app_id>[^/]+)$": PinpointResponse.method_dispatch(
-        PinpointResponse.app
-    ),
-    "{0}/v1/apps/(?P<app_id>[^/]+)/eventstream": PinpointResponse.method_dispatch(
-        PinpointResponse.eventstream
-    ),
-    "{0}/v1/apps/(?P<app_id>[^/]+)/settings$": PinpointResponse.method_dispatch(
-        PinpointResponse.app_settings
-    ),
+    "{0}/v1/apps$": PinpointResponse.dispatch,
+    "{0}/v1/apps/(?P<app_id>[^/]+)$": PinpointResponse.dispatch,
+    "{0}/v1/apps/(?P<app_id>[^/]+)/eventstream": PinpointResponse.dispatch,
+    "{0}/v1/apps/(?P<app_id>[^/]+)/settings$": PinpointResponse.dispatch,
     "{0}/v1/tags/(?P<app_arn>[^/]+)$": PinpointResponse.method_dispatch(
         PinpointResponse.tags
     ),
