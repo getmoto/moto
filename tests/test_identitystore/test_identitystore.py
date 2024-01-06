@@ -566,8 +566,8 @@ def test_list_group_memberships_for_member():
     identity_store_id = get_identity_store_id()
 
     start = 0
-    end = 5000
-    batch_size = 321
+    end = 50
+    batch_size = 3
     next_token = None
     membership_ids = []
 

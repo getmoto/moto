@@ -600,9 +600,9 @@ ec2
 - [X] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
-
+  
         The following parameters are not yet implemented: RemovePrivateDnsName
-
+        
 
 - [ ] modify_vpc_endpoint_service_payer_responsibility
 - [X] modify_vpc_endpoint_service_permissions
@@ -662,7 +662,7 @@ ec2
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
 - [X] run_instances
-
+  
         The Placement-parameter is validated to verify the availability-zone exists for the current region.
 
         The InstanceType-parameter can be validated, to see if it is a known instance-type.
@@ -673,15 +673,15 @@ ec2
 
         The KeyPair-parameter can be validated, to see if it is a known key-pair.
         Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
-
+        
 
 - [ ] run_scheduled_instances
 - [ ] search_local_gateway_routes
 - [ ] search_transit_gateway_multicast_groups
 - [X] search_transit_gateway_routes
-
+  
         The following filters are currently supported: type, state, route-search.exact-match
-
+        
 
 - [ ] send_diagnostic_interrupt
 - [X] start_instances
@@ -699,3 +699,4 @@ ec2
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
 - [ ] withdraw_byoip_cidr
+

@@ -28,7 +28,7 @@ rekognition
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_faces
-- [ ] compare_faces
+- [X] compare_faces
 - [ ] copy_project_version
 - [ ] create_collection
 - [ ] create_dataset
@@ -52,10 +52,10 @@ rekognition
 - [ ] describe_stream_processor
 - [ ] detect_custom_labels
 - [ ] detect_faces
-- [ ] detect_labels
+- [X] detect_labels
 - [ ] detect_moderation_labels
 - [ ] detect_protective_equipment
-- [ ] detect_text
+- [X] detect_text
 - [ ] disassociate_faces
 - [ ] distribute_dataset_entries
 - [ ] get_celebrity_info

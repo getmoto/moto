@@ -99,6 +99,7 @@ rds
 - [ ] describe_db_proxy_endpoints
 - [ ] describe_db_proxy_target_groups
 - [ ] describe_db_proxy_targets
+- [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
@@ -125,7 +126,9 @@ rds
 - [ ] describe_source_regions
 - [ ] describe_tenant_databases
 - [ ] describe_valid_db_instance_modifications
+- [ ] disable_http_endpoint
 - [ ] download_db_log_file_portion
+- [ ] enable_http_endpoint
 - [ ] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
@@ -142,6 +145,7 @@ rds
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
 - [ ] modify_db_proxy_target_group
+- [ ] modify_db_recommendation
 - [ ] modify_db_snapshot
 - [ ] modify_db_snapshot_attribute
 - [X] modify_db_subnet_group
