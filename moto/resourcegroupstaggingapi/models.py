@@ -133,8 +133,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     and v in vl
                 )
 
-        # Any in this case means: str | Optional[str]
-        # When we drop Python 3.7 we should look into replacing this with a TypedDict
         def tag_filter(tag_list: List[Dict[str, Any]]) -> bool:
             result = []
             if tag_filters:

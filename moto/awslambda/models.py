@@ -17,7 +17,7 @@ from collections import defaultdict
 from datetime import datetime
 from gzip import GzipFile
 from sys import platform
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, TypedDict, Union
 
 import requests.exceptions
 
@@ -62,6 +62,11 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class LayerDataType(TypedDict):
+    Arn: str
+    CodeSize: int
 
 
 def zip2tar(zip_bytes: bytes) -> io.BytesIO:
@@ -176,7 +181,7 @@ class _DockerDataVolumeLayerContext:
 
     def __init__(self, lambda_func: "LambdaFunction"):
         self._lambda_func = lambda_func
-        self._layers: List[Dict[str, str]] = self._lambda_func.layers
+        self._layers: List[LayerDataType] = self._lambda_func.layers
         self._vol_ref: Optional[_VolumeRefCount] = None
 
     @property
@@ -623,9 +628,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.package_type = spec.get("PackageType", "Zip")
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
-        self.layers: List[Dict[str, str]] = self._get_layers_data(
-            spec.get("Layers", [])
-        )
+        self.layers: List[LayerDataType] = self._get_layers_data(spec.get("Layers", []))
         self.signing_profile_version_arn = spec.get("SigningProfileVersionArn")
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
@@ -720,7 +723,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def __repr__(self) -> str:
         return json.dumps(self.get_configuration())
 
-    def _get_layers_data(self, layers_versions_arns: List[str]) -> List[Dict[str, str]]:
+    def _get_layers_data(self, layers_versions_arns: List[str]) -> List[LayerDataType]:
         backend = lambda_backends[self.account_id][self.region]
         layer_versions = [
             backend.layers_versions_by_arn(layer_version)
@@ -730,9 +733,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             raise UnknownLayerVersionException(layers_versions_arns)
         # The `if lv` part is not necessary - we know there are no None's, because of the `all()`-check earlier
         # But MyPy does not seem to understand this
-        # The `type: ignore` is because `code_size` is an int, and we're returning Dict[str, str]
-        # We should convert the return-type into a TypedDict the moment we drop Py3.7 support
-        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv]  # type: ignore
+        return [
+            {"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv
+        ]
 
     def get_code_signing_config(self) -> Dict[str, Any]:
         return {
