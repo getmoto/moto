@@ -122,12 +122,7 @@ class BaseMockAWS(ContextManager["BaseMockAWS"]):
 
         if self.__class__.nested_count == 0:
             if self.__class__.mocks_active:
-                try:
-                    self.default_session_mock.stop()
-                except RuntimeError:
-                    # We only need to check for this exception in Python 3.7
-                    # https://bugs.python.org/issue36366
-                    pass
+                self.default_session_mock.stop()
                 self.unmock_env_variables()
                 self.__class__.mocks_active = False
                 if remove_data:
