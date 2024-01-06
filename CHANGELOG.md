@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.13
 -----
-Docker Digest for 4.2.13: <autopopulateddigest>
+Docker Digest for 4.2.13: _sha256:20a2fdd4828b0ce1170ae26186ed28b64523cf6af83af892a74d9b3e23f84471_
 
     New Services:
         * Panorama:
