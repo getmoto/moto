@@ -982,6 +982,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "macie": {
                 "Value": "macie",
                 "endpoint": {
@@ -9166,6 +9175,15 @@
                 "Value": "logs",
                 "endpoint": {
                   "Value": "logs.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28750,6 +28768,10 @@
                 }
               },
               "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.eu-central-1.amazonaws.com"
+                },
                 "protocols": {
                   "Value": "HTTPS"
                 }
@@ -32070,6 +32092,15 @@
               "lumberyard": {
                 "Value": "lumberyard"
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "macie": {
                 "Value": "macie",
                 "endpoint": {
@@ -33863,6 +33894,15 @@
                 "Value": "logs",
                 "endpoint": {
                   "Value": "logs.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
