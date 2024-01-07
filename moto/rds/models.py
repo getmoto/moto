@@ -1145,9 +1145,13 @@ class DatabaseSnapshot(BaseModel):
               <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
               <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
               <InstanceCreateTime>{{ snapshot.created_at }}</InstanceCreateTime>
+              {% if database.master_username %}
               <MasterUsername>{{ database.master_username }}</MasterUsername>
+              {% endif %}
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
+              {% if database.license_model %}
               <LicenseModel>{{ database.license_model }}</LicenseModel>
+              {% endif %}
               <SnapshotType>{{ snapshot.snapshot_type }}</SnapshotType>
               {% if database.iops %}
               <Iops>{{ database.iops }}</Iops>
@@ -1166,10 +1170,14 @@ class DatabaseSnapshot(BaseModel):
               </TagList>
               <TdeCredentialArn></TdeCredentialArn>
               <Encrypted>{{ database.storage_encrypted }}</Encrypted>
+              {% if database.kms_key_id %}
               <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
+              {% endif %}
               <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
               <Timezone></Timezone>
+              {% if database.enable_iam_database_authentication %}
               <IAMDatabaseAuthenticationEnabled>{{ database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
+              {% endif %}
             </DBSnapshot>"""
         )
         return template.render(snapshot=self, database=self.database)
