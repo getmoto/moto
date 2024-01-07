@@ -40,6 +40,16 @@ Docker Digest for 4.2.14: _sha256:2fa10aa48e32f85c63c62a7d437b8a4b320a56a8494bc2
         * SNS: set_subscription_attributes() can now unset the FilterPolicy
 
 
+5.0.0alpha1:
+------------
+
+    General:
+        * All decorators have been replaced with a single decorator:
+          `mock_aws`
+        * The `mock_batch_simple` and `mock_lambda_simple` decorators can now be configured using the `config`-parameter:
+          `@mock_aws(config={"batch": {"use_docker": False}, "lambda": {"use_docker": False}})`
+
+
 4.2.13
 -----
 Docker Digest for 4.2.13: _sha256:20a2fdd4828b0ce1170ae26186ed28b64523cf6af83af892a74d9b3e23f84471_
