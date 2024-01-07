@@ -12,17 +12,6 @@
 eks
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_eks
-            def test_eks_behaviour:
-                boto3.client("eks")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_access_policy

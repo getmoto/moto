@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 
 
 def generate_thing_group_tree(iot_client, tree_dict, _parent=None):
@@ -54,7 +54,7 @@ class TestListThingGroup:
         group_name_1b: {},
     }
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -64,7 +64,7 @@ class TestListThingGroup:
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 8
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -74,7 +74,7 @@ class TestListThingGroup:
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 2
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups_filtered_by_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -93,7 +93,7 @@ class TestListThingGroup:
             client.list_thing_groups(parentGroup="inexistant-group-name")
             assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups_filtered_by_parent_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -106,7 +106,7 @@ class TestListThingGroup:
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 2
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups_filtered_by_name_prefix(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -122,7 +122,7 @@ class TestListThingGroup:
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 0
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups_filtered_by_name_prefix_non_recursively(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -139,7 +139,7 @@ class TestListThingGroup:
         assert "thingGroups" in resp
         assert len(resp["thingGroups"]) == 0
 
-    @mock_iot
+    @mock_aws
     def test_should_list_all_groups_filtered_by_name_prefix_and_parent(self):
         # setup
         client = boto3.client("iot", region_name="ap-northeast-1")
@@ -163,7 +163,7 @@ class TestListThingGroup:
         assert len(resp["thingGroups"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_delete_thing_group():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group:name-1a"
@@ -196,7 +196,7 @@ def test_delete_thing_group():
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_iot
+@mock_aws
 def test_describe_thing_group_metadata_hierarchy():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name_1a = "my-group:name-1a"
@@ -310,7 +310,7 @@ def test_describe_thing_group_metadata_hierarchy():
     assert "version" in desc3d
 
 
-@mock_iot
+@mock_aws
 def test_thing_groups():
     client = boto3.client("iot", region_name="ap-northeast-1")
     group_name = "my-group:name"
@@ -378,7 +378,7 @@ def test_thing_groups():
     assert "key1" not in res_props
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_relations():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -443,7 +443,7 @@ def test_thing_group_relations():
     assert len(things["things"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_already_exists_with_different_properties_raises():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_group_name = "my-group-name"
@@ -459,7 +459,7 @@ def test_thing_group_already_exists_with_different_properties_raises():
         client.create_thing_group(thingGroupName=thing_group_name)
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_already_exists_with_same_properties_returned():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_group_name = "my-group-name"
@@ -476,7 +476,7 @@ def test_thing_group_already_exists_with_same_properties_returned():
     assert thing_group == current_thing_group
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_updates_description():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing-group"
@@ -497,7 +497,7 @@ def test_thing_group_updates_description():
     )
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_update_with_no_previous_attributes_no_merge():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-group-name"
@@ -521,7 +521,7 @@ def test_thing_group_update_with_no_previous_attributes_no_merge():
     ] == {"key1": "val01"}
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_update_with_no_previous_attributes_with_merge():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-group-name"
@@ -545,7 +545,7 @@ def test_thing_group_update_with_no_previous_attributes_with_merge():
     ] == {"key1": "val01"}
 
 
-@mock_iot
+@mock_aws
 def test_thing_group_updated_with_empty_attributes_no_merge_no_attributes_added():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-group-name"

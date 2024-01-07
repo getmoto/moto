@@ -9,8 +9,9 @@ import botocore.client
 import botocore.endpoint
 import requests  # noqa # pylint: disable=all
 
-from moto import XRaySegment, mock_dynamodb, mock_xray_client
+from moto import mock_aws
 from moto.utilities.distutils_version import LooseVersion
+from moto.xray import XRaySegment, mock_xray_client
 from moto.xray.mock_client import MockEmitter
 
 original_make_api_call = botocore.client.BaseClient._make_api_call
@@ -37,8 +38,7 @@ def check_coverage_status():
     raise SkipTest("Can't run this test with Coverage 5.x")
 
 
-@mock_xray_client
-@mock_dynamodb
+@mock_aws
 def test_xray_dynamo_request_id():
     check_coverage_status()
 
@@ -71,7 +71,7 @@ def test_xray_dynamo_request_id_with_context_mgr():
 
     with mock_xray_client():
         assert isinstance(xray_core.xray_recorder._emitter, MockEmitter)
-        with mock_dynamodb():
+        with mock_aws():
             # Could be ran in any order, so we need to tell sdk that its been unpatched
             xray_core_patcher._PATCHED_MODULES = set()
             xray_core.patch_all()

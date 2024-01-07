@@ -14,17 +14,6 @@ batch
 
 .. autoclass:: moto.batch.models.BatchBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_batch
-            def test_batch_behaviour:
-                boto3.client("batch")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] cancel_job

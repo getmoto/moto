@@ -11,7 +11,7 @@ import pytest
 import yaml
 from botocore.exceptions import ClientError
 
-from moto import mock_ssm
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
@@ -125,7 +125,7 @@ def _get_doc_validator(
     assert response["DocumentFormat"] == document_format
 
 
-@mock_ssm
+@mock_aws
 def test_create_document():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -231,7 +231,7 @@ def test_create_document():
     assert doc_description["DocumentFormat"] == "YAML"
 
 
-@mock_ssm
+@mock_aws
 def test_get_document():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -318,7 +318,7 @@ def test_get_document():
     _get_doc_validator(response, "NewBase", "2", new_json_doc, "JSON")
 
 
-@mock_ssm
+@mock_aws
 def test_delete_document():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -462,7 +462,7 @@ def test_delete_document():
     assert len(response["DocumentIdentifiers"]) == 0
 
 
-@mock_ssm
+@mock_aws
 def test_update_document_default_version():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -522,7 +522,7 @@ def test_update_document_default_version():
     assert response["Description"]["DefaultVersionName"] == "NewBase"
 
 
-@mock_ssm
+@mock_aws
 def test_update_document():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -626,7 +626,7 @@ def test_update_document():
     assert response["DocumentDescription"]["VersionName"] == "NewBase"
 
 
-@mock_ssm
+@mock_aws
 def test_describe_document():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -670,7 +670,7 @@ def test_describe_document():
     )
 
 
-@mock_ssm
+@mock_aws
 def test_list_documents():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
@@ -761,7 +761,7 @@ def test_list_documents():
     assert len(response["DocumentIdentifiers"]) == 1
 
 
-@mock_ssm
+@mock_aws
 def test_tags_in_list_tags_from_resource_document():
     template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)

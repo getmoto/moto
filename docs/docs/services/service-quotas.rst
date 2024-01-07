@@ -14,17 +14,6 @@ service-quotas
 
 .. autoclass:: moto.servicequotas.models.ServiceQuotasBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_servicequotas
-            def test_servicequotas_behaviour:
-                boto3.client("service-quotas")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_service_quota_template

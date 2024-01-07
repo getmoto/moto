@@ -1,7 +1,7 @@
 import boto3
 import pytest
 
-from moto import mock_sagemaker
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 TEST_REGION_NAME = "us-east-1"
@@ -10,7 +10,7 @@ TEST_EXPERIMENT_NAME = "MyExperimentName"
 
 @pytest.fixture(name="sagemaker_client")
 def fixture_sagemaker_client():
-    with mock_sagemaker():
+    with mock_aws():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 

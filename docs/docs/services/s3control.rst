@@ -12,17 +12,6 @@
 s3control
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_s3control
-            def test_s3control_behaviour:
-                boto3.client("s3control")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_access_grants_identity_center

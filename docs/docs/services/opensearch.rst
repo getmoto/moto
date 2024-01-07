@@ -14,17 +14,6 @@ opensearch
 
 .. autoclass:: moto.opensearch.models.OpenSearchServiceBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_opensearch
-            def test_opensearch_behaviour:
-                boto3.client("opensearch")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_inbound_connection

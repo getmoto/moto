@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_budgets
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_budgets
+@mock_aws
 def test_create_and_describe_notification():
     client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
@@ -45,7 +45,7 @@ def test_create_and_describe_notification():
     assert notification["NotificationState"] == "ALARM"
 
 
-@mock_budgets
+@mock_aws
 def test_create_notification():
     client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
@@ -104,7 +104,7 @@ def test_create_notification():
     assert n_2["NotificationState"] == "OK"
 
 
-@mock_budgets
+@mock_aws
 def test_create_notification_unknown_budget():
     client = boto3.client("budgets", region_name="us-east-1")
 
@@ -126,7 +126,7 @@ def test_create_notification_unknown_budget():
     assert err["Message"] == "Unable to create notification - the budget doesn't exist."
 
 
-@mock_budgets
+@mock_aws
 def test_delete_notification():
     client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
@@ -171,7 +171,7 @@ def test_delete_notification():
     assert len(res["Notifications"]) == 0
 
 
-@mock_budgets
+@mock_aws
 def test_delete_notification_unknown_budget():
     client = boto3.client("budgets", region_name="us-east-1")
 

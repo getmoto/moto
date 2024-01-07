@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iam
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -49,7 +49,7 @@ def test_create_open_id_connect_provider():
     )
 
 
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider_with_tags():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -66,7 +66,7 @@ def test_create_open_id_connect_provider_with_tags():
 
 
 @pytest.mark.parametrize("url", ["example.org", "example"])
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider_invalid_url(url):
     client = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -75,7 +75,7 @@ def test_create_open_id_connect_provider_invalid_url(url):
     assert "Invalid Open ID Connect Provider URL" in msg
 
 
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider_errors():
     client = boto3.client("iam", region_name="us-east-1")
     client.create_open_id_connect_provider(Url="https://example.com", ThumbprintList=[])
@@ -88,7 +88,7 @@ def test_create_open_id_connect_provider_errors():
     assert err["Message"] == "Unknown"
 
 
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider_too_many_entries():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -108,7 +108,7 @@ def test_create_open_id_connect_provider_too_many_entries():
     assert "Thumbprint list must contain fewer than 5 entries." in msg
 
 
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider_quota_error():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -123,7 +123,7 @@ def test_create_open_id_connect_provider_quota_error():
     assert "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100" in msg
 
 
-@mock_iam
+@mock_aws
 def test_create_open_id_connect_provider_multiple_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -148,7 +148,7 @@ def test_create_open_id_connect_provider_multiple_errors():
     assert "Member must have length less than or equal to 255" in msg
 
 
-@mock_iam
+@mock_aws
 def test_delete_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -167,7 +167,7 @@ def test_delete_open_id_connect_provider():
     client.delete_open_id_connect_provider(OpenIDConnectProviderArn=open_id_arn)
 
 
-@mock_iam
+@mock_aws
 def test_get_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -183,7 +183,7 @@ def test_get_open_id_connect_provider():
     assert isinstance(response["CreateDate"], datetime)
 
 
-@mock_iam
+@mock_aws
 def test_update_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -203,7 +203,7 @@ def test_update_open_id_connect_provider():
     assert "d" * 40 in response["ThumbprintList"]
 
 
-@mock_iam
+@mock_aws
 def test_get_open_id_connect_provider_errors():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -218,7 +218,7 @@ def test_get_open_id_connect_provider_errors():
     assert err["Message"] == f"OpenIDConnect Provider not found for arn {unknown_arn}"
 
 
-@mock_iam
+@mock_aws
 def test_list_open_id_connect_providers():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -245,7 +245,7 @@ def test_list_open_id_connect_providers():
     ]
 
 
-@mock_iam
+@mock_aws
 def test_tag_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -263,7 +263,7 @@ def test_tag_open_id_connect_provider():
     assert {"Key": "k2", "Value": "v2"} in response["Tags"]
 
 
-@mock_iam
+@mock_aws
 def test_untag_open_id_connect_provider():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -283,7 +283,7 @@ def test_untag_open_id_connect_provider():
     assert {"Key": "k1", "Value": "v1"} in response["Tags"]
 
 
-@mock_iam
+@mock_aws
 def test_list_open_id_connect_provider_tags():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -301,7 +301,7 @@ def test_list_open_id_connect_provider_tags():
     assert {"Key": "k2", "Value": "v2"} in response["Tags"]
 
 
-@mock_iam
+@mock_aws
 def test_list_open_id_connect_provider_tags__paginated():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(
@@ -331,7 +331,7 @@ def test_list_open_id_connect_provider_tags__paginated():
     assert "Marker" not in response
 
 
-@mock_iam
+@mock_aws
 def test_list_open_id_connect_provider_tags__maxitems():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_open_id_connect_provider(

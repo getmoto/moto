@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_kinesis
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_kinesis import get_stream_arn
 
 
-@mock_kinesis
+@mock_aws
 def test_describe_stream_limit_parameter():
     client = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -38,7 +38,7 @@ def test_describe_stream_limit_parameter():
     assert with_filter["HasMoreShards"] is False
 
 
-@mock_kinesis
+@mock_aws
 def test_list_shards():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -72,7 +72,7 @@ def test_list_shards():
         assert "StartingSequenceNumber" in shard["SequenceNumberRange"]
 
 
-@mock_kinesis
+@mock_aws
 def test_list_shards_paging():
     client = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -119,7 +119,7 @@ def test_list_shards_paging():
     assert "NextToken" not in resp
 
 
-@mock_kinesis
+@mock_aws
 def test_create_shard():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -148,7 +148,7 @@ def test_create_shard():
     assert "EndingSequenceNumber" not in shards[0]["SequenceNumberRange"]
 
 
-@mock_kinesis
+@mock_aws
 def test_split_shard_with_invalid_name():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -167,7 +167,7 @@ def test_split_shard_with_invalid_name():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_split_shard_with_unknown_name():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -186,7 +186,7 @@ def test_split_shard_with_unknown_name():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_split_shard_invalid_hashkey():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -205,7 +205,7 @@ def test_split_shard_invalid_hashkey():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_split_shard_hashkey_out_of_bounds():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -224,7 +224,7 @@ def test_split_shard_hashkey_out_of_bounds():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_split_shard():
     client = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my-stream"
@@ -279,7 +279,7 @@ def test_split_shard():
     assert "EndingSequenceNumber" not in shards[3]["SequenceNumberRange"]
 
 
-@mock_kinesis
+@mock_aws
 def test_split_shard_that_was_split_before():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -305,7 +305,7 @@ def test_split_shard_that_was_split_before():
     )
 
 
-@mock_kinesis
+@mock_aws
 @pytest.mark.parametrize(
     "initial,target,expected_total",
     [(2, 4, 6), (4, 5, 15), (10, 13, 37), (4, 2, 6), (5, 3, 7), (10, 3, 17)],

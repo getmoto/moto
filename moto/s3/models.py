@@ -1578,7 +1578,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
 
-        @mock_s3
+        @mock_aws
         def test_my_custom_endpoint():
             boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
             ...

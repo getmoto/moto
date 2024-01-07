@@ -1,4 +1,3 @@
-"""Unit tests for textract-supported APIs."""
 from random import randint
 from unittest import SkipTest
 
@@ -6,14 +5,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto import mock_textract, settings
+from moto import mock_aws, settings
 from moto.textract.models import TextractBackend
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_textract
+@mock_aws
 def test_get_document_text_detection():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cannot set textract backend values in server mode")
@@ -54,7 +53,7 @@ def test_get_document_text_detection():
     assert resp["DocumentMetadata"]["Pages"] == TextractBackend.PAGES
 
 
-@mock_textract
+@mock_aws
 def test_start_document_text_detection():
     client = boto3.client("textract", region_name="us-east-1")
     resp = client.start_document_text_detection(
@@ -64,7 +63,7 @@ def test_start_document_text_detection():
     assert "JobId" in resp
 
 
-@mock_textract
+@mock_aws
 def test_get_document_text_detection_without_job_id():
     client = boto3.client("textract", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -73,7 +72,7 @@ def test_get_document_text_detection_without_job_id():
     assert e.value.response["Error"]["Code"] == "InvalidJobIdException"
 
 
-@mock_textract
+@mock_aws
 def test_get_document_text_detection_without_document_location():
     client = boto3.client("textract", region_name="us-east-1")
     with pytest.raises(ParamValidationError) as e:
@@ -86,7 +85,7 @@ def test_get_document_text_detection_without_document_location():
     )
 
 
-@mock_textract
+@mock_aws
 def test_detect_document_text():
     client = boto3.client("textract", region_name="us-east-1")
     result = client.detect_document_text(

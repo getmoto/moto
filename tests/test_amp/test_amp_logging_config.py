@@ -2,10 +2,10 @@ import unittest
 
 import boto3
 
-from moto import mock_amp
+from moto import mock_aws
 
 
-@mock_amp
+@mock_aws
 class TestAmpLoggingConfig(unittest.TestCase):
     def setUp(self) -> None:
         self.client = boto3.client("amp", region_name="us-east-2")

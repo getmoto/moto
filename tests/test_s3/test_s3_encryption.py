@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 def test_encryption_on_new_bucket_fails():
     conn = boto3.client("s3", region_name="us-east-1")
     conn.create_bucket(Bucket="mybucket")
@@ -20,7 +20,7 @@ def test_encryption_on_new_bucket_fails():
     assert err["BucketName"] == "mybucket"
 
 
-@mock_s3
+@mock_aws
 def test_put_and_get_encryption():
     # Create Bucket so that test can run
     conn = boto3.client("s3", region_name="us-east-1")
@@ -48,7 +48,7 @@ def test_put_and_get_encryption():
     assert resp["ServerSideEncryptionConfiguration"] == return_config
 
 
-@mock_s3
+@mock_aws
 def test_delete_and_get_encryption():
     # Create Bucket so that test can run
     conn = boto3.client("s3", region_name="us-east-1")
@@ -77,7 +77,7 @@ def test_delete_and_get_encryption():
     assert err["Code"] == "ServerSideEncryptionConfigurationNotFoundError"
 
 
-@mock_s3
+@mock_aws
 def test_encryption_status_on_new_objects():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name="us-east-1")
@@ -103,7 +103,7 @@ def test_encryption_status_on_new_objects():
     assert res["ServerSideEncryption"] == "AES256"
 
 
-@mock_s3
+@mock_aws
 def test_encryption_status_on_copied_objects():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name="us-east-1")
@@ -128,7 +128,7 @@ def test_encryption_status_on_copied_objects():
     assert res["ServerSideEncryption"] == "AES256"
 
 
-@mock_s3
+@mock_aws
 def test_encryption_bucket_key_for_aes_not_returned():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name="us-east-1")

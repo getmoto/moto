@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 
 import moto.server as server
-from moto import mock_eks, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.eks.exceptions import ResourceInUseException, ResourceNotFoundException
 from moto.eks.models import (
@@ -20,7 +20,6 @@ from tests.test_eks.test_eks import all_arn_values_should_be_valid
 from tests.test_eks.test_eks_constants import (
     DEFAULT_ENCODING,
     DEFAULT_HTTP_HEADERS,
-    DEFAULT_REGION,
     NODEROLE_ARN_KEY,
     NODEROLE_ARN_VALUE,
     PARTITIONS,
@@ -45,6 +44,7 @@ Test the different server responses
 """
 
 NAME_LIST = ["foo", "bar", "baz", "qux"]
+DEFAULT_REGION = "us-east-1"
 
 
 class TestCluster:
@@ -129,7 +129,7 @@ def fixture_create_nodegroup(test_client):
     yield _execute
 
 
-@mock_eks
+@mock_aws
 def test_eks_create_single_cluster(create_cluster):
     result_cluster = create_cluster()
 
@@ -141,7 +141,7 @@ def test_eks_create_single_cluster(create_cluster):
     )
 
 
-@mock_eks
+@mock_aws
 def test_eks_create_multiple_clusters_with_same_name(test_client, create_cluster):
     create_cluster()
     expected_exception = ResourceInUseException
@@ -162,7 +162,7 @@ def test_eks_create_multiple_clusters_with_same_name(test_client, create_cluster
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_create_nodegroup_without_cluster(test_client):
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=TestCluster.cluster_name)
@@ -182,7 +182,7 @@ def test_eks_create_nodegroup_without_cluster(test_client):
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_create_nodegroup_on_existing_cluster(create_cluster, create_nodegroup):
     create_cluster()
     result_data = create_nodegroup()
@@ -197,7 +197,7 @@ def test_eks_create_nodegroup_on_existing_cluster(create_cluster, create_nodegro
     )
 
 
-@mock_eks
+@mock_aws
 def test_eks_create_multiple_nodegroups_with_same_name(
     test_client, create_cluster, create_nodegroup
 ):
@@ -224,7 +224,7 @@ def test_eks_create_multiple_nodegroups_with_same_name(
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_list_clusters(test_client, create_cluster):
     [create_cluster(name) for name in NAME_LIST]
 
@@ -242,7 +242,7 @@ def test_eks_list_clusters(test_client, create_cluster):
     assert sorted(result_data) == sorted(NAME_LIST)
 
 
-@mock_eks
+@mock_aws
 def test_eks_list_nodegroups(test_client, create_cluster, create_nodegroup):
     create_cluster()
     [create_nodegroup(name) for name in NAME_LIST]
@@ -263,7 +263,7 @@ def test_eks_list_nodegroups(test_client, create_cluster, create_nodegroup):
     assert len(result_data) == len(NAME_LIST)
 
 
-@mock_eks
+@mock_aws
 def test_eks_describe_existing_cluster(test_client, create_cluster):
     create_cluster()
 
@@ -284,7 +284,7 @@ def test_eks_describe_existing_cluster(test_client, create_cluster):
     )
 
 
-@mock_eks
+@mock_aws
 def test_eks_describe_nonexisting_cluster(test_client):
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=TestCluster.cluster_name)
@@ -303,7 +303,7 @@ def test_eks_describe_nonexisting_cluster(test_client):
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_describe_existing_nodegroup(test_client, create_cluster, create_nodegroup):
     create_cluster()
     create_nodegroup()
@@ -330,7 +330,7 @@ def test_eks_describe_existing_nodegroup(test_client, create_cluster, create_nod
     )
 
 
-@mock_eks
+@mock_aws
 def test_eks_describe_nonexisting_nodegroup(test_client, create_cluster):
     create_cluster()
     expected_exception = ResourceNotFoundException
@@ -356,7 +356,7 @@ def test_eks_describe_nonexisting_nodegroup(test_client, create_cluster):
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_describe_nodegroup_nonexisting_cluster(test_client):
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=TestNodegroup.cluster_name)
@@ -378,7 +378,7 @@ def test_eks_describe_nodegroup_nonexisting_cluster(test_client):
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_delete_cluster(test_client, create_cluster):
     create_cluster()
 
@@ -398,7 +398,7 @@ def test_eks_delete_cluster(test_client, create_cluster):
     )
 
 
-@mock_eks
+@mock_aws
 def test_eks_delete_nonexisting_cluster(test_client):
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(clusterName=TestCluster.cluster_name)
@@ -417,7 +417,7 @@ def test_eks_delete_nonexisting_cluster(test_client):
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_delete_cluster_with_nodegroups(
     test_client, create_cluster, create_nodegroup
 ):
@@ -439,7 +439,7 @@ def test_eks_delete_cluster_with_nodegroups(
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_delete_nodegroup(test_client, create_cluster, create_nodegroup):
     create_cluster()
     create_nodegroup()
@@ -466,7 +466,7 @@ def test_eks_delete_nodegroup(test_client, create_cluster, create_nodegroup):
     )
 
 
-@mock_eks
+@mock_aws
 def test_eks_delete_nonexisting_nodegroup(test_client, create_cluster):
     create_cluster()
     expected_exception = ResourceNotFoundException
@@ -492,7 +492,7 @@ def test_eks_delete_nonexisting_nodegroup(test_client, create_cluster):
     should_return_expected_exception(response, expected_exception, expected_data)
 
 
-@mock_eks
+@mock_aws
 def test_eks_delete_nodegroup_nonexisting_cluster(test_client):
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(

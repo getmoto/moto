@@ -3,11 +3,10 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2
+from moto import mock_aws
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_transit_gateway_by_cloudformation_simple():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", "us-east-1")
@@ -45,8 +44,7 @@ def test_transit_gateway_by_cloudformation_simple():
     assert len(gateways[0]["Tags"]) == 3
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_transit_gateway_by_cloudformation():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", "us-east-1")

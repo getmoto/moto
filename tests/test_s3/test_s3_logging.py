@@ -6,14 +6,14 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.s3 import s3_backends
 from moto.s3.models import FakeBucket
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
-@mock_s3
+@mock_aws
 def test_put_bucket_logging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -196,7 +196,7 @@ def test_put_bucket_logging():
     assert err.value.response["Error"]["Code"] == "MalformedXML"
 
 
-@mock_s3
+@mock_aws
 def test_log_file_is_created():
     # Create necessary buckets
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -270,7 +270,7 @@ def test_log_file_is_created():
     assert any(c for c in contents if "REST.PUT.BUCKET" in c)
 
 
-@mock_s3
+@mock_aws
 def test_invalid_bucket_logging_when_permissions_are_false():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")
@@ -296,7 +296,7 @@ def test_invalid_bucket_logging_when_permissions_are_false():
         assert "log-delivery" in err.value.response["Error"]["Message"]
 
 
-@mock_s3
+@mock_aws
 def test_valid_bucket_logging_when_permissions_are_true():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")
@@ -325,7 +325,7 @@ def test_valid_bucket_logging_when_permissions_are_true():
         assert result["LoggingEnabled"]["TargetPrefix"] == f"{bucket_name}/"
 
 
-@mock_s3
+@mock_aws
 def test_bucket_policy_not_set():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")
@@ -345,7 +345,7 @@ def test_bucket_policy_not_set():
     )
 
 
-@mock_s3
+@mock_aws
 def test_bucket_policy_principal():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")
@@ -400,7 +400,7 @@ def test_bucket_policy_principal():
     )
 
 
-@mock_s3
+@mock_aws
 def test_bucket_policy_effect():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")
@@ -454,7 +454,7 @@ def test_bucket_policy_effect():
     )
 
 
-@mock_s3
+@mock_aws
 def test_bucket_policy_action():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")
@@ -506,7 +506,7 @@ def test_bucket_policy_action():
     )
 
 
-@mock_s3
+@mock_aws
 def test_bucket_policy_resource():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't patch permission logic in ServerMode")

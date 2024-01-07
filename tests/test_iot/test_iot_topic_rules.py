@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 
 name = "my-rule"
 payload = {
@@ -19,7 +19,7 @@ payload = {
 }
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_create():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -32,7 +32,7 @@ def test_topic_rule_create():
     assert error_code == "ResourceAlreadyExistsException"
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_list():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -53,7 +53,7 @@ def test_topic_rule_list():
         assert rule["topicPattern"] == "topic/*"
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_get():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -79,7 +79,7 @@ def test_topic_rule_get():
     assert rrule["sql"] == payload["sql"]
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_replace():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -100,7 +100,7 @@ def test_topic_rule_replace():
     assert rule["rule"]["description"] == my_payload["description"]
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_disable():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -119,7 +119,7 @@ def test_topic_rule_disable():
     assert rule["rule"]["ruleDisabled"] is True
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_enable():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -140,7 +140,7 @@ def test_topic_rule_enable():
     assert rule["rule"]["ruleDisabled"] is False
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_delete():
     client = boto3.client("iot", region_name="ap-northeast-1")
 

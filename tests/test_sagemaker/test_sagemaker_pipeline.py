@@ -8,9 +8,8 @@ import boto3
 import botocore
 import pytest
 
-from moto import mock_sagemaker, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.s3 import mock_s3
 from moto.sagemaker.exceptions import ValidationError
 from moto.sagemaker.models import FakePipeline, sagemaker_backends
 from moto.sagemaker.utils import (
@@ -45,7 +44,7 @@ def setup_s3_pipeline_definition(bucket_name, object_key, pipeline_definition):
 
 @pytest.fixture(name="sagemaker_client")
 def fixture_sagemaker_client():
-    with mock_sagemaker():
+    with mock_aws():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
@@ -283,7 +282,7 @@ def test_load_pipeline_definition_from_s3():
     object_key = "some/object/key.json"
     pipeline_definition = {"key": "value"}
 
-    with mock_s3():
+    with mock_aws():
         with setup_s3_pipeline_definition(
             bucket_name,
             object_key,

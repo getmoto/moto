@@ -3,13 +3,11 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_autoscaling, mock_cloudformation, mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
-@mock_autoscaling
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_asg_with_latest_launch_template_version():
     cf_client = boto3.client("cloudformation", region_name="us-west-1")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -127,9 +125,7 @@ def test_asg_with_latest_launch_template_version():
     assert autoscaling_group["LaunchTemplate"]["Version"] == "2"
 
 
-@mock_autoscaling
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_asg_with_default_launch_template_version():
     cf_client = boto3.client("cloudformation", region_name="us-west-1")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -247,9 +243,7 @@ def test_asg_with_default_launch_template_version():
     assert autoscaling_group["LaunchTemplate"]["Version"] == "1"
 
 
-@mock_autoscaling
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_two_launch_templates():
     cf_client = boto3.client("cloudformation", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -299,9 +293,7 @@ def test_two_launch_templates():
     )
 
 
-@mock_autoscaling
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_launch_template_unnamed_update():
     cf_client = boto3.client("cloudformation", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")

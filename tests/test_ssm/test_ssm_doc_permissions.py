@@ -5,12 +5,12 @@ import pytest
 import yaml
 from botocore.exceptions import ClientError
 
-from moto import mock_ssm
+from moto import mock_aws
 
 from .test_ssm_docs import _get_yaml_template
 
 
-@mock_ssm
+@mock_aws
 def test_describe_document_permissions_unknown_document():
     client = boto3.client("ssm", region_name="us-east-1")
 
@@ -37,7 +37,7 @@ def get_client():
     return client
 
 
-@mock_ssm
+@mock_aws
 def test_describe_document_permissions_initial():
     client = get_client()
 
@@ -53,7 +53,7 @@ def test_describe_document_permissions_initial():
     [["111111111111"], ["all"], ["All"], ["111111111111", "222222222222"]],
     ids=["one_value", "all", "All", "multiple_values"],
 )
-@mock_ssm
+@mock_aws
 def test_modify_document_permission_add_account_id(ids):
     client = get_client()
     client.modify_document_permission(
@@ -86,7 +86,7 @@ def test_modify_document_permission_add_account_id(ids):
     ],
     ids=["all", "one_value", "multiple_initials", "multiple_to_remove"],
 )
-@mock_ssm
+@mock_aws
 def test_modify_document_permission_remove_account_id(initial, to_remove):
     client = get_client()
     client.modify_document_permission(
@@ -110,7 +110,7 @@ def test_modify_document_permission_remove_account_id(initial, to_remove):
     assert res["AccountSharingInfoList"] == expected_account_sharing
 
 
-@mock_ssm
+@mock_aws
 def test_fail_modify_document_permission_wrong_permission_type():
     client = get_client()
     with pytest.raises(ClientError) as ex:
@@ -122,7 +122,7 @@ def test_fail_modify_document_permission_wrong_permission_type():
     assert re.search(r"Member must satisfy enum value set: \[Share\]", err["Message"])
 
 
-@mock_ssm
+@mock_aws
 def test_fail_modify_document_permission_wrong_document_version():
     client = get_client()
     with pytest.raises(ClientError) as ex:
@@ -142,7 +142,7 @@ def test_fail_modify_document_permission_wrong_document_version():
     [["alll"], ["1234"], ["1234123412341234"], ["account_id"]],
     ids=["all?", "too_short", "too_long", "no-digits"],
 )
-@mock_ssm
+@mock_aws
 def test_fail_modify_document_permission_add_invalid_account_ids(value):
     client = get_client()
     with pytest.raises(ClientError) as ex:
@@ -159,7 +159,7 @@ def test_fail_modify_document_permission_add_invalid_account_ids(value):
     [["alll"], ["1234"], ["1234123412341234"], ["account_id"]],
     ids=["all?", "too_short", "too_long", "no-digits"],
 )
-@mock_ssm
+@mock_aws
 def test_fail_modify_document_permission_remove_invalid_account_ids(value):
     client = get_client()
     with pytest.raises(ClientError) as ex:
@@ -171,7 +171,7 @@ def test_fail_modify_document_permission_remove_invalid_account_ids(value):
     assert re.search(r"Member must satisfy regular expression pattern:", err["Message"])
 
 
-@mock_ssm
+@mock_aws
 def test_fail_modify_document_permission_add_all_and_specific():
     client = get_client()
     with pytest.raises(ClientError) as ex:
@@ -185,7 +185,7 @@ def test_fail_modify_document_permission_add_all_and_specific():
     assert err["Message"] == "Accounts can either be all or a group of AWS accounts"
 
 
-@mock_ssm
+@mock_aws
 def test_fail_modify_document_permission_remove_all_and_specific():
     client = get_client()
     with pytest.raises(ClientError) as ex:

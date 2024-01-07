@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_register_ca_certificate_simple():
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -18,7 +18,7 @@ def test_register_ca_certificate_simple():
     assert "certificateId" in resp
 
 
-@mock_iot
+@mock_aws
 def test_describe_ca_certificate_unknown():
     client = boto3.client("iot", region_name="us-east-2")
 
@@ -28,7 +28,7 @@ def test_describe_ca_certificate_unknown():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_iot
+@mock_aws
 def test_describe_ca_certificate_simple():
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -47,7 +47,7 @@ def test_describe_ca_certificate_simple():
     assert description["certificatePem"] == "ca_certificate"
 
 
-@mock_iot
+@mock_aws
 def test_describe_ca_certificate_advanced():
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -74,7 +74,7 @@ def test_describe_ca_certificate_advanced():
     assert config["roleArn"] == "aws:iot:arn:role/asdfqwerwe"
 
 
-@mock_iot
+@mock_aws
 def test_list_certificates_by_ca():
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -111,7 +111,7 @@ def test_list_certificates_by_ca():
     assert len(certs["certificates"]) == 1
 
 
-@mock_iot
+@mock_aws
 def test_delete_ca_certificate():
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -128,7 +128,7 @@ def test_delete_ca_certificate():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_iot
+@mock_aws
 def test_update_ca_certificate__status():
     client = boto3.client("iot", region_name="us-east-1")
     cert_id = client.register_ca_certificate(
@@ -147,7 +147,7 @@ def test_update_ca_certificate__status():
     }
 
 
-@mock_iot
+@mock_aws
 def test_update_ca_certificate__config():
     client = boto3.client("iot", region_name="us-east-1")
     cert_id = client.register_ca_certificate(
@@ -168,7 +168,7 @@ def test_update_ca_certificate__config():
     }
 
 
-@mock_iot
+@mock_aws
 def test_get_registration_code():
     client = boto3.client("iot", region_name="us-west-1")
 

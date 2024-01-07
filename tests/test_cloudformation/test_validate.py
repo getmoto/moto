@@ -4,7 +4,7 @@ import boto3
 import botocore
 import pytest
 
-from moto import mock_cloudformation, mock_s3
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 json_template = {
@@ -43,7 +43,7 @@ dummy_template_json = json.dumps(json_template)
 dummy_bad_template_json = json.dumps(json_bad_template)
 
 
-@mock_cloudformation
+@mock_aws
 def test_boto3_json_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=dummy_template_json)
@@ -52,7 +52,7 @@ def test_boto3_json_validate_successful():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_cloudformation
+@mock_aws
 def test_boto3_json_with_tabs_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=json_valid_template_with_tabs)
@@ -61,7 +61,7 @@ def test_boto3_json_with_tabs_validate_successful():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_cloudformation
+@mock_aws
 def test_boto3_json_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     with pytest.raises(botocore.exceptions.ClientError) as exc:
@@ -89,7 +89,7 @@ yaml_bad_template = """
 """
 
 
-@mock_cloudformation
+@mock_aws
 def test_boto3_yaml_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=yaml_template)
@@ -98,8 +98,7 @@ def test_boto3_yaml_validate_successful():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_boto3_yaml_validate_template_url_successful():
     s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
@@ -117,7 +116,7 @@ def test_boto3_yaml_validate_template_url_successful():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_cloudformation
+@mock_aws
 def test_boto3_yaml_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     with pytest.raises(botocore.exceptions.ClientError) as exc:

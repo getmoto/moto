@@ -1,17 +1,16 @@
-"""Unit tests for servicediscovery-supported APIs."""
 import re
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_servicediscovery
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_servicediscovery
+@mock_aws
 def test_list_operations_initial():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     resp = client.list_operations()
@@ -19,7 +18,7 @@ def test_list_operations_initial():
     assert resp["Operations"] == []
 
 
-@mock_servicediscovery
+@mock_aws
 def test_list_operations():
     client = boto3.client("servicediscovery", region_name="eu-west-2")
 
@@ -32,7 +31,7 @@ def test_list_operations():
     assert resp["Operations"] == [{"Id": op_id, "Status": "SUCCESS"}]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_create_http_namespace_operation():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     resp = client.create_http_namespace(Name="mynamespace")
@@ -59,7 +58,7 @@ def test_get_create_http_namespace_operation():
     assert targets["NAMESPACE"] in [ns["Id"] for ns in namespaces]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_private_dns_namespace_operation():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     resp = client.create_private_dns_namespace(Name="dns_ns", Vpc="vpc_id")
@@ -80,7 +79,7 @@ def test_get_private_dns_namespace_operation():
     assert "Targets" in operation
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_public_dns_namespace_operation():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     resp = client.create_public_dns_namespace(Name="dns_ns")
@@ -101,7 +100,7 @@ def test_get_public_dns_namespace_operation():
     assert "Targets" in operation
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_update_service_operation():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     service_id = client.create_service(
@@ -126,7 +125,7 @@ def test_get_update_service_operation():
     assert "Targets" in operation
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_unknown_operation():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
 

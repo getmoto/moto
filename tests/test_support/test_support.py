@@ -1,10 +1,10 @@
 import boto3
 import pytest
 
-from moto import mock_support
+from moto import mock_aws
 
 
-@mock_support
+@mock_aws
 def test_describe_trusted_advisor_checks_returns_amount_of_checks():
     """Test that trusted advisor returns 104 checks."""
     client = boto3.client("support", "us-east-1")
@@ -12,7 +12,7 @@ def test_describe_trusted_advisor_checks_returns_amount_of_checks():
     assert len(response["checks"]) == 104
 
 
-@mock_support
+@mock_aws
 def test_describe_trusted_advisor_checks_returns_an_expected_id():
     """Test that a random check id is returned."""
     client = boto3.client("support", "us-east-1")
@@ -24,7 +24,7 @@ def test_describe_trusted_advisor_checks_returns_an_expected_id():
     assert "zXCkfM1nI3" in check_ids
 
 
-@mock_support
+@mock_aws
 def test_describe_trusted_advisor_checks_returns_an_expected_check_name():
     """Test that a random check name is returned."""
     client = boto3.client("support", "us-east-1")
@@ -36,7 +36,7 @@ def test_describe_trusted_advisor_checks_returns_an_expected_check_name():
     assert "Unassociated Elastic IP Addresses" in check_names
 
 
-@mock_support
+@mock_aws
 def test_refresh_trusted_advisor_check_returns_expected_check():
     """Test refresh of a trusted advisor check returns check id in response."""
     client = boto3.client("support", "us-east-1")
@@ -45,7 +45,7 @@ def test_refresh_trusted_advisor_check_returns_expected_check():
     assert response["status"]["checkId"] == check_name
 
 
-@mock_support
+@mock_aws
 def test_refresh_trusted_advisor_check_returns_an_expected_status():
     """Test refresh of a trusted advisor check returns an expected status."""
     client = boto3.client("support", "us-east-1")
@@ -63,7 +63,7 @@ def test_refresh_trusted_advisor_check_returns_an_expected_status():
         ["none", "enqueued", "processing", "success", "abandoned"],
     ],
 )
-@mock_support
+@mock_aws
 def test_refresh_trusted_advisor_check_cycles_to_new_status_on_each_call(
     possible_statuses,
 ):
@@ -79,7 +79,7 @@ def test_refresh_trusted_advisor_check_cycles_to_new_status_on_each_call(
     assert actual_statuses == possible_statuses
 
 
-@mock_support
+@mock_aws
 def test_refresh_trusted_advisor_check_cycles_to_new_status_on_with_two_checks():
     """Test next expected status is returned when additional checks are made."""
     client = boto3.client("support", "us-east-1")
@@ -108,7 +108,7 @@ def test_refresh_trusted_advisor_check_cycles_to_new_status_on_with_two_checks()
     )
 
 
-@mock_support
+@mock_aws
 def test_refresh_trusted_advisor_check_cycle_continues_on_full_cycle():
     """Test that after cycling through all statuses, check continues cycle."""
     client = boto3.client("support", "us-east-1")
@@ -129,7 +129,7 @@ def test_refresh_trusted_advisor_check_cycle_continues_on_full_cycle():
     assert expected_none_response["status"]["status"] == "none"
 
 
-@mock_support
+@mock_aws
 def test_support_case_is_closed():
     """Test that on closing a case, the correct response is returned."""
     client = boto3.client("support", "us-east-1")
@@ -164,7 +164,7 @@ def test_support_case_is_closed():
     assert expected_final_case == "resolved"
 
 
-@mock_support
+@mock_aws
 def test_support_case_created():
     """Test support request creation response contains case ID."""
     client = boto3.client("support", "us-east-1")
@@ -193,7 +193,7 @@ def test_support_case_created():
         ("language", "test_language"),
     ],
 )
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described(key, value):
     """Test support request creation can be described."""
 
@@ -238,7 +238,7 @@ def test_support_created_case_can_be_described(key, value):
         ("language", "test_language"),
     ],
 )
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_without_next_token(key, value):
     """Test support request creation can be described without next token."""
 
@@ -282,7 +282,7 @@ def test_support_created_case_can_be_described_without_next_token(key, value):
         ("language", "test_language"),
     ],
 )
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_without_max_results(key, value):
     """Test support request creation can be described without max_results."""
 
@@ -326,7 +326,7 @@ def test_support_created_case_can_be_described_without_max_results(key, value):
         ("language", "test_language"),
     ],
 )
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_without_max_results_or_next_token(
     key, value
 ):
@@ -361,7 +361,7 @@ def test_support_created_case_can_be_described_without_max_results_or_next_token
     assert actual_case_id == value
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_without_params():
     """Test support request creation without params can be described."""
 
@@ -386,7 +386,7 @@ def test_support_created_case_can_be_described_without_params():
     assert len(describe_cases_response["cases"]) == 1
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_cc_email_correct():
     """Test a support request can be described with correct cc email."""
 
@@ -421,7 +421,7 @@ def test_support_created_case_cc_email_correct():
     assert actual_case_id == "test_email_cc"
 
 
-@mock_support
+@mock_aws
 def test_support_case_include_resolved_defaults_to_false():
     """Test support request description doesn't include resolved cases."""
     client = boto3.client("support", "us-east-1")
@@ -455,7 +455,7 @@ def test_support_case_include_resolved_defaults_to_false():
     assert case_id_list not in actual
 
 
-@mock_support
+@mock_aws
 def test_support_case_include_communications_defaults_to_true():
     """Test support request description includes communications cases."""
     client = boto3.client("support", "us-east-1")
@@ -488,7 +488,7 @@ def test_support_case_include_communications_defaults_to_true():
     assert "recentCommunications" in actual
 
 
-@mock_support
+@mock_aws
 def test_multiple_support_created_cases_can_be_described():
     """Test creation of multiple support requests descriptions."""
     client = boto3.client("support", "us-east-1")
@@ -536,7 +536,7 @@ def test_multiple_support_created_cases_can_be_described():
     assert actual_case_id_2 == case_id_list[1]
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_and_contains_communications_when_set_to_true():
     """Test support request description when includeResolvedCases=True.
 
@@ -572,7 +572,7 @@ def test_support_created_case_can_be_described_and_contains_communications_when_
     assert "recentCommunications" in actual_recent_comm
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_and_does_not_contain_communications_when_false():
     """Test support request creation when includeCommunications=False."""
 
@@ -606,7 +606,7 @@ def test_support_created_case_can_be_described_and_does_not_contain_communicatio
     assert "recentCommunications" not in actual_recent_comm
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_and_contains_resolved_cases_when_true():
     """Test support request creation when includeResolvedCases=true."""
     client = boto3.client("support", "us-east-1")
@@ -641,7 +641,7 @@ def test_support_created_case_can_be_described_and_contains_resolved_cases_when_
     assert actual == case_id_list
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_and_does_not_contain_resolved_cases_when_false():
     """Test support request when includeResolvedCases=false."""
     client = boto3.client("support", "us-east-1")
@@ -676,7 +676,7 @@ def test_support_created_case_can_be_described_and_does_not_contain_resolved_cas
     assert case_id_list not in actual
 
 
-@mock_support
+@mock_aws
 def test_support_created_case_can_be_described_and_can_cycle_case_severities():
     """Test support request creation cycles case severities."""
     client = boto3.client("support", "us-east-1")

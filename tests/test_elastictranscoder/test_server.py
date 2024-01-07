@@ -1,12 +1,12 @@
 import moto.server as server
-from moto import mock_elastictranscoder
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_elastictranscoder_list():
     backend = server.create_backend_app("elastictranscoder")
     test_client = backend.test_client()

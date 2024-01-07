@@ -3,7 +3,7 @@ from unittest import SkipTest, mock
 
 import boto3
 
-from moto import mock_ec2, mock_ssm, settings
+from moto import mock_aws, settings
 
 test_ami = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 
@@ -11,8 +11,7 @@ test_ami = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_6
 # The default AMIs are not loaded for our test case, to speed things up
 # But we do need it for this specific test
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
-@mock_ssm
+@mock_aws
 def test_ssm_get_latest_ami_by_path():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")

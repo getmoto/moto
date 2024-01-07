@@ -203,14 +203,14 @@ class StreamShard(BaseModel):
         seq = len(self.items) + self.starting_sequence_number
         self.items.append(StreamRecord(self.table, t, event_name, old, new, seq))
         result = None
-        from moto.awslambda import lambda_backends
+        from moto.awslambda.utils import get_backend
 
         for arn, esm in self.table.lambda_event_source_mappings.items():
             region = arn[
                 len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
             ]
 
-            result = lambda_backends[self.account_id][region].send_dynamodb_items(
+            result = get_backend(self.account_id, region).send_dynamodb_items(
                 arn, self.items, esm.event_source_arn
             )
 

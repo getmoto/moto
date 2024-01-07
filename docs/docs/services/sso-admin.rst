@@ -14,17 +14,6 @@ sso-admin
 
 .. autoclass:: moto.ssoadmin.models.SSOAdminBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_ssoadmin
-            def test_ssoadmin_behaviour:
-                boto3.client("sso-admin")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] attach_customer_managed_policy_reference_to_permission_set

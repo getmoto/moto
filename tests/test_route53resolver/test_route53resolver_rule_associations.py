@@ -1,10 +1,8 @@
-"""Unit tests for route53resolver rule association-related APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_route53resolver
-from moto.ec2 import mock_ec2
+from moto import mock_aws
 from moto.moto_api._internal import mock_random
 
 from .test_route53resolver_endpoint import TEST_REGION, create_vpc
@@ -25,7 +23,7 @@ def create_test_rule_association(
     )["ResolverRuleAssociation"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_invalid_associate_resolver_rule_args():
     """Test invalid arguments to the associate_resolver_rule API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -59,8 +57,7 @@ def test_route53resolver_invalid_associate_resolver_rule_args():
     ) in err["Message"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_associate_resolver_rule():
     """Test good associate_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -80,8 +77,7 @@ def test_route53resolver_associate_resolver_rule():
     assert "StatusMessage" in rule_association
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_other_associate_resolver_rule_errors():
     """Test good associate_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -122,8 +118,7 @@ def test_route53resolver_other_associate_resolver_rule_errors():
     # 2000 VPCs and rule associations.
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_disassociate_resolver_rule():
     """Test good disassociate_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -144,8 +139,7 @@ def test_route53resolver_disassociate_resolver_rule():
     assert "Deleting" in association["StatusMessage"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_disassociate_resolver_rule():
     """Test disassociate_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -206,8 +200,7 @@ def test_route53resolver_bad_disassociate_resolver_rule():
     ) in err["Message"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_get_resolver_rule_association():
     """Test good get_resolver_rule_association API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -229,7 +222,7 @@ def test_route53resolver_get_resolver_rule_association():
     assert association["StatusMessage"] == created_association["StatusMessage"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_get_resolver_rule_association():
     """Test get_resolver_rule_association API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -255,8 +248,7 @@ def test_route53resolver_bad_get_resolver_rule_association():
     assert f"ResolverRuleAssociation '{random_num}' does not Exist" in err["Message"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_list_resolver_rule_associations():
     """Test good list_resolver_rule_associations API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -297,8 +289,7 @@ def test_route53resolver_list_resolver_rule_associations():
         assert association["Name"].startswith(f"A{idx + 1}")
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_list_resolver_rule_associations_filters():
     """Test good list_resolver_rule_associations API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -364,7 +355,7 @@ def test_route53resolver_list_resolver_rule_associations_filters():
     assert len(response["ResolverRuleAssociations"]) == 0
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_list_resolver_rule_associations_filters():
     """Test bad list_resolver_rule_associations API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -391,8 +382,7 @@ def test_route53resolver_bad_list_resolver_rule_associations_filters():
     assert "The filter 'VpcId' is invalid" in err["Message"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_list_resolver_rule_associations():
     """Test bad list_resolver_rule_associations API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)

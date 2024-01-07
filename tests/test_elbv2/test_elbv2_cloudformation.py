@@ -2,12 +2,11 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2, mock_elbv2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_elbv2
-@mock_cloudformation
+@mock_aws
 def test_redirect_action_listener_rule_cloudformation():
     cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
     elbv2_client = boto3.client("elbv2", region_name="us-east-1")
@@ -87,8 +86,7 @@ def test_redirect_action_listener_rule_cloudformation():
     ]
 
 
-@mock_elbv2
-@mock_cloudformation
+@mock_aws
 def test_cognito_action_listener_rule_cloudformation():
     cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
     elbv2_client = boto3.client("elbv2", region_name="us-east-1")
@@ -172,9 +170,7 @@ def test_cognito_action_listener_rule_cloudformation():
     ]
 
 
-@mock_ec2
-@mock_elbv2
-@mock_cloudformation
+@mock_aws
 def test_create_target_groups_through_cloudformation():
     cfn_conn = boto3.client("cloudformation", region_name="us-east-1")
     elbv2_client = boto3.client("elbv2", region_name="us-east-1")
@@ -248,8 +244,7 @@ def test_create_target_groups_through_cloudformation():
     )
 
 
-@mock_elbv2
-@mock_cloudformation
+@mock_aws
 def test_fixed_response_action_listener_rule_cloudformation():
     cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
     elbv2_client = boto3.client("elbv2", region_name="us-east-1")

@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_cloudformation, mock_kinesis
+from moto import mock_aws
 
 
-@mock_cloudformation
+@mock_aws
 def test_kinesis_cloudformation_create_stream():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -20,8 +20,7 @@ def test_kinesis_cloudformation_create_stream():
     assert len(provisioned_resource["PhysicalResourceId"]) > 0
 
 
-@mock_cloudformation
-@mock_kinesis
+@mock_aws
 def test_kinesis_cloudformation_get_attr():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -58,8 +57,7 @@ Outputs:
     assert output_stream_arn == stream_description["StreamARN"]
 
 
-@mock_cloudformation
-@mock_kinesis
+@mock_aws
 def test_kinesis_cloudformation_update():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -142,8 +140,7 @@ Resources:
     assert shards_provisioned == 6
 
 
-@mock_cloudformation
-@mock_kinesis
+@mock_aws
 def test_kinesis_cloudformation_delete():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 

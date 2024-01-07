@@ -2,10 +2,10 @@
 import json
 
 import moto.server as server
-from moto import mock_cloudtrail
+from moto import mock_aws
 
 
-@mock_cloudtrail
+@mock_aws
 def test_cloudtrail_list():
     backend = server.create_backend_app("cloudtrail")
     test_client = backend.test_client()

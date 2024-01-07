@@ -4,11 +4,11 @@ from unittest import SkipTest
 import boto3
 import requests
 
-from moto import mock_apigateway, mock_dynamodb, settings
+from moto import mock_aws, settings
 from moto.core.models import responses_mock
 
 
-@mock_apigateway
+@mock_aws
 def test_http_integration():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
@@ -55,8 +55,7 @@ def test_http_integration():
     assert requests.get(deploy_url).content == b"a fake response"
 
 
-@mock_apigateway
-@mock_dynamodb
+@mock_aws
 def test_aws_integration_dynamodb():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
@@ -80,8 +79,7 @@ def test_aws_integration_dynamodb():
     assert res.content == b"{}"
 
 
-@mock_apigateway
-@mock_dynamodb
+@mock_aws
 def test_aws_integration_dynamodb_multiple_stages():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
@@ -117,8 +115,7 @@ def test_aws_integration_dynamodb_multiple_stages():
     assert res.status_code == 400
 
 
-@mock_apigateway
-@mock_dynamodb
+@mock_aws
 def test_aws_integration_dynamodb_multiple_resources():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
@@ -167,7 +164,7 @@ def test_aws_integration_dynamodb_multiple_resources():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_aws_integration_sagemaker():
     region = "us-west-2"
     client = boto3.client("apigateway", region_name=region)

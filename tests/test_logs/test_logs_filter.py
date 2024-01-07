@@ -3,7 +3,7 @@ from unittest import TestCase
 
 import boto3
 
-from moto import mock_logs
+from moto import mock_aws
 from moto.core.utils import unix_time_millis, utcnow
 
 TEST_REGION = "eu-west-1"
@@ -20,7 +20,7 @@ class TestLogFilter(TestCase):
         )
 
 
-@mock_logs
+@mock_aws
 class TestLogFilterParameters(TestLogFilter):
     def setUp(self) -> None:
         super().setUp()
@@ -132,7 +132,7 @@ class TestLogFilterParameters(TestLogFilter):
         assert "nextToken" not in res
 
 
-@mock_logs
+@mock_aws
 class TestLogsFilterPattern(TestLogFilter):
     def setUp(self) -> None:
         super().setUp()

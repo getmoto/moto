@@ -4,7 +4,6 @@ from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..batch.models import (
-    BaseBackend,
     BatchBackend,
     ClientException,
     Job,
@@ -13,13 +12,13 @@ from ..batch.models import (
 from ..core import BackendDict
 
 
-class BatchSimpleBackend(BaseBackend):
+class BatchSimpleBackend(BatchBackend):
     """
     Implements a Batch-Backend that does not use Docker containers. Submitted Jobs are marked as Success by default.
 
     Set the environment variable MOTO_SIMPLE_BATCH_FAIL_AFTER=0 to fail jobs immediately, or set this variable to a positive integer to control after how many seconds the job fails.
 
-    Annotate your tests with `@mock_batch_simple`-decorator to use this Batch-implementation.
+    Annotate your tests with `@mock_aws(config={"batch": {"use_docker": False}})`-decorator to use this Batch-implementation.
     """
 
     @property

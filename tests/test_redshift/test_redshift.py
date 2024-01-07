@@ -7,11 +7,11 @@ import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 
-from moto import mock_ec2, mock_redshift
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.create_cluster(
@@ -55,7 +55,7 @@ def test_create_cluster_boto3():
     assert cluster["Endpoint"]["Port"] == 5439
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_with_enhanced_vpc_routing_enabled():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.create_cluster(
@@ -76,7 +76,7 @@ def test_create_cluster_with_enhanced_vpc_routing_enabled():
     assert response["Cluster"]["EnhancedVpcRouting"] is True
 
 
-@mock_redshift
+@mock_aws
 def test_create_and_describe_cluster_with_kms_key_id():
     kms_key_id = (
         "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000"
@@ -101,7 +101,7 @@ def test_create_and_describe_cluster_with_kms_key_id():
     assert cluster["KmsKeyId"] == kms_key_id
 
 
-@mock_redshift
+@mock_aws
 def test_create_snapshot_copy_grant():
     client = boto3.client("redshift", region_name="us-east-1")
     grants = client.create_snapshot_copy_grant(
@@ -116,7 +116,7 @@ def test_create_snapshot_copy_grant():
         client.describe_snapshot_copy_grants(SnapshotCopyGrantName="test-us-east-1")
 
 
-@mock_redshift
+@mock_aws
 def test_create_many_snapshot_copy_grants():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -128,14 +128,14 @@ def test_create_many_snapshot_copy_grants():
     assert len(response["SnapshotCopyGrants"]) == 10
 
 
-@mock_redshift
+@mock_aws
 def test_no_snapshot_copy_grants():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.describe_snapshot_copy_grants()
     assert len(response["SnapshotCopyGrants"]) == 0
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_all_attributes():
     """
     Ran against AWS (on 30/05/2021)
@@ -221,7 +221,7 @@ def test_create_cluster_all_attributes():
     assert cluster["TotalStorageCapacityInMegaBytes"] == 0
 
 
-@mock_redshift
+@mock_aws
 def test_create_single_node_cluster_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -247,8 +247,7 @@ def test_create_single_node_cluster_boto3():
     assert cluster["NumberOfNodes"] == 1
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_create_cluster_in_subnet_group():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -273,8 +272,7 @@ def test_create_cluster_in_subnet_group():
     assert cluster["ClusterSubnetGroupName"] == "my_subnet_group"
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_create_cluster_in_subnet_group_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -299,7 +297,7 @@ def test_create_cluster_in_subnet_group_boto3():
     assert cluster["ClusterSubnetGroupName"] == "my_subnet_group"
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_with_security_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster_security_group(
@@ -327,8 +325,7 @@ def test_create_cluster_with_security_group_boto3():
     assert set(group_names) == {"security_group1", "security_group2"}
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_create_cluster_with_vpc_security_groups_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -350,7 +347,7 @@ def test_create_cluster_with_vpc_security_groups_boto3():
     assert list(group_ids) == [security_group.id]
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_with_iam_roles():
     iam_roles_arn = ["arn:aws:iam:::role/my-iam-role"]
     client = boto3.client("redshift", region_name="us-east-1")
@@ -368,7 +365,7 @@ def test_create_cluster_with_iam_roles():
     assert iam_roles_arn == iam_roles
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_with_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_id = "my-cluster"
@@ -405,7 +402,7 @@ def test_create_cluster_with_parameter_group_boto3():
     assert cluster["ClusterParameterGroups"][0]["ParameterApplyStatus"] == "in-sync"
 
 
-@mock_redshift
+@mock_aws
 def test_describe_non_existent_cluster_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -415,7 +412,7 @@ def test_describe_non_existent_cluster_boto3():
     assert err["Message"] == "Cluster not-a-cluster not found."
 
 
-@mock_redshift
+@mock_aws
 def test_modify_cluster_vpc_routing():
     iam_roles_arn = ["arn:aws:iam:::role/my-iam-role"]
     client = boto3.client("redshift", region_name="us-east-1")
@@ -470,7 +467,7 @@ def test_modify_cluster_vpc_routing():
     assert cluster["EnhancedVpcRouting"] is True
 
 
-@mock_redshift
+@mock_aws
 def test_modify_cluster_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -525,8 +522,7 @@ def test_modify_cluster_boto3():
     assert cluster["NumberOfNodes"] == 4
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_create_cluster_subnet_group():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -551,7 +547,7 @@ def test_create_cluster_subnet_group():
     assert set(subnet_ids) == set([subnet1.id, subnet2.id])
 
 
-@mock_redshift
+@mock_aws
 def test_authorize_security_group_ingress():
     iam_roles_arn = ["arn:aws:iam:::role/my-iam-role"]
     client = boto3.client("redshift", region_name="us-east-1")
@@ -603,8 +599,7 @@ def test_authorize_security_group_ingress():
     )
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_create_invalid_cluster_subnet_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -618,8 +613,7 @@ def test_create_invalid_cluster_subnet_group_boto3():
     assert re.match(r"Subnet \[[a-z0-9-']+\] not found.", err["Message"])
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_describe_non_existent_subnet_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -629,8 +623,7 @@ def test_describe_non_existent_subnet_group_boto3():
     assert err["Message"] == "Subnet group my_subnet not found."
 
 
-@mock_redshift
-@mock_ec2
+@mock_aws
 def test_delete_cluster_subnet_group():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -658,7 +651,7 @@ def test_delete_cluster_subnet_group():
         client.delete_cluster_subnet_group(ClusterSubnetGroupName="not-a-subnet-group")
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_security_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     group = client.create_cluster_security_group(
@@ -684,7 +677,7 @@ def test_create_cluster_security_group_boto3():
     assert my_group["Tags"] == [{"Key": "tag_key", "Value": "tag_value"}]
 
 
-@mock_redshift
+@mock_aws
 def test_describe_non_existent_security_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -695,7 +688,7 @@ def test_describe_non_existent_security_group_boto3():
     assert err["Message"] == "Security group non-existent not found."
 
 
-@mock_redshift
+@mock_aws
 def test_delete_cluster_security_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster_security_group(
@@ -721,7 +714,7 @@ def test_delete_cluster_security_group_boto3():
     assert err["Message"] == "Security group not-a-security-group not found."
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     group = client.create_cluster_parameter_group(
@@ -744,7 +737,7 @@ def test_create_cluster_parameter_group_boto3():
     assert my_group["Description"] == "This is my group"
 
 
-@mock_redshift
+@mock_aws
 def test_describe_non_existent_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -756,7 +749,7 @@ def test_describe_non_existent_parameter_group_boto3():
     assert err["Message"] == "Parameter group not-a-parameter-group not found."
 
 
-@mock_redshift
+@mock_aws
 def test_delete_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster_parameter_group(
@@ -781,7 +774,7 @@ def test_delete_parameter_group_boto3():
     assert len(client.describe_cluster_parameter_groups()["ParameterGroups"]) == 1
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_snapshot_of_non_existent_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "non-existent-cluster-id"
@@ -794,7 +787,7 @@ def test_create_cluster_snapshot_of_non_existent_cluster():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_automated_snapshot_on_cluster_creation():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -821,7 +814,7 @@ def test_automated_snapshot_on_cluster_creation():
     assert resp_auto_snap["Snapshots"][0]["Tags"] == []
 
 
-@mock_redshift
+@mock_aws
 def test_delete_automated_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -849,7 +842,7 @@ def test_delete_automated_snapshot():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_presence_automated_snapshot_on_cluster_delete():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -877,7 +870,7 @@ def test_presence_automated_snapshot_on_cluster_delete():
     assert len(resp["Snapshots"]) == 0
 
 
-@mock_redshift
+@mock_aws
 def test_describe_snapshot_with_filter():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -938,7 +931,7 @@ def test_describe_snapshot_with_filter():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_from_automated_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     original_cluster_identifier = "original-cluster"
@@ -985,7 +978,7 @@ def test_create_cluster_from_automated_snapshot():
     assert len(resp_auto_snap["Snapshots"]) == 1
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -1015,7 +1008,7 @@ def test_create_cluster_snapshot():
     assert snapshot["MasterUsername"] == "username"
 
 
-@mock_redshift
+@mock_aws
 def test_describe_cluster_snapshots():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -1065,7 +1058,7 @@ def test_describe_cluster_snapshots():
     assert resp_clust["Snapshots"][1] == resp_snap_2["Snapshots"][0]
 
 
-@mock_redshift
+@mock_aws
 def test_describe_cluster_snapshots_not_found_error():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "non-existent-cluster-id"
@@ -1081,7 +1074,7 @@ def test_describe_cluster_snapshots_not_found_error():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_delete_cluster_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -1119,7 +1112,7 @@ def test_delete_cluster_snapshot():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_cluster_snapshot_already_exists():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -1148,7 +1141,7 @@ def test_cluster_snapshot_already_exists():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_from_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     original_cluster_identifier = "original-cluster"
@@ -1191,7 +1184,7 @@ def test_create_cluster_from_snapshot():
     assert new_cluster["EnhancedVpcRouting"] is True
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_with_node_type_from_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     original_cluster_identifier = "original-cluster"
@@ -1236,7 +1229,7 @@ def test_create_cluster_with_node_type_from_snapshot():
     assert new_cluster["EnhancedVpcRouting"] is True
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_from_snapshot_with_waiter():
     client = boto3.client("redshift", region_name="us-east-1")
     original_cluster_identifier = "original-cluster"
@@ -1275,7 +1268,7 @@ def test_create_cluster_from_snapshot_with_waiter():
     assert new_cluster["Endpoint"]["Port"] == 1234
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_from_non_existent_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as client_err:
@@ -1287,7 +1280,7 @@ def test_create_cluster_from_non_existent_snapshot():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_create_cluster_status_update():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "test-cluster"
@@ -1305,7 +1298,7 @@ def test_create_cluster_status_update():
     assert response["Clusters"][0]["ClusterStatus"] == "available"
 
 
-@mock_redshift
+@mock_aws
 def test_describe_tags_with_resource_type():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -1353,7 +1346,7 @@ def test_describe_tags_with_resource_type():
     assert tag["Value"] == tag_value
 
 
-@mock_redshift
+@mock_aws
 def test_describe_tags_cannot_specify_resource_type_and_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
     resource_name = f"arn:aws:redshift:us-east-1:{ACCOUNT_ID}:cluster:cluster-id"
@@ -1366,7 +1359,7 @@ def test_describe_tags_cannot_specify_resource_type_and_resource_name():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_describe_tags_with_resource_name():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
@@ -1414,7 +1407,7 @@ def test_describe_tags_with_resource_name():
     assert tag["Value"] == tag_value
 
 
-@mock_redshift
+@mock_aws
 def test_create_tags():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
@@ -1445,7 +1438,7 @@ def test_create_tags():
     assert len(list(response["TaggedResources"])) == num_tags
 
 
-@mock_redshift
+@mock_aws
 def test_delete_tags():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "cluster-id"
@@ -1479,8 +1472,7 @@ def test_delete_tags():
     assert len(list(response["TaggedResources"])) == 1
 
 
-@mock_ec2
-@mock_redshift
+@mock_aws
 def test_describe_tags_all_resource_types():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -1533,7 +1525,7 @@ def test_describe_tags_all_resource_types():
     assert set(returned_types) == set(expected_types)
 
 
-@mock_redshift
+@mock_aws
 def test_tagged_resource_not_found_error():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -1563,7 +1555,7 @@ def test_tagged_resource_not_found_error():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_enable_snapshot_copy():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster(
@@ -1607,7 +1599,7 @@ def test_enable_snapshot_copy():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_enable_snapshot_copy_unencrypted():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster(
@@ -1625,7 +1617,7 @@ def test_enable_snapshot_copy_unencrypted():
     assert cluster_snapshot_copy_status["DestinationRegion"] == "us-west-2"
 
 
-@mock_redshift
+@mock_aws
 def test_disable_snapshot_copy():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster(
@@ -1647,7 +1639,7 @@ def test_disable_snapshot_copy():
     assert "ClusterSnapshotCopyStatus" not in response["Clusters"][0]
 
 
-@mock_redshift
+@mock_aws
 def test_modify_snapshot_copy_retention_period():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster(
@@ -1672,7 +1664,7 @@ def test_modify_snapshot_copy_retention_period():
     assert cluster_snapshot_copy_status["RetentionPeriod"] == 5
 
 
-@mock_redshift
+@mock_aws
 def test_create_duplicate_cluster_fails():
     kwargs = {
         "ClusterIdentifier": "test",
@@ -1689,7 +1681,7 @@ def test_create_duplicate_cluster_fails():
     assert client_err.value.response["Error"]["Code"] == "ClusterAlreadyExists"
 
 
-@mock_redshift
+@mock_aws
 def test_delete_cluster_with_final_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -1735,7 +1727,7 @@ def test_delete_cluster_with_final_snapshot():
     assert re.match(r"Cluster .+ not found.", ex.value.response["Error"]["Message"])
 
 
-@mock_redshift
+@mock_aws
 def test_delete_cluster_without_final_snapshot():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
@@ -1786,7 +1778,7 @@ def test_delete_cluster_without_final_snapshot():
     assert re.match(r"Cluster .+ not found.", ex.value.response["Error"]["Message"])
 
 
-@mock_redshift
+@mock_aws
 def test_resize_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     resp = client.create_cluster(
@@ -1828,7 +1820,7 @@ def test_resize_cluster():
     assert "Invalid cluster type" in ex.value.response["Error"]["Message"]
 
 
-@mock_redshift
+@mock_aws
 def test_get_cluster_credentials_non_existent_cluster_and_user():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -1840,7 +1832,7 @@ def test_get_cluster_credentials_non_existent_cluster_and_user():
     assert re.match(r"Cluster .+ not found.", ex.value.response["Error"]["Message"])
 
 
-@mock_redshift
+@mock_aws
 def test_get_cluster_credentials_invalid_duration():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -1876,7 +1868,7 @@ def test_get_cluster_credentials_invalid_duration():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_get_cluster_credentials():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -1924,7 +1916,7 @@ def test_get_cluster_credentials():
     )
 
 
-@mock_redshift
+@mock_aws
 def test_pause_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.create_cluster(
@@ -1949,7 +1941,7 @@ def test_pause_cluster():
     assert cluster["Endpoint"]["Port"] == 5439
 
 
-@mock_redshift
+@mock_aws
 def test_pause_unknown_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
 
@@ -1960,7 +1952,7 @@ def test_pause_unknown_cluster():
     assert err["Message"] == "Cluster test not found."
 
 
-@mock_redshift
+@mock_aws
 def test_resume_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster(
@@ -1984,7 +1976,7 @@ def test_resume_cluster():
     assert cluster["Endpoint"]["Port"] == 5439
 
 
-@mock_redshift
+@mock_aws
 def test_resume_unknown_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
 

@@ -4,10 +4,10 @@ from decimal import Decimal
 import boto3
 import pytest
 
-from moto import mock_dynamodb
+from moto import mock_aws
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expression_with_dot_in_attr_name():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
     table_name = "Test"
@@ -41,7 +41,7 @@ def test_condition_expression_with_dot_in_attr_name():
     assert item == {"id": "key-0", "first": {}}
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expressions():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -236,7 +236,7 @@ def _assert_conditional_check_failed_exception(exc):
     assert err["Message"] == "The conditional request failed"
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expression_numerical_attribute():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     dynamodb.create_table(
@@ -277,7 +277,7 @@ def update_numerical_con_expr(key, con_expr, res, table):
     assert table.get_item(Key={"partitionKey": key})["Item"]["myAttr"] == Decimal(res)
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expression__attr_doesnt_exist():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -315,7 +315,7 @@ def test_condition_expression__attr_doesnt_exist():
     _assert_conditional_check_failed_exception(exc)
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expression__or_order():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -338,7 +338,7 @@ def test_condition_expression__or_order():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expression__and_order():
     client = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -363,7 +363,7 @@ def test_condition_expression__and_order():
     _assert_conditional_check_failed_exception(exc)
 
 
-@mock_dynamodb
+@mock_aws
 def test_condition_expression_with_reserved_keyword_as_attr_name():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
     table_name = "Test"

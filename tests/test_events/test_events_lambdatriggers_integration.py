@@ -2,18 +2,14 @@ import json
 
 import boto3
 
-from moto import mock_events, mock_iam, mock_lambda, mock_logs, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from ..markers import requires_docker
 from ..test_awslambda.utilities import get_test_zip_file1, wait_for_log_msg
 
 
-@mock_events
-@mock_iam
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 @requires_docker
 def test_creating_bucket__invokes_lambda():
     iam_client = boto3.client("iam", "us-east-1")
@@ -91,11 +87,7 @@ def test_creating_bucket__invokes_lambda():
     assert event["resources"] == [f"arn:aws:s3:::{bucket_name}"]
 
 
-@mock_events
-@mock_iam
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 def test_create_disabled_rule():
     iam_client = boto3.client("iam", "us-east-1")
     lambda_client = boto3.client("lambda", "us-east-1")
@@ -160,10 +152,7 @@ def test_create_disabled_rule():
     assert msg_showed_up is False
 
 
-@mock_events
-@mock_iam
-@mock_logs
-@mock_s3
+@mock_aws
 def test_create_rule_for_unsupported_target_arn():
     iam_client = boto3.client("iam", "us-east-1")
     events_client = boto3.client("events", "us-east-1")
@@ -219,11 +208,7 @@ def test_create_rule_for_unsupported_target_arn():
     assert msg_showed_up is False
 
 
-@mock_events
-@mock_iam
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 def test_creating_bucket__but_invoke_lambda_on_create_object():
     iam_client = boto3.client("iam", "us-east-1")
     lambda_client = boto3.client("lambda", "us-east-1")
@@ -285,9 +270,7 @@ def test_creating_bucket__but_invoke_lambda_on_create_object():
     assert msg_showed_up is False
 
 
-@mock_events
-@mock_iam
-@mock_s3
+@mock_aws
 def test_creating_bucket__succeeds_despite_unknown_lambda():
     iam_client = boto3.client("iam", "us-east-1")
     events_client = boto3.client("events", "us-east-1")

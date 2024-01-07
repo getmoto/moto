@@ -6,24 +6,13 @@ from unittest import SkipTest, TestCase
 import boto3
 import requests
 
-from moto import (
-    mock_apigateway,
-    mock_dynamodb,
-    mock_ec2,
-    mock_s3,
-    mock_timestreamwrite,
-    settings,
-)
+from moto import mock_aws, settings
 from moto.moto_api import recorder
 from moto.server import ThreadedMotoServer
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_apigateway
-@mock_dynamodb
-@mock_ec2
-@mock_s3
-@mock_timestreamwrite
+@mock_aws
 class TestRecorder(TestCase):
     def _reset_recording(self):
         if settings.TEST_SERVER_MODE:

@@ -3,11 +3,11 @@ from unittest import SkipTest
 import boto3
 import pytest
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateways():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -16,7 +16,7 @@ def test_describe_transit_gateways():
     assert response["TransitGateways"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway(
@@ -66,7 +66,7 @@ def test_create_transit_gateway():
     assert gateway == gateways[0]
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway(
@@ -89,7 +89,7 @@ def test_create_transit_gateway_with_tags():
     assert {"Key": "tag2", "Value": "val2"} in tags
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     g = ec2.create_transit_gateway(Description="my first gateway")["TransitGateway"]
@@ -104,7 +104,7 @@ def test_delete_transit_gateway():
     assert g_id not in [g["TransitGatewayId"] for g in all_gateways]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_by_id():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
@@ -122,7 +122,7 @@ def test_describe_transit_gateway_by_id():
     assert my_gateway["Description"] == "my second gatway"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_by_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2.create_transit_gateway(
@@ -164,7 +164,7 @@ def test_describe_transit_gateway_by_tags():
     assert my_gateway["Description"] == "my second gatway"
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     g = ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
@@ -183,7 +183,7 @@ def test_modify_transit_gateway():
     assert my_gateway["Description"] == "my first gateway"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_vpc_attachments():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -192,7 +192,7 @@ def test_describe_transit_gateway_vpc_attachments():
     assert response["TransitGatewayVpcAttachments"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_attachments():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -212,7 +212,7 @@ def retrieve_all_transit_gateways(ec2):
     return all_tg
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_vpn_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -250,7 +250,7 @@ def retrieve_all_attachments(client):
     return att
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_describe_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway_vpc_attachment(
@@ -298,7 +298,7 @@ def test_create_and_describe_transit_gateway_vpc_attachment():
     assert attachments[0]["TransitGatewayId"] == "gateway_id"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_route_tables():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -307,7 +307,7 @@ def test_describe_transit_gateway_route_tables():
     assert response["TransitGatewayRouteTables"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -331,7 +331,7 @@ def test_create_transit_gateway_route_table():
     assert len(tables) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route_table_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -356,7 +356,7 @@ def test_create_transit_gateway_route_table_with_tags():
     assert {"Key": "tag2", "Value": "val2"} in table["Tags"]
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -385,7 +385,7 @@ def test_delete_transit_gateway_route_table():
     assert tables[0]["State"] == "deleted"
 
 
-@mock_ec2
+@mock_aws
 def test_search_transit_gateway_routes_empty():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -403,7 +403,7 @@ def test_search_transit_gateway_routes_empty():
     assert response["AdditionalRoutesAvailable"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -422,7 +422,7 @@ def test_create_transit_gateway_route():
     assert route["State"] == "active"
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route_as_blackhole():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -443,7 +443,7 @@ def test_create_transit_gateway_route_as_blackhole():
     assert route["State"] == "blackhole"
 
 
-@mock_ec2
+@mock_aws
 def test_search_transit_gateway_routes_by_state():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -493,7 +493,7 @@ def test_search_transit_gateway_routes_by_state():
     assert routes == []
 
 
-@mock_ec2
+@mock_aws
 def test_search_transit_gateway_routes_by_routesearch():
     client = boto3.client("ec2", region_name="us-west-2")
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -530,7 +530,7 @@ def test_search_transit_gateway_routes_by_routesearch():
         assert expected_route["Routes"][0]["DestinationCidrBlock"] == route
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway_route():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -567,7 +567,7 @@ def test_delete_transit_gateway_route():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -587,7 +587,7 @@ def test_create_transit_gateway_vpc_attachment():
     assert attachment["Tags"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway_vpc_attachment_add_subnets():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -608,7 +608,7 @@ def test_modify_transit_gateway_vpc_attachment_add_subnets():
     assert sorted(attachment["SubnetIds"]) == ["sub1", "sub2", "sub3"]
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway_vpc_attachment_remove_subnets():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -629,7 +629,7 @@ def test_modify_transit_gateway_vpc_attachment_remove_subnets():
     assert attachment["SubnetIds"] == ["sub1", "sub3"]
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway_vpc_attachment_change_options():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -660,7 +660,7 @@ def test_modify_transit_gateway_vpc_attachment_change_options():
     assert attachment["Options"]["Ipv6Support"] == "enable"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -692,7 +692,7 @@ def test_delete_transit_gateway_vpc_attachment():
     assert [a["TransitGatewayAttachmentId"] for a in all_attchmnts] == [a2]
 
 
-@mock_ec2
+@mock_aws
 def test_associate_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -735,7 +735,7 @@ def test_associate_transit_gateway_route_table():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_disassociate_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -779,7 +779,7 @@ def test_disassociate_transit_gateway_route_table():
     assert updated["State"] == ""
 
 
-@mock_ec2
+@mock_aws
 def test_enable_transit_gateway_route_table_propagation():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -827,7 +827,7 @@ def test_enable_transit_gateway_route_table_propagation():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_disable_transit_gateway_route_table_propagation_without_enabling_first():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -864,7 +864,7 @@ def test_disable_transit_gateway_route_table_propagation_without_enabling_first(
         )
 
 
-@mock_ec2
+@mock_aws
 def test_disable_transit_gateway_route_table_propagation():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][

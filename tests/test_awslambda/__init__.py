@@ -7,7 +7,7 @@ from uuid import uuid4
 import boto3
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_lambda, mock_sts
+from moto import mock_aws
 
 
 def lambda_aws_verified(func):
@@ -16,7 +16,7 @@ def lambda_aws_verified(func):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_lambda/mock_iam/mock_sts` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     This decorator will:
       - Create an IAM-role that can be used by AWSLambda functions table
@@ -35,7 +35,7 @@ def lambda_aws_verified(func):
         if allow_aws_request:
             return create_role_and_test(role_name)
         else:
-            with mock_lambda(), mock_iam(), mock_sts():
+            with mock_aws():
                 return create_role_and_test(role_name)
 
     def create_role_and_test(role_name):

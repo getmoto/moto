@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 ID = "id"
 NAME = "name"
@@ -12,7 +12,7 @@ PARAM_NAME = "my-validator"
 RESPONSE_METADATA = "ResponseMetadata"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_request_validator():
     client = create_client()
     api_id = create_rest_api_id(client)
@@ -26,7 +26,7 @@ def test_create_request_validator():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_get_request_validators():
     client = create_client()
     api_id = create_rest_api_id(client)
@@ -66,7 +66,7 @@ def test_get_request_validators():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_get_request_validator():
     client = create_client()
     api_id = create_rest_api_id(client)
@@ -84,7 +84,7 @@ def test_get_request_validator():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_request_validator():
     client = create_client()
     api_id = create_rest_api_id(client)
@@ -114,7 +114,7 @@ def test_delete_request_validator():
     assert err["Message"] == "Invalid Request Validator Id specified"
 
 
-@mock_apigateway
+@mock_aws
 def test_update_request_validator():
     client = create_client()
     api_id = create_rest_api_id(client)

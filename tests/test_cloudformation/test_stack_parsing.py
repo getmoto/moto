@@ -6,7 +6,7 @@ import pytest
 import yaml
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_sqs, mock_ssm, settings
+from moto import mock_aws, settings
 from moto.cloudformation.exceptions import ValidationError
 from moto.cloudformation.models import FakeStack
 from moto.cloudformation.parsing import (
@@ -392,8 +392,7 @@ def test_parse_stack_with_get_availability_zones():
     assert output.value == ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"]
 
 
-@mock_sqs
-@mock_cloudformation
+@mock_aws
 def test_parse_stack_with_bad_get_attribute_outputs_using_boto3():
     conn = boto3.client("cloudformation", region_name="us-west-1")
     with pytest.raises(ClientError) as exc:
@@ -702,7 +701,7 @@ def test_short_form_func_in_yaml_teamplate():
         assert template_dict[k] == v
 
 
-@mock_ssm
+@mock_aws
 def test_ssm_parameter_parsing():
     client = boto3.client("ssm", region_name="us-west-1")
     client.put_parameter(Name="/path/to/single/param", Value="string", Type="String")

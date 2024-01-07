@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
@@ -84,7 +84,7 @@ def spot_config(subnet_id, allocation_strategy="lowestPrice"):
     }
 
 
-@mock_ec2
+@mock_aws
 def test_create_spot_fleet_with_invalid_tag_specifications():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -109,7 +109,7 @@ def test_create_spot_fleet_with_invalid_tag_specifications():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_spot_fleet_with_lowest_price():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -155,7 +155,7 @@ def test_create_spot_fleet_with_lowest_price():
     assert len(instances) == 3
 
 
-@mock_ec2
+@mock_aws
 def test_create_diversified_spot_fleet():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -171,7 +171,7 @@ def test_create_diversified_spot_fleet():
     assert "i-" in instances[0]["InstanceId"]
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("allocation_strategy", ["diversified", "lowestCost"])
 def test_request_spot_fleet_using_launch_template_config__name(allocation_strategy):
     conn = boto3.client("ec2", region_name="us-east-2")
@@ -217,7 +217,7 @@ def test_request_spot_fleet_using_launch_template_config__name(allocation_strate
     assert "i-" in instances[0]["InstanceId"]
 
 
-@mock_ec2
+@mock_aws
 def test_request_spot_fleet_using_launch_template_config__id():
     conn = boto3.client("ec2", region_name="us-east-2")
 
@@ -258,7 +258,7 @@ def test_request_spot_fleet_using_launch_template_config__id():
     assert "i-" in instances[0]["InstanceId"]
 
 
-@mock_ec2
+@mock_aws
 def test_request_spot_fleet_using_launch_template_config__overrides():
     conn = boto3.client("ec2", region_name="us-east-2")
     subnet_id = get_subnet_id(conn)
@@ -313,7 +313,7 @@ def test_request_spot_fleet_using_launch_template_config__overrides():
     assert instance["SubnetId"] == subnet_id
 
 
-@mock_ec2
+@mock_aws
 def test_create_spot_fleet_request_with_tag_spec():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -351,7 +351,7 @@ def test_create_spot_fleet_request_with_tag_spec():
             assert tag in instance["Tags"]
 
 
-@mock_ec2
+@mock_aws
 def test_cancel_spot_fleet_request():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -371,7 +371,7 @@ def test_cancel_spot_fleet_request():
     assert len(spot_fleet_requests) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_cancel_spot_fleet_request__but_dont_terminate_instances():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -407,7 +407,7 @@ def test_cancel_spot_fleet_request__but_dont_terminate_instances():
     assert len(spot_fleet_requests) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_spot_fleet_request_up():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -429,7 +429,7 @@ def test_modify_spot_fleet_request_up():
     assert spot_fleet_config["FulfilledCapacity"] == 20.0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_spot_fleet_request_up_diversified():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -451,7 +451,7 @@ def test_modify_spot_fleet_request_up_diversified():
     assert spot_fleet_config["FulfilledCapacity"] == 20.0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_spot_fleet_request_down_no_terminate():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -477,7 +477,7 @@ def test_modify_spot_fleet_request_down_no_terminate():
     assert spot_fleet_config["FulfilledCapacity"] == 6.0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_spot_fleet_request_down_odd():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -500,7 +500,7 @@ def test_modify_spot_fleet_request_down_odd():
     assert spot_fleet_config["FulfilledCapacity"] == 6.0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_spot_fleet_request_down():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -522,7 +522,7 @@ def test_modify_spot_fleet_request_down():
     assert spot_fleet_config["FulfilledCapacity"] == 2.0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_spot_fleet_request_down_no_terminate_after_custom_terminate():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)
@@ -551,7 +551,7 @@ def test_modify_spot_fleet_request_down_no_terminate_after_custom_terminate():
     assert spot_fleet_config["FulfilledCapacity"] == 2.0
 
 
-@mock_ec2
+@mock_aws
 def test_create_spot_fleet_without_spot_price():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)

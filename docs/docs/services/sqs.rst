@@ -12,17 +12,6 @@
 sqs
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_sqs
-            def test_sqs_behaviour:
-                boto3.client("sqs")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_permission

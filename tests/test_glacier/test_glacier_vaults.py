@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_glacier
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_glacier
+@mock_aws
 def test_describe_vault():
     client = boto3.client("glacier", region_name="us-west-2")
 
@@ -25,7 +25,7 @@ def test_describe_vault():
     )
 
 
-@mock_glacier
+@mock_aws
 def test_delete_vault_boto3():
     client = boto3.client("glacier", region_name="us-west-2")
 
@@ -39,7 +39,7 @@ def test_delete_vault_boto3():
     assert err["Code"] == "VaultNotFound"
 
 
-@mock_glacier
+@mock_aws
 def test_list_vaults():
     client = boto3.client("glacier", region_name="us-west-2")
 
@@ -83,7 +83,7 @@ def test_list_vaults():
     assert vault2_name in found_vaults
 
 
-@mock_glacier
+@mock_aws
 def test_vault_name_with_special_characters():
     vault_name = "Vault.name-with_Special.characters"
     glacier = boto3.resource("glacier", region_name="us-west-2")

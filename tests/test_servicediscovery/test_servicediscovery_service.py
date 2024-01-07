@@ -1,15 +1,14 @@
-"""Unit tests for servicediscovery-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_servicediscovery
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_service_minimal():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
     operation_id = client.create_http_namespace(Name="mynamespace")["OperationId"]
@@ -27,7 +26,7 @@ def test_create_service_minimal():
     assert "CreateDate" in resp["Service"]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_service():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
     operation_id = client.create_http_namespace(Name="mynamespace")["OperationId"]
@@ -69,7 +68,7 @@ def test_create_service():
     assert resp["Service"]["CreatorRequestId"] == "crid"
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_service():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
 
@@ -91,7 +90,7 @@ def test_get_service():
     assert resp["Service"]["NamespaceId"] == namespace_id
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_unknown_service():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
 
@@ -102,7 +101,7 @@ def test_get_unknown_service():
     assert err["Message"] == "unknown"
 
 
-@mock_servicediscovery
+@mock_aws
 def test_delete_service():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
 
@@ -123,7 +122,7 @@ def test_delete_service():
     assert err["Message"] == service_id
 
 
-@mock_servicediscovery
+@mock_aws
 def test_update_service_description():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
     operation_id = client.create_http_namespace(Name="mynamespace")["OperationId"]
@@ -164,7 +163,7 @@ def test_update_service_description():
     }
 
 
-@mock_servicediscovery
+@mock_aws
 def test_update_service_others():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
     operation_id = client.create_http_namespace(Name="mynamespace")["OperationId"]

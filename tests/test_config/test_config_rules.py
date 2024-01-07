@@ -12,8 +12,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import settings
-from moto.config import mock_config
+from moto import mock_aws, settings
 from moto.config.models import CONFIG_RULE_PAGE_SIZE, ConfigRule
 from moto.moto_api._internal import mock_random
 
@@ -34,7 +33,7 @@ def managed_config_rule():
     }
 
 
-@mock_config
+@mock_aws
 def test_put_config_rule_errors():
     """Test various error conditions in put_config_rule API call."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -68,7 +67,7 @@ def test_put_config_rule_errors():
     assert "Member must have length less than or equal to 128" in err["Message"]
 
 
-@mock_config
+@mock_aws
 def test_put_config_rule_update_errors():
     """Test various error conditions when updating ConfigRule."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -111,7 +110,7 @@ def test_put_config_rule_update_errors():
     )
 
 
-@mock_config
+@mock_aws
 def test_config_rule_errors():  # pylint: disable=too-many-statements
     """Test various error conditions in ConfigRule instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -188,7 +187,7 @@ def test_config_rule_errors():  # pylint: disable=too-many-statements
     )
 
 
-@mock_config
+@mock_aws
 def test_aws_managed_rule_errors():
     """Test various error conditions in ConfigRule instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -236,7 +235,7 @@ def test_aws_managed_rule_errors():
     # assert new_config_rule["MaximumExecutionFrequency"] == "TwentyFour_Hours"
 
 
-@mock_config
+@mock_aws
 def test_config_rules_scope_errors():  # pylint: disable=too-many-statements
     """Test various error conditions in ConfigRule.Scope instantiation."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -309,7 +308,7 @@ def test_config_rules_scope_errors():  # pylint: disable=too-many-statements
     assert "Scope cannot be applied to both resource and tag" in err["Message"]
 
 
-@mock_config
+@mock_aws
 def test_valid_put_config_managed_rule():
     """Test valid put_config_rule API calls for managed rules."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -366,7 +365,7 @@ def test_valid_put_config_managed_rule():
     assert managed_rule_json == rsp_json
 
 
-@mock_config
+@mock_aws
 def test_describe_config_rules():
     """Test the describe_config_rules API."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -433,7 +432,7 @@ def test_describe_config_rules():
         idx += 1
 
 
-@mock_config
+@mock_aws
 def test_delete_config_rules():
     """Test the delete_config_rule API."""
     client = boto3.client("config", region_name=TEST_REGION)

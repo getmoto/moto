@@ -6,11 +6,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_subnets():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -34,7 +34,7 @@ def test_subnets():
     assert ex.value.response["Error"]["Code"] == "InvalidSubnetID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_subnet_create_vpc_validation():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -45,7 +45,7 @@ def test_subnet_create_vpc_validation():
     assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_subnet_tagging():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -65,7 +65,7 @@ def test_subnet_tagging():
     assert subnet["Tags"] == [{"Key": "a key", "Value": "some value"}]
 
 
-@mock_ec2
+@mock_aws
 def test_subnet_should_have_proper_availability_zone_set():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpcA = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -75,7 +75,7 @@ def test_subnet_should_have_proper_availability_zone_set():
     assert subnetA.availability_zone == "us-west-1b"
 
 
-@mock_ec2
+@mock_aws
 def test_availability_zone_in_create_subnet():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -87,7 +87,7 @@ def test_availability_zone_in_create_subnet():
     assert subnet.availability_zone_id == "use1-az6"
 
 
-@mock_ec2
+@mock_aws
 def test_default_subnet():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode will have conflicting CidrBlocks")
@@ -105,7 +105,7 @@ def test_default_subnet():
     assert subnet.map_public_ip_on_launch is False
 
 
-@mock_ec2
+@mock_aws
 def test_non_default_subnet():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -121,7 +121,7 @@ def test_non_default_subnet():
     assert subnet.map_public_ip_on_launch is False
 
 
-@mock_ec2
+@mock_aws
 def test_modify_subnet_attribute_public_ip_on_launch():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -154,7 +154,7 @@ def test_modify_subnet_attribute_public_ip_on_launch():
     assert subnet.map_public_ip_on_launch is True
 
 
-@mock_ec2
+@mock_aws
 def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -188,7 +188,7 @@ def test_modify_subnet_attribute_assign_ipv6_address_on_creation():
     assert subnet.assign_ipv6_address_on_creation is True
 
 
-@mock_ec2
+@mock_aws
 def test_modify_subnet_attribute_validation():
     # TODO: implement some actual logic
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -198,7 +198,7 @@ def test_modify_subnet_attribute_validation():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_subnet_get_by_id():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -229,7 +229,7 @@ def test_subnet_get_by_id():
     assert ex.value.response["Error"]["Code"] == "InvalidSubnetID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_get_subnets_filtering():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -331,7 +331,7 @@ def test_get_subnets_filtering():
             client.describe_subnets(Filters=filters)
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnet_response_fields():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -360,7 +360,7 @@ def test_create_subnet_response_fields():
     assert subnet["Ipv6CidrBlockAssociationSet"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_describe_subnet_response_fields():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -393,7 +393,7 @@ def test_describe_subnet_response_fields():
     assert subnet["Ipv6CidrBlockAssociationSet"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnet_with_invalid_availability_zone():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -413,7 +413,7 @@ def test_create_subnet_with_invalid_availability_zone():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnet_with_invalid_cidr_range():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -430,7 +430,7 @@ def test_create_subnet_with_invalid_cidr_range():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -448,7 +448,7 @@ def test_create_subnet_with_invalid_cidr_range_multiple_vpc_cidr_blocks():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnet_with_invalid_cidr_block_parameter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -465,7 +465,7 @@ def test_create_subnet_with_invalid_cidr_block_parameter():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnets_with_multiple_vpc_cidr_blocks():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -505,7 +505,7 @@ def test_create_subnets_with_multiple_vpc_cidr_blocks():
         assert subnet["AssignIpv6AddressOnCreation"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnets_with_overlapping_cidr_blocks():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -523,7 +523,7 @@ def test_create_subnets_with_overlapping_cidr_blocks():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_subnet_with_tags():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="172.31.0.0/16")
@@ -545,7 +545,7 @@ def test_create_subnet_with_tags():
     assert subnet.tags == [{"Key": "name", "Value": "some-vpc"}]
 
 
-@mock_ec2
+@mock_aws
 def test_available_ip_addresses_in_subnet():
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
@@ -574,7 +574,7 @@ def test_available_ip_addresses_in_subnet():
         validate_subnet_details(client, vpc, cidr, expected_count)
 
 
-@mock_ec2
+@mock_aws
 def test_available_ip_addresses_in_subnet_with_enis():
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
@@ -668,7 +668,7 @@ def validate_subnet_details_after_creating_eni(
     client.delete_subnet(SubnetId=subnet["SubnetId"])
 
 
-@mock_ec2
+@mock_aws
 def test_run_instances_should_attach_to_default_subnet():
     # https://github.com/getmoto/moto/issues/2877
     ec2 = boto3.resource("ec2", region_name="sa-east-1")
@@ -703,7 +703,7 @@ def test_run_instances_should_attach_to_default_subnet():
         )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_subnets_by_vpc_id():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -742,7 +742,7 @@ def test_describe_subnets_by_vpc_id():
     assert len(subnets) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_describe_subnets_by_state():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -759,7 +759,7 @@ def test_describe_subnets_by_state():
         assert subnet["State"] == "available"
 
 
-@mock_ec2
+@mock_aws
 def test_associate_subnet_cidr_block():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -789,7 +789,7 @@ def test_associate_subnet_cidr_block():
     assert association_set[0]["Ipv6CidrBlock"] == "1080::1:200C:417A/112"
 
 
-@mock_ec2
+@mock_aws
 def test_disassociate_subnet_cidr_block():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -818,7 +818,7 @@ def test_disassociate_subnet_cidr_block():
     assert association_set[0]["Ipv6CidrBlock"] == "1080::1:200C:417A/111"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_subnets_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 

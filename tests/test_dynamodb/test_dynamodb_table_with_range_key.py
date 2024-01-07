@@ -6,10 +6,10 @@ import pytest
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb
+from moto import mock_aws
 
 
-@mock_dynamodb
+@mock_aws
 def test_get_item_without_range_key_boto3():
     client = boto3.resource("dynamodb", region_name="us-east-1")
     table = client.create_table(
@@ -36,7 +36,7 @@ def test_get_item_without_range_key_boto3():
     assert ex.value.response["Error"]["Message"] == "Validation Exception"
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_filter_boto3():
     table_schema = {
         "KeySchema": [
@@ -77,7 +77,7 @@ def test_query_filter_boto3():
     assert res["Items"] == [{"pk": "pk", "sk": "sk-1"}, {"pk": "pk", "sk": "sk-2"}]
 
 
-@mock_dynamodb
+@mock_aws
 def test_boto3_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -151,7 +151,7 @@ def test_boto3_conditions():
     assert results["Count"] == 1
 
 
-@mock_dynamodb
+@mock_aws
 def test_boto3_conditions_ignorecase():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -216,7 +216,7 @@ def test_boto3_conditions_ignorecase():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_boto3_put_item_with_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -294,7 +294,7 @@ def _create_table_with_range_key():
     return dynamodb.Table("users")
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_range_key_set():
     table = _create_table_with_range_key()
     table.put_item(
@@ -329,7 +329,7 @@ def test_update_item_range_key_set():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_does_not_exist_is_created():
     table = _create_table_with_range_key()
 
@@ -359,7 +359,7 @@ def test_update_item_does_not_exist_is_created():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_add_value():
     table = _create_table_with_range_key()
 
@@ -384,7 +384,7 @@ def test_update_item_add_value():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_add_value_string_set():
     table = _create_table_with_range_key()
 
@@ -413,7 +413,7 @@ def test_update_item_add_value_string_set():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_delete_value_string_set():
     table = _create_table_with_range_key()
 
@@ -442,7 +442,7 @@ def test_update_item_delete_value_string_set():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_add_value_does_not_exist_is_created():
     table = _create_table_with_range_key()
 
@@ -463,7 +463,7 @@ def test_update_item_add_value_does_not_exist_is_created():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_with_expression():
     table = _create_table_with_range_key()
 
@@ -502,7 +502,7 @@ def assert_failure_due_to_key_not_in_schema(func, **kwargs):
     assert err["Message"] == "The provided key element does not match the schema"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_add_with_expression():
     table = _create_table_with_range_key()
 
@@ -607,7 +607,7 @@ def test_update_item_add_with_expression():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_add_with_nested_sets():
     table = _create_table_with_range_key()
 
@@ -643,7 +643,7 @@ def test_update_item_add_with_nested_sets():
     assert table.get_item(Key=item_key)["Item"] == current_item
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_delete_with_nested_sets():
     table = _create_table_with_range_key()
 
@@ -669,7 +669,7 @@ def test_update_item_delete_with_nested_sets():
     assert table.get_item(Key=item_key)["Item"] == current_item
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_delete_with_expression():
     table = _create_table_with_range_key()
 
@@ -743,7 +743,7 @@ def test_update_item_delete_with_expression():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_boto3_query_gsi_range_comparison():
     table = _create_table_with_range_key()
 
@@ -839,7 +839,7 @@ def test_boto3_query_gsi_range_comparison():
         assert item["created"] == expected[index]
 
 
-@mock_dynamodb
+@mock_aws
 def test_boto3_update_table_throughput():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -871,7 +871,7 @@ def test_boto3_update_table_throughput():
     assert table.provisioned_throughput["WriteCapacityUnits"] == 11
 
 
-@mock_dynamodb
+@mock_aws
 def test_boto3_update_table_gsi_throughput():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -938,7 +938,7 @@ def test_boto3_update_table_gsi_throughput():
     assert gsi_throughput["WriteCapacityUnits"] == 11
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_table_gsi_create():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -1020,7 +1020,7 @@ def test_update_table_gsi_create():
     assert len(table.global_secondary_indexes) == 0
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_table_gsi_throughput():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -1062,7 +1062,7 @@ def test_update_table_gsi_throughput():
     assert len(table.global_secondary_indexes) == 0
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_pagination():
     table = _create_table_with_range_key()
     for i in range(10):
@@ -1093,7 +1093,7 @@ def test_query_pagination():
     assert subjects == set(range(10))
 
 
-@mock_dynamodb
+@mock_aws
 def test_scan_by_index():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -1213,7 +1213,7 @@ def test_scan_by_index():
     assert last_eval_key["lsi_range_key"]["S"] == "1"
 
 
-@mock_dynamodb
+@mock_aws
 @pytest.mark.parametrize("create_item_first", [False, True])
 @pytest.mark.parametrize(
     "expression", ["set h=:New", "set r=:New", "set x=:New, r=:New"]

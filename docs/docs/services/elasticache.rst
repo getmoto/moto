@@ -14,17 +14,6 @@ elasticache
 
 .. autoclass:: moto.elasticache.models.ElastiCacheBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_elasticache
-            def test_elasticache_behaviour:
-                boto3.client("elasticache")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_tags_to_resource

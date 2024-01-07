@@ -14,17 +14,6 @@ appconfig
 
 .. autoclass:: moto.appconfig.models.AppConfigBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_appconfig
-            def test_appconfig_behaviour:
-                boto3.client("appconfig")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_application

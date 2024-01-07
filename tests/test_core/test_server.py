@@ -1,5 +1,4 @@
-from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from moto.server import DomainDispatcherApplication, create_backend_app, main
 
@@ -16,7 +15,7 @@ def test_wrong_arguments() -> None:
 
 
 @patch("moto.server.run_simple")
-def test_right_arguments(run_simple: Any) -> None:  # type: ignore[misc]
+def test_right_arguments(run_simple: Mock) -> None:  # type: ignore[misc]
     main(["s3"])
     func_call = run_simple.call_args[0]
     assert func_call[0] == "127.0.0.1"
@@ -24,7 +23,7 @@ def test_right_arguments(run_simple: Any) -> None:  # type: ignore[misc]
 
 
 @patch("moto.server.run_simple")
-def test_port_argument(run_simple: Any) -> None:  # type: ignore[misc]
+def test_port_argument(run_simple: Mock) -> None:  # type: ignore[misc]
     main(["s3", "--port", "8080"])
     func_call = run_simple.call_args[0]
     assert func_call[0] == "127.0.0.1"

@@ -14,17 +14,6 @@ identitystore
 
 .. autoclass:: moto.identitystore.models.IdentityStoreBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_identitystore
-            def test_identitystore_behaviour:
-                boto3.client("identitystore")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_group

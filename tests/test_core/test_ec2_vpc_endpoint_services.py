@@ -7,10 +7,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_endpoint_services_bad_args() -> None:
     """Verify exceptions are raised for bad arguments."""
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -46,7 +46,7 @@ def test_describe_vpc_endpoint_services_bad_args() -> None:
     assert "The token 'foo' is invalid" in err["Message"]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_default_endpoint_services() -> None:
     """Test successfull calls as well as the next_token arg."""
     ec2 = boto3.client("ec2", region_name="us-west-1")

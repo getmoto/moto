@@ -14,17 +14,6 @@ s3
 
 .. autoclass:: moto.s3.models.S3Backend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_s3
-            def test_s3_behaviour:
-                boto3.client("s3")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] abort_multipart_upload

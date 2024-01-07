@@ -1,9 +1,8 @@
-"""Route53 unit tests specific to query_logging_config APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs, mock_route53
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 
@@ -37,8 +36,7 @@ def create_log_group_arn(logs_client, hosted_zone_test_name):
     return log_group_arn
 
 
-@mock_logs
-@mock_route53
+@mock_aws
 def test_create_query_logging_config_bad_args():
     """Test bad arguments to create_query_logging_config()."""
     client = boto3.client("route53", region_name=TEST_REGION)
@@ -105,8 +103,7 @@ def test_create_query_logging_config_bad_args():
     )
 
 
-@mock_logs
-@mock_route53
+@mock_aws
 def test_create_query_logging_config_good_args():
     """Test a valid create_logging_config() request."""
     client = boto3.client("route53", region_name=TEST_REGION)
@@ -131,8 +128,7 @@ def test_create_query_logging_config_good_args():
     )
 
 
-@mock_logs
-@mock_route53
+@mock_aws
 def test_delete_query_logging_config():
     """Test valid and invalid delete_query_logging_config requests."""
     client = boto3.client("route53", region_name=TEST_REGION)
@@ -162,8 +158,7 @@ def test_delete_query_logging_config():
     assert "The query logging configuration does not exist" in err["Message"]
 
 
-@mock_logs
-@mock_route53
+@mock_aws
 def test_get_query_logging_config():
     """Test valid and invalid get_query_logging_config requests."""
     client = boto3.client("route53", region_name=TEST_REGION)
@@ -194,8 +189,7 @@ def test_get_query_logging_config():
     assert "The query logging configuration does not exist" in err["Message"]
 
 
-@mock_logs
-@mock_route53
+@mock_aws
 def test_list_query_logging_configs_bad_args():
     """Test bad arguments to list_query_logging_configs()."""
     client = boto3.client("route53", region_name=TEST_REGION)
@@ -231,8 +225,7 @@ def test_list_query_logging_configs_bad_args():
     )
 
 
-@mock_logs
-@mock_route53
+@mock_aws
 def test_list_query_logging_configs_good_args():
     """Test valid arguments to list_query_logging_configs()."""
     client = boto3.client("route53", region_name=TEST_REGION)

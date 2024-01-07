@@ -1,10 +1,10 @@
 import json
 
 import moto.server as server
-from moto import mock_timestreamwrite
+from moto import mock_aws
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_timestreamwrite_list():
     backend = server.create_backend_app("timestream-write")
     test_client = backend.test_client()

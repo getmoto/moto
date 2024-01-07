@@ -6,14 +6,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.ec2.models.elastic_block_store import IOPS_REQUIRED_VOLUME_TYPES
-from moto.kms import mock_kms
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_delete_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -50,7 +49,7 @@ def test_create_and_delete_volume():
     assert ex.value.response["Error"]["Code"] == "InvalidVolume.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_modify_volumes():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -87,7 +86,7 @@ def test_modify_volumes():
     assert len(modifications["VolumesModifications"]) == 2
 
 
-@mock_ec2
+@mock_aws
 def test_delete_attached_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -126,7 +125,7 @@ def test_delete_attached_volume():
     assert volume.id not in [v["VolumeId"] for v in all_volumes]
 
 
-@mock_ec2
+@mock_aws
 def test_create_encrypted_volume_dryrun():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -139,7 +138,7 @@ def test_create_encrypted_volume_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_encrypted_volume():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -149,7 +148,7 @@ def test_create_encrypted_volume():
     assert all_volumes[0]["Encrypted"] is True
 
 
-@mock_ec2
+@mock_aws
 def test_filter_volume_by_id():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -171,7 +170,7 @@ def test_filter_volume_by_id():
     assert ex.value.response["Error"]["Code"] == "InvalidVolume.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_volume_filters():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -294,7 +293,7 @@ def test_volume_filters():
     assert volume4.id in [vol["VolumeId"] for vol in volumes_by_attach_device]
 
 
-@mock_ec2
+@mock_aws
 def test_volume_attach_and_detach():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -362,7 +361,7 @@ def test_volume_attach_and_detach():
     assert ex3.value.response["Error"]["Code"] == "InvalidInstanceID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_create_snapshot():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -407,7 +406,7 @@ def test_create_snapshot():
     assert ex.value.response["Error"]["Code"] == "InvalidSnapshot.NotFound"
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("encrypted", [True, False])
 def test_create_encrypted_snapshot(encrypted):
     client = boto3.client("ec2", region_name="us-east-1")
@@ -431,7 +430,7 @@ def test_create_encrypted_snapshot(encrypted):
     assert snapshots[0]["Encrypted"] == encrypted
 
 
-@mock_ec2
+@mock_aws
 def test_filter_snapshot_by_id():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -459,7 +458,7 @@ def test_filter_snapshot_by_id():
     assert ex.value.response["Error"]["Code"] == "InvalidSnapshot.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_snapshot_filters():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -529,7 +528,7 @@ def test_snapshot_filters():
     assert snapshot3.id in [s["SnapshotId"] for s in snapshots]
 
 
-@mock_ec2
+@mock_aws
 def test_modify_snapshot_attribute():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     response = ec2_client.create_volume(Size=80, AvailabilityZone="us-east-1a")
@@ -694,7 +693,7 @@ def test_modify_snapshot_attribute():
     assert len(attributes["CreateVolumePermissions"]) == 0
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("encrypted", [True, False])
 def test_create_volume_from_snapshot(encrypted):
     client = boto3.client("ec2", region_name="us-east-1")
@@ -714,7 +713,7 @@ def test_create_volume_from_snapshot(encrypted):
     assert new_volume["Encrypted"] == encrypted
 
 
-@mock_ec2
+@mock_aws
 def test_modify_attribute_blockDeviceMapping():
     """
     Reproduces the missing feature explained at [0], where we want to mock a
@@ -754,7 +753,7 @@ def test_modify_attribute_blockDeviceMapping():
     assert mapping["Ebs"]["DeleteOnTermination"] is True
 
 
-@mock_ec2
+@mock_aws
 def test_volume_tag_escaping():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -778,7 +777,7 @@ def test_volume_tag_escaping():
     assert snapshot.tags == [{"Key": "key", "Value": "</closed>"}]
 
 
-@mock_ec2
+@mock_aws
 def test_volume_property_hidden_when_no_tags_exist():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
 
@@ -787,7 +786,7 @@ def test_volume_property_hidden_when_no_tags_exist():
     assert volume_response.get("Tags") is None
 
 
-@mock_ec2
+@mock_aws
 def test_copy_snapshot():
     ec2_client = boto3.client("ec2", region_name="eu-west-1")
     dest_ec2_client = boto3.client("ec2", region_name="eu-west-2")
@@ -854,7 +853,7 @@ def test_copy_snapshot():
     assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_ec2
+@mock_aws
 def test_search_for_many_snapshots():
     ec2_client = boto3.client("ec2", region_name="eu-west-1")
 
@@ -872,7 +871,7 @@ def test_search_for_many_snapshots():
     assert len(snapshots_response["Snapshots"]) == len(snapshot_ids)
 
 
-@mock_ec2
+@mock_aws
 def test_create_unencrypted_volume_with_kms_key_fails():
     resource = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -883,8 +882,7 @@ def test_create_unencrypted_volume_with_kms_key_fails():
     assert "KmsKeyId" in ex.value.response["Error"]["Message"]
 
 
-@mock_kms
-@mock_ec2
+@mock_aws
 def test_create_encrypted_volume_without_kms_key_should_use_default_key():
     kms = boto3.client("kms", region_name="us-east-1")
 
@@ -904,7 +902,7 @@ def test_create_encrypted_volume_without_kms_key_should_use_default_key():
     assert volume.encrypted is True
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_with_kms_key():
     resource = boto3.resource("ec2", region_name="us-east-1")
     volume = resource.create_volume(
@@ -914,7 +912,7 @@ def test_create_volume_with_kms_key():
     assert volume.encrypted is True
 
 
-@mock_ec2
+@mock_aws
 def test_kms_key_id_property_hidden_when_volume_not_encrypted():
     client = boto3.client("ec2", region_name="us-east-1")
     resp = client.create_volume(AvailabilityZone="us-east-1a", Encrypted=False, Size=10)
@@ -931,7 +929,7 @@ def test_kms_key_id_property_hidden_when_volume_not_encrypted():
     assert volume.kms_key_id is None
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_with_standard_type():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     volume = ec2.create_volume(AvailabilityZone="us-east-1a", Size=100)
@@ -942,7 +940,7 @@ def test_create_volume_with_standard_type():
 
 
 @pytest.mark.parametrize("volume_type", ["gp2", "gp3", "io1", "io2", "standard"])
-@mock_ec2
+@mock_aws
 def test_create_volume_with_non_standard_type(volume_type):
     ec2 = boto3.client("ec2", region_name="us-east-1")
     if volume_type in IOPS_REQUIRED_VOLUME_TYPES:
@@ -959,7 +957,7 @@ def test_create_volume_with_non_standard_type(volume_type):
     assert volume["VolumeType"] == volume_type
 
 
-@mock_ec2
+@mock_aws
 def test_create_snapshots_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -975,7 +973,7 @@ def test_create_snapshots_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_snapshots_with_tagspecification():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -1005,7 +1003,7 @@ def test_create_snapshots_with_tagspecification():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_create_snapshots_single_volume():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -1030,7 +1028,7 @@ def test_create_snapshots_single_volume():
     assert snapshots[0]["Tags"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_snapshots_multiple_volumes():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1073,7 +1071,7 @@ def test_create_snapshots_multiple_volumes():
 # The default AMIs are not loaded for our test case, to speed things up
 # But we do need it for this specific test
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_create_snapshots_multiple_volumes_without_boot():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1106,7 +1104,7 @@ def test_create_snapshots_multiple_volumes_without_boot():
     assert snapshot2["VolumeSize"] == 100
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_with_iops():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     volume = ec2.create_volume(
@@ -1118,7 +1116,7 @@ def test_create_volume_with_iops():
     assert volume["Iops"] == 4000
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_with_throughput():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     volume = ec2.create_volume(
@@ -1130,7 +1128,7 @@ def test_create_volume_with_throughput():
     assert volume["Throughput"] == 200
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_with_throughput_fails():
     resource = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:

@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_vpc_links_empty():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 
@@ -13,7 +13,7 @@ def test_get_vpc_links_empty():
     assert resp["Items"] == []
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_vpc_links():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 
@@ -34,7 +34,7 @@ def test_create_vpc_links():
     assert resp["VpcLinkVersion"] == "V2"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_vpc_link():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 
@@ -57,7 +57,7 @@ def test_get_vpc_link():
     assert resp["VpcLinkVersion"] == "V2"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_vpc_link_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
 
@@ -68,7 +68,7 @@ def test_get_vpc_link_unknown():
     assert err["Message"] == "Invalid VpcLink identifier specified unknown"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_vpc_links():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 
@@ -94,7 +94,7 @@ def test_get_vpc_links():
     assert len(links) == 2
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_vpc_link():
     client = boto3.client("apigatewayv2", region_name="eu-north-1")
 
@@ -114,7 +114,7 @@ def test_delete_vpc_link():
     assert len(links) == 0
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_vpc_link():
     client = boto3.client("apigatewayv2", region_name="eu-north-1")
     vpc_link_id = client.create_vpc_link(
@@ -136,7 +136,7 @@ def test_update_vpc_link():
     assert resp["VpcLinkVersion"] == "V2"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_untag_vpc_link():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 

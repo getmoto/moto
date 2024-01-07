@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_wafv2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 
 
-@mock_wafv2
+@mock_aws
 def test_create_web_acl():
 
     conn = boto3.client("wafv2", region_name="us-east-1")
@@ -35,7 +35,7 @@ def test_create_web_acl():
     )
 
 
-@mock_wafv2
+@mock_aws
 def test_create_web_acl_with_all_arguments():
     client = boto3.client("wafv2", region_name="us-east-2")
     web_acl_id = client.create_web_acl(
@@ -95,7 +95,7 @@ def test_create_web_acl_with_all_arguments():
     assert len(wacl["Rules"]) == 2
 
 
-@mock_wafv2
+@mock_aws
 def test_get_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
     body = CREATE_WEB_ACL_BODY("John", "REGIONAL")
@@ -105,7 +105,7 @@ def test_get_web_acl():
     assert wacl["Id"] == web_acl_id
 
 
-@mock_wafv2
+@mock_aws
 def test_list_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
     conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))
@@ -123,7 +123,7 @@ def test_list_web_acl():
     assert web_acls[0]["Name"] == "Penelope"
 
 
-@mock_wafv2
+@mock_aws
 def test_delete_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
     wacl_id = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))[
@@ -144,7 +144,7 @@ def test_delete_web_acl():
     )
 
 
-@mock_wafv2
+@mock_aws
 def test_update_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
     wacl_id = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))[

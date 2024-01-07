@@ -12,17 +12,6 @@
 route53
 =======
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_route53
-            def test_route53_behaviour:
-                boto3.client("route53")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_key_signing_key

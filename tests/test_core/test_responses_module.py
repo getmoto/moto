@@ -8,7 +8,7 @@ import boto3
 import requests
 import responses
 
-from moto import mock_dynamodb, mock_s3, settings
+from moto import mock_aws, settings
 from moto.core.models import override_responses_real_send
 from moto.core.versions import RESPONSES_VERSION
 from moto.utilities.distutils_version import LooseVersion
@@ -19,16 +19,16 @@ class TestResponsesModule(TestCase):
         if settings.TEST_SERVER_MODE:
             raise SkipTest("No point in testing responses-decorator in ServerMode")
 
-    @mock_s3
+    @mock_aws
     @responses.activate
-    def test_moto_first(self) -> None:  # type: ignore
+    def test_moto_first(self) -> None:  # type: ignore[misc]
         """
         Verify we can activate a user-defined `responses` on top of our Moto mocks
         """
         self.moto_responses_compatibility()
 
     @responses.activate
-    @mock_s3
+    @mock_aws
     def test_moto_second(self) -> None:
         """
         Verify we can load Moto after activating a `responses`-mock
@@ -54,7 +54,7 @@ class TestResponsesModule(TestCase):
         responses.add(
             responses.GET, url="http://127.0.0.1/lkdsfjlkdsa", json={"a": "4"}
         )
-        with mock_s3():
+        with mock_aws():
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.create_bucket(Bucket="mybucket")
             s3.put_object(Bucket="mybucket", Key="name", Body="value")
@@ -67,7 +67,7 @@ class TestResponsesModule(TestCase):
             assert r.json() == {"a": "4"}
 
 
-@mock_dynamodb
+@mock_aws
 class TestResponsesMockWithPassThru(TestCase):
     """
     https://github.com/getmoto/moto/issues/6417

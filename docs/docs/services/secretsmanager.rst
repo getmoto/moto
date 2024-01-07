@@ -12,17 +12,6 @@
 secretsmanager
 ==============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_secretsmanager
-            def test_secretsmanager_behaviour:
-                boto3.client("secretsmanager")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_get_secret_value

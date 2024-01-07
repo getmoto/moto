@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_certificate_id_generation_deterministic():
     # Creating the same certificate twice should result in the same certificate ID
     client = boto3.client("iot", region_name="us-east-1")
@@ -19,7 +19,7 @@ def test_certificate_id_generation_deterministic():
     client.delete_certificate(certificateId=cert2["certificateId"])
 
 
-@mock_iot
+@mock_aws
 def test_create_certificate_from_csr():
     csr = "-----BEGIN CERTIFICATE REQUEST-----\nMIICijCCAXICAQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgTClNvbWUtU3RhdGUx\nITAfBgNVBAoTGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDCCASIwDQYJKoZIhvcN\nAQEBBQADggEPADCCAQoCggEBAMSUg2mO7mYnhvYUB55K0/ay9WLLgPjOHnbduyCv\nN+udkJaZc+A65ux9LvVo33VHDTlV2Ms9H/42on902WtuS3BNuxdXfD068CpN2lb6\nbSAeuKc6Fdu4BIP2bFYKCyejqBoOmTEhYA8bOM1Wu/pRsq1PkAmcGkvw3mlRx45E\nB2LRicWcg3YEleEBGyLYohyeMu0pnlsc7zsu5T4bwrjetdbDPVbzgu0Mf/evU9hJ\nG/IisXNxQhzPh/DTQsKZSNddZ4bmkAQrRN1nmNXD6QoxBiVyjjgKGrPnX+hz4ugm\naaN9CsOO/cad1E3C0KiI0BQCjxRb80wOpI4utz4pEcY97sUCAwEAAaAAMA0GCSqG\nSIb3DQEBBQUAA4IBAQC64L4JHvwxdxmnXT9Lv12p5CGx99d7VOXQXy29b1yH9cJ+\nFaQ2TH377uOdorSCS4bK7eje9/HLsCNgqftR0EruwSNnukF695BWN8e/AJSZe0vA\n3J/llZ6G7MWuOIhCswsOxqNnM1htu3o6ujXVrgBMeMgQy2tfylWfI7SGR6UmtLYF\nZrPaqXdkpt47ROJNCm2Oht1B0J3QEOmbIp/2XMxrfknzwH6se/CjuliiXVPYxrtO\n5hbZcRqjhugb8FWtaLirqh3Q3+1UIJ+CW0ZczsblP7DNdqqt8YQZpWVIqR64mSXV\nAjq/cupsJST9fey8chcNSTt4nKxOGs3OgXu1ftgy\n-----END CERTIFICATE REQUEST-----\n"
     client = boto3.client("iot", region_name="us-east-2")
@@ -35,7 +35,7 @@ def test_create_certificate_from_csr():
     assert len(client.list_certificates()["certificates"]) == 2
 
 
-@mock_iot
+@mock_aws
 def test_create_key_and_certificate():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -46,7 +46,7 @@ def test_create_key_and_certificate():
     assert cert["keyPair"]["PrivateKey"].startswith("-----BEGIN RSA PRIVATE KEY-----")
 
 
-@mock_iot
+@mock_aws
 def test_describe_certificate_by_id():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -64,7 +64,7 @@ def test_describe_certificate_by_id():
     assert cert_desc["status"] == "ACTIVE"
 
 
-@mock_iot
+@mock_aws
 def test_list_certificates():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -83,7 +83,7 @@ def test_list_certificates():
     assert cert_desc["status"] == "REVOKED"
 
 
-@mock_iot
+@mock_aws
 def test_update_certificate():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -96,7 +96,7 @@ def test_update_certificate():
 
 
 @pytest.mark.parametrize("status", ["REVOKED", "INACTIVE"])
-@mock_iot
+@mock_aws
 def test_delete_certificate_with_status(status):
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -110,7 +110,7 @@ def test_delete_certificate_with_status(status):
     assert res["certificates"] == []
 
 
-@mock_iot
+@mock_aws
 def test_register_certificate_without_ca():
     client = boto3.client("iot", region_name="us-east-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -141,7 +141,7 @@ def test_register_certificate_without_ca():
     assert "certificates" in res
 
 
-@mock_iot
+@mock_aws
 def test_create_certificate_validation():
     # Test we can't create a cert that already exists
     client = boto3.client("iot", region_name="us-east-1")
@@ -168,7 +168,7 @@ def test_create_certificate_validation():
     )
 
 
-@mock_iot
+@mock_aws
 def test_delete_certificate_validation():
     doc = """{
     "Version": "2012-10-17",
@@ -229,7 +229,7 @@ def test_delete_certificate_validation():
     assert len(res["certificates"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_delete_certificate_force():
     policy_name = "my-policy"
     client = boto3.client("iot", "us-east-1")
@@ -254,7 +254,7 @@ def test_delete_certificate_force():
     assert len(res["certificates"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_delete_thing_with_certificate_validation():
     client = boto3.client("iot", region_name="ap-northeast-1")
     cert = client.create_keys_and_certificate(setAsActive=True)
@@ -286,7 +286,7 @@ def test_delete_thing_with_certificate_validation():
     assert res["certificates"][0]["status"] == "REVOKED"
 
 
-@mock_iot
+@mock_aws
 def test_certs_create_inactive():
     client = boto3.client("iot", region_name="ap-northeast-1")
     cert = client.create_keys_and_certificate(setAsActive=False)

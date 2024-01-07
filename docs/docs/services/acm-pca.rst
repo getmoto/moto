@@ -14,17 +14,6 @@ acm-pca
 
 .. autoclass:: moto.acmpca.models.ACMPCABackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_acmpca
-            def test_acmpca_behaviour:
-                boto3.client("acm-pca")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_certificate_authority

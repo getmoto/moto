@@ -1,14 +1,14 @@
 import json
 
 import moto.server as server
-from moto import mock_mediaconnect
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_mediaconnect
+@mock_aws
 def test_mediaconnect_list_flows():
     backend = server.create_backend_app("mediaconnect")
     test_client = backend.test_client()

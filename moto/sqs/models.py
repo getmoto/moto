@@ -586,9 +586,9 @@ class Queue(CloudFormationModel):
                 self.visibility_timeout,  # type: ignore
             )
 
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
-            result = lambda_backends[self.account_id][self.region].send_sqs_batch(
+            result = get_backend(self.account_id, self.region).send_sqs_batch(
                 arn, messages, self.queue_arn
             )
 

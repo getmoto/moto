@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_managedblockchain
+from moto import mock_aws
 
 from . import helpers
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_network():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -36,7 +36,7 @@ def test_create_network():
     assert response["Network"]["Name"] == "testnetwork1"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_network_with_description():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -61,7 +61,7 @@ def test_create_network_with_description():
     assert response["Network"]["Description"] == "Test Network 1"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_network_noframework():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -80,7 +80,7 @@ def test_create_network_noframework():
     assert "Invalid request body" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_network_badframeworkver():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -102,7 +102,7 @@ def test_create_network_badframeworkver():
     )
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_network_badedition():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -123,7 +123,7 @@ def test_create_network_badedition():
     assert "Invalid request body" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_network_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 

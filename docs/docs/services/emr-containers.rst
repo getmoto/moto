@@ -14,17 +14,6 @@ emr-containers
 
 .. autoclass:: moto.emrcontainers.models.EMRContainersBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_emrcontainers
-            def test_emrcontainers_behaviour:
-                boto3.client("emr-containers")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] cancel_job_run

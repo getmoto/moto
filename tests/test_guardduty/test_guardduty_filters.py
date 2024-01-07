@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_guardduty
+from moto import mock_aws
 
 
-@mock_guardduty
+@mock_aws
 def test_create_filter():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(Enable=True)["DetectorId"]
@@ -18,7 +18,7 @@ def test_create_filter():
     assert resp["Name"] == "my first filter"
 
 
-@mock_guardduty
+@mock_aws
 def test_create_filter__defaults():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(Enable=True)["DetectorId"]
@@ -33,7 +33,7 @@ def test_create_filter__defaults():
     assert resp["Rank"] == 1
 
 
-@mock_guardduty
+@mock_aws
 def test_get_filter():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(Enable=True)["DetectorId"]
@@ -49,7 +49,7 @@ def test_get_filter():
     assert resp["FindingCriteria"] == {"Criterion": {"x": {"Eq": ["y"]}}}
 
 
-@mock_guardduty
+@mock_aws
 def test_update_filter():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(Enable=True)["DetectorId"]
@@ -77,7 +77,7 @@ def test_update_filter():
     assert resp["FindingCriteria"] == {"Criterion": {"x": {"Eq": ["y"]}}}
 
 
-@mock_guardduty
+@mock_aws
 def test_delete_filter():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(Enable=True)["DetectorId"]

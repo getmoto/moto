@@ -2137,14 +2137,13 @@ class LambdaBackend(BaseBackend):
     def send_sqs_batch(self, function_arn: str, messages: Any, queue_arn: str) -> bool:
         success = True
         for message in messages:
-            func = self.get_function_by_arn(function_arn)
-            result = self._send_sqs_message(func, message, queue_arn)  # type: ignore[arg-type]
+            result = self._send_sqs_message(function_arn, message, queue_arn)  # type: ignore[arg-type]
             if not result:
                 success = False
         return success
 
     def _send_sqs_message(
-        self, func: LambdaFunction, message: Any, queue_arn: str
+        self, function_arn: str, message: Any, queue_arn: str
     ) -> bool:
         event = {
             "Records": [
@@ -2177,7 +2176,13 @@ class LambdaBackend(BaseBackend):
 
         request_headers: Dict[str, Any] = {}
         response_headers: Dict[str, Any] = {}
-        func.invoke(json.dumps(event), request_headers, response_headers)
+        self.invoke(
+            function_name=function_arn,
+            qualifier=None,
+            body=json.dumps(event),
+            headers=request_headers,
+            response_headers=response_headers,
+        )
         return "x-amz-function-error" not in response_headers
 
     def send_sns_message(
@@ -2319,7 +2324,7 @@ class LambdaBackend(BaseBackend):
     def invoke(
         self,
         function_name: str,
-        qualifier: str,
+        qualifier: Optional[str],
         body: Any,
         headers: Any,
         response_headers: Any,

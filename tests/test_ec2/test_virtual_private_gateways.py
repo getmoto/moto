@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 from .test_tags import retrieve_all_tagged
 
 
-@mock_ec2
+@mock_aws
 def test_attach_unknown_vpn_gateway():
     """describe_vpn_gateways attachment.vpc-id filter"""
 
@@ -22,7 +22,7 @@ def test_attach_unknown_vpn_gateway():
     assert err["Code"] == "InvalidVpnGatewayID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_unknown_vpn_gateway():
     """describe_vpn_gateways attachment.vpc-id filter"""
 
@@ -35,7 +35,7 @@ def test_delete_unknown_vpn_gateway():
     assert err["Code"] == "InvalidVpnGatewayID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_detach_unknown_vpn_gateway():
     """describe_vpn_gateways attachment.vpc-id filter"""
 
@@ -50,7 +50,7 @@ def test_detach_unknown_vpn_gateway():
     assert err["Code"] == "InvalidVpnGatewayID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_attachment_vpc_id_filter():
     """describe_vpn_gateways attachment.vpc-id filter"""
 
@@ -74,7 +74,7 @@ def test_describe_vpn_connections_attachment_vpc_id_filter():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_state_filter_attached():
     """describe_vpn_gateways attachment.state filter - match attached"""
 
@@ -96,7 +96,7 @@ def test_describe_vpn_connections_state_filter_attached():
     assert {"State": "attached", "VpcId": vpc_id} in my_gateway["VpcAttachments"]
 
 
-@mock_ec2
+@mock_aws
 def test_virtual_private_gateways_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -110,7 +110,7 @@ def test_virtual_private_gateways_boto3():
     assert vpn_gateway["AvailabilityZone"] == "us-east-1a"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_gateway_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
     vpn_gateway = client.create_vpn_gateway(
@@ -131,7 +131,7 @@ def test_describe_vpn_gateway_boto3():
     assert gateway["AvailabilityZone"] == "us-east-1a"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_state_filter_deatched():
     """describe_vpn_gateways attachment.state filter - don't match detatched"""
 
@@ -151,7 +151,7 @@ def test_describe_vpn_connections_state_filter_deatched():
     assert len(gateways["VpnGateways"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_id_filter_match():
     """describe_vpn_gateways vpn-gateway-id filter - match correct id"""
 
@@ -168,7 +168,7 @@ def test_describe_vpn_connections_id_filter_match():
     assert gateways["VpnGateways"][0]["VpnGatewayId"] == gateway_id
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_id_filter_miss():
     """describe_vpn_gateways vpn-gateway-id filter - don't match"""
 
@@ -183,7 +183,7 @@ def test_describe_vpn_connections_id_filter_miss():
     assert len(gateways["VpnGateways"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_type_filter_match():
     """describe_vpn_gateways type filter - match"""
 
@@ -197,7 +197,7 @@ def test_describe_vpn_connections_type_filter_match():
     assert gateway_id in [gw["VpnGatewayId"] for gw in my_gateways]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_type_filter_miss():
     """describe_vpn_gateways type filter - don't match"""
 
@@ -212,7 +212,7 @@ def test_describe_vpn_connections_type_filter_miss():
     assert len(gateways["VpnGateways"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_vpn_gateway_vpc_attachment_boto3():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -229,7 +229,7 @@ def test_vpn_gateway_vpc_attachment_boto3():
     assert attachments == [{"State": "attached", "VpcId": vpc.id}]
 
 
-@mock_ec2
+@mock_aws
 def test_delete_vpn_gateway_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
     vpn_gateway = client.create_vpn_gateway(
@@ -243,7 +243,7 @@ def test_delete_vpn_gateway_boto3():
     assert gateways[0]["State"] == "deleted"
 
 
-@mock_ec2
+@mock_aws
 def test_vpn_gateway_tagging_boto3():
     client = boto3.client("ec2", region_name="us-west-1")
     vpn_gateway = client.create_vpn_gateway(
@@ -264,7 +264,7 @@ def test_vpn_gateway_tagging_boto3():
     # assert vpn_gateway["Tags"] == [{'Key': 'a key', 'Value': 'some value'}]
 
 
-@mock_ec2
+@mock_aws
 def test_detach_vpn_gateway_boto3():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")

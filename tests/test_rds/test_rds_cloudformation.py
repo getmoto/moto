@@ -2,16 +2,14 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2, mock_rds
+from moto import mock_aws
 from tests.test_cloudformation.fixtures import (
     rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
 )
 
 
-@mock_ec2
-@mock_rds
-@mock_cloudformation
+@mock_aws
 def test_create_subnetgroup_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -47,9 +45,7 @@ def test_create_subnetgroup_via_cf():
     assert created_subnet["VpcId"] == vpc["VpcId"]
 
 
-@mock_ec2
-@mock_rds
-@mock_cloudformation
+@mock_aws
 def test_create_dbinstance_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -100,9 +96,7 @@ def test_create_dbinstance_via_cf():
     assert o["db_port"] == "3307"
 
 
-@mock_ec2
-@mock_rds
-@mock_cloudformation
+@mock_aws
 def test_create_dbsecuritygroup_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -130,9 +124,7 @@ def test_create_dbsecuritygroup_via_cf():
     assert created["DBSecurityGroupDescription"] == "my sec group"
 
 
-@mock_cloudformation
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_rds_db_parameter_groups():
     ec2_conn = boto3.client("ec2", region_name="us-west-1")
     ec2_conn.create_security_group(
@@ -180,9 +172,7 @@ def test_rds_db_parameter_groups():
     assert found_cloudformation_set_parameter is True
 
 
-@mock_cloudformation
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_rds_mysql_with_read_replica():
     ec2_conn = boto3.client("ec2", region_name="us-west-1")
     ec2_conn.create_security_group(
@@ -233,9 +223,7 @@ def test_rds_mysql_with_read_replica():
     )
 
 
-@mock_cloudformation
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_rds_mysql_with_read_replica_in_vpc():
     template_json = json.dumps(rds_mysql_with_read_replica.template)
     cf = boto3.client("cloudformation", "eu-central-1")
@@ -266,9 +254,7 @@ def test_rds_mysql_with_read_replica_in_vpc():
     assert subnet_group["DBSubnetGroupDescription"] == "my db subnet group"
 
 
-@mock_ec2
-@mock_rds
-@mock_cloudformation
+@mock_aws
 def test_delete_dbinstance_via_cf():
     vpc_conn = boto3.client("ec2", "us-west-2")
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]

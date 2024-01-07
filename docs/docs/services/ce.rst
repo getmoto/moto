@@ -14,17 +14,6 @@ ce
 
 .. autoclass:: moto.ce.models.CostExplorerBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_ce
-            def test_ce_behaviour:
-                boto3.client("ce")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_anomaly_monitor

@@ -1,14 +1,8 @@
 import boto3
 import pytest
 
-import moto
-from moto import mock_s3
-
-service_names = [
-    d[5:]
-    for d in dir(moto)
-    if d.startswith("mock_") and not d == "mock_xray_client" and not d == "mock_all"
-]
+from moto import mock_aws
+from moto.backends import list_of_moto_modules
 
 
 class TestMockBucketStartingWithServiceName:
@@ -16,15 +10,13 @@ class TestMockBucketStartingWithServiceName:
     https://github.com/getmoto/moto/issues/4099
     """
 
-    @pytest.mark.parametrize("service_name", service_names)
+    @pytest.mark.parametrize("service_name", list(list_of_moto_modules()))
     def test_bucketname_starting_with_service_name(self, service_name: str) -> None:
-        decorator = getattr(moto, f"mock_{service_name}")
-        with decorator():
-            with mock_s3():
-                s3_client = boto3.client("s3", "eu-west-1")
-                bucket_name = f"{service_name}-bucket"
-                s3_client.create_bucket(
-                    ACL="private",
-                    Bucket=bucket_name,
-                    CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
-                )
+        with mock_aws():
+            s3_client = boto3.client("s3", "eu-west-1")
+            bucket_name = f"{service_name}-bucket"
+            s3_client.create_bucket(
+                ACL="private",
+                Bucket=bucket_name,
+                CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+            )

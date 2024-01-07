@@ -1,13 +1,13 @@
 import boto3
 import requests
 
-from moto import mock_rdsdata, settings
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_rdsdata
+@mock_aws
 def test_execute_statement():
     rdsdata = boto3.client("rds-data", region_name="eu-west-1")
 
@@ -20,7 +20,7 @@ def test_execute_statement():
     assert resp["records"] == []
 
 
-@mock_rdsdata
+@mock_aws
 def test_set_query_results():
     base_url = (
         settings.test_server_mode_endpoint()

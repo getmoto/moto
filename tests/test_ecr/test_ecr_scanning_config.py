@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ecr
+from moto import mock_aws
 
 
-@mock_ecr
+@mock_aws
 def test_batch_get_repository_scanning_configuration():
     client = boto3.client("ecr", region_name="us-east-1")
     repo_name = "test-repo"
@@ -42,7 +42,7 @@ def test_batch_get_repository_scanning_configuration():
     ]
 
 
-@mock_ecr
+@mock_aws
 def test_put_registry_scanning_configuration():
     client = boto3.client("ecr", region_name="us-east-1")
     repo_name = "test-repo"

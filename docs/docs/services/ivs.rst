@@ -14,17 +14,6 @@ ivs
 
 .. autoclass:: moto.ivs.models.IVSBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_ivs
-            def test_ivs_behaviour:
-                boto3.client("ivs")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_get_channel

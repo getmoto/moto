@@ -1,4 +1,3 @@
-"""Test the different server responses."""
 from flask.testing import FlaskClient
 
 import moto.server as server
@@ -13,7 +12,7 @@ class AuthenticatedClient(FlaskClient):
 
 
 def authenticated_client():
-    backend = server.create_backend_app("s3bucket_path")
+    backend = server.create_backend_app("s3")
     backend.test_client_class = AuthenticatedClient
     return backend.test_client()
 
