@@ -1,4 +1,3 @@
-"""Unit tests for emrcontainers-supported APIs."""
 import re
 from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
@@ -8,14 +7,15 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto import mock_emrcontainers, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.emrcontainers import REGION as DEFAULT_REGION
+
+DEFAULT_REGION = "us-east-1"
 
 
 @pytest.fixture(scope="function", name="client")
 def fixture_client():
-    with mock_emrcontainers():
+    with mock_aws():
         yield boto3.client("emr-containers", region_name=DEFAULT_REGION)
 
 
@@ -86,7 +86,7 @@ def fixture_job_factory(client, virtual_cluster_factory):
 
 class TestCreateVirtualCluster:
     @staticmethod
-    @mock_emrcontainers
+    @mock_aws
     def test_create_virtual_cluster(client):
         resp = client.create_virtual_cluster(
             name="test-emr-virtual-cluster",
@@ -108,7 +108,7 @@ class TestCreateVirtualCluster:
         assert cluster_count == 1
 
     @staticmethod
-    @mock_emrcontainers
+    @mock_aws
     def test_create_virtual_cluster_on_same_namespace(client):
         client.create_virtual_cluster(
             name="test-emr-virtual-cluster",

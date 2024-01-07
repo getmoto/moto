@@ -5,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_databrew
+from moto import mock_aws
 
 
 def _create_databrew_client():
@@ -50,7 +50,7 @@ def _create_test_recipes(client, count):
         _create_test_recipe(client)
 
 
-@mock_databrew
+@mock_aws
 def test_recipe_list_when_empty():
     client = _create_databrew_client()
 
@@ -59,7 +59,7 @@ def test_recipe_list_when_empty():
     assert len(response["Recipes"]) == 0
 
 
-@mock_databrew
+@mock_aws
 def test_recipe_list_with_invalid_version():
     client = _create_databrew_client()
 
@@ -77,7 +77,7 @@ def test_recipe_list_with_invalid_version():
     assert err["Code"] == "ValidationException"
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipes_with_max_results():
     client = _create_databrew_client()
 
@@ -87,7 +87,7 @@ def test_list_recipes_with_max_results():
     assert "NextToken" in response
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipes_from_next_token():
     client = _create_databrew_client()
     _create_test_recipes(client, 10)
@@ -98,7 +98,7 @@ def test_list_recipes_from_next_token():
     assert len(response["Recipes"]) == 7
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipes_with_max_results_greater_than_actual_results():
     client = _create_databrew_client()
     _create_test_recipes(client, 4)
@@ -106,7 +106,7 @@ def test_list_recipes_with_max_results_greater_than_actual_results():
     assert len(response["Recipes"]) == 4
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipe_versions_no_recipe():
     client = _create_databrew_client()
     recipe_name = "NotExist"
@@ -114,7 +114,7 @@ def test_list_recipe_versions_no_recipe():
     assert len(response["Recipes"]) == 0
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipe_versions_none_published():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -123,7 +123,7 @@ def test_list_recipe_versions_none_published():
     assert len(response["Recipes"]) == 0
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipe_versions_one_published():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -134,7 +134,7 @@ def test_list_recipe_versions_one_published():
     assert response["Recipes"][0]["RecipeVersion"] == "1.0"
 
 
-@mock_databrew
+@mock_aws
 def test_list_recipe_versions_two_published():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -147,7 +147,7 @@ def test_list_recipe_versions_two_published():
     assert response["Recipes"][1]["RecipeVersion"] == "2.0"
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_latest_working():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -161,7 +161,7 @@ def test_describe_recipe_latest_working():
     assert recipe["RecipeVersion"] == "0.1"
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("name", ["name", "name with space"])
 def test_describe_recipe_with_version(name):
     client = _create_databrew_client()
@@ -174,7 +174,7 @@ def test_describe_recipe_with_version(name):
     assert recipe["RecipeVersion"] == "0.1"
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_latest_published():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -189,7 +189,7 @@ def test_describe_recipe_latest_published():
     assert recipe["RecipeVersion"] == "1.0"
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_implicit_latest_published():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -202,7 +202,7 @@ def test_describe_recipe_implicit_latest_published():
     assert recipe["RecipeVersion"] == "1.0"
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_that_does_not_exist():
     client = _create_databrew_client()
 
@@ -217,7 +217,7 @@ def test_describe_recipe_that_does_not_exist():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_with_long_name():
     client = _create_databrew_client()
     name = "a" * 256
@@ -232,7 +232,7 @@ def test_describe_recipe_with_long_name():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_with_long_version():
     client = _create_databrew_client()
     version = "1" * 17
@@ -247,7 +247,7 @@ def test_describe_recipe_with_long_version():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_with_invalid_version():
     client = _create_databrew_client()
     name = "AnyName"
@@ -260,7 +260,7 @@ def test_describe_recipe_with_invalid_version():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("name", ["name", "name with space"])
 def test_update_recipe(name):
     client = _create_databrew_client()
@@ -301,7 +301,7 @@ def test_update_recipe(name):
     assert recipe["Steps"][0]["Action"]["Parameters"]["removeCustomValue"] == "true"
 
 
-@mock_databrew
+@mock_aws
 def test_update_recipe_description():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -321,7 +321,7 @@ def test_update_recipe_description():
     assert recipe["Description"] == description
 
 
-@mock_databrew
+@mock_aws
 def test_update_recipe_invalid():
     client = _create_databrew_client()
 
@@ -334,7 +334,7 @@ def test_update_recipe_invalid():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_create_recipe_that_already_exists():
     client = _create_databrew_client()
 
@@ -348,7 +348,7 @@ def test_create_recipe_that_already_exists():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("recipe_name", ["name", "name with space"])
 def test_publish_recipe(recipe_name):
     client = _create_databrew_client()
@@ -384,7 +384,7 @@ def test_publish_recipe(recipe_name):
     assert recipe["PublishedDate"] >= first_published_date
 
 
-@mock_databrew
+@mock_aws
 def test_publish_recipe_that_does_not_exist():
     client = _create_databrew_client()
     with pytest.raises(ClientError) as exc:
@@ -394,7 +394,7 @@ def test_publish_recipe_that_does_not_exist():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_publish_long_recipe_name():
     client = _create_databrew_client()
     name = "a" * 256
@@ -411,7 +411,7 @@ def test_publish_long_recipe_name():
     assert err["Code"] == "ValidationException"
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("recipe_name", ["name", "name with space"])
 def test_delete_recipe_version(recipe_name):
     client = _create_databrew_client()
@@ -425,7 +425,7 @@ def test_delete_recipe_version(recipe_name):
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_published():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -441,7 +441,7 @@ def test_delete_recipe_version_published():
     assert recipe["RecipeVersion"] == "1.1"
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_latest_working_after_publish():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -457,7 +457,7 @@ def test_delete_recipe_version_latest_working_after_publish():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_latest_working_numeric_after_publish():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -471,7 +471,7 @@ def test_delete_recipe_version_latest_working_numeric_after_publish():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_invalid_version_string():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -488,7 +488,7 @@ def test_delete_recipe_version_invalid_version_string():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_invalid_version_length():
     client = _create_databrew_client()
     response = _create_test_recipe(client)
@@ -505,7 +505,7 @@ def test_delete_recipe_version_invalid_version_length():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_unknown_recipe():
     client = _create_databrew_client()
     recipe_name = "Unknown"
@@ -517,7 +517,7 @@ def test_delete_recipe_version_unknown_recipe():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_delete_recipe_version_unknown_version():
     client = _create_databrew_client()
     response = _create_test_recipe(client)

@@ -6,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 SEC_GROUP_INGRESS = Template(
@@ -134,8 +134,7 @@ SEC_GROUP_SOURCE = {
 }
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_security_group_ingress():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -164,8 +163,7 @@ def test_security_group_ingress():
     ]
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_delete_security_group_ingress():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -198,8 +196,7 @@ def test_delete_security_group_ingress():
     assert exc.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_security_group_ingress_without_description():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -223,8 +220,7 @@ def test_security_group_ingress_without_description():
     assert ingress["IpRanges"] == [{"CidrIp": "10.0.0.0/8"}]
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_stack_security_groups():
     first_desc = str(uuid4())
     second_desc = str(uuid4())

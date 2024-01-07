@@ -14,17 +14,6 @@ ds
 
 .. autoclass:: moto.ds.models.DirectoryServiceBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_ds
-            def test_ds_behaviour:
-                boto3.client("ds")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_shared_directory

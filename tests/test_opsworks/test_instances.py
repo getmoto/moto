@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_opsworks
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_opsworks
+@mock_aws
 def test_create_instance():
     client = boto3.client("opsworks", region_name="us-east-1")
     stack_id = client.create_stack(
@@ -74,7 +74,7 @@ def test_create_instance():
     )
 
 
-@mock_opsworks
+@mock_aws
 def test_describe_instances():
     """
     create two stacks, with 1 layer and 2 layers (S1L1, S2L1, S2L2)
@@ -180,8 +180,7 @@ def test_describe_instances():
     assert exc.value.response["Error"]["Message"] == "nothere"
 
 
-@mock_opsworks
-@mock_ec2
+@mock_aws
 def test_ec2_integration():
     """Verify instances created via OpsWorks are discoverable via ec2."""
     opsworks = boto3.client("opsworks", region_name="us-east-1")

@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 
-@mock_apigateway
+@mock_aws
 def test_import_rest_api__api_is_created():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -24,7 +24,7 @@ def test_import_rest_api__api_is_created():
     assert response["description"] == "description from JSON file"
 
 
-@mock_apigateway
+@mock_aws
 def test_import_rest_api__nested_api():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -43,7 +43,7 @@ def test_import_rest_api__nested_api():
     assert "/test/some/deep/path" in paths
 
 
-@mock_apigateway
+@mock_aws
 def test_import_rest_api__invalid_api_creates_nothing():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -61,7 +61,7 @@ def test_import_rest_api__invalid_api_creates_nothing():
     assert len(client.get_rest_apis()["items"]) == 0
 
 
-@mock_apigateway
+@mock_aws
 def test_import_rest_api__methods_are_created():
     client = boto3.client("apigateway", region_name="us-east-1")
 

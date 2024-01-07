@@ -1,10 +1,10 @@
 import boto3
 import requests
 
-from moto import mock_inspector2, settings
+from moto import mock_aws, settings
 
 
-@mock_inspector2
+@mock_aws
 def test_set_findings():
     base_url = (
         "localhost:5000" if settings.TEST_SERVER_MODE else "motoapi.amazonaws.com"

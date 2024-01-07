@@ -12,17 +12,6 @@
 sagemaker
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_sagemaker
-            def test_sagemaker_behaviour:
-                boto3.client("sagemaker")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_association

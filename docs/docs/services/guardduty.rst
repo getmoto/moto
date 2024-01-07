@@ -12,17 +12,6 @@
 guardduty
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_guardduty
-            def test_guardduty_behaviour:
-                boto3.client("guardduty")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_administrator_invitation

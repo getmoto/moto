@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import DEFAULT_ACCOUNT_ID, BaseBackend
+from moto.core import DEFAULT_ACCOUNT_ID, BackendDict, BaseBackend
 from moto.core.model_instances import reset_model_data
 
 
@@ -9,13 +9,7 @@ class MotoAPIBackend(BaseBackend):
         region_name = self.region_name
         account_id = self.account_id
 
-        import moto.backends as backends
-
-        for name, backends_ in backends.loaded_backends():
-            if name == "moto_api":
-                continue
-            for backend in backends_.values():
-                backend.reset()
+        BackendDict.reset()
         reset_model_data()
         self.__init__(region_name, account_id)  # type: ignore[misc]
 

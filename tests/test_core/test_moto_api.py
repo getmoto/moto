@@ -6,7 +6,7 @@ import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_autoscaling, mock_s3, mock_sqs, settings
+from moto import mock_aws, settings
 from moto.core.model_instances import model_data, reset_model_data
 
 base_url = (
@@ -17,7 +17,7 @@ base_url = (
 data_url = f"{base_url}/moto-api/data.json"
 
 
-@mock_sqs
+@mock_aws
 def test_reset_api() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
@@ -29,7 +29,7 @@ def test_reset_api() -> None:
     assert "QueueUrls" not in conn.list_queues()  # No more queues
 
 
-@mock_sqs
+@mock_aws
 def test_data_api() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName="queue1")
@@ -40,7 +40,7 @@ def test_data_api() -> None:
     assert queue["name"] == "queue1"
 
 
-@mock_s3
+@mock_aws
 def test_overwriting_s3_object_still_returns_data() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this behaves the same in ServerMode")
@@ -52,7 +52,7 @@ def test_overwriting_s3_object_still_returns_data() -> None:
     assert len(requests.post(data_url).json()["s3"]["FakeKey"]) == 2
 
 
-@mock_autoscaling
+@mock_aws
 def test_creation_error__data_api_still_returns_thing() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing this behaves the same in ServerMode")
@@ -99,7 +99,9 @@ def test_model_data_is_emptied_as_necessary() -> None:
         for _class in classes_per_service.values():
             assert _class.instances == []  # type: ignore[attr-defined]
 
-    with mock_sqs():
+    # TODO: ensure that iam is not loaded, and IAM policies are not created
+    # with mock_aws(load_static_data=False) ?
+    with mock_aws():
         # When just starting a mock, it is empty
         for classes_per_service in model_data.values():
             for _class in classes_per_service.values():
@@ -117,17 +119,17 @@ def test_model_data_is_emptied_as_necessary() -> None:
             assert _class.instances == []  # type: ignore[attr-defined]
 
     # When we have multiple/nested mocks, the data should still be present after the first mock ends
-    with mock_sqs():
+    with mock_aws():
         conn = boto3.client("sqs", region_name="us-west-1")
         conn.create_queue(QueueName="queue1")
-        with mock_s3():
+        with mock_aws():
             # The data should still be here - instances should not reset if another mock is still active
             assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
         # The data should still be here - the inner mock has exited, but the outer mock is still active
         assert len(model_data["sqs"]["Queue"].instances) == 1  # type: ignore[attr-defined]
 
 
-@mock_sqs
+@mock_aws
 class TestModelDataResetForClassDecorator(TestCase):
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:

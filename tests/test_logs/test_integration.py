@@ -9,13 +9,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_firehose, mock_iam, mock_kinesis, mock_lambda, mock_logs, mock_s3
+from moto import mock_aws
 from moto.core.utils import unix_time_millis
 from tests.markers import requires_docker
 
 
-@mock_lambda
-@mock_logs
+@mock_aws
 def test_put_subscription_filter_update():
     # given
     region_name = "us-east-1"
@@ -103,8 +102,7 @@ def test_put_subscription_filter_update():
     assert ex.response["Error"]["Message"] == "Resource limit exceeded."
 
 
-@mock_lambda
-@mock_logs
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_put_subscription_filter_with_lambda():
@@ -188,8 +186,7 @@ def test_put_subscription_filter_with_lambda():
     assert log_events[1]["timestamp"] == ts_1
 
 
-@mock_lambda
-@mock_logs
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_subscription_filter_applies_to_new_streams():
@@ -260,9 +257,7 @@ def test_subscription_filter_applies_to_new_streams():
     assert log_events[1]["timestamp"] == ts_1
 
 
-@mock_s3
-@mock_firehose
-@mock_logs
+@mock_aws
 @pytest.mark.network
 def test_put_subscription_filter_with_firehose():
     # given
@@ -351,9 +346,7 @@ def test_put_subscription_filter_with_firehose():
     assert log_events[1]["timestamp"] == ts_1
 
 
-@mock_iam
-@mock_logs
-@mock_kinesis
+@mock_aws
 def test_put_subscription_filter_with_kinesis():
     logs = boto3.client("logs", "ap-southeast-2")
     logs.create_log_group(logGroupName="lg1")
@@ -407,8 +400,7 @@ def test_put_subscription_filter_with_kinesis():
     assert nr_of_records == 1
 
 
-@mock_lambda
-@mock_logs
+@mock_aws
 def test_delete_subscription_filter():
     # given
     region_name = "us-east-1"
@@ -442,8 +434,7 @@ def test_delete_subscription_filter():
     assert len(response["subscriptionFilters"]) == 0
 
 
-@mock_lambda
-@mock_logs
+@mock_aws
 def test_delete_subscription_filter_errors():
     # given
     region_name = "us-east-1"
@@ -499,8 +490,7 @@ def test_delete_subscription_filter_errors():
     )
 
 
-@mock_lambda
-@mock_logs
+@mock_aws
 def test_put_subscription_filter_errors():
     # given
     client_lambda = boto3.client("lambda", "us-east-1")
@@ -584,7 +574,7 @@ def test_put_subscription_filter_errors():
 
 
 def _get_role_name(region_name):
-    with mock_iam():
+    with mock_aws():
         iam = boto3.client("iam", region_name=region_name)
         try:
             return iam.get_role(RoleName="test-role")["Role"]["Arn"]

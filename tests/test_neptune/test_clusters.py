@@ -1,15 +1,14 @@
-"""Unit tests for neptune-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_neptune
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_neptune
+@mock_aws
 def test_create_db_cluster():
     client = boto3.client("neptune", region_name="us-east-2")
     resp = client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="neptune")[
@@ -32,7 +31,7 @@ def test_create_db_cluster():
     assert len(europe_client.describe_db_clusters()["DBClusters"]) == 0
 
 
-@mock_neptune
+@mock_aws
 def test_create_db_cluster__with_additional_params():
     client = boto3.client("neptune", region_name="us-east-1")
     resp = client.create_db_cluster(
@@ -56,7 +55,7 @@ def test_create_db_cluster__with_additional_params():
     assert resp["DatabaseName"] == "sth"
 
 
-@mock_neptune
+@mock_aws
 def test_describe_db_clusters():
     client = boto3.client("neptune", region_name="ap-southeast-1")
     assert client.describe_db_clusters()["DBClusters"] == []
@@ -71,7 +70,7 @@ def test_describe_db_clusters():
     assert clusters[0]["Engine"] == "neptune"
 
 
-@mock_neptune
+@mock_aws
 def test_delete_db_cluster():
     client = boto3.client("neptune", region_name="ap-southeast-1")
 
@@ -81,7 +80,7 @@ def test_delete_db_cluster():
     assert client.describe_db_clusters()["DBClusters"] == []
 
 
-@mock_neptune
+@mock_aws
 def test_delete_unknown_db_cluster():
     client = boto3.client("neptune", region_name="ap-southeast-1")
 
@@ -91,7 +90,7 @@ def test_delete_unknown_db_cluster():
     assert err["Code"] == "DBClusterNotFoundFault"
 
 
-@mock_neptune
+@mock_aws
 def test_modify_db_cluster():
     client = boto3.client("neptune", region_name="us-east-1")
     client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="neptune")
@@ -106,7 +105,7 @@ def test_modify_db_cluster():
     assert resp["PreferredBackupWindow"] == "window"
 
 
-@mock_neptune
+@mock_aws
 def test_start_db_cluster():
     client = boto3.client("neptune", region_name="us-east-2")
     client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="neptune")[

@@ -14,17 +14,6 @@ signer
 
 .. autoclass:: moto.signer.models.SignerBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_signer
-            def test_signer_behaviour:
-                boto3.client("signer")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_profile_permission

@@ -3,11 +3,10 @@ import re
 
 import boto3
 
-from moto import mock_cloudformation, mock_s3
+from moto import mock_aws
 
 
-@mock_s3
-@mock_cloudformation
+@mock_aws
 def test_s3_bucket_cloudformation_basic():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -24,8 +23,7 @@ def test_s3_bucket_cloudformation_basic():
     s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
 
-@mock_s3
-@mock_cloudformation
+@mock_aws
 def test_s3_bucket_cloudformation_with_properties():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -66,8 +64,7 @@ def test_s3_bucket_cloudformation_with_properties():
     )
 
 
-@mock_s3
-@mock_cloudformation
+@mock_aws
 def test_s3_bucket_cloudformation_update_no_interruption():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -115,8 +112,7 @@ def test_s3_bucket_cloudformation_update_no_interruption():
     )
 
 
-@mock_s3
-@mock_cloudformation
+@mock_aws
 def test_s3_bucket_cloudformation_update_replacement():
     s3_client = boto3.client("s3", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -147,8 +143,7 @@ def test_s3_bucket_cloudformation_update_replacement():
     s3_client.head_bucket(Bucket=stack_description["Outputs"][0]["OutputValue"])
 
 
-@mock_s3
-@mock_cloudformation
+@mock_aws
 def test_s3_bucket_cloudformation_outputs():
     region_name = "us-east-1"
     s3_client = boto3.client("s3", region_name=region_name)

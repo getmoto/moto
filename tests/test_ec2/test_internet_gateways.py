@@ -4,14 +4,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 VPC_CIDR = "10.0.0.0/16"
 BAD_VPC = "vpc-deadbeef"
 BAD_IGW = "igw-deadbeef"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_create_boto3():
     """internet gateway create"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -35,7 +35,7 @@ def test_igw_create_boto3():
     assert len(igw["Attachments"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_igw_attach_boto3():
     """internet gateway attach"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -61,7 +61,7 @@ def test_igw_attach_boto3():
     assert igw["Attachments"] == [{"State": "available", "VpcId": vpc.id}]
 
 
-@mock_ec2
+@mock_aws
 def test_igw_attach_bad_vpc_boto3():
     """internet gateway fail to attach w/ bad vpc"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -74,7 +74,7 @@ def test_igw_attach_bad_vpc_boto3():
     assert ex.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_attach_twice_boto3():
     """internet gateway fail to attach twice"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -91,7 +91,7 @@ def test_igw_attach_twice_boto3():
     assert ex.value.response["Error"]["Code"] == "Resource.AlreadyAssociated"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_detach_boto3():
     """internet gateway detach"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -118,7 +118,7 @@ def test_igw_detach_boto3():
     assert len(igw["Attachments"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_igw_detach_wrong_vpc_boto3():
     """internet gateway fail to detach w/ wrong vpc"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -135,7 +135,7 @@ def test_igw_detach_wrong_vpc_boto3():
     assert ex.value.response["Error"]["Code"] == "Gateway.NotAttached"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_detach_invalid_vpc_boto3():
     """internet gateway fail to detach w/ invalid vpc"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -151,7 +151,7 @@ def test_igw_detach_invalid_vpc_boto3():
     assert ex.value.response["Error"]["Code"] == "Gateway.NotAttached"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_detach_unattached_boto3():
     """internet gateway fail to detach unattached"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -166,7 +166,7 @@ def test_igw_detach_unattached_boto3():
     assert ex.value.response["Error"]["Code"] == "Gateway.NotAttached"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_delete_boto3():
     """internet gateway delete"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -189,7 +189,7 @@ def test_igw_delete_boto3():
     assert igw.id not in [i["InternetGatewayId"] for i in (retrieve_all(client))]
 
 
-@mock_ec2
+@mock_aws
 def test_igw_delete_attached_boto3():
     """internet gateway fail to delete attached"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -205,7 +205,7 @@ def test_igw_delete_attached_boto3():
     assert ex.value.response["Error"]["Code"] == "DependencyViolation"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_describe_boto3():
     """internet gateway fetch by id"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -217,7 +217,7 @@ def test_igw_describe_boto3():
     assert igw.id == igw_by_search["InternetGatewayId"]
 
 
-@mock_ec2
+@mock_aws
 def test_igw_describe_bad_id_boto3():
     """internet gateway fail to fetch by bad id"""
     client = boto3.client("ec2", "us-west-1")
@@ -228,7 +228,7 @@ def test_igw_describe_bad_id_boto3():
     assert ex.value.response["Error"]["Code"] == "InvalidInternetGatewayID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_igw_filter_by_vpc_id_boto3():
     """internet gateway filter by vpc id"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -246,7 +246,7 @@ def test_igw_filter_by_vpc_id_boto3():
     assert result["InternetGateways"][0]["InternetGatewayId"] == igw1.id
 
 
-@mock_ec2
+@mock_aws
 def test_igw_filter_by_tags_boto3():
     """internet gateway filter by vpc id"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -262,7 +262,7 @@ def test_igw_filter_by_tags_boto3():
     assert result[0]["InternetGatewayId"] == igw1.id
 
 
-@mock_ec2
+@mock_aws
 def test_igw_filter_by_internet_gateway_id_boto3():
     """internet gateway filter by internet gateway id"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -278,7 +278,7 @@ def test_igw_filter_by_internet_gateway_id_boto3():
     assert result["InternetGateways"][0]["InternetGatewayId"] == igw1.id
 
 
-@mock_ec2
+@mock_aws
 def test_igw_filter_by_attachment_state_boto3():
     """internet gateway filter by attachment state"""
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -295,7 +295,7 @@ def test_igw_filter_by_attachment_state_boto3():
     assert igw2.id not in all_ids
 
 
-@mock_ec2
+@mock_aws
 def test_create_internet_gateway_with_tags():
     ec2 = boto3.resource("ec2", region_name="eu-central-1")
 

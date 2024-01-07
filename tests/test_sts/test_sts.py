@@ -9,13 +9,13 @@ import pytest
 from botocore.client import ClientError
 from freezegun import freeze_time
 
-from moto import mock_iam, mock_sts, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_get_session_token_boto3():
     client = boto3.client("sts", region_name="us-east-1")
     creds = client.get_session_token(DurationSeconds=903)["Credentials"]
@@ -36,7 +36,7 @@ def test_get_session_token_boto3():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_get_federation_token_boto3():
     client = boto3.client("sts", region_name="us-east-1")
     token_name = "Bob"
@@ -65,8 +65,7 @@ def test_get_federation_token_boto3():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
-@mock_iam
+@mock_aws
 def test_assume_role():
     client = boto3.client("sts", region_name="us-east-1")
     iam_client = boto3.client("iam", region_name="us-east-1")
@@ -131,7 +130,7 @@ def test_assume_role():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_assume_role_with_saml():
     client = boto3.client("sts", region_name="us-east-1")
     role_name = "test-role"
@@ -229,7 +228,7 @@ def test_assume_role_with_saml():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_assume_role_with_saml_should_not_rely_on_attribute_order():
     client = boto3.client("sts", region_name="us-east-1")
     role_name = "test-role"
@@ -315,7 +314,7 @@ def test_assume_role_with_saml_should_not_rely_on_attribute_order():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_assume_role_with_saml_should_respect_xml_namespaces():
     client = boto3.client("sts", region_name="us-east-1")
     role_name = "test-role"
@@ -401,7 +400,7 @@ def test_assume_role_with_saml_should_respect_xml_namespaces():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_assume_role_with_saml_when_xml_tag_contains_xmlns_attributes():
     """Test assume role with saml when xml tag contains xmlns attributes.
 
@@ -498,7 +497,7 @@ def test_assume_role_with_saml_when_xml_tag_contains_xmlns_attributes():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_assume_role_with_saml_when_saml_attribute_not_provided():
     """Test session duration when saml attribute are not provided.
 
@@ -583,7 +582,7 @@ def test_assume_role_with_saml_when_saml_attribute_not_provided():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_sts
+@mock_aws
 def test_assume_role_with_web_identity_boto3():
     client = boto3.client("sts", region_name="us-east-1")
 
@@ -631,7 +630,7 @@ def test_assume_role_with_web_identity_boto3():
     assert "session-name" in user["AssumedRoleId"]
 
 
-@mock_sts
+@mock_aws
 def test_get_caller_identity_with_default_credentials():
     identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
 
@@ -640,8 +639,7 @@ def test_get_caller_identity_with_default_credentials():
     assert identity["Account"] == str(ACCOUNT_ID)
 
 
-@mock_sts
-@mock_iam
+@mock_aws
 def test_get_caller_identity_with_iam_user_credentials():
     iam_client = boto3.client("iam", region_name="us-east-1")
     iam_user_name = "new-user"
@@ -660,8 +658,7 @@ def test_get_caller_identity_with_iam_user_credentials():
     assert identity["Account"] == str(ACCOUNT_ID)
 
 
-@mock_sts
-@mock_iam
+@mock_aws
 def test_get_caller_identity_with_assumed_role_credentials():
     iam_client = boto3.client("iam", region_name="us-east-1")
     sts_client = boto3.client("sts", region_name="us-east-1")
@@ -696,7 +693,7 @@ def test_get_caller_identity_with_assumed_role_credentials():
     assert identity["Account"] == str(ACCOUNT_ID)
 
 
-@mock_sts
+@mock_aws
 def test_federation_token_with_too_long_policy():
     """Test federation token with policy longer than 2048 character fails."""
     cli = boto3.client("sts", region_name="us-east-1")
@@ -726,7 +723,7 @@ def test_federation_token_with_too_long_policy():
 
 @patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
-@mock_sts
+@mock_aws
 def test_sts_regions(region):
     client = boto3.client("sts", region_name=region)
     resp = client.get_caller_identity()

@@ -12,17 +12,6 @@
 glacier
 =======
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_glacier
-            def test_glacier_behaviour:
-                boto3.client("glacier")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] abort_multipart_upload

@@ -12,17 +12,6 @@
 datapipeline
 ============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_datapipeline
-            def test_datapipeline_behaviour:
-                boto3.client("datapipeline")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] activate_pipeline

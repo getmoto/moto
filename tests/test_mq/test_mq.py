@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_mq
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_mq
+@mock_aws
 def test_create_broker_minimal():
     client = boto3.client("mq", region_name="ap-southeast-1")
     resp = client.create_broker(
@@ -31,7 +31,7 @@ def test_create_broker_minimal():
     assert "Id" in broker["Configurations"]["Current"]
 
 
-@mock_mq
+@mock_aws
 def test_create_with_tags():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -51,7 +51,7 @@ def test_create_with_tags():
     assert resp["Tags"] == {"key1": "val2", "key2": "val2"}
 
 
-@mock_mq
+@mock_aws
 def test_create_with_multiple_users():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -89,7 +89,7 @@ def test_create_with_multiple_users():
     assert user2["ConsoleAccess"] is False
 
 
-@mock_mq
+@mock_aws
 def test_create_with_configuration():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -111,7 +111,7 @@ def test_create_with_configuration():
     assert resp["Configurations"]["Current"] == {"Id": "config_id_x", "Revision": 3}
 
 
-@mock_mq
+@mock_aws
 def test_update_with_configuration():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -137,7 +137,7 @@ def test_update_with_configuration():
     assert resp["Configurations"]["Current"] == {"Id": "config_id_x", "Revision": 2}
 
 
-@mock_mq
+@mock_aws
 def test_delete_broker():
     client = boto3.client("mq", region_name="ap-southeast-1")
     broker_id = client.create_broker(
@@ -157,7 +157,7 @@ def test_delete_broker():
     assert len(client.list_brokers()["BrokerSummaries"]) == 0
 
 
-@mock_mq
+@mock_aws
 def test_describe_broker():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -216,7 +216,7 @@ def test_describe_broker():
     assert resp["Users"] == [{"Username": "admin"}]
 
 
-@mock_mq
+@mock_aws
 def test_describe_broker_with_defaults():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -252,7 +252,7 @@ def test_describe_broker_with_defaults():
     assert len(resp["SubnetIds"]) == 1
 
 
-@mock_mq
+@mock_aws
 def test_describe_multiple_rabbits():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -278,7 +278,7 @@ def test_describe_multiple_rabbits():
     assert len(resp["SubnetIds"]) == 4
 
 
-@mock_mq
+@mock_aws
 def test_describe_active_mq_with_standby():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -299,7 +299,7 @@ def test_describe_active_mq_with_standby():
     assert len(resp["SubnetIds"]) == 2
 
 
-@mock_mq
+@mock_aws
 def test_describe_broker_unknown():
     client = boto3.client("mq", region_name="us-east-2")
 
@@ -313,7 +313,7 @@ def test_describe_broker_unknown():
     )
 
 
-@mock_mq
+@mock_aws
 def test_list_brokers_empty():
     client = boto3.client("mq", region_name="eu-west-1")
     resp = client.list_brokers()
@@ -321,7 +321,7 @@ def test_list_brokers_empty():
     assert resp["BrokerSummaries"] == []
 
 
-@mock_mq
+@mock_aws
 def test_list_brokers():
     client = boto3.client("mq", region_name="eu-west-1")
     broker_id = client.create_broker(
@@ -352,7 +352,7 @@ def test_list_brokers():
     assert "Users" not in summary
 
 
-@mock_mq
+@mock_aws
 def test_update_broker_single_attribute():
     client = boto3.client("mq", region_name="ap-southeast-1")
     broker_id = client.create_broker(
@@ -375,7 +375,7 @@ def test_update_broker_single_attribute():
     assert resp["EngineVersion"] == "version"
 
 
-@mock_mq
+@mock_aws
 def test_update_broker_multiple_attributes():
     client = boto3.client("mq", region_name="ap-southeast-1")
     broker_id = client.create_broker(
@@ -407,7 +407,7 @@ def test_update_broker_multiple_attributes():
     assert resp["BrokerId"] == broker_id
 
 
-@mock_mq
+@mock_aws
 def test_reboot_broker():
     client = boto3.client("mq", region_name="ap-southeast-1")
     broker_id = client.create_broker(

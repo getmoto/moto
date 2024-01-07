@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudwatch
+from moto import mock_aws
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data__no_metric_data_or_expression():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -26,7 +26,7 @@ def test_get_metric_data__no_metric_data_or_expression():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_with_simple_expression():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")

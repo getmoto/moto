@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.models.amis import AMIS
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
@@ -16,7 +16,7 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
 # The default AMIs are not loaded for our test case, to speed things up
 # But we do need it for this specific test (and others in this file..)
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_snapshots_for_initial_amis():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -37,7 +37,7 @@ def test_snapshots_for_initial_amis():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_create_and_delete():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -130,7 +130,7 @@ def test_ami_create_and_delete():
     assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
 
 
-@mock_ec2
+@mock_aws
 def test_deregister_image__unknown():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -142,7 +142,7 @@ def test_deregister_image__unknown():
     assert ex.value.response["ResponseMetadata"]["RequestId"] is not None
 
 
-@mock_ec2
+@mock_aws
 def test_deregister_image__and_describe():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -161,7 +161,7 @@ def test_deregister_image__and_describe():
     assert len(ec2.describe_images(ImageIds=[image_id])["Images"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_ami_copy_dryrun():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -193,7 +193,7 @@ def test_ami_copy_dryrun():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_copy():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -240,7 +240,7 @@ def test_ami_copy():
     assert copied_image_snapshot_id != source_image_snapshot_id
 
 
-@mock_ec2
+@mock_aws
 def test_ami_copy_nonexistent_source_id():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -257,7 +257,7 @@ def test_ami_copy_nonexistent_source_id():
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_copy_nonexisting_source_region():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -285,7 +285,7 @@ def test_ami_copy_nonexisting_source_region():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_copy_image_changes_owner_id():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -316,7 +316,7 @@ def test_copy_image_changes_owner_id():
     assert describe_resp[0]["ImageId"] == copy_resp["ImageId"]
 
 
-@mock_ec2
+@mock_aws
 def test_ami_tagging():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     res = boto3.resource("ec2", region_name="us-east-1")
@@ -346,7 +346,7 @@ def test_ami_tagging():
     assert image["Tags"] == [{"Value": "some value", "Key": "a key"}]
 
 
-@mock_ec2
+@mock_aws
 def test_ami_create_from_missing_instance():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -359,7 +359,7 @@ def test_ami_create_from_missing_instance():
     assert ex.value.response["Error"]["Code"] == "InvalidInstanceID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_pulls_attributes_from_instance():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -375,7 +375,7 @@ def test_ami_pulls_attributes_from_instance():
     assert image.kernel_id == "test-kernel"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_uses_account_id_if_valid_access_key_is_supplied():
     # The boto-equivalent required an access_key to be passed in, but Moto will always mock this in boto3
     # So the only thing we're testing here, really.. is whether OwnerId is equal to ACCOUNT_ID?
@@ -394,7 +394,7 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_filters():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -482,7 +482,7 @@ def test_ami_filters():
     assert len(amis_by_nonpublic) >= 2, "Should have at least 2 non-public images"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_filtering_via_tag():
     tag_value = f"value {str(uuid4())}"
     other_value = f"value {str(uuid4())}"
@@ -515,7 +515,7 @@ def test_ami_filtering_via_tag():
     assert [ami["ImageId"] for ami in amis_by_tagB] == [imageB_id]
 
 
-@mock_ec2
+@mock_aws
 def test_getting_missing_ami():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -526,7 +526,7 @@ def test_getting_missing_ami():
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_getting_malformed_ami():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -537,7 +537,7 @@ def test_getting_malformed_ami():
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.Malformed"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_attribute_group_permissions():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -604,7 +604,7 @@ def test_ami_attribute_group_permissions():
     image.modify_attribute(**REMOVE_GROUP_ARGS)
 
 
-@mock_ec2
+@mock_aws
 def test_ami_attribute_user_permissions():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -684,7 +684,7 @@ def test_ami_attribute_user_permissions():
     image.modify_attribute(**REMOVE_USERS_ARGS)
 
 
-@mock_ec2
+@mock_aws
 def test_ami_describe_executable_users():
     conn = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", "us-east-1")
@@ -717,7 +717,7 @@ def test_ami_describe_executable_users():
     assert images[0]["ImageId"] == image_id
 
 
-@mock_ec2
+@mock_aws
 def test_ami_describe_executable_users_negative():
     conn = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", "us-east-1")
@@ -751,7 +751,7 @@ def test_ami_describe_executable_users_negative():
     assert len(images) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_ami_describe_executable_users_and_filter():
     conn = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", "us-east-1")
@@ -788,7 +788,7 @@ def test_ami_describe_executable_users_and_filter():
     assert images[0]["ImageId"] == image_id
 
 
-@mock_ec2
+@mock_aws
 def test_ami_attribute_user_and_group_permissions():
     """
     Boto supports adding/removing both users and groups at the same time.
@@ -854,7 +854,7 @@ def test_ami_attribute_user_and_group_permissions():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_filter_description():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -881,7 +881,7 @@ def test_filter_description():
     assert len(resp) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_ami_attribute_error_cases():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -983,7 +983,7 @@ def test_ami_attribute_error_cases():
     assert ex.value.response["Error"]["Code"] == "InvalidAMIID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_describe_non_existent():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     # Valid pattern but non-existent id
@@ -996,7 +996,7 @@ def test_ami_describe_non_existent():
         img.load()
 
 
-@mock_ec2
+@mock_aws
 def test_ami_registration():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     image_id = ec2.register_image(Name="test-register-image").get("ImageId", "")
@@ -1006,7 +1006,7 @@ def test_ami_registration():
     assert images[0]["State"] == "available", "State should be available."
 
 
-@mock_ec2
+@mock_aws
 def test_ami_filter_wildcard():
     ec2_resource = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -1029,7 +1029,7 @@ def test_ami_filter_wildcard():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_filter_by_owner_id():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1049,7 +1049,7 @@ def test_ami_filter_by_owner_id():
     assert len(ubuntu_ids) < len(all_ids)
 
 
-@mock_ec2
+@mock_aws
 def test_ami_filter_by_self():
     ec2_resource = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -1071,7 +1071,7 @@ def test_ami_filter_by_self():
     assert unique_name in image_names
 
 
-@mock_ec2
+@mock_aws
 def test_ami_snapshots_have_correct_owner():
     ec2_client = boto3.client("ec2", region_name="us-west-1")
 
@@ -1100,7 +1100,7 @@ def test_ami_snapshots_have_correct_owner():
             assert owner_id == snapshot["OwnerId"]
 
 
-@mock_ec2
+@mock_aws
 def test_create_image_with_tag_specification():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -1146,7 +1146,7 @@ def test_create_image_with_tag_specification():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_ami_filter_by_empty_tag():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -1190,7 +1190,7 @@ def test_ami_filter_by_empty_tag():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_filter_by_ownerid():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1205,7 +1205,7 @@ def test_ami_filter_by_ownerid():
     assert len(images) > 0, "We should have at least 1 image created by amazon"
 
 
-@mock_ec2
+@mock_aws
 def test_ami_filter_by_unknown_ownerid():
     ec2_connection = boto3.client("ec2", region_name="us-east-1")
 
@@ -1215,7 +1215,7 @@ def test_ami_filter_by_unknown_ownerid():
     assert len(images) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_describe_images_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -1229,7 +1229,7 @@ def test_describe_images_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_delete_snapshot_from_create_image():
     ec2_client = boto3.client("ec2", region_name="us-east-1")
     resp = ec2_client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -1266,7 +1266,7 @@ def test_delete_snapshot_from_create_image():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_describe_image_attribute_product_codes():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1294,7 +1294,7 @@ def test_ami_describe_image_attribute_product_codes():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_describe_image_attribute():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1328,7 +1328,7 @@ def test_ami_describe_image_attribute():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_describe_image_attribute_block_device_fail():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -1352,7 +1352,7 @@ def test_ami_describe_image_attribute_block_device_fail():
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_ami_describe_image_attribute_invalid_param():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")

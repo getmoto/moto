@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ec2
+@mock_aws
 def test_create():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     prefix_list = ec2.create_managed_prefix_list(
@@ -24,7 +24,7 @@ def test_create():
     assert prefix_list["OwnerId"] == ACCOUNT_ID
 
 
-@mock_ec2
+@mock_aws
 def test_create_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     prefix_list = ec2.create_managed_prefix_list(
@@ -41,7 +41,7 @@ def test_create_with_tags():
     assert prefix_list["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_managed_prefix_lists():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -55,7 +55,7 @@ def test_describe_managed_prefix_lists():
     assert set([pl["OwnerId"] for pl in all_lists]) == {"aws", ACCOUNT_ID}
 
 
-@mock_ec2
+@mock_aws
 def test_describe_managed_prefix_lists_with_prefix():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -74,7 +74,7 @@ def test_describe_managed_prefix_lists_with_prefix():
         assert lists_by_id[0]["OwnerId"] == "aws"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_managed_prefix_lists_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -99,7 +99,7 @@ def test_describe_managed_prefix_lists_with_tags():
     assert untagged_pl_id not in [pl["PrefixListId"] for pl in tagged_lists]
 
 
-@mock_ec2
+@mock_aws
 def test_get_managed_prefix_list_entries():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     resp = ec2.create_managed_prefix_list(
@@ -130,7 +130,7 @@ def test_get_managed_prefix_list_entries():
     assert {"Cidr": "10.0.0.2", "Description": "entry2"} in entries
 
 
-@mock_ec2
+@mock_aws
 def test_get_managed_prefix_list_entries_0_entries():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     resp = ec2.create_managed_prefix_list(
@@ -144,7 +144,7 @@ def test_get_managed_prefix_list_entries_0_entries():
     assert entries == []
 
 
-@mock_ec2
+@mock_aws
 def test_delete_managed_prefix_list():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     id1 = ec2.create_managed_prefix_list(
@@ -172,7 +172,7 @@ def test_delete_managed_prefix_list():
     }
 
 
-@mock_ec2
+@mock_aws
 def test_describe_prefix_lists():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -189,7 +189,7 @@ def test_describe_prefix_lists():
         assert "com.amazonaws" in pl["PrefixListName"]
 
 
-@mock_ec2
+@mock_aws
 def test_modify_manage_prefix_list():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -228,7 +228,7 @@ def test_modify_manage_prefix_list():
     assert {"Cidr": "10.0.0.2", "Description": "entry2"} not in entries
 
 
-@mock_ec2
+@mock_aws
 def test_modify_manage_prefix_list_add_to_empty_list():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -260,7 +260,7 @@ def test_modify_manage_prefix_list_add_to_empty_list():
     assert {"Cidr": "10.0.0.2", "Description": "entry2"} not in entries
 
 
-@mock_ec2
+@mock_aws
 def test_modify_manage_prefix_list_name_only():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -283,7 +283,7 @@ def test_modify_manage_prefix_list_name_only():
     assert described == prefix_list
 
 
-@mock_ec2
+@mock_aws
 def test_modify_manage_prefix_list_specifying_version():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 

@@ -3,14 +3,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_dax
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_dax
+@mock_aws
 def test_create_cluster_minimal():
     client = boto3.client("dax", region_name="us-east-2")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -44,7 +44,7 @@ def test_create_cluster_minimal():
         assert cluster["ClusterEndpointEncryptionType"] == "NONE"
 
 
-@mock_dax
+@mock_aws
 def test_create_cluster_description():
     client = boto3.client("dax", region_name="us-east-2")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -64,7 +64,7 @@ def test_create_cluster_description():
         assert cluster["Description"] == "my cluster"
 
 
-@mock_dax
+@mock_aws
 def test_create_cluster_with_sse_enabled():
     client = boto3.client("dax", region_name="us-east-2")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -86,7 +86,7 @@ def test_create_cluster_with_sse_enabled():
         assert cluster["ClusterEndpointEncryptionType"] == "TLS"
 
 
-@mock_dax
+@mock_aws
 @pytest.mark.parametrize(
     "iam_role,expected",
     (
@@ -118,7 +118,7 @@ def test_create_cluster_invalid_arn(iam_role: str, expected: str):
     assert err["Message"] == expected
 
 
-@mock_dax
+@mock_aws
 @pytest.mark.parametrize(
     "name", ["1invalid", "iИvalid", "in_valid", "invalid-", "in--valid"]
 )
@@ -139,7 +139,7 @@ def test_create_cluster_invalid_name(name):
     )
 
 
-@mock_dax
+@mock_aws
 @pytest.mark.parametrize(
     "name", ["1invalid", "iИvalid", "in_valid", "invalid-", "in--valid"]
 )
@@ -155,7 +155,7 @@ def test_describe_clusters_invalid_name(name):
     )
 
 
-@mock_dax
+@mock_aws
 def test_delete_cluster_unknown():
     client = boto3.client("dax", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -166,7 +166,7 @@ def test_delete_cluster_unknown():
     assert err["Message"] == "Cluster not found."
 
 
-@mock_dax
+@mock_aws
 def test_delete_cluster():
     client = boto3.client("dax", region_name="eu-west-1")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -194,7 +194,7 @@ def test_delete_cluster():
     assert err["Code"] == "ClusterNotFoundFault"
 
 
-@mock_dax
+@mock_aws
 def test_describe_cluster_unknown():
     client = boto3.client("dax", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -205,7 +205,7 @@ def test_describe_cluster_unknown():
     assert err["Message"] == "Cluster unknown not found."
 
 
-@mock_dax
+@mock_aws
 def test_describe_clusters_returns_all():
     client = boto3.client("dax", region_name="us-east-1")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -220,7 +220,7 @@ def test_describe_clusters_returns_all():
     assert len(client.describe_clusters()["Clusters"]) == 50
 
 
-@mock_dax
+@mock_aws
 def test_describe_clusters_paginates():
     client = boto3.client("dax", region_name="us-east-1")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -245,7 +245,7 @@ def test_describe_clusters_paginates():
     assert "NextToken" not in resp
 
 
-@mock_dax
+@mock_aws
 def test_describe_clusters_returns_nodes_after_some_time():
     client = boto3.client("dax", region_name="us-east-2")
     iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/aws-service-role/dax.amazonaws.com/AWSServiceRoleForDAX"
@@ -295,7 +295,7 @@ def test_describe_clusters_returns_nodes_after_some_time():
         assert node["ParameterGroupStatus"] == "in-sync"
 
 
-@mock_dax
+@mock_aws
 def test_list_tags_unknown():
     client = boto3.client("dax", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -305,7 +305,7 @@ def test_list_tags_unknown():
     assert err["Code"] == "ClusterNotFoundFault"
 
 
-@mock_dax
+@mock_aws
 def test_list_tags():
     client = boto3.client("dax", region_name="ap-southeast-1")
     cluster = client.create_cluster(
@@ -333,7 +333,7 @@ def test_list_tags():
         )
 
 
-@mock_dax
+@mock_aws
 def test_increase_replication_factor_unknown():
     client = boto3.client("dax", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -345,7 +345,7 @@ def test_increase_replication_factor_unknown():
     assert err["Code"] == "ClusterNotFoundFault"
 
 
-@mock_dax
+@mock_aws
 def test_increase_replication_factor():
     client = boto3.client("dax", region_name="ap-southeast-1")
     name = "daxcluster"
@@ -383,7 +383,7 @@ def test_increase_replication_factor():
     )
 
 
-@mock_dax
+@mock_aws
 def test_decrease_replication_factor_unknown():
     client = boto3.client("dax", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -395,7 +395,7 @@ def test_decrease_replication_factor_unknown():
     assert err["Code"] == "ClusterNotFoundFault"
 
 
-@mock_dax
+@mock_aws
 def test_decrease_replication_factor():
     client = boto3.client("dax", region_name="eu-west-1")
     name = "daxcluster"
@@ -424,7 +424,7 @@ def test_decrease_replication_factor():
     assert node_ids == ({f"{name}-a", f"{name}-b", f"{name}-c"})
 
 
-@mock_dax
+@mock_aws
 def test_decrease_replication_factor_specific_nodeids():
     client = boto3.client("dax", region_name="ap-southeast-1")
     name = "daxcluster"

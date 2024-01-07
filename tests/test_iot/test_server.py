@@ -4,14 +4,14 @@ from urllib.parse import quote
 import pytest
 
 import moto.server as server
-from moto import mock_iot
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_iot
+@mock_aws
 def test_iot_list():
     backend = server.create_backend_app("iot")
     test_client = backend.test_client()
@@ -28,7 +28,7 @@ def test_iot_list():
         pytest.param(False, id="Target Arn in Path is *not* URL encoded"),
     ],
 )
-@mock_iot
+@mock_aws
 def test_list_attached_policies(url_encode_arn):
     backend = server.create_backend_app("iot")
     test_client = backend.test_client()

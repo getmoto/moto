@@ -1,18 +1,17 @@
-"""Unit tests for scheduler-supported APIs."""
 from datetime import datetime
 
 import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_scheduler
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_scheduler
+@mock_aws
 def test_create_get_schedule():
     client = boto3.client("scheduler", region_name="eu-west-1")
     arn = client.create_schedule(
@@ -51,7 +50,7 @@ def test_create_get_schedule():
     assert resp["CreationDate"] == resp["LastModificationDate"]
 
 
-@mock_scheduler
+@mock_aws
 def test_create_get_delete__in_different_group():
     client = boto3.client("scheduler", region_name="eu-west-1")
 
@@ -94,7 +93,7 @@ def test_create_get_delete__in_different_group():
     ],
     ids=["without_group", "with_group"],
 )
-@mock_scheduler
+@mock_aws
 def test_update_schedule(extra_kwargs):
     client = boto3.client("scheduler", region_name="eu-west-1")
 
@@ -145,7 +144,7 @@ def test_update_schedule(extra_kwargs):
     assert schedule["CreationDate"] != schedule["LastModificationDate"]
 
 
-@mock_scheduler
+@mock_aws
 def test_create_duplicate_schedule():
     client = boto3.client("scheduler", region_name="us-east-1")
     params = {
@@ -165,7 +164,7 @@ def test_create_duplicate_schedule():
     assert err["Message"] == "Schedule schedule1 already exists."
 
 
-@mock_scheduler
+@mock_aws
 def test_get_schedule_for_unknown_group():
     client = boto3.client("scheduler", region_name="eu-west-1")
 
@@ -175,7 +174,7 @@ def test_get_schedule_for_unknown_group():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_scheduler
+@mock_aws
 def test_get_schedule_for_none_existing_schedule():
     client = boto3.client("scheduler", region_name="eu-west-1")
 
@@ -186,7 +185,7 @@ def test_get_schedule_for_none_existing_schedule():
     assert err["Message"] == "Schedule my-schedule does not exist."
 
 
-@mock_scheduler
+@mock_aws
 def test_list_schedules():
     client = boto3.client("scheduler", region_name="eu-west-1")
 
@@ -219,7 +218,7 @@ def test_list_schedules():
     assert len(schedules) == 4
 
 
-@mock_scheduler
+@mock_aws
 def test_delete_schedule_for_none_existing_schedule():
     client = boto3.client("scheduler", region_name="eu-west-1")
 

@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integration_responses_empty():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -17,7 +17,7 @@ def test_get_integration_responses_empty():
     assert resp["Items"] == []
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_integration_response():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -44,7 +44,7 @@ def test_create_integration_response():
     assert int_res["TemplateSelectionExpression"] == "tse"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integration_response():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -74,7 +74,7 @@ def test_get_integration_response():
     assert int_res["TemplateSelectionExpression"] == "tse"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integration_response_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -91,7 +91,7 @@ def test_get_integration_response_unknown():
     assert err["Message"] == "Invalid IntegrationResponse identifier specified unknown"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_integration_response():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -115,7 +115,7 @@ def test_delete_integration_response():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_integration_response_single_attr():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -139,7 +139,7 @@ def test_update_integration_response_single_attr():
     assert res["IntegrationResponseKey"] == "int_res_key"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_integration_response_multiple_attrs():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]

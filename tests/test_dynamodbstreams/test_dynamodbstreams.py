@@ -1,7 +1,7 @@
 import boto3
 import pytest
 
-from moto import mock_dynamodb, mock_dynamodbstreams
+from moto import mock_aws
 
 
 class TestCore:
@@ -9,9 +9,8 @@ class TestCore:
     mocks = []
 
     def setup_method(self):
-        self.mocks = [mock_dynamodb(), mock_dynamodbstreams()]
-        for m in self.mocks:
-            m.start()
+        self.mock = mock_aws()
+        self.mock.start()
 
         # create a table with a stream
         conn = boto3.client("dynamodb", region_name="us-east-1")
@@ -33,11 +32,10 @@ class TestCore:
         conn.delete_table(TableName="test-streams")
         self.stream_arn = None
 
-        for m in self.mocks:
-            try:
-                m.stop()
-            except RuntimeError:
-                pass
+        try:
+            self.mock.stop()
+        except RuntimeError:
+            pass
 
     def test_verify_stream(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")
@@ -195,16 +193,11 @@ class TestEdges:
     mocks = []
 
     def setup_method(self):
-        self.mocks = [mock_dynamodb(), mock_dynamodbstreams()]
-        for m in self.mocks:
-            m.start()
+        self.mock = mock_aws()
+        self.mock.start()
 
     def teardown_method(self):
-        for m in self.mocks:
-            try:
-                m.stop()
-            except RuntimeError:
-                pass
+        self.mock.stop()
 
     def test_enable_stream_on_table(self):
         conn = boto3.client("dynamodb", region_name="us-east-1")

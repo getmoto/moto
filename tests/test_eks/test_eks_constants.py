@@ -7,7 +7,6 @@ from enum import Enum
 from boto3 import Session
 
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.eks import REGION as DEFAULT_REGION
 
 DEFAULT_ENCODING = "utf-8"
 DEFAULT_HTTP_HEADERS = {"Content-type": "application/json"}
@@ -15,7 +14,7 @@ DEFAULT_NAMESPACE = "namespace_1"
 FROZEN_TIME = "2013-11-27T01:42:00Z"
 MAX_FARGATE_LABELS = 5
 PARTITIONS = Session().get_available_partitions()
-REGION = Session().region_name or DEFAULT_REGION
+REGION = "us-east-1"
 SERVICE = "eks"
 SUBNET_IDS = ["subnet-12345ab", "subnet-67890cd"]
 

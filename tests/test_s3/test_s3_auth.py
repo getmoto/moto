@@ -5,13 +5,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, mock_s3, mock_sts, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
-from moto.s3.responses import DEFAULT_REGION_NAME
+
+DEFAULT_REGION_NAME = "us-east-1"
 
 
-@mock_s3
+@mock_aws
 @set_initial_no_auth_action_count(0)
 def test_load_unexisting_object_without_auth_should_return_403():
     if not settings.TEST_DECORATOR_MODE:
@@ -31,7 +32,7 @@ def test_load_unexisting_object_without_auth_should_return_403():
 
 
 @set_initial_no_auth_action_count(4)
-@mock_s3
+@mock_aws
 def test_head_bucket_with_correct_credentials():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
@@ -63,7 +64,7 @@ def test_head_bucket_with_correct_credentials():
 
 
 @set_initial_no_auth_action_count(4)
-@mock_s3
+@mock_aws
 def test_head_bucket_with_incorrect_credentials():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")
@@ -104,7 +105,6 @@ def my_head_bucket(bucket, aws_access_key_id, aws_secret_access_key):
     s3_client.head_bucket(Bucket=bucket)
 
 
-@mock_iam
 def create_user_with_access_key_and_policy(user_name="test-user"):
     """
     Should create a user with attached policy allowing read/write operations on S3.
@@ -128,8 +128,6 @@ def create_user_with_access_key_and_policy(user_name="test-user"):
     return client.create_access_key(UserName=user_name)["AccessKey"]
 
 
-@mock_iam
-@mock_sts
 def create_role_with_attached_policy_and_assume_it(
     role_name,
     trust_policy_document,
@@ -152,9 +150,7 @@ def create_role_with_attached_policy_and_assume_it(
 
 
 @set_initial_no_auth_action_count(7)
-@mock_iam
-@mock_s3
-@mock_sts
+@mock_aws
 def test_delete_objects_without_access_throws_custom_error():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Auth decorator does not work in server mode")

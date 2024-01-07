@@ -1,8 +1,9 @@
 import os
+from typing import Any, Tuple
 from unittest import SkipTest, mock
 from uuid import uuid4
 
-from moto import mock_batch_simple, mock_ec2, mock_ecs, mock_iam, mock_logs, settings
+from moto import mock_aws, settings
 
 from ..test_batch import _get_clients, _setup
 
@@ -10,12 +11,8 @@ from ..test_batch import _get_clients, _setup
 # Except that we verify this behaviour still works without docker
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_submit_job_by_name():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_submit_job_by_name() -> None:
     job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
     batch_client, job_definition_arn, queue_arn = setup_common_batch_simple(
         job_definition_name
@@ -42,11 +39,8 @@ def test_submit_job_by_name():
     assert "logStreamName" in job["container"]
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_submit_job_array_size():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_submit_job_array_size() -> None:
     # Setup
     job_definition_name = f"sleep10_{str(uuid4())[0:6]}"
     batch_client, _, queue_arn = setup_common_batch_simple(job_definition_name)
@@ -80,8 +74,8 @@ def test_submit_job_array_size():
     assert len(child_job_1["attempts"]) == 1
 
 
-@mock_batch_simple
-def test_update_job_definition():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_update_job_definition() -> None:
     _, _, _, _, batch_client = _get_clients()
 
     tags = [
@@ -126,12 +120,8 @@ def test_update_job_definition():
     assert job_defs[1]["tags"] == tags[1]
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_submit_job_fail():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_submit_job_fail() -> None:
     job_definition_name = "test_job_moto_fail"
 
     with mock.patch.dict(os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "0"}):
@@ -153,12 +143,8 @@ def test_submit_job_fail():
         assert job["status"] == "FAILED"
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_submit_job_fail_after_1_secs():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_submit_job_fail_after_1_secs() -> None:
     job_definition_name = "test_job_moto_fail"
 
     with mock.patch.dict(os.environ, {"MOTO_SIMPLE_BATCH_FAIL_AFTER": "1"}):
@@ -180,12 +166,8 @@ def test_submit_job_fail_after_1_secs():
         assert job["status"] == "FAILED"
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_submit_job_fail_bad_int():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_submit_job_fail_bad_int() -> None:
     job_definition_name = "test_job_moto_fail"
 
     with mock.patch.dict(
@@ -209,12 +191,7 @@ def test_submit_job_fail_bad_int():
         assert job["status"] == "FAILED"
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def setup_common_batch_simple(job_definition_name):
+def setup_common_batch_simple(job_definition_name: str) -> Tuple[Any, str, str]:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing batch_simple in ServerMode")
 

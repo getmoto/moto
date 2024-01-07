@@ -12,17 +12,6 @@
 organizations
 =============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_organizations
-            def test_organizations_behaviour:
-                boto3.client("organizations")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_handshake

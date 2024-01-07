@@ -1,13 +1,12 @@
-"""Unit tests for servicediscovery-supported APIs."""
 import boto3
 
-from moto import mock_servicediscovery
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_http_namespace_with_tags():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_http_namespace(
@@ -22,7 +21,7 @@ def test_create_http_namespace_with_tags():
     assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_public_dns_namespace_with_tags():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_public_dns_namespace(
@@ -37,7 +36,7 @@ def test_create_public_dns_namespace_with_tags():
     assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_private_dns_namespace_with_tags():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_private_dns_namespace(
@@ -52,7 +51,7 @@ def test_create_private_dns_namespace_with_tags():
     assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_service_with_tags():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_service(Name="myservice", Tags=[{"Key": "key1", "Value": "val1"}])
@@ -65,7 +64,7 @@ def test_create_service_with_tags():
     assert resp["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_tag_resource():
     client = boto3.client("servicediscovery", region_name="ap-southeast-1")
     client.create_http_namespace(
@@ -84,7 +83,7 @@ def test_tag_resource():
     ]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_untag_resource():
     client = boto3.client("servicediscovery", region_name="us-east-2")
     client.create_http_namespace(Name="mynamespace")

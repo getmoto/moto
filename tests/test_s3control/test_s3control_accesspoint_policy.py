@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_s3control
+from moto import mock_aws
 
 
-@mock_s3control
+@mock_aws
 def test_get_access_point_policy():
     client = boto3.client("s3control", region_name="us-west-2")
     client.create_access_point(
@@ -35,7 +35,7 @@ def test_get_access_point_policy():
     assert resp["Policy"] == policy
 
 
-@mock_s3control
+@mock_aws
 def test_get_unknown_access_point_policy():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(
@@ -50,7 +50,7 @@ def test_get_unknown_access_point_policy():
     assert err["AccessPointName"] == "ap_name"
 
 
-@mock_s3control
+@mock_aws
 def test_get_access_point_policy_status():
     client = boto3.client("s3control", region_name="us-west-2")
     client.create_access_point(
@@ -82,7 +82,7 @@ def test_get_access_point_policy_status():
     assert resp["PolicyStatus"] == {"IsPublic": True}
 
 
-@mock_s3control
+@mock_aws
 def test_delete_access_point_policy():
     client = boto3.client("s3control", region_name="us-west-2")
     client.create_access_point(
@@ -102,7 +102,7 @@ def test_delete_access_point_policy():
     assert err["Code"] == "NoSuchAccessPointPolicy"
 
 
-@mock_s3control
+@mock_aws
 def test_get_unknown_access_point_policy_status():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(

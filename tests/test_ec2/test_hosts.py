@@ -2,10 +2,10 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_allocate_hosts():
     client = boto3.client("ec2", "us-west-1")
     resp = client.allocate_hosts(
@@ -18,7 +18,7 @@ def test_allocate_hosts():
     assert len(resp["HostIds"]) == 3
 
 
-@mock_ec2
+@mock_aws
 def test_describe_hosts_with_instancefamily():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
@@ -31,7 +31,7 @@ def test_describe_hosts_with_instancefamily():
     assert host["HostProperties"]["InstanceFamily"] == "c5"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_hosts():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
@@ -52,7 +52,7 @@ def test_describe_hosts():
     assert hosts[0]["AutoPlacement"] == "off"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_hosts_with_tags():
     client = boto3.client("ec2", "us-west-1")
     tagkey = str(uuid4())
@@ -77,7 +77,7 @@ def test_describe_hosts_with_tags():
     assert len(hosts) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_describe_hosts_using_filters():
     client = boto3.client("ec2", "us-west-1")
     host_id1 = client.allocate_hosts(
@@ -109,7 +109,7 @@ def test_describe_hosts_using_filters():
     assert len(hosts) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_modify_hosts():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
@@ -131,7 +131,7 @@ def test_modify_hosts():
     assert host["HostProperties"]["InstanceType"] == "c5.medium"
 
 
-@mock_ec2
+@mock_aws
 def test_release_hosts():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
@@ -150,7 +150,7 @@ def test_release_hosts():
     assert host["State"] == "released"
 
 
-@mock_ec2
+@mock_aws
 def test_add_tags_to_dedicated_hosts():
     client = boto3.client("ec2", "us-west-1")
     resp = client.allocate_hosts(

@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iam
+from moto import mock_aws
 
 invalid_policy_document_test_cases = [
     {
@@ -1626,7 +1626,7 @@ valid_policy_documents = [
 
 
 @pytest.mark.parametrize("invalid_policy_document", invalid_policy_document_test_cases)
-@mock_iam
+@mock_aws
 def test_create_policy_with_invalid_policy_document(invalid_policy_document):
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1641,7 +1641,7 @@ def test_create_policy_with_invalid_policy_document(invalid_policy_document):
 
 
 @pytest.mark.parametrize("valid_policy_document", valid_policy_documents)
-@mock_iam
+@mock_aws
 def test_create_policy_with_valid_policy_document(valid_policy_document):
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(

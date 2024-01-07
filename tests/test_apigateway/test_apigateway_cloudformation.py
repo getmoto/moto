@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from moto import mock_apigateway, mock_cloudformation, mock_iam, mock_lambda, mock_logs
+from moto import mock_aws
 
 template = """{
   "AWSTemplateFormatVersion": "2010-09-09",
@@ -313,11 +313,7 @@ template_with_missing_sub = """{
 }"""
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_iam
-@mock_logs
-@mock_apigateway
+@mock_aws
 def test_simple_apigateway_with_lambda_proxy():
     region = "us-east-1"
     apigw = boto3.client("apigateway", region_name=region)
@@ -375,8 +371,7 @@ def test_simple_apigateway_with_lambda_proxy():
     )
 
 
-@mock_apigateway
-@mock_cloudformation
+@mock_aws
 def test_apigateway_with_unknown_description():
     region = "us-east-1"
     apigw = boto3.client("apigateway", region_name=region)

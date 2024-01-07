@@ -1,14 +1,13 @@
 import boto3
 import pytest
 
-from moto import mock_cloudtrail, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_cloudtrail import create_trail_simple
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_put_event_selectors():
     client = boto3.client("cloudtrail", region_name="eu-west-1")
     _, _, trail_name = create_trail_simple(region_name="eu-west-1")
@@ -39,8 +38,7 @@ def test_put_event_selectors():
     assert "AdvancedEventSelectors" not in resp
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_put_event_selectors_advanced():
     client = boto3.client("cloudtrail", region_name="eu-west-1")
     _, _, trail_name = create_trail_simple(region_name="eu-west-1")
@@ -76,8 +74,7 @@ def test_put_event_selectors_advanced():
     ]
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_event_selectors_empty():
     client = boto3.client("cloudtrail", region_name="ap-southeast-1")
     _, _, trail_name = create_trail_simple(region_name="ap-southeast-1")
@@ -92,8 +89,7 @@ def test_get_event_selectors_empty():
     assert resp["AdvancedEventSelectors"] == []
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_event_selectors():
     client = boto3.client("cloudtrail", region_name="ap-southeast-2")
     _, _, trail_name = create_trail_simple(region_name="ap-southeast-2")
@@ -128,8 +124,7 @@ def test_get_event_selectors():
     ]
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_event_selectors_multiple():
     client = boto3.client("cloudtrail", region_name="ap-southeast-1")
     _, _, trail_name = create_trail_simple(region_name="ap-southeast-1")
@@ -164,8 +159,7 @@ def test_get_event_selectors_multiple():
     ]
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize("using_arn", [True, False])
 def test_put_insight_selectors(using_arn):
     client = boto3.client("cloudtrail", region_name="us-east-2")
@@ -188,8 +182,7 @@ def test_put_insight_selectors(using_arn):
     assert resp["InsightSelectors"] == [{"InsightType": "ApiCallRateInsight"}]
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_get_insight_selectors():
     client = boto3.client("cloudtrail", region_name="eu-west-1")
     _, resp, trail_name = create_trail_simple(region_name="eu-west-1")

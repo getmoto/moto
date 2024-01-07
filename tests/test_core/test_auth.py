@@ -6,19 +6,19 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_elbv2, mock_iam, mock_rds, mock_s3, mock_ssm, mock_sts
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
 
 
-@mock_iam
+@mock_aws
 def create_user_with_access_key(user_name: str = "test-user") -> Dict[str, str]:
     client = boto3.client("iam", region_name="us-east-1")
     client.create_user(UserName=user_name)
     return client.create_access_key(UserName=user_name)["AccessKey"]
 
 
-@mock_iam
+@mock_aws
 def create_user_with_access_key_and_inline_policy(  # type: ignore[misc]
     user_name: str, policy_document: Dict[str, Any], policy_name: str = "policy1"
 ) -> Dict[str, str]:
@@ -32,7 +32,7 @@ def create_user_with_access_key_and_inline_policy(  # type: ignore[misc]
     return client.create_access_key(UserName=user_name)["AccessKey"]
 
 
-@mock_iam
+@mock_aws
 def create_user_with_access_key_and_attached_policy(  # type: ignore[misc]
     user_name: str, policy_document: Dict[str, Any], policy_name: str = "policy1"
 ) -> Dict[str, str]:
@@ -45,7 +45,7 @@ def create_user_with_access_key_and_attached_policy(  # type: ignore[misc]
     return client.create_access_key(UserName=user_name)["AccessKey"]
 
 
-@mock_iam
+@mock_aws
 def create_user_with_access_key_and_multiple_policies(  # type: ignore[misc]
     user_name: str,
     inline_policy_document: Dict[str, Any],
@@ -126,8 +126,7 @@ def create_group_with_multiple_policies_and_add_user(
     client.add_user_to_group(GroupName=group_name, UserName=user_name)
 
 
-@mock_iam
-@mock_sts
+@mock_aws
 def create_role_with_attached_policy_and_assume_it(  # type: ignore[misc]
     role_name: str,
     trust_policy_document: Dict[str, Any],
@@ -149,8 +148,7 @@ def create_role_with_attached_policy_and_assume_it(  # type: ignore[misc]
     ]
 
 
-@mock_iam
-@mock_sts
+@mock_aws
 def create_role_with_inline_policy_and_assume_it(  # type: ignore[misc]
     role_name: str,
     trust_policy_document: Dict[str, Any],
@@ -174,7 +172,7 @@ def create_role_with_inline_policy_and_assume_it(  # type: ignore[misc]
 
 
 @set_initial_no_auth_action_count(0)
-@mock_iam
+@mock_aws
 def test_invalid_client_token_id() -> None:
     client = boto3.client(
         "iam",
@@ -191,7 +189,7 @@ def test_invalid_client_token_id() -> None:
 
 
 @set_initial_no_auth_action_count(0)
-@mock_ec2
+@mock_aws
 def test_auth_failure() -> None:
     client = boto3.client(
         "ec2",
@@ -210,7 +208,7 @@ def test_auth_failure() -> None:
 
 
 @set_initial_no_auth_action_count(2)
-@mock_iam
+@mock_aws
 def test_signature_does_not_match() -> None:
     access_key = create_user_with_access_key()
     client = boto3.client(
@@ -230,7 +228,7 @@ def test_signature_does_not_match() -> None:
 
 
 @set_initial_no_auth_action_count(2)
-@mock_ec2
+@mock_aws
 def test_auth_failure_with_valid_access_key_id() -> None:
     access_key = create_user_with_access_key()
     client = boto3.client(
@@ -250,7 +248,7 @@ def test_auth_failure_with_valid_access_key_id() -> None:
 
 
 @set_initial_no_auth_action_count(2)
-@mock_ec2
+@mock_aws
 def test_access_denied_with_no_policy() -> None:
     user_name = "test-user"
     access_key = create_user_with_access_key(user_name)
@@ -271,7 +269,7 @@ def test_access_denied_with_no_policy() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_ec2
+@mock_aws
 def test_access_denied_with_not_allowing_policy() -> None:
     user_name = "test-user"
     inline_policy_document = {
@@ -298,7 +296,7 @@ def test_access_denied_with_not_allowing_policy() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_sts
+@mock_aws
 def test_access_denied_explicitly_on_specific_resource() -> None:
     user_name = "test-user"
     forbidden_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/forbidden_explicitly"
@@ -339,7 +337,7 @@ def test_access_denied_explicitly_on_specific_resource() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_ec2
+@mock_aws
 def test_access_denied_for_run_instances() -> None:
     # https://github.com/getmoto/moto/issues/2774
     # The run-instances method was broken between botocore versions 1.15.8 and 1.15.12
@@ -372,7 +370,7 @@ def test_access_denied_for_run_instances() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_ec2
+@mock_aws
 def test_access_denied_with_denying_policy() -> None:
     user_name = "test-user"
     inline_policy_document = {
@@ -402,7 +400,7 @@ def test_access_denied_with_denying_policy() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_sts
+@mock_aws
 def test_get_caller_identity_allowed_with_denying_policy() -> None:
     user_name = "test-user"
     inline_policy_document = {
@@ -427,7 +425,7 @@ def test_get_caller_identity_allowed_with_denying_policy() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_ec2
+@mock_aws
 def test_allowed_with_wildcard_action() -> None:
     user_name = "test-user"
     inline_policy_document = {
@@ -447,7 +445,7 @@ def test_allowed_with_wildcard_action() -> None:
 
 
 @set_initial_no_auth_action_count(4)
-@mock_iam
+@mock_aws
 def test_allowed_with_explicit_action_in_attached_policy() -> None:
     user_name = "test-user"
     attached_policy_document = {
@@ -467,8 +465,7 @@ def test_allowed_with_explicit_action_in_attached_policy() -> None:
 
 
 @set_initial_no_auth_action_count(8)
-@mock_s3
-@mock_iam
+@mock_aws
 def test_s3_access_denied_with_denying_attached_group_policy() -> None:
     user_name = "test-user"
     attached_policy_document = {
@@ -501,8 +498,7 @@ def test_s3_access_denied_with_denying_attached_group_policy() -> None:
 
 
 @set_initial_no_auth_action_count(6)
-@mock_s3
-@mock_iam
+@mock_aws
 def test_s3_access_denied_with_denying_inline_group_policy() -> None:
     user_name = "test-user"
     bucket_name = "test-bucket"
@@ -535,8 +531,7 @@ def test_s3_access_denied_with_denying_inline_group_policy() -> None:
 
 
 @set_initial_no_auth_action_count(10)
-@mock_iam
-@mock_ec2
+@mock_aws
 def test_access_denied_with_many_irrelevant_policies() -> None:
     user_name = "test-user"
     inline_policy_document = {
@@ -584,10 +579,7 @@ def test_access_denied_with_many_irrelevant_policies() -> None:
 
 
 @set_initial_no_auth_action_count(4)
-@mock_iam
-@mock_sts
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_allowed_with_temporary_credentials() -> None:
     role_name = "test-role"
     trust_policy_document = {
@@ -636,9 +628,7 @@ def test_allowed_with_temporary_credentials() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_iam
-@mock_sts
-@mock_rds
+@mock_aws
 def test_access_denied_with_temporary_credentials() -> None:
     role_name = "test-role"
     session_name = "test-session"
@@ -681,7 +671,7 @@ def test_access_denied_with_temporary_credentials() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_iam
+@mock_aws
 def test_get_user_from_credentials() -> None:
     user_name = "new-test-user"
     inline_policy_document = {
@@ -701,7 +691,7 @@ def test_get_user_from_credentials() -> None:
 
 
 @set_initial_no_auth_action_count(0)
-@mock_s3
+@mock_aws
 def test_s3_invalid_access_key_id() -> None:
     client = boto3.client(
         "s3",
@@ -720,8 +710,7 @@ def test_s3_invalid_access_key_id() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_s3
-@mock_iam
+@mock_aws
 def test_s3_signature_does_not_match() -> None:
     bucket_name = "test-bucket"
     access_key = create_user_with_access_key()
@@ -743,8 +732,7 @@ def test_s3_signature_does_not_match() -> None:
 
 
 @set_initial_no_auth_action_count(7)
-@mock_s3
-@mock_iam
+@mock_aws
 def test_s3_access_denied_not_action() -> None:
     user_name = "test-user"
     bucket_name = "test-bucket"
@@ -777,9 +765,7 @@ def test_s3_access_denied_not_action() -> None:
 
 
 @set_initial_no_auth_action_count(4)
-@mock_iam
-@mock_sts
-@mock_s3
+@mock_aws
 def test_s3_invalid_token_with_temporary_credentials() -> None:
     role_name = "test-role"
     session_name = "test-session"
@@ -816,8 +802,7 @@ def test_s3_invalid_token_with_temporary_credentials() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_s3
-@mock_iam
+@mock_aws
 def test_allow_bucket_access_using_resource_arn() -> None:
     user_name = "test-user"
     policy_doc = {
@@ -850,8 +835,7 @@ def test_allow_bucket_access_using_resource_arn() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_s3
-@mock_iam
+@mock_aws
 def test_allow_key_access_using_resource_arn() -> None:
     user_name = "test-user"
     policy_doc = {
@@ -881,8 +865,7 @@ def test_allow_key_access_using_resource_arn() -> None:
 
 
 @set_initial_no_auth_action_count(3)
-@mock_ssm
-@mock_iam
+@mock_aws
 def test_ssm_service() -> None:
     user_name = "test-user"
     policy_doc = {

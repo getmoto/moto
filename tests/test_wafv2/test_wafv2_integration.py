@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway, mock_wafv2
+from moto import mock_aws
 from tests.test_apigateway.test_apigateway_stage import create_method_integration
 
 from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 
-@mock_wafv2
+@mock_aws
 def test_associate_with_unknown_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
     wacl_arn = conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))[
@@ -34,8 +34,7 @@ def test_associate_with_unknown_resource():
     )
 
 
-@mock_apigateway
-@mock_wafv2
+@mock_aws
 def test_associate_with_apigateway_stage():
     conn = boto3.client("wafv2", region_name="us-east-1")
     wacl_arn = conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))[
@@ -56,8 +55,7 @@ def test_associate_with_apigateway_stage():
     assert "webAclArn" not in stage
 
 
-@mock_apigateway
-@mock_wafv2
+@mock_aws
 def test_get_web_acl_for_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
     wacl_arn = conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))[
@@ -78,7 +76,7 @@ def test_get_web_acl_for_resource():
     assert resp["WebACL"]["ARN"] == wacl_arn
 
 
-@mock_wafv2
+@mock_aws
 def test_disassociate_unknown_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
     # Nothing happens

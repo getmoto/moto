@@ -1,6 +1,7 @@
 import json
 from urllib.parse import unquote, urlsplit
 
+from moto.core.models import default_user_config
 from moto.core.responses import BaseResponse
 from moto.utilities.aws_headers import amzn_request_id
 
@@ -13,11 +14,12 @@ class BatchResponse(BaseResponse):
 
     @property
     def batch_backend(self) -> BatchBackend:
-        """
-        :return: Batch Backend
-        :rtype: moto.batch.models.BatchBackend
-        """
-        return batch_backends[self.current_account][self.region]
+        if default_user_config.get("batch", {}).get("use_docker", True) is False:
+            from moto.batch_simple.models import batch_simple_backends
+
+            return batch_simple_backends[self.current_account][self.region]
+        else:
+            return batch_backends[self.current_account][self.region]
 
     def _get_action(self) -> str:
         # Return element after the /v1/*

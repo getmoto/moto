@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_elb
+from moto import mock_aws
 
 
-@mock_elb
+@mock_aws
 def test_create_lb_cookie_stickiness_policy():
     lb_name = str(uuid4())[0:6]
 
@@ -37,7 +37,7 @@ def test_create_lb_cookie_stickiness_policy():
     assert lbc_policies[0] == {"PolicyName": "pname", "CookieExpirationPeriod": 42}
 
 
-@mock_elb
+@mock_aws
 def test_create_lb_cookie_stickiness_policy_no_expiry():
     lb_name = str(uuid4())[0:6]
 
@@ -67,7 +67,7 @@ def test_create_lb_cookie_stickiness_policy_no_expiry():
     assert lbc_policies[0] == {"PolicyName": "pname"}
 
 
-@mock_elb
+@mock_aws
 def test_create_app_cookie_stickiness_policy():
     lb_name = str(uuid4())[0:6]
 
@@ -97,7 +97,7 @@ def test_create_app_cookie_stickiness_policy():
     assert lbc_policies[0] == {"CookieName": "cname", "PolicyName": "pname"}
 
 
-@mock_elb
+@mock_aws
 def test_create_lb_policy():
     lb_name = str(uuid4())[0:6]
 
@@ -122,7 +122,7 @@ def test_create_lb_policy():
     assert policies["OtherPolicies"] == ["ProxyPolicy"]
 
 
-@mock_elb
+@mock_aws
 def test_set_policies_of_listener():
     lb_name = str(uuid4())[0:6]
 
@@ -163,7 +163,7 @@ def test_set_policies_of_listener():
     assert https_l["PolicyNames"] == ["pname"]
 
 
-@mock_elb
+@mock_aws
 def test_set_policies_of_backend_server():
     lb_name = str(uuid4())[0:6]
 
@@ -193,7 +193,7 @@ def test_set_policies_of_backend_server():
     assert desc[0] == {"InstancePort": 8081, "PolicyNames": ["pname"]}
 
 
-@mock_elb
+@mock_aws
 def test_describe_load_balancer_policies__initial():
     lb_name = str(uuid4())[0:6]
 
@@ -208,7 +208,7 @@ def test_describe_load_balancer_policies__initial():
     assert resp["PolicyDescriptions"] == []
 
 
-@mock_elb
+@mock_aws
 def test_describe_load_balancer_policies():
     lb_name = str(uuid4())[0:6]
 
@@ -249,7 +249,7 @@ def test_describe_load_balancer_policies():
     }
 
 
-@mock_elb
+@mock_aws
 def test_describe_unknown_load_balancer_policy():
     lb_name = str(uuid4())[0:6]
 
@@ -268,7 +268,7 @@ def test_describe_unknown_load_balancer_policy():
     assert err["Code"] == "PolicyNotFound"
 
 
-@mock_elb
+@mock_aws
 def test_delete_load_balancer_policies():
     lb_name = str(uuid4())[0:6]
 

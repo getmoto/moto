@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_authorizer_minimum():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -23,7 +23,7 @@ def test_create_authorizer_minimum():
     assert resp["Name"] == "auth1"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_authorizer():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -56,7 +56,7 @@ def test_create_authorizer():
     assert resp["AuthorizerPayloadFormatVersion"] == "2.0"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_authorizer_without_payloadformatversion():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -78,7 +78,7 @@ def test_create_authorizer_without_payloadformatversion():
     )
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_authorizer():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -99,7 +99,7 @@ def test_get_authorizer():
     assert resp["AuthorizerPayloadFormatVersion"] == "2.0"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_authorizer():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="WEBSOCKET")["ApiId"]
@@ -117,7 +117,7 @@ def test_delete_authorizer():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_authorizer_unknown():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -129,7 +129,7 @@ def test_get_authorizer_unknown():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_authorizer_single():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -163,7 +163,7 @@ def test_update_authorizer_single():
     assert resp["Name"] == "auth2"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_authorizer_all_attributes():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]

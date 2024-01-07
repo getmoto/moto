@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_amp
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_amp
+@mock_aws
 def test_create_workspace():
     client = boto3.client("amp", region_name="ap-southeast-1")
     resp = client.create_workspace(alias="test", clientToken="mytoken")
@@ -20,7 +20,7 @@ def test_create_workspace():
     assert "workspaceId" in resp
 
 
-@mock_amp
+@mock_aws
 def test_describe_workspace():
     client = boto3.client("amp", region_name="eu-west-1")
     workspace_id = client.create_workspace(alias="test", clientToken="mytoken")[
@@ -39,7 +39,7 @@ def test_describe_workspace():
     assert workspace["workspaceId"] == workspace_id
 
 
-@mock_amp
+@mock_aws
 def test_list_workspaces():
     my_alias = str(uuid4())[0:6]
     client = boto3.client("amp", region_name="ap-southeast-1")
@@ -56,7 +56,7 @@ def test_list_workspaces():
     assert resp["workspaces"][0]["alias"] == my_alias
 
 
-@mock_amp
+@mock_aws
 def test_list_workspaces__paginated():
     client = boto3.client("amp", region_name="ap-southeast-1")
     for _ in range(125):
@@ -79,7 +79,7 @@ def test_list_workspaces__paginated():
     assert length >= 125
 
 
-@mock_amp
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("amp", region_name="ap-southeast-1")
     arn = client.create_workspace(
@@ -89,7 +89,7 @@ def test_list_tags_for_resource():
     assert get_tags(arn, client) == {"t1": "v1", "t2": "v2"}
 
 
-@mock_amp
+@mock_aws
 def test_update_workspace_alias():
     client = boto3.client("amp", region_name="ap-southeast-1")
 
@@ -104,7 +104,7 @@ def test_update_workspace_alias():
     assert w["alias"] == "updated"
 
 
-@mock_amp
+@mock_aws
 def test_delete_workspace():
     client = boto3.client("amp", region_name="us-east-2")
 
@@ -121,7 +121,7 @@ def test_delete_workspace():
     assert err["Message"] == "Workspace not found"
 
 
-@mock_amp
+@mock_aws
 def test_tag_resource():
     client = boto3.client("amp", region_name="us-east-2")
 

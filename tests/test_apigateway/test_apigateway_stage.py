@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 from .test_apigateway import create_method_integration
 
 
-@mock_apigateway
+@mock_aws
 def test_create_stage_minimal():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -37,7 +37,7 @@ def test_create_stage_minimal():
     assert stage["deploymentId"] == deployment_id
 
 
-@mock_apigateway
+@mock_aws
 def test_create_stage_with_env_vars():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -71,7 +71,7 @@ def test_create_stage_with_env_vars():
     assert stage["variables"]["env"] == "dev"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_stage_with_vars_and_cache():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -107,7 +107,7 @@ def test_create_stage_with_vars_and_cache():
     assert stage["cacheClusterSize"] == "0.5"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_stage_with_cache_settings():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -148,7 +148,7 @@ def test_create_stage_with_cache_settings():
     assert stage["cacheClusterSize"] == "1.6"
 
 
-@mock_apigateway
+@mock_aws
 def test_recreate_stage_from_deployment():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -166,7 +166,7 @@ def test_recreate_stage_from_deployment():
     assert err["Message"] == "Stage already exists"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_stage_twice():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -189,7 +189,7 @@ def test_create_stage_twice():
     assert err["Message"] == "Stage already exists"
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_stage():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -229,7 +229,7 @@ def test_delete_stage():
     assert new_stage_name_with_vars not in stage_names
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_stage_created_by_deployment():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -262,7 +262,7 @@ def test_delete_stage_created_by_deployment():
     assert set(depls[0].keys()) == {"id", "createdDate"}
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_stage_unknown_stage():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -274,7 +274,7 @@ def test_delete_stage_unknown_stage():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_update_stage_configuration():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -367,7 +367,7 @@ def test_update_stage_configuration():
     assert stage["methodSettings"]["*/*"]["cacheDataEncrypted"] is True
 
 
-@mock_apigateway
+@mock_aws
 def test_update_stage_add_access_log_settings():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -403,7 +403,7 @@ def test_update_stage_add_access_log_settings():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_update_stage_tracing_disabled():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -433,7 +433,7 @@ def test_update_stage_tracing_disabled():
     assert stage["tracingEnabled"] is True
 
 
-@mock_apigateway
+@mock_aws
 def test_update_stage_remove_access_log_settings():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -455,7 +455,7 @@ def test_update_stage_remove_access_log_settings():
     assert "accessLogSettings" not in stage
 
 
-@mock_apigateway
+@mock_aws
 def test_update_stage_configuration_unknown_operation():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -483,7 +483,7 @@ def test_update_stage_configuration_unknown_operation():
     )
 
 
-@mock_apigateway
+@mock_aws
 def test_non_existent_stage():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")

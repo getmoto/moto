@@ -14,17 +14,6 @@ personalize
 
 .. autoclass:: moto.personalize.models.PersonalizeBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_personalize
-            def test_personalize_behaviour:
-                boto3.client("personalize")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_batch_inference_job

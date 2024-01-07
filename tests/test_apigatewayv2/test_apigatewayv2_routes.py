@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_routes_empty():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -14,7 +14,7 @@ def test_get_routes_empty():
     assert resp["Items"] == []
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_route_minimal():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -34,7 +34,7 @@ def test_create_route_minimal():
     assert "Target" not in resp
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_route_full():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(
@@ -72,7 +72,7 @@ def test_create_route_full():
     assert resp["Target"] == "t"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_route():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -84,7 +84,7 @@ def test_delete_route():
     assert len(resp["Items"]) == 0
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_route():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -105,7 +105,7 @@ def test_get_route():
     assert "Target" not in resp
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_route_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -117,7 +117,7 @@ def test_get_route_unknown():
     assert err["Message"] == "Invalid Route identifier specified unknown"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_routes():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -127,7 +127,7 @@ def test_get_routes():
     assert len(resp["Items"]) == 1
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_route_single_attribute():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -141,7 +141,7 @@ def test_update_route_single_attribute():
     assert resp["RouteKey"] == "POST /"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_route_all_attributes():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -178,7 +178,7 @@ def test_update_route_all_attributes():
     assert resp["Target"] == "t"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_route_request_parameter():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -211,7 +211,7 @@ def test_delete_route_request_parameter():
     assert "zparam" in request_params
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_route_response_minimal():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -225,7 +225,7 @@ def test_create_route_response_minimal():
     assert resp["RouteResponseKey"] == "$default"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_route_response():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -245,7 +245,7 @@ def test_create_route_response():
     assert resp["ResponseModels"] == {"test": "tfacctest5832545056931060873"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_route_response():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -263,7 +263,7 @@ def test_get_route_response():
     assert resp["RouteResponseKey"] == "$default"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_route_response_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -278,7 +278,7 @@ def test_get_route_response_unknown():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_route_response_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]

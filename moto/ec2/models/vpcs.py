@@ -44,7 +44,7 @@ IMPLEMENTED_ENDPOINT_SERVICES = [
     "applicationautoscaling",
     "athena",
     "autoscaling",
-    "lambda",
+    "awslambda",
     "cloudformation",
     "cloudwatch",
     "codecommit",

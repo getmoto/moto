@@ -2,11 +2,10 @@ import unittest
 
 import boto3
 
-from moto import mock_rds, mock_resourcegroupstaggingapi
+from moto import mock_aws
 
 
-@mock_rds
-@mock_resourcegroupstaggingapi
+@mock_aws
 class TestRdsTagging(unittest.TestCase):
     def setUp(self) -> None:
         self.rds = boto3.client("rds", region_name="us-west-2")

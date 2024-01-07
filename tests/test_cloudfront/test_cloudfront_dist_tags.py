@@ -1,11 +1,11 @@
 import boto3
 
-from moto import mock_cloudfront
+from moto import mock_aws
 
 from . import cloudfront_test_scaffolding as scaffold
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_tags():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -20,7 +20,7 @@ def test_create_distribution_with_tags():
     assert {"Key": "k2", "Value": "v2"} in resp["Tags"]["Items"]
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_tags_only_one_tag():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")

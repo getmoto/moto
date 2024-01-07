@@ -3,13 +3,13 @@ from unittest import SkipTest
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_glue, settings
+from moto import mock_aws, settings
 from moto.moto_api import state_manager
 
 from .test_glue import create_glue_client, create_test_job
 
 
-@mock_glue
+@mock_aws
 def test_start_job_run():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -17,7 +17,7 @@ def test_start_job_run():
     assert response["JobRunId"]
 
 
-@mock_glue
+@mock_aws
 def test_start_job_run__multiple_runs_allowed():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set transition directly in ServerMode")
@@ -50,7 +50,7 @@ def test_start_job_run__multiple_runs_allowed():
     )
 
 
-@mock_glue
+@mock_aws
 def test_start_job_run__single_run_allowed():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set transition directly in ServerMode")
@@ -71,7 +71,7 @@ def test_start_job_run__single_run_allowed():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_job_run():
     state_manager.unset_transition("glue::job_run")
     client = create_glue_client()
@@ -102,7 +102,7 @@ def test_get_job_run():
     assert response["JobRun"]["GlueVersion"]
 
 
-@mock_glue
+@mock_aws
 def test_get_job_run_that_doesnt_exist():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -112,7 +112,7 @@ def test_get_job_run_that_doesnt_exist():
     assert err["Code"] == "EntityNotFoundException"
 
 
-@mock_glue
+@mock_aws
 def test_job_run_transition():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set transition directly in ServerMode")

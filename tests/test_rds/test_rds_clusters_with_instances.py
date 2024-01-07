@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_rds
+from moto import mock_aws
 
 
-@mock_rds
+@mock_aws
 def test_add_instance_as_cluster_member():
     # When creating a rds instance with DBClusterIdentifier provided,
     # the instance is included as a ClusterMember in the describe_db_clusters call
@@ -37,7 +37,7 @@ def test_add_instance_as_cluster_member():
     }
 
 
-@mock_rds
+@mock_aws
 def test_remove_instance_from_cluster():
     # When creating a rds instance with DBClusterIdentifier provided,
     # the instance is included as a ClusterMember in the describe_db_clusters call
@@ -68,7 +68,7 @@ def test_remove_instance_from_cluster():
     assert len(members) == 0
 
 
-@mock_rds
+@mock_aws
 def test_add_instance_to_serverless_cluster():
     client = boto3.client("rds", "us-east-1")
 
@@ -91,7 +91,7 @@ def test_add_instance_to_serverless_cluster():
     assert err["Message"] == "Instances cannot be added to Aurora Serverless clusters."
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_cluster_fails_if_cluster_contains_db_instances():
     cluster_identifier = "test-cluster"
     instance_identifier = "test-instance"

@@ -1,10 +1,9 @@
 import boto3
 
-from moto import mock_ec2, mock_elb
+from moto import mock_aws
 
 
-@mock_elb
-@mock_ec2
+@mock_aws
 def test_enable_and_disable_availability_zones():
     client = boto3.client("elb", region_name="eu-north-1")
     ec2 = boto3.resource("ec2", region_name="eu-north-1")

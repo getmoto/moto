@@ -5,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ssoadmin
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -15,7 +15,7 @@ DUMMY_PERMISSIONSET_ID = (
 DUMMY_INSTANCE_ARN = "arn:aws:sso:::instance/ins-aaaabbbbccccdddd"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_create_account_assignment():
     client = boto3.client("sso-admin", region_name="eu-west-1")
     target_id = "222222222222"
@@ -46,7 +46,7 @@ def test_create_account_assignment():
     assert status["PrincipalId"] == principal_id
 
 
-@mock_ssoadmin
+@mock_aws
 def test_delete_account_assignment():
     client = boto3.client("sso-admin", region_name="eu-west-1")
     target_id = "222222222222"
@@ -97,7 +97,7 @@ def test_delete_account_assignment():
     assert resp["AccountAssignments"] == []
 
 
-@mock_ssoadmin
+@mock_aws
 def test_delete_account_assignment_unknown():
     client = boto3.client("sso-admin", region_name="us-east-1")
 
@@ -121,7 +121,7 @@ def test_delete_account_assignment_unknown():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_account_assignments():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
 
@@ -190,7 +190,7 @@ def test_list_account_assignments():
     ]
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_account_assignments_pagination():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
     DUMMY_AWS_ACCOUNT_ID = "111111111111"
@@ -250,7 +250,7 @@ def test_list_account_assignments_pagination():
     )
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_account_assignments_for_principal():
     client = boto3.client("sso-admin", region_name="us-west-2")
 
@@ -333,7 +333,7 @@ def test_list_account_assignments_for_principal():
     assert len(response["AccountAssignments"]) == 0
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_account_assignments_for_principal_pagination():
     client = boto3.client("sso-admin", region_name="us-east-2")
 
@@ -384,7 +384,7 @@ def test_list_account_assignments_for_principal_pagination():
     ) == set(["000000000000", "111111111111", "222222222222"])
 
 
-@mock_ssoadmin
+@mock_aws
 def test_create_permission_set():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
     resp = client.create_permission_set(
@@ -404,7 +404,7 @@ def test_create_permission_set():
     assert "RelayState" in permission_set
 
 
-@mock_ssoadmin
+@mock_aws
 def test_update_permission_set():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
     resp = client.create_permission_set(
@@ -435,7 +435,7 @@ def test_update_permission_set():
     assert permission_set["RelayState"] == "https://console.aws.amazon.com/s3"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_update_permission_set_unknown():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
 
@@ -454,7 +454,7 @@ def test_update_permission_set_unknown():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_describe_permission_set():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
     resp = client.create_permission_set(
@@ -478,7 +478,7 @@ def test_describe_permission_set():
     assert "SessionDuration" in permission_set
 
 
-@mock_ssoadmin
+@mock_aws
 def test_describe_permission_set_unknown():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
 
@@ -491,7 +491,7 @@ def test_describe_permission_set_unknown():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_delete_permission_set():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
     resp = client.create_permission_set(
@@ -514,7 +514,7 @@ def test_delete_permission_set():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_delete_permission_set_unknown():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
 
@@ -527,7 +527,7 @@ def test_delete_permission_set_unknown():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_permission_sets():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
 
@@ -553,7 +553,7 @@ def test_list_permission_sets():
     assert len(permission_sets) == 5
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_permission_sets_pagination():
     client = boto3.client("sso-admin", region_name="ap-southeast-1")
 

@@ -1,14 +1,14 @@
 import json
 
 import moto.server as server
-from moto import mock_mediapackage
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_mediapackage
+@mock_aws
 def test_mediapackage_list_channels():
     backend = server.create_backend_app("mediapackage")
     test_client = backend.test_client()
@@ -18,7 +18,7 @@ def test_mediapackage_list_channels():
     assert json.loads(result) == {"channels": []}
 
 
-@mock_mediapackage
+@mock_aws
 def test_mediapackage_list_origin_endpoints():
     backend = server.create_backend_app("mediapackage")
     test_client = backend.test_client()

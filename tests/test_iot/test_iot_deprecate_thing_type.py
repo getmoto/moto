@@ -1,10 +1,10 @@
 import boto3
 import pytest
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_deprecate_undeprecate_thing_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_type_name = "my-type-name"
@@ -26,7 +26,7 @@ def test_deprecate_undeprecate_thing_type():
     assert res["thingTypeMetadata"]["deprecated"] is False
 
 
-@mock_iot
+@mock_aws
 def test_deprecate_thing_type_not_exist():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_type_name = "my-type-name"
@@ -34,7 +34,7 @@ def test_deprecate_thing_type_not_exist():
         client.deprecate_thing_type(thingTypeName=thing_type_name, undoDeprecate=False)
 
 
-@mock_iot
+@mock_aws
 def test_create_thing_with_deprecated_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_type_name = "my-type-name"
@@ -47,7 +47,7 @@ def test_create_thing_with_deprecated_type():
         client.create_thing(thingName="thing-name", thingTypeName=thing_type_name)
 
 
-@mock_iot
+@mock_aws
 def test_update_thing_with_deprecated_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_type_name = "my-type-name"

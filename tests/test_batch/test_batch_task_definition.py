@@ -3,12 +3,12 @@ from uuid import uuid4
 
 import pytest
 
-from moto import mock_batch
+from moto import mock_aws
 
 from . import _get_clients
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("use_resource_reqs", [True, False])
 def test_register_task_definition(use_resource_reqs):
     _, _, _, _, batch_client = _get_clients()
@@ -22,7 +22,7 @@ def test_register_task_definition(use_resource_reqs):
     assert f"{resp['jobDefinitionName']}:{resp['revision']}" in resp["jobDefinitionArn"]
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("propagate_tags", [None, True, False])
 def test_register_task_definition_with_tags(propagate_tags):
     _, _, _, _, batch_client = _get_clients()
@@ -38,7 +38,7 @@ def test_register_task_definition_with_tags(propagate_tags):
         assert job_def["propagateTags"] == propagate_tags
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("platform_capability", ["EC2", "FARGATE"])
 def test_register_task_definition_with_platform_capability(platform_capability):
     _, _, _, _, batch_client = _get_clients()
@@ -72,7 +72,7 @@ def test_register_task_definition_with_platform_capability(platform_capability):
         assert "fargatePlatformConfiguration" not in container_props
 
 
-@mock_batch
+@mock_aws
 def test_register_task_definition_without_command():
     _, _, _, _, batch_client = _get_clients()
 
@@ -95,7 +95,7 @@ def test_register_task_definition_without_command():
     assert container_props["command"] == []
 
 
-@mock_batch
+@mock_aws
 def test_register_task_definition_with_retry_strategies():
     _, _, _, _, batch_client = _get_clients()
 
@@ -128,7 +128,7 @@ def test_register_task_definition_with_retry_strategies():
     }
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("use_resource_reqs", [True, False])
 def test_reregister_task_definition(use_resource_reqs):
     # Reregistering task with the same name bumps the revision number
@@ -173,7 +173,7 @@ def test_reregister_task_definition(use_resource_reqs):
     assert resp4["jobDefinitionArn"] != resp3["jobDefinitionArn"]
 
 
-@mock_batch
+@mock_aws
 def test_reregister_task_definition_should_not_reuse_parameters_from_inactive_definition():
     # Reregistering task with the same name bumps the revision number
     _, _, _, _, batch_client = _get_clients()
@@ -226,7 +226,7 @@ def test_reregister_task_definition_should_not_reuse_parameters_from_inactive_de
     assert (2, "ACTIVE", {}) in actual
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("use_resource_reqs", [True, False])
 def test_delete_task_definition(use_resource_reqs):
     _, _, _, _, batch_client = _get_clients()
@@ -250,7 +250,7 @@ def test_delete_task_definition(use_resource_reqs):
     assert definitions[0]["status"] == "INACTIVE"
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("use_resource_reqs", [True, False])
 def test_delete_task_definition_by_name(use_resource_reqs):
     _, _, _, _, batch_client = _get_clients()
@@ -284,7 +284,7 @@ def test_delete_task_definition_by_name(use_resource_reqs):
     assert {"revision": 2, "status": "ACTIVE"} in revision_status
 
 
-@mock_batch
+@mock_aws
 @pytest.mark.parametrize("use_resource_reqs", [True, False])
 def test_describe_task_definition(use_resource_reqs):
     _, _, _, _, batch_client = _get_clients()

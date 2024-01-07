@@ -2,11 +2,11 @@ import time
 
 import boto3
 
-from moto import mock_glacier
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_glacier
+@mock_aws
 def test_initiate_job():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="myname")
@@ -30,7 +30,7 @@ def test_initiate_job():
     assert "location" in job
 
 
-@mock_glacier
+@mock_aws
 def test_describe_job_boto3():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="myname")
@@ -58,7 +58,7 @@ def test_describe_job_boto3():
     assert describe["Tier"] == "Standard"
 
 
-@mock_glacier
+@mock_aws
 def test_list_jobs():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="myname")
@@ -101,7 +101,7 @@ def test_list_jobs():
         assert "Tier" in job
 
 
-@mock_glacier
+@mock_aws
 def test_get_job_output_boto3():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="myname")

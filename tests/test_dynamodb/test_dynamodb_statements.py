@@ -3,7 +3,7 @@ from unittest import TestCase
 import boto3
 import pytest
 
-from moto import mock_dynamodb
+from moto import mock_aws
 
 from . import dynamodb_aws_verified
 
@@ -88,7 +88,7 @@ def test_execute_statement_with_no_results(table_name=None):
     assert items == []
 
 
-@mock_dynamodb
+@mock_aws
 class TestExecuteTransaction(TestCase):
     def setUp(self):
         self.client = boto3.client("dynamodb", "us-east-1")
@@ -116,7 +116,7 @@ class TestExecuteTransaction(TestCase):
         assert len(items) == 3
 
 
-@mock_dynamodb
+@mock_aws
 class TestBatchExecuteStatement(TestCase):
     def setUp(self):
         self.client = boto3.client("dynamodb", "us-east-1")
@@ -346,7 +346,7 @@ def test_delete_data(table_name=None):
     assert items == [item2]
 
 
-@mock_dynamodb
+@mock_aws
 def test_delete_data__with_sort_key():
     client = boto3.client("dynamodb", "us-east-1")
     client.create_table(

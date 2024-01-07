@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_kms
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 PLAINTEXT_VECTORS = [
@@ -31,7 +31,7 @@ def _get_encoded_value(plaintext):
     return plaintext.encode("utf-8")
 
 
-@mock_kms
+@mock_aws
 def test_create_key_without_description():
     conn = boto3.client("kms", region_name="us-east-1")
     metadata = conn.create_key(Policy="my policy")["KeyMetadata"]
@@ -42,7 +42,7 @@ def test_create_key_without_description():
     assert metadata["Description"] == ""
 
 
-@mock_kms
+@mock_aws
 def test_create_key_with_invalid_key_spec():
     conn = boto3.client("kms", region_name="us-east-1")
     unsupported_key_spec = "NotSupportedKeySpec"
@@ -57,7 +57,7 @@ def test_create_key_with_invalid_key_spec():
     ).format(key_spec=unsupported_key_spec)
 
 
-@mock_kms
+@mock_aws
 def test_create_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -119,7 +119,7 @@ def test_create_key():
     assert key["KeyMetadata"]["SigningAlgorithms"] == ["ECDSA_SHA_512"]
 
 
-@mock_kms
+@mock_aws
 def test_create_multi_region_key():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -134,7 +134,7 @@ def test_create_multi_region_key():
     assert key["KeyMetadata"]["MultiRegion"] is True
 
 
-@mock_kms
+@mock_aws
 def test_non_multi_region_keys_should_not_have_multi_region_properties():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
@@ -149,7 +149,7 @@ def test_non_multi_region_keys_should_not_have_multi_region_properties():
     assert key["KeyMetadata"]["MultiRegion"] is False
 
 
-@mock_kms
+@mock_aws
 def test_replicate_key():
     region_to_replicate_from = "us-east-1"
     region_to_replicate_to = "us-west-1"
@@ -180,7 +180,7 @@ def test_replicate_key():
     assert "ReplicaPolicy" in replica_response
 
 
-@mock_kms
+@mock_aws
 def test_create_key_deprecated_master_custom_key_spec():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(KeyUsage="SIGN_VERIFY", CustomerMasterKeySpec="ECC_NIST_P521")
@@ -193,7 +193,7 @@ def test_create_key_deprecated_master_custom_key_spec():
 
 
 @pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
-@mock_kms
+@mock_aws
 def test_describe_key(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
     response = client.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT")
@@ -215,7 +215,7 @@ def test_describe_key(id_or_arn):
     assert "SigningAlgorithms" not in response["KeyMetadata"]
 
 
-@mock_kms
+@mock_aws
 def test_get_key_policy_default():
     # given
     client = boto3.client("kms", region_name="us-east-1")
@@ -240,7 +240,7 @@ def test_get_key_policy_default():
     }
 
 
-@mock_kms
+@mock_aws
 def test_describe_key_via_alias():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client, description="my key")
@@ -251,7 +251,7 @@ def test_describe_key_via_alias():
     assert alias_key["KeyMetadata"]["Description"] == "my key"
 
 
-@mock_kms
+@mock_aws
 def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -271,7 +271,7 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
         } in aliases
 
 
-@mock_kms
+@mock_aws
 def test_list_aliases():
     region = "us-west-1"
     client = boto3.client("kms", region_name=region)
@@ -298,7 +298,7 @@ def test_list_aliases():
         } in aliases
 
 
-@mock_kms
+@mock_aws
 def test_list_aliases_for_key_id():
     region = "us-west-1"
     client = boto3.client("kms", region_name=region)
@@ -317,7 +317,7 @@ def test_list_aliases_for_key_id():
     } in aliases
 
 
-@mock_kms
+@mock_aws
 def test_list_aliases_for_key_arn():
     region = "us-west-1"
     client = boto3.client("kms", region_name=region)
@@ -349,7 +349,7 @@ def test_list_aliases_for_key_arn():
         "invalid",
     ],
 )
-@mock_kms
+@mock_aws
 def test_describe_key_via_alias_invalid_alias(key_id):
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -357,7 +357,7 @@ def test_describe_key_via_alias_invalid_alias(key_id):
         client.describe_key(KeyId=key_id)
 
 
-@mock_kms
+@mock_aws
 def test_list_keys():
     client = boto3.client("kms", region_name="us-east-1")
     with mock.patch.object(rsa, "generate_private_key", return_value=""):
@@ -371,7 +371,7 @@ def test_list_keys():
 
 
 @pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
-@mock_kms
+@mock_aws
 def test_enable_key_rotation(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client, id_or_arn=id_or_arn)
@@ -385,7 +385,7 @@ def test_enable_key_rotation(id_or_arn):
     assert client.get_key_rotation_status(KeyId=key_id)["KeyRotationEnabled"] is False
 
 
-@mock_kms
+@mock_aws
 def test_enable_key_rotation_with_alias_name_should_fail():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -398,7 +398,7 @@ def test_enable_key_rotation_with_alias_name_should_fail():
     assert err["Message"] == "Invalid keyId alias/my-alias"
 
 
-@mock_kms
+@mock_aws
 def test_generate_data_key():
     kms = boto3.client("kms", region_name="us-west-2")
 
@@ -428,7 +428,7 @@ def test_generate_data_key():
         "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",
     ],
 )
-@mock_kms
+@mock_aws
 def test_invalid_key_ids(key_id):
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -436,7 +436,7 @@ def test_invalid_key_ids(key_id):
         client.generate_data_key(KeyId=key_id, NumberOfBytes=5)
 
 
-@mock_kms
+@mock_aws
 def test_disable_key():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -447,7 +447,7 @@ def test_disable_key():
     assert result["KeyMetadata"]["KeyState"] == "Disabled"
 
 
-@mock_kms
+@mock_aws
 def test_enable_key():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -459,7 +459,7 @@ def test_enable_key():
     assert result["KeyMetadata"]["KeyState"] == "Enabled"
 
 
-@mock_kms
+@mock_aws
 def test_schedule_key_deletion():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -481,7 +481,7 @@ def test_schedule_key_deletion():
     assert "DeletionDate" in result["KeyMetadata"]
 
 
-@mock_kms
+@mock_aws
 def test_schedule_key_deletion_custom():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="schedule-key-deletion")
@@ -507,7 +507,7 @@ def test_schedule_key_deletion_custom():
     assert "DeletionDate" in result["KeyMetadata"]
 
 
-@mock_kms
+@mock_aws
 def test_cancel_key_deletion():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="cancel-key-deletion")
@@ -521,7 +521,7 @@ def test_cancel_key_deletion():
     assert "DeletionDate" not in result["KeyMetadata"]
 
 
-@mock_kms
+@mock_aws
 def test_update_key_description():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -530,7 +530,7 @@ def test_update_key_description():
     assert "ResponseMetadata" in result
 
 
-@mock_kms
+@mock_aws
 def test_tag_resource():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="cancel-key-deletion")
@@ -545,7 +545,7 @@ def test_tag_resource():
     assert len(response.keys()) == 1
 
 
-@mock_kms
+@mock_aws
 def test_list_resource_tags():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="cancel-key-deletion")
@@ -561,7 +561,7 @@ def test_list_resource_tags():
     assert response["Tags"][0]["TagValue"] == "string"
 
 
-@mock_kms
+@mock_aws
 def test_list_resource_tags_with_arn():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="cancel-key-deletion")
@@ -575,7 +575,7 @@ def test_list_resource_tags_with_arn():
     assert response["Tags"][0]["TagValue"] == "string"
 
 
-@mock_kms
+@mock_aws
 def test_unknown_tag_methods():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -598,7 +598,7 @@ def test_unknown_tag_methods():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_kms
+@mock_aws
 def test_list_resource_tags_after_untagging():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -627,7 +627,7 @@ def test_list_resource_tags_after_untagging():
         (dict(NumberOfBytes=1024), 1024),
     ),
 )
-@mock_kms
+@mock_aws
 def test_generate_data_key_sizes(kwargs, expected_key_length):
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -637,7 +637,7 @@ def test_generate_data_key_sizes(kwargs, expected_key_length):
     assert len(response["Plaintext"]) == expected_key_length
 
 
-@mock_kms
+@mock_aws
 def test_generate_data_key_decrypt():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-decrypt")
@@ -659,7 +659,7 @@ def test_generate_data_key_decrypt():
         dict(),
     ],
 )
-@mock_kms
+@mock_aws
 def test_generate_data_key_invalid_size_params(kwargs):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-size")
@@ -677,7 +677,7 @@ def test_generate_data_key_invalid_size_params(kwargs):
         "arn:aws:kms:us-east-1:012345678912:key/d25652e4-d2d2-49f7-929a-671ccda580c6",
     ],
 )
-@mock_kms
+@mock_aws
 def test_generate_data_key_invalid_key(key_id):
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -694,7 +694,7 @@ def test_generate_data_key_invalid_key(key_id):
         ("arn:aws:kms:us-east-1:012345678912:key/", True),
     ],
 )
-@mock_kms
+@mock_aws
 def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key()
@@ -709,7 +709,7 @@ def test_generate_data_key_all_valid_key_ids(prefix, append_key_id):
     assert resp["KeyId"] == f"arn:aws:kms:us-east-1:123456789012:key/{key_id}"
 
 
-@mock_kms
+@mock_aws
 def test_generate_data_key_without_plaintext_decrypt():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="generate-data-key-decrypt")
@@ -722,7 +722,7 @@ def test_generate_data_key_without_plaintext_decrypt():
 
 
 @pytest.mark.parametrize("number_of_bytes", [12, 44, 91, 1, 1024])
-@mock_kms
+@mock_aws
 def test_generate_random(number_of_bytes):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -736,7 +736,7 @@ def test_generate_random(number_of_bytes):
     "number_of_bytes,error_type",
     [(2048, botocore.exceptions.ClientError), (1025, botocore.exceptions.ClientError)],
 )
-@mock_kms
+@mock_aws
 def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -744,7 +744,7 @@ def test_generate_random_invalid_number_of_bytes(number_of_bytes, error_type):
         client.generate_random(NumberOfBytes=number_of_bytes)
 
 
-@mock_kms
+@mock_aws
 def test_enable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -752,7 +752,7 @@ def test_enable_key_rotation_key_not_found():
         client.enable_key_rotation(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_disable_key_rotation_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -760,7 +760,7 @@ def test_disable_key_rotation_key_not_found():
         client.disable_key_rotation(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_enable_key_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -768,7 +768,7 @@ def test_enable_key_key_not_found():
         client.enable_key(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_disable_key_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -776,7 +776,7 @@ def test_disable_key_key_not_found():
         client.disable_key(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_cancel_key_deletion_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -784,7 +784,7 @@ def test_cancel_key_deletion_key_not_found():
         client.cancel_key_deletion(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_schedule_key_deletion_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -792,7 +792,7 @@ def test_schedule_key_deletion_key_not_found():
         client.schedule_key_deletion(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_get_key_rotation_status_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -800,7 +800,7 @@ def test_get_key_rotation_status_key_not_found():
         client.get_key_rotation_status(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_get_key_policy_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -810,7 +810,7 @@ def test_get_key_policy_key_not_found():
         )
 
 
-@mock_kms
+@mock_aws
 def test_list_key_policies_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -818,7 +818,7 @@ def test_list_key_policies_key_not_found():
         client.list_key_policies(KeyId="12366f9b-1230-123d-123e-123e6ae60c02")
 
 
-@mock_kms
+@mock_aws
 def test_put_key_policy_key_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -831,7 +831,7 @@ def test_put_key_policy_key_not_found():
 
 
 @pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
-@mock_kms
+@mock_aws
 def test_get_key_policy(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="key1", Policy="my awesome key policy")
@@ -845,7 +845,7 @@ def test_get_key_policy(id_or_arn):
 
 
 @pytest.mark.parametrize("id_or_arn", ["KeyId", "Arn"])
-@mock_kms
+@mock_aws
 def test_put_key_policy(id_or_arn):
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client, id_or_arn)
@@ -856,7 +856,7 @@ def test_put_key_policy(id_or_arn):
     assert response["Policy"] == "policy 2.0"
 
 
-@mock_kms
+@mock_aws
 def test_put_key_policy_using_alias_shouldnt_work():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client, policy="my policy")
@@ -874,7 +874,7 @@ def test_put_key_policy_using_alias_shouldnt_work():
     assert response["Policy"] == "my policy"
 
 
-@mock_kms
+@mock_aws
 def test_list_key_policies():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -887,7 +887,7 @@ def test_list_key_policies():
     "reserved_alias",
     ["alias/aws/ebs", "alias/aws/s3", "alias/aws/redshift", "alias/aws/rds"],
 )
-@mock_kms
+@mock_aws
 def test__create_alias__raises_if_reserved_alias(reserved_alias):
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -902,7 +902,7 @@ def test__create_alias__raises_if_reserved_alias(reserved_alias):
 @pytest.mark.parametrize(
     "name", ["alias/my-alias!", "alias/my-alias$", "alias/my-alias@"]
 )
-@mock_kms
+@mock_aws
 def test__create_alias__raises_if_alias_has_restricted_characters(name):
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -917,7 +917,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters(name):
     )
 
 
-@mock_kms
+@mock_aws
 def test__create_alias__raises_if_alias_has_restricted_characters_semicolon():
     # Similar test as above, but with different error msg
     client = boto3.client("kms", region_name="us-east-1")
@@ -931,7 +931,7 @@ def test__create_alias__raises_if_alias_has_restricted_characters_semicolon():
 
 
 @pytest.mark.parametrize("name", ["alias/my-alias_/", "alias/my_alias-/"])
-@mock_kms
+@mock_aws
 def test__create_alias__accepted_characters(name):
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -939,7 +939,7 @@ def test__create_alias__accepted_characters(name):
     client.create_alias(AliasName=name, TargetKeyId=key_id)
 
 
-@mock_kms
+@mock_aws
 def test__create_alias__raises_if_target_key_id_is_existing_alias():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -954,7 +954,7 @@ def test__create_alias__raises_if_target_key_id_is_existing_alias():
     assert err["Message"] == "Aliases must refer to keys. Not aliases"
 
 
-@mock_kms
+@mock_aws
 def test__create_alias__raises_if_wrong_prefix():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -966,7 +966,7 @@ def test__create_alias__raises_if_wrong_prefix():
     assert err["Message"] == "Invalid identifier"
 
 
-@mock_kms
+@mock_aws
 def test__create_alias__raises_if_duplicate():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_simple_key(client)
@@ -984,7 +984,7 @@ def test__create_alias__raises_if_duplicate():
     )
 
 
-@mock_kms
+@mock_aws
 def test__delete_alias():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1000,7 +1000,7 @@ def test__delete_alias():
     client.create_alias(AliasName="alias/a1", TargetKeyId=key_id)
 
 
-@mock_kms
+@mock_aws
 def test__delete_alias__raises_if_wrong_prefix():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1011,7 +1011,7 @@ def test__delete_alias__raises_if_wrong_prefix():
     assert err["Message"] == "Invalid identifier"
 
 
-@mock_kms
+@mock_aws
 def test__delete_alias__raises_if_alias_is_not_found():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1041,7 +1041,7 @@ def _check_tags(key_id, created_tags, client):
     assert sort(expected) == sort(actual)
 
 
-@mock_kms
+@mock_aws
 def test_key_tag_on_create_key_happy():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1053,7 +1053,7 @@ def test_key_tag_on_create_key_happy():
     _check_tags(key["KeyMetadata"]["KeyId"], tags, client)
 
 
-@mock_kms
+@mock_aws
 def test_key_tag_on_create_key_on_arn_happy():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1065,7 +1065,7 @@ def test_key_tag_on_create_key_on_arn_happy():
     _check_tags(key["KeyMetadata"]["Arn"], tags, client)
 
 
-@mock_kms
+@mock_aws
 def test_key_tag_added_happy():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1078,7 +1078,7 @@ def test_key_tag_added_happy():
     _check_tags(key_id, tags, client)
 
 
-@mock_kms
+@mock_aws
 def test_key_tag_added_arn_based_happy():
     client = boto3.client("kms", region_name="us-east-1")
 
@@ -1092,7 +1092,7 @@ def test_key_tag_added_arn_based_happy():
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
+@mock_aws
 def test_sign_happy(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1112,7 +1112,7 @@ def test_sign_happy(plaintext):
     assert sign_response["KeyId"] == key_arn
 
 
-@mock_kms
+@mock_aws
 def test_sign_invalid_signing_algorithm():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1134,7 +1134,7 @@ def test_sign_invalid_signing_algorithm():
     )
 
 
-@mock_kms
+@mock_aws
 def test_sign_and_verify_ignoring_grant_tokens():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1166,7 +1166,7 @@ def test_sign_and_verify_ignoring_grant_tokens():
     assert verify_response["SignatureValid"] is True
 
 
-@mock_kms
+@mock_aws
 @pytest.mark.parametrize(
     "key_spec, signing_algorithm",
     list(
@@ -1213,7 +1213,7 @@ def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
     assert verify_response["SignatureValid"] is True
 
 
-@mock_kms
+@mock_aws
 @pytest.mark.parametrize(
     "signing_algorithm, another_signing_algorithm",
     list(
@@ -1267,7 +1267,7 @@ def test_fail_verify_digest_message_type_RSA(
     assert verify_response["SignatureValid"] is False
 
 
-@mock_kms
+@mock_aws
 @pytest.mark.parametrize(
     "key_spec, signing_algorithm",
     [
@@ -1307,7 +1307,7 @@ def test_sign_and_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
     assert verify_response["SignatureValid"] is True
 
 
-@mock_kms
+@mock_aws
 @pytest.mark.parametrize(
     "key_spec, signing_algorithm, valid_signing_algorithms",
     [
@@ -1351,7 +1351,7 @@ def test_invalid_signing_algorithm_for_key_spec_type_ECDSA(
     )
 
 
-@mock_kms
+@mock_aws
 @pytest.mark.parametrize(
     "key_spec, signing_algorithm",
     [
@@ -1394,7 +1394,7 @@ def test_fail_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
     assert verify_response["SignatureValid"] is False
 
 
-@mock_kms
+@mock_aws
 def test_sign_invalid_key_usage():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1416,7 +1416,7 @@ def test_sign_invalid_key_usage():
     )
 
 
-@mock_kms
+@mock_aws
 def test_sign_invalid_message():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1439,7 +1439,7 @@ def test_sign_invalid_message():
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
+@mock_aws
 def test_verify_happy(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1468,7 +1468,7 @@ def test_verify_happy(plaintext):
     assert verify_response["SignatureValid"] is True
 
 
-@mock_kms
+@mock_aws
 def test_verify_happy_with_invalid_signature():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1491,7 +1491,7 @@ def test_verify_happy_with_invalid_signature():
     assert verify_response["SignatureValid"] is False
 
 
-@mock_kms
+@mock_aws
 def test_verify_invalid_signing_algorithm():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1519,7 +1519,7 @@ def test_verify_invalid_signing_algorithm():
     )
 
 
-@mock_kms
+@mock_aws
 def test_verify_invalid_message():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1545,7 +1545,7 @@ def test_verify_invalid_message():
     )
 
 
-@mock_kms
+@mock_aws
 def test_verify_empty_signature():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1573,7 +1573,7 @@ def test_verify_empty_signature():
     )
 
 
-@mock_kms
+@mock_aws
 def test_get_public_key():
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")
@@ -1598,7 +1598,7 @@ def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
         return client.create_key(**params)["KeyMetadata"][id_or_arn]
 
 
-@mock_kms
+@mock_aws
 def test_ensure_key_can_be_verified_manually():
     signing_algorithm: str = "ECDSA_SHA_256"
     kms_client = boto3.client("kms", region_name="us-east-1")

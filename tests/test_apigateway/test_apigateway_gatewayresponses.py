@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 
-@mock_apigateway
+@mock_aws
 def test_put_gateway_response_minimal():
     client = boto3.client("apigateway", region_name="us-east-2")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -16,7 +16,7 @@ def test_put_gateway_response_minimal():
     assert resp["defaultResponse"] is False
 
 
-@mock_apigateway
+@mock_aws
 def test_put_gateway_response():
     client = boto3.client("apigateway", region_name="us-east-2")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -42,7 +42,7 @@ def test_put_gateway_response():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_get_gateway_response_minimal():
     client = boto3.client("apigateway", region_name="ap-southeast-1")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -55,7 +55,7 @@ def test_get_gateway_response_minimal():
     assert resp["defaultResponse"] is False
 
 
-@mock_apigateway
+@mock_aws
 def test_get_gateway_response():
     client = boto3.client("apigateway", region_name="us-east-2")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -83,7 +83,7 @@ def test_get_gateway_response():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_get_gateway_response_unknown():
     client = boto3.client("apigateway", region_name="us-east-2")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -94,7 +94,7 @@ def test_get_gateway_response_unknown():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_gateway_responses_empty():
     client = boto3.client("apigateway", region_name="ap-southeast-1")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -103,7 +103,7 @@ def test_get_gateway_responses_empty():
     assert resp["items"] == []
 
 
-@mock_apigateway
+@mock_aws
 def test_get_gateway_responses():
     client = boto3.client("apigateway", region_name="ap-southeast-1")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]
@@ -123,7 +123,7 @@ def test_get_gateway_responses():
     } in resp["items"]
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_gateway_response():
     client = boto3.client("apigateway", region_name="ap-southeast-1")
     api_id = client.create_rest_api(name="my_api", description="d")["id"]

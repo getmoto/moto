@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_ssm
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ssm
+@mock_aws
 def test_ssm_get_by_path():
     client = boto3.client("ssm", region_name="us-west-1")
     path = "/aws/service/global-infrastructure/regions"
@@ -21,7 +21,7 @@ def test_ssm_get_by_path():
     assert "LastModifiedDate" in pacific
 
 
-@mock_ssm
+@mock_aws
 def test_global_infrastructure_services():
     client = boto3.client("ssm", region_name="us-west-1")
     path = "/aws/service/global-infrastructure/services"
@@ -31,7 +31,7 @@ def test_global_infrastructure_services():
     )
 
 
-@mock_ssm
+@mock_aws
 def test_ssm_region_query():
     client = boto3.client("ssm", region_name="us-west-1")
     param = client.get_parameter(

@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from moto import mock_batch_simple, mock_ec2, mock_ecs, mock_iam, settings
+from moto import mock_aws, settings
 
 from ..test_batch import _get_clients, _setup
 
@@ -8,11 +8,8 @@ from ..test_batch import _get_clients, _setup
 # Except that we verify this behaviour still works without docker
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_create_managed_compute_environment():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_create_managed_compute_environment() -> None:
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
@@ -57,11 +54,8 @@ def test_create_managed_compute_environment():
     assert our_env["ecsClusterArn"] in all_clusters
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_simple
-def test_create_managed_compute_environment_with_instance_family():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_create_managed_compute_environment_with_instance_family() -> None:
     """
     The InstanceType parameter can have multiple values:
     instance_type     t2.small

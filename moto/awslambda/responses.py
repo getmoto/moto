@@ -11,7 +11,8 @@ from .exceptions import (
     FunctionAlreadyExists,
     UnknownFunctionException,
 )
-from .models import LambdaBackend, lambda_backends
+from .models import LambdaBackend
+from .utils import get_backend
 
 
 class LambdaResponse(BaseResponse):
@@ -24,7 +25,7 @@ class LambdaResponse(BaseResponse):
 
     @property
     def backend(self) -> LambdaBackend:
-        return lambda_backends[self.current_account][self.region]
+        return get_backend(self.current_account, self.region)
 
     def root(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)

@@ -14,17 +14,6 @@ appsync
 
 .. autoclass:: moto.appsync.models.AppSyncBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_appsync
-            def test_appsync_behaviour:
-                boto3.client("appsync")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_api

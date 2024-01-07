@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto import mock_codebuild
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_create_project_s3_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -52,7 +52,7 @@ def test_codebuild_create_project_s3_artifacts():
     assert project["artifacts"] == {"location": "bucketname", "type": "S3"}
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_create_project_no_artifacts():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -94,7 +94,7 @@ def test_codebuild_create_project_no_artifacts():
     assert project["artifacts"] == {"type": "NO_ARTIFACTS"}
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_create_project_with_invalid_inputs():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -126,7 +126,7 @@ def test_codebuild_create_project_with_invalid_inputs():
     assert err.value.response["Error"]["Code"] == "InvalidInputException"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_create_project_when_exists():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -164,7 +164,7 @@ def test_codebuild_create_project_when_exists():
     assert err.value.response["Error"]["Code"] == "ResourceAlreadyExistsException"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_list_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -205,7 +205,7 @@ def test_codebuild_list_projects():
     assert projects["projects"] == ["project1", "project2"]
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_list_builds_for_project_no_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -237,7 +237,7 @@ def test_codebuild_list_builds_for_project_no_history():
     assert history["ids"] == []
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_list_builds_for_project_with_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -270,7 +270,7 @@ def test_codebuild_list_builds_for_project_with_history():
 
 
 # project never started
-@mock_codebuild
+@mock_aws
 def test_codebuild_get_batch_builds_for_project_no_history():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -305,7 +305,7 @@ def test_codebuild_get_batch_builds_for_project_no_history():
     assert err.typename == "ParamValidationError"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_start_build_no_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -316,7 +316,7 @@ def test_codebuild_start_build_no_project():
     assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_start_build_no_overrides():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -347,7 +347,7 @@ def test_codebuild_start_build_no_overrides():
     assert response["build"]["sourceVersion"] == "refs/heads/main"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_start_build_multiple_times():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -381,7 +381,7 @@ def test_codebuild_start_build_multiple_times():
     assert len(client.list_builds()["ids"]) == 3
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_start_build_with_overrides():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -419,7 +419,7 @@ def test_codebuild_start_build_with_overrides():
     assert response["build"]["sourceVersion"] == "fix/testing"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_batch_get_builds_1_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -457,7 +457,7 @@ def test_codebuild_batch_get_builds_1_project():
     assert len(response["builds"][0]["phases"]) == 11
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_batch_get_builds_2_projects():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -506,7 +506,7 @@ def test_codebuild_batch_get_builds_2_projects():
     assert "project-2" in metadata[1]["id"]
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_batch_get_builds_invalid_build_id():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -515,7 +515,7 @@ def test_codebuild_batch_get_builds_invalid_build_id():
     assert err.value.response["Error"]["Code"] == "InvalidInputException"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_batch_get_builds_empty_build_id():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -524,7 +524,7 @@ def test_codebuild_batch_get_builds_empty_build_id():
     assert err.typename == "ParamValidationError"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_delete_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -562,7 +562,7 @@ def test_codebuild_delete_project():
     assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_stop_build():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -596,7 +596,7 @@ def test_codebuild_stop_build():
     assert response["build"]["buildStatus"] == "STOPPED"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_stop_build_no_build():
     client = boto3.client("codebuild", region_name="eu-central-1")
 
@@ -605,7 +605,7 @@ def test_codebuild_stop_build_no_build():
     assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_codebuild
+@mock_aws
 def test_codebuild_stop_build_bad_uid():
     client = boto3.client("codebuild", region_name="eu-central-1")
 

@@ -1,7 +1,7 @@
 """Unit tests verifying put-related delivery stream APIs."""
 import boto3
 
-from moto import mock_firehose, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 from tests.test_firehose.test_firehose import TEST_REGION, sample_s3_dest_config
@@ -12,7 +12,7 @@ from tests.test_firehose.test_firehose_destination_types import (
 S3_LOCATION_CONSTRAINT = "us-west-1"
 
 
-@mock_firehose
+@mock_aws
 def test_put_record_redshift_destination():
     """Test invocations of put_record() to a Redshift destination.
 
@@ -29,7 +29,7 @@ def test_put_record_redshift_destination():
     assert set(result.keys()) == {"RecordId", "Encrypted", "ResponseMetadata"}
 
 
-@mock_firehose
+@mock_aws
 def test_put_record_batch_redshift_destination():
     """Test invocations of put_record_batch() to a Redshift destination.
 
@@ -54,7 +54,7 @@ def test_put_record_batch_redshift_destination():
         assert set(response.keys()) == {"RecordId"}
 
 
-@mock_firehose
+@mock_aws
 def test_put_record_http_destination():
     """Test invocations of put_record() to a Http destination."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -74,7 +74,7 @@ def test_put_record_http_destination():
     assert set(result.keys()) == {"RecordId", "Encrypted", "ResponseMetadata"}
 
 
-@mock_firehose
+@mock_aws
 def test_put_record_batch_http_destination():
     """Test invocations of put_record_batch() to a Http destination."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -102,8 +102,7 @@ def test_put_record_batch_http_destination():
         assert set(response.keys()) == {"RecordId"}
 
 
-@mock_s3
-@mock_firehose
+@mock_aws
 def test_put_record_batch_extended_s3_destination():
     """Test invocations of put_record_batch() to a S3 destination."""
     client = boto3.client("firehose", region_name=TEST_REGION)

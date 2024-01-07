@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_s3
+from moto import mock_aws
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
-@mock_s3
+@mock_aws
 def test_create_bucket_with_ownership():
     bucket = "bucket-with-owner"
     ownership = "BucketOwnerPreferred"
@@ -17,7 +17,7 @@ def test_create_bucket_with_ownership():
     assert response["OwnershipControls"]["Rules"][0]["ObjectOwnership"] == ownership
 
 
-@mock_s3
+@mock_aws
 def test_put_ownership_to_bucket():
     bucket = "bucket-updated-with-owner"
     ownership = "ObjectWriter"
@@ -32,7 +32,7 @@ def test_put_ownership_to_bucket():
     assert response["OwnershipControls"]["Rules"][0]["ObjectOwnership"] == ownership
 
 
-@mock_s3
+@mock_aws
 def test_delete_ownership_from_bucket():
     bucket = "bucket-with-owner-removed"
     ownership = "BucketOwnerEnforced"

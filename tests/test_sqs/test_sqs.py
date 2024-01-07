@@ -13,7 +13,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_sqs, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sqs.models import (
     MAXIMUM_MESSAGE_LENGTH,
@@ -45,7 +45,7 @@ TEST_POLICY = """
 MOCK_DEDUPLICATION_TIME_IN_SECONDS = 5
 
 
-@mock_sqs
+@mock_aws
 def test_create_fifo_queue_fail():
     sqs = boto3.client("sqs", region_name="us-east-1")
 
@@ -57,7 +57,7 @@ def test_create_fifo_queue_fail():
         raise RuntimeError("Should have raised InvalidParameterValue Exception")
 
 
-@mock_sqs
+@mock_aws
 def test_create_queue_with_same_attributes():
     sqs = boto3.client("sqs", region_name="us-east-1")
 
@@ -83,7 +83,7 @@ def test_create_queue_with_same_attributes():
     sqs.create_queue(QueueName=q_name, Attributes=attributes)
 
 
-@mock_sqs
+@mock_aws
 def test_create_queue_with_different_attributes_fail():
     sqs = boto3.client("sqs", region_name="us-east-1")
 
@@ -106,7 +106,7 @@ def test_create_queue_with_different_attributes_fail():
     assert new_response["QueueUrl"] == response.get("QueueUrl")
 
 
-@mock_sqs
+@mock_aws
 def test_create_fifo_queue():
     # given
     region_name = "us-east-1"
@@ -143,7 +143,7 @@ def test_create_fifo_queue():
     assert attributes["VisibilityTimeout"] == "30"
 
 
-@mock_sqs
+@mock_aws
 def test_create_fifo_queue_with_high_throughput():
     # given
     sqs = boto3.client("sqs", region_name="us-east-1")
@@ -170,7 +170,7 @@ def test_create_fifo_queue_with_high_throughput():
     assert attributes["FifoThroughputLimit"] == "perMessageGroupId"
 
 
-@mock_sqs
+@mock_aws
 def test_create_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
@@ -184,7 +184,7 @@ def test_create_queue():
     assert queue.attributes.get("VisibilityTimeout") == "30"
 
 
-@mock_sqs
+@mock_aws
 def test_create_queue_kms():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
@@ -203,7 +203,7 @@ def test_create_queue_kms():
     assert queue.attributes.get("KmsDataKeyReusePeriodSeconds") == "600"
 
 
-@mock_sqs
+@mock_aws
 def test_create_queue_with_tags():
     client = boto3.client("sqs", region_name="us-east-1")
     q_name = str(uuid4())[0:6]
@@ -218,7 +218,7 @@ def test_create_queue_with_tags():
     }
 
 
-@mock_sqs
+@mock_aws
 def test_create_queue_with_policy():
     client = boto3.client("sqs", region_name="us-east-1")
     q_name = str(uuid4())[0:6]
@@ -246,7 +246,7 @@ def test_create_queue_with_policy():
     }
 
 
-@mock_sqs
+@mock_aws
 def test_set_queue_attribute_empty_policy_removes_attr():
     client = boto3.client("sqs", region_name="us-east-1")
     q_name = str(uuid4())[0:6]
@@ -285,7 +285,7 @@ def test_is_empty_redrive_policy_returns_false_for_valid_policy_format():
     assert not Queue._is_empty_redrive_policy(json.dumps({"maxReceiveCount": 5}))
 
 
-@mock_sqs
+@mock_aws
 def test_set_queue_attribute_empty_redrive_removes_attr():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -312,7 +312,7 @@ def test_set_queue_attribute_empty_redrive_removes_attr():
     assert "RedrivePolicy" not in response
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_url():
     client = boto3.client("sqs", region_name="us-east-1")
     q_name = str(uuid4())[0:6]
@@ -323,7 +323,7 @@ def test_get_queue_url():
     assert q_name in response["QueueUrl"]
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_url_error_not_exists():
     # given
     client = boto3.client("sqs", region_name="us-east-1")
@@ -342,7 +342,7 @@ def test_get_queue_url_error_not_exists():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_get_nonexistent_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
@@ -356,7 +356,7 @@ def test_get_nonexistent_queue():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_message_send_without_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -369,7 +369,7 @@ def test_message_send_without_attributes():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_message_send_with_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -390,7 +390,7 @@ def test_message_send_with_attributes():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_message_retention_period():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -424,7 +424,7 @@ def test_message_retention_period():
     assert len(messages) == 0
 
 
-@mock_sqs
+@mock_aws
 def test_queue_retention_period():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -447,7 +447,7 @@ def test_queue_retention_period():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_message_with_invalid_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -467,7 +467,7 @@ def test_message_with_invalid_attributes():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_message_with_string_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -493,7 +493,7 @@ def test_message_with_string_attributes():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_message_with_binary_attribute():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -520,7 +520,7 @@ def test_message_with_binary_attribute():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_message_with_attributes_have_labels():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -541,7 +541,7 @@ def test_message_with_attributes_have_labels():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_message_with_attributes_invalid_datatype():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -565,7 +565,7 @@ def test_message_with_attributes_invalid_datatype():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_with_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -590,7 +590,7 @@ def test_send_message_with_message_group_id():
     assert message_attributes["MessageDeduplicationId"] == "dedupe_id_1"
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_with_message_group_id_standard_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -606,7 +606,7 @@ def test_send_message_with_message_group_id_standard_queue():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 
@@ -620,7 +620,7 @@ def test_send_message_with_unicode_characters():
     assert message_body == body_one
 
 
-@mock_sqs
+@mock_aws
 def test_set_queue_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -647,7 +647,7 @@ def _get_common_url(region):
     )
 
 
-@mock_sqs
+@mock_aws
 def test_create_queues_in_multiple_region():
     w1 = boto3.client("sqs", region_name="us-west-1")
     w1_name = str(uuid4())[0:6]
@@ -668,7 +668,7 @@ def test_create_queues_in_multiple_region():
     assert f"{base_url}/{ACCOUNT_ID}/{w2_name}" in w2.list_queues()["QueueUrls"]
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_with_prefix():
     conn = boto3.client("sqs", region_name="us-west-1")
     conn.create_queue(QueueName=str(uuid4())[0:6])
@@ -693,7 +693,7 @@ def test_get_queue_with_prefix():
     assert queue[0] == expected_url2
 
 
-@mock_sqs
+@mock_aws
 def test_delete_queue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -710,7 +710,7 @@ def test_delete_queue():
     assert q_name not in [u[u.rfind("/") + 1 :] for u in all_urls]
 
 
-@mock_sqs
+@mock_aws
 def test_delete_queue_error_not_exists():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -728,7 +728,7 @@ def test_delete_queue_error_not_exists():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_attributes():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -793,7 +793,7 @@ def test_get_queue_attributes():
     assert "Attributes" not in response
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_attributes_errors():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -818,7 +818,7 @@ def test_get_queue_attributes_errors():
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_attributes_error_not_exists():
     # given
     client = boto3.client("sqs", region_name="us-east-1")
@@ -839,7 +839,7 @@ def test_get_queue_attributes_error_not_exists():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_set_queue_attribute():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -855,7 +855,7 @@ def test_set_queue_attribute():
     assert queue.attributes["VisibilityTimeout"] == "45"
 
 
-@mock_sqs
+@mock_aws
 def test_send_receive_message_without_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -885,7 +885,7 @@ def test_send_receive_message_without_attributes():
     assert "Attributes" not in message2
 
 
-@mock_sqs
+@mock_aws
 def test_send_receive_message_with_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -923,7 +923,7 @@ def test_send_receive_message_with_attributes():
     assert message2.get("MD5OfMessageAttributes") == "994258b45346a2cc3f9cbb611aa7af30"
 
 
-@mock_sqs
+@mock_aws
 def test_send_receive_message_with_attributes_with_labels():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -976,7 +976,7 @@ def test_send_receive_message_with_attributes_with_labels():
     assert response.get("MD5OfMessageAttributes") == "9e05cca738e70ff6c6041e82d5e77ef1"
 
 
-@mock_sqs
+@mock_aws
 def test_receive_message_with_xml_content():
     sqs = boto3.client("sqs", region_name="eu-west-2")
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
@@ -1001,7 +1001,7 @@ def test_receive_message_with_xml_content():
     assert attr == original_payload
 
 
-@mock_sqs
+@mock_aws
 def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -1036,7 +1036,7 @@ def test_change_message_visibility_than_permitted():
         assert ex.response["Error"]["Code"] == "InvalidParameterValue"
 
 
-@mock_sqs
+@mock_aws
 def test_send_receive_message_timestamps():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -1068,7 +1068,7 @@ def test_send_receive_message_timestamps():
         assert False, "aproximate_first_receive_timestamp not an int"
 
 
-@mock_sqs
+@mock_aws
 @pytest.mark.parametrize(
     "attribute_name,expected",
     [
@@ -1195,7 +1195,7 @@ def test_send_receive_message_with_attribute_name(attribute_name, expected):
     assert expected["SequenceNumber"](message2["Attributes"].get("SequenceNumber"))
 
 
-@mock_sqs
+@mock_aws
 @pytest.mark.parametrize(
     "attribute_name,expected",
     [
@@ -1345,7 +1345,7 @@ def test_fifo_send_receive_message_with_attribute_name(attribute_name, expected)
     assert expected["SequenceNumber"](message["Attributes"].get("SequenceNumber"))
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_attributes_no_param():
     """Test Attributes-key is not returned when no AttributeNames-parameter."""
     sqs = boto3.client("sqs", region_name="ap-northeast-3")
@@ -1358,7 +1358,7 @@ def test_get_queue_attributes_no_param():
     assert "Attributes" in queue_attrs
 
 
-@mock_sqs
+@mock_aws
 def test_max_number_of_messages_invalid_param():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -1373,7 +1373,7 @@ def test_max_number_of_messages_invalid_param():
     queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=0)
 
 
-@mock_sqs
+@mock_aws
 def test_wait_time_seconds_invalid_param():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -1388,7 +1388,7 @@ def test_wait_time_seconds_invalid_param():
     queue.receive_messages(WaitTimeSeconds=0)
 
 
-@mock_sqs
+@mock_aws
 def test_receive_messages_with_wait_seconds_timeout_of_zero():
     """
     test that zero messages is returned with a wait_seconds_timeout of zero,
@@ -1403,7 +1403,7 @@ def test_receive_messages_with_wait_seconds_timeout_of_zero():
     assert messages == []
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_with_xml_characters():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
@@ -1418,7 +1418,7 @@ def test_send_message_with_xml_characters():
     assert messages[0]["Body"] == body_one
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_with_delay():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -1438,7 +1438,7 @@ def test_send_message_with_delay():
     assert len(messages) == 0
 
 
-@mock_sqs
+@mock_aws
 def test_send_large_message_fails():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -1453,7 +1453,7 @@ def test_send_large_message_fails():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_message_becomes_inflight_when_received():
     sqs = boto3.resource("sqs", region_name="eu-west-1")
     queue = sqs.create_queue(
@@ -1481,7 +1481,7 @@ def test_message_becomes_inflight_when_received():
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
 
-@mock_sqs
+@mock_aws
 def test_receive_message_with_explicit_visibility_timeout():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1503,7 +1503,7 @@ def test_receive_message_with_explicit_visibility_timeout():
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
 
-@mock_sqs
+@mock_aws
 def test_change_message_visibility():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1543,7 +1543,7 @@ def test_change_message_visibility():
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
 
-@mock_sqs
+@mock_aws
 def test_change_message_visibility_on_unknown_receipt_handle():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -1560,7 +1560,7 @@ def test_change_message_visibility_on_unknown_receipt_handle():
     assert err["Message"] == "The input receipt handle is invalid."
 
 
-@mock_sqs
+@mock_aws
 def test_queue_length():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1574,7 +1574,7 @@ def test_queue_length():
     assert queue.attributes["ApproximateNumberOfMessages"] == "2"
 
 
-@mock_sqs
+@mock_aws
 def test_delete_batch_operation():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1596,7 +1596,7 @@ def test_delete_batch_operation():
     assert queue.attributes["ApproximateNumberOfMessages"] == "1"
 
 
-@mock_sqs
+@mock_aws
 def test_change_message_visibility_on_old_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1635,7 +1635,7 @@ def test_change_message_visibility_on_old_message():
     assert len(messages) == 0
 
 
-@mock_sqs
+@mock_aws
 def test_change_message_visibility_on_visible_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -1662,7 +1662,7 @@ def test_change_message_visibility_on_visible_message():
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
 
-@mock_sqs
+@mock_aws
 def test_purge_queue_before_delete_message():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -1694,7 +1694,7 @@ def test_purge_queue_before_delete_message():
     assert receive_resp2["Messages"][0]["Body"] == "second_message"
 
 
-@mock_sqs
+@mock_aws
 def test_delete_message_after_visibility_timeout():
     VISIBILITY_TIMEOUT = 1
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -1718,7 +1718,7 @@ def test_delete_message_after_visibility_timeout():
     assert queue.attributes["ApproximateNumberOfMessages"] == "0"
 
 
-@mock_sqs
+@mock_aws
 def test_delete_message_errors():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -1743,7 +1743,7 @@ def test_delete_message_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_delete_message_twice_using_same_receipt_handle():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -1757,7 +1757,7 @@ def test_delete_message_twice_using_same_receipt_handle():
     client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
 
 
-@mock_sqs
+@mock_aws
 def test_delete_message_using_old_receipt_handle():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
@@ -1786,7 +1786,7 @@ def test_delete_message_using_old_receipt_handle():
     client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_2)
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_batch():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
@@ -1854,7 +1854,7 @@ def test_send_message_batch():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_delete_message_batch_with_duplicates():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -1882,7 +1882,7 @@ def test_delete_message_batch_with_duplicates():
     assert messages, "message still in the queue"
 
 
-@mock_sqs
+@mock_aws
 def test_delete_message_batch_with_invalid_receipt_id():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -1928,7 +1928,7 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
 
 
-@mock_sqs
+@mock_aws
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -1993,7 +1993,7 @@ def test_message_attributes_in_receive_message():
     }
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_batch_errors():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2073,7 +2073,7 @@ def test_send_message_batch_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_batch_with_empty_list():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2087,7 +2087,7 @@ def test_send_message_batch_with_empty_list():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_batch_change_message_visibility():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -2140,7 +2140,7 @@ def test_batch_change_message_visibility():
         assert len(resp["Messages"]) == 3
 
 
-@mock_sqs
+@mock_aws
 def test_batch_change_message_visibility_on_old_message():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -2172,7 +2172,7 @@ def test_batch_change_message_visibility_on_old_message():
     assert len(resp["Successful"]) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_permissions():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2238,7 +2238,7 @@ def test_permissions():
     }
 
 
-@mock_sqs
+@mock_aws
 def test_get_queue_attributes_template_response_validation():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2268,7 +2268,7 @@ def test_get_queue_attributes_template_response_validation():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_add_permission_errors():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -2366,7 +2366,7 @@ def test_add_permission_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_remove_permission_errors():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(QueueName=str(uuid4())[0:6])
@@ -2384,7 +2384,7 @@ def test_remove_permission_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_tags():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2410,7 +2410,7 @@ def test_tags():
     assert client.list_queue_tags(QueueUrl=queue_url)["Tags"] == {"test1": "value1"}
 
 
-@mock_sqs
+@mock_aws
 def test_list_queue_tags_errors():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2426,7 +2426,7 @@ def test_list_queue_tags_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_tag_queue_errors():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2461,7 +2461,7 @@ def test_tag_queue_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_untag_queue_errors():
     client = boto3.client("sqs", region_name="us-east-1")
 
@@ -2483,7 +2483,7 @@ def test_untag_queue_errors():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_create_fifo_queue_with_dlq():
     sqs = boto3.client("sqs", region_name="us-east-1")
     resp = sqs.create_queue(
@@ -2525,7 +2525,7 @@ def test_create_fifo_queue_with_dlq():
         )
 
 
-@mock_sqs
+@mock_aws
 def test_queue_with_dlq():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -2591,7 +2591,7 @@ def test_queue_with_dlq():
     assert resp["queueUrls"][0] == queue_url2
 
 
-@mock_sqs
+@mock_aws
 def test_redrive_policy_available():
     sqs = boto3.client("sqs", region_name="us-east-1")
 
@@ -2625,7 +2625,7 @@ def test_redrive_policy_available():
         )
 
 
-@mock_sqs
+@mock_aws
 def test_redrive_policy_non_existent_queue():
     sqs = boto3.client("sqs", region_name="us-east-1")
     redrive_policy = {
@@ -2640,7 +2640,7 @@ def test_redrive_policy_non_existent_queue():
         )
 
 
-@mock_sqs
+@mock_aws
 def test_redrive_policy_set_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
@@ -2661,7 +2661,7 @@ def test_redrive_policy_set_attributes():
     assert copy_policy == redrive_policy
 
 
-@mock_sqs
+@mock_aws
 def test_redrive_policy_set_attributes_with_string_value():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
@@ -2689,7 +2689,7 @@ def test_redrive_policy_set_attributes_with_string_value():
     }
 
 
-@mock_sqs
+@mock_aws
 def test_receive_messages_with_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -2721,7 +2721,7 @@ def test_receive_messages_with_message_group_id():
     assert messages[0].body == "message-3"
 
 
-@mock_sqs
+@mock_aws
 def test_receive_messages_with_message_group_id_on_requeue():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -2748,7 +2748,7 @@ def test_receive_messages_with_message_group_id_on_requeue():
     assert messages[0].message_id == message.message_id
 
 
-@mock_sqs
+@mock_aws
 def test_receive_messages_with_message_group_id_on_visibility_timeout():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -2786,7 +2786,7 @@ def test_receive_messages_with_message_group_id_on_visibility_timeout():
         assert messages[0].message_id == message.message_id
 
 
-@mock_sqs
+@mock_aws
 def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
     sqs = boto3.resource("sqs", region_name="us-east-1")
 
@@ -2797,7 +2797,7 @@ def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
     queue.receive_messages()
 
 
-@mock_sqs
+@mock_aws
 def test_list_queues_limits_to_1000_queues():
     if settings.TEST_SERVER_MODE:
         # Re-visit once we have a NextToken-implementation for list_queues
@@ -2823,7 +2823,7 @@ def test_list_queues_limits_to_1000_queues():
         client.delete_queue(QueueUrl=url)
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_to_fifo_without_message_group_id():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(
@@ -2838,7 +2838,7 @@ def test_send_message_to_fifo_without_message_group_id():
     assert err["Message"] == "The request must contain the parameter MessageGroupId."
 
 
-@mock_sqs
+@mock_aws
 def test_send_messages_to_fifo_without_message_group_id():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(
@@ -2853,7 +2853,7 @@ def test_send_messages_to_fifo_without_message_group_id():
     assert err["Message"] == "The request must contain the parameter MessageGroupId."
 
 
-@mock_sqs
+@mock_aws
 def test_maximum_message_size_attribute_default():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     queue = sqs.create_queue(QueueName=str(uuid4()))
@@ -2864,7 +2864,7 @@ def test_maximum_message_size_attribute_default():
     assert err["Code"] == "InvalidParameterValue"
 
 
-@mock_sqs
+@mock_aws
 def test_maximum_message_size_attribute_fails_for_invalid_values():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     invalid_values = [
@@ -2881,7 +2881,7 @@ def test_maximum_message_size_attribute_fails_for_invalid_values():
         assert ex.response["Error"]["Code"] == "InvalidAttributeValue"
 
 
-@mock_sqs
+@mock_aws
 def test_send_message_fails_when_message_size_greater_than_max_message_size():
     sqs = boto3.resource("sqs", region_name="eu-west-3")
     message_size_limit = 12345
@@ -2897,7 +2897,7 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
     assert f"{message_size_limit} bytes" in ex.response["Error"]["Message"]
 
 
-@mock_sqs
+@mock_aws
 @pytest.mark.parametrize(
     "msg_1, msg_2, dedupid_1, dedupid_2, expected_count",
     [
@@ -2928,7 +2928,7 @@ def test_fifo_queue_deduplication_with_id(
     assert len(messages) == expected_count
 
 
-@mock_sqs
+@mock_aws
 @pytest.mark.parametrize(
     "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2)]
 )
@@ -2950,7 +2950,7 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 @mock.patch(
     "moto.sqs.models.DEDUPLICATION_TIME_IN_SECONDS", MOCK_DEDUPLICATION_TIME_IN_SECONDS
 )
-@mock_sqs
+@mock_aws
 def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch env variables in server mode")
@@ -2968,7 +2968,7 @@ def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     assert len(messages) == 2
 
 
-@mock_sqs
+@mock_aws
 def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -2991,7 +2991,7 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_fifo_send_message_when_same_group_id_is_in_dlq():
 
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -3033,7 +3033,7 @@ def test_fifo_send_message_when_same_group_id_is_in_dlq():
     assert len(messages) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_receive_message_using_name_should_return_name_as_url():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -3051,7 +3051,7 @@ def test_receive_message_using_name_should_return_name_as_url():
     assert resp[0].queue_url == name
 
 
-@mock_sqs
+@mock_aws
 def test_message_attributes_contains_trace_header():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -3083,7 +3083,7 @@ def test_message_attributes_contains_trace_header():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_receive_message_again_preserves_attributes():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     conn = boto3.client("sqs", region_name="us-east-1")
@@ -3118,7 +3118,7 @@ def test_receive_message_again_preserves_attributes():
     assert second_messages[0]["MessageAttributes"].get("Custom2") is not None
 
 
-@mock_sqs
+@mock_aws
 def test_message_has_windows_return():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{str(uuid4())[0:6]}")
@@ -3131,7 +3131,7 @@ def test_message_has_windows_return():
     assert re.match(message, messages[0].body)
 
 
-@mock_sqs
+@mock_aws
 def test_message_delay_is_more_than_15_minutes():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(
@@ -3194,7 +3194,7 @@ def test_message_delay_is_more_than_15_minutes():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_receive_message_that_becomes_visible_while_long_polling():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
@@ -3211,7 +3211,7 @@ def test_receive_message_that_becomes_visible_while_long_polling():
     assert end - begin < time_to_wait
 
 
-@mock_sqs
+@mock_aws
 def test_dedupe_fifo():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -3230,7 +3230,7 @@ def test_dedupe_fifo():
     assert int(queue.attributes["ApproximateNumberOfMessages"]) == 1
 
 
-@mock_sqs
+@mock_aws
 def test_fifo_dedupe_error_no_message_group_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -3249,7 +3249,7 @@ def test_fifo_dedupe_error_no_message_group_id():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_fifo_dedupe_error_no_message_dedupe_id():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(
@@ -3269,7 +3269,7 @@ def test_fifo_dedupe_error_no_message_dedupe_id():
     )
 
 
-@mock_sqs
+@mock_aws
 def test_fifo_dedupe_error_no_message_dedupe_id_batch():
     client = boto3.client("sqs", region_name="us-east-1")
     response = client.create_queue(

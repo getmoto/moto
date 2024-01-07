@@ -1,16 +1,15 @@
-"""Unit tests for ce-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ce
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_ce
+@mock_aws
 def test_create_cost_category_definition():
     client = boto3.client("ce", region_name="ap-southeast-1")
     resp = client.create_cost_category_definition(
@@ -24,7 +23,7 @@ def test_create_cost_category_definition():
     assert "EffectiveStart" in resp
 
 
-@mock_ce
+@mock_aws
 def test_create_cost_category_definition_with_effective_start():
     client = boto3.client("ce", region_name="ap-southeast-1")
     resp = client.create_cost_category_definition(
@@ -39,7 +38,7 @@ def test_create_cost_category_definition_with_effective_start():
     assert resp["EffectiveStart"] == "2022-11-01T00:00:00Z"
 
 
-@mock_ce
+@mock_aws
 def test_describe_cost_category_definition():
     client = boto3.client("ce", region_name="us-east-2")
     ccd_arn = client.create_cost_category_definition(
@@ -63,7 +62,7 @@ def test_describe_cost_category_definition():
     }
 
 
-@mock_ce
+@mock_aws
 def test_delete_cost_category_definition():
     client = boto3.client("ce", region_name="ap-southeast-1")
     ccd_arn = client.create_cost_category_definition(
@@ -84,7 +83,7 @@ def test_delete_cost_category_definition():
     assert err["Message"] == f"No Cost Categories found with ID {ccd_id}"
 
 
-@mock_ce
+@mock_aws
 def test_update_cost_category_definition():
     client = boto3.client("ce", region_name="us-east-2")
     ccd_arn = client.create_cost_category_definition(

@@ -12,17 +12,6 @@
 medialive
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_medialive
-            def test_medialive_behaviour:
-                boto3.client("medialive")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_input_device_transfer

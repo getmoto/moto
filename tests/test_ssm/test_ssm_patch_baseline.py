@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ssm
+from moto import mock_aws
 
 
-@mock_ssm
+@mock_aws
 def test_create_patch_baseLine():
     ssm = boto3.client("ssm", region_name="us-east-1")
 
@@ -56,7 +56,7 @@ def test_create_patch_baseLine():
     assert baseline["BaselineDescription"] == baseline_description
 
 
-@mock_ssm
+@mock_aws
 def test_delete_patch_baseline():
     ssm = boto3.client("ssm", region_name="us-east-1")
 

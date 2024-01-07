@@ -4,12 +4,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sns
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.sns.models import DEFAULT_EFFECTIVE_DELIVERY_POLICY, DEFAULT_PAGE_SIZE
 
 
-@mock_sns
+@mock_aws
 def test_create_and_delete_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     for topic_name in ("some-topic", "-some-topic-", "_some-topic_", "a" * 256):
@@ -34,7 +34,7 @@ def test_create_and_delete_topic():
         assert len(topics) == 0
 
 
-@mock_sns
+@mock_aws
 def test_delete_non_existent_topic():
     conn = boto3.client("sns", region_name="us-east-1")
 
@@ -44,7 +44,7 @@ def test_delete_non_existent_topic():
     )
 
 
-@mock_sns
+@mock_aws
 def test_create_topic_with_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(
@@ -57,7 +57,7 @@ def test_create_topic_with_attributes():
     assert attributes["DisplayName"] == "test-topic"
 
 
-@mock_sns
+@mock_aws
 def test_create_topic_with_tags():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_topic(
@@ -77,7 +77,7 @@ def test_create_topic_with_tags():
     )
 
 
-@mock_sns
+@mock_aws
 def test_create_topic_should_be_indempodent():
     conn = boto3.client("sns", region_name="us-east-1")
     topic_arn = conn.create_topic(Name="some-topic")["TopicArn"]
@@ -97,7 +97,7 @@ def test_create_topic_should_be_indempodent():
     assert topic_display_name == "should_be_set"
 
 
-@mock_sns
+@mock_aws
 def test_get_missing_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     with pytest.raises(ClientError):
@@ -106,7 +106,7 @@ def test_get_missing_topic():
         )
 
 
-@mock_sns
+@mock_aws
 def test_create_topic_must_meet_constraints():
     conn = boto3.client("sns", region_name="us-east-1")
     common_random_chars = [":", ";", "!", "@", "|", "^", "%"]
@@ -117,7 +117,7 @@ def test_create_topic_must_meet_constraints():
         conn.create_topic(Name="no spaces allowed")
 
 
-@mock_sns
+@mock_aws
 def test_create_topic_should_be_of_certain_length():
     conn = boto3.client("sns", region_name="us-east-1")
     too_short = ""
@@ -128,7 +128,7 @@ def test_create_topic_should_be_of_certain_length():
         conn.create_topic(Name=too_long)
 
 
-@mock_sns
+@mock_aws
 def test_create_topic_in_multiple_regions():
     for region in ["us-west-1", "us-west-2"]:
         conn = boto3.client("sns", region_name=region)
@@ -151,7 +151,7 @@ def test_create_topic_in_multiple_regions():
     assert err["Type"] == "Sender"
 
 
-@mock_sns
+@mock_aws
 def test_topic_corresponds_to_region():
     for region in ["us-east-1", "us-west-2"]:
         conn = boto3.client("sns", region_name=region)
@@ -161,7 +161,7 @@ def test_topic_corresponds_to_region():
         assert topic_arn == f"arn:aws:sns:{region}:{ACCOUNT_ID}:some-topic"
 
 
-@mock_sns
+@mock_aws
 def test_topic_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -231,7 +231,7 @@ def test_topic_attributes():
     )
 
 
-@mock_sns
+@mock_aws
 def test_topic_paging():
     conn = boto3.client("sns", region_name="us-east-1")
     for index in range(DEFAULT_PAGE_SIZE + int(DEFAULT_PAGE_SIZE / 2)):
@@ -251,7 +251,7 @@ def test_topic_paging():
     assert len(topics_list) == int(DEFAULT_PAGE_SIZE / 2)
 
 
-@mock_sns
+@mock_aws
 def test_add_remove_permissions():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="test-permissions")["TopicArn"]
@@ -349,7 +349,7 @@ def test_add_remove_permissions():
     client.remove_permission(TopicArn=topic_arn, Label="non-existing")
 
 
-@mock_sns
+@mock_aws
 def test_add_permission_errors():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="test-permissions")["TopicArn"]
@@ -391,7 +391,7 @@ def test_add_permission_errors():
     )
 
 
-@mock_sns
+@mock_aws
 def test_remove_permission_errors():
     client = boto3.client("sns", region_name="us-east-1")
     topic_arn = client.create_topic(Name="test-permissions")["TopicArn"]
@@ -409,7 +409,7 @@ def test_remove_permission_errors():
     assert client_err.value.response["Error"]["Message"] == "Topic does not exist"
 
 
-@mock_sns
+@mock_aws
 def test_tag_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_topic(Name="some-topic-with-tags")
@@ -443,7 +443,7 @@ def test_tag_topic():
     )
 
 
-@mock_sns
+@mock_aws
 def test_untag_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_topic(
@@ -467,7 +467,7 @@ def test_untag_topic():
     )
 
 
-@mock_sns
+@mock_aws
 def test_list_tags_for_resource_error():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(
@@ -479,7 +479,7 @@ def test_list_tags_for_resource_error():
     assert client_err.value.response["Error"]["Message"] == "Resource does not exist"
 
 
-@mock_sns
+@mock_aws
 def test_tag_resource_errors():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_topic(
@@ -509,7 +509,7 @@ def test_tag_resource_errors():
     )
 
 
-@mock_sns
+@mock_aws
 def test_untag_resource_error():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(
@@ -521,7 +521,7 @@ def test_untag_resource_error():
     assert client_err.value.response["Error"]["Message"] == "Resource does not exist"
 
 
-@mock_sns
+@mock_aws
 def test_create_fifo_topic():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_topic(
@@ -562,7 +562,7 @@ def test_create_fifo_topic():
         )
 
 
-@mock_sns
+@mock_aws
 def test_topic_kms_master_key_id_attribute():
     client = boto3.client("sns", region_name="us-west-2")
     resp = client.create_topic(Name="test-sns-no-key-attr")
@@ -586,7 +586,7 @@ def test_topic_kms_master_key_id_attribute():
     assert resp["Attributes"]["KmsMasterKeyId"] == "key-id"
 
 
-@mock_sns
+@mock_aws
 def test_topic_fifo_get_attributes():
     client = boto3.client("sns", region_name="us-east-1")
     resp = client.create_topic(
@@ -610,7 +610,7 @@ def test_topic_fifo_get_attributes():
     assert attributes["ContentBasedDeduplication"] == "true"
 
 
-@mock_sns
+@mock_aws
 def test_topic_get_attributes():
     client = boto3.client("sns", region_name="us-east-1")
     resp = client.create_topic(Name="test-topic-get-attr")
@@ -621,7 +621,7 @@ def test_topic_get_attributes():
     assert "ContentBasedDeduplication" not in attributes
 
 
-@mock_sns
+@mock_aws
 def test_topic_get_attributes_with_fifo_false():
     client = boto3.client("sns", region_name="us-east-1")
     resp = client.create_topic(

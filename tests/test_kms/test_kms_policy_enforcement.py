@@ -6,13 +6,13 @@ import pytest
 from botocore.exceptions import ClientError
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from moto import mock_kms
+from moto import mock_aws
 from moto.kms.exceptions import AccessDeniedException
 from moto.kms.models import Key
 from moto.kms.policy_validator import validate_policy
 
 
-@mock_kms
+@mock_aws
 class TestKMSPolicyEnforcement:
     def setup_method(self, *args) -> None:  # pylint: disable=unused-argument
         self.client = boto3.client("kms", "us-east-1")

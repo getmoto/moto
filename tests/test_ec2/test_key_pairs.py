@@ -6,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 
 from .helpers import check_private_key
 
@@ -50,7 +50,7 @@ ffsm7UIHtCBYERr9Nx0u20ldfhkgB1lhaJb5o0ZJ3pmJ38KChfyHe5EUcqRdEFo89Mp72VI2Z6UHyL17
 moto@github.com"""
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_empty_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -58,7 +58,7 @@ def test_key_pairs_empty_boto3():
     assert client.describe_key_pairs()["KeyPairs"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_invalid_id_boto3():
     client = boto3.client("ec2", "us-west-1")
 
@@ -69,7 +69,7 @@ def test_key_pairs_invalid_id_boto3():
     assert ex.value.response["Error"]["Code"] == "InvalidKeyPair.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_create_dryrun_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
 
@@ -83,7 +83,7 @@ def test_key_pairs_create_dryrun_boto3():
     )
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("key_type", ["rsa", "ed25519"])
 def test_key_pairs_create_boto3(key_type):
     ec2 = boto3.resource("ec2", "us-west-1")
@@ -112,7 +112,7 @@ def test_key_pairs_create_boto3(key_type):
     assert isinstance(kps[0]["CreateTime"], datetime)
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_create_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
@@ -125,13 +125,13 @@ def test_key_pairs_create_exist_boto3():
     assert ex.value.response["Error"]["Code"] == "InvalidKeyPair.Duplicate"
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_delete_no_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
     client.delete_key_pair(KeyName=str(uuid4())[0:6])
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_delete_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
@@ -152,7 +152,7 @@ def test_key_pairs_delete_exist_boto3():
     ]
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "public_key,fingerprint",
     [
@@ -188,7 +188,7 @@ def test_key_pairs_import_boto3(public_key, fingerprint):
     assert kp1["KeyName"] in all_names
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_import_exist_boto3():
     client = boto3.client("ec2", "us-west-1")
 
@@ -207,7 +207,7 @@ def test_key_pairs_import_exist_boto3():
     assert ex.value.response["Error"]["Code"] == "InvalidKeyPair.Duplicate"
 
 
-@mock_ec2
+@mock_aws
 def test_key_pairs_invalid_boto3():
     client = boto3.client("ec2", "us-west-1")
 
@@ -233,7 +233,7 @@ def test_key_pairs_invalid_boto3():
     assert err["Message"] == "Key is not in valid OpenSSH public key format"
 
 
-@mock_ec2
+@mock_aws
 def test_key_pair_filters_boto3():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -256,7 +256,7 @@ def test_key_pair_filters_boto3():
     assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp3.name])
 
 
-@mock_ec2
+@mock_aws
 def test_key_pair_with_tags():
     client = boto3.client("ec2", "us-east-1")
 

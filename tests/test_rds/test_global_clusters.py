@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_rds
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
 
-@mock_rds
+@mock_aws
 def test_create_global_cluster__not_enough_parameters():
     client = boto3.client("rds", "us-east-1")
 
@@ -20,7 +20,7 @@ def test_create_global_cluster__not_enough_parameters():
     )
 
 
-@mock_rds
+@mock_aws
 def test_global_cluster_members():
     # WHEN create_global_cluster is called
     # AND create_db_cluster is called with GlobalClusterIdentifier set to the global cluster ARN
@@ -62,7 +62,7 @@ def test_global_cluster_members():
     assert global_cluster["GlobalClusterMembers"][0]["DBClusterArn"] == cluster_arn
 
 
-@mock_rds
+@mock_aws
 def test_create_global_cluster_from_regular_cluster():
     # WHEN create_db_cluster is called
     # AND create_global_cluster is called with SourceDBClusterIdentifier
@@ -92,7 +92,7 @@ def test_create_global_cluster_from_regular_cluster():
     assert global_cluster["GlobalClusterMembers"][0]["DBClusterArn"] == cluster_arn
 
 
-@mock_rds
+@mock_aws
 def test_create_global_cluster_from_regular_cluster_with_reader():
     east_client = boto3.client("rds", "eu-west-1")
     west_client = boto3.client("rds", "eu-west-2")
@@ -152,7 +152,7 @@ def test_create_global_cluster_from_regular_cluster_with_reader():
     assert not members[1]["IsWriter"]
 
 
-@mock_rds
+@mock_aws
 def test_create_global_cluster_from_regular_cluster__using_name():
     client = boto3.client("rds", "us-east-1")
 
@@ -165,7 +165,7 @@ def test_create_global_cluster_from_regular_cluster__using_name():
     assert err["Message"] == "Malformed db cluster arn dbci"
 
 
-@mock_rds
+@mock_aws
 def test_create_global_cluster_from_regular_cluster__and_specify_engine():
     client = boto3.client("rds", "us-east-1")
 
@@ -192,7 +192,7 @@ def test_create_global_cluster_from_regular_cluster__and_specify_engine():
     )
 
 
-@mock_rds
+@mock_aws
 def test_delete_non_global_cluster():
     # WHEN a global cluster contains a regular cluster
     # AND we attempt to delete the global cluster
@@ -229,7 +229,7 @@ def test_delete_non_global_cluster():
     assert client.describe_global_clusters()["GlobalClusters"] == []
 
 
-@mock_rds
+@mock_aws
 def test_remove_from_global_cluster():
     client = boto3.client("rds", "us-east-1")
 

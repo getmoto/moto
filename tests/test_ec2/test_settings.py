@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_disable_ebs_encryption_by_default():
     ec2 = boto3.client("ec2", "eu-central-1")
 
@@ -16,7 +16,7 @@ def test_disable_ebs_encryption_by_default():
     assert after_disable_response["EbsEncryptionByDefault"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_enable_ebs_encryption_by_default():
     ec2 = boto3.client("ec2", region_name="eu-central-1")
     response = ec2.enable_ebs_encryption_by_default()
@@ -25,7 +25,7 @@ def test_enable_ebs_encryption_by_default():
     assert response["EbsEncryptionByDefault"] is True
 
 
-@mock_ec2
+@mock_aws
 def test_get_ebs_encryption_by_default():
     ec2 = boto3.client("ec2", region_name="eu-west-1")
 
@@ -33,7 +33,7 @@ def test_get_ebs_encryption_by_default():
     assert response["EbsEncryptionByDefault"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_enable_ebs_encryption_by_default_region():
     ec2_eu = boto3.client("ec2", region_name="eu-central-1")
     ec2_eu.enable_ebs_encryption_by_default()

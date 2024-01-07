@@ -12,17 +12,6 @@
 meteringmarketplace
 ===================
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_meteringmarketplace
-            def test_meteringmarketplace_behaviour:
-                boto3.client("meteringmarketplace")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_meter_usage

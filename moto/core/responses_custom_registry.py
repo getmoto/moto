@@ -27,8 +27,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         return res
 
     def add(self, response: responses.BaseResponse) -> responses.BaseResponse:
-        if response not in self._registered[response.method]:
-            self._registered[response.method].append(response)
+        self._registered[response.method].append(response)
         return response
 
     def reset(self) -> None:
@@ -56,6 +55,15 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
             if type(m) is not CallbackResponse or m.callback != not_implemented_callback
         ]
         if implemented_matches:
+            # Prioritize responses.CallbackResponse
+            # Usecases:
+            #
+            #  - Callbacks created by APIGateway to intercept URL requests to *.execute-api.amazonaws.com
+            #
+            for match in implemented_matches:
+                if type(match) == responses.CallbackResponse:
+                    return match, match_failed_reasons
+            # Return moto.core.custom_responses_mock.CallbackResponse otherwise
             return implemented_matches[0], match_failed_reasons
         elif found:
             # We had matches, but all were of type not_implemented_callback

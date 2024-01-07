@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ssoadmin
+from moto import mock_aws
 from moto.iam.aws_managed_policies import aws_managed_policies_data
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -33,7 +33,7 @@ def create_permissionset(client) -> str:
     return response["PermissionSet"]["PermissionSetArn"]
 
 
-@mock_ssoadmin
+@mock_aws
 def test_put_inline_policy_to_permission_set():
     """
     Tests putting and getting an inline policy to a permission set.
@@ -81,7 +81,7 @@ def test_put_inline_policy_to_permission_set():
     assert err["Message"] == "Could not find PermissionSet with id ps-hhhhkkkkppppoxyz"
 
 
-@mock_ssoadmin
+@mock_aws
 def test_get_inline_policy_to_permission_set_no_policy():
     client = boto3.client("sso-admin", region_name="us-east-1")
 
@@ -95,7 +95,7 @@ def test_get_inline_policy_to_permission_set_no_policy():
     assert response["InlinePolicy"] == ""
 
 
-@mock_ssoadmin
+@mock_aws
 def test_delete_inline_policy_to_permissionset():
     client = boto3.client("sso-admin", region_name="us-east-1")
 
@@ -138,7 +138,7 @@ def test_delete_inline_policy_to_permissionset():
     assert response["InlinePolicy"] == ""
 
 
-@mock_ssoadmin
+@mock_aws
 def test_attach_managed_policy_to_permission_set():
     client = boto3.client("sso-admin", region_name="us-east-1")
 
@@ -193,7 +193,7 @@ def test_attach_managed_policy_to_permission_set():
     )
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_managed_policies_quota_limit(managed_policies):
     """
     Tests exceeding the managed policy quota limit.
@@ -231,7 +231,7 @@ def test_list_managed_policies_quota_limit(managed_policies):
     )
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_managed_policies_in_permission_set(managed_policies):
     """
     Tests functionality of listing aws managed policies attached to a permission set.
@@ -288,7 +288,7 @@ def test_list_managed_policies_in_permission_set(managed_policies):
     )
 
 
-@mock_ssoadmin
+@mock_aws
 def test_detach_managed_policy_from_permission_set():
     client = boto3.client("sso-admin", region_name="us-east-1")
     permission_set_arn = create_permissionset(client)
@@ -330,7 +330,7 @@ def test_detach_managed_policy_from_permission_set():
     assert len(response["AttachedManagedPolicies"]) == 0
 
 
-@mock_ssoadmin
+@mock_aws
 def test_attach_customer_managed_policy_reference_to_permission_set():
     client = boto3.client("sso-admin", region_name="us-east-1")
     permission_set_arn = create_permissionset(client)
@@ -374,7 +374,7 @@ def test_attach_customer_managed_policy_reference_to_permission_set():
     )
 
 
-@mock_ssoadmin
+@mock_aws
 def test_list_customer_managed_policy_references_in_permission_set():
     """
     Tests listing customer managed policies including pagination.
@@ -420,7 +420,7 @@ def test_list_customer_managed_policy_references_in_permission_set():
     assert len(set(customer_managed_policy_names)) == 3
 
 
-@mock_ssoadmin
+@mock_aws
 def test_detach_customer_managed_policy_reference_from_permission_set():
     client = boto3.client("sso-admin", region_name="us-east-1")
     permission_set_arn = create_permissionset(client)

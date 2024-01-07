@@ -1,17 +1,23 @@
 import json
+import unittest
 
 import pytest
 
-from moto import mock_s3
+from moto import mock_aws, settings
 from moto.core.exceptions import InvalidNextTokenException
 from moto.s3.config import s3_config_query
 from tests import DEFAULT_ACCOUNT_ID
 
-s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+# Integration tests would use `boto3.client("config").list_discovered_resources`
+# We're testing the backend here directly, because it is much quicker
 
 
-@mock_s3
+@mock_aws
 def test_s3_public_access_block_to_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise unittest.SkipTest("Not using boto3 - no point in testing server-mode")
+    s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+
     # With 1 bucket in us-west-2:
     s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
@@ -43,8 +49,12 @@ def test_s3_public_access_block_to_config_dict():
     )
 
 
-@mock_s3
+@mock_aws
 def test_list_config_discovered_resources():
+    if not settings.TEST_DECORATOR_MODE:
+        raise unittest.SkipTest("Not using boto3 - no point in testing server-mode")
+    s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+
     # Without any buckets:
     assert s3_config_query.list_config_service_resources(
         "global", "global", None, None, 100, None
@@ -138,8 +148,12 @@ def test_list_config_discovered_resources():
     assert "The nextToken provided is invalid" in inte.value.message
 
 
-@mock_s3
+@mock_aws
 def test_s3_lifecycle_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise unittest.SkipTest("Not using boto3 - no point in testing server-mode")
+    s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+
     # With 1 bucket in us-west-2:
     s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
@@ -278,8 +292,12 @@ def test_s3_lifecycle_config_dict():
     }
 
 
-@mock_s3
+@mock_aws
 def test_s3_notification_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise unittest.SkipTest("Not using boto3 - no point in testing server-mode")
+    s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+
     # With 1 bucket in us-west-2:
     s3_config_query_backend.create_bucket("bucket1", "us-west-2")
 
@@ -375,8 +393,12 @@ def test_s3_notification_config_dict():
     }
 
 
-@mock_s3
+@mock_aws
 def test_s3_acl_to_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise unittest.SkipTest("Not using boto3 - no point in testing server-mode")
+    s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+
     from moto.s3.models import OWNER, FakeAcl, FakeGrant, FakeGrantee
 
     # With 1 bucket in us-west-2:
@@ -446,8 +468,12 @@ def test_s3_acl_to_config_dict():
     }
 
 
-@mock_s3
+@mock_aws
 def test_s3_config_dict():
+    if not settings.TEST_DECORATOR_MODE:
+        raise unittest.SkipTest("Not using boto3 - no point in testing server-mode")
+    s3_config_query_backend = s3_config_query.backends[DEFAULT_ACCOUNT_ID]["global"]
+
     from moto.s3.models import OWNER, FakeAcl, FakeGrant, FakeGrantee
 
     # Without any buckets:

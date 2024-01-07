@@ -12,17 +12,6 @@
 dax
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_dax
-            def test_dax_behaviour:
-                boto3.client("dax")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_cluster

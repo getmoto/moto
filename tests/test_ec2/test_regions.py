@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_autoscaling, mock_ec2, mock_elb
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 from .test_instances import retrieve_all_instances
@@ -15,7 +15,7 @@ def add_servers_to_region_boto3(ami_id, count, region):
     return ec2.create_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
 
 
-@mock_ec2
+@mock_aws
 def test_add_servers_to_a_single_region_boto3():
     region = "ap-northeast-1"
     id_1 = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region)[0].id
@@ -30,7 +30,7 @@ def test_add_servers_to_a_single_region_boto3():
     assert instance2["ImageId"] == EXAMPLE_AMI_ID2
 
 
-@mock_ec2
+@mock_aws
 def test_add_servers_to_multiple_regions_boto3():
     region1 = "us-east-1"
     region2 = "ap-northeast-1"
@@ -57,9 +57,7 @@ def test_add_servers_to_multiple_regions_boto3():
     assert ap_instance["ImageId"] == EXAMPLE_AMI_ID2
 
 
-@mock_autoscaling
-@mock_elb
-@mock_ec2
+@mock_aws
 def test_create_autoscaling_group_boto3():
     regions = [("us-east-1", "c"), ("ap-northeast-1", "a")]
     for region, zone in regions:
@@ -125,7 +123,7 @@ def test_create_autoscaling_group_boto3():
         assert group["TerminationPolicies"] == ["OldestInstance", "NewestInstance"]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_regions_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -139,7 +137,7 @@ def test_describe_regions_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "region_name", ["us-east-1", "us-east-2", "us-west-1", "us-west-2"]
 )

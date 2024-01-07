@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_launch_template_create():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -51,7 +51,7 @@ def test_launch_template_create():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_launch_template__dryrun():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -74,7 +74,7 @@ def test_create_launch_template__dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions():
     template_data = {
         "ImageId": "ami-abc123",
@@ -126,7 +126,7 @@ def test_describe_launch_template_versions():
     assert templ == template_data
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions_by_name_when_absent():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -148,7 +148,7 @@ def test_describe_launch_template_versions_by_name_when_absent():
     assert resp["LaunchTemplateVersions"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_launch_template_version():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -173,7 +173,7 @@ def test_create_launch_template_version():
     assert version["VersionNumber"] == 2
 
 
-@mock_ec2
+@mock_aws
 def test_create_launch_template_version__dryrun():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -197,7 +197,7 @@ def test_create_launch_template_version__dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_launch_template_version_by_id():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -222,7 +222,7 @@ def test_create_launch_template_version_by_id():
     assert version["VersionNumber"] == 2
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions_with_multiple_versions():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -250,7 +250,7 @@ def test_describe_launch_template_versions_with_multiple_versions():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions_with_versions_option():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -286,7 +286,7 @@ def test_describe_launch_template_versions_with_versions_option():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions_with_min():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -322,7 +322,7 @@ def test_describe_launch_template_versions_with_min():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions_with_max():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -358,7 +358,7 @@ def test_describe_launch_template_versions_with_max():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_template_versions_with_min_and_max():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -400,7 +400,7 @@ def test_describe_launch_template_versions_with_min_and_max():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_templates_with_non_existent_name():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -415,7 +415,7 @@ def test_describe_launch_templates_with_non_existent_name():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_templates():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -458,7 +458,7 @@ def test_describe_launch_templates():
     assert resp["LaunchTemplates"][1]["LaunchTemplateName"] == template_name2
 
 
-@mock_ec2
+@mock_aws
 def test_describe_launch_templates_with_filters():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -496,7 +496,7 @@ def test_describe_launch_templates_with_filters():
     assert resp["LaunchTemplates"][0]["LaunchTemplateName"] == template_name_no_tags
 
 
-@mock_ec2
+@mock_aws
 def test_create_launch_template_with_tag_spec():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -522,7 +522,7 @@ def test_create_launch_template_with_tag_spec():
     }
 
 
-@mock_ec2
+@mock_aws
 def test_get_launch_template_data():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -544,7 +544,7 @@ def test_get_launch_template_data():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_delete_launch_template__dryrun():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -586,7 +586,7 @@ def test_delete_launch_template__dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_delete_launch_template__by_name():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -624,7 +624,7 @@ def test_delete_launch_template__by_name():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_delete_launch_template__by_id():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -681,7 +681,7 @@ def retrieve_all_templates(client, filters=[]):  # pylint: disable=W0102
     return all_templates
 
 
-@mock_ec2
+@mock_aws
 def test_launch_template_create_with_tags():
     cli = boto3.client("ec2", region_name="us-east-1")
 
@@ -714,7 +714,7 @@ def test_launch_template_create_with_tags():
     assert lt["Tags"][0] == {"Key": "test1", "Value": "value1"}
 
 
-@mock_ec2
+@mock_aws
 def test_launch_template_describe_with_tags():
     cli = boto3.client("ec2", region_name="us-east-1")
 

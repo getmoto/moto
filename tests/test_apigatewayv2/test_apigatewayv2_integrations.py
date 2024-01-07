@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integrations_empty():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -14,7 +14,7 @@ def test_get_integrations_empty():
     assert resp["Items"] == []
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_integration_minimum():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -25,7 +25,7 @@ def test_create_integration_minimum():
     assert resp["IntegrationType"] == "HTTP"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_integration_for_internet_mock():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -42,7 +42,7 @@ def test_create_integration_for_internet_mock():
     )
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_integration_full():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -86,7 +86,7 @@ def test_create_integration_full():
     assert resp["TlsConfig"] == {"ServerNameToVerify": "server"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integration():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -101,7 +101,7 @@ def test_get_integration():
     assert resp["IntegrationType"] == "HTTP"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integration_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -113,7 +113,7 @@ def test_get_integration_unknown():
     assert err["Message"] == "Invalid Integration identifier specified unknown"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_integrations():
     client = boto3.client("apigatewayv2", region_name="us-east-2")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -127,7 +127,7 @@ def test_get_integrations():
     assert resp["Items"][0]["IntegrationId"] == integration_id
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_integration():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -144,7 +144,7 @@ def test_delete_integration():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_integration_single_attr():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -192,7 +192,7 @@ def test_update_integration_single_attr():
     assert resp["TlsConfig"] == {"ServerNameToVerify": "server"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_integration_all_attrs():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -247,7 +247,7 @@ def test_update_integration_all_attrs():
     assert resp["TlsConfig"] == {"ServerNameToVerify": "server"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_integration_request_parameters():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]

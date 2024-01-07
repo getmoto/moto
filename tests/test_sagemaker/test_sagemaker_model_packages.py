@@ -1,4 +1,3 @@
-"""Unit tests for sagemaker-supported APIs."""
 from datetime import datetime
 from unittest import SkipTest, TestCase
 
@@ -8,7 +7,7 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzutc  # type: ignore
 from freezegun import freeze_time
 
-from moto import mock_sagemaker, settings
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -17,7 +16,7 @@ from moto.sagemaker.models import ModelPackage
 from moto.sagemaker.utils import validate_model_approval_status
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -52,7 +51,7 @@ def test_list_model_packages():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_creation_time_before():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -72,7 +71,7 @@ def test_list_model_packages_creation_time_before():
     assert len(resp["ModelPackageSummaryList"]) == 1
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_creation_time_after():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -92,7 +91,7 @@ def test_list_model_packages_creation_time_after():
     assert len(resp["ModelPackageSummaryList"]) == 1
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_name_contains():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -112,7 +111,7 @@ def test_list_model_packages_name_contains():
     assert len(resp["ModelPackageSummaryList"]) == 2
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_approval_status():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -130,7 +129,7 @@ def test_list_model_packages_approval_status():
     assert len(resp["ModelPackageSummaryList"]) == 1
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_model_package_group_name():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     group1 = "test-model-package-group"
@@ -166,7 +165,7 @@ def test_list_model_packages_model_package_group_name():
     assert "NextToken" not in resp
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_model_package_type():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
@@ -183,7 +182,7 @@ def test_list_model_packages_model_package_type():
     assert len(resp["ModelPackageSummaryList"]) == 1
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_sort_by():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -204,7 +203,7 @@ def test_list_model_packages_sort_by():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_packages_sort_order():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -225,7 +224,7 @@ def test_list_model_packages_sort_order():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_describe_model_package_default():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -267,7 +266,7 @@ def test_describe_model_package_default():
     assert resp["CertifyForMarketplace"] is False
 
 
-@mock_sagemaker
+@mock_aws
 def test_describe_model_package_with_create_model_package_arguments():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package(
@@ -293,7 +292,7 @@ def test_describe_model_package_with_create_model_package_arguments():
     assert resp["MetadataProperties"]["Repository"] == "test-repo"
 
 
-@mock_sagemaker
+@mock_aws
 def test_update_model_package():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
@@ -319,7 +318,7 @@ def test_update_model_package():
     assert resp["CustomerMetadataProperties"].get("test-key-to-remove") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_update_model_package_given_additional_inference_specifications_to_add():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
@@ -367,7 +366,7 @@ def test_update_model_package_given_additional_inference_specifications_to_add()
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_update_model_package_should_update_last_modified_information():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -409,7 +408,7 @@ def test_validate_supported_realtime_inference_instance_types_should_raise_error
     assert "not-a-supported-realtime-inference-instances-types" in str(exc.value)
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_model_package():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     resp = client.create_model_package(
@@ -422,7 +421,7 @@ def test_create_model_package():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_model_package_should_raise_error_when_model_package_group_name_and_model_package_group_name_are_not_provided():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -432,7 +431,7 @@ def test_create_model_package_should_raise_error_when_model_package_group_name_a
     assert "Missing ARN." in str(exc.value)
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_model_package_should_raise_error_when_package_name_and_group_are_provided():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -447,7 +446,7 @@ def test_create_model_package_should_raise_error_when_package_name_and_group_are
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_model_package_should_raise_error_when_model_package_group_provided_not_exist():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -479,7 +478,7 @@ def test_utils_validate_model_approval_status_should_raise_error_if_model_approv
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_model_package_in_model_package_group():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")

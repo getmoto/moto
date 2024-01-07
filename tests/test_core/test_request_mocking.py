@@ -2,10 +2,10 @@ import boto3
 import pytest
 import requests
 
-from moto import mock_s3, mock_sqs, mock_sts, settings
+from moto import mock_aws, settings
 
 
-@mock_sqs
+@mock_aws
 @pytest.mark.network
 def test_passthrough_requests() -> None:
     conn = boto3.client("sqs", region_name="us-west-1")
@@ -17,15 +17,14 @@ def test_passthrough_requests() -> None:
 
 if not settings.TEST_SERVER_MODE:
 
-    @mock_sqs
+    @mock_aws
     def test_requests_to_amazon_subdomains_dont_work() -> None:
         res = requests.get("https://fakeservice.amazonaws.com/foo/bar")
         assert res.content == b"The method is not implemented"
         assert res.status_code == 400
 
 
-@mock_sts
-@mock_s3
+@mock_aws
 def test_decorator_ordering() -> None:
     """
     https://github.com/getmoto/moto/issues/3790#issuecomment-803979809
@@ -48,4 +47,4 @@ def test_decorator_ordering() -> None:
     )
 
     resp = requests.get(presigned_url)
-    assert resp.status_code == 200  # type: ignore[attr-defined]
+    assert resp.status_code == 200

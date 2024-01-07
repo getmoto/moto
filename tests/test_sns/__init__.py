@@ -5,7 +5,7 @@ from unittest import SkipTest
 import boto3
 import botocore
 
-from moto import mock_sns, mock_sts
+from moto import mock_aws
 
 
 def sns_aws_verified(func):
@@ -14,7 +14,7 @@ def sns_aws_verified(func):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_ses` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
     """
 
     @wraps(func)
@@ -43,7 +43,7 @@ def sns_aws_verified(func):
                 # https://stackoverflow.com/a/75896532/13245310
                 raise SkipTest("Can't execute SNS tests without Firebase API key")
         else:
-            with mock_sns(), mock_sts():
+            with mock_aws():
                 resp = func("mock_api_key")
         return resp
 

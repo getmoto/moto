@@ -1,4 +1,3 @@
-"""Test different server responses."""
 import re
 import threading
 import time

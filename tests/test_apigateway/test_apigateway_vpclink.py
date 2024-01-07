@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 
-@mock_apigateway
+@mock_aws
 def test_get_vpc_links_empty():
     client = boto3.client("apigateway", region_name="eu-west-1")
 
@@ -13,7 +13,7 @@ def test_get_vpc_links_empty():
     assert resp["items"] == []
 
 
-@mock_apigateway
+@mock_aws
 def test_create_vpc_link():
     client = boto3.client("apigateway", region_name="eu-west-1")
 
@@ -32,7 +32,7 @@ def test_create_vpc_link():
     assert resp["tags"] == {"key1": "value1"}
 
 
-@mock_apigateway
+@mock_aws
 def test_get_vpc_link():
     client = boto3.client("apigateway", region_name="eu-west-1")
 
@@ -53,7 +53,7 @@ def test_get_vpc_link():
     assert resp["tags"] == {"key1": "value1"}
 
 
-@mock_apigateway
+@mock_aws
 def test_get_vpc_link_unknown():
     client = boto3.client("apigateway", region_name="ap-southeast-1")
 
@@ -64,7 +64,7 @@ def test_get_vpc_link_unknown():
     assert err["Message"] == "VPCLink not found"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_vpc_links():
     client = boto3.client("apigateway", region_name="eu-west-1")
 
@@ -90,7 +90,7 @@ def test_get_vpc_links():
     assert len(links) == 2
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_vpc_link():
     client = boto3.client("apigateway", region_name="eu-north-1")
 

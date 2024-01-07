@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .test_instances import retrieve_all_instances
 
 
-@mock_ec2
+@mock_aws
 def test_instance_create_tags():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -33,7 +33,7 @@ def test_instance_create_tags():
     assert ours["Tags"] == [{"Key": "a key", "Value": "some value"}]
 
 
-@mock_ec2
+@mock_aws
 def test_instance_delete_tags():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -68,7 +68,7 @@ def test_instance_delete_tags():
     assert len(client.describe_tags(Filters=instance_filters)["Tags"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_get_all_tags_with_special_characters():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -84,7 +84,7 @@ def test_get_all_tags_with_special_characters():
     assert tag["Value"] == "some<> value"
 
 
-@mock_ec2
+@mock_aws
 def test_create_tags():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -118,7 +118,7 @@ def test_create_tags():
         } in tags
 
 
-@mock_ec2
+@mock_aws
 def test_tag_limit_exceeded():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -148,7 +148,7 @@ def test_tag_limit_exceeded():
     assert tags[0]["Value"] == "a value"
 
 
-@mock_ec2
+@mock_aws
 def test_invalid_id():
     client = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -168,7 +168,7 @@ def test_invalid_id():
     assert ex.value.response["Error"]["Code"] == "InvalidID"
 
 
-@mock_ec2
+@mock_aws
 def test_get_all_tags_resource_filter():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -220,7 +220,7 @@ def test_get_all_tags_resource_filter():
     assert tags == []
 
 
-@mock_ec2
+@mock_aws
 def test_get_all_tags_value_filter():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -258,7 +258,7 @@ def test_get_all_tags_value_filter():
     filter_by_value(r"*value\*\?", [instance_e.id])
 
 
-@mock_ec2
+@mock_aws
 def test_retrieved_instances_must_contain_their_tags():
     tag_key = "Tag name"
     tag_value = "Tag value"
@@ -284,7 +284,7 @@ def test_retrieved_instances_must_contain_their_tags():
     assert retrieved_tags == [{"Key": tag_key, "Value": tag_value}]
 
 
-@mock_ec2
+@mock_aws
 def test_retrieved_volumes_must_contain_their_tags():
     tag_key = "Tag name"
     tag_value = "Tag value"
@@ -301,7 +301,7 @@ def test_retrieved_volumes_must_contain_their_tags():
     assert volume.tags == [{"Key": tag_key, "Value": tag_value}]
 
 
-@mock_ec2
+@mock_aws
 def test_retrieved_snapshots_must_contain_their_tags():
     tag_key = "Tag name"
     tag_value = "Tag value"
@@ -318,7 +318,7 @@ def test_retrieved_snapshots_must_contain_their_tags():
     assert snapshot["Tags"] == [{"Key": tag_key, "Value": tag_value}]
 
 
-@mock_ec2
+@mock_aws
 def test_filter_instances_by_wildcard_tags():
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client = boto3.client("ec2", region_name="eu-west-1")
@@ -348,7 +348,7 @@ def test_filter_instances_by_wildcard_tags():
     assert len(res["Reservations"][0]["Instances"]) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_with_tags():
     client = boto3.client("ec2", "us-west-2")
     response = client.create_volume(
@@ -366,7 +366,7 @@ def test_create_volume_with_tags():
     assert response["Tags"][0]["Key"] == "TEST_TAG"
 
 
-@mock_ec2
+@mock_aws
 def test_create_snapshot_with_tags():
     client = boto3.client("ec2", "us-west-2")
     volume_id = client.create_volume(
@@ -395,7 +395,7 @@ def test_create_snapshot_with_tags():
     assert snapshot["Tags"] == expected_tags
 
 
-@mock_ec2
+@mock_aws
 def test_create_volume_without_tags():
     client = boto3.client("ec2", "us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -415,7 +415,7 @@ def test_create_volume_without_tags():
     assert err["Message"] == "Tag specification must have at least one tag"
 
 
-@mock_ec2
+@mock_aws
 def test_create_tag_empty_resource():
     # create ec2 client in us-west-1
     client = boto3.client("ec2", region_name="us-west-1")
@@ -429,7 +429,7 @@ def test_create_tag_empty_resource():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_delete_tag_empty_resource():
     # create ec2 client in us-west-1
     client = boto3.client("ec2", region_name="us-west-1")
@@ -443,7 +443,7 @@ def test_delete_tag_empty_resource():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_retrieve_resource_with_multiple_tags():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     blue, green = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
@@ -469,7 +469,7 @@ def test_retrieve_resource_with_multiple_tags():
     assert blue_instances == [blue]
 
 
-@mock_ec2
+@mock_aws
 def test_ec2_validate_subnet_tags():
     client = boto3.client("ec2", region_name="us-west-1")
 

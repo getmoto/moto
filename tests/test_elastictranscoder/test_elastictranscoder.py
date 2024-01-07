@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_elastictranscoder
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_simple_pipeline():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -44,7 +44,7 @@ def test_create_simple_pipeline():
     assert response["Warnings"] == []
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_pipeline_with_content_config():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -81,7 +81,7 @@ def test_create_pipeline_with_content_config():
     assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_pipeline_with_outputbucket_and_content_config():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -100,7 +100,7 @@ def test_create_pipeline_with_outputbucket_and_content_config():
     assert err["Message"] == "[OutputBucket and ContentConfig are mutually exclusive.]"
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_pipeline_without_thumbnail_config():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -121,7 +121,7 @@ def test_create_pipeline_without_thumbnail_config():
     )
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_pipeline_without_role():
     client = boto3.client("elastictranscoder", region_name="us-east-1")
 
@@ -132,7 +132,7 @@ def test_create_pipeline_without_role():
     assert err["Message"] == "Role cannot be blank"
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_pipeline_with_invalid_role():
     client = boto3.client("elastictranscoder", region_name="us-east-1")
 
@@ -145,7 +145,7 @@ def test_create_pipeline_with_invalid_role():
     assert err["Message"] == "Role ARN is invalid: asdf"
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_create_pipeline_without_output():
     client = boto3.client("elastictranscoder", region_name="us-east-1")
 
@@ -163,7 +163,7 @@ def test_create_pipeline_without_output():
     )
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_list_pipelines():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -202,7 +202,7 @@ def test_list_pipelines():
     assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_read_pipeline():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -241,7 +241,7 @@ def test_read_pipeline():
     assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_read_unknown_pipeline_format():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -256,7 +256,7 @@ def test_read_unknown_pipeline_format():
     )
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_read_nonexisting_pipeline_format():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -272,7 +272,7 @@ def test_read_nonexisting_pipeline_format():
     )
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_update_pipeline_name():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -310,7 +310,7 @@ def test_update_pipeline_name():
     assert pipeline["ThumbnailConfig"]["Permissions"] == []
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_update_pipeline_input_and_role():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -336,7 +336,7 @@ def test_update_pipeline_input_and_role():
     assert pipeline["Role"] == newrole
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_update_pipeline_with_invalid_id():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -351,7 +351,7 @@ def test_update_pipeline_with_invalid_id():
     )
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_update_nonexisting_pipeline():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)
@@ -367,7 +367,7 @@ def test_update_nonexisting_pipeline():
     )
 
 
-@mock_elastictranscoder
+@mock_aws
 def test_delete_pipeline():
     region = "us-east-1"
     client = boto3.client("elastictranscoder", region_name=region)

@@ -5,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 
 
 def create_vpx_pcx(ec2, client):
@@ -16,7 +16,7 @@ def create_vpx_pcx(ec2, client):
     return vpc_pcx
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_peering_connections_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -27,7 +27,7 @@ def test_vpc_peering_connections_boto3():
     assert vpc_pcx["Status"]["Code"] == "initiating-request"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_peering_connections_get_all_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -45,7 +45,7 @@ def test_vpc_peering_connections_get_all_boto3():
     assert my_vpc_pcx["Status"]["Message"] == "Pending Acceptance by 123456789012"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_peering_connections_accept_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -69,7 +69,7 @@ def test_vpc_peering_connections_accept_boto3():
     assert my_vpc_pcxs[0]["Status"]["Code"] == "active"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_peering_connections_reject_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -91,7 +91,7 @@ def test_vpc_peering_connections_reject_boto3():
     assert my_pcxs[0]["Status"]["Code"] == "rejected"
 
 
-@mock_ec2
+@mock_aws
 def test_vpc_peering_connections_delete_boto3():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", region_name="us-east-1")
@@ -117,7 +117,7 @@ def test_vpc_peering_connections_delete_boto3():
     )
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -207,7 +207,7 @@ def test_vpc_peering_connections_cross_region(account1, account2):
     assert requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -259,7 +259,7 @@ def test_modify_vpc_peering_connections_accepter_only(account1, account2):
     assert requester_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -311,7 +311,7 @@ def test_modify_vpc_peering_connections_requester_only(account1, account2):
     assert accepter_options["AllowEgressFromLocalVpcToRemoteClassicLink"] is False
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -352,7 +352,7 @@ def test_modify_vpc_peering_connections_unknown_vpc(account1, account2):
     assert err["Message"] == "VpcPeeringConnectionID vpx-unknown does not exist."
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -385,7 +385,7 @@ def test_vpc_peering_connections_cross_region_fail(account1, account2):
     assert cm.value.response["Error"]["Code"] == "InvalidVpcID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -440,7 +440,7 @@ def test_describe_vpc_peering_connections_only_returns_requested_id(account1, ac
         assert len(one_pcx) == 1
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -515,7 +515,7 @@ def test_vpc_peering_connections_cross_region_accept(account1, account2):
     )
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -565,7 +565,7 @@ def test_vpc_peering_connections_cross_region_reject(account1, account2):
     assert des_pcx_usw1["VpcPeeringConnections"][0]["Status"]["Code"] == "rejected"
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -625,7 +625,7 @@ def test_vpc_peering_connections_cross_region_delete(account1, account2):
     )
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [
@@ -684,7 +684,7 @@ def test_vpc_peering_connections_cross_region_accept_wrong_region(account1, acco
         assert cm.value.response["Error"]["Message"] == exp_msg
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "account1,account2",
     [

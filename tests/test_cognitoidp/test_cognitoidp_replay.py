@@ -7,11 +7,11 @@ import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_cognitoidp, settings
+from moto import mock_aws, settings
 from moto.moto_api import recorder
 
 
-@mock_cognitoidp
+@mock_aws
 class TestCreateUserPoolWithPredeterminedID(TestCase):
     def _reset_recording(self):
         if settings.TEST_SERVER_MODE:

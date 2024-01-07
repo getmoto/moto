@@ -1,10 +1,9 @@
 import boto3
 
-from moto import mock_ec2, mock_elbv2
+from moto import mock_aws
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_set_subnets_errors():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -40,8 +39,7 @@ def test_set_subnets_errors():
     assert len(resp["LoadBalancers"][0]["AvailabilityZones"]) == 3
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_set_subnets__mapping():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

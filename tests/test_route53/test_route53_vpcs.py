@@ -2,11 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_route53
+from moto import mock_aws
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_hosted_zone_private_zone_preserved():
     # Create mock VPC so we can get a VPC ID
     region = "us-east-1"
@@ -63,8 +62,7 @@ def test_hosted_zone_private_zone_preserved():
     assert hosted_zones["HostedZones"][0]["Name"] == zone2_name
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
     # Create mock VPC so we can get a VPC ID
     ec2c = boto3.client("ec2", region_name="us-east-1")
@@ -96,8 +94,7 @@ def test_list_hosted_zones_by_vpc_with_multiple_vpcs():
         assert summary["Name"] == zones[index]["HostedZone"]["Name"]
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_list_hosted_zones_by_vpc():
     # Create mock VPC so we can get a VPC ID
     ec2c = boto3.client("ec2", region_name="us-east-1")
@@ -120,8 +117,7 @@ def test_list_hosted_zones_by_vpc():
     assert returned_zone["Name"] == zone_b["HostedZone"]["Name"]
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_route53_associate_vpc():
     ec2c = boto3.client("ec2", region_name="us-east-1")
     vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]["VpcId"]
@@ -141,8 +137,7 @@ def test_route53_associate_vpc():
     assert resp["ChangeInfo"]["Comment"] == "yolo"
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_route53_associate_vpc_with_public_Zone():
     ec2c = boto3.client("ec2", region_name="us-east-1")
     vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]["VpcId"]
@@ -167,8 +162,7 @@ def test_route53_associate_vpc_with_public_Zone():
     )
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_route53_associate_and_disassociate_vpc():
     ec2c = boto3.client("ec2", region_name="us-east-1")
     vpc_id1 = ec2c.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc").get("VpcId")
@@ -201,8 +195,7 @@ def test_route53_associate_and_disassociate_vpc():
     assert {"VPCRegion": region, "VPCId": vpc_id2} in zone_vpcs
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_route53_disassociate_last_vpc():
     ec2c = boto3.client("ec2", region_name="us-east-1")
     vpc_id = ec2c.create_vpc(CidrBlock="10.1.0.0/16")["Vpc"]["VpcId"]

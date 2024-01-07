@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb
+from moto import mock_aws
 
 
 def _create_user_table():
@@ -25,7 +25,7 @@ def _create_user_table():
     return client
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_returns_all():
     dynamodb = _create_user_table()
     returned_items = dynamodb.batch_get_item(
@@ -47,7 +47,7 @@ def test_batch_items_returns_all():
     assert {"username": {"S": "user3"}, "foo": {"S": "bar"}} in returned_items
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_throws_exception_when_requesting_100_items_for_single_table():
     dynamodb = _create_user_table()
     with pytest.raises(ClientError) as ex:
@@ -69,7 +69,7 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_throws_exception_when_requesting_100_items_across_all_tables():
     dynamodb = _create_user_table()
     with pytest.raises(ClientError) as ex:
@@ -94,7 +94,7 @@ def test_batch_items_throws_exception_when_requesting_100_items_across_all_table
     assert err["Message"] == "Too many items requested for the BatchGetItem call"
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_with_basic_projection_expression():
     dynamodb = _create_user_table()
     returned_items = dynamodb.batch_get_item(
@@ -141,7 +141,7 @@ def test_batch_items_with_basic_projection_expression():
     assert {"username": {"S": "user3"}, "foo": {"S": "bar"}} in returned_items
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_with_basic_projection_expression_and_attr_expression_names():
     dynamodb = _create_user_table()
     returned_items = dynamodb.batch_get_item(
@@ -166,7 +166,7 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
     assert {"username": {"S": "user3"}} in returned_items
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_should_throw_exception_for_duplicate_request():
     client = _create_user_table()
     with pytest.raises(ClientError) as ex:
@@ -186,7 +186,7 @@ def test_batch_items_should_throw_exception_for_duplicate_request():
     assert err["Message"] == "Provided list of item keys contains duplicates"
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_items_should_return_16mb_max():
     """
     A single operation can retrieve up to 16 MB of data [...]. BatchGetItem returns a partial result if the response size limit is exceeded [..].

@@ -4,12 +4,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_s3
+from moto import mock_aws
 
 DEFAULT_REGION_NAME = "us-east-1"
 
 
-@mock_s3
+@mock_aws
 def test_get_bucket_replication_for_unexisting_bucket():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -21,7 +21,7 @@ def test_get_bucket_replication_for_unexisting_bucket():
     assert err["BucketName"] == bucket_name
 
 
-@mock_s3
+@mock_aws
 def test_get_bucket_replication_bucket_without_replication():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -35,7 +35,7 @@ def test_get_bucket_replication_bucket_without_replication():
     assert err["BucketName"] == bucket_name
 
 
-@mock_s3
+@mock_aws
 def test_delete_bucket_replication_unknown_bucket():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -47,7 +47,7 @@ def test_delete_bucket_replication_unknown_bucket():
     assert err["BucketName"] == bucket_name
 
 
-@mock_s3
+@mock_aws
 def test_delete_bucket_replication_bucket_without_replication():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -57,7 +57,7 @@ def test_delete_bucket_replication_bucket_without_replication():
     s3_client.delete_bucket_replication(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_create_replication_without_versioning():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -81,7 +81,7 @@ def test_create_replication_without_versioning():
     assert err["BucketName"] == bucket_name
 
 
-@mock_s3
+@mock_aws
 def test_create_and_retrieve_replication_with_single_rules():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -133,7 +133,7 @@ def test_create_and_retrieve_replication_with_single_rules():
     assert err["BucketName"] == bucket_name
 
 
-@mock_s3
+@mock_aws
 def test_create_and_retrieve_replication_with_multiple_rules():
     bucket_name = str(uuid4())
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

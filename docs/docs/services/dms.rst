@@ -12,17 +12,6 @@
 dms
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_dms
-            def test_dms_behaviour:
-                boto3.client("dms")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_tags_to_resource

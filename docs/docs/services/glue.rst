@@ -12,17 +12,6 @@
 glue
 ====
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_glue
-            def test_glue_behaviour:
-                boto3.client("glue")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_create_partition

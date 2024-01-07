@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_mediaconnect
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "eu-west-1"
@@ -71,7 +71,7 @@ def _check_mediaconnect_arn(type_, arn, name):
     assert _arn_list[-1] == name
 
 
-@mock_mediaconnect
+@mock_aws
 def test_create_flow_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -93,7 +93,7 @@ def test_create_flow_succeeds():
     )
 
 
-@mock_mediaconnect
+@mock_aws
 def test_create_flow_alternative_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config(
@@ -123,7 +123,7 @@ def test_create_flow_alternative_succeeds():
     )
 
 
-@mock_mediaconnect
+@mock_aws
 def test_list_flows_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     flow_1_config = _create_flow_config("test-Flow-1")
@@ -146,7 +146,7 @@ def test_list_flows_succeeds():
     assert response["Flows"][1]["Status"] == "STANDBY"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_describe_flow_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -159,7 +159,7 @@ def test_describe_flow_succeeds():
     assert describe_response["Flow"]["Name"] == "test-Flow-1"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_delete_flow_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -173,7 +173,7 @@ def test_delete_flow_succeeds():
     assert delete_response["Status"] == "STANDBY"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_start_stop_flow_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -202,7 +202,7 @@ def test_start_stop_flow_succeeds():
     assert describe_response["Flow"]["Status"] == "STANDBY"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_unknown_flow():
     client = boto3.client("mediaconnect", region_name=region)
 
@@ -227,7 +227,7 @@ def test_unknown_flow():
     assert exc.value.response["Error"]["Code"] == "NotFoundException"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_tag_resource_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
 
@@ -239,7 +239,7 @@ def test_tag_resource_succeeds():
     assert list_response["Tags"] == {"Tag1": "Value1"}
 
 
-@mock_mediaconnect
+@mock_aws
 def test_add_flow_vpc_interfaces_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -273,7 +273,7 @@ def test_add_flow_vpc_interfaces_succeeds():
     ]
 
 
-@mock_mediaconnect
+@mock_aws
 def test_add_flow_vpc_interfaces_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -284,7 +284,7 @@ def test_add_flow_vpc_interfaces_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_remove_flow_vpc_interface_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -316,7 +316,7 @@ def test_remove_flow_vpc_interface_succeeds():
     assert len(describe_response["Flow"]["VpcInterfaces"]) == 0
 
 
-@mock_mediaconnect
+@mock_aws
 def test_remove_flow_vpc_interface_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -329,7 +329,7 @@ def test_remove_flow_vpc_interface_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_add_flow_outputs_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -352,7 +352,7 @@ def test_add_flow_outputs_succeeds():
     assert outputs == [{"Description": "string", "Name": "string", "Port": 123}]
 
 
-@mock_mediaconnect
+@mock_aws
 def test_add_flow_outputs_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -363,7 +363,7 @@ def test_add_flow_outputs_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_update_flow_output_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -380,7 +380,7 @@ def test_update_flow_output_succeeds():
     assert update_response["Output"]["Description"] == "new description"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_update_flow_output_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -395,7 +395,7 @@ def test_update_flow_output_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_remove_flow_output_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -407,7 +407,7 @@ def test_remove_flow_output_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_remove_flow_output_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -434,7 +434,7 @@ def test_remove_flow_output_succeeds():
     assert len(describe_response["Flow"]["Outputs"]) == 0
 
 
-@mock_mediaconnect
+@mock_aws
 def test_add_flow_sources_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -445,7 +445,7 @@ def test_add_flow_sources_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_add_flow_sources_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -472,7 +472,7 @@ def test_add_flow_sources_succeeds():
     assert len(describe_response["Flow"]["Sources"]) == 1
 
 
-@mock_mediaconnect
+@mock_aws
 def test_update_flow_source_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -490,7 +490,7 @@ def test_update_flow_source_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_update_flow_source_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -524,7 +524,7 @@ def test_update_flow_source_succeeds():
     assert update_response["Source"]["Description"] == "new description"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_grant_flow_entitlements_fails():
     client = boto3.client("mediaconnect", region_name=region)
     flow_arn = "unknown-flow"
@@ -551,7 +551,7 @@ def test_grant_flow_entitlements_fails():
     assert err["Message"] == "flow with arn=unknown-flow not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_grant_flow_entitlements_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -594,7 +594,7 @@ def test_grant_flow_entitlements_succeeds():
     assert "Entitlement-C" in entitlement_names
 
 
-@mock_mediaconnect
+@mock_aws
 def test_revoke_flow_entitlement_fails():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -617,7 +617,7 @@ def test_revoke_flow_entitlement_fails():
     assert err["Message"] == "entitlement with arn=some-other-arn not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_revoke_flow_entitlement_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -642,7 +642,7 @@ def test_revoke_flow_entitlement_succeeds():
     assert len(describe_response["Flow"]["Entitlements"]) == 0
 
 
-@mock_mediaconnect
+@mock_aws
 def test_update_flow_entitlement_fails():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")
@@ -667,7 +667,7 @@ def test_update_flow_entitlement_fails():
     assert err["Message"] == "entitlement with arn=some-other-arn not found"
 
 
-@mock_mediaconnect
+@mock_aws
 def test_update_flow_entitlement_succeeds():
     client = boto3.client("mediaconnect", region_name=region)
     channel_config = _create_flow_config("test-Flow-1")

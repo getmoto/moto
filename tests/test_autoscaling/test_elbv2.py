@@ -3,14 +3,13 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_autoscaling, mock_elbv2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
 
 
-@mock_elbv2
-@mock_autoscaling
+@mock_aws
 class TestAutoscalignELBv2(unittest.TestCase):
     def setUp(self) -> None:
         self.mocked_networking = setup_networking()

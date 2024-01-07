@@ -14,17 +14,6 @@ cloudformation
 
 .. autoclass:: moto.cloudformation.models.CloudFormationBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_cloudformation
-            def test_cloudformation_behaviour:
-                boto3.client("cloudformation")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_organizations_access

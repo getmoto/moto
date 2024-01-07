@@ -1,4 +1,3 @@
-"""Test the different server responses."""
 import moto.server as server
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 

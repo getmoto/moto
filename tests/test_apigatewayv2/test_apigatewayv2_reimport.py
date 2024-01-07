@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_reimport_api_standard_fields():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -20,7 +20,7 @@ def test_reimport_api_standard_fields():
     assert resp["Version"] == "2.0"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_reimport_api_failonwarnings():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-import-api", ProtocolType="HTTP")["ApiId"]
@@ -43,7 +43,7 @@ def test_reimport_api_failonwarnings():
     assert resp["Name"] == "test-import-api"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_reimport_api_do_not_failonwarnings():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-import-api", ProtocolType="HTTP")["ApiId"]
@@ -59,7 +59,7 @@ def test_reimport_api_do_not_failonwarnings():
     assert resp["Name"] == "Title test"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_reimport_api_routes_and_integrations():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     resp = client.create_api(Name="test-import-api", ProtocolType="HTTP")

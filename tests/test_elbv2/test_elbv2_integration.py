@@ -1,12 +1,9 @@
 import boto3
 
-from moto import mock_acm, mock_ec2, mock_elbv2, mock_iam
+from moto import mock_aws
 
 
-@mock_acm
-@mock_iam
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_modify_listener_using_iam_certificate():
     # Verify we can add a listener for a TargetGroup that is already HTTPS
     client = boto3.client("elbv2", region_name="eu-central-1")
