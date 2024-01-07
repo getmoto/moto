@@ -1,4 +1,3 @@
-"""Unit tests for the TaggingService class."""
 from moto.utilities.tagging_service import TaggingService
 
 

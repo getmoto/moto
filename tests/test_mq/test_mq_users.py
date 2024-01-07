@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_mq
+from moto import mock_aws
 
 
-@mock_mq
+@mock_aws
 def test_create_user():
     client = boto3.client("mq", region_name="us-east-1")
     broker_id = client.create_broker(
@@ -26,7 +26,7 @@ def test_create_user():
     assert resp["Users"] == [{"Username": "admin"}]
 
 
-@mock_mq
+@mock_aws
 def test_describe_user():
     client = boto3.client("mq", region_name="us-east-1")
     broker_id = client.create_broker(
@@ -56,7 +56,7 @@ def test_describe_user():
     assert resp["Username"] == "admin"
 
 
-@mock_mq
+@mock_aws
 def test_describe_user_unknown():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -80,7 +80,7 @@ def test_describe_user_unknown():
     )
 
 
-@mock_mq
+@mock_aws
 def test_list_users_empty():
     client = boto3.client("mq", region_name="us-east-1")
     broker_id = client.create_broker(
@@ -100,7 +100,7 @@ def test_list_users_empty():
     assert resp["Users"] == []
 
 
-@mock_mq
+@mock_aws
 def test_list_users():
     client = boto3.client("mq", region_name="us-east-1")
     broker_id = client.create_broker(
@@ -124,7 +124,7 @@ def test_list_users():
     assert {"Username": "user1"} in resp["Users"]
 
 
-@mock_mq
+@mock_aws
 def test_update_user():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -147,7 +147,7 @@ def test_update_user():
     assert resp["Username"] == "admin"
 
 
-@mock_mq
+@mock_aws
 def test_delete_user():
     client = boto3.client("mq", region_name="us-east-1")
     broker_id = client.create_broker(

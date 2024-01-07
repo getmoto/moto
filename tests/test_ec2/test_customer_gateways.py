@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_create_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -16,7 +16,7 @@ def test_create_customer_gateways():
     assert customer_gateway["IpAddress"] == "205.251.242.54"
 
 
-@mock_ec2
+@mock_aws
 def test_create_customer_gateways_using_publicip_argument():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -31,7 +31,7 @@ def test_create_customer_gateways_using_publicip_argument():
     assert customer_gateway["IpAddress"] == "205.251.242.53"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_customer_gateways_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -45,7 +45,7 @@ def test_describe_customer_gateways_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -71,7 +71,7 @@ def test_describe_customer_gateways():
     ), "Should have at least the one CustomerGateway we just created"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_customer_gateways():
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
@@ -93,7 +93,7 @@ def test_delete_customer_gateways():
     assert cgws[0]["State"] == "deleted"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_customer_gateways_bad_id():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:

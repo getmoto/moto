@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_create():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -20,7 +20,7 @@ def test_create():
     assert gateway["Attachments"][0] == {"State": "attached", "VpcId": vpc.id}
 
 
-@mock_ec2
+@mock_aws
 def test_create_with_unknown_vpc():
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -31,7 +31,7 @@ def test_create_with_unknown_vpc():
     assert err["Message"] == "VpcID vpc-says-what does not exist."
 
 
-@mock_ec2
+@mock_aws
 def test_describe_all():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -52,7 +52,7 @@ def test_describe_all():
     assert gw2 in gateways
 
 
-@mock_ec2
+@mock_aws
 def test_describe_one():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -78,7 +78,7 @@ def test_describe_one():
     assert gw3 in gateways
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_delete():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")

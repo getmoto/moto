@@ -3,8 +3,9 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_batch_simple as mock_batch_without_docker
-from moto import mock_cloudformation, mock_ec2, mock_ecs, mock_iam
+from moto import mock_aws
+
+from .test_batch_jobs import _get_clients, _setup
 
 # Copy of test_batch/test_batch_cloudformation
 # Except that we verify this behaviour still works without docker
@@ -13,52 +14,8 @@ from moto import mock_cloudformation, mock_ec2, mock_ecs, mock_iam
 DEFAULT_REGION = "eu-central-1"
 
 
-def _get_clients():
-    return (
-        boto3.client("ec2", region_name=DEFAULT_REGION),
-        boto3.client("iam", region_name=DEFAULT_REGION),
-        boto3.client("ecs", region_name=DEFAULT_REGION),
-        boto3.client("logs", region_name=DEFAULT_REGION),
-        boto3.client("batch", region_name=DEFAULT_REGION),
-    )
-
-
-def _setup(ec2_client, iam_client):
-    """
-    Do prerequisite setup
-    :return: VPC ID, Subnet ID, Security group ID, IAM Role ARN
-    :rtype: tuple
-    """
-    resp = ec2_client.create_vpc(CidrBlock="172.30.0.0/24")
-    vpc_id = resp["Vpc"]["VpcId"]
-    resp = ec2_client.create_subnet(
-        AvailabilityZone="eu-central-1a", CidrBlock="172.30.0.0/25", VpcId=vpc_id
-    )
-    subnet_id = resp["Subnet"]["SubnetId"]
-    resp = ec2_client.create_security_group(
-        Description="test_sg_desc", GroupName=str(uuid4())[0:6], VpcId=vpc_id
-    )
-    sg_id = resp["GroupId"]
-
-    role_name = str(uuid4())[0:6]
-    resp = iam_client.create_role(
-        RoleName=role_name, AssumeRolePolicyDocument="some_policy"
-    )
-    iam_arn = resp["Role"]["Arn"]
-    iam_client.create_instance_profile(InstanceProfileName=role_name)
-    iam_client.add_role_to_instance_profile(
-        InstanceProfileName=role_name, RoleName=role_name
-    )
-
-    return vpc_id, subnet_id, sg_id, iam_arn
-
-
-@mock_cloudformation()
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_without_docker
-def test_create_env_cf():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_create_env_cf() -> None:
     ec2_client, iam_client, _, _, _ = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
@@ -100,12 +57,8 @@ def test_create_env_cf():
     assert stack_name in summary["PhysicalResourceId"]
 
 
-@mock_cloudformation()
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_without_docker
-def test_create_job_queue_cf():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_create_job_queue_cf() -> None:
     ec2_client, iam_client, _, _, _ = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
@@ -167,12 +120,8 @@ def test_create_job_queue_cf():
     assert "job-queue/" in job_queue_resource["PhysicalResourceId"]
 
 
-@mock_cloudformation
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch_without_docker
-def test_create_job_def_cf():
+@mock_aws(config={"batch": {"use_docker": False}})
+def test_create_job_def_cf() -> None:
     ec2_client, iam_client, _, _, _ = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 

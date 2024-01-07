@@ -7,15 +7,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ds
+from moto import mock_aws
 from moto.ds.models import Directory
-from moto.ec2 import mock_ec2
 
 from .test_ds_simple_ad_directory import TEST_REGION, create_test_directory
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_add_tags_to_resource():
     """Test the addition of tags to a resource."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -64,8 +62,7 @@ def test_ds_add_tags_to_resource():
     assert result["Tags"] == added_tags
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_remove_tags_from_resource():
     """Test the removal of tags to a resource."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -88,8 +85,7 @@ def test_ds_remove_tags_from_resource():
     assert "NextToken" not in result
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_list_tags_for_resource():
     """Test ability to list all tags for a resource."""
     client = boto3.client("ds", region_name=TEST_REGION)

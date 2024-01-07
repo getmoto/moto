@@ -1,11 +1,11 @@
 import boto3
 
-from moto import mock_kinesis
+from moto import mock_aws
 
 from .test_kinesis import get_stream_arn
 
 
-@mock_kinesis
+@mock_aws
 def test_enable_encryption():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -25,7 +25,7 @@ def test_enable_encryption():
     assert desc["KeyId"] == "n/a"
 
 
-@mock_kinesis
+@mock_aws
 def test_disable_encryption():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
@@ -48,7 +48,7 @@ def test_disable_encryption():
     assert "KeyId" not in desc
 
 
-@mock_kinesis
+@mock_aws
 def test_disable_encryption__using_arns():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)

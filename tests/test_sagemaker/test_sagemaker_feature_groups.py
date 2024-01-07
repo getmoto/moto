@@ -6,13 +6,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sagemaker
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_feature_group():
     client = boto3.client("sagemaker", region_name="us-east-2")
     resp = client.create_feature_group(
@@ -60,7 +60,7 @@ def test_create_feature_group():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_describe_feature_group():
     client = boto3.client("sagemaker", region_name="us-east-2")
     feature_group_name = "some-feature-group-name"

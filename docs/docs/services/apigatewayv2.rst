@@ -14,17 +14,6 @@ apigatewayv2
 
 .. autoclass:: moto.apigatewayv2.models.ApiGatewayV2Backend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_apigatewayv2
-            def test_apigatewayv2_behaviour:
-                boto3.client("apigatewayv2")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_api

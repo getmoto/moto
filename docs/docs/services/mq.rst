@@ -14,17 +14,6 @@ mq
 
 .. autoclass:: moto.mq.models.MQBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_mq
-            def test_mq_behaviour:
-                boto3.client("mq")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_broker

@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cognitoidp
+from moto import mock_aws
 
 
-@mock_cognitoidp
+@mock_aws
 class TestCognitoUserDeleter(TestCase):
     def setUp(self) -> None:
         self.client = boto3.client("cognito-idp", "us-east-1")
@@ -53,7 +53,7 @@ class TestCognitoUserDeleter(TestCase):
         assert exc.exception.response["Error"]["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 class TestCognitoUserPoolDuplidateEmails(TestCase):
     def setUp(self) -> None:
         self.client = boto3.client("cognito-idp", "us-east-1")

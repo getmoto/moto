@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_redshiftdata
+from moto import mock_aws
 from tests.test_redshiftdata.test_redshiftdata_constants import ErrorAttributes
 
 REGION = "us-east-1"
@@ -15,7 +15,7 @@ RESOURCE_NOT_FOUND_ERROR_MESSAGE = "Query does not exist."
 
 @pytest.fixture(autouse=True, name="client")
 def fixture_client():
-    with mock_redshiftdata():
+    with mock_aws():
         yield boto3.client("redshift-data", region_name=REGION)
 
 

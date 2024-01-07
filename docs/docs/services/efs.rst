@@ -14,17 +14,6 @@ efs
 
 .. autoclass:: moto.efs.models.EFSBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_efs
-            def test_efs_behaviour:
-                boto3.client("efs")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_access_point

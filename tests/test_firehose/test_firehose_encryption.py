@@ -4,12 +4,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_firehose
+from moto import mock_aws
 
 from .test_firehose import sample_s3_dest_config
 
 
-@mock_firehose
+@mock_aws
 def test_firehose_without_encryption():
     client = boto3.client("firehose", region_name="us-east-2")
     name = str(uuid4())[0:6]
@@ -37,7 +37,7 @@ def test_firehose_without_encryption():
     }
 
 
-@mock_firehose
+@mock_aws
 def test_firehose_with_encryption():
     client = boto3.client("firehose", region_name="us-east-2")
     name = str(uuid4())[0:6]
@@ -62,7 +62,7 @@ def test_firehose_with_encryption():
     assert stream["DeliveryStreamEncryptionConfiguration"]["Status"] == "DISABLED"
 
 
-@mock_firehose
+@mock_aws
 def test_start_encryption_on_unknown_stream():
     client = boto3.client("firehose", region_name="us-east-2")
 
@@ -76,7 +76,7 @@ def test_start_encryption_on_unknown_stream():
     assert err["Message"] == "Firehose ? under account 123456789012 not found."
 
 
-@mock_firehose
+@mock_aws
 def test_stop_encryption_on_unknown_stream():
     client = boto3.client("firehose", region_name="us-east-2")
 

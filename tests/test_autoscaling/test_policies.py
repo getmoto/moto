@@ -1,7 +1,7 @@
 import boto3
 import pytest
 
-from moto import mock_autoscaling
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
@@ -25,7 +25,7 @@ def setup_autoscale_group_boto3():
     )
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_policy_boto3():
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -45,7 +45,7 @@ def test_create_policy_boto3():
     assert policy["Cooldown"] == 60
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_policy_default_values_boto3():
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -63,7 +63,7 @@ def test_create_policy_default_values_boto3():
     assert policy["Cooldown"] == 300
 
 
-@mock_autoscaling
+@mock_aws
 def test_update_policy_boto3():
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -90,7 +90,7 @@ def test_update_policy_boto3():
     assert policy["ScalingAdjustment"] == 2
 
 
-@mock_autoscaling
+@mock_aws
 def test_delete_policy_boto3():
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -107,7 +107,7 @@ def test_delete_policy_boto3():
     assert len(client.describe_policies()["ScalingPolicies"]) == 0
 
 
-@mock_autoscaling
+@mock_aws
 def test_execute_policy_exact_capacity_boto3():
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -124,7 +124,7 @@ def test_execute_policy_exact_capacity_boto3():
     assert len(instances["AutoScalingInstances"]) == 3
 
 
-@mock_autoscaling
+@mock_aws
 def test_execute_policy_positive_change_in_capacity_boto3():
     setup_autoscale_group_boto3()
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -144,7 +144,7 @@ def test_execute_policy_positive_change_in_capacity_boto3():
 @pytest.mark.parametrize(
     "adjustment,nr_of_instances", [(1, 3), (50, 3), (100, 4), (250, 7)]
 )
-@mock_autoscaling
+@mock_aws
 def test_execute_policy_percent_change_in_capacity_boto3(adjustment, nr_of_instances):
     """http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
     If PercentChangeInCapacity returns a value between 0 and 1,

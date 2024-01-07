@@ -2,14 +2,14 @@ from unittest import TestCase
 
 import boto3
 
-from moto import mock_autoscaling
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
 
 
-@mock_autoscaling
+@mock_aws
 class TestAutoScalingGroup(TestCase):
     def setUp(self) -> None:
         self.mocked_networking = setup_networking()

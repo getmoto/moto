@@ -2,10 +2,10 @@ import json
 
 import boto3
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_create_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -39,7 +39,7 @@ def test_create_job():
     assert "description" in job
 
 
-@mock_iot
+@mock_aws
 def test_list_jobs():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -96,7 +96,7 @@ def test_list_jobs():
     assert jobs["jobs"][1]["jobId"] == job_id + "1"
 
 
-@mock_iot
+@mock_aws
 def test_describe_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -142,7 +142,7 @@ def test_describe_job():
     assert job["jobExecutionsRolloutConfig"]["maximumPerMinute"] == 10
 
 
-@mock_iot
+@mock_aws
 def test_describe_job_1():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -186,7 +186,7 @@ def test_describe_job_1():
     assert job["jobExecutionsRolloutConfig"]["maximumPerMinute"] == 10
 
 
-@mock_iot
+@mock_aws
 def test_delete_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -219,7 +219,7 @@ def test_delete_job():
     assert client.list_jobs()["jobs"] == []
 
 
-@mock_iot
+@mock_aws
 def test_cancel_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -259,7 +259,7 @@ def test_cancel_job():
     assert job["comment"] == "You are"
 
 
-@mock_iot
+@mock_aws
 def test_get_job_document_with_document_source():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -288,7 +288,7 @@ def test_get_job_document_with_document_source():
     assert job_document["document"] == ""
 
 
-@mock_iot
+@mock_aws
 def test_get_job_document_with_document():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"

@@ -5,13 +5,13 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_apigateway, mock_cognitoidp, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import DEFAULT_ACCOUNT_ID
 
 
 @freeze_time("2015-01-01")
-@mock_apigateway
+@mock_aws
 def test_create_and_get_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -37,7 +37,7 @@ def test_create_and_get_rest_api():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_update_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -86,7 +86,7 @@ def test_update_rest_api():
     assert err["Code"] == "ValidationException"
 
 
-@mock_apigateway
+@mock_aws
 def test_update_rest_api_invalid_api_id():
     client = boto3.client("apigateway", region_name="us-west-2")
     patchOperations = [
@@ -97,7 +97,7 @@ def test_update_rest_api_invalid_api_id():
     assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_update_rest_api_operation_add_remove():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -118,7 +118,7 @@ def test_update_rest_api_operation_add_remove():
     assert response["description"] == ""
 
 
-@mock_apigateway
+@mock_aws
 def test_list_and_delete_apis():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -135,7 +135,7 @@ def test_list_and_delete_apis():
     assert len(response["items"]) == 1
 
 
-@mock_apigateway
+@mock_aws
 def test_create_rest_api_with_tags():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -150,7 +150,7 @@ def test_create_rest_api_with_tags():
     assert response["tags"] == {"MY_TAG1": "MY_VALUE1"}
 
 
-@mock_apigateway
+@mock_aws
 def test_create_rest_api_with_policy():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -166,7 +166,7 @@ def test_create_rest_api_with_policy():
     assert response["policy"] == policy
 
 
-@mock_apigateway
+@mock_aws
 def test_create_rest_api_invalid_apikeysource():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -179,7 +179,7 @@ def test_create_rest_api_invalid_apikeysource():
     assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_rest_api_valid_apikeysources():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -202,7 +202,7 @@ def test_create_rest_api_valid_apikeysources():
     assert response["apiKeySource"] == "AUTHORIZER"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_rest_api_invalid_endpointconfiguration():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -215,7 +215,7 @@ def test_create_rest_api_invalid_endpointconfiguration():
     assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_rest_api_valid_endpointconfigurations():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -253,7 +253,7 @@ def test_create_rest_api_valid_endpointconfigurations():
     assert response["endpointConfiguration"] == {"types": ["EDGE"]}
 
 
-@mock_apigateway
+@mock_aws
 def test_create_resource__validate_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -281,7 +281,7 @@ def test_create_resource__validate_name():
         client.create_resource(restApiId=api_id, parentId=root_id, pathPart=name)
 
 
-@mock_apigateway
+@mock_aws
 def test_create_resource():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -315,7 +315,7 @@ def test_create_resource():
     assert len(client.get_resources(restApiId=api_id)["items"]) == 1
 
 
-@mock_apigateway
+@mock_aws
 def test_child_resource():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -349,7 +349,7 @@ def test_child_resource():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_create_method():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -383,7 +383,7 @@ def test_create_method():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_create_method_apikeyrequired():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -416,7 +416,7 @@ def test_create_method_apikeyrequired():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_create_method_response():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -464,7 +464,7 @@ def test_create_method_response():
     assert response == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
 
-@mock_apigateway
+@mock_aws
 def test_get_method_unknown_resource_id():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -477,7 +477,7 @@ def test_get_method_unknown_resource_id():
     assert err["Message"] == "Invalid resource identifier specified"
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_method():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -503,7 +503,7 @@ def test_delete_method():
     assert err["Message"] == "Invalid Method identifier specified"
 
 
-@mock_apigateway
+@mock_aws
 def test_integrations():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -634,7 +634,7 @@ def test_integrations():
     assert response["timeoutInMillis"] == 29000
 
 
-@mock_apigateway
+@mock_aws
 def test_integration_response():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -783,8 +783,7 @@ def test_integration_response():
     }
 
 
-@mock_apigateway
-@mock_cognitoidp
+@mock_aws
 def test_update_authorizer_configuration():
     client = boto3.client("apigateway", region_name="us-west-2")
     authorizer_name = "my_authorizer"
@@ -854,7 +853,7 @@ def test_update_authorizer_configuration():
         assert 'Patch operation "add" not implemented' in str(exc.value)
 
 
-@mock_apigateway
+@mock_aws
 def test_non_existent_authorizer():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -877,8 +876,7 @@ def test_non_existent_authorizer():
     assert err["Message"] == "Invalid Authorizer identifier specified"
 
 
-@mock_apigateway
-@mock_cognitoidp
+@mock_aws
 def test_create_authorizer():
     client = boto3.client("apigateway", region_name="us-west-2")
     authorizer_name = "my_authorizer"
@@ -967,8 +965,7 @@ def test_create_authorizer():
     assert stage["authorizerResultTtlInSeconds"] == 300
 
 
-@mock_apigateway
-@mock_cognitoidp
+@mock_aws
 def test_delete_authorizer():
     client = boto3.client("apigateway", region_name="us-west-2")
     authorizer_name = "my_authorizer"
@@ -1027,7 +1024,7 @@ def test_delete_authorizer():
     assert [authorizer["name"] for authorizer in authorizers] == [authorizer_name]
 
 
-@mock_apigateway
+@mock_aws
 def test_put_integration_response_with_response_template():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1084,7 +1081,7 @@ def test_put_integration_response_with_response_template():
     }
 
 
-@mock_apigateway
+@mock_aws
 def test_put_integration_response_but_integration_not_found():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1114,7 +1111,7 @@ def test_put_integration_response_but_integration_not_found():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_put_integration_validation():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1291,7 +1288,7 @@ def test_put_integration_validation():
         )
 
 
-@mock_apigateway
+@mock_aws
 def test_create_domain_names():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -1313,7 +1310,7 @@ def test_create_domain_names():
     assert ex.value.response["Error"]["Code"] == "BadRequestException"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_domain_names():
     client = boto3.client("apigateway", region_name="us-west-2")
     # without any domain names already present
@@ -1335,7 +1332,7 @@ def test_get_domain_names():
     assert result["items"][0]["domainNameStatus"] == "AVAILABLE"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_domain_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -1347,7 +1344,7 @@ def test_get_domain_name():
     assert result["domainNameStatus"] == "AVAILABLE"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_model():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1389,7 +1386,7 @@ def test_create_model():
     assert ex.value.response["Error"]["Code"] == "BadRequestException"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_api_models():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1413,7 +1410,7 @@ def test_get_api_models():
     result["items"][0]["description"] = description
 
 
-@mock_apigateway
+@mock_aws
 def test_get_model_by_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1440,7 +1437,7 @@ def test_get_model_by_name():
     assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_model_with_invalid_name():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -1452,7 +1449,7 @@ def test_get_model_with_invalid_name():
     assert ex.value.response["Error"]["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_api_key_value_min_length():
     region_name = "us-east-1"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1473,7 +1470,7 @@ def test_api_key_value_min_length():
     )
 
 
-@mock_apigateway
+@mock_aws
 def test_get_api_key_include_value():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1501,7 +1498,7 @@ def test_get_api_key_include_value():
     assert "value" in response
 
 
-@mock_apigateway
+@mock_aws
 def test_get_api_keys_include_values():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1533,7 +1530,7 @@ def test_get_api_keys_include_values():
         assert "value" not in api_key
 
 
-@mock_apigateway
+@mock_aws
 def test_create_api_key():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1553,7 +1550,7 @@ def test_create_api_key():
     assert len(response["items"]) == 1
 
 
-@mock_apigateway
+@mock_aws
 def test_create_api_key_twice():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1568,7 +1565,7 @@ def test_create_api_key_twice():
     assert ex.value.response["Error"]["Code"] == "ConflictException"
 
 
-@mock_apigateway
+@mock_aws
 def test_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1624,7 +1621,7 @@ def test_api_keys():
     assert len(response["items"]) == 1
 
 
-@mock_apigateway
+@mock_aws
 def test_usage_plans():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1675,7 +1672,7 @@ def test_usage_plans():
     assert len(response["items"]) == 1
 
 
-@mock_apigateway
+@mock_aws
 def test_update_usage_plan():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1709,7 +1706,7 @@ def test_update_usage_plan():
     assert response["productCode"] == "new-productionCode"
 
 
-@mock_apigateway
+@mock_aws
 def test_usage_plan_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1774,7 +1771,7 @@ def test_usage_plan_keys():
     assert err["Message"] == "Invalid Usage Plan ID specified"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_usage_plan_key_non_existent_api_key():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1790,7 +1787,7 @@ def test_create_usage_plan_key_non_existent_api_key():
     assert err["Message"] == "Invalid API Key identifier specified"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_usage_plans_using_key_id():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1855,7 +1852,7 @@ def create_method_integration(client, api_id, httpMethod="GET"):
     return root_id
 
 
-@mock_apigateway
+@mock_aws
 def test_get_integration_response_unknown_response():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
@@ -1874,7 +1871,7 @@ def test_get_integration_response_unknown_response():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_api_key_unknown_apikey():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1884,7 +1881,7 @@ def test_get_api_key_unknown_apikey():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_get_domain_name_unknown_domainname():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1894,7 +1891,7 @@ def test_get_domain_name_unknown_domainname():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_domain_name_unknown_domainname():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1904,7 +1901,7 @@ def test_delete_domain_name_unknown_domainname():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_base_path_mapping():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -1946,7 +1943,7 @@ def test_create_base_path_mapping():
     assert response["stage"] == stage_name
 
 
-@mock_apigateway
+@mock_aws
 def test_create_base_path_mapping_with_unknown_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -1964,7 +1961,7 @@ def test_create_base_path_mapping_with_unknown_api():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_apigateway
+@mock_aws
 def test_create_base_path_mapping_with_invalid_base_path():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -1995,7 +1992,7 @@ def test_create_base_path_mapping_with_invalid_base_path():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_apigateway
+@mock_aws
 def test_create_base_path_mapping_with_unknown_stage():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2023,7 +2020,7 @@ def test_create_base_path_mapping_with_unknown_stage():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_apigateway
+@mock_aws
 def test_create_base_path_mapping_with_duplicate_base_path():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2049,7 +2046,7 @@ def test_create_base_path_mapping_with_duplicate_base_path():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
-@mock_apigateway
+@mock_aws
 def test_get_base_path_mappings():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2092,7 +2089,7 @@ def test_get_base_path_mappings():
     assert items[2]["stage"] == stage_name
 
 
-@mock_apigateway
+@mock_aws
 def test_get_base_path_mappings_with_unknown_domain():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -2104,7 +2101,7 @@ def test_get_base_path_mappings_with_unknown_domain():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_get_base_path_mapping():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2133,7 +2130,7 @@ def test_get_base_path_mapping():
     assert response["stage"] == stage_name
 
 
-@mock_apigateway
+@mock_aws
 def test_get_base_path_mapping_with_unknown_domain():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -2148,7 +2145,7 @@ def test_get_base_path_mapping_with_unknown_domain():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_get_base_path_mapping_with_unknown_base_path():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2174,7 +2171,7 @@ def test_get_base_path_mapping_with_unknown_base_path():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_base_path_mapping():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2207,7 +2204,7 @@ def test_delete_base_path_mapping():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_base_path_mapping_with_unknown_domain():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -2222,7 +2219,7 @@ def test_delete_base_path_mapping_with_unknown_domain():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_base_path_mapping_with_unknown_base_path():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2248,7 +2245,7 @@ def test_delete_base_path_mapping_with_unknown_base_path():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_update_path_mapping():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2288,7 +2285,7 @@ def test_update_path_mapping():
     assert response["stage"] == stage_name
 
 
-@mock_apigateway
+@mock_aws
 def test_update_path_mapping_with_unknown_domain():
     client = boto3.client("apigateway", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -2304,7 +2301,7 @@ def test_update_path_mapping_with_unknown_domain():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_update_path_mapping_with_unknown_base_path():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2332,7 +2329,7 @@ def test_update_path_mapping_with_unknown_base_path():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_apigateway
+@mock_aws
 def test_update_path_mapping_to_same_base_path():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2375,7 +2372,7 @@ def test_update_path_mapping_to_same_base_path():
     assert "stage" not in items[0]
 
 
-@mock_apigateway
+@mock_aws
 def test_update_path_mapping_with_unknown_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"
@@ -2407,7 +2404,7 @@ def test_update_path_mapping_with_unknown_api():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_apigateway
+@mock_aws
 def test_update_path_mapping_with_unknown_stage():
     client = boto3.client("apigateway", region_name="us-west-2")
     domain_name = "testDomain"

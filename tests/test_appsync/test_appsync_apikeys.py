@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 
 import boto3
 
-from moto import mock_appsync
+from moto import mock_aws
 from moto.core.utils import unix_time
 
 
-@mock_appsync
+@mock_aws
 def test_create_api_key_simple():
     client = boto3.client("appsync", region_name="eu-west-1")
 
@@ -24,7 +24,7 @@ def test_create_api_key_simple():
     assert "deletes" in api_key
 
 
-@mock_appsync
+@mock_aws
 def test_create_api_key():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     tomorrow = datetime.now() + timedelta(days=1)
@@ -46,7 +46,7 @@ def test_create_api_key():
     assert api_key["deletes"] == tomorrow_in_secs
 
 
-@mock_appsync
+@mock_aws
 def test_delete_api_key():
     client = boto3.client("appsync", region_name="us-east-1")
 
@@ -61,14 +61,14 @@ def test_delete_api_key():
     assert len(resp["apiKeys"]) == 0
 
 
-@mock_appsync
+@mock_aws
 def test_list_api_keys_unknown_api():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     resp = client.list_api_keys(apiId="unknown")
     assert resp["apiKeys"] == []
 
 
-@mock_appsync
+@mock_aws
 def test_list_api_keys_empty():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -79,7 +79,7 @@ def test_list_api_keys_empty():
     assert resp["apiKeys"] == []
 
 
-@mock_appsync
+@mock_aws
 def test_list_api_keys():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -91,7 +91,7 @@ def test_list_api_keys():
     assert len(resp["apiKeys"]) == 2
 
 
-@mock_appsync
+@mock_aws
 def test_update_api_key():
     client = boto3.client("appsync", region_name="eu-west-1")
 

@@ -8,7 +8,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs, mock_s3, mock_sts, settings
+from moto import mock_aws, settings
 from moto.core.utils import unix_time_millis
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
@@ -53,7 +53,7 @@ def account_id():
         identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
         yield identity["Account"]
     else:
-        with mock_sts():
+        with mock_aws():
             identity = boto3.client(
                 "sts", region_name="us-east-1"
             ).get_caller_identity()
@@ -65,7 +65,7 @@ def logs():
     if allow_aws_request:
         yield boto3.client("logs", region_name="us-east-1")
     else:
-        with mock_logs():
+        with mock_aws():
             yield boto3.client("logs", region_name="us-east-1")
 
 
@@ -74,7 +74,7 @@ def s3():
     if allow_aws_request:
         yield boto3.client("s3", region_name="us-east-1")
     else:
-        with mock_s3():
+        with mock_aws():
             yield boto3.client("s3", region_name="us-east-1")
 
 

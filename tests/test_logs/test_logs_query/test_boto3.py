@@ -5,11 +5,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs
+from moto import mock_aws
 from moto.core.utils import unix_time, unix_time_millis, utcnow
 
 
-@mock_logs
+@mock_aws
 def test_start_query__unknown_log_group():
     client = boto3.client("logs", "us-east-1")
 
@@ -39,7 +39,7 @@ def test_start_query__unknown_log_group():
     assert err["Message"] == "The specified log group does not exist."
 
 
-@mock_logs
+@mock_aws
 def test_get_query_results():
     client = boto3.client("logs", "us-east-1")
     log_group_name = "test"
@@ -108,7 +108,7 @@ def test_get_query_results():
     assert messages == ["event nr 2", "event nr 1"]
 
 
-@mock_logs
+@mock_aws
 def test_describe_completed_query():
     client = boto3.client("logs", "us-east-1")
 
@@ -139,7 +139,7 @@ def test_describe_completed_query():
     assert len(queries) == 0
 
 
-@mock_logs
+@mock_aws
 def test_describe_queries_on_log_group_without_any():
     client = boto3.client("logs", "us-east-1")
 

@@ -8,7 +8,7 @@ import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_lambda, mock_logs, mock_s3, settings
+from moto import mock_aws, settings
 from tests.test_awslambda.utilities import wait_for_log_msg
 
 from ..markers import requires_docker
@@ -35,10 +35,7 @@ def lambda_handler(event, context):
 """
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 def test_create_custom_lambda_resource():
     #########
     # Integration test using a Custom Resource
@@ -75,10 +72,7 @@ def test_create_custom_lambda_resource():
     assert outputs[0]["OutputValue"] == "special value"
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 @requires_docker
 def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     #########
@@ -102,10 +96,13 @@ def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     )
     # Verify CloudWatch contains the correct logs
     log_group_name = get_log_group_name(cf, stack_name)
+    # urllib< 2 will emit the `failed executing http.request` message
+    # urllib>=2 will emit the StatusCode=400 message
     execution_failed, logs = wait_for_log_msg(
-        expected_msg="failed executing http.request", log_group=log_group_name
+        expected_msg=["failed executing http.request", "Status code: 400"],
+        log_group=log_group_name,
     )
-    assert execution_failed is True
+    assert execution_failed is True, logs
 
     printed_events = [
         line for line in logs if line.startswith("{'RequestType': 'Create'")
@@ -126,10 +123,7 @@ def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     assert original_event["ResourceProperties"]["MyProperty"] == "stuff"
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_logs
-@mock_s3
+@mock_aws
 def test_create_custom_lambda_resource__verify_manual_request():
     #########
     # Integration test using a Custom Resource
@@ -174,8 +168,16 @@ def test_create_custom_lambda_resource__verify_manual_request():
         {"OutputKey": "infokey", "OutputValue": "resultfromthirdpartysystem"}
     ]
 
+    # AWSlambda will not have logged anything
+    log_group_name = get_log_group_name(cf=cf, stack_name=stack_name)
+    success, logs = wait_for_log_msg(
+        expected_msg="Status code: 200", log_group=log_group_name, wait_time=5
+    )
+    assert success is False
+    assert len(logs) == 0
 
-@mock_cloudformation
+
+@mock_aws
 def test_create_custom_lambda_resource__unknown_arn():
     # Try to create a Lambda with an unknown ARN
     # Verify that this fails in a predictable manner

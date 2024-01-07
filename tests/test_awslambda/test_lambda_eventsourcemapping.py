@@ -1,13 +1,12 @@
 import json
 import time
 import uuid
-from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb, mock_lambda, mock_logs, mock_sns, mock_sqs
+from moto import mock_aws
 
 from ..markers import requires_docker
 from .utilities import (
@@ -19,14 +18,11 @@ from .utilities import (
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
-@mock_logs
-@mock_lambda
-@mock_sqs
+@mock_aws
 def test_create_event_source_mapping():
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
 
@@ -54,12 +50,10 @@ def test_create_event_source_mapping():
 
 @pytest.mark.network
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_logs
-@mock_lambda
-@mock_sqs
+@mock_aws
 @requires_docker
 def test_invoke_function_from_sqs(key):
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
 
@@ -99,13 +93,11 @@ def test_invoke_function_from_sqs(key):
 
 
 @pytest.mark.network
-@mock_logs
-@mock_lambda
-@mock_dynamodb
+@mock_aws
 @requires_docker
 def test_invoke_function_from_dynamodb_put():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    table_name = str(uuid4())[0:6] + "_table"
+    table_name = str(uuid.uuid4())[0:6] + "_table"
     table = dynamodb.create_table(
         TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -118,7 +110,7 @@ def test_invoke_function_from_dynamodb_put():
     )
 
     conn = boto3.client("lambda", region_name="us-east-1")
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     func = conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
@@ -155,13 +147,11 @@ def test_invoke_function_from_dynamodb_put():
 
 
 @pytest.mark.network
-@mock_logs
-@mock_lambda
-@mock_dynamodb
+@mock_aws
 @requires_docker
 def test_invoke_function_from_dynamodb_update():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    table_name = str(uuid4())[0:6] + "_table"
+    table_name = str(uuid.uuid4())[0:6] + "_table"
     table = dynamodb.create_table(
         TableName=table_name,
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -174,7 +164,7 @@ def test_invoke_function_from_dynamodb_update():
     )
 
     conn = boto3.client("lambda", region_name="us-east-1")
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     func = conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
@@ -217,12 +207,10 @@ def test_invoke_function_from_dynamodb_update():
 
 
 @pytest.mark.network
-@mock_logs
-@mock_lambda
-@mock_sqs
+@mock_aws
 @requires_docker
 def test_invoke_function_from_sqs_exception():
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     logs_conn = boto3.client("logs", region_name="us-east-1")
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
@@ -282,9 +270,7 @@ def test_invoke_function_from_sqs_exception():
 
 
 @pytest.mark.network
-@mock_logs
-@mock_sns
-@mock_lambda
+@mock_aws
 @requires_docker
 def test_invoke_function_from_sns():
     logs_conn = boto3.client("logs", region_name=_lambda_region)
@@ -295,7 +281,7 @@ def test_invoke_function_from_sns():
     topic_arn = topics[0]["TopicArn"]
 
     conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     result = conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
@@ -340,11 +326,9 @@ def test_invoke_function_from_sns():
     assert False, "Expected message not found in logs:" + str(events)
 
 
-@mock_logs
-@mock_lambda
-@mock_sqs
+@mock_aws
 def test_list_event_source_mappings():
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
 
@@ -374,10 +358,9 @@ def test_list_event_source_mappings():
     assert mappings["EventSourceMappings"][0]["FunctionArn"] == func["FunctionArn"]
 
 
-@mock_lambda
-@mock_sqs
+@mock_aws
 def test_get_event_source_mapping():
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
 
@@ -404,10 +387,9 @@ def test_get_event_source_mapping():
         conn.get_event_source_mapping(UUID="1")
 
 
-@mock_lambda
-@mock_sqs
+@mock_aws
 def test_update_event_source_mapping():
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
 
@@ -450,10 +432,9 @@ def test_update_event_source_mapping():
     assert mapping["BatchSize"] == 2
 
 
-@mock_lambda
-@mock_sqs
+@mock_aws
 def test_delete_event_source_mapping():
-    function_name = str(uuid4())[0:6]
+    function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
 

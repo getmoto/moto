@@ -1,7 +1,6 @@
-"""Unit tests verifying various delivery stream destination content."""
 import boto3
 
-from moto import mock_firehose, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 
@@ -103,7 +102,7 @@ def create_http_delivery_stream(client, stream_name):
     )
 
 
-@mock_firehose
+@mock_aws
 def test_create_redshift_delivery_stream():
     """Verify fields of a Redshift delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -153,7 +152,7 @@ def test_create_redshift_delivery_stream():
     }
 
 
-@mock_firehose
+@mock_aws
 def test_create_extended_s3_delivery_stream():
     """Verify fields of a S3 delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -210,7 +209,7 @@ def test_create_extended_s3_delivery_stream():
     }
 
 
-@mock_firehose
+@mock_aws
 def test_create_elasticsearch_delivery_stream():
     """Verify fields of an Elasticsearch delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -260,7 +259,7 @@ def test_create_elasticsearch_delivery_stream():
     }
 
 
-@mock_firehose
+@mock_aws
 def test_create_s3_delivery_stream():
     """Verify fields of an S3 delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)

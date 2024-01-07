@@ -1,12 +1,8 @@
 import moto.server as server
-from moto import mock_kinesisvideoarchivedmedia
-
-"""
-Test the different server responses
-"""
+from moto import mock_aws
 
 
-@mock_kinesisvideoarchivedmedia
+@mock_aws
 def test_kinesisvideoarchivedmedia_server_is_up():
     backend = server.create_backend_app("kinesis-video-archived-media")
     test_client = backend.test_client()

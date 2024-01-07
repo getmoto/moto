@@ -280,9 +280,9 @@ class Subscription(BaseModel):
             else:
                 assert False
 
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
-            lambda_backends[self.account_id][region].send_sns_message(
+            get_backend(self.account_id, region).send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
 

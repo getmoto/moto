@@ -1,14 +1,14 @@
 import json
 
 import moto.server as server
-from moto import mock_datapipeline
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_datapipeline
+@mock_aws
 def test_list_streams():
     backend = server.create_backend_app("datapipeline")
     test_client = backend.test_client()

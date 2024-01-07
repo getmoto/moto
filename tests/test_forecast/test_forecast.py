@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_forecast
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "us-east-1"
@@ -19,7 +19,7 @@ valid_domains = [
 
 
 @pytest.mark.parametrize("domain", valid_domains)
-@mock_forecast
+@mock_aws
 def test_forecast_dataset_group_create(domain):
     name = "example_dataset_group"
     client = boto3.client("forecast", region_name=region)
@@ -30,7 +30,7 @@ def test_forecast_dataset_group_create(domain):
     )
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_dataset_group_create_invalid_domain():
     name = "example_dataset_group"
     client = boto3.client("forecast", region_name=region)
@@ -48,7 +48,7 @@ def test_forecast_dataset_group_create_invalid_domain():
 
 
 @pytest.mark.parametrize("name", [" ", "a" * 64])
-@mock_forecast
+@mock_aws
 def test_forecast_dataset_group_create_invalid_name(name):
     client = boto3.client("forecast", region_name=region)
 
@@ -61,7 +61,7 @@ def test_forecast_dataset_group_create_invalid_name(name):
     ) in exc.value.response["Error"]["Message"]
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_dataset_group_create_duplicate_fails():
     client = boto3.client("forecast", region_name=region)
     client.create_dataset_group(DatasetGroupName="name", Domain="RETAIL")
@@ -72,7 +72,7 @@ def test_forecast_dataset_group_create_duplicate_fails():
     assert exc.value.response["Error"]["Code"] == "ResourceAlreadyExistsException"
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_dataset_group_list_default_empty():
     client = boto3.client("forecast", region_name=region)
 
@@ -80,7 +80,7 @@ def test_forecast_dataset_group_list_default_empty():
     assert resp["DatasetGroups"] == []
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_dataset_group_list_some():
     client = boto3.client("forecast", region_name=region)
 
@@ -93,7 +93,7 @@ def test_forecast_dataset_group_list_some():
     )
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_delete_dataset_group():
     dataset_group_name = "name"
     dataset_group_arn = (
@@ -104,7 +104,7 @@ def test_forecast_delete_dataset_group():
     client.delete_dataset_group(DatasetGroupArn=dataset_group_arn)
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_delete_dataset_group_missing():
     client = boto3.client("forecast", region_name=region)
     missing_dsg_arn = f"arn:aws:forecast:{region}:{ACCOUNT_ID}:dataset-group/missing"
@@ -117,7 +117,7 @@ def test_forecast_delete_dataset_group_missing():
     )
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_update_dataset_arns_empty():
     dataset_group_name = "name"
     dataset_group_arn = (
@@ -128,7 +128,7 @@ def test_forecast_update_dataset_arns_empty():
     client.update_dataset_group(DatasetGroupArn=dataset_group_arn, DatasetArns=[])
 
 
-@mock_forecast
+@mock_aws
 def test_forecast_update_dataset_group_not_found():
     client = boto3.client("forecast", region_name=region)
     dataset_group_arn = f"arn:aws:forecast:{region}:{ACCOUNT_ID}:dataset-group/test"
@@ -141,7 +141,7 @@ def test_forecast_update_dataset_group_not_found():
     )
 
 
-@mock_forecast
+@mock_aws
 def test_describe_dataset_group():
     name = "test"
     client = boto3.client("forecast", region_name=region)
@@ -153,7 +153,7 @@ def test_describe_dataset_group():
     assert result.get("DatasetArns") == []
 
 
-@mock_forecast
+@mock_aws
 def test_describe_dataset_group_missing():
     client = boto3.client("forecast", region_name=region)
     dataset_group_arn = f"arn:aws:forecast:{region}:{ACCOUNT_ID}:dataset-group/name"
@@ -166,7 +166,7 @@ def test_describe_dataset_group_missing():
     )
 
 
-@mock_forecast
+@mock_aws
 def test_create_dataset_group_missing_datasets():
     client = boto3.client("forecast", region_name=region)
     dataset_arn = f"arn:aws:forecast:{region}:{ACCOUNT_ID}:dataset-group/name"
@@ -180,7 +180,7 @@ def test_create_dataset_group_missing_datasets():
     )
 
 
-@mock_forecast
+@mock_aws
 def test_update_dataset_group_missing_datasets():
     name = "test"
     client = boto3.client("forecast", region_name=region)

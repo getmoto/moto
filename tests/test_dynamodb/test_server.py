@@ -1,14 +1,10 @@
 import json
 
 import moto.server as server
-from moto import mock_dynamodb
-
-"""
-Test the different server responses
-"""
+from moto import mock_aws
 
 
-@mock_dynamodb
+@mock_aws
 def test_table_list():
     backend = server.create_backend_app("dynamodb")
     test_client = backend.test_client()

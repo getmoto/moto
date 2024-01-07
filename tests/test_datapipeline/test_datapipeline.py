@@ -1,6 +1,6 @@
 import boto3
 
-from moto import mock_datapipeline
+from moto import mock_aws
 from moto.datapipeline.utils import remove_capitalization_of_dict_keys
 
 
@@ -10,7 +10,7 @@ def get_value_from_fields(key, fields):
             return field["stringValue"]
 
 
-@mock_datapipeline
+@mock_aws
 def test_create_pipeline_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
 
@@ -60,7 +60,7 @@ PIPELINE_OBJECTS = [
 ]
 
 
-@mock_datapipeline
+@mock_aws
 def test_creating_pipeline_definition_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
@@ -80,7 +80,7 @@ def test_creating_pipeline_definition_boto3():
     ]
 
 
-@mock_datapipeline
+@mock_aws
 def test_describing_pipeline_objects_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
@@ -102,7 +102,7 @@ def test_describing_pipeline_objects_boto3():
     ]
 
 
-@mock_datapipeline
+@mock_aws
 def test_activate_pipeline_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
@@ -120,7 +120,7 @@ def test_activate_pipeline_boto3():
     assert get_value_from_fields("@pipelineState", fields) == "SCHEDULED"
 
 
-@mock_datapipeline
+@mock_aws
 def test_delete_pipeline_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res = conn.create_pipeline(name="mypipeline", uniqueId="some-unique-id")
@@ -133,7 +133,7 @@ def test_delete_pipeline_boto3():
     assert len(response["pipelineIdList"]) == 0
 
 
-@mock_datapipeline
+@mock_aws
 def test_listing_pipelines_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     res1 = conn.create_pipeline(name="mypipeline1", uniqueId="some-unique-id1")
@@ -149,7 +149,7 @@ def test_listing_pipelines_boto3():
     assert {"id": res2["pipelineId"], "name": "mypipeline2"} in objects
 
 
-@mock_datapipeline
+@mock_aws
 def test_listing_paginated_pipelines_boto3():
     conn = boto3.client("datapipeline", region_name="us-west-2")
     for i in range(100):

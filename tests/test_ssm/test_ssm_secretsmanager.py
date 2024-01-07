@@ -4,13 +4,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_secretsmanager, mock_ssm
+from moto import mock_aws
 
 # https://docs.aws.amazon.com/systems-manager/latest/userguide/integration-ps-secretsmanager.html
 
 
-@mock_secretsmanager
-@mock_ssm
+@mock_aws
 def test_get_value_from_secrets_manager__by_name():
     # given
     ssm = boto3.client("ssm", "eu-north-1")
@@ -36,8 +35,7 @@ def test_get_value_from_secrets_manager__by_name():
     assert source_result["VersionIdsToStages"] == secret["VersionIdsToStages"]
 
 
-@mock_secretsmanager
-@mock_ssm
+@mock_aws
 def test_get_value_from_secrets_manager__without_decryption():
     # Note that the parameter does not need to exist
     ssm = boto3.client("ssm", "eu-north-1")
@@ -50,8 +48,7 @@ def test_get_value_from_secrets_manager__without_decryption():
     )
 
 
-@mock_secretsmanager
-@mock_ssm
+@mock_aws
 def test_get_value_from_secrets_manager__with_decryption_false():
     # Note that the parameter does not need to exist
     ssm = boto3.client("ssm", "eu-north-1")
@@ -66,8 +63,7 @@ def test_get_value_from_secrets_manager__with_decryption_false():
     )
 
 
-@mock_secretsmanager
-@mock_ssm
+@mock_aws
 def test_get_value_from_secrets_manager__by_id():
     # given
     ssm = boto3.client("ssm", "eu-north-1")
@@ -97,8 +93,7 @@ def test_get_value_from_secrets_manager__by_id():
     assert param["Value"] == "3rd"
 
 
-@mock_secretsmanager
-@mock_ssm
+@mock_aws
 def test_get_value_from_secrets_manager__by_version():
     # given
     ssm = boto3.client("ssm", "eu-north-1")
@@ -115,8 +110,7 @@ def test_get_value_from_secrets_manager__by_version():
     assert param["Value"] == "1st"
 
 
-@mock_secretsmanager
-@mock_ssm
+@mock_aws
 def test_get_value_from_secrets_manager__param_does_not_exist():
     ssm = boto3.client("ssm", "us-east-1")
     with pytest.raises(ClientError) as exc:

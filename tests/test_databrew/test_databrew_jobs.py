@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_databrew
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
@@ -69,7 +69,7 @@ def _create_test_profile_jobs(client, count, **kwargs):
         _create_test_profile_job(client, **kwargs)
 
 
-@mock_databrew
+@mock_aws
 def test_create_profile_job_that_already_exists():
     client = _create_databrew_client()
 
@@ -83,7 +83,7 @@ def test_create_profile_job_that_already_exists():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
-@mock_databrew
+@mock_aws
 def test_create_recipe_job_that_already_exists():
     client = _create_databrew_client()
 
@@ -97,7 +97,7 @@ def test_create_recipe_job_that_already_exists():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
-@mock_databrew
+@mock_aws
 def test_create_recipe_job_with_invalid_encryption_mode():
     client = _create_databrew_client()
 
@@ -112,7 +112,7 @@ def test_create_recipe_job_with_invalid_encryption_mode():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_create_recipe_job_with_invalid_log_subscription_value():
     client = _create_databrew_client()
 
@@ -127,7 +127,7 @@ def test_create_recipe_job_with_invalid_log_subscription_value():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_create_recipe_job_with_same_name_as_profile_job():
     client = _create_databrew_client()
 
@@ -141,7 +141,7 @@ def test_create_recipe_job_with_same_name_as_profile_job():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
 
 
-@mock_databrew
+@mock_aws
 def test_describe_recipe_job():
     client = _create_databrew_client()
 
@@ -156,7 +156,7 @@ def test_describe_recipe_job():
     assert job["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_describe_job_that_does_not_exist():
     client = _create_databrew_client()
 
@@ -168,7 +168,7 @@ def test_describe_job_that_does_not_exist():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_describe_job_with_long_name():
     client = _create_databrew_client()
     name = "a" * 241
@@ -183,7 +183,7 @@ def test_describe_job_with_long_name():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("job_name", ["name", "name with space"])
 def test_update_profile_job(job_name):
     client = _create_databrew_client()
@@ -204,7 +204,7 @@ def test_update_profile_job(job_name):
     assert job["RoleArn"] == "a" * 20
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("job_name", ["name", "name with space"])
 def test_update_recipe_job(job_name):
     client = _create_databrew_client()
@@ -223,7 +223,7 @@ def test_update_recipe_job(job_name):
     assert job["RoleArn"] == "a" * 20
 
 
-@mock_databrew
+@mock_aws
 def test_update_profile_job_does_not_exist():
     client = _create_databrew_client()
 
@@ -237,7 +237,7 @@ def test_update_profile_job_does_not_exist():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 def test_update_recipe_job_does_not_exist():
     client = _create_databrew_client()
 
@@ -249,7 +249,7 @@ def test_update_recipe_job_does_not_exist():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("job_name", ["name", "name with space"])
 def test_delete_job(job_name):
     client = _create_databrew_client()
@@ -271,7 +271,7 @@ def test_delete_job(job_name):
     assert err["Message"] == f"Job {job_name} wasn't found."
 
 
-@mock_databrew
+@mock_aws
 def test_delete_job_does_not_exist():
     client = _create_databrew_client()
 
@@ -285,7 +285,7 @@ def test_delete_job_does_not_exist():
     assert err["Message"] == "The job DoesNotExist wasn't found."
 
 
-@mock_databrew
+@mock_aws
 def test_delete_job_with_long_name():
     client = _create_databrew_client()
     name = "a" * 241
@@ -300,7 +300,7 @@ def test_delete_job_with_long_name():
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_databrew
+@mock_aws
 def test_job_list_when_empty():
     client = _create_databrew_client()
 
@@ -309,7 +309,7 @@ def test_job_list_when_empty():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_with_max_results():
     client = _create_databrew_client()
 
@@ -320,7 +320,7 @@ def test_list_jobs_with_max_results():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_from_next_token():
     client = _create_databrew_client()
     _create_test_recipe_jobs(client, 10)
@@ -330,7 +330,7 @@ def test_list_jobs_from_next_token():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_with_max_results_greater_than_actual_results():
     client = _create_databrew_client()
     _create_test_recipe_jobs(client, 4)
@@ -339,7 +339,7 @@ def test_list_jobs_with_max_results_greater_than_actual_results():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_recipe_and_profile():
     client = _create_databrew_client()
 
@@ -350,7 +350,7 @@ def test_list_jobs_recipe_and_profile():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_dataset_name_filter():
     client = _create_databrew_client()
 
@@ -364,7 +364,7 @@ def test_list_jobs_dataset_name_filter():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_project_name_filter():
     client = _create_databrew_client()
 
@@ -377,7 +377,7 @@ def test_list_jobs_project_name_filter():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_list_jobs_dataset_name_and_project_name_filter():
     client = _create_databrew_client()
 

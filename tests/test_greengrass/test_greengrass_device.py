@@ -3,13 +3,13 @@ import freezegun
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_greengrass
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.settings import TEST_SERVER_MODE
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_device_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -38,7 +38,7 @@ def test_create_device_definition():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_device_definitions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -70,7 +70,7 @@ def test_list_device_definitions():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_device_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_ver = {
@@ -106,7 +106,7 @@ def test_get_device_definition():
         assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_device_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -119,7 +119,7 @@ def test_get_device_definition_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_device_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     v1_devices = [
@@ -159,7 +159,7 @@ def test_create_device_definition_version():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_device_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
@@ -184,7 +184,7 @@ def test_create_device_definition_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_device_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
@@ -205,7 +205,7 @@ def test_delete_device_definition():
     assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_device_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -218,7 +218,7 @@ def test_delete_device_definition_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_device_definition():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
@@ -245,7 +245,7 @@ def test_update_device_definition():
     assert get_res["Name"] == updated_device_name
 
 
-@mock_greengrass
+@mock_aws
 def test_update_device_definition_with_empty_name():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
@@ -270,7 +270,7 @@ def test_update_device_definition_with_empty_name():
     assert err["Code"] == "InvalidContainerDefinitionException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_device_definition_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -284,7 +284,7 @@ def test_update_device_definition_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_device_definition_versions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
@@ -318,7 +318,7 @@ def test_list_device_definition_versions():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_device_definition_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [
@@ -351,7 +351,7 @@ def test_get_device_definition_version():
     assert "Version" in core_def_ver_res
 
 
-@mock_greengrass
+@mock_aws
 def test_get_device_definition_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -364,7 +364,7 @@ def test_get_device_definition_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_device_definition_version_with_invalid_version_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     devices = [

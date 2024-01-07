@@ -12,17 +12,6 @@
 lakeformation
 =============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_lakeformation
-            def test_lakeformation_behaviour:
-                boto3.client("lakeformation")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_lf_tags_to_resource

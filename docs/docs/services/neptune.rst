@@ -14,17 +14,6 @@ neptune
 
 .. autoclass:: moto.neptune.models.NeptuneBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_neptune
-            def test_neptune_behaviour:
-                boto3.client("neptune")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_role_to_db_cluster

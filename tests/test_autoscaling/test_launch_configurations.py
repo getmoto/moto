@@ -6,12 +6,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_autoscaling, mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_launch_configuration():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -45,7 +45,7 @@ def test_create_launch_configuration():
     assert launch_config["BlockDeviceMappings"] == []
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_launch_configuration_with_block_device_mappings():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -102,7 +102,7 @@ def test_create_launch_configuration_with_block_device_mappings():
     assert "Ebs" not in xvdb
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_launch_configuration_additional_parameters():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -135,8 +135,7 @@ def test_create_launch_configuration_additional_parameters():
 # The default AMIs are not loaded for our test case, to speed things up
 # But we do need it for this specific test (and others in this file..)
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_create_launch_configuration_without_public_ip():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")
@@ -177,7 +176,7 @@ def test_create_launch_configuration_without_public_ip():
     assert "PublicIpAddress" not in instance
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_launch_configuration_additional_params_default_to_false():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -191,7 +190,7 @@ def test_create_launch_configuration_additional_params_default_to_false():
     assert launch_config["AssociatePublicIpAddress"] is False
 
 
-@mock_autoscaling
+@mock_aws
 def test_create_launch_configuration_defaults():
     """Test with the minimum inputs and check that all of the proper defaults
     are assigned for the other attributes"""
@@ -213,7 +212,7 @@ def test_create_launch_configuration_defaults():
     assert "SpotPrice" not in launch_config
 
 
-@mock_autoscaling
+@mock_aws
 def test_launch_configuration_describe_filter():
     client = boto3.client("autoscaling", region_name="us-east-1")
     for name in ["tester", "tester2", "tester3"]:
@@ -230,7 +229,7 @@ def test_launch_configuration_describe_filter():
     assert len(client.describe_launch_configurations()["LaunchConfigurations"]) == 3
 
 
-@mock_autoscaling
+@mock_aws
 def test_launch_configuration_describe_paginated():
     conn = boto3.client("autoscaling", region_name="us-east-1")
     for i in range(51):
@@ -253,7 +252,7 @@ def test_launch_configuration_describe_paginated():
     assert "NextToken" not in response2.keys()
 
 
-@mock_autoscaling
+@mock_aws
 def test_launch_configuration_delete():
     client = boto3.client("autoscaling", region_name="us-east-1")
     client.create_launch_configuration(
@@ -286,7 +285,7 @@ def test_launch_configuration_delete():
         ),
     ],
 )
-@mock_autoscaling
+@mock_aws
 def test_invalid_launch_configuration_request_raises_error(request_params):
     client = boto3.client("autoscaling", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -296,8 +295,7 @@ def test_invalid_launch_configuration_request_raises_error(request_params):
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_autoscaling
-@mock_ec2
+@mock_aws
 def test_launch_config_with_block_device_mappings__volumes_are_created():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")

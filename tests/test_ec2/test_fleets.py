@@ -3,7 +3,7 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from . import ec2_aws_verified
@@ -67,7 +67,7 @@ def test_launch_template_is_created_properly():
         assert template["LatestVersionNumber"] == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_spot_fleet_with_lowest_price():
     conn = boto3.client("ec2", region_name="us-west-2")
     launch_template_id, _ = get_launch_template(conn)
@@ -118,7 +118,7 @@ def test_create_spot_fleet_with_lowest_price():
     assert len(instances) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_on_demand_fleet():
     conn = boto3.client("ec2", region_name="us-west-2")
     launch_template_id, _ = get_launch_template(conn)
@@ -169,7 +169,7 @@ def test_create_on_demand_fleet():
     assert len(instances) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_diversified_spot_fleet():
     conn = boto3.client("ec2", region_name="us-west-2")
     launch_template_id_1, _ = get_launch_template(conn, instance_type="t2.small")
@@ -214,7 +214,7 @@ def test_create_diversified_spot_fleet():
     assert "i-" in instances[0]["InstanceId"]
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "spot_allocation_strategy",
     [
@@ -271,7 +271,7 @@ def test_request_fleet_using_launch_template_config__name(
     assert "i-" in instances[0]["InstanceId"]
 
 
-@mock_ec2
+@mock_aws
 def test_create_fleet_request_with_tags():
     conn = boto3.client("ec2", region_name="us-west-2")
 
@@ -328,7 +328,7 @@ def test_create_fleet_request_with_tags():
             assert tag in instance["Tags"]
 
 
-@mock_ec2
+@mock_aws
 def test_create_fleet_using_launch_template_config__overrides():
     conn = boto3.client("ec2", region_name="us-east-2")
     subnet_id = get_subnet_id(conn)
@@ -440,7 +440,7 @@ def test_delete_fleet():
         assert len(instances) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_describe_fleet_instances_api():
     conn = boto3.client("ec2", region_name="us-west-1")
 
@@ -487,7 +487,7 @@ def test_describe_fleet_instances_api():
     assert instance_healths == ["healthy", "healthy", "healthy"]
 
 
-@mock_ec2
+@mock_aws
 def test_create_fleet_api():
     conn = boto3.client("ec2", region_name="us-west-1")
 
@@ -535,7 +535,7 @@ def test_create_fleet_api():
     assert "on-demand" in lifecycle
 
 
-@mock_ec2
+@mock_aws
 def test_create_fleet_api_response():
     conn = boto3.client("ec2", region_name="us-west-2")
     subnet_id = get_subnet_id(conn)

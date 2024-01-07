@@ -10,7 +10,7 @@ import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 from freezegun import freeze_time
 
-from moto import mock_ecr, mock_lambda, mock_s3, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_ecr.test_ecr_helpers import _create_image_manifest
 
@@ -27,12 +27,11 @@ from .utilities import (
 PYTHON_VERSION = "python3.11"
 LAMBDA_FUNC_NAME = "test"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
 @mock.patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
 @pytest.mark.parametrize("region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"])
-@mock_lambda
+@mock_aws
 def test_lambda_regions(region):
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can only set EnvironVars in DecoratorMode")
@@ -97,7 +96,7 @@ def test_list_functions(iam_role_arn=None):
     conn.delete_function(FunctionName=function_name)
 
 
-@mock_lambda
+@mock_aws
 def test_create_based_on_s3_with_missing_bucket():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -125,8 +124,7 @@ def test_create_based_on_s3_with_missing_bucket():
     )
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_create_function_from_aws_bucket():
     bucket_name = str(uuid4())
@@ -168,7 +166,7 @@ def test_create_function_from_aws_bucket():
     assert result["State"] == "Active"
 
 
-@mock_lambda
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_create_function_from_zipfile():
     conn = boto3.client("lambda", _lambda_region)
@@ -217,7 +215,7 @@ def test_create_function_from_zipfile():
     }
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_from_image():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -249,7 +247,7 @@ def test_create_function_from_image():
     assert result["Configuration"]["ImageConfigResponse"]["ImageConfig"] == image_config
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_from_image_default_working_directory():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -280,7 +278,7 @@ def test_create_function_from_image_default_working_directory():
     assert result["Configuration"]["ImageConfigResponse"]["ImageConfig"] == image_config
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_error_bad_architecture():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -309,7 +307,7 @@ def test_create_function_error_bad_architecture():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_error_ephemeral_too_big():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -338,7 +336,7 @@ def test_create_function_error_ephemeral_too_big():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_error_ephemeral_too_small():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -360,7 +358,7 @@ def test_create_function_error_ephemeral_too_small():
     assert exc.typename == "ParamValidationError"
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize(
     "tracing_mode",
     [(None, "PassThrough"), ("PassThrough", "PassThrough"), ("Active", "Active")],
@@ -389,7 +387,7 @@ def test_create_function__with_tracingmode(tracing_mode):
 
 @pytest.fixture(name="with_ecr_mock")
 def ecr_repo_fixture():
-    with mock_ecr():
+    with mock_aws():
         os.environ["MOTO_LAMBDA_STUB_ECR"] = "FALSE"
         repo_name = "testlambdaecr"
         ecr_client = boto3.client("ecr", "us-east-1")
@@ -404,7 +402,7 @@ def ecr_repo_fixture():
         os.environ["MOTO_LAMBDA_STUB_ECR"] = "TRUE"
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_from_stubbed_ecr():
     lambda_client = boto3.client("lambda", "us-east-1")
     fn_name = str(uuid4())[0:6]
@@ -437,7 +435,7 @@ def test_create_function_from_stubbed_ecr():
     assert code["ResolvedImageUri"] == resolved_image_uri
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_from_mocked_ecr_image_tag(
     with_ecr_mock,
 ):  # pylint: disable=unused-argument
@@ -479,7 +477,7 @@ def test_create_function_from_mocked_ecr_image_tag(
     assert code["ResolvedImageUri"] == resolved_image_uri
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_from_mocked_ecr_image_digest(
     with_ecr_mock,
 ):  # pylint: disable=unused-argument
@@ -506,7 +504,7 @@ def test_create_function_from_mocked_ecr_image_digest(
     assert resp["PackageType"] == "Image"
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_from_mocked_ecr_missing_image(
     with_ecr_mock,
 ):  # pylint: disable=unused-argument
@@ -539,8 +537,7 @@ def test_create_function_from_mocked_ecr_missing_image(
     )
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_get_function():
     bucket_name = str(uuid4())
@@ -631,8 +628,7 @@ def test_get_function():
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-@mock_s3
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_get_function_configuration(key):
     bucket_name = str(uuid4())
@@ -697,8 +693,7 @@ def test_get_function_configuration(key):
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_function_code_signing_config(key):
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -728,8 +723,7 @@ def test_get_function_code_signing_config(key):
     assert result["CodeSigningConfigArn"] == "csc:arn"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_function_by_arn():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", "us-east-1")
@@ -775,8 +769,7 @@ def test_get_function_by_arn():
     )
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_delete_function():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -815,8 +808,7 @@ def test_delete_function():
     assert len(our_functions) == 0
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_delete_function_by_arn():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", "us-east-1")
@@ -849,7 +841,7 @@ def test_delete_function_by_arn():
     assert len(our_functions) == 0
 
 
-@mock_lambda
+@mock_aws
 def test_delete_unknown_function():
     conn = boto3.client("lambda", _lambda_region)
     with pytest.raises(ClientError) as exc:
@@ -858,7 +850,7 @@ def test_delete_unknown_function():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize(
     "name",
     [
@@ -878,8 +870,7 @@ def test_publish_version_unknown_function(name):
     )
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_publish():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -929,8 +920,7 @@ def test_publish():
     assert function_name in our_functions[0]["FunctionArn"]
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_list_create_list_get_delete_list():
     """
@@ -1049,7 +1039,7 @@ def test_list_create_list_get_delete_list():
     assert function_name not in func_names
 
 
-@mock_lambda
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_get_function_created_with_zipfile():
     conn = boto3.client("lambda", _lambda_region)
@@ -1098,8 +1088,7 @@ def test_get_function_created_with_zipfile():
     assert config["LastUpdateStatus"] == "Successful"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_list_versions_by_function():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -1162,8 +1151,7 @@ def test_list_versions_by_function():
     )
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_list_aliases():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -1263,8 +1251,7 @@ def test_list_aliases():
     )
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_create_function_with_already_exists():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -1306,8 +1293,7 @@ def test_create_function_with_already_exists():
     assert exc.value.response["Error"]["Code"] == "ResourceConflictException"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_list_versions_by_function_for_nonexistent_function():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -1317,8 +1303,7 @@ def test_list_versions_by_function_for_nonexistent_function():
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_update_configuration(key):
     bucket_name = str(uuid4())
     function_name = str(uuid4())[0:6]
@@ -1379,7 +1364,7 @@ def test_update_configuration(key):
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_update_function_zip(key):
     conn = boto3.client("lambda", _lambda_region)
 
@@ -1452,8 +1437,7 @@ def test_update_function_zip(key):
     assert new_update["Version"] == "3"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_update_function_s3():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -1514,7 +1498,7 @@ def test_update_function_s3():
     assert config["LastUpdateStatus"] == "Successful"
 
 
-@mock_lambda
+@mock_aws
 def test_update_function_ecr():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
@@ -1570,7 +1554,7 @@ def test_update_function_ecr():
     assert config["LastUpdateStatus"] == "Successful"
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_with_invalid_arn():
     err = create_invalid_lambda("test-iam-role")
     assert (
@@ -1579,7 +1563,7 @@ def test_create_function_with_invalid_arn():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_with_arn_from_different_account():
     err = create_invalid_lambda("arn:aws:iam::000000000000:role/example_role")
     assert (
@@ -1588,7 +1572,7 @@ def test_create_function_with_arn_from_different_account():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_create_function_with_unknown_arn():
     err = create_invalid_lambda(
         "arn:aws:iam::" + str(ACCOUNT_ID) + ":role/service-role/unknown_role"
@@ -1599,7 +1583,7 @@ def test_create_function_with_unknown_arn():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_remove_unknown_permission_throws_error():
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -1620,7 +1604,7 @@ def test_remove_unknown_permission_throws_error():
     assert err["Message"] == "No policy is associated with the given resource."
 
 
-@mock_lambda
+@mock_aws
 def test_multiple_qualifiers():
     client = boto3.client("lambda", "us-east-1")
 
@@ -1668,7 +1652,7 @@ def test_multiple_qualifiers():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_delete_non_existent():
     client = boto3.client("lambda", "us-east-1")
 
@@ -1716,7 +1700,7 @@ def test_get_role_name_utility_race_condition():
     assert len(errors) == 0
 
 
-@mock_lambda
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_success():
     if not settings.TEST_DECORATOR_MODE:
@@ -1744,7 +1728,7 @@ def test_put_function_concurrency_success():
     assert response["ReservedConcurrentExecutions"] == 900
 
 
-@mock_lambda
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "don't care"})
 def test_put_function_concurrency_not_enforced():
     del os.environ["MOTO_LAMBDA_CONCURRENCY_QUOTA"]  # i.e. not set by user
@@ -1770,7 +1754,7 @@ def test_put_function_concurrency_not_enforced():
     assert response["ReservedConcurrentExecutions"] == 901
 
 
-@mock_lambda
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_failure():
     if not settings.TEST_DECORATOR_MODE:
@@ -1804,7 +1788,7 @@ def test_put_function_concurrency_failure():
     assert "ReservedConcurrentExecutions" not in response
 
 
-@mock_lambda
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_i_can_has_math():
     if not settings.TEST_DECORATOR_MODE:
@@ -1864,7 +1848,7 @@ def test_put_function_concurrency_i_can_has_math():
     assert response["ReservedConcurrentExecutions"] == 100
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize(
     "config",
     [
@@ -1912,7 +1896,7 @@ def test_put_event_invoke_config(config):
     client.delete_function(FunctionName=arn_2)
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize(
     "config",
     [
@@ -1960,7 +1944,7 @@ def test_update_event_invoke_config(config):
     client.delete_function(FunctionName=arn_2)
 
 
-@mock_lambda
+@mock_aws
 def test_put_event_invoke_config_errors_1():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -1990,7 +1974,7 @@ def test_put_event_invoke_config_errors_1():
     client.delete_function(FunctionName=arn_1)
 
 
-@mock_lambda
+@mock_aws
 def test_put_event_invoke_config_errors_2():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -2022,7 +2006,7 @@ def test_put_event_invoke_config_errors_2():
     client.delete_function(FunctionName=arn_2)
 
 
-@mock_lambda
+@mock_aws
 def test_put_event_invoke_config_errors_3():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -2048,7 +2032,7 @@ def test_put_event_invoke_config_errors_3():
     client.delete_function(FunctionName=arn_1)
 
 
-@mock_lambda
+@mock_aws
 def test_put_event_invoke_config_errors_4():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -2074,7 +2058,7 @@ def test_put_event_invoke_config_errors_4():
     client.delete_function(FunctionName=arn_1)
 
 
-@mock_lambda
+@mock_aws
 def test_get_event_invoke_config():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -2101,7 +2085,7 @@ def test_get_event_invoke_config():
     client.delete_function(FunctionName=arn_2)
 
 
-@mock_lambda
+@mock_aws
 def test_list_event_invoke_configs():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -2134,7 +2118,7 @@ def test_list_event_invoke_configs():
     client.delete_function(FunctionName=arn_2)
 
 
-@mock_lambda
+@mock_aws
 def test_get_event_invoke_config_empty():
     # Setup
     client = boto3.client("lambda", _lambda_region)
@@ -2157,7 +2141,7 @@ def test_get_event_invoke_config_empty():
     client.delete_function(FunctionName=arn_1)
 
 
-@mock_lambda
+@mock_aws
 def test_delete_event_invoke_config():
     # Setup
     client = boto3.client("lambda", _lambda_region)

@@ -14,17 +14,6 @@ budgets
 
 .. autoclass:: moto.budgets.models.BudgetsBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_budgets
-            def test_budgets_behaviour:
-                boto3.client("budgets")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_budget

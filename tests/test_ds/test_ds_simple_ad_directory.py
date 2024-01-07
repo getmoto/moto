@@ -1,10 +1,8 @@
-"""Directory-related unit tests for Simple AD Directory Services."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ds, settings
-from moto.ec2 import mock_ec2
+from moto import mock_aws, settings
 from moto.moto_api._internal import mock_random
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
@@ -49,7 +47,7 @@ def create_test_directory(ds_client, ec2_client, vpc_settings=None, tags=None):
     return result["DirectoryId"]
 
 
-@mock_ds
+@mock_aws
 def test_ds_create_directory_validations():
     """Test validation errs that aren't caught by botocore."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -138,8 +136,7 @@ def test_ds_create_directory_validations():
     )
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_create_directory_bad_vpc_settings():
     """Test validation of bad vpc that doesn't raise ValidationException."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -167,8 +164,7 @@ def test_ds_create_directory_bad_vpc_settings():
     assert "Invalid VPC ID" in err["Message"]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_create_directory_bad_subnets():
     """Test validation of VPC subnets."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -219,8 +215,7 @@ def test_ds_create_directory_bad_subnets():
     assert "Invalid subnet ID(s). They must correspond to two subnets" in err["Message"]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_create_directory_good_args():
     """Test creation of AD directory using good arguments."""
     client = boto3.client("ds", region_name=TEST_REGION)

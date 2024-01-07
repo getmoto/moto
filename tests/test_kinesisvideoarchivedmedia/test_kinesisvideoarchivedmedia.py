@@ -2,12 +2,11 @@ from datetime import timedelta
 
 import boto3
 
-from moto import mock_kinesisvideo, mock_kinesisvideoarchivedmedia
+from moto import mock_aws
 from moto.core.utils import utcnow
 
 
-@mock_kinesisvideo
-@mock_kinesisvideoarchivedmedia
+@mock_aws
 def test_get_hls_streaming_session_url():
     region_name = "ap-northeast-1"
     kvs_client = boto3.client("kinesisvideo", region_name=region_name)
@@ -29,8 +28,7 @@ def test_get_hls_streaming_session_url():
     )
 
 
-@mock_kinesisvideo
-@mock_kinesisvideoarchivedmedia
+@mock_aws
 def test_get_dash_streaming_session_url():
     region_name = "ap-northeast-1"
     kvs_client = boto3.client("kinesisvideo", region_name=region_name)
@@ -52,8 +50,7 @@ def test_get_dash_streaming_session_url():
     )
 
 
-@mock_kinesisvideo
-@mock_kinesisvideoarchivedmedia
+@mock_aws
 def test_get_clip():
     region_name = "ap-northeast-1"
     kvs_client = boto3.client("kinesisvideo", region_name=region_name)

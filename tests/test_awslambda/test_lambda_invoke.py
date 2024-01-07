@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_lambda, settings
+from moto import mock_aws, settings
 
 from ..markers import requires_docker
 from .utilities import (
@@ -29,7 +29,7 @@ _lambda_region = "us-west-2"
 @pytest.mark.network
 @requires_docker
 class TestLambdaInvocations_Error:
-    mock = mock_lambda()
+    mock = mock_aws()
 
     @classmethod
     def setup_class(cls):
@@ -79,7 +79,7 @@ class TestLambdaInvocations_Error:
 @pytest.mark.network
 @requires_docker
 class TestLambdaInvocations:
-    mock = mock_lambda()
+    mock = mock_aws()
 
     @classmethod
     def setup_class(cls):
@@ -186,7 +186,7 @@ class TestLambdaInvocations:
 
 
 @pytest.mark.network
-@mock_lambda
+@mock_aws
 def test_invoke_lambda_using_environment_port():
     if not settings.TEST_SERVER_MODE:
         raise SkipTest("Can only test environment variables in server mode")
@@ -220,7 +220,7 @@ def test_invoke_lambda_using_environment_port():
 
 
 @pytest.mark.network
-@mock_lambda
+@mock_aws
 def test_invoke_lambda_using_networkmode():
     """
     Special use case - verify that Lambda can send a request to 'http://localhost'
@@ -250,7 +250,7 @@ def test_invoke_lambda_using_networkmode():
 
 
 @pytest.mark.network
-@mock_lambda
+@mock_aws
 @requires_docker
 def test_invoke_function_with_multiple_files_in_zip():
     conn = boto3.client("lambda", _lambda_region)
@@ -278,8 +278,7 @@ def test_invoke_function_with_multiple_files_in_zip():
 
 if settings.TEST_SERVER_MODE:
 
-    @mock_ec2
-    @mock_lambda
+    @mock_aws
     def test_invoke_function_get_ec2_volume():
         conn = boto3.resource("ec2", _lambda_region)
         vol = conn.create_volume(Size=99, AvailabilityZone=_lambda_region)
@@ -312,7 +311,7 @@ if settings.TEST_SERVER_MODE:
 
 
 @pytest.mark.network
-@mock_lambda
+@mock_aws
 @requires_docker
 @pytest.mark.xfail(message="Fails intermittently - functionality exists though")
 def test_invoke_function_large_response():
@@ -344,7 +343,7 @@ def test_invoke_function_large_response():
     assert "FunctionError" not in resp
 
 
-@mock_lambda
+@mock_aws
 def test_invoke_lambda_with_proxy():
     if not settings.test_proxy_mode():
         raise SkipTest("We only want to test this in ProxyMode")

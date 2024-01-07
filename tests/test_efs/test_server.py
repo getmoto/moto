@@ -4,7 +4,7 @@ from unittest import SkipTest
 import pytest
 
 import moto.server as server
-from moto import mock_ec2, mock_efs, settings
+from moto import mock_aws, settings
 
 FILE_SYSTEMS = "/2015-02-01/file-systems"
 MOUNT_TARGETS = "/2015-02-01/mount-targets"
@@ -23,13 +23,14 @@ def fixture_aws_credentials(monkeypatch):
 def fixture_efs_client(aws_credentials):  # pylint: disable=unused-argument
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Using server directly - no point in testing ServerMode")
-    with mock_efs():
+
+    with mock_aws():
         yield server.create_backend_app("efs").test_client()
 
 
 @pytest.fixture(scope="function", name="subnet_id")
 def fixture_subnet_id(aws_credentials):  # pylint: disable=unused-argument
-    with mock_ec2():
+    with mock_aws():
         ec2_client = server.create_backend_app("ec2").test_client()
         resp = ec2_client.get("/?Action=DescribeSubnets")
         subnet_ids = re.findall("<subnetId>(.*?)</subnetId>", resp.data.decode("utf-8"))

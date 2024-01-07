@@ -14,17 +14,6 @@ ssm
 
 .. autoclass:: moto.ssm.models.SimpleSystemManagerBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_ssm
-            def test_ssm_behaviour:
-                boto3.client("ssm")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_tags_to_resource

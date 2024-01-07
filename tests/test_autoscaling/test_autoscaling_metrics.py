@@ -1,14 +1,12 @@
 import boto3
 
-from moto import mock_autoscaling, mock_ec2, mock_elb
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
 
 
-@mock_autoscaling
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_enable_metrics_collection():
     mocked_networking = setup_networking()
     elb_client = boto3.client("elb", region_name="us-east-1")

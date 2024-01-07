@@ -4,18 +4,16 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_lambda, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .utilities import get_role_name, get_test_zip_file2
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-east-1"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_tags():
     """
     test list_tags -> tag_resource -> list_tags -> tag_resource -> list_tags -> untag_resource -> list_tags integration
@@ -69,8 +67,7 @@ def test_tags():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_create_function_with_tags():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -97,7 +94,7 @@ def test_create_function_with_tags():
     assert result["Tags"] == {"key1": "val1", "key2": "val2"}
 
 
-@mock_lambda
+@mock_aws
 def test_tags_not_found():
     """
     Test list_tags and tag_resource when the lambda with the given arn does not exist

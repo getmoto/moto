@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_secretsmanager
+from moto import mock_aws
 
 
-@mock_secretsmanager
+@mock_aws
 def test_get_initial_policy():
     client = boto3.client("secretsmanager", region_name="us-west-2")
     client.create_secret(Name="test-secret")
@@ -18,7 +18,7 @@ def test_get_initial_policy():
     assert "ResourcePolicy" not in resp
 
 
-@mock_secretsmanager
+@mock_aws
 def test_put_resource_policy():
     client = boto3.client("secretsmanager", region_name="us-west-2")
     client.create_secret(Name="test-secret")
@@ -48,7 +48,7 @@ def test_put_resource_policy():
     assert json.loads(resp["ResourcePolicy"]) == policy
 
 
-@mock_secretsmanager
+@mock_aws
 def test_delete_resource_policy():
     client = boto3.client("secretsmanager", region_name="us-west-2")
     client.create_secret(Name="test-secret")
@@ -61,7 +61,7 @@ def test_delete_resource_policy():
     assert "ResourcePolicy" not in resp
 
 
-@mock_secretsmanager
+@mock_aws
 def test_policies_for_unknown_secrets():
     client = boto3.client("secretsmanager", region_name="us-west-2")
 

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_medialive
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "eu-west-1"
@@ -105,7 +105,7 @@ def _create_channel_config(name, **kwargs):
     return channel_config
 
 
-@mock_medialive
+@mock_aws
 def test_create_channel_succeeds():
     client = boto3.client("medialive", region_name=region)
     channel_config = _create_channel_config("test channel 1")
@@ -123,7 +123,7 @@ def test_create_channel_succeeds():
     assert channel["Tags"]["Customer"] == "moto"
 
 
-@mock_medialive
+@mock_aws
 def test_list_channels_succeeds():
     client = boto3.client("medialive", region_name=region)
     channel1_config = _create_channel_config("test channel 1", request_id="request-1")
@@ -145,7 +145,7 @@ def test_list_channels_succeeds():
     assert response["Channels"][1]["PipelinesRunningCount"] == 1
 
 
-@mock_medialive
+@mock_aws
 def test_delete_channel_moves_channel_in_deleted_state():
     client = boto3.client("medialive", region_name=region)
     channel_name = "test channel X"
@@ -158,7 +158,7 @@ def test_delete_channel_moves_channel_in_deleted_state():
     assert delete_response["State"] == "DELETING"
 
 
-@mock_medialive
+@mock_aws
 def test_describe_channel_succeeds():
     client = boto3.client("medialive", region_name=region)
     channel_name = "test channel X"
@@ -176,7 +176,7 @@ def test_describe_channel_succeeds():
     assert channel["Tags"]["Customer"] == "moto"
 
 
-@mock_medialive
+@mock_aws
 def test_start_channel_succeeds():
     client = boto3.client("medialive", region_name=region)
     channel_name = "testchan1"
@@ -190,7 +190,7 @@ def test_start_channel_succeeds():
     assert client.describe_channel(ChannelId=channel_id)["State"] == "RUNNING"
 
 
-@mock_medialive
+@mock_aws
 def test_stop_channel_succeeds():
     client = boto3.client("medialive", region_name=region)
     channel_name = "testchan2"
@@ -206,7 +206,7 @@ def test_stop_channel_succeeds():
     assert client.describe_channel(ChannelId=channel_id)["State"] == "IDLE"
 
 
-@mock_medialive
+@mock_aws
 def test_update_channel_succeeds():
     client = boto3.client("medialive", region_name=region)
     channel_name = "Original Channel"
@@ -225,7 +225,7 @@ def test_update_channel_succeeds():
     assert channel["Name"] == "Updated Channel"
 
 
-@mock_medialive
+@mock_aws
 def test_create_input_succeeds():
     client = boto3.client("medialive", region_name=region)
     input_name = "Input One"
@@ -252,7 +252,7 @@ def test_create_input_succeeds():
     assert r_input["Type"] == input_config["Type"]
 
 
-@mock_medialive
+@mock_aws
 def test_describe_input_succeeds():
     client = boto3.client("medialive", region_name=region)
     input_name = "Input Two"
@@ -269,7 +269,7 @@ def test_describe_input_succeeds():
     assert describe_response["MediaConnectFlows"] == input_config["MediaConnectFlows"]
 
 
-@mock_medialive
+@mock_aws
 def test_list_inputs_succeeds():
     client = boto3.client("medialive", region_name=region)
     input_config1 = _create_input_config("Input One")
@@ -284,7 +284,7 @@ def test_list_inputs_succeeds():
     assert inputs[1]["Name"] == "Input Two"
 
 
-@mock_medialive
+@mock_aws
 def test_delete_input_moves_input_in_deleted_state():
     client = boto3.client("medialive", region_name=region)
     input_name = "test input X"
@@ -299,7 +299,7 @@ def test_delete_input_moves_input_in_deleted_state():
     assert input_["State"] == "DELETED"
 
 
-@mock_medialive
+@mock_aws
 def test_update_input_succeeds():
     client = boto3.client("medialive", region_name=region)
     input_name = "test input X"

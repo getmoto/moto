@@ -1,12 +1,12 @@
 import os
 
-from moto import mock_ec2, mock_s3
+from moto import mock_aws
 
 KEY = "AWS_ACCESS_KEY_ID"
 
 
 def test_aws_keys_are_patched() -> None:
-    with mock_ec2():
+    with mock_aws():
         patched_value = os.environ[KEY]
         assert patched_value == "FOOBARKEY"
 
@@ -24,7 +24,7 @@ def test_aws_keys_can_be_none() -> None:
         pass  # Value might not be set on this system in the first place
     try:
         # Verify that the os.environ[KEY] is patched
-        with mock_s3():
+        with mock_aws():
             patched_value = os.environ[KEY]
             assert patched_value == "FOOBARKEY"
         # Verify that the os.environ[KEY] is unpatched, and reverts to None

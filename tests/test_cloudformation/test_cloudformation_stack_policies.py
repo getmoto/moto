@@ -4,12 +4,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_s3
+from moto import mock_aws
 
 from .test_cloudformation_stack_crud_boto3 import dummy_template_json
 
 
-@mock_cloudformation
+@mock_aws
 def test_set_stack_policy_on_nonexisting_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -21,7 +21,7 @@ def test_set_stack_policy_on_nonexisting_stack():
     assert err["Type"] == "Sender"
 
 
-@mock_cloudformation
+@mock_aws
 def test_get_stack_policy_on_nonexisting_stack():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -33,7 +33,7 @@ def test_get_stack_policy_on_nonexisting_stack():
     assert err["Type"] == "Sender"
 
 
-@mock_cloudformation
+@mock_aws
 def test_get_stack_policy_on_stack_without_policy():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
@@ -42,7 +42,7 @@ def test_get_stack_policy_on_stack_without_policy():
     assert "StackPolicyBody" not in resp
 
 
-@mock_cloudformation
+@mock_aws
 def test_set_stack_policy_with_both_body_and_url():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
@@ -59,7 +59,7 @@ def test_set_stack_policy_with_both_body_and_url():
     assert err["Type"] == "Sender"
 
 
-@mock_cloudformation
+@mock_aws
 def test_set_stack_policy_with_body():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
@@ -72,7 +72,7 @@ def test_set_stack_policy_with_body():
     assert resp["StackPolicyBody"] == policy
 
 
-@mock_cloudformation
+@mock_aws
 def test_set_stack_policy_on_create():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(
@@ -85,8 +85,7 @@ def test_set_stack_policy_on_create():
     assert resp["StackPolicyBody"] == "stack_policy_body"
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_set_stack_policy_with_url():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)
@@ -105,8 +104,7 @@ def test_set_stack_policy_with_url():
     assert resp["StackPolicyBody"] == policy
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_set_stack_policy_with_url_pointing_to_unknown_key():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     cf_conn.create_stack(StackName="test_stack", TemplateBody=dummy_template_json)

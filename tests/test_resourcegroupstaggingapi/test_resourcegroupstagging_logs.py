@@ -2,11 +2,10 @@ import unittest
 
 import boto3
 
-from moto import mock_logs, mock_resourcegroupstaggingapi
+from moto import mock_aws
 
 
-@mock_logs
-@mock_resourcegroupstaggingapi
+@mock_aws
 class TestLogsTagging(unittest.TestCase):
     def setUp(self) -> None:
         self.logs = boto3.client("logs", region_name="us-east-2")

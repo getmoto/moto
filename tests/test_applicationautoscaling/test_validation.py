@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_applicationautoscaling, mock_ecs
+from moto import mock_aws
 from moto.applicationautoscaling import models
 from moto.applicationautoscaling.exceptions import AWSValidationException
 
@@ -20,7 +20,7 @@ DEFAULT_MAX_CAPACITY = 1
 DEFAULT_ROLE_ARN = "test:arn"
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return_validation_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
 
@@ -34,7 +34,7 @@ def test_describe_scalable_targets_with_invalid_scalable_dimension_should_return
     assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_with_invalid_service_namespace_should_return_validation_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
 
@@ -48,7 +48,7 @@ def test_describe_scalable_targets_with_invalid_service_namespace_should_return_
     assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_with_multiple_invalid_parameters_should_return_validation_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
 
@@ -62,8 +62,7 @@ def test_describe_scalable_targets_with_multiple_invalid_parameters_should_retur
     assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_register_scalable_target_ecs_with_non_existent_service_should_return_clusternotfound_exception():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     resource_id = f"service/{DEFAULT_ECS_CLUSTER}/foo"

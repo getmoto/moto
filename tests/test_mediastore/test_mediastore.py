@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_mediastore
+from moto import mock_aws
 
 region = "eu-west-1"
 
 
-@mock_mediastore
+@mock_aws
 def test_create_container_succeeds():
     client = boto3.client("mediastore", region_name=region)
     response = client.create_container(
@@ -21,7 +21,7 @@ def test_create_container_succeeds():
     assert container["Status"] == "CREATING"
 
 
-@mock_mediastore
+@mock_aws
 def test_describe_container_succeeds():
     client = boto3.client("mediastore", region_name=region)
     name = "Awesome container!"
@@ -36,7 +36,7 @@ def test_describe_container_succeeds():
     assert container["Status"] == "ACTIVE"
 
 
-@mock_mediastore
+@mock_aws
 def test_list_containers_succeeds():
     client = boto3.client("mediastore", region_name=region)
     name = "Awesome container!"
@@ -49,7 +49,7 @@ def test_list_containers_succeeds():
     assert len(containers) == 2
 
 
-@mock_mediastore
+@mock_aws
 def test_describe_container_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -57,7 +57,7 @@ def test_describe_container_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_put_lifecycle_policy_succeeds():
     client = boto3.client("mediastore", region_name=region)
     name = "container-name"
@@ -69,7 +69,7 @@ def test_put_lifecycle_policy_succeeds():
     assert response["LifecyclePolicy"] == "lifecycle-policy"
 
 
-@mock_mediastore
+@mock_aws
 def test_put_lifecycle_policy_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -77,7 +77,7 @@ def test_put_lifecycle_policy_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_get_lifecycle_policy_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -85,7 +85,7 @@ def test_get_lifecycle_policy_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_get_lifecycle_policy_raises_error_if_container_does_not_have_lifecycle_policy():
     client = boto3.client("mediastore", region_name=region)
     client.create_container(ContainerName="container-name", Tags=[{"Key": "customer"}])
@@ -94,7 +94,7 @@ def test_get_lifecycle_policy_raises_error_if_container_does_not_have_lifecycle_
     assert ex.value.response["Error"]["Code"] == "PolicyNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_put_container_policy_succeeds():
     client = boto3.client("mediastore", region_name=region)
     name = "container-name"
@@ -106,7 +106,7 @@ def test_put_container_policy_succeeds():
     assert response["Policy"] == "container-policy"
 
 
-@mock_mediastore
+@mock_aws
 def test_put_container_policy_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -114,7 +114,7 @@ def test_put_container_policy_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_get_container_policy_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -122,7 +122,7 @@ def test_get_container_policy_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_get_container_policy_raises_error_if_container_does_not_have_container_policy():
     client = boto3.client("mediastore", region_name=region)
     client.create_container(ContainerName="container-name", Tags=[{"Key": "customer"}])
@@ -131,7 +131,7 @@ def test_get_container_policy_raises_error_if_container_does_not_have_container_
     assert ex.value.response["Error"]["Code"] == "PolicyNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_put_metric_policy_succeeds():
     client = boto3.client("mediastore", region_name=region)
     name = "container-name"
@@ -145,7 +145,7 @@ def test_put_metric_policy_succeeds():
     assert response["MetricPolicy"] == {"ContainerLevelMetrics": "ENABLED"}
 
 
-@mock_mediastore
+@mock_aws
 def test_put_metric_policy_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -156,7 +156,7 @@ def test_put_metric_policy_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_get_metric_policy_raises_error_if_container_does_not_exist():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -164,7 +164,7 @@ def test_get_metric_policy_raises_error_if_container_does_not_exist():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_get_metric_policy_raises_error_if_container_does_not_have_metric_policy():
     client = boto3.client("mediastore", region_name=region)
     client.create_container(ContainerName="container-name", Tags=[{"Key": "customer"}])
@@ -173,7 +173,7 @@ def test_get_metric_policy_raises_error_if_container_does_not_have_metric_policy
     assert ex.value.response["Error"]["Code"] == "PolicyNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("mediastore", region_name=region)
     tags = [{"Key": "customer"}]
@@ -186,7 +186,7 @@ def test_list_tags_for_resource():
     assert response["Tags"] == tags
 
 
-@mock_mediastore
+@mock_aws
 def test_list_tags_for_resource_return_none_if_no_tags():
     client = boto3.client("mediastore", region_name=region)
 
@@ -198,7 +198,7 @@ def test_list_tags_for_resource_return_none_if_no_tags():
     assert response.get("Tags") is None
 
 
-@mock_mediastore
+@mock_aws
 def test_list_tags_for_resource_return_error_for_unknown_resource():
     client = boto3.client("mediastore", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -206,7 +206,7 @@ def test_list_tags_for_resource_return_error_for_unknown_resource():
     assert ex.value.response["Error"]["Code"] == "ContainerNotFoundException"
 
 
-@mock_mediastore
+@mock_aws
 def test_delete_container():
     client = boto3.client("mediastore", region_name=region)
     container_name = "Awesome container!"
@@ -219,7 +219,7 @@ def test_delete_container():
     assert not any(d["Name"] == container_name for d in containers)
 
 
-@mock_mediastore
+@mock_aws
 def test_delete_container_raise_error_if_container_not_found():
     client = boto3.client("mediastore", region_name=region)
     client.create_container(ContainerName="Awesome container!")

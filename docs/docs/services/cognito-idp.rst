@@ -14,17 +14,6 @@ cognito-idp
 
 .. autoclass:: moto.cognitoidp.models.CognitoIdpBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_cognitoidp
-            def test_cognitoidp_behaviour:
-                boto3.client("cognito-idp")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_custom_attributes

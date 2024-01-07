@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_create_thing_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     type_name = "my-type-name"
@@ -13,7 +13,7 @@ def test_create_thing_type():
     assert type_name in thing_type["thingTypeArn"]
 
 
-@mock_iot
+@mock_aws
 def test_describe_thing_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     type_name = "my-type-name"
@@ -27,7 +27,7 @@ def test_describe_thing_type():
     assert type_name in thing_type["thingTypeArn"]
 
 
-@mock_iot
+@mock_aws
 def test_list_thing_types():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -47,7 +47,7 @@ def test_list_thing_types():
     assert thing_types["thingTypes"][-1]["thingTypeName"] == "100"
 
 
-@mock_iot
+@mock_aws
 def test_list_thing_types_with_typename_filter():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -71,7 +71,7 @@ def test_list_thing_types_with_typename_filter():
     assert thing_types["thingTypes"][-1]["thingTypeName"] == "thingTypeNameGroup"
 
 
-@mock_iot
+@mock_aws
 def test_delete_thing_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     type_name = "my-type-name"

@@ -188,7 +188,7 @@ class StateMachine(CloudFormationModel):
         definition = properties.get("DefinitionString", "")
         role_arn = properties.get("RoleArn", "")
         tags = cfn_to_api_tags(properties.get("Tags", []))
-        sf_backend = stepfunction_backends[account_id][region_name]
+        sf_backend = stepfunctions_backends[account_id][region_name]
         return sf_backend.create_state_machine(name, definition, role_arn, tags=tags)
 
     @classmethod
@@ -199,7 +199,7 @@ class StateMachine(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        sf_backend = stepfunction_backends[account_id][region_name]
+        sf_backend = stepfunctions_backends[account_id][region_name]
         sf_backend.delete_state_machine(resource_name)
 
     @classmethod
@@ -231,7 +231,7 @@ class StateMachine(CloudFormationModel):
             definition = properties.get("DefinitionString")
             role_arn = properties.get("RoleArn")
             tags = cfn_to_api_tags(properties.get("Tags", []))
-            sf_backend = stepfunction_backends[account_id][region_name]
+            sf_backend = stepfunctions_backends[account_id][region_name]
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )
@@ -684,4 +684,4 @@ class StepFunctionBackend(BaseBackend):
         return self.describe_state_machine(state_machine_arn)
 
 
-stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")
+stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

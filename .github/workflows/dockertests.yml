@@ -203,6 +203,7 @@ jobs:
         pwd
         ls -la
         cp server_output.log serverlogs3/server_output.log
+        ls -la serverlogs3
     - name: Archive Logs
       if: always()
       uses: actions/upload-artifact@v4

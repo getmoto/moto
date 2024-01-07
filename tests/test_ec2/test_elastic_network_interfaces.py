@@ -5,13 +5,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.utils import random_private_ip
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -66,7 +66,7 @@ def test_elastic_network_interfaces():
     assert ex.value.response["Error"]["Code"] == "InvalidNetworkInterfaceID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_subnet_validation():
     client = boto3.client("ec2", "us-east-1")
 
@@ -77,7 +77,7 @@ def test_elastic_network_interfaces_subnet_validation():
     assert ex.value.response["Error"]["Code"] == "InvalidSubnetID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_with_private_ip():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -102,7 +102,7 @@ def test_elastic_network_interfaces_with_private_ip():
     assert eni["PrivateIpAddresses"][0]["PrivateIpAddress"] == private_ip
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_with_groups():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -137,7 +137,7 @@ def test_elastic_network_interfaces_with_groups():
     }
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_without_group():
     # ENI should use the default SecurityGroup if not provided
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -156,7 +156,7 @@ def test_elastic_network_interfaces_without_group():
     assert my_eni["Groups"][0]["GroupName"] == "default"
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_modify_attribute():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -196,7 +196,7 @@ def test_elastic_network_interfaces_modify_attribute():
     assert my_eni["Groups"][0]["GroupId"] == sec_group2.id
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_filtering():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -265,7 +265,7 @@ def test_elastic_network_interfaces_filtering():
             client.describe_network_interfaces(Filters=filters)
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_tag_name():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -304,7 +304,7 @@ def test_elastic_network_interfaces_get_by_tag_name():
     assert len(enis) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_availability_zone():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -341,7 +341,7 @@ def test_elastic_network_interfaces_get_by_availability_zone():
     assert eni2.id not in [eni.id for eni in enis]
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_private_ip():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -375,7 +375,7 @@ def test_elastic_network_interfaces_get_by_private_ip():
     assert len(enis) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_vpc_id():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -402,7 +402,7 @@ def test_elastic_network_interfaces_get_by_vpc_id():
     assert len(enis) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_subnet_id():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -429,7 +429,7 @@ def test_elastic_network_interfaces_get_by_subnet_id():
     assert len(enis) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_description():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -457,7 +457,7 @@ def test_elastic_network_interfaces_get_by_description():
     assert len(enis) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_attachment_instance_id():
     ec2_resource = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -499,7 +499,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_id():
     assert len(enis.get("NetworkInterfaces")) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
     ec2_resource = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -531,7 +531,7 @@ def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
     assert eni1.id in eni_ids
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -642,7 +642,7 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     assert response["NetworkInterfaces"][0]["Description"] == eni1.description
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_filter_by_tag():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -706,7 +706,7 @@ def test_elastic_network_interfaces_filter_by_tag():
     assert len(resp["NetworkInterfaces"]) == 2
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_auto_create_securitygroup():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -732,7 +732,7 @@ def test_elastic_network_interfaces_auto_create_securitygroup():
     assert found_sg[0]["Description"] == "testgroup"
 
 
-@mock_ec2
+@mock_aws
 def test_assign_private_ip_addresses__by_address():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -778,7 +778,7 @@ def test_assign_private_ip_addresses__by_address():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_assign_private_ip_addresses__with_secondary_count():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -807,7 +807,7 @@ def test_assign_private_ip_addresses__with_secondary_count():
     assert my_eni["Ipv6Addresses"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_unassign_private_ip_addresses():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -842,7 +842,7 @@ def test_unassign_private_ip_addresses():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_unassign_private_ip_addresses__multiple():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -883,7 +883,7 @@ def test_unassign_private_ip_addresses__multiple():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_assign_ipv6_addresses__by_address():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -913,7 +913,7 @@ def test_assign_ipv6_addresses__by_address():
     assert {"Ipv6Address": ipv6_3} in my_eni["Ipv6Addresses"]
 
 
-@mock_ec2
+@mock_aws
 def test_assign_ipv6_addresses__by_count():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -936,7 +936,7 @@ def test_assign_ipv6_addresses__by_count():
     assert {"Ipv6Address": ipv6_orig} in my_eni["Ipv6Addresses"]
 
 
-@mock_ec2
+@mock_aws
 def test_assign_ipv6_addresses__by_address_and_count():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -966,7 +966,7 @@ def test_assign_ipv6_addresses__by_address_and_count():
     assert {"Ipv6Address": ipv6_3} in my_eni["Ipv6Addresses"]
 
 
-@mock_ec2
+@mock_aws
 def test_unassign_ipv6_addresses():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")
@@ -996,7 +996,7 @@ def test_unassign_ipv6_addresses():
     assert {"Ipv6Address": ipv6_3} in my_eni["Ipv6Addresses"]
 
 
-@mock_ec2
+@mock_aws
 def test_elastic_network_interfaces_describe_attachment():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     client = boto3.client("ec2", "us-east-1")

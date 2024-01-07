@@ -3,14 +3,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_quicksight
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_quicksight
+@mock_aws
 def test_register_user__quicksight():
     client = boto3.client("quicksight", region_name="us-east-2")
     resp = client.register_user(
@@ -35,7 +35,7 @@ def test_register_user__quicksight():
     assert resp["User"]["Active"] is False
 
 
-@mock_quicksight
+@mock_aws
 def test_describe_user__quicksight():
     client = boto3.client("quicksight", region_name="us-east-1")
     client.register_user(
@@ -63,7 +63,7 @@ def test_describe_user__quicksight():
     assert resp["User"]["Active"] is False
 
 
-@mock_quicksight
+@mock_aws
 def test_delete_user__quicksight():
     client = boto3.client("quicksight", region_name="us-east-2")
     client.register_user(
@@ -87,7 +87,7 @@ def test_delete_user__quicksight():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_quicksight
+@mock_aws
 def test_list_users__initial():
     client = boto3.client("quicksight", region_name="us-east-2")
     resp = client.list_users(AwsAccountId=ACCOUNT_ID, Namespace="default")
@@ -96,7 +96,7 @@ def test_list_users__initial():
     assert resp["Status"] == 200
 
 
-@mock_quicksight
+@mock_aws
 def test_list_users():
     client = boto3.client("quicksight", region_name="us-east-2")
     for i in range(4):
@@ -135,7 +135,7 @@ def test_list_users():
     } in resp["UserList"]
 
 
-@mock_quicksight
+@mock_aws
 def test_create_group_membership():
     client = boto3.client("quicksight", region_name="us-east-2")
     client.register_user(
@@ -164,7 +164,7 @@ def test_create_group_membership():
     assert resp["Status"] == 200
 
 
-@mock_quicksight
+@mock_aws
 def test_describe_group_membership():
     client = boto3.client("quicksight", region_name="us-east-2")
     client.register_user(
@@ -200,7 +200,7 @@ def test_describe_group_membership():
     assert resp["Status"] == 200
 
 
-@mock_quicksight
+@mock_aws
 def test_list_group_memberships():
     client = boto3.client("quicksight", region_name="us-east-2")
     for i in range(3):
@@ -255,7 +255,7 @@ def test_list_group_memberships():
     } in resp["GroupMemberList"]
 
 
-@mock_quicksight
+@mock_aws
 def test_list_group_memberships__after_deleting_user():
     client = boto3.client("quicksight", region_name="us-east-2")
     client.create_group(

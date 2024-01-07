@@ -5,38 +5,20 @@ from botocore import xform_name
 from botocore.session import Session
 import boto3
 
+from moto.backends import get_backend
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 alternative_service_names = {"lambda": "awslambda"}
 
 
 def get_moto_implementation(service_name):
-    service_name = (
-        service_name.replace("-", "") if "-" in service_name else service_name
-    )
-    alt_service_name = (
-        alternative_service_names[service_name]
-        if service_name in alternative_service_names
-        else service_name
-    )
-    mock = None
-    mock_name = None
-    if hasattr(moto, "mock_{}".format(alt_service_name)):
-        mock_name = "mock_{}".format(alt_service_name)
-        mock = getattr(moto, mock_name)
-    elif hasattr(moto, "mock_{}".format(service_name)):
-        mock_name = "mock_{}".format(service_name)
-        mock = getattr(moto, mock_name)
-    if mock is None:
-        return None, None
-    backends = list(mock().backends.values())
-    if backends:
+    try:
+        backends = get_backend(service_name)
         backend = backends[0]["us-east-1"] if "us-east-1" in backends[0] else backends[0]["global"]
-        # Special use-case - neptune is only reachable via the RDS backend
-        # RDS has an attribute called 'neptune' pointing to the actual NeptuneBackend
-        if service_name == "neptune":
-            backend = backend.neptune
-        return backend, mock_name
+        return backend, service_name
+    except ModuleNotFoundError:
+        return None, service_name
 
 
 def get_module_name(o):
@@ -223,17 +205,6 @@ def write_implementation_coverage_to_docs(coverage):
                 file.write(".. autoclass:: " + coverage[service_name].get("module_name"))
                 file.write("\n\n")
 
-            file.write("|start-h3| Example usage |end-h3|\n\n")
-            file.write(f""".. sourcecode:: python
-
-            @{coverage[service_name]['name']}
-            def test_{coverage[service_name]['name'][5:]}_behaviour:
-                boto3.client("{service_name}")
-                ...
-
-""")
-            file.write("\n\n")
-
             file.write("|start-h3| Implemented features for this service |end-h3|\n\n")
 
             for op in operations:
@@ -257,19 +228,6 @@ def write_implementation_coverage_to_docs(coverage):
         file.write("====================\n")
         file.write("\n")
         file.write("Please see a list of all currently supported services. Each service will have a list of the endpoints that are implemented.\n")
-        file.write("Each service will also have an example on how to mock an individual service.\n\n")
-        file.write("Note that you can mock multiple services at the same time:\n\n")
-        file.write(".. sourcecode:: python\n\n")
-        file.write("    @mock_s3\n")
-        file.write("    @mock_sqs\n")
-        file.write("    def test_both_s3_and_sqs():\n")
-        file.write("        ...\n")
-        file.write("\n\n")
-        file.write(".. sourcecode:: python\n\n")
-        file.write("    @mock_all()\n")
-        file.write("    def test_all_supported_services_at_the_same_time():\n")
-        file.write("        ...\n")
-        file.write("\n")
 
         file.write("\n")
         file.write(".. toctree::\n")

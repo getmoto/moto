@@ -3,10 +3,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_backup
+from moto import mock_aws
 
 
-@mock_backup
+@mock_aws
 def test_create_backup_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
@@ -29,7 +29,7 @@ def test_create_backup_plan():
     assert "VersionId" in resp
 
 
-@mock_backup
+@mock_aws
 def test_create_backup_plan_already_exists():
     client = boto3.client("backup", region_name="eu-west-1")
     backup_plan_name = "backup_plan_foobar"
@@ -51,7 +51,7 @@ def test_create_backup_plan_already_exists():
     assert err["Code"] == "AlreadyExistsException"
 
 
-@mock_backup
+@mock_aws
 def test_get_backup_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
@@ -74,7 +74,7 @@ def test_get_backup_plan():
     assert "BackupPlan" in resp
 
 
-@mock_backup
+@mock_aws
 def test_get_backup_plan_invalid_id():
     client = boto3.client("backup", region_name="eu-west-1")
 
@@ -84,7 +84,7 @@ def test_get_backup_plan_invalid_id():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_backup
+@mock_aws
 def test_get_backup_plan_invalid_version_id():
     client = boto3.client("backup", region_name="eu-west-1")
 
@@ -105,7 +105,7 @@ def test_get_backup_plan_invalid_version_id():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_backup
+@mock_aws
 def test_get_backup_plan_with_multiple_rules():
     client = boto3.client("backup", region_name="eu-west-1")
     plan = client.create_backup_plan(
@@ -134,7 +134,7 @@ def test_get_backup_plan_with_multiple_rules():
         assert "RuleId" in rule
 
 
-@mock_backup
+@mock_aws
 def test_delete_backup_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
@@ -164,7 +164,7 @@ def test_delete_backup_plan():
     assert "DeletionDate" in resp
 
 
-@mock_backup
+@mock_aws
 def test_delete_backup_plan_invalid_id():
     client = boto3.client("backup", region_name="eu-west-1")
 
@@ -174,7 +174,7 @@ def test_delete_backup_plan_invalid_id():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_backup
+@mock_aws
 def test_list_backup_plans():
     client = boto3.client("backup", region_name="eu-west-1")
     for i in range(1, 3):
@@ -197,7 +197,7 @@ def test_list_backup_plans():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_backup
+@mock_aws
 def test_list_backup_plans_without_include_deleted():
     client = boto3.client("backup", region_name="eu-west-1")
 
@@ -221,7 +221,7 @@ def test_list_backup_plans_without_include_deleted():
     assert len(backup_plans) == 1
 
 
-@mock_backup
+@mock_aws
 def test_list_backup_plans_with_include_deleted():
     client = boto3.client("backup", region_name="eu-west-1")
     for i in range(1, 3):
@@ -245,7 +245,7 @@ def test_list_backup_plans_with_include_deleted():
     assert len(backup_plans) == 2
 
 
-@mock_backup
+@mock_aws
 def test_create_backup_vault():
     client = boto3.client("backup", region_name="eu-west-1")
     resp = client.create_backup_vault(
@@ -259,7 +259,7 @@ def test_create_backup_vault():
     assert "CreationDate" in resp
 
 
-@mock_backup
+@mock_aws
 def test_create_backup_vault_already_exists():
     client = boto3.client("backup", region_name="eu-west-1")
     backup_vault_name = "backup_vault_foobar"
@@ -271,7 +271,7 @@ def test_create_backup_vault_already_exists():
     assert err["Code"] == "AlreadyExistsException"
 
 
-@mock_backup
+@mock_aws
 def test_list_backup_vaults():
     client = boto3.client("backup", region_name="eu-west-1")
     for i in range(1, 3):
@@ -285,7 +285,7 @@ def test_list_backup_vaults():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_backup
+@mock_aws
 def test_list_tags_vault():
     client = boto3.client("backup", region_name="eu-west-1")
     vault = client.create_backup_vault(
@@ -299,7 +299,7 @@ def test_list_tags_vault():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_backup
+@mock_aws
 def test_list_tags_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
@@ -324,7 +324,7 @@ def test_list_tags_plan():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_backup
+@mock_aws
 def test_tag_resource():
     client = boto3.client("backup", region_name="eu-west-1")
     vault = client.create_backup_vault(
@@ -341,7 +341,7 @@ def test_tag_resource():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2", "key3": "value3"}
 
 
-@mock_backup
+@mock_aws
 def test_untag_resource():
     client = boto3.client("backup", region_name="eu-west-1")
     vault = client.create_backup_vault(

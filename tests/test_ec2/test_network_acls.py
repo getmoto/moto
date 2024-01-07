@@ -5,11 +5,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 
 
-@mock_ec2
+@mock_aws
 def test_default_network_acl_created_with_vpc():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -21,7 +21,7 @@ def test_default_network_acl_created_with_vpc():
     assert our_acl[0]["IsDefault"] is True
 
 
-@mock_ec2
+@mock_aws
 def test_network_create_and_list_acls():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -38,7 +38,7 @@ def test_network_create_and_list_acls():
     assert acl_found["IsDefault"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_new_subnet_associates_with_default_network_acl():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode will have conflicting CidrBlocks")
@@ -55,7 +55,7 @@ def test_new_subnet_associates_with_default_network_acl():
     assert subnet.id in [a["SubnetId"] for a in acl["Associations"]]
 
 
-@mock_ec2
+@mock_aws
 def test_network_acl_entries():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -90,7 +90,7 @@ def test_network_acl_entries():
     assert entries[0]["CidrBlock"] == "0.0.0.0/0"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_network_acl_entry():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -119,7 +119,7 @@ def test_delete_network_acl_entry():
     assert len(test_network_acl["Entries"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_replace_network_acl_entry():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -159,7 +159,7 @@ def test_replace_network_acl_entry():
     assert entries[0]["PortRange"] == {"To": 22, "From": 22}
 
 
-@mock_ec2
+@mock_aws
 def test_delete_network_acl():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -182,7 +182,7 @@ def test_delete_network_acl():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_network_acl_tagging():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -205,7 +205,7 @@ def test_network_acl_tagging():
     assert test_network_acl["Tags"] == [{"Value": "some value", "Key": "a key"}]
 
 
-@mock_ec2
+@mock_aws
 def test_new_subnet_in_new_vpc_associates_with_default_network_acl():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     new_vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -221,7 +221,7 @@ def test_new_subnet_in_new_vpc_associates_with_default_network_acl():
     assert new_vpcs_default_network_acl.associations[0]["SubnetId"] == subnet.id
 
 
-@mock_ec2
+@mock_aws
 def test_default_network_acl_default_entries():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -260,7 +260,7 @@ def test_default_network_acl_default_entries():
     assert len(unique_entries) == 4
 
 
-@mock_ec2
+@mock_aws
 def test_delete_default_network_acl_default_entry():
     if settings.TEST_SERVER_MODE:
         raise SkipTest(
@@ -281,7 +281,7 @@ def test_delete_default_network_acl_default_entry():
     assert len(default_network_acl.entries) == 3
 
 
-@mock_ec2
+@mock_aws
 def test_duplicate_network_acl_entry():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     default_network_acl = next(iter(ec2.network_acls.all()), None)
@@ -311,7 +311,7 @@ def test_duplicate_network_acl_entry():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_network_acls():
     conn = boto3.client("ec2", region_name="us-west-2")
 
@@ -421,7 +421,7 @@ def test_describe_network_acls():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_network_acl_with_tags():
     conn = boto3.client("ec2", region_name="us-west-2")
 

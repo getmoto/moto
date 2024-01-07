@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_managedblockchain
+from moto import mock_aws
 
 from . import helpers
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_proposal():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -40,7 +40,7 @@ def test_create_proposal():
     assert response["Proposal"]["NetworkId"] == network_id
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_proposal_withopts():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -69,7 +69,7 @@ def test_create_proposal_withopts():
     assert response["Proposal"]["Description"] == "Adding a new member"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -84,7 +84,7 @@ def test_create_proposal_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_proposal_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -109,7 +109,7 @@ def test_create_proposal_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_proposal_badinvitationacctid():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -135,7 +135,7 @@ def test_create_proposal_badinvitationacctid():
     assert "Account ID format specified in proposal is not valid" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_proposal_badremovalmemid():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -161,7 +161,7 @@ def test_create_proposal_badremovalmemid():
     assert "Member ID format specified in proposal is not valid" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_list_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -172,7 +172,7 @@ def test_list_proposal_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -186,7 +186,7 @@ def test_get_proposal_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_proposal_badproposal():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 

@@ -6,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_codepipeline, mock_iam
+from moto import mock_aws
 
 expected_pipeline_details = {
     "name": "test-pipeline",
@@ -60,7 +60,7 @@ expected_pipeline_details = {
 }
 
 
-@mock_codepipeline
+@mock_aws
 def test_create_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
@@ -70,8 +70,7 @@ def test_create_pipeline():
     assert response["tags"] == [{"key": "key", "value": "value"}]
 
 
-@mock_codepipeline
-@mock_iam
+@mock_aws
 def test_create_pipeline_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
     client_iam = boto3.client("iam", region_name="us-east-1")
@@ -216,7 +215,7 @@ def test_create_pipeline_errors():
     )
 
 
-@mock_codepipeline
+@mock_aws
 def test_get_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
     create_basic_codepipeline(client, "test-pipeline")
@@ -232,7 +231,7 @@ def test_get_pipeline():
     assert isinstance(response["metadata"]["updated"], datetime)
 
 
-@mock_codepipeline
+@mock_aws
 def test_get_pipeline_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
@@ -248,7 +247,7 @@ def test_get_pipeline_errors():
     )
 
 
-@mock_codepipeline
+@mock_aws
 def test_update_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
     create_basic_codepipeline(client, "test-pipeline")
@@ -359,7 +358,7 @@ def test_update_pipeline():
     assert metadata["updated"] > updated_time
 
 
-@mock_codepipeline
+@mock_aws
 def test_update_pipeline_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
@@ -419,7 +418,7 @@ def test_update_pipeline_errors():
     )
 
 
-@mock_codepipeline
+@mock_aws
 def test_list_pipelines():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name_1 = "test-pipeline-1"
@@ -440,7 +439,7 @@ def test_list_pipelines():
     assert isinstance(response["pipelines"][1]["updated"], datetime)
 
 
-@mock_codepipeline
+@mock_aws
 def test_delete_pipeline():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name = "test-pipeline"
@@ -455,7 +454,7 @@ def test_delete_pipeline():
     client.delete_pipeline(name=name)
 
 
-@mock_codepipeline
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name = "test-pipeline"
@@ -467,7 +466,7 @@ def test_list_tags_for_resource():
     assert response["tags"] == [{"key": "key", "value": "value"}]
 
 
-@mock_codepipeline
+@mock_aws
 def test_list_tags_for_resource_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
@@ -485,7 +484,7 @@ def test_list_tags_for_resource_errors():
     )
 
 
-@mock_codepipeline
+@mock_aws
 def test_tag_resource():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name = "test-pipeline"
@@ -505,7 +504,7 @@ def test_tag_resource():
     ]
 
 
-@mock_codepipeline
+@mock_aws
 def test_tag_resource_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name = "test-pipeline"
@@ -554,7 +553,7 @@ def test_tag_resource_errors():
     )
 
 
-@mock_codepipeline
+@mock_aws
 def test_untag_resource():
     client = boto3.client("codepipeline", region_name="us-east-1")
     name = "test-pipeline"
@@ -582,7 +581,7 @@ def test_untag_resource():
     )
 
 
-@mock_codepipeline
+@mock_aws
 def test_untag_resource_errors():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
@@ -613,7 +612,6 @@ simple_trust_policy = {
 }
 
 
-@mock_iam
 def get_role_arn(name="test-role", trust_policy=None):
     client = boto3.client("iam", region_name="us-east-1")
     try:
@@ -697,7 +695,7 @@ extended_trust_policy = {
 }
 
 
-@mock_codepipeline
+@mock_aws
 def test_create_pipeline_with_extended_trust_policy():
     client = boto3.client("codepipeline", region_name="us-east-1")
 
@@ -713,7 +711,7 @@ def test_create_pipeline_with_extended_trust_policy():
     assert response["tags"] == [{"key": "key", "value": "value"}]
 
 
-@mock_codepipeline
+@mock_aws
 def test_create_pipeline_without_tags():
     client = boto3.client("codepipeline", region_name="us-east-1")
 

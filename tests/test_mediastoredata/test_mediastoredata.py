@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_mediastoredata
+from moto import mock_aws
 
 region = "eu-west-1"
 
 
-@mock_mediastoredata
+@mock_aws
 def test_put_object():
     client = boto3.client("mediastore-data", region_name=region)
     response = client.put_object(Body="011001", Path="foo")
@@ -18,7 +18,7 @@ def test_put_object():
     assert any(d["Name"] == "foo" for d in items)
 
 
-@mock_mediastoredata
+@mock_aws
 def test_get_object_throws_not_found_error():
     client = boto3.client("mediastore-data", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -26,7 +26,7 @@ def test_get_object_throws_not_found_error():
     assert ex.value.response["Error"]["Code"] == "ObjectNotFoundException"
 
 
-@mock_mediastoredata
+@mock_aws
 def test_get_object():
     client = boto3.client("mediastore-data", region_name=region)
     client.put_object(Body="011001", Path="foo")
@@ -36,7 +36,7 @@ def test_get_object():
     assert response["Body"].read() == b"011001"
 
 
-@mock_mediastoredata
+@mock_aws
 def test_delete_object_error():
     client = boto3.client("mediastore-data", region_name=region)
     with pytest.raises(ClientError) as ex:
@@ -44,7 +44,7 @@ def test_delete_object_error():
     assert ex.value.response["Error"]["Code"] == "ObjectNotFoundException"
 
 
-@mock_mediastoredata
+@mock_aws
 def test_delete_object_succeeds():
     client = boto3.client("mediastore-data", region_name=region)
     object_path = "foo"
@@ -55,7 +55,7 @@ def test_delete_object_succeeds():
     assert len(client.list_items()["Items"]) == 0
 
 
-@mock_mediastoredata
+@mock_aws
 def test_list_items():
     client = boto3.client("mediastore-data", region_name=region)
     assert len(client.list_items()["Items"]) == 0

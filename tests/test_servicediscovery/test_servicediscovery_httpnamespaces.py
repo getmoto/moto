@@ -1,18 +1,17 @@
-"""Unit tests for servicediscovery-supported APIs."""
 import re
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_servicediscovery
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_http_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_http_namespace(Name="mynamespace")
@@ -36,7 +35,7 @@ def test_create_http_namespace():
     assert props["HttpProperties"] == {"HttpName": "mynamespace"}
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_http_namespace_minimal():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_http_namespace(Name="mynamespace")
@@ -65,7 +64,7 @@ def test_get_http_namespace_minimal():
     assert "Description" not in namespace
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_http_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_http_namespace(
@@ -95,7 +94,7 @@ def test_get_http_namespace():
     assert props["HttpProperties"] == {"HttpName": "mynamespace"}
 
 
-@mock_servicediscovery
+@mock_aws
 def test_delete_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_http_namespace(Name="mynamespace")
@@ -115,7 +114,7 @@ def test_delete_namespace():
     assert client.list_operations()["Operations"] == []
 
 
-@mock_servicediscovery
+@mock_aws
 def test_delete_unknown_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -125,7 +124,7 @@ def test_delete_unknown_namespace():
     assert err["Message"] == "unknown"
 
 
-@mock_servicediscovery
+@mock_aws
 def test_get_unknown_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
@@ -135,7 +134,7 @@ def test_get_unknown_namespace():
     assert err["Message"] == "unknown"
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_private_dns_namespace_minimal():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_private_dns_namespace(Name="dns_ns", Vpc="vpc_id")
@@ -157,7 +156,7 @@ def test_create_private_dns_namespace_minimal():
     assert "SOA" not in props["DnsProperties"]
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_private_dns_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_private_dns_namespace(
@@ -185,7 +184,7 @@ def test_create_private_dns_namespace():
     assert props["DnsProperties"]["SOA"] == {"TTL": 123}
 
 
-@mock_servicediscovery
+@mock_aws
 def test_update_private_dns_namespace():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_private_dns_namespace(
@@ -212,7 +211,7 @@ def test_update_private_dns_namespace():
     assert props["DnsProperties"]["SOA"] == {"TTL": 654}
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_private_dns_namespace_with_duplicate_vpc():
     client = boto3.client("servicediscovery", region_name="eu-west-1")
     client.create_private_dns_namespace(Name="dns_ns", Vpc="vpc_id")
@@ -223,7 +222,7 @@ def test_create_private_dns_namespace_with_duplicate_vpc():
     assert err["Code"] == "ConflictingDomainExists"
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_public_dns_namespace_minimal():
     client = boto3.client("servicediscovery", region_name="us-east-2")
     client.create_public_dns_namespace(Name="public_dns_ns")
@@ -239,7 +238,7 @@ def test_create_public_dns_namespace_minimal():
     assert namespace["Type"] == "DNS_PUBLIC"
 
 
-@mock_servicediscovery
+@mock_aws
 def test_create_public_dns_namespace():
     client = boto3.client("servicediscovery", region_name="us-east-2")
     client.create_public_dns_namespace(
@@ -266,7 +265,7 @@ def test_create_public_dns_namespace():
     assert dns_props == {"HostedZoneId": "hzi", "SOA": {"TTL": 124}}
 
 
-@mock_servicediscovery
+@mock_aws
 def test_update_public_dns_namespace():
     client = boto3.client("servicediscovery", region_name="us-east-2")
     client.create_public_dns_namespace(

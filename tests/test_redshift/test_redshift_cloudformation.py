@@ -2,13 +2,11 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2, mock_redshift
+from moto import mock_aws
 from tests.test_cloudformation.fixtures import redshift
 
 
-@mock_ec2
-@mock_redshift
-@mock_cloudformation
+@mock_aws
 def test_redshift_stack():
     redshift_template_json = json.dumps(redshift.template)
 

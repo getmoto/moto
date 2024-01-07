@@ -12,17 +12,6 @@
 sts
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_sts
-            def test_sts_behaviour:
-                boto3.client("sts")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] assume_role

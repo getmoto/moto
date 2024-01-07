@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 from .test_apigateway import create_method_integration
 
 
-@mock_apigateway
+@mock_aws
 def test_create_deployment_requires_REST_methods():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -23,7 +23,7 @@ def test_create_deployment_requires_REST_methods():
     )
 
 
-@mock_apigateway
+@mock_aws
 def test_create_deployment_requires_REST_method_integrations():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -42,7 +42,7 @@ def test_create_deployment_requires_REST_method_integrations():
     assert ex.value.response["Error"]["Message"] == "No integration defined for method"
 
 
-@mock_apigateway
+@mock_aws
 def test_create_simple_deployment_with_get_method():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -54,7 +54,7 @@ def test_create_simple_deployment_with_get_method():
     assert "id" in deployment
 
 
-@mock_apigateway
+@mock_aws
 def test_create_simple_deployment_with_post_method():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -66,7 +66,7 @@ def test_create_simple_deployment_with_post_method():
     assert "id" in deployment
 
 
-@mock_apigateway
+@mock_aws
 def test_create_deployment_minimal():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -82,7 +82,7 @@ def test_create_deployment_minimal():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_apigateway
+@mock_aws
 def test_create_deployment_with_empty_stage():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -102,7 +102,7 @@ def test_create_deployment_with_empty_stage():
     assert stages == []
 
 
-@mock_apigateway
+@mock_aws
 def test_get_deployments():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -120,7 +120,7 @@ def test_get_deployments():
     assert response["items"] == [{"id": deployment_id}]
 
 
-@mock_apigateway
+@mock_aws
 def test_create_multiple_deployments():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -143,7 +143,7 @@ def test_create_multiple_deployments():
     assert response["items"][1]["id"] in [deployment_id, deployment_id2]
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_deployment__requires_stage_to_be_deleted():
     client = boto3.client("apigateway", region_name="us-west-2")
     stage_name = "staging"
@@ -193,7 +193,7 @@ def test_delete_deployment__requires_stage_to_be_deleted():
     assert len(stages) == 0
 
 
-@mock_apigateway
+@mock_aws
 def test_delete_unknown_deployment():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")

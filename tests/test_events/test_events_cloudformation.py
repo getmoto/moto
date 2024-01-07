@@ -6,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_events
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 archive_template = Template(
@@ -70,8 +70,7 @@ empty = json.dumps(
 )
 
 
-@mock_events
-@mock_cloudformation
+@mock_aws
 def test_create_archive():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
@@ -93,8 +92,7 @@ def test_create_archive():
     assert response["ArchiveArn"] == archive_arn
 
 
-@mock_events
-@mock_cloudformation
+@mock_aws
 def test_update_archive():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
@@ -124,8 +122,7 @@ def test_update_archive():
     assert response["Description"] == "test archive"
 
 
-@mock_events
-@mock_cloudformation
+@mock_aws
 def test_delete_archive():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
@@ -143,8 +140,7 @@ def test_delete_archive():
     assert len(response) == 0
 
 
-@mock_events
-@mock_cloudformation
+@mock_aws
 def test_create_rule():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
@@ -167,8 +163,7 @@ def test_create_rule():
     assert response["EventPattern"] == '{"detail-type": ["SomeDetailType"]}'
 
 
-@mock_events
-@mock_cloudformation
+@mock_aws
 def test_delete_rule():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")

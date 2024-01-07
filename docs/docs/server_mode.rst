@@ -76,7 +76,7 @@ See the following example:
         def tearDown(self):
             self.server.stop()
 
-        @mock_s3
+        @mock_aws
         def test_load_data_using_decorators(self):
             server_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
             server_client.create_bucket(Bucket="test")
@@ -120,7 +120,7 @@ Example Usage
 
 To use Moto in your tests, pass the `endpoint_url`-parameter to the SDK of your choice.
 
-For some SDK's, this can be configured using the environment variable `AWS_ENDPOINT_URL`. See the official AWS documentation: https://docs.aws.amazon.com/sdkref/latest/guide/feature-ss-endpoints.html
+For more recent SDK's, this can be configured using the environment variable `AWS_ENDPOINT_URL`. See the official AWS documentation: https://docs.aws.amazon.com/sdkref/latest/guide/feature-ss-endpoints.html
 
 If your SDK does not support this, here are some code samples to set this parameter the old-fashioned way.
 

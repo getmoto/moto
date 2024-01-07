@@ -4,10 +4,10 @@ from unittest import SkipTest
 import boto3
 from freezegun import freeze_time
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 
 
-@mock_s3
+@mock_aws
 def test_rfc_returns_valid_date_for_every_possible_weekday_and_month():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Freezing time only possible in DecoratorMode")

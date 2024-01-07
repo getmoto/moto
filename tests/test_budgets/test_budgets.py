@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_budgets
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_budgets
+@mock_aws
 def test_create_and_describe_budget_minimal_params():
     client = boto3.client("budgets", region_name="us-east-1")
     resp = client.create_budget(
@@ -63,7 +63,7 @@ def test_create_and_describe_budget_minimal_params():
     assert budget["TimeUnit"] == "DAILY"
 
 
-@mock_budgets
+@mock_aws
 def test_create_existing_budget():
     client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
@@ -91,7 +91,7 @@ def test_create_existing_budget():
     assert err["Message"] == "Error creating budget: testb - the budget already exists."
 
 
-@mock_budgets
+@mock_aws
 def test_create_budget_without_limit_param():
     client = boto3.client("budgets", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -107,7 +107,7 @@ def test_create_budget_without_limit_param():
     )
 
 
-@mock_budgets
+@mock_aws
 def test_describe_unknown_budget():
     client = boto3.client("budgets", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -117,14 +117,14 @@ def test_describe_unknown_budget():
     assert err["Message"] == "Unable to get budget: unknown - the budget doesn't exist."
 
 
-@mock_budgets
+@mock_aws
 def test_describe_no_budgets():
     client = boto3.client("budgets", region_name="us-east-1")
     resp = client.describe_budgets(AccountId=ACCOUNT_ID)
     assert resp["Budgets"] == []
 
 
-@mock_budgets
+@mock_aws
 def test_create_and_describe_all_budgets():
     client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
@@ -144,7 +144,7 @@ def test_create_and_describe_all_budgets():
     assert len(res["Budgets"]) == 1
 
 
-@mock_budgets
+@mock_aws
 def test_delete_budget():
     client = boto3.client("budgets", region_name="us-east-1")
     client.create_budget(
@@ -164,7 +164,7 @@ def test_delete_budget():
     assert len(res["Budgets"]) == 0
 
 
-@mock_budgets
+@mock_aws
 def test_delete_unknown_budget():
     client = boto3.client("budgets", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:

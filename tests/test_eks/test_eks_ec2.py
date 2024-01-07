@@ -1,11 +1,11 @@
 import boto3
 
-from moto import mock_ec2, mock_eks
+from moto import mock_aws
 
 from .test_eks_constants import NODEROLE_ARN_VALUE, SUBNET_IDS
 
 
-@mock_eks
+@mock_aws
 def test_passing_an_unknown_launchtemplate_is_supported():
     eks = boto3.client("eks", "us-east-2")
     eks.create_cluster(name="a", roleArn=NODEROLE_ARN_VALUE, resourcesVpcConfig={})
@@ -20,8 +20,7 @@ def test_passing_an_unknown_launchtemplate_is_supported():
     assert group["launchTemplate"] == {"name": "random"}
 
 
-@mock_ec2
-@mock_eks
+@mock_aws
 def test_passing_a_known_launchtemplate_by_name():
     ec2 = boto3.client("ec2", region_name="us-east-2")
     eks = boto3.client("eks", "us-east-2")
@@ -47,8 +46,7 @@ def test_passing_a_known_launchtemplate_by_name():
     assert group["launchTemplate"] == {"name": "ltn", "id": lt_id}
 
 
-@mock_ec2
-@mock_eks
+@mock_aws
 def test_passing_a_known_launchtemplate_by_id():
     ec2 = boto3.client("ec2", region_name="us-east-2")
     eks = boto3.client("eks", "us-east-2")

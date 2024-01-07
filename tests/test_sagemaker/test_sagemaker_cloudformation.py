@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_sagemaker
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .cloudformation_test_configs import (
@@ -25,8 +25,7 @@ def _get_stack_outputs(cf_client, stack_name):
     }
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 @pytest.mark.parametrize(
     "test_config",
     [
@@ -57,8 +56,7 @@ def test_sagemaker_cloudformation_create(test_config):
     assert len(provisioned_resource["PhysicalResourceId"]) > 0
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 @pytest.mark.parametrize(
     "test_config",
     [
@@ -90,8 +88,7 @@ def test_sagemaker_cloudformation_get_attr(test_config):
     assert outputs["Arn"] == resource_description[test_config.arn_parameter]
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 @pytest.mark.parametrize(
     "test_config,error_message",
     [
@@ -133,8 +130,7 @@ def test_sagemaker_cloudformation_notebook_instance_delete(test_config, error_me
     assert error_message in ce.value.response["Error"]["Message"]
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 def test_sagemaker_cloudformation_notebook_instance_update():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
@@ -175,8 +171,7 @@ def test_sagemaker_cloudformation_notebook_instance_update():
     assert updated_instance_type == resource_description["InstanceType"]
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
@@ -219,8 +214,7 @@ def test_sagemaker_cloudformation_notebook_instance_lifecycle_config_update():
     assert updated_on_create_script == resource_description["OnCreate"][0]["Content"]
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 def test_sagemaker_cloudformation_model_update():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
@@ -266,8 +260,7 @@ def test_sagemaker_cloudformation_model_update():
     )
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 def test_sagemaker_cloudformation_endpoint_config_update():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")
@@ -315,8 +308,7 @@ def test_sagemaker_cloudformation_endpoint_config_update():
     )
 
 
-@mock_cloudformation
-@mock_sagemaker
+@mock_aws
 def test_sagemaker_cloudformation_endpoint_update():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     sm = boto3.client("sagemaker", region_name="us-east-1")

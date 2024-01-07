@@ -14,17 +14,6 @@ amp
 
 .. autoclass:: moto.amp.models.PrometheusServiceBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_amp
-            def test_amp_behaviour:
-                boto3.client("amp")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_alert_manager_definition

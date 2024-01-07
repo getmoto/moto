@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_appconfig
+from moto import mock_aws
 
 
-@mock_appconfig
+@mock_aws
 class TestHostedConfigurationVersions:
     def setup_method(self, *args):  # pylint: disable=unused-argument
         self.client = boto3.client("appconfig", region_name="us-west-1")

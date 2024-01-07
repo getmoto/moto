@@ -8,7 +8,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_sns, mock_sqs, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.models import responses_mock
 from moto.sns import sns_backends
@@ -41,8 +41,7 @@ def to_comparable_dicts(list_entry: list):
     return set(list_entry)
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -76,8 +75,7 @@ def test_publish_to_sqs():
     assert acquired_message == expected
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_raw():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="some-topic")
@@ -102,8 +100,7 @@ def test_publish_to_sqs_raw():
     assert messages[0].body == message
 
 
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_publish_to_sqs_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
@@ -121,8 +118,7 @@ def test_publish_to_sqs_fifo():
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
 
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_publish_to_sqs_fifo_with_deduplication_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
@@ -161,8 +157,7 @@ def test_publish_to_sqs_fifo_with_deduplication_id():
     )
 
 
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_publish_to_sqs_fifo_raw_with_deduplication_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
@@ -202,8 +197,7 @@ def test_publish_to_sqs_fifo_raw_with_deduplication_id():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_bad():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -265,8 +259,7 @@ def test_publish_to_sqs_bad():
         )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_msg_attr_byte_value():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -306,8 +299,7 @@ def test_publish_to_sqs_msg_attr_byte_value():
     assert message.body == "my message"
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_msg_attr_number_type():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="test-topic")
@@ -334,8 +326,7 @@ def test_publish_to_sqs_msg_attr_number_type():
     assert message.body == "test message"
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_msg_attr_different_formats():
     """
     Verify different Number-formats are processed correctly
@@ -375,7 +366,7 @@ def test_publish_to_sqs_msg_attr_different_formats():
     }
 
 
-@mock_sns
+@mock_aws
 def test_publish_sms():
     client = boto3.client("sns", region_name="us-east-1")
 
@@ -390,7 +381,7 @@ def test_publish_sms():
         )
 
 
-@mock_sns
+@mock_aws
 def test_publish_bad_sms():
     client = boto3.client("sns", region_name="us-east-1")
 
@@ -407,8 +398,7 @@ def test_publish_bad_sms():
     assert "must be less than 1600" in client_err.value.response["Error"]["Message"]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_dump_json():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -456,8 +446,7 @@ def test_publish_to_sqs_dump_json():
     assert acquired_message == expected
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_to_sqs_in_different_region():
     conn = boto3.client("sns", region_name="us-west-1")
     conn.create_topic(Name="some-topic")
@@ -493,7 +482,7 @@ def test_publish_to_sqs_in_different_region():
 
 
 @freeze_time("2013-01-01")
-@mock_sns
+@mock_aws
 def test_publish_to_http():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't mock requests in ServerMode")
@@ -529,8 +518,7 @@ def test_publish_to_http():
     assert subject == "my subject"
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_subject():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -561,8 +549,7 @@ def test_publish_subject():
         raise RuntimeError("Should have raised an InvalidParameter exception")
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_publish_null_subject():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_topic(Name="some-topic")
@@ -590,7 +577,7 @@ def test_publish_null_subject():
     assert "Subject" not in acquired_message
 
 
-@mock_sns
+@mock_aws
 def test_publish_message_too_long():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="some-topic")
@@ -602,7 +589,7 @@ def test_publish_message_too_long():
     topic.publish(Message="".join(["." for i in range(0, 262144)]))
 
 
-@mock_sns
+@mock_aws
 def test_publish_fifo_needs_group_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
@@ -619,8 +606,7 @@ def test_publish_fifo_needs_group_id():
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
 
-@mock_sns
-@mock_sqs
+@mock_aws
 def test_publish_group_id_to_non_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="topic")
@@ -635,7 +621,7 @@ def test_publish_group_id_to_non_fifo():
     topic.publish(Message="message")
 
 
-@mock_sns
+@mock_aws
 def test_publish_fifo_needs_deduplication_id():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(
@@ -660,7 +646,7 @@ def test_publish_fifo_needs_deduplication_id():
     )
 
 
-@mock_sns
+@mock_aws
 def test_publish_deduplication_id_to_non_fifo():
     sns = boto3.resource("sns", region_name="us-east-1")
     topic = sns.create_topic(Name="topic")
@@ -704,8 +690,7 @@ def _setup_filter_policy_test(
     return topic, queue
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string():
     topic, queue = _setup_filter_policy_test({"store": ["example_corp"]})
 
@@ -725,8 +710,7 @@ def test_filtering_exact_string():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
@@ -744,8 +728,7 @@ def test_filtering_exact_string_message_body():
     assert message_bodies == [{"store": "example_corp"}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_multiple_message_attributes():
     topic, queue = _setup_filter_policy_test({"store": ["example_corp"]})
 
@@ -769,8 +752,7 @@ def test_filtering_exact_string_multiple_message_attributes():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_multiple_message_attributes_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
@@ -788,8 +770,7 @@ def test_filtering_exact_string_multiple_message_attributes_message_body():
     assert message_bodies == [{"store": "example_corp", "event": "order_cancelled"}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_OR_matching():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp", "different_corp"]}
@@ -817,8 +798,7 @@ def test_filtering_exact_string_OR_matching():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_OR_matching_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp", "different_corp"]}, filter_policy_scope="MessageBody"
@@ -852,8 +832,7 @@ def test_filtering_exact_string_OR_matching_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_AND_matching_positive():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"], "event": ["order_cancelled"]}
@@ -879,8 +858,7 @@ def test_filtering_exact_string_AND_matching_positive():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_AND_matching_positive_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"], "event": ["order_cancelled"]},
@@ -911,8 +889,7 @@ def test_filtering_exact_string_AND_matching_positive_message_body():
     assert message_bodies == [{"store": "example_corp", "event": "order_cancelled"}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_AND_matching_no_match():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"], "event": ["order_cancelled"]}
@@ -933,8 +910,7 @@ def test_filtering_exact_string_AND_matching_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_AND_matching_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"], "event": ["order_cancelled"]},
@@ -958,8 +934,7 @@ def test_filtering_exact_string_AND_matching_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_no_match():
     topic, queue = _setup_filter_policy_test({"store": ["example_corp"]})
 
@@ -977,8 +952,7 @@ def test_filtering_exact_string_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
@@ -996,8 +970,7 @@ def test_filtering_exact_string_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_no_attributes_no_match():
     topic, queue = _setup_filter_policy_test({"store": ["example_corp"]})
 
@@ -1010,8 +983,7 @@ def test_filtering_exact_string_no_attributes_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_empty_body_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
@@ -1029,8 +1001,7 @@ def test_filtering_exact_string_empty_body_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_int():
     topic, queue = _setup_filter_policy_test({"price": [100]})
 
@@ -1046,8 +1017,7 @@ def test_filtering_exact_number_int():
     assert message_attributes == [{"price": {"Type": "Number", "Value": "100"}}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_int_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100]}, filter_policy_scope="MessageBody"
@@ -1069,8 +1039,7 @@ def test_filtering_exact_number_int_message_body():
     assert message_bodies == [{"price": 100}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_float():
     topic, queue = _setup_filter_policy_test({"price": [100.1]})
 
@@ -1086,8 +1055,7 @@ def test_filtering_exact_number_float():
     assert message_attributes == [{"price": {"Type": "Number", "Value": "100.1"}}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_float_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100.1]}, filter_policy_scope="MessageBody"
@@ -1109,8 +1077,7 @@ def test_filtering_exact_number_float_message_body():
     assert message_bodies == [{"price": 100.1}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_float_accuracy():
     topic, queue = _setup_filter_policy_test({"price": [100.123456789]})
 
@@ -1128,8 +1095,7 @@ def test_filtering_exact_number_float_accuracy():
     assert message_attributes == [{"price": {"Type": "Number", "Value": "100.1234567"}}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_float_accuracy_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100.123456789]}, filter_policy_scope="MessageBody"
@@ -1151,8 +1117,7 @@ def test_filtering_exact_number_float_accuracy_message_body():
     assert message_bodies == [{"price": 100.1234567}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_no_match():
     topic, queue = _setup_filter_policy_test({"price": [100]})
 
@@ -1168,8 +1133,7 @@ def test_filtering_exact_number_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100]}, filter_policy_scope="MessageBody"
@@ -1187,8 +1151,7 @@ def test_filtering_exact_number_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_with_string_no_match():
     topic, queue = _setup_filter_policy_test({"price": [100]})
 
@@ -1204,8 +1167,7 @@ def test_filtering_exact_number_with_string_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_number_with_string_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100]}, filter_policy_scope="MessageBody"
@@ -1223,8 +1185,7 @@ def test_filtering_exact_number_with_string_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_match():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": ["basketball", "baseball"]}
@@ -1254,8 +1215,7 @@ def test_filtering_string_array_match():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": ["basketball", "baseball"]},
@@ -1278,8 +1238,7 @@ def test_filtering_string_array_match_message_body():
     assert message_bodies == [{"customer_interests": ["basketball", "rugby"]}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_no_match():
     topic, queue = _setup_filter_policy_test({"customer_interests": ["baseball"]})
 
@@ -1300,8 +1259,7 @@ def test_filtering_string_array_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": ["baseball"]}, filter_policy_scope="MessageBody"
@@ -1319,8 +1277,7 @@ def test_filtering_string_array_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_number_match():
     topic, queue = _setup_filter_policy_test({"price": [100, 500]})
 
@@ -1340,8 +1297,7 @@ def test_filtering_string_array_with_number_match():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_number_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100, 500]}, filter_policy_scope="MessageBody"
@@ -1363,8 +1319,7 @@ def test_filtering_string_array_with_number_match_message_body():
     assert message_bodies == [{"price": [100, 50]}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_number_float_accuracy_match():
     topic, queue = _setup_filter_policy_test({"price": [100.123456789, 500]})
 
@@ -1387,8 +1342,7 @@ def test_filtering_string_array_with_number_float_accuracy_match():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_number_float_accuracy_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100.123456789, 500]}, filter_policy_scope="MessageBody"
@@ -1410,8 +1364,7 @@ def test_filtering_string_array_with_number_float_accuracy_match_message_body():
     assert message_bodies == [{"price": [100.1234567, 50]}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 # this is the correct behavior from SNS
 def test_filtering_string_array_with_number_no_array_match():
     topic, queue = _setup_filter_policy_test({"price": [100, 500]})
@@ -1428,8 +1381,7 @@ def test_filtering_string_array_with_number_no_array_match():
     assert message_attributes == [{"price": {"Type": "String.Array", "Value": "100"}}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 # this is the correct behavior from SNS
 def test_filtering_string_array_with_number_no_array_match_message_body():
     topic, queue = _setup_filter_policy_test(
@@ -1448,8 +1400,7 @@ def test_filtering_string_array_with_number_no_array_match_message_body():
     assert message_bodies == [{"price": 100}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_number_no_match():
     topic, queue = _setup_filter_policy_test({"price": [500]})
 
@@ -1467,8 +1418,7 @@ def test_filtering_string_array_with_number_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_number_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [500]}, filter_policy_scope="MessageBody"
@@ -1486,8 +1436,7 @@ def test_filtering_string_array_with_number_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 # this is the correct behavior from SNS
 def test_filtering_string_array_with_string_no_array_no_match():
     topic, queue = _setup_filter_policy_test({"price": [100]})
@@ -1506,8 +1455,7 @@ def test_filtering_string_array_with_string_no_array_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_string_array_with_string_no_array_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"price": [100]}, filter_policy_scope="MessageBody"
@@ -1525,8 +1473,7 @@ def test_filtering_string_array_with_string_no_array_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_attribute_key_exists_match():
     topic, queue = _setup_filter_policy_test({"store": [{"exists": True}]})
 
@@ -1546,8 +1493,7 @@ def test_filtering_attribute_key_exists_match():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_body_key_exists_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": [{"exists": True}]}, filter_policy_scope="MessageBody"
@@ -1565,8 +1511,7 @@ def test_filtering_body_key_exists_message_body():
     assert message_bodies == [{"store": "example_corp"}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_attribute_key_exists_no_match():
     topic, queue = _setup_filter_policy_test({"store": [{"exists": True}]})
 
@@ -1584,8 +1529,7 @@ def test_filtering_attribute_key_exists_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_body_key_exists_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": [{"exists": True}]}, filter_policy_scope="MessageBody"
@@ -1603,8 +1547,7 @@ def test_filtering_body_key_exists_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_attribute_key_not_exists_match():
     topic, queue = _setup_filter_policy_test({"store": [{"exists": False}]})
 
@@ -1624,8 +1567,7 @@ def test_filtering_attribute_key_not_exists_match():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_body_key_not_exists_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": [{"exists": False}]}, filter_policy_scope="MessageBody"
@@ -1643,8 +1585,7 @@ def test_filtering_body_key_not_exists_match_message_body():
     assert message_bodies == [{"event": "order_cancelled"}]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_attribute_key_not_exists_no_match():
     topic, queue = _setup_filter_policy_test({"store": [{"exists": False}]})
 
@@ -1662,8 +1603,7 @@ def test_filtering_attribute_key_not_exists_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_body_key_not_exists_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {"store": [{"exists": False}]}, filter_policy_scope="MessageBody"
@@ -1681,8 +1621,7 @@ def test_filtering_body_key_not_exists_no_match_message_body():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_all_AND_matching_match():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1723,8 +1662,7 @@ def test_filtering_all_AND_matching_match():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_all_AND_matching_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1762,8 +1700,7 @@ def test_filtering_all_AND_matching_match_message_body():
     ]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_all_AND_matching_no_match():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1795,8 +1732,7 @@ def test_filtering_all_AND_matching_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_all_AND_matching_no_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1828,8 +1764,7 @@ def test_filtering_all_AND_matching_no_match_message_body():
     assert message_bodies == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_prefix():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"prefix": "bas"}]}
@@ -1848,8 +1783,7 @@ def test_filtering_prefix():
     assert set(message_bodies) == {"match1", "match3"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_prefix_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1874,8 +1808,7 @@ def test_filtering_prefix_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"anything-but": "basketball"}]}
@@ -1894,8 +1827,7 @@ def test_filtering_anything_but():
     assert set(message_bodies) == {"match2", "match3"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1920,8 +1852,7 @@ def test_filtering_anything_but_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_multiple_values():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"anything-but": ["basketball", "rugby"]}]}
@@ -1940,8 +1871,7 @@ def test_filtering_anything_but_multiple_values():
     assert set(message_bodies) == {"match3"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_multiple_values_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -1966,8 +1896,7 @@ def test_filtering_anything_but_multiple_values_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_prefix():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"anything-but": {"prefix": "bas"}}]}
@@ -1987,8 +1916,7 @@ def test_filtering_anything_but_prefix():
     assert set(message_bodies) == {"match2"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_prefix_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2013,8 +1941,7 @@ def test_filtering_anything_but_prefix_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_unknown():
     try:
         _setup_filter_policy_test(
@@ -2024,8 +1951,7 @@ def test_filtering_anything_but_unknown():
         assert err.response["Error"]["Code"] == "InvalidParameter"
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_unknown_message_body_raises():
     try:
         _setup_filter_policy_test(
@@ -2038,8 +1964,7 @@ def test_filtering_anything_but_unknown_message_body_raises():
         assert err.response["Error"]["Code"] == "InvalidParameter"
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_numeric():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"anything-but": [100]}]}
@@ -2058,8 +1983,7 @@ def test_filtering_anything_but_numeric():
     assert set(message_bodies) == {"match1", "match3"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_numeric_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2085,8 +2009,7 @@ def test_filtering_anything_but_numeric_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_numeric_string():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"anything-but": ["100"]}]}
@@ -2105,8 +2028,7 @@ def test_filtering_anything_but_numeric_string():
     assert set(message_bodies) == {"match1", "match2", "match3"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_anything_but_numeric_string_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2136,8 +2058,7 @@ def test_filtering_anything_but_numeric_string_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_numeric_match():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"numeric": ["=", 100]}]}
@@ -2156,8 +2077,7 @@ def test_filtering_numeric_match():
     assert set(message_bodies) == {"match2"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_numeric_match_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2182,8 +2102,7 @@ def test_filtering_numeric_match_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_numeric_range():
     topic, queue = _setup_filter_policy_test(
         {"customer_interests": [{"numeric": [">", 49, "<=", 100]}]}
@@ -2202,8 +2121,7 @@ def test_filtering_numeric_range():
     assert set(message_bodies) == {"match1", "match2"}
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_numeric_range_message_body():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2228,8 +2146,7 @@ def test_filtering_numeric_range_message_body():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_message_body_invalid_json_no_match():
     topic, queue = _setup_filter_policy_test(
         {"store": ["example_corp"]}, filter_policy_scope="MessageBody"
@@ -2247,8 +2164,7 @@ def test_filtering_exact_string_message_body_invalid_json_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_message_body_empty_filter_policy_match():
     topic, queue = _setup_filter_policy_test({}, filter_policy_scope="MessageBody")
 
@@ -2268,8 +2184,7 @@ def test_filtering_exact_string_message_body_empty_filter_policy_match():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_message_body_nested():
     topic, queue = _setup_filter_policy_test(
         {"store": {"name": ["example_corp"]}}, filter_policy_scope="MessageBody"
@@ -2289,8 +2204,7 @@ def test_filtering_exact_string_message_body_nested():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_exact_string_message_body_nested_no_match():
     topic, queue = _setup_filter_policy_test(
         {"store": {"name": ["example_corp"]}}, filter_policy_scope="MessageBody"
@@ -2308,8 +2222,7 @@ def test_filtering_exact_string_message_body_nested_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_message_body_nested_prefix():
     topic, queue = _setup_filter_policy_test(
         {"store": {"name": [{"prefix": "example_corp"}]}},
@@ -2330,8 +2243,7 @@ def test_filtering_message_body_nested_prefix():
     )
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_message_body_nested_prefix_no_match():
     topic, queue = _setup_filter_policy_test(
         {"store": {"name": [{"prefix": "example_corp"}]}},
@@ -2350,8 +2262,7 @@ def test_filtering_message_body_nested_prefix_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_message_body_nested_multiple_prefix():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2388,8 +2299,7 @@ def test_filtering_message_body_nested_multiple_prefix():
     assert message_bodies == [payload]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_message_body_nested_multiple_prefix_no_match():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2426,8 +2336,7 @@ def test_filtering_message_body_nested_multiple_prefix_no_match():
     assert message_attributes == []
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_message_body_nested_multiple_records_partial_match():
     topic, queue = _setup_filter_policy_test(
         {
@@ -2461,8 +2370,7 @@ def test_filtering_message_body_nested_multiple_records_partial_match():
     assert message_bodies == [payload]
 
 
-@mock_sqs
-@mock_sns
+@mock_aws
 def test_filtering_message_body_nested_multiple_records_match():
     topic, queue = _setup_filter_policy_test(
         {

@@ -3,11 +3,10 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_cloudformation, mock_s3
+from moto import mock_aws
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_create_basic_stack():
     # Create inner template
     cf = boto3.client("cloudformation", "us-east-1")
@@ -43,8 +42,7 @@ def test_create_basic_stack():
     assert len(stacks) == 2
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_create_stack_with_params():
     # Create inner template
     cf = boto3.client("cloudformation", "us-east-1")
@@ -67,8 +65,7 @@ def test_create_stack_with_params():
     assert bucket_names == sorted([cf_storage_bucket, bucket_created_by_cf])
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_update_stack_with_params():
     # Create inner template
     cf = boto3.client("cloudformation", "us-east-1")
@@ -100,8 +97,7 @@ def test_update_stack_with_params():
     assert bucket_names == sorted([cf_storage_bucket, second_bucket])
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_delete_basic_stack():
     # Create inner template
     cf = boto3.client("cloudformation", "us-east-1")

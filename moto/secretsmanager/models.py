@@ -637,9 +637,9 @@ class SecretsManagerBackend(BaseBackend):
 
         # Begin the rotation process for the given secret by invoking the lambda function.
         if secret.rotation_lambda_arn:
-            from moto.awslambda.models import lambda_backends
+            from moto.awslambda.utils import get_backend
 
-            lambda_backend = lambda_backends[self.account_id][self.region_name]
+            lambda_backend = get_backend(self.account_id, self.region_name)
 
             request_headers: Dict[str, Any] = {}
             response_headers: Dict[str, Any] = {}

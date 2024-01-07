@@ -1,4 +1,3 @@
-"""Test different server responses."""
 import io
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse

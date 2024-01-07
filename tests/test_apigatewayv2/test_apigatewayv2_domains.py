@@ -2,10 +2,10 @@ import boto3
 import botocore.exceptions
 import pytest
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_domain_name():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     domain_name = "dev"
@@ -38,7 +38,7 @@ def test_create_domain_name():
     assert post_resp.get("Tags") == tags
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_domain_name_already_exists():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     client.create_domain_name(DomainName="exists.io")
@@ -51,7 +51,7 @@ def test_create_domain_name_already_exists():
     assert err["Message"] == "The domain name resource already exists."
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_domain_names():
     client = boto3.client("apigatewayv2", region_name="us-east-1")
     dev_domain = client.create_domain_name(DomainName="dev.service.io")
@@ -71,7 +71,7 @@ def test_get_domain_names():
     assert prod_domain in get_resp.get("Items")
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_domain_name():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     post_resp = client.create_domain_name(DomainName="dev.service.io")
@@ -83,7 +83,7 @@ def test_delete_domain_name():
     assert post_resp not in get_resp.get("Items")
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_domain_name_dne():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     with pytest.raises(botocore.exceptions.ClientError) as exc:

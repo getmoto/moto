@@ -1,4 +1,3 @@
-"""Test the different server responses."""
 import re
 from datetime import datetime
 
