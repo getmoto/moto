@@ -1,6 +1,6 @@
 import importlib
 import os
-from typing import TYPE_CHECKING, Iterable, Union, overload
+from typing import TYPE_CHECKING, Iterable, Optional, Union, overload
 
 import moto
 
@@ -153,6 +153,15 @@ def list_of_moto_modules() -> Iterable[str]:
         valid_folder = not backend.startswith("__")
         if is_dir and valid_folder:
             yield backend
+
+
+def get_service_from_url(url: str) -> Optional[str]:
+    from moto.backend_index import backend_url_patterns
+
+    for service, pattern in backend_url_patterns:
+        if pattern.match(url):
+            return service
+    return None
 
 
 # There's a similar Union that we could import from boto3-stubs, but it wouldn't have
