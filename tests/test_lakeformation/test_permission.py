@@ -1,4 +1,3 @@
-import pytest
 from moto.lakeformation.models import Permission
 
 
@@ -38,5 +37,5 @@ def test_permission_not_equals():
         permissions_with_grant_options=[],
     )
     assert permission_1 != permission_2
-    assert permission_1 != None
+    assert permission_1 is not None
     assert permission_1 != permission_3
