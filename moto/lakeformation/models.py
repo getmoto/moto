@@ -70,10 +70,6 @@ class Permission:
         return (self.principal == other.principal) and (self.resource == other.resource)
 
     def merge(self, other: Permission) -> None:
-        if not self.equal_principal_and_resouce(other):
-            raise ValueError(
-                "Cannot merge permissions on different a principal or resource."
-            )
         self.permissions = list(set(self.permissions).union(other.permissions))
         self.permissions_with_grant_options = list(
             set(self.permissions_with_grant_options).union(
@@ -82,10 +78,6 @@ class Permission:
         )
 
     def diff(self, other: Permission) -> None:
-        if not self.equal_principal_and_resouce(other):
-            raise ValueError(
-                "Cannot diff permissions on different a principal or resource."
-            )
         if self.permissions is not None:
             self.permissions = list(set(self.permissions).difference(other.permissions))
         if self.permissions_with_grant_options is not None:
@@ -110,10 +102,8 @@ class Permission:
 
 
 class PermissionCatalog:
-    permissions: Set[Permission]
-
     def __init__(self) -> None:
-        self.permissions = set()
+        self.permissions: Set[Permission] = set()
 
     def add_permission(self, permission: Permission) -> None:
         for existing_permission in self.permissions:

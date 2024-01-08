@@ -514,7 +514,6 @@ def test_revoke_permissions():
 
     # list all
     resp = client.list_permissions()
-    print(resp["PrincipalResourcePermissions"])
     assert resp["PrincipalResourcePermissions"][0]["Principal"] == {
         "DataLakePrincipalIdentifier": "asdf"
     }
@@ -533,6 +532,31 @@ def test_revoke_permissions():
             "DROP",
         ]
     )
+
+
+@mock_lakeformation
+def test_revoke_permissions_unknown_catalog_id():
+    client = boto3.client("lakeformation", region_name="eu-west-2")
+
+    client.grant_permissions(
+        CatalogId="valid_id",
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["SELECT"],
+    )
+
+    resp = client.revoke_permissions(
+        CatalogId="different_id",
+        Principal={"DataLakePrincipalIdentifier": "asdf"},
+        Resource={"Database": {"Name": "db"}},
+        Permissions=["SELECT"],
+    )
+
+    del resp["ResponseMetadata"]
+    assert resp == {}
+
+    resp = client.list_permissions()
+    assert len(["PrincipalResourcePermissions"]) == 1
 
 
 @mock_lakeformation
