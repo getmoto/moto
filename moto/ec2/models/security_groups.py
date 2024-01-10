@@ -28,9 +28,10 @@ from ..utils import (
 from .core import TaggedEC2Resource
 
 
-class SecurityRule:
+class SecurityRule(TaggedEC2Resource):
     def __init__(
         self,
+        ec2_backend: Any,
         account_id: str,
         ip_protocol: str,
         from_port: Optional[str],
@@ -40,6 +41,7 @@ class SecurityRule:
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         is_egress: bool = True,
     ):
+        self.ec2_backend = ec2_backend
         self.account_id = account_id
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol) if ip_protocol else None
@@ -142,13 +144,25 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             if vpc:
                 self.egress_rules.append(
                     SecurityRule(
-                        self.owner_id, "-1", None, None, [{"CidrIp": "0.0.0.0/0"}], []
+                        self.ec2_backend,
+                        self.owner_id,
+                        "-1",
+                        None,
+                        None,
+                        [{"CidrIp": "0.0.0.0/0"}],
+                        [],
                     )
                 )
             if vpc and len(vpc.get_cidr_block_association_set(ipv6=True)) > 0:
                 self.egress_rules.append(
                     SecurityRule(
-                        self.owner_id, "-1", None, None, [{"CidrIpv6": "::/0"}], []
+                        self.ec2_backend,
+                        self.owner_id,
+                        "-1",
+                        None,
+                        None,
+                        [{"CidrIpv6": "::/0"}],
+                        [],
                     )
                 )
 
@@ -671,6 +685,7 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
+            self,
             self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
@@ -741,6 +756,7 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
+            self,
             self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
@@ -836,6 +852,7 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
+            self,
             self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
@@ -920,6 +937,7 @@ class SecurityGroupBackend:
                         ip_ranges.remove(item)
 
         security_rule = SecurityRule(
+            self,
             self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
@@ -1006,6 +1024,7 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
+            self,
             self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
@@ -1061,6 +1080,7 @@ class SecurityGroupBackend:
         _source_groups = self._add_source_group(source_groups, vpc_id)
 
         security_rule = SecurityRule(
+            self,
             self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
