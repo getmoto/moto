@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+import json
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.utilities.tagging_service import TaggingService
@@ -25,6 +28,103 @@ class Resource(BaseModel):
             "ResourceArn": self.arn,
             "RoleArn": self.role_arn,
         }
+
+
+class Permission:
+    def __init__(
+        self,
+        principal: Dict[str, str],
+        resource: Dict[str, Any],
+        permissions: List[str],
+        permissions_with_grant_options: List[str],
+    ):
+        self.principal = principal
+        self.resource = resource
+        self.permissions = permissions
+        self.permissions_with_grant_options = permissions_with_grant_options
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Permission):
+            return (
+                (self.principal == other.principal)
+                and (self.resource == other.resource)
+                and (self.permissions == other.permissions)
+                and (
+                    self.permissions_with_grant_options
+                    == other.permissions_with_grant_options
+                )
+            )
+        return False
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                json.dumps(self.principal),
+                json.dumps(self.resource),
+                json.dumps(self.permissions),
+                json.dumps(self.permissions_with_grant_options),
+            )
+        )
+
+    def equal_principal_and_resouce(self, other: Permission) -> bool:
+        return (self.principal == other.principal) and (self.resource == other.resource)
+
+    def merge(self, other: Permission) -> None:
+        self.permissions = list(set(self.permissions).union(other.permissions))
+        self.permissions_with_grant_options = list(
+            set(self.permissions_with_grant_options).union(
+                other.permissions_with_grant_options
+            )
+        )
+
+    def diff(self, other: Permission) -> None:
+        if self.permissions is not None:
+            self.permissions = list(set(self.permissions).difference(other.permissions))
+        if self.permissions_with_grant_options is not None:
+            self.permissions_with_grant_options = list(
+                set(self.permissions_with_grant_options).difference(
+                    other.permissions_with_grant_options
+                )
+            )
+
+    def is_empty(self) -> bool:
+        return (
+            len(self.permissions) == 0 and len(self.permissions_with_grant_options) == 0
+        )
+
+    def to_external_form(self) -> Dict[str, Any]:
+        return {
+            "Permissions": self.permissions,
+            "PermissionsWithGrantOption": self.permissions_with_grant_options,
+            "Resource": self.resource,
+            "Principal": self.principal,
+        }
+
+
+class PermissionCatalog:
+    def __init__(self) -> None:
+        self.permissions: Set[Permission] = set()
+
+    def add_permission(self, permission: Permission) -> None:
+        for existing_permission in self.permissions:
+            if permission.equal_principal_and_resouce(existing_permission):
+                # Permission with same principal and resouce, only once of these can exist
+                existing_permission.merge(permission)
+                return
+        # found no match
+        self.permissions.add(permission)
+
+    def remove_permission(self, permission: Permission) -> None:
+        for existing_permission in self.permissions:
+            if permission.equal_principal_and_resouce(existing_permission):
+                # Permission with same principal and resouce, only once of these can exist
+                # remove and readd to recalculate the hash value after the diff
+                self.permissions.remove(existing_permission)
+                existing_permission.diff(permission)
+                self.permissions.add(existing_permission)
+                if existing_permission.is_empty():
+                    self.permissions.remove(existing_permission)
+                return
 
 
 class ListPermissionsResourceDatabase:
@@ -171,7 +271,7 @@ class LakeFormationBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.resources: Dict[str, Resource] = dict()
         self.settings: Dict[str, Dict[str, Any]] = defaultdict(default_settings)
-        self.grants: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self.grants: Dict[str, PermissionCatalog] = {}
         self.tagger = TaggingService()
         self.lf_database_tags: Dict[Tuple[str, str], List[Dict[str, str]]] = {}
         self.lf_table_tags: Dict[Tuple[str, str, str], List[Dict[str, str]]] = {}
@@ -211,13 +311,16 @@ class LakeFormationBackend(BaseBackend):
         permissions: List[str],
         permissions_with_grant_options: List[str],
     ) -> None:
-        self.grants[catalog_id].append(
-            {
-                "Principal": principal,
-                "Resource": resource,
-                "Permissions": permissions,
-                "PermissionsWithGrantOption": permissions_with_grant_options,
-            }
+        if catalog_id not in self.grants:
+            self.grants[catalog_id] = PermissionCatalog()
+
+        self.grants[catalog_id].add_permission(
+            Permission(
+                principal=principal,
+                resource=resource,
+                permissions=permissions or [],
+                permissions_with_grant_options=permissions_with_grant_options or [],
+            )
         )
 
     def revoke_permissions(
@@ -228,22 +331,19 @@ class LakeFormationBackend(BaseBackend):
         permissions_to_revoke: List[str],
         permissions_with_grant_options_to_revoke: List[str],
     ) -> None:
-        for grant in self.grants[catalog_id]:
-            if grant["Principal"] == principal and grant["Resource"] == resource:
-                grant["Permissions"] = [
-                    perm
-                    for perm in grant["Permissions"]
-                    if perm not in permissions_to_revoke
-                ]
-                if grant.get("PermissionsWithGrantOption") is not None:
-                    grant["PermissionsWithGrantOption"] = [
-                        perm
-                        for perm in grant["PermissionsWithGrantOption"]
-                        if perm not in permissions_with_grant_options_to_revoke
-                    ]
-        self.grants[catalog_id] = [
-            grant for grant in self.grants[catalog_id] if grant["Permissions"] != []
-        ]
+        if catalog_id not in self.grants:
+            return
+
+        catalog = self.grants[catalog_id]
+        catalog.remove_permission(
+            Permission(
+                principal=principal,
+                resource=resource,
+                permissions=permissions_to_revoke or [],
+                permissions_with_grant_options=permissions_with_grant_options_to_revoke
+                or [],
+            )
+        )
 
     def list_permissions(
         self,
@@ -255,18 +355,21 @@ class LakeFormationBackend(BaseBackend):
         """
         No pagination has been implemented yet.
         """
-        permissions = self.grants[catalog_id]
+        if catalog_id not in self.grants:
+            return []
 
-        def filter_for_principal(permission: Dict[str, Any]) -> bool:
-            return permission["Principal"] == principal
+        permissions = list(self.grants[catalog_id].permissions)
+
+        def filter_for_principal(permission: Permission) -> bool:
+            return permission.principal == principal
 
         if principal is not None:
             permissions = list(filter(filter_for_principal, permissions))
 
-        def filter_for_resource_type(permission: Dict[str, Any]) -> bool:
+        def filter_for_resource_type(permission: Permission) -> bool:
             if resource_type is None:  # Check for mypy
                 return False
-            resource = permission["Resource"]
+            resource = permission.resource
             if resource_type == RessourceType.catalog:
                 return "Catalog" in resource
             elif resource_type == RessourceType.database:
@@ -280,7 +383,7 @@ class LakeFormationBackend(BaseBackend):
         if resource_type is not None:
             permissions = list(filter(filter_for_resource_type, permissions))
 
-        def filter_for_resource(permission: Dict[str, Any]) -> bool:
+        def filter_for_resource(permission: Permission) -> bool:
             """
             If catalog is provided:
                 only matching permissions with resource-type "Catalog" are returned;
@@ -293,7 +396,7 @@ class LakeFormationBackend(BaseBackend):
             """
             if resource is None:  # Check for linter
                 return False
-            permission_resource = permission["Resource"]
+            permission_resource = permission.resource
             catalog = resource.catalog
             if catalog is not None and "Catalog" in permission_resource:
                 return catalog == permission_resource["Catalog"]
@@ -346,7 +449,8 @@ class LakeFormationBackend(BaseBackend):
 
         if resource is not None:
             permissions = list(filter(filter_for_resource, permissions))
-        return permissions
+
+        return [permission.to_external_form() for permission in permissions]
 
     def create_lf_tag(self, catalog_id: str, key: str, values: List[str]) -> None:
         # There is no ARN that we can use, so just create another  unique identifier that's easy to recognize and reproduce
