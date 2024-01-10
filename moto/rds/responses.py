@@ -367,6 +367,17 @@ class RDSResponse(BaseResponse):
         template = self.response_template(RESTORE_INSTANCE_FROM_SNAPSHOT_TEMPLATE)
         return template.render(database=new_instance)
 
+    def restore_db_instance_to_point_in_time(self) -> str:
+        source_db_identifier = self._get_param("SourceDBInstanceIdentifier")
+        target_db_identifier = self._get_param("TargetDBInstanceIdentifier")
+
+        db_kwargs = self._get_db_kwargs()
+        new_instance = self.backend.restore_db_instance_to_point_in_time(
+            source_db_identifier, target_db_identifier, db_kwargs
+        )
+        template = self.response_template(RESTORE_INSTANCE_TO_POINT_IN_TIME_TEMPLATE)
+        return template.render(database=new_instance)
+
     def list_tags_for_resource(self) -> str:
         arn = self._get_param("ResourceName")
         template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
@@ -913,6 +924,16 @@ RESTORE_INSTANCE_FROM_SNAPSHOT_TEMPLATE = """<RestoreDBInstanceFromDBSnapshotRes
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </RestoreDBInstanceFromDBSnapshotResponse>"""
+
+
+RESTORE_INSTANCE_TO_POINT_IN_TIME_TEMPLATE = """<RestoreDBInstanceToPointInTimeResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <RestoreDBInstanceToPointInTimeResult>
+  {{ database.to_xml() }}
+  </RestoreDBInstanceToPointInTimeResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</RestoreDBInstanceToPointInTimeResponse>"""
 
 CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSnapshotResult>
