@@ -1797,6 +1797,30 @@ class RDSBackend(BaseBackend):
 
         return self.create_db_instance(new_instance_props)
 
+    def restore_db_instance_to_point_in_time(
+        self,
+        source_db_identifier: str,
+        target_db_identifier: str,
+        overrides: Dict[str, Any],
+    ) -> Database:
+        db_instance = self.describe_db_instances(
+            db_instance_identifier=source_db_identifier
+        )[0]
+        new_instance_props = copy.deepcopy(db_instance.__dict__)
+        if not db_instance.option_group_supplied:
+            # If the option group is not supplied originally, the 'option_group_name' will receive a default value
+            # Force this reconstruction, and prevent any validation on the default value
+            del new_instance_props["option_group_name"]
+
+        for key, value in overrides.items():
+            if value:
+                new_instance_props[key] = value
+
+        # set the new db instance identifier
+        new_instance_props["db_instance_identifier"] = target_db_identifier
+
+        return self.create_db_instance(new_instance_props)
+
     def stop_db_instance(
         self, db_instance_identifier: str, db_snapshot_identifier: Optional[str] = None
     ) -> Database:

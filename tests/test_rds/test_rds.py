@@ -1215,6 +1215,51 @@ def test_restore_db_instance_from_db_snapshot():
 
 
 @mock_rds
+def test_restore_db_instance_to_point_in_time():
+    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        DBSecurityGroups=["my_sg"],
+    )
+    assert len(conn.describe_db_instances()["DBInstances"]) == 1
+
+    # restore
+    new_instance = conn.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier="db-primary-1",
+        TargetDBInstanceIdentifier="db-restore-1",
+    )["DBInstance"]
+    assert new_instance["DBInstanceIdentifier"] == "db-restore-1"
+    assert new_instance["DBInstanceClass"] == "db.m1.small"
+    assert new_instance["StorageType"] == "gp2"
+    assert new_instance["Engine"] == "postgres"
+    assert new_instance["DBName"] == "staging-postgres"
+    assert new_instance["DBParameterGroups"][0]["DBParameterGroupName"] == (
+        "default.postgres9.3"
+    )
+    assert new_instance["DBSecurityGroups"] == [
+        {"DBSecurityGroupName": "my_sg", "Status": "active"}
+    ]
+    assert new_instance["Endpoint"]["Port"] == 5432
+
+    # Verify it exists
+    assert len(conn.describe_db_instances()["DBInstances"]) == 2
+    assert (
+        len(
+            conn.describe_db_instances(DBInstanceIdentifier="db-restore-1")[
+                "DBInstances"
+            ]
+        )
+        == 1
+    )
+
+
+@mock_rds
 def test_restore_db_instance_from_db_snapshot_and_override_params():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
