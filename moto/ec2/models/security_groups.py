@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import CloudFormationModel
+from moto.core import BaseModel, CloudFormationModel
 from moto.core.utils import aws_api_matches
 
 from ..exceptions import (
@@ -110,6 +110,18 @@ class SecurityRule(TaggedEC2Resource):
                 return False
 
         return True
+
+    def __deepcopy__(self, memodict: Dict[Any, Any]) -> BaseModel:
+        memodict = memodict or {}
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memodict[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "ec2_backend":
+                setattr(new, k, self.ec2_backend)
+            else:
+                setattr(new, k, copy.deepcopy(v, memodict))
+        return new
 
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
