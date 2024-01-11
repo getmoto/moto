@@ -32,7 +32,6 @@ class SecurityRule(TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend: Any,
-        account_id: str,
         ip_protocol: str,
         from_port: Optional[str],
         to_port: Optional[str],
@@ -42,7 +41,6 @@ class SecurityRule(TaggedEC2Resource):
         is_egress: bool = True,
     ):
         self.ec2_backend = ec2_backend
-        self.account_id = account_id
         self.id = random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol) if ip_protocol else None
         self.ip_ranges = ip_ranges or []
@@ -78,7 +76,7 @@ class SecurityRule(TaggedEC2Resource):
 
     @property
     def owner_id(self) -> str:
-        return self.account_id
+        return self.ec2_backend.account_id
 
     def __eq__(self, other: "SecurityRule") -> bool:  # type: ignore[override]
         if self.ip_protocol != other.ip_protocol:
@@ -145,7 +143,6 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
                 self.egress_rules.append(
                     SecurityRule(
                         self.ec2_backend,
-                        self.owner_id,
                         "-1",
                         None,
                         None,
@@ -157,7 +154,6 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
                 self.egress_rules.append(
                     SecurityRule(
                         self.ec2_backend,
-                        self.owner_id,
                         "-1",
                         None,
                         None,
@@ -686,7 +682,6 @@ class SecurityGroupBackend:
 
         security_rule = SecurityRule(
             self,
-            self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
             to_port,
@@ -757,7 +752,6 @@ class SecurityGroupBackend:
 
         security_rule = SecurityRule(
             self,
-            self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
             to_port,
@@ -853,7 +847,6 @@ class SecurityGroupBackend:
 
         security_rule = SecurityRule(
             self,
-            self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
             to_port,
@@ -938,7 +931,6 @@ class SecurityGroupBackend:
 
         security_rule = SecurityRule(
             self,
-            self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
             to_port,
@@ -1025,7 +1017,6 @@ class SecurityGroupBackend:
 
         security_rule = SecurityRule(
             self,
-            self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
             to_port,
@@ -1081,7 +1072,6 @@ class SecurityGroupBackend:
 
         security_rule = SecurityRule(
             self,
-            self.account_id,  # type: ignore[attr-defined]
             ip_protocol,
             from_port,
             to_port,
