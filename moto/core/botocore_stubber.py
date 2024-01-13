@@ -9,6 +9,7 @@ import moto.backend_index as backend_index
 from moto import settings
 from moto.core.base_backend import BackendDict
 from moto.core.common_types import TYPE_RESPONSE
+from moto.core.config import passthrough_service, passthrough_url
 
 
 class MockRawResponse(BytesIO):
@@ -70,8 +71,14 @@ class BotocoreStubber:
 
         clean_url = f"{x.scheme}://{host}{x.path}"
 
+        if passthrough_url(clean_url):
+            return None
+
         for service, pattern in backend_index.backend_url_patterns:
             if pattern.match(clean_url):
+
+                if passthrough_service(service):
+                    return None
 
                 import moto.backends as backends
                 from moto.core import DEFAULT_ACCOUNT_ID

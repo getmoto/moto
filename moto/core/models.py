@@ -28,6 +28,7 @@ import moto.backend_index as backend_index
 from moto import settings
 
 from .botocore_stubber import BotocoreStubber
+from .config import DefaultConfig, default_user_config, mock_credentials
 from .custom_responses_mock import (
     CallbackResponse,
     get_response_mock,
@@ -51,12 +52,12 @@ class MockAWS(ContextManager["MockAWS"]):
     mocks_active = False
     mock_init_lock = Lock()
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
-        self.FAKE_KEYS = {
+    def __init__(self, config: Optional[DefaultConfig] = None) -> None:
+        self._fake_creds = {
             "AWS_ACCESS_KEY_ID": "FOOBARKEY",
             "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
-        self.ORIG_KEYS: Dict[str, Optional[str]] = {}
+        self._orig_creds: Dict[str, Optional[str]] = {}
         self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
         current_user_config = default_user_config.copy()
         current_user_config.update(config or {})
@@ -78,10 +79,12 @@ class MockAWS(ContextManager["MockAWS"]):
 
     def start(self, reset: bool = True) -> None:
         with MockAWS.mock_init_lock:
-            if not self.__class__.mocks_active:
+            self.user_config_mock.start()
+            if mock_credentials():
                 self.mock_env_variables()
-                self.__class__.mocks_active = True
+            if not self.__class__.mocks_active:
                 self.default_session_mock.start()
+                self.__class__.mocks_active = True
 
             self.__class__.nested_count += 1
 
@@ -95,10 +98,13 @@ class MockAWS(ContextManager["MockAWS"]):
             if self.__class__.nested_count < 0:
                 raise RuntimeError("Called stop() before start().")
 
+            if mock_credentials():
+                self.unmock_env_variables()
+
             if self.__class__.nested_count == 0:
                 if self.__class__.mocks_active:
                     self.default_session_mock.stop()
-                    self.unmock_env_variables()
+                    self.user_config_mock.stop()
                     self.__class__.mocks_active = False
                 self.disable_patching(remove_data)
 
@@ -187,17 +193,12 @@ class MockAWS(ContextManager["MockAWS"]):
 
     def mock_env_variables(self) -> None:
         # "Mock" the AWS credentials as they can't be mocked in Botocore currently
-        # self.env_variables_mocks = mock.patch.dict(os.environ, FAKE_KEYS)
-        # self.env_variables_mocks.start()
-        for k, v in self.FAKE_KEYS.items():
-            self.ORIG_KEYS[k] = os.environ.get(k, None)
+        for k, v in self._fake_creds.items():
+            self._orig_creds[k] = os.environ.get(k, None)
             os.environ[k] = v
 
     def unmock_env_variables(self) -> None:
-        # This doesn't work in Python2 - for some reason, unmocking clears the entire os.environ dict
-        # Obviously bad user experience, and also breaks pytest - as it uses PYTEST_CURRENT_TEST as an env var
-        # self.env_variables_mocks.stop()
-        for k, v in self.ORIG_KEYS.items():
+        for k, v in self._orig_creds.items():
             if v:
                 os.environ[k] = v
             else:
@@ -214,7 +215,6 @@ class MockAWS(ContextManager["MockAWS"]):
         if reset:
             self.reset()
         responses_mock.start()
-        self.user_config_mock.start()
 
         for method in RESPONSES_METHODS:
             for _, pattern in backend_index.backend_url_patterns:
@@ -239,11 +239,7 @@ class MockAWS(ContextManager["MockAWS"]):
             self.reset()
             reset_model_data()
 
-        try:
-            responses_mock.stop()
-        except RuntimeError:
-            pass
-        self.user_config_mock.stop()
+        responses_mock.stop()
 
 
 def get_direct_methods_of(klass: object) -> Set[str]:
@@ -271,8 +267,6 @@ BOTOCORE_HTTP_METHODS = ["GET", "DELETE", "HEAD", "OPTIONS", "PATCH", "POST", "P
 
 botocore_stubber = BotocoreStubber()
 BUILTIN_HANDLERS.append(("before-send", botocore_stubber))
-
-default_user_config = {"batch": {"use_docker": True}, "lambda": {"use_docker": True}}
 
 
 def patch_client(client: botocore.client.BaseClient) -> None:
