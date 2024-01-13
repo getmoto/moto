@@ -570,6 +570,35 @@ def test_authorize_all_protocols_with_no_port_specification():
 
 
 @mock_ec2
+def test_security_group_rule_tagging():
+    ec2 = boto3.resource("ec2", "us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+
+    sg_name = str(uuid4())
+    sg = client.create_security_group(
+        Description="Test SG", GroupName=sg_name, VpcId=vpc.id
+    )
+
+    response = client.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+    )
+    rule_id = response["SecurityGroupRules"][0]["SecurityGroupRuleId"]
+
+    tag_name = str(uuid4())[0:6]
+    tag_val = str(uuid4())
+
+    client.create_tags(Resources=[rule_id], Tags=[{"Key": tag_name, "Value": tag_val}])
+
+    response = client.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+    )
+    assert "Tags" in response["SecurityGroupRules"][0]
+    assert response["SecurityGroupRules"][0]["Tags"][0]["Key"] == tag_name
+    assert response["SecurityGroupRules"][0]["Tags"][0]["Value"] == tag_val
+
+
+@mock_ec2
 def test_create_and_describe_security_grp_rule():
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
