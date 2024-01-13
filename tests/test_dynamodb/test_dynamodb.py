@@ -689,18 +689,21 @@ def test_nested_projection_expression_using_query():
         }
     )
 
-    # Test a query returning all items
+    # Test a query returning nested attributes
     result = table.query(
         KeyConditionExpression=Key("name").eq("key1"),
         ProjectionExpression="nested.level1.id, nested.level2",
-    )["Items"][0]
+    )
+    assert result["ScannedCount"] == 1
+    item = result["Items"][0]
 
-    assert "nested" in result
-    assert result["nested"] == {
+    assert "nested" in item
+    assert item["nested"] == {
         "level1": {"id": "id1"},
         "level2": {"id": "id2", "include": "all"},
     }
-    assert "foo" not in result
+    assert "foo" not in item
+
     # Assert actual data has not been deleted
     result = table.query(KeyConditionExpression=Key("name").eq("key1"))["Items"][0]
     assert result == {
@@ -1356,12 +1359,14 @@ def test_query_filter():
     table = dynamodb.Table("test1")
     response = table.query(KeyConditionExpression=Key("client").eq("client1"))
     assert response["Count"] == 2
+    assert response["ScannedCount"] == 2
 
     response = table.query(
         KeyConditionExpression=Key("client").eq("client1"),
         FilterExpression=Attr("app").eq("app2"),
     )
     assert response["Count"] == 1
+    assert response["ScannedCount"] == 2
     assert response["Items"][0]["app"] == "app2"
     response = table.query(
         KeyConditionExpression=Key("client").eq("client1"),

@@ -794,6 +794,7 @@ def test_boto3_query_gsi_range_comparison():
         ScanIndexForward=True,
         IndexName="TestGSI",
     )
+    assert results["ScannedCount"] == 3
     expected = ["456", "789", "123"]
     for index, item in enumerate(results["Items"]):
         assert item["subject"] == expected[index]
@@ -1077,6 +1078,7 @@ def test_query_pagination():
 
     page1 = table.query(KeyConditionExpression=Key("forum_name").eq("the-key"), Limit=6)
     assert page1["Count"] == 6
+    assert page1["ScannedCount"] == 6
     assert len(page1["Items"]) == 6
 
     page2 = table.query(
@@ -1085,6 +1087,7 @@ def test_query_pagination():
         ExclusiveStartKey=page1["LastEvaluatedKey"],
     )
     assert page2["Count"] == 4
+    assert page2["ScannedCount"] == 4
     assert len(page2["Items"]) == 4
     assert "LastEvaluatedKey" not in page2
 
