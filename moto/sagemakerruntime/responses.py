@@ -3,6 +3,7 @@ import json
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.moto_api._internal import mock_random as random
 
 from .models import SageMakerRuntimeBackend, sagemakerruntime_backends
 
@@ -43,3 +44,14 @@ class SageMakerRuntimeResponse(BaseResponse):
         if custom_attributes:
             headers["X-Amzn-SageMaker-Custom-Attributes"] = custom_attributes
         return 200, headers, body
+
+    def invoke_endpoint_async(self) -> TYPE_RESPONSE:
+        endpoint_name = self.path.split("/")[2]
+        input_location = self.headers.get("X-Amzn-SageMaker-InputLocation")
+        inference_id = self.headers.get("X-Amzn-SageMaker-Inference-Id")
+        location = self.sagemakerruntime_backend.invoke_endpoint_async(
+            endpoint_name, input_location
+        )
+        resp = {"InferenceId": inference_id or str(random.uuid4())}
+        headers = {"X-Amzn-SageMaker-OutputLocation": location}
+        return 200, headers, json.dumps(resp)
