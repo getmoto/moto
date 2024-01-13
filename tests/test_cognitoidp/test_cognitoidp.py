@@ -514,8 +514,8 @@ def test_add_custom_attributes_existing_attribute():
 def test_create_user_pool_default_id_strategy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    first_pool = conn.create_user_pool(PoolName=str("default-pool"))
-    second_pool = conn.create_user_pool(PoolName=str("default-pool"))
+    first_pool = conn.create_user_pool(PoolName="default-pool")
+    second_pool = conn.create_user_pool(PoolName="default-pool")
 
     assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
@@ -528,8 +528,8 @@ def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    first_pool = conn.create_user_pool(PoolName=str("default-pool"))
-    second_pool = conn.create_user_pool(PoolName=str("default-pool"))
+    first_pool = conn.create_user_pool(PoolName="default-pool")
+    second_pool = conn.create_user_pool(PoolName="default-pool")
 
     assert first_pool["UserPool"]["Id"] == second_pool["UserPool"]["Id"]
 
@@ -542,8 +542,8 @@ def test_create_user_pool_hash_id_strategy_with_different_pool_name():
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    first_pool = conn.create_user_pool(PoolName=str("first-pool"))
-    second_pool = conn.create_user_pool(PoolName=str("second-pool"))
+    first_pool = conn.create_user_pool(PoolName="first-pool")
+    second_pool = conn.create_user_pool(PoolName="second-pool")
 
     assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
@@ -557,7 +557,7 @@ def test_create_user_pool_hash_id_strategy_with_different_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     first_pool = conn.create_user_pool(
-        PoolName=str("default-pool"),
+        PoolName="default-pool",
         Schema=[
             {
                 "Name": "first",
@@ -566,7 +566,7 @@ def test_create_user_pool_hash_id_strategy_with_different_attributes():
         ],
     )
     second_pool = conn.create_user_pool(
-        PoolName=str("default-pool"),
+        PoolName="default-pool",
         Schema=[
             {
                 "Name": "second",
@@ -1545,12 +1545,16 @@ def test_group_in_access_token():
 
 
 @mock_cognitoidp
-def test_group_in_id_token():
+def test_other_attributes_in_id_token():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     username = str(uuid.uuid4())
     temporary_password = "P2$Sword"
-    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()),
+        Schema=[{"Name": "myattr", "AttributeDataType": "String"}],
+    )["UserPool"]["Id"]
+
     user_attribute_name = str(uuid.uuid4())
     user_attribute_value = str(uuid.uuid4())
     group_name = str(uuid.uuid4())
@@ -1566,7 +1570,10 @@ def test_group_in_id_token():
         UserPoolId=user_pool_id,
         Username=username,
         TemporaryPassword=temporary_password,
-        UserAttributes=[{"Name": user_attribute_name, "Value": user_attribute_value}],
+        UserAttributes=[
+            {"Name": user_attribute_name, "Value": user_attribute_value},
+            {"Name": "custom:myattr", "Value": "some val"},
+        ],
     )
 
     conn.admin_add_user_to_group(
@@ -1596,6 +1603,7 @@ def test_group_in_id_token():
 
     claims = jwt.get_unverified_claims(result["AuthenticationResult"]["IdToken"])
     assert claims["cognito:groups"] == [group_name]
+    assert claims["custom:myattr"] == "some val"
 
 
 @mock_cognitoidp
