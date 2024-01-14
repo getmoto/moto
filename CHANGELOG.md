@@ -40,6 +40,20 @@ Docker Digest for 4.2.14: _sha256:2fa10aa48e32f85c63c62a7d437b8a4b320a56a8494bc2
         * SNS: set_subscription_attributes() can now unset the FilterPolicy
 
 
+5.0.0alpha2:
+------------
+
+    General:
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+        * All requests now return a RequestId
+
+    Miscellaneous:
+        * S3: list_objects() now returns a hashed ContinuationToken
+
+
 5.0.0alpha1:
 ------------
 
