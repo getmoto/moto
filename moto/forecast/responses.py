@@ -2,7 +2,6 @@ import json
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import ForecastBackend, forecast_backends
 
@@ -15,7 +14,6 @@ class ForecastResponse(BaseResponse):
     def forecast_backend(self) -> ForecastBackend:
         return forecast_backends[self.current_account][self.region]
 
-    @amzn_request_id
     def create_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_name = self._get_param("DatasetGroupName")
         domain = self._get_param("Domain")
@@ -31,7 +29,6 @@ class ForecastResponse(BaseResponse):
         response = {"DatasetGroupArn": dataset_group.arn}
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_arn = self._get_param("DatasetGroupArn")
 
@@ -49,20 +46,17 @@ class ForecastResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def delete_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_arn = self._get_param("DatasetGroupArn")
         self.forecast_backend.delete_dataset_group(dataset_group_arn)
         return 200, {}, ""
 
-    @amzn_request_id
     def update_dataset_group(self) -> TYPE_RESPONSE:
         dataset_group_arn = self._get_param("DatasetGroupArn")
         dataset_arns = self._get_param("DatasetArns")
         self.forecast_backend.update_dataset_group(dataset_group_arn, dataset_arns)
         return 200, {}, ""
 
-    @amzn_request_id
     def list_dataset_groups(self) -> TYPE_RESPONSE:
         list_all = sorted(
             [

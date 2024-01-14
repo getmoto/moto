@@ -4,7 +4,6 @@ from typing import Any
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.sagemaker.exceptions import AWSValidationException
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import SageMakerModelBackend, sagemaker_backends
 
@@ -52,7 +51,6 @@ class SageMakerResponse(BaseResponse):
         models = self.sagemaker_backend.list_models()
         return json.dumps({"Models": [model.response_object for model in models]})
 
-    @amzn_request_id
     def create_notebook_instance(self) -> TYPE_RESPONSE:
         sagemaker_notebook = self.sagemaker_backend.create_notebook_instance(
             notebook_instance_name=self._get_param("NotebookInstanceName"),
@@ -72,7 +70,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"NotebookInstanceArn": sagemaker_notebook.arn})
 
-    @amzn_request_id
     def describe_notebook_instance(self) -> str:
         notebook_instance_name = self._get_param("NotebookInstanceName")
         notebook_instance = self.sagemaker_backend.get_notebook_instance(
@@ -80,25 +77,21 @@ class SageMakerResponse(BaseResponse):
         )
         return json.dumps(notebook_instance.to_dict())
 
-    @amzn_request_id
     def start_notebook_instance(self) -> TYPE_RESPONSE:
         notebook_instance_name = self._get_param("NotebookInstanceName")
         self.sagemaker_backend.start_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def stop_notebook_instance(self) -> TYPE_RESPONSE:
         notebook_instance_name = self._get_param("NotebookInstanceName")
         self.sagemaker_backend.stop_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def delete_notebook_instance(self) -> TYPE_RESPONSE:
         notebook_instance_name = self._get_param("NotebookInstanceName")
         self.sagemaker_backend.delete_notebook_instance(notebook_instance_name)
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def list_notebook_instances(self) -> str:
         sort_by = self._get_param("SortBy", "Name")
         sort_order = self._get_param("SortOrder", "Ascending")
@@ -121,7 +114,6 @@ class SageMakerResponse(BaseResponse):
             }
         )
 
-    @amzn_request_id
     def list_tags(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceArn")
         max_results = self._get_param("MaxResults")
@@ -134,21 +126,18 @@ class SageMakerResponse(BaseResponse):
             response["NextToken"] = next_token
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def add_tags(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags")
         tags = self.sagemaker_backend.add_tags(arn, tags)
         return 200, {}, json.dumps({"Tags": tags})
 
-    @amzn_request_id
     def delete_tags(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceArn")
         tag_keys = self._get_param("TagKeys")
         self.sagemaker_backend.delete_tags(arn, tag_keys)
         return 200, {}, json.dumps({})
 
-    @amzn_request_id
     def create_endpoint_config(self) -> TYPE_RESPONSE:
         endpoint_config = self.sagemaker_backend.create_endpoint_config(
             endpoint_config_name=self._get_param("EndpointConfigName"),
@@ -163,19 +152,16 @@ class SageMakerResponse(BaseResponse):
             json.dumps({"EndpointConfigArn": endpoint_config.endpoint_config_arn}),
         )
 
-    @amzn_request_id
     def describe_endpoint_config(self) -> str:
         endpoint_config_name = self._get_param("EndpointConfigName")
         response = self.sagemaker_backend.describe_endpoint_config(endpoint_config_name)
         return json.dumps(response)
 
-    @amzn_request_id
     def delete_endpoint_config(self) -> TYPE_RESPONSE:
         endpoint_config_name = self._get_param("EndpointConfigName")
         self.sagemaker_backend.delete_endpoint_config(endpoint_config_name)
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def create_endpoint(self) -> TYPE_RESPONSE:
         endpoint = self.sagemaker_backend.create_endpoint(
             endpoint_name=self._get_param("EndpointName"),
@@ -184,19 +170,16 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps({"EndpointArn": endpoint.endpoint_arn})
 
-    @amzn_request_id
     def describe_endpoint(self) -> str:
         endpoint_name = self._get_param("EndpointName")
         response = self.sagemaker_backend.describe_endpoint(endpoint_name)
         return json.dumps(response)
 
-    @amzn_request_id
     def delete_endpoint(self) -> TYPE_RESPONSE:
         endpoint_name = self._get_param("EndpointName")
         self.sagemaker_backend.delete_endpoint(endpoint_name)
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def create_processing_job(self) -> TYPE_RESPONSE:
         processing_job = self.sagemaker_backend.create_processing_job(
             app_specification=self._get_param("AppSpecification"),
@@ -212,13 +195,11 @@ class SageMakerResponse(BaseResponse):
         response = {"ProcessingJobArn": processing_job.processing_job_arn}
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_processing_job(self) -> str:
         processing_job_name = self._get_param("ProcessingJobName")
         response = self.sagemaker_backend.describe_processing_job(processing_job_name)
         return json.dumps(response)
 
-    @amzn_request_id
     def create_transform_job(self) -> TYPE_RESPONSE:
         transform_job = self.sagemaker_backend.create_transform_job(
             transform_job_name=self._get_param("TransformJobName"),
@@ -241,7 +222,6 @@ class SageMakerResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_transform_job(self) -> str:
         transform_job_name = self._get_param("TransformJobName")
         response = self.sagemaker_backend.describe_transform_job(
@@ -249,7 +229,6 @@ class SageMakerResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def create_training_job(self) -> TYPE_RESPONSE:
         training_job = self.sagemaker_backend.create_training_job(
             training_job_name=self._get_param("TrainingJobName"),
@@ -280,13 +259,11 @@ class SageMakerResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_training_job(self) -> str:
         training_job_name = self._get_param("TrainingJobName")
         response = self.sagemaker_backend.describe_training_job(training_job_name)
         return json.dumps(response)
 
-    @amzn_request_id
     def create_notebook_instance_lifecycle_config(self) -> TYPE_RESPONSE:
         lifecycle_configuration = (
             self.sagemaker_backend.create_notebook_instance_lifecycle_config(
@@ -302,7 +279,6 @@ class SageMakerResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_notebook_instance_lifecycle_config(self) -> str:
         response = self.sagemaker_backend.describe_notebook_instance_lifecycle_config(
             notebook_instance_lifecycle_config_name=self._get_param(
@@ -311,7 +287,6 @@ class SageMakerResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def delete_notebook_instance_lifecycle_config(self) -> TYPE_RESPONSE:
         self.sagemaker_backend.delete_notebook_instance_lifecycle_config(
             notebook_instance_lifecycle_config_name=self._get_param(
@@ -320,7 +295,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def search(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.search(
             resource=self._get_param("Resource"),
@@ -328,7 +302,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_experiments(self) -> TYPE_RESPONSE:
         MaxResults = self._get_param("MaxResults")
         NextToken = self._get_param("NextToken")
@@ -356,28 +329,24 @@ class SageMakerResponse(BaseResponse):
 
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def delete_experiment(self) -> TYPE_RESPONSE:
         self.sagemaker_backend.delete_experiment(
             experiment_name=self._get_param("ExperimentName")
         )
         return 200, {}, json.dumps({})
 
-    @amzn_request_id
     def create_experiment(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.create_experiment(
             experiment_name=self._get_param("ExperimentName")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_experiment(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.describe_experiment(
             experiment_name=self._get_param("ExperimentName")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_trials(self) -> TYPE_RESPONSE:
         MaxResults = self._get_param("MaxResults")
         NextToken = self._get_param("NextToken")
@@ -408,7 +377,6 @@ class SageMakerResponse(BaseResponse):
 
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def create_trial(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.create_trial(
             trial_name=self._get_param("TrialName"),
@@ -416,7 +384,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_trial_components(self) -> TYPE_RESPONSE:
         MaxResults = self._get_param("MaxResults")
         NextToken = self._get_param("NextToken")
@@ -446,7 +413,6 @@ class SageMakerResponse(BaseResponse):
 
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def create_trial_component(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.create_trial_component(
             trial_component_name=self._get_param("TrialComponentName"),
@@ -454,31 +420,26 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_trial(self) -> str:
         trial_name = self._get_param("TrialName")
         response = self.sagemaker_backend.describe_trial(trial_name)
         return json.dumps(response)
 
-    @amzn_request_id
     def delete_trial(self) -> TYPE_RESPONSE:
         trial_name = self._get_param("TrialName")
         self.sagemaker_backend.delete_trial(trial_name)
         return 200, {}, json.dumps({})
 
-    @amzn_request_id
     def delete_trial_component(self) -> TYPE_RESPONSE:
         trial_component_name = self._get_param("TrialComponentName")
         self.sagemaker_backend.delete_trial_component(trial_component_name)
         return 200, {}, json.dumps({})
 
-    @amzn_request_id
     def describe_trial_component(self) -> str:
         trial_component_name = self._get_param("TrialComponentName")
         response = self.sagemaker_backend.describe_trial_component(trial_component_name)
         return json.dumps(response)
 
-    @amzn_request_id
     def associate_trial_component(self) -> TYPE_RESPONSE:
         trial_name = self._get_param("TrialName")
         trial_component_name = self._get_param("TrialComponentName")
@@ -487,7 +448,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def disassociate_trial_component(self) -> TYPE_RESPONSE:
         trial_component_name = self._get_param("TrialComponentName")
         trial_name = self._get_param("TrialName")
@@ -496,14 +456,12 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_pipeline(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.describe_pipeline(
             self._get_param("PipelineName")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def start_pipeline_execution(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.start_pipeline_execution(
             self._get_param("PipelineName"),
@@ -515,35 +473,30 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_pipeline_execution(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.describe_pipeline_execution(
             self._get_param("PipelineExecutionArn")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_pipeline_definition_for_execution(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.describe_pipeline_definition_for_execution(
             self._get_param("PipelineExecutionArn")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_pipeline_parameters_for_execution(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.list_pipeline_parameters_for_execution(
             self._get_param("PipelineExecutionArn")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_pipeline_executions(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.list_pipeline_executions(
             self._get_param("PipelineName")
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def create_pipeline(self) -> TYPE_RESPONSE:
         pipeline = self.sagemaker_backend.create_pipeline(
             pipeline_name=self._get_param("PipelineName"),
@@ -563,7 +516,6 @@ class SageMakerResponse(BaseResponse):
 
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def delete_pipeline(self) -> TYPE_RESPONSE:
         pipeline_arn = self.sagemaker_backend.delete_pipeline(
             pipeline_name=self._get_param("PipelineName"),
@@ -571,7 +523,6 @@ class SageMakerResponse(BaseResponse):
         response = {"PipelineArn": pipeline_arn}
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def update_pipeline(self) -> TYPE_RESPONSE:
         pipeline_arn = self.sagemaker_backend.update_pipeline(
             pipeline_name=self._get_param("PipelineName"),
@@ -588,7 +539,6 @@ class SageMakerResponse(BaseResponse):
         response = {"PipelineArn": pipeline_arn}
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_pipelines(self) -> TYPE_RESPONSE:
         max_results_range = range(1, 101)
         allowed_sort_by = ("Name", "CreationTime")
@@ -631,7 +581,6 @@ class SageMakerResponse(BaseResponse):
 
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_processing_jobs(self) -> TYPE_RESPONSE:
         max_results_range = range(1, 101)
         allowed_sort_by = ["Name", "CreationTime", "Status"]
@@ -684,7 +633,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_transform_jobs(self) -> TYPE_RESPONSE:
         max_results_range = range(1, 101)
         allowed_sort_by = ["Name", "CreationTime", "Status"]
@@ -737,7 +685,6 @@ class SageMakerResponse(BaseResponse):
         )
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_training_jobs(self) -> TYPE_RESPONSE:
         max_results_range = range(1, 101)
         allowed_sort_by = ["Name", "CreationTime", "Status"]

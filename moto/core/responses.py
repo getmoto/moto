@@ -37,6 +37,7 @@ from moto.core.utils import (
     params_sort_function,
     utcfromtimestamp,
 )
+from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.utils import load_resource, load_resource_as_bytes
 
 log = logging.getLogger(__name__)
@@ -267,7 +268,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         @functools.wraps(to_call)  # type: ignore
         def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-            return getattr(cls(), to_call.__name__)(request, full_url, headers)
+            response = getattr(cls(), to_call.__name__)(request, full_url, headers)
+            if isinstance(response, str):
+                status = 200
+                body = response
+                headers = {}
+            else:
+                status, headers, body = response
+            headers, body = cls._enrich_response(headers, body)
+            return status, headers, body
 
         return _inner
 
@@ -538,7 +547,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self._authenticate_and_authorize_normal_action(resource)
         except HTTPException as http_error:
             response = http_error.description, dict(status=http_error.code)
-            return self._send_response(headers, response)
+            status, headers, body = self._transform_response(headers, response)
+            headers, body = self._enrich_response(headers, body)
+
+            return status, headers, body
 
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
@@ -555,9 +567,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response = http_error.description, response_headers  # type: ignore[assignment]
 
             if isinstance(response, str):
-                return 200, headers, response
+                status = 200
+                body = response
             else:
-                return self._send_response(headers, response)
+                status, headers, body = self._transform_response(headers, response)
+
+            headers, body = self._enrich_response(headers, body)
+
+            return status, headers, body
 
         if not action:
             return 404, headers, ""
@@ -565,19 +582,33 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         raise NotImplementedError(f"The {action} action has not been implemented")
 
     @staticmethod
-    def _send_response(headers: Dict[str, str], response: Any) -> Tuple[int, Dict[str, str], str]:  # type: ignore[misc]
+    def _transform_response(headers: Dict[str, str], response: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         if response is None:
             response = "", {}
         if len(response) == 2:
             body, new_headers = response
         else:
             status, new_headers, body = response
-        status = new_headers.get("status", 200)
+        status = int(new_headers.get("status", 200))
         headers.update(new_headers)
+        return status, headers, body
+
+    @staticmethod
+    def _enrich_response(  # type: ignore[misc]
+        headers: Dict[str, str], body: Any
+    ) -> Tuple[Dict[str, str], Any]:
         # Cast status to string
         if "status" in headers:
             headers["status"] = str(headers["status"])
-        return status, headers, body
+        # add request id
+        request_id = gen_amzn_requestid_long(headers)
+
+        # Update request ID in XML
+        try:
+            body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
+        except Exception:  # Will just ignore if it cant work
+            pass
+        return headers, body
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         val = self.querystring.get(param_name)
