@@ -1441,7 +1441,7 @@ def test_list_objects_v2_truncate_combined_keys_and_folders():
     assert len(resp["CommonPrefixes"]) == 1
     assert resp["CommonPrefixes"][0]["Prefix"] == "1/"
 
-    last_tail = resp["NextContinuationToken"]
+    last_tail = resp["Contents"][-1]["Key"]
     resp = s3_client.list_objects_v2(
         Bucket="mybucket", MaxKeys=2, Prefix="", Delimiter="/", StartAfter=last_tail
     )
