@@ -690,16 +690,19 @@ class S3Response(BaseResponse):
         delimiter = querystring.get("delimiter", [None])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         marker = querystring.get("marker", [None])[0]
-        result_keys, result_folders = self.backend.list_objects(
-            bucket, prefix, delimiter
-        )
         encoding_type = querystring.get("encoding-type", [None])[0]
 
-        if marker:
-            result_keys = self._get_results_from_token(result_keys, marker)
-
-        result_keys, is_truncated, next_marker = self._truncate_result(
-            result_keys, max_keys
+        (
+            result_keys,
+            result_folders,
+            is_truncated,
+            next_marker,
+        ) = self.backend.list_objects(
+            bucket=bucket,
+            prefix=prefix,
+            delimiter=delimiter,
+            marker=marker,
+            max_keys=max_keys,
         )
 
         template = self.response_template(S3_BUCKET_GET_RESPONSE)
@@ -746,20 +749,25 @@ class S3Response(BaseResponse):
         if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
-        all_keys = self.backend.list_objects_v2(bucket, prefix, delimiter)
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
         max_keys = int(querystring.get("max-keys", [1000])[0])
         start_after = querystring.get("start-after", [None])[0]
         encoding_type = querystring.get("encoding-type", [None])[0]
 
-        if continuation_token or start_after:
-            limit = continuation_token or start_after
-            all_keys = self._get_results_from_token(all_keys, limit)
-
-        truncated_keys, is_truncated, next_continuation_token = self._truncate_result(
-            all_keys, max_keys
+        (
+            truncated_keys,
+            is_truncated,
+            next_continuation_token,
+        ) = self.backend.list_objects_v2(
+            bucket=bucket,
+            prefix=prefix,
+            delimiter=delimiter,
+            continuation_token=continuation_token,
+            start_after=start_after,
+            max_keys=max_keys,
         )
+
         result_keys, result_folders = self._split_truncated_keys(truncated_keys)
 
         key_count = len(result_keys) + len(result_folders)
@@ -795,29 +803,6 @@ class S3Response(BaseResponse):
             else:
                 result_folders.append(key)
         return result_keys, result_folders
-
-    def _get_results_from_token(self, result_keys: Any, token: Any) -> Any:
-        continuation_index = 0
-        for key in result_keys:
-            if (key.name if isinstance(key, FakeKey) else key) > token:
-                break
-            continuation_index += 1
-        return result_keys[continuation_index:]
-
-    def _truncate_result(self, result_keys: Any, max_keys: int) -> Any:
-        if max_keys == 0:
-            result_keys = []
-            is_truncated = True
-            next_continuation_token = None
-        elif len(result_keys) > max_keys:
-            is_truncated = "true"  # type: ignore
-            result_keys = result_keys[:max_keys]
-            item = result_keys[-1]
-            next_continuation_token = item.name if isinstance(item, FakeKey) else item
-        else:
-            is_truncated = "false"  # type: ignore
-            next_continuation_token = None
-        return result_keys, is_truncated, next_continuation_token
 
     def _body_contains_location_constraint(self, body: bytes) -> bool:
         if body:
