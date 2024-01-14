@@ -1,6 +1,19 @@
 Moto Changelog
 ==============
 
+5.0.0alpha2:
+------------
+
+    General:
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+        * All requests now return a RequestId
+
+    Miscellaneous:
+        * S3: list_objects() now returns a hashed ContinuationToken
+
 5.0.0alpha1:
 ------------
 

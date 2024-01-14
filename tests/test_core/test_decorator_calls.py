@@ -1,12 +1,15 @@
+import inspect
+import os
 import unittest
 from typing import Any
-from unittest import SkipTest
+from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
+from moto.core.decorator import ProxyModeMockAWS, ServerModeMockAWS
 
 """
 Test the different ways that the decorator can be used
@@ -44,15 +47,29 @@ def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]  #
         assert client.describe_addresses()["Addresses"] == []
 
 
+@mock.patch.dict(os.environ, {"MOTO_CALL_RESET_API": "false"})
+@pytest.mark.parametrize("mock_class", [mock_aws, ServerModeMockAWS, ProxyModeMockAWS])
+def test_context_decorator_exposes_bare_essentials(mock_class: Any) -> None:  # type: ignore
+
+    # Verify we're only exposing the necessary methods
+    with mock_class() as m:
+        exposed_attributes = [a for a in m.__dict__.keys() if not a.startswith("_")]
+        assert exposed_attributes == []
+
+        # Methods + Static attributes
+        exposed_methods = [n for n, _ in inspect.getmembers(m) if not n.startswith("_")]
+        assert sorted(exposed_methods) == ["reset", "start", "stop"]
+
+
 @pytest.mark.network
 def test_decorator_start_and_stop() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Authentication always works in ServerMode")
-    mock = mock_aws()
-    mock.start()
+    my_mock = mock_aws()
+    my_mock.start()
     client = boto3.client("ec2", region_name="us-west-1")
     assert client.describe_addresses()["Addresses"] == []
-    mock.stop()
+    my_mock.stop()
 
     with pytest.raises(ClientError) as exc:
         client.describe_addresses()
