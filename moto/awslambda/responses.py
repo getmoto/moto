@@ -5,7 +5,7 @@ from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.core.utils import path_url
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
     FunctionAlreadyExists,
@@ -129,9 +129,8 @@ class LambdaResponse(BaseResponse):
             raise ValueError("Cannot handle request")
 
     @amz_crc32
-    @amzn_request_id
-    def invoke(  # type: ignore
-        self, request=None, full_url="", headers=None
+    def invoke(
+        self, request: Any, full_url: str, headers: Any
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -140,7 +139,6 @@ class LambdaResponse(BaseResponse):
             raise ValueError("Cannot handle request")
 
     @amz_crc32
-    @amzn_request_id
     def invoke_async(
         self, request: Any, full_url: str, headers: Any
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:

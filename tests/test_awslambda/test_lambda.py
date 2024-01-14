@@ -187,6 +187,7 @@ def test_create_function_from_zipfile():
     result["ResponseMetadata"].pop("HTTPHeaders", None)
     # Botocore inserts retry attempts not seen in Python27
     result["ResponseMetadata"].pop("RetryAttempts", None)
+    result["ResponseMetadata"].pop("RequestId")
     result.pop("LastModified")
 
     assert result == {
@@ -800,6 +801,7 @@ def test_delete_function():
     success_result["ResponseMetadata"].pop("HTTPHeaders", None)
     # Botocore inserts retry attempts not seen in Python27
     success_result["ResponseMetadata"].pop("RetryAttempts", None)
+    success_result["ResponseMetadata"].pop("RequestId")
 
     assert success_result == {"ResponseMetadata": {"HTTPStatusCode": 204}}
 
@@ -1028,6 +1030,7 @@ def test_list_create_list_get_delete_list():
     func["ResponseMetadata"].pop("HTTPHeaders", None)
     # Botocore inserts retry attempts not seen in Python27
     func["ResponseMetadata"].pop("RetryAttempts", None)
+    func["ResponseMetadata"].pop("RequestId")
     func["Configuration"].pop("LastModified")
     func["Configuration"].pop("FunctionArn")
 

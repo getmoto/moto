@@ -21,7 +21,6 @@ from moto.s3bucket_path.utils import (
 from moto.s3bucket_path.utils import (
     parse_key_name as bucketpath_parse_key_name,
 )
-from moto.utilities.aws_headers import amzn_request_id
 
 from .exceptions import (
     AccessForbidden,
@@ -284,7 +283,6 @@ class S3Response(BaseResponse):
             # Using path-based buckets
             return self.bucket_response(request, full_url, headers)
 
-    @amzn_request_id
     def bucket_response(
         self, request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
@@ -1246,7 +1244,6 @@ class S3Response(BaseResponse):
         # last line should equal
         # amz-checksum-sha256:<..>\r\n
 
-    @amzn_request_id
     def key_response(
         self, request: Any, full_url: str, headers: Dict[str, Any]
     ) -> TYPE_RESPONSE:
