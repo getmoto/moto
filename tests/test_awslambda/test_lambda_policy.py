@@ -1,4 +1,6 @@
 import json
+import sys
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -7,11 +9,14 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 
 from .utilities import get_role_name, get_test_zip_file1, get_test_zip_file2
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -51,6 +56,8 @@ def test_add_function_permission(key):
 
 @mock_aws
 def test_add_permission_with_principalorgid():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
