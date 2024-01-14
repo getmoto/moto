@@ -2504,6 +2504,46 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "t2.2xlarge",
   "Location": "us-east-2a"
  },
@@ -5272,6 +5312,46 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "t2.2xlarge",
   "Location": "us-east-2b"
  },
@@ -7985,6 +8065,46 @@
  },
  {
   "InstanceType": "r7i.xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
   "Location": "us-east-2c"
  },
  {

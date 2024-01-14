@@ -568,6 +568,42 @@
   "Location": "me-south-1"
  },
  {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "me-south-1"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
+  "Location": "me-south-1"
+ },
+ {
   "InstanceType": "m6i.12xlarge",
   "Location": "me-south-1"
  },
