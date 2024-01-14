@@ -1,6 +1,7 @@
 import boto3
 
-from moto import MockAWS, mock_aws
+from moto import mock_aws
+from moto.core.decorator import MockAWS
 
 
 @mock_aws

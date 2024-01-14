@@ -27,6 +27,7 @@ from botocore.handlers import BUILTIN_HANDLERS
 import moto.backend_index as backend_index
 from moto import settings
 
+from .base_backend import BackendDict
 from .botocore_stubber import BotocoreStubber
 from .config import DefaultConfig, default_user_config, mock_credentials
 from .custom_responses_mock import (
@@ -48,9 +49,9 @@ T = TypeVar("T")
 
 
 class MockAWS(ContextManager["MockAWS"]):
-    nested_count = 0
-    mocks_active = False
-    mock_init_lock = Lock()
+    _nested_count = 0
+    _mocks_active = False
+    _mock_init_lock = Lock()
 
     def __init__(self, config: Optional[DefaultConfig] = None) -> None:
         self._fake_creds = {
@@ -58,17 +59,17 @@ class MockAWS(ContextManager["MockAWS"]):
             "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
         self._orig_creds: Dict[str, Optional[str]] = {}
-        self.default_session_mock = patch("boto3.DEFAULT_SESSION", None)
+        self._default_session_mock = patch("boto3.DEFAULT_SESSION", None)
         current_user_config = default_user_config.copy()
         current_user_config.update(config or {})
-        self.user_config_mock = patch.dict(default_user_config, current_user_config)
+        self._user_config_mock = patch.dict(default_user_config, current_user_config)
 
     def __call__(
         self, func: "Callable[P, T]", reset: bool = True, remove_data: bool = True
     ) -> "Callable[P, T]":
         if inspect.isclass(func):
-            return self.decorate_class(func)
-        return self.decorate_callable(func, reset, remove_data)
+            return self._decorate_class(func)
+        return self._decorate_callable(func, reset, remove_data)
 
     def __enter__(self) -> "MockAWS":
         self.start()
@@ -78,37 +79,37 @@ class MockAWS(ContextManager["MockAWS"]):
         self.stop()
 
     def start(self, reset: bool = True) -> None:
-        with MockAWS.mock_init_lock:
-            self.user_config_mock.start()
+        with MockAWS._mock_init_lock:
+            self._user_config_mock.start()
             if mock_credentials():
-                self.mock_env_variables()
-            if not self.__class__.mocks_active:
-                self.default_session_mock.start()
-                self.__class__.mocks_active = True
+                self._mock_env_variables()
+            if not self.__class__._mocks_active:
+                self._default_session_mock.start()
+                self.__class__._mocks_active = True
 
-            self.__class__.nested_count += 1
+            self.__class__._nested_count += 1
 
-            if self.__class__.nested_count == 1:
-                self.enable_patching(reset=reset)
+            if self.__class__._nested_count == 1:
+                self._enable_patching(reset=reset)
 
     def stop(self, remove_data: bool = True) -> None:
-        with MockAWS.mock_init_lock:
-            self.__class__.nested_count -= 1
+        with MockAWS._mock_init_lock:
+            self.__class__._nested_count -= 1
 
-            if self.__class__.nested_count < 0:
+            if self.__class__._nested_count < 0:
                 raise RuntimeError("Called stop() before start().")
 
             if mock_credentials():
-                self.unmock_env_variables()
+                self._unmock_env_variables()
 
-            if self.__class__.nested_count == 0:
-                if self.__class__.mocks_active:
-                    self.default_session_mock.stop()
-                    self.user_config_mock.stop()
-                    self.__class__.mocks_active = False
-                self.disable_patching(remove_data)
+            if self.__class__._nested_count == 0:
+                if self.__class__._mocks_active:
+                    self._default_session_mock.stop()
+                    self._user_config_mock.stop()
+                    self.__class__._mocks_active = False
+                self._disable_patching(remove_data)
 
-    def decorate_callable(
+    def _decorate_callable(
         self, func: "Callable[P, T]", reset: bool, remove_data: bool
     ) -> "Callable[P, T]":
         def wrapper(*args: Any, **kwargs: Any) -> T:
@@ -123,7 +124,7 @@ class MockAWS(ContextManager["MockAWS"]):
         wrapper.__wrapped__ = func  # type: ignore[attr-defined]
         return wrapper
 
-    def decorate_class(self, klass: "Callable[P, T]") -> "Callable[P, T]":
+    def _decorate_class(self, klass: "Callable[P, T]") -> "Callable[P, T]":
         assert inspect.isclass(klass)  # Keep mypy happy
         direct_methods = get_direct_methods_of(klass)
         defined_classes = set(
@@ -191,13 +192,13 @@ class MockAWS(ContextManager["MockAWS"]):
                 continue
         return klass
 
-    def mock_env_variables(self) -> None:
+    def _mock_env_variables(self) -> None:
         # "Mock" the AWS credentials as they can't be mocked in Botocore currently
         for k, v in self._fake_creds.items():
             self._orig_creds[k] = os.environ.get(k, None)
             os.environ[k] = v
 
-    def unmock_env_variables(self) -> None:
+    def _unmock_env_variables(self) -> None:
         for k, v in self._orig_creds.items():
             if v:
                 os.environ[k] = v
@@ -205,12 +206,10 @@ class MockAWS(ContextManager["MockAWS"]):
                 del os.environ[k]
 
     def reset(self) -> None:
-        botocore_stubber.reset()
+        BackendDict.reset()
         reset_responses_mock(responses_mock)
 
-    def enable_patching(
-        self, reset: bool = True  # pylint: disable=unused-argument
-    ) -> None:
+    def _enable_patching(self, reset: bool = True) -> None:
         botocore_stubber.enabled = True
         if reset:
             self.reset()
@@ -233,7 +232,7 @@ class MockAWS(ContextManager["MockAWS"]):
                 )
             )
 
-    def disable_patching(self, remove_data: bool) -> None:
+    def _disable_patching(self, remove_data: bool) -> None:
         botocore_stubber.enabled = False
         if remove_data:
             self.reset()
@@ -337,24 +336,24 @@ def override_responses_real_send(user_mock: Optional[responses.RequestsMock]) ->
 
 
 class ServerModeMockAWS(MockAWS):
-    RESET_IN_PROGRESS = False
+    _RESET_IN_PROGRESS = False
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.test_server_mode_endpoint = settings.test_server_mode_endpoint()
+        self._test_server_mode_endpoint = settings.test_server_mode_endpoint()
         super().__init__(*args, **kwargs)
 
     def reset(self) -> None:
         call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
         if not call_reset_api or call_reset_api.lower() != "false":
-            if not ServerModeMockAWS.RESET_IN_PROGRESS:
-                ServerModeMockAWS.RESET_IN_PROGRESS = True
+            if not ServerModeMockAWS._RESET_IN_PROGRESS:
+                ServerModeMockAWS._RESET_IN_PROGRESS = True
                 import requests
 
-                requests.post(f"{self.test_server_mode_endpoint}/moto-api/reset")
-                ServerModeMockAWS.RESET_IN_PROGRESS = False
+                requests.post(f"{self._test_server_mode_endpoint}/moto-api/reset")
+                ServerModeMockAWS._RESET_IN_PROGRESS = False
 
-    def enable_patching(self, reset: bool = True) -> None:
-        if self.__class__.nested_count == 1 and reset:
+    def _enable_patching(self, reset: bool = True) -> None:
+        if self.__class__._nested_count == 1 and reset:
             # Just started
             self.reset()
 
@@ -373,12 +372,12 @@ class ServerModeMockAWS(MockAWS):
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = self.test_server_mode_endpoint
+                kwargs["endpoint_url"] = self._test_server_mode_endpoint
             return real_boto3_client(*args, **kwargs)
 
         def fake_boto3_resource(*args: Any, **kwargs: Any) -> Any:
             if "endpoint_url" not in kwargs:
-                kwargs["endpoint_url"] = self.test_server_mode_endpoint
+                kwargs["endpoint_url"] = self._test_server_mode_endpoint
             return real_boto3_resource(*args, **kwargs)
 
         self._client_patcher = patch("boto3.client", fake_boto3_client)
@@ -394,7 +393,7 @@ class ServerModeMockAWS(MockAWS):
             return region
         return None
 
-    def disable_patching(self, remove_data: bool) -> None:
+    def _disable_patching(self, remove_data: bool) -> None:
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
@@ -404,24 +403,24 @@ class ServerModeMockAWS(MockAWS):
 
 class ProxyModeMockAWS(MockAWS):
 
-    RESET_IN_PROGRESS = False
+    _RESET_IN_PROGRESS = False
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.test_proxy_mode_endpoint = settings.test_proxy_mode_endpoint()
+        self._test_proxy_mode_endpoint = settings.test_proxy_mode_endpoint()
         super().__init__(*args, **kwargs)
 
     def reset(self) -> None:
         call_reset_api = os.environ.get("MOTO_CALL_RESET_API")
         if not call_reset_api or call_reset_api.lower() != "false":
-            if not ProxyModeMockAWS.RESET_IN_PROGRESS:
-                ProxyModeMockAWS.RESET_IN_PROGRESS = True
+            if not ProxyModeMockAWS._RESET_IN_PROGRESS:
+                ProxyModeMockAWS._RESET_IN_PROGRESS = True
                 import requests
 
-                requests.post(f"{self.test_proxy_mode_endpoint}/moto-api/reset")
-                ProxyModeMockAWS.RESET_IN_PROGRESS = False
+                requests.post(f"{self._test_proxy_mode_endpoint}/moto-api/reset")
+                ProxyModeMockAWS._RESET_IN_PROGRESS = False
 
-    def enable_patching(self, reset: bool = True) -> None:
-        if self.__class__.nested_count == 1 and reset:
+    def _enable_patching(self, reset: bool = True) -> None:
+        if self.__class__._nested_count == 1 and reset:
             # Just started
             self.reset()
 
@@ -460,7 +459,7 @@ class ProxyModeMockAWS(MockAWS):
         self._client_patcher.start()
         self._resource_patcher.start()
 
-    def disable_patching(self, remove_data: bool) -> None:
+    def _disable_patching(self, remove_data: bool) -> None:
         if self._client_patcher:
             self._client_patcher.stop()
             self._resource_patcher.stop()
