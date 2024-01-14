@@ -1,6 +1,7 @@
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 
 from .models import AutoScalingBackend, autoscaling_backends
 
@@ -12,6 +13,10 @@ class AutoScalingResponse(BaseResponse):
     @property
     def autoscaling_backend(self) -> AutoScalingBackend:
         return autoscaling_backends[self.current_account][self.region]
+
+    @amz_crc32
+    def call_action(self) -> TYPE_RESPONSE:
+        return super().call_action()
 
     def create_launch_configuration(self) -> str:
         instance_monitoring_string = self._get_param("InstanceMonitoring.Enabled")
@@ -139,8 +144,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_SCALING_ACTIVITIES_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def attach_instances(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -148,8 +151,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def set_instance_health(self) -> str:
         instance_id = self._get_param("InstanceId")
         health_status = self._get_param("HealthStatus")
@@ -159,8 +160,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(SET_INSTANCE_HEALTH_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def detach_instances(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -175,8 +174,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DETACH_INSTANCES_TEMPLATE)
         return template.render(detached_instances=detached_instances)
 
-    @amz_crc32
-    @amzn_request_id
     def attach_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self._get_multi_param("TargetGroupARNs.member")
@@ -187,8 +184,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def describe_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = (
@@ -197,8 +192,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
         return template.render(target_group_arns=target_group_arns)
 
-    @amz_crc32
-    @amzn_request_id
     def detach_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self._get_multi_param("TargetGroupARNs.member")
@@ -347,8 +340,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def attach_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
@@ -356,16 +347,12 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def describe_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers)
 
-    @amz_crc32
-    @amzn_request_id
     def detach_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
@@ -373,8 +360,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def enter_standby(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -399,8 +384,6 @@ class AutoScalingResponse(BaseResponse):
             timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
-    @amz_crc32
-    @amzn_request_id
     def exit_standby(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -445,8 +428,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(SET_INSTANCE_PROTECTION_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def terminate_instance_in_auto_scaling_group(self) -> str:
         instance_id = self._get_param("InstanceId")
         should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")

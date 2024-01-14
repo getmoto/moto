@@ -36,6 +36,8 @@ def test_create_user_pool():
     assert result["UserPool"]["Name"] == name
     assert result["UserPool"]["LambdaConfig"]["PreSignUp"] == value
 
+    assert "RequestId" in result["ResponseMetadata"]
+
 
 @mock_aws
 def test_create_user_pool__overwrite_template_messages():
