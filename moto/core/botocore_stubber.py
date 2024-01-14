@@ -29,9 +29,6 @@ class BotocoreStubber:
     def __init__(self) -> None:
         self.enabled = False
 
-    def reset(self) -> None:
-        BackendDict.reset()
-
     def __call__(
         self, event_name: str, request: Any, **kwargs: Any
     ) -> Optional[AWSResponse]:
