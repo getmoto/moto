@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from unittest import SkipTest
 
 import boto3
 import pytest
@@ -213,8 +214,10 @@ def test_put_group_policy():
     )
 
 
-@mock_aws
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_attach_group_policies():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     assert (
