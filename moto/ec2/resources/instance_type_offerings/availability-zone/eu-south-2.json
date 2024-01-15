@@ -108,6 +108,46 @@
   "Location": "eu-south-2a"
  },
  {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "eu-south-2a"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
+  "Location": "eu-south-2a"
+ },
+ {
   "InstanceType": "c7g.12xlarge",
   "Location": "eu-south-2a"
  },
@@ -984,6 +1024,46 @@
   "Location": "eu-south-2b"
  },
  {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "eu-south-2b"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
   "InstanceType": "c7g.12xlarge",
   "Location": "eu-south-2b"
  },
@@ -1801,6 +1881,46 @@
  },
  {
   "InstanceType": "c6g.xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "eu-south-2c"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
   "Location": "eu-south-2c"
  },
  {

@@ -9528,6 +9528,30 @@
   "Location": "usw2-az4"
  },
  {
+  "InstanceType": "i4g.16xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "i4g.2xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "i4g.4xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "i4g.8xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "i4g.large",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "i4g.xlarge",
+  "Location": "usw2-az4"
+ },
+ {
   "InstanceType": "i4i.12xlarge",
   "Location": "usw2-az4"
  },

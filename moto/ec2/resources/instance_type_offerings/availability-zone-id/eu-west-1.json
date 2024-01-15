@@ -2612,6 +2612,46 @@
   "Location": "euw1-az1"
  },
  {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "euw1-az1"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
+  "Location": "euw1-az1"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "euw1-az1"
  },
@@ -5548,6 +5588,46 @@
   "Location": "euw1-az2"
  },
  {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "euw1-az2"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
+  "Location": "euw1-az2"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "euw1-az2"
  },
@@ -8425,6 +8505,46 @@
  },
  {
   "InstanceType": "r7i.xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.12xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.16xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.2xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.32xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.4xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.8xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.large",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.metal-16xl",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.metal-32xl",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "r7iz.xlarge",
   "Location": "euw1-az3"
  },
  {
