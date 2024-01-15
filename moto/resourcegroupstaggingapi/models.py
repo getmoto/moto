@@ -2,7 +2,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends

@@ -125,7 +125,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeSpotInstanceRequests")
 
     def launch_instance(self) -> "Instance":
-        reservation = self.ec2_backend.add_instances(
+        reservation = self.ec2_backend.run_instances(
             image_id=self.launch_specification.image_id,
             count=1,
             user_data=self.user_data,

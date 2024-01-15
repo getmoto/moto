@@ -2,7 +2,7 @@ import weakref
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import (
     InvalidVPCPeeringConnectionIdError,

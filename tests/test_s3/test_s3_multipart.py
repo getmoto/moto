@@ -15,7 +15,7 @@ from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
     get_s3_default_key_buffer_size,
-    test_proxy_mode,
+    is_test_proxy_mode,
 )
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -986,7 +986,7 @@ def test_generate_presigned_url_on_multipart_upload_without_acl():
         "head_object", Params={"Bucket": bucket_name, "Key": object_key}
     )
     kwargs = {}
-    if test_proxy_mode():
+    if is_test_proxy_mode():
         add_proxy_details(kwargs)
     res = requests.get(url, **kwargs)
     assert res.status_code == 200

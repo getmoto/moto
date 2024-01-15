@@ -4,7 +4,7 @@ import json
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import aws_api_matches
 
 from ..exceptions import (

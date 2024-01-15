@@ -5,12 +5,12 @@ from functools import lru_cache
 from typing import List, Optional
 
 
-def test_proxy_mode() -> bool:
+def is_test_proxy_mode() -> bool:
     return os.environ.get("TEST_PROXY_MODE", "0").lower() == "true"
 
 
 TEST_SERVER_MODE = os.environ.get("TEST_SERVER_MODE", "0").lower() == "true"
-TEST_DECORATOR_MODE = not TEST_SERVER_MODE and not test_proxy_mode()
+TEST_DECORATOR_MODE = not TEST_SERVER_MODE and not is_test_proxy_mode()
 
 INITIAL_NO_AUTH_ACTION_COUNT = float(
     os.environ.get("INITIAL_NO_AUTH_ACTION_COUNT", float("inf"))

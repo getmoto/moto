@@ -2,7 +2,6 @@ import argparse
 import os
 import signal
 import sys
-import warnings
 from typing import Any, List, Optional
 
 from werkzeug.serving import run_simple
@@ -25,13 +24,6 @@ def main(argv: Optional[List[str]] = None) -> None:
     argv = argv or sys.argv[1:]
     parser = argparse.ArgumentParser()
 
-    # Keep this for backwards compat
-    parser.add_argument(
-        "service",
-        type=str,
-        nargs="?",  # http://stackoverflow.com/a/4480202/731592
-        default=os.environ.get("MOTO_SERVICE"),
-    )
     parser.add_argument(
         "-H", "--host", type=str, help="Which host to bind", default="127.0.0.1"
     )
@@ -74,13 +66,8 @@ def main(argv: Optional[List[str]] = None) -> None:
     except Exception:
         pass  # ignore "ValueError: signal only works in main thread"
 
-    if args.service:
-        warnings.warn(
-            f"The service-argument ({args.service}) is considered deprecated, and will be deprecated in a future release. Please let us know if you have any questions: https://github.com/getmoto/moto/issues"
-        )
-
     # Wrap the main application
-    main_app = DomainDispatcherApplication(create_backend_app, service=args.service)
+    main_app = DomainDispatcherApplication(create_backend_app)
     main_app.debug = True  # type: ignore
 
     ssl_context: Any = None

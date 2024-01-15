@@ -1,6 +1,6 @@
 from threading import Timer as ThreadingTimer
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 
 
 class Timer(BaseModel):

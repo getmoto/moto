@@ -3,13 +3,9 @@ from os import getenv
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..batch.models import (
-    BatchBackend,
-    ClientException,
-    Job,
-    batch_backends,
-)
-from ..core import BackendDict
+from moto.batch.exceptions import ClientException
+from moto.batch.models import BatchBackend, Job, batch_backends
+from moto.core.base_backend import BackendDict
 
 
 class BatchSimpleBackend(BatchBackend):

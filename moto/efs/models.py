@@ -9,7 +9,8 @@ import time
 from copy import deepcopy
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError

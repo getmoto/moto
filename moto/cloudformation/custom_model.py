@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from moto import settings
 from moto.awslambda import lambda_backends
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.moto_api._internal import mock_random
 
 

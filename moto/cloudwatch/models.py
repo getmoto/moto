@@ -5,7 +5,8 @@ from typing import Any, Dict, Iterable, List, Optional, SupportsFloat, Tuple
 from dateutil import parser
 from dateutil.tz import tzutc
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudWatchMetricProvider
+from moto.core.base_backend import BaseBackend
+from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
 from moto.core.utils import (
     iso_8601_datetime_with_nanoseconds,
     iso_8601_datetime_without_milliseconds,

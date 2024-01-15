@@ -1,7 +1,7 @@
 import itertools
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import (
     FlowLogAlreadyExists,

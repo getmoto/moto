@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 
 from ..exceptions import (
     EC2ClientError,

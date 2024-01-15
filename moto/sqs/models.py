@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import ParseResult
 from xml.sax.saxutils import escape
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
     camelcase_to_underscores,

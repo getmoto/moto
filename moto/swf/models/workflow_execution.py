@@ -2,7 +2,7 @@ from threading import Lock
 from threading import Timer as ThreadingTimer
 from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
 from moto.moto_api._internal import mock_random
 

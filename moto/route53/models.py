@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from jinja2 import Template
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
 from moto.route53.exceptions import (
     DnsNameInvalidForZone,

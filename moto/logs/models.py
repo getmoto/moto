@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.exceptions import (
     InvalidParameterException,

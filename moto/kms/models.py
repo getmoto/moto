@@ -5,7 +5,8 @@ from copy import copy
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
@@ -650,6 +651,7 @@ class KmsBackend(BaseBackend):
         Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
+        - The MessageType-parameter DIGEST is not yet implemented
         """
         key = self.describe_key(key_id)
 
