@@ -1,11 +1,10 @@
 import contextlib
 import copy
-import warnings
 from collections import OrderedDict
 from typing import Any, Dict, ItemsView, List, Optional, Set, Tuple
 
 from moto import settings
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.fleets import Fleet
@@ -139,15 +138,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         amis = self.ec2_backend.describe_images(filters={"image-id": self.image_id})
         ami = amis[0] if amis else None
-        if ami is None:
-            warnings.warn(
-                f"Could not find AMI with image-id:{self.image_id}, "
-                "in the near future this will "
-                "cause an error.\n"
-                "Use ec2_backend.describe_images() to "
-                "find suitable image for your test",
-                PendingDeprecationWarning,
-            )
 
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
@@ -300,7 +290,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             for group_id in security_group_ids
         ]
 
-        reservation = ec2_backend.add_instances(
+        reservation = ec2_backend.run_instances(
             image_id=properties["ImageId"],
             user_data=properties.get("UserData"),
             count=1,
@@ -622,7 +612,7 @@ class InstanceBackend:
                 return instance
         raise InvalidInstanceIdError(instance_id)
 
-    def add_instances(
+    def run_instances(
         self,
         image_id: str,
         count: int,
@@ -630,6 +620,18 @@ class InstanceBackend:
         security_group_names: List[str],
         **kwargs: Any,
     ) -> Reservation:
+        """
+        The Placement-parameter is validated to verify the availability-zone exists for the current region.
+
+        The InstanceType-parameter can be validated, to see if it is a known instance-type.
+        Enable this validation by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
+
+        The ImageId-parameter can be validated, to see if it is a known AMI.
+        Enable this validation by setting the environment variable `MOTO_ENABLE_AMI_VALIDATION=true`
+
+        The KeyPair-parameter can be validated, to see if it is a known key-pair.
+        Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
+        """
         location_type = "availability-zone" if kwargs.get("placement") else "region"
         default_region = "us-east-1"
         if settings.ENABLE_KEYPAIR_VALIDATION:
@@ -736,23 +738,6 @@ class InstanceBackend:
                     volume.add_tags(volume_tags)
 
         return new_reservation
-
-    def run_instances(self) -> None:
-        """
-        The Placement-parameter is validated to verify the availability-zone exists for the current region.
-
-        The InstanceType-parameter can be validated, to see if it is a known instance-type.
-        Enable this validation by setting the environment variable `MOTO_EC2_ENABLE_INSTANCE_TYPE_VALIDATION=true`
-
-        The ImageId-parameter can be validated, to see if it is a known AMI.
-        Enable this validation by setting the environment variable `MOTO_ENABLE_AMI_VALIDATION=true`
-
-        The KeyPair-parameter can be validated, to see if it is a known key-pair.
-        Enable this validation by setting the environment variable `MOTO_ENABLE_KEYPAIR_VALIDATION=true`
-        """
-        # Logic resides in add_instances
-        # Fake method here to make implementation coverage script aware that this method is implemented
-        pass
 
     def start_instances(
         self, instance_ids: List[str]

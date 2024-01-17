@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
@@ -89,7 +90,7 @@ class OpsworkInstance(BaseModel):
         attributes
         """
         if self.instance is None:
-            reservation = self.ec2_backend.add_instances(
+            reservation = self.ec2_backend.run_instances(
                 image_id=self.ami_id,
                 count=1,
                 user_data="",

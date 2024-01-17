@@ -2,7 +2,8 @@ import datetime
 from typing import Any, Dict, List, Optional
 from xml.etree import ElementTree as ET
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 
 from .resources import VOICE_DATA
 from .utils import make_arn_for_lexicon

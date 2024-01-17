@@ -11,7 +11,8 @@ from botocore.awsrequest import AWSPreparedRequest
 
 from moto.backend_index import backend_url_patterns
 from moto.backends import get_backend
-from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict
 from moto.core.exceptions import RESTError
 
 from . import debug, error, info, with_color

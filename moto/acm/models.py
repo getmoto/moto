@@ -10,7 +10,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import OID_COMMON_NAME, DNSName, NameOID
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 
 from .exceptions import (

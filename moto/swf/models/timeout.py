@@ -1,6 +1,6 @@
 from typing import Any
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 
 

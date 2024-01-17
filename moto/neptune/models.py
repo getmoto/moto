@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from jinja2 import Template
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import load_resource

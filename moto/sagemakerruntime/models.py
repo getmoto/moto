@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 
 
 class SageMakerRuntimeBackend(BaseBackend):

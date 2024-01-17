@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
 

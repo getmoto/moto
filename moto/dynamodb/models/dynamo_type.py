@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from botocore.utils import merge_dicts
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.dynamodb.exceptions import (
     EmptyKeyAttributeException,
     IncorrectDataType,

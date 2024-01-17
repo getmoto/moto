@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 

@@ -461,7 +461,7 @@ def test_bucket_name_with_special_chars(name):
 )
 @mock_aws
 def test_key_with_special_characters(key):
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         raise SkipTest("Keys starting with a / don't work well in ProxyMode")
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -778,7 +778,7 @@ def test_streaming_upload_from_file_to_presigned_url():
     )
     with open(__file__, "rb") as fhandle:
         get_kwargs = {"data": fhandle}
-        if settings.test_proxy_mode():
+        if settings.is_test_proxy_mode():
             add_proxy_details(get_kwargs)
         response = requests.get(presigned_url, **get_kwargs)
     assert response.status_code == 200
@@ -800,7 +800,7 @@ def test_upload_from_file_to_presigned_url():
     files = {"upload_file": open("text.txt", "rb")}
 
     put_kwargs = {"files": files}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(put_kwargs)
     requests.put(presigned_url, **put_kwargs)
     resp = s3_client.get_object(Bucket="mybucket", Key="file_upload")
@@ -2638,7 +2638,7 @@ def test_root_dir_with_empty_name_works():
 @mock_aws
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         raise SkipTest("Doesn't quite work right with the Proxy")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
@@ -2827,7 +2827,7 @@ def test_creating_presigned_post():
         "files": {"file": fdata},
         "allow_redirects": False,
     }
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     resp = requests.post(data["url"], **kwargs)
     assert resp.status_code == 303
@@ -2859,7 +2859,7 @@ def test_presigned_put_url_with_approved_headers():
 
     # Verify S3 throws an error when the header is not provided
     kwargs = {"data": content}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 403
@@ -2871,7 +2871,7 @@ def test_presigned_put_url_with_approved_headers():
 
     # Verify S3 throws an error when the header has the wrong value
     kwargs = {"data": content, "headers": {"Content-Type": "application/unknown"}}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 403
@@ -2883,7 +2883,7 @@ def test_presigned_put_url_with_approved_headers():
 
     # Verify S3 uploads correctly when providing the meta data
     kwargs = {"data": content, "headers": {"Content-Type": expected_contenttype}}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 200
@@ -2916,7 +2916,7 @@ def test_presigned_put_url_with_custom_headers():
 
     # Verify S3 uploads correctly when providing the meta data
     kwargs = {"data": content}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 200

@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import DEFAULT_ACCOUNT_ID, BackendDict, BaseBackend
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.model_instances import reset_model_data
 
 

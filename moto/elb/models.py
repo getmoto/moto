@@ -2,7 +2,8 @@ import datetime
 from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random

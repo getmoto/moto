@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,

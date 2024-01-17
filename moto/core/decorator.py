@@ -29,7 +29,7 @@ def mock_aws(
     clss = (
         ServerModeMockAWS
         if settings.TEST_SERVER_MODE
-        else (ProxyModeMockAWS if settings.test_proxy_mode() else MockAWS)
+        else (ProxyModeMockAWS if settings.is_test_proxy_mode() else MockAWS)
     )
     if func is not None:
         return clss().__call__(func=func)

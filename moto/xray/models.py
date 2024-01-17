@@ -4,7 +4,8 @@ import json
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.exceptions import AWSError
 
 from .exceptions import BadSegmentException

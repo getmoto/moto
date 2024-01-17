@@ -2,7 +2,8 @@ import itertools
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
@@ -805,7 +806,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if self.launch_config
             else None
         )
-        reservation = self.autoscaling_backend.ec2_backend.add_instances(
+        reservation = self.autoscaling_backend.ec2_backend.run_instances(
             self.image_id,
             count_needed,
             self.user_data,

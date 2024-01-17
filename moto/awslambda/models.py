@@ -23,7 +23,8 @@ import requests.exceptions
 
 from moto import settings
 from moto.awslambda.policy import Policy
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import iso_8601_datetime_with_nanoseconds, unix_time_millis, utcnow
 from moto.dynamodb import dynamodb_backends
@@ -149,7 +150,7 @@ class _DockerDataVolumeContext:
             try:
                 with zip2tar(self._lambda_func.code_bytes) as stream:
                     container.put_archive(settings.LAMBDA_DATA_DIR, stream)
-                if settings.test_proxy_mode():
+                if settings.is_test_proxy_mode():
                     ca_cert = load_resource_as_bytes(__name__, "../moto_proxy/ca.crt")
                     with file2tar(ca_cert, "ca.crt") as cert_stream:
                         container.put_archive(settings.LAMBDA_DATA_DIR, cert_stream)
@@ -968,7 +969,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             env_vars["MOTO_PORT"] = moto_port
             env_vars["MOTO_HTTP_ENDPOINT"] = f'{env_vars["MOTO_HOST"]}:{moto_port}'
 
-            if settings.test_proxy_mode():
+            if settings.is_test_proxy_mode():
                 env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
                 env_vars["AWS_CA_BUNDLE"] = "/var/task/ca.crt"
 

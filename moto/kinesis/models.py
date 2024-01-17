@@ -9,7 +9,8 @@ from gzip import GzipFile
 from operator import attrgetter
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate

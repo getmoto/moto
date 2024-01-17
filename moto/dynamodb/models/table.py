@@ -2,7 +2,7 @@ import copy
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
-from moto.core import BaseModel, CloudFormationModel
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
 from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
