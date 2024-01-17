@@ -1,7 +1,7 @@
 import ipaddress
 from typing import Any, Dict, List, Optional, Set
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.carrier_gateways import CarrierGateway
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.instances import Instance

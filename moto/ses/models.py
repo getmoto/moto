@@ -7,7 +7,8 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, getaddresses, parseaddr
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
 

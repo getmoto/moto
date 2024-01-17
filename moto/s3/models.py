@@ -15,9 +15,8 @@ from importlib import reload
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from moto.cloudwatch.models import MetricDatum
-from moto.core import (
-    BackendDict,
-    BaseBackend,
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import (
     BaseModel,
     CloudFormationModel,
     CloudWatchMetricProvider,

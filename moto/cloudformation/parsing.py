@@ -35,7 +35,7 @@ from moto.cloudformation.custom_model import CustomModel
 from moto.cloudwatch import models as cw_models  # noqa  # pylint: disable=all
 
 # End ugly list of imports
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.datapipeline import models as data_models  # noqa  # pylint: disable=all
 from moto.dynamodb import models as ddb_models  # noqa  # pylint: disable=all
 from moto.ec2 import models as ec2_models

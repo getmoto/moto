@@ -103,7 +103,7 @@ class InstanceResponse(EC2BaseResponse):
         iam_instance_profile_name = kwargs.get("iam_instance_profile_name")
         iam_instance_profile_arn = kwargs.get("iam_instance_profile_arn")
         if iam_instance_profile_arn or iam_instance_profile_name:
-            # Validate the profile exists, before we error_on_dryrun and add_instances
+            # Validate the profile exists, before we error_on_dryrun and run_instances
             filter_iam_instance_profiles(
                 self.current_account,
                 iam_instance_profile_arn=iam_instance_profile_arn,
@@ -112,7 +112,7 @@ class InstanceResponse(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        new_reservation = self.ec2_backend.add_instances(
+        new_reservation = self.ec2_backend.run_instances(
             image_id, min_count, user_data, security_group_names, **kwargs
         )
         if iam_instance_profile_name:

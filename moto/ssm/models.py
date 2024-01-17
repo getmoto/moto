@@ -9,7 +9,8 @@ from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
 import yaml
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends

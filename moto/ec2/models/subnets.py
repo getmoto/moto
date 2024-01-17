@@ -3,7 +3,7 @@ import itertools
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 if TYPE_CHECKING:
     from moto.ec2.models.instances import Instance

@@ -345,7 +345,7 @@ def test_invoke_function_large_response():
 
 @mock_aws
 def test_invoke_lambda_with_proxy():
-    if not settings.test_proxy_mode():
+    if not settings.is_test_proxy_mode():
         raise SkipTest("We only want to test this in ProxyMode")
 
     conn = boto3.resource("ec2", _lambda_region)

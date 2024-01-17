@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, Iterable, List
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (

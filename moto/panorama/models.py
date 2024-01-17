@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from dateutil.tz import tzutc
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
 from moto.utilities.paginator import paginate

@@ -2,7 +2,7 @@
 from collections import defaultdict
 from typing import Any, Dict
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import unix_time
 
 

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.instances import Instance
 from moto.iam.models import InstanceProfile
 

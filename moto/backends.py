@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from moto.cognitoidp.models import CognitoIdpBackend
     from moto.comprehend.models import ComprehendBackend
     from moto.config.models import ConfigBackend
-    from moto.core import SERVICE_BACKEND, BackendDict
+    from moto.core.base_backend import SERVICE_BACKEND, BackendDict
     from moto.databrew.models import DataBrewBackend
     from moto.datapipeline.models import DataPipelineBackend
     from moto.datasync.models import DataSyncBackend

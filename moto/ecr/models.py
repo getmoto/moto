@@ -7,7 +7,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
     ImageAlreadyExistsException,

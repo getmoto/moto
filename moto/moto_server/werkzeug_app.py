@@ -17,7 +17,8 @@ except ImportError:
 
 import moto.backend_index as backend_index
 import moto.backends as backends
-from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
 
 from .utilities import AWSTestHelper, RegexConverter
@@ -56,24 +57,16 @@ class DomainDispatcherApplication:
     value. We'll match the host header value with the url_bases of each backend.
     """
 
-    def __init__(
-        self,
-        create_app: Callable[[backends.SERVICE_NAMES], Flask],
-        service: Optional[str] = None,
-    ):
+    def __init__(self, create_app: Callable[[backends.SERVICE_NAMES], Flask]):
         self.create_app = create_app
         self.lock = Lock()
         self.app_instances: Dict[str, Flask] = {}
-        self.service = service
         self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host: str) -> Any:
 
         if host == "moto_api":
             return host
-
-        if self.service:
-            return self.service
 
         if host in backends.list_of_moto_modules():
             return host
