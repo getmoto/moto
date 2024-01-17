@@ -1,4 +1,5 @@
 import os
+import sys
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -9,11 +10,14 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 
 from .utilities import get_role_name, get_test_zip_file1
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
@@ -50,6 +54,8 @@ def test_publish_layer_with_unknown_s3_file():
 @mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_get_lambda_layers():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -152,6 +158,8 @@ def test_get_lambda_layers():
 
 @mock_aws
 def test_get_layer_version():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(

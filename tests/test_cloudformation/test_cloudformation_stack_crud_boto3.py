@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
@@ -12,10 +13,13 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.cloudformation import cloudformation_backends
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 from tests import EXAMPLE_AMI_ID
 
 TEST_STACK_NAME = "test_stack"
 REGION_NAME = "us-east-1"
+
+boto3_version = sys.modules["botocore"].__version__
 
 dummy_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -367,7 +371,9 @@ def test_describe_stack_instances():
     for instance in [use1_instance, usw2_instance]:
         assert instance["Account"] == ACCOUNT_ID
         assert instance["Status"] == "CURRENT"
-        assert instance["StackInstanceStatus"] == {"DetailedStatus": "SUCCEEDED"}
+        if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
+            # "Parameters only available in newer versions"
+            assert instance["StackInstanceStatus"] == {"DetailedStatus": "SUCCEEDED"}
 
 
 @mock_aws
@@ -1615,6 +1621,8 @@ def test_delete_change_set():
 
 @mock_aws
 def test_create_change_set_twice__no_changes():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     cf_client = boto3.client("cloudformation", region_name=REGION_NAME)
 
     # Execute once
@@ -1646,6 +1654,8 @@ def test_create_change_set_twice__no_changes():
 
 @mock_aws
 def test_create_change_set_twice__using_s3__no_changes():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     cf_client = boto3.client("cloudformation", region_name=REGION_NAME)
     s3 = boto3.client("s3", region_name=REGION_NAME)
     s3_conn = boto3.resource("s3", region_name=REGION_NAME)
