@@ -1,13 +1,16 @@
 from datetime import timedelta
+from unittest import SkipTest
 
 import boto3
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core.utils import utcnow
 
 
 @mock_aws
 def test_get_hls_streaming_session_url():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock KinesisVideo, as DataEndpoint is set to real URL")
     region_name = "ap-northeast-1"
     kvs_client = boto3.client("kinesisvideo", region_name=region_name)
     stream_name = "my-stream"
@@ -30,6 +33,8 @@ def test_get_hls_streaming_session_url():
 
 @mock_aws
 def test_get_dash_streaming_session_url():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock KinesisVideo, as DataEndpoint is set to real URL")
     region_name = "ap-northeast-1"
     kvs_client = boto3.client("kinesisvideo", region_name=region_name)
     stream_name = "my-stream"
@@ -52,6 +57,8 @@ def test_get_dash_streaming_session_url():
 
 @mock_aws
 def test_get_clip():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't mock KinesisVideo, as DataEndpoint is set to real URL")
     region_name = "ap-northeast-1"
     kvs_client = boto3.client("kinesisvideo", region_name=region_name)
     stream_name = "my-stream"
