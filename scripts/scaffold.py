@@ -24,6 +24,7 @@ import random
 import re
 import inspect
 import importlib
+import subprocess
 from lxml import etree
 
 import click
@@ -47,6 +48,7 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "./template")
 INPUT_IGNORED_IN_BACKEND = ["Marker", "PageSize"]
 OUTPUT_IGNORED_IN_BACKEND = ["NextMarker"]
 
+root_dir = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
 
 def print_progress(title, body, color):
     """Prints a color-code message describing current state of progress."""
@@ -143,29 +145,6 @@ def render_template(tmpl_dir, tmpl_filename, context, service, alt_filename=None
             fhandle.write(rendered)
 
 
-def append_mock_to_init_py(service):
-    """Update __init_.py to add line to load the mock service."""
-    path = os.path.join(os.path.dirname(__file__), "..", "moto", "__init__.py")
-    with open(path, encoding="utf-8") as fhandle:
-        lines = [_.replace("\n", "") for _ in fhandle.readlines()]
-
-    escaped_service = get_escaped_service(service)
-    if any(_ for _ in lines if _.startswith(f"^mock_{escaped_service} = lazy_load")):
-        return
-    filtered_lines = [_ for _ in lines if re.match("^mock_.*lazy_load(.*)$", _)]
-    last_import_line_index = lines.index(filtered_lines[-1])
-
-    new_line = (
-        f"mock_{escaped_service} = lazy_load("
-        f'".{escaped_service}", "mock_{escaped_service}", boto3_name="{service}")'
-    )
-    lines.insert(last_import_line_index + 1, new_line)
-
-    body = "\n".join(lines) + "\n"
-    with open(path, "w", encoding="utf-8") as fhandle:
-        fhandle.write(body)
-
-
 def initialize_service(service, api_protocol):
     """Create lib and test dirs if they don't exist."""
     lib_dir = get_lib_dir(service)
@@ -213,8 +192,6 @@ def initialize_service(service, api_protocol):
             else None
         )
         render_template(tmpl_dir, tmpl_filename, tmpl_context, service, alt_filename)
-    # append mock to initi files
-    append_mock_to_init_py(service)
 
 
 def to_upper_camel_case(string):
@@ -340,7 +317,7 @@ def get_func_in_tests(service, operation):
     escaped_service = get_escaped_service(service)
     random_region = random.choice(["us-east-2", "eu-west-1", "ap-southeast-1"])
     body = "\n\n"
-    body += f"@mock_{escaped_service}\n"
+    body += f"@mock_aws\n"
     body += f"def test_{operation}():\n"
     body += f"    client = boto3.client(\"{service}\", region_name=\"{random_region}\")\n"
     body += f"    resp = client.{operation}()\n"
@@ -593,7 +570,7 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
 
     # generate url pattern
     if api_protocol == "rest-json":
-        new_line = '    "{0}/.*$": response.dispatch,'
+        new_line = f'    "{0}/.*$": {service_class}Response.dispatch,'
     elif api_protocol == "rest-xml":
         new_line = f'    "{{0}}{uri}$": {service_class}Response.{operation},'
     else:
@@ -674,13 +651,15 @@ def main():
                 "yellow",
             )
 
+        click.echo("Updating backend index...")
+        subprocess.check_output([f"{root_dir}/scripts/update_backend_index.py"]).decode().strip()
+
         click.echo(
             "\n"
             "Please select another operation, or Ctrl-X/Ctrl-C to cancel."
             "\n\n"
             "Remaining steps after development is complete:\n"
             '- Run scripts/implementation_coverage.py,\n'
-            "- Run scripts/update_backend_index.py."
             "\n"
         )
 

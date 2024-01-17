@@ -5,9 +5,5 @@ url_bases = [
     r"https?://{{ endpoint_prefix }}\.(.+)\.amazonaws\.com",
 ]
 
-{% if api_protocol == 'rest-json' %}
-response = {{ service_class }}Response()
-{% endif %}
-
 url_paths = {
 }
