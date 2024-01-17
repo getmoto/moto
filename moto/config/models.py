@@ -48,8 +48,8 @@ from moto.config.exceptions import (
     TooManyTags,
     ValidationException,
 )
-from moto.core import BackendDict, BaseBackend, BaseModel
-from moto.core.common_models import ConfigQueryModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import utcnow
 from moto.iam.config import policy_config_query, role_config_query

@@ -19,7 +19,8 @@ except ImportError:
 from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 
 from moto.apigateway.exceptions import MethodNotFoundException
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import path_url
 from moto.moto_api._internal import mock_random as random
 

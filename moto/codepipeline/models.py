@@ -8,7 +8,8 @@ from moto.codepipeline.exceptions import (
     ResourceNotFoundException,
     TooManyTagsException,
 )
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.iam.exceptions import IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends

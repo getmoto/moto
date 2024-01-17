@@ -1,10 +1,10 @@
-import warnings
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.parser import parse as dtparse
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.emr.exceptions import (
     InvalidRequestException,
     ResourceNotFoundException,
@@ -436,7 +436,7 @@ class ElasticMapReduceBackend(BaseBackend):
             result_groups.append(group)
         return result_groups
 
-    def add_instances(
+    def run_instances(
         self,
         cluster_id: str,
         instances: Dict[str, Any],
@@ -444,7 +444,7 @@ class ElasticMapReduceBackend(BaseBackend):
     ) -> None:
         cluster = self.clusters[cluster_id]
         instances["is_instance_type_default"] = not instances.get("instance_type")
-        response = self.ec2_backend.add_instances(
+        response = self.ec2_backend.run_instances(
             EXAMPLE_AMI_ID, instances["instance_count"], "", [], **instances
         )
         for instance in response.instances:
@@ -648,13 +648,6 @@ class ElasticMapReduceBackend(BaseBackend):
         try:
             subnet = self.ec2_backend.get_subnet(ec2_subnet_id)
         except InvalidSubnetIdError:
-            warnings.warn(
-                f"Could not find Subnet with id: {ec2_subnet_id}\n"
-                "In the near future, this will raise an error.\n"
-                "Use ec2.describe_subnets() to find a suitable id "
-                "for your test.",
-                PendingDeprecationWarning,
-            )
             return default_return_value
 
         manager = EmrSecurityGroupManager(self.ec2_backend, subnet.vpc_id)

@@ -476,7 +476,7 @@ def test_generate_url_for_tagged_object():
         "get_object", Params={"Bucket": "my-bucket", "Key": "test.txt"}
     )
     kwargs = {}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.get(url, **kwargs)
     assert response.content == b"abc"

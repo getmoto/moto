@@ -6,7 +6,8 @@ from typing import Any, Dict, Iterable, List, Optional, Pattern
 from dateutil.tz import tzlocal
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate

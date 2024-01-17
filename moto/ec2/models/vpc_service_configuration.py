@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.moto_api._internal import mock_random
 
 from ..exceptions import UnknownVpcEndpointService

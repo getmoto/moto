@@ -3,7 +3,8 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.dynamodb.models.table import StreamShard, Table
 from moto.dynamodb.models.utilities import DynamoJsonEncoder

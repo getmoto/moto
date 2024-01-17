@@ -1,7 +1,7 @@
 from typing import Any, Optional, Union
 
-from ..awslambda.models import LambdaBackend
-from ..core import BackendDict
+from moto.awslambda.models import LambdaBackend
+from moto.core.base_backend import BackendDict
 
 
 class LambdaSimpleBackend(LambdaBackend):

@@ -402,7 +402,7 @@ class ElasticMapReduceResponse(BaseResponse):
                 cluster.id, instance_groups
             )
             for i in range(0, len(instance_group_result)):
-                self.backend.add_instances(
+                self.backend.run_instances(
                     cluster.id, instance_groups[i], instance_group_result[i]
                 )
 

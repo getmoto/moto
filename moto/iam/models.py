@@ -11,13 +11,9 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from jinja2 import Template
 
-from moto.core import (
-    DEFAULT_ACCOUNT_ID,
-    BackendDict,
-    BaseBackend,
-    BaseModel,
-    CloudFormationModel,
-)
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource

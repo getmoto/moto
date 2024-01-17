@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, TypeVar
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_underscores
 
 
