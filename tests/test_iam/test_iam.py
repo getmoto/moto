@@ -706,8 +706,10 @@ def test_get_policy():
     assert policy["Policy"]["Arn"] == f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicy"
 
 
-@mock_aws
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/IAMUserChangePassword"
     managed_policy_create_date = datetime.strptime(
@@ -742,8 +744,10 @@ def test_get_policy_version():
     assert retrieved.get("PolicyVersion")["IsDefaultVersion"] is False
 
 
-@mock_aws
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy_version():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = (
         "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -763,8 +767,10 @@ def test_get_aws_managed_policy_version():
     assert isinstance(retrieved["PolicyVersion"]["Document"], dict)
 
 
-@mock_aws
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy_v6_version():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
     with pytest.raises(ClientError):
@@ -1953,8 +1959,10 @@ def test_get_access_key_last_used_when_used():
     assert resp["AccessKeyLastUsed"]["Region"] == "us-east-1"
 
 
-@mock_aws
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_managed_policy():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-west-1")
 
     conn.create_policy(
@@ -2364,8 +2372,10 @@ def test_delete_ssh_public_key():
     assert len(resp["SSHPublicKeys"]) == 0
 
 
-@mock_aws
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_account_authorization_details():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     test_policy = json.dumps(
         {
             "Version": "2012-10-17",
