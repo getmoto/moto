@@ -13,8 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        botocore: ["--upgrade boto3 botocore", "boto3==1.11.0 botocore==1.14.0"]
         python-version: [ "3.11" ]
-        responses-version: ["0.13.0", "0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
+        responses-version: ["0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
         werkzeug-version: ["2.0.1", "2.1.1", "2.2.2"]
         openapi-spec-validator-version: ["0.5.0"]
 
@@ -38,6 +39,7 @@ jobs:
         pip install flask==${{ matrix.werkzeug-version }}
         pip install werkzeug==${{ matrix.werkzeug-version }}
         pip install openapi-spec-validator==${{ matrix.openapi-spec-validator-version }}
+        pip install ${{ matrix.botocore }}
 
     - name: Run tests
       run: |
@@ -65,6 +67,6 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}
+        name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}-${{ matrix.botocore }}
         path: |
           serverlogs/*

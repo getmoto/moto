@@ -13,5 +13,9 @@ def is_responses_0_17_x() -> bool:
     return LooseVersion(RESPONSES_VERSION) >= LooseVersion("0.17.0")
 
 
+def is_werkzeug_2_0_x_or_older() -> bool:
+    return LooseVersion(WERKZEUG_VERSION) < LooseVersion("2.1.0")
+
+
 def is_werkzeug_2_3_x() -> bool:
     return LooseVersion(WERKZEUG_VERSION) >= LooseVersion("2.3.0")

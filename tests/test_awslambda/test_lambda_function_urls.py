@@ -1,3 +1,5 @@
+import sys
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -5,15 +7,20 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.utilities.distutils_version import LooseVersion
 
 from .utilities import get_role_name, get_test_zip_file1
 
 PYTHON_VERSION = "python3.11"
 
+boto3_version = sys.modules["botocore"].__version__
+
 
 @mock_aws
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
 def test_create_function_url_config(key):
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     client = boto3.client("lambda", "us-east-2")
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
@@ -40,6 +47,8 @@ def test_create_function_url_config(key):
 
 @mock_aws
 def test_create_function_url_config_with_cors():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     client = boto3.client("lambda", "us-east-2")
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
@@ -75,6 +84,8 @@ def test_create_function_url_config_with_cors():
 
 @mock_aws
 def test_update_function_url_config_with_cors():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     client = boto3.client("lambda", "us-east-2")
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(
@@ -108,6 +119,8 @@ def test_update_function_url_config_with_cors():
 @mock_aws
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
 def test_delete_function_url_config(key):
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     client = boto3.client("lambda", "us-east-2")
     function_name = str(uuid4())[0:6]
     fxn = client.create_function(

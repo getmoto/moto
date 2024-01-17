@@ -3,11 +3,16 @@
 #
 # There are some issues with running these tests in parallel
 # Running them as part of 'moto/core' avoids that problem
+import sys
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
@@ -103,9 +108,11 @@ def test_describe_vpc_default_endpoint_services() -> None:
     assert details["ManagesVpcEndpoints"] is False
     assert details["Owner"] == "amazon"
     assert details["PrivateDnsName"] == "config.us-west-1.amazonaws.com"
-    assert details["PrivateDnsNames"] == [
-        {"PrivateDnsName": "config.us-west-1.amazonaws.com"}
-    ]
+    if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
+        # Attribute wasn't available in older botocore versions
+        assert details["PrivateDnsNames"] == [
+            {"PrivateDnsName": "config.us-west-1.amazonaws.com"}
+        ]
     assert details["PrivateDnsNameVerificationState"] == "verified"
     assert details["ServiceName"] == "com.amazonaws.us-west-1.config"
     assert details["ServiceType"] == [{"ServiceType": "Interface"}]
