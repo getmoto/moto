@@ -4,6 +4,8 @@ import pathlib
 from functools import lru_cache
 from typing import List, Optional
 
+from moto.core.config import default_user_config
+
 
 def test_proxy_mode() -> bool:
     return os.environ.get("TEST_PROXY_MODE", "0").lower() == "true"
@@ -177,3 +179,11 @@ def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
 
 def enable_iso_regions() -> bool:
     return os.environ.get("MOTO_ENABLE_ISO_REGIONS", "false").lower() == "true"
+
+
+def load_iam_aws_managed_policies() -> bool:
+    return (
+        default_user_config.get("iam", {}).get("load_aws_managed_policies", False)
+        is True
+        or os.environ.get("MOTO_IAM_LOAD_MANAGED_POLICIES", "").lower() == "true"
+    )

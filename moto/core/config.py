@@ -16,9 +16,18 @@ class _core_config(TypedDict, total=False):
     passthrough: _passthrough_config
 
 
+class _iam_config(TypedDict, total=False):
+    load_aws_managed_policies: bool
+
+
 DefaultConfig = TypedDict(
     "DefaultConfig",
-    {"batch": _docker_config, "core": _core_config, "lambda": _docker_config},
+    {
+        "batch": _docker_config,
+        "core": _core_config,
+        "lambda": _docker_config,
+        "iam": _iam_config,
+    },
     total=False,
 )
 
@@ -26,6 +35,7 @@ default_user_config: DefaultConfig = {
     "batch": {"use_docker": True},
     "lambda": {"use_docker": True},
     "core": {"mock_credentials": True, "passthrough": {"urls": [], "services": []}},
+    "iam": {"load_aws_managed_policies": False},
 }
 
 
