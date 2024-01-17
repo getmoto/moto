@@ -1,5 +1,6 @@
 import io
 import json
+import sys
 import zipfile
 from decimal import Decimal
 from string import Template
@@ -10,9 +11,12 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
@@ -274,18 +278,19 @@ def lambda_handler(event, context):
     lambda_conn = boto3.client("lambda", region)
     result = lambda_conn.list_layers()
     layer_name = result["Layers"][0]["LayerName"]
-    result = lambda_conn.list_layer_versions(LayerName=layer_name)
-    result["LayerVersions"][0].pop("CreatedDate")
-    assert result["LayerVersions"] == [
-        {
-            "Version": 1,
-            "LayerVersionArn": f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1",
-            "CompatibleRuntimes": ["python2.7", "python3.6"],
-            "Description": "Test Layer",
-            "LicenseInfo": "MIT",
-            "CompatibleArchitectures": [],
-        }
-    ]
+    lv = lambda_conn.list_layer_versions(LayerName=layer_name)["LayerVersions"][0]
+
+    assert lv["Version"] == 1
+    assert (
+        lv["LayerVersionArn"]
+        == f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1"
+    )
+    assert lv["CompatibleRuntimes"] == ["python2.7", "python3.6"]
+    assert lv["Description"] == "Test Layer"
+    assert lv["LicenseInfo"] == "MIT"
+    if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
+        # "Parameters only available in newer versions"
+        assert lv["CompatibleArchitectures"] == []
 
 
 @mock_aws

@@ -1,4 +1,6 @@
 import json
+import sys
+from unittest import SkipTest
 
 import boto3
 import pytest
@@ -7,6 +9,9 @@ from botocore.exceptions import ClientError
 import moto.iotdata.models
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
@@ -94,6 +99,8 @@ def test_update():
 
 @mock_aws
 def test_create_named_shadows():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameter only available in newer versions")
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     thing_name = "my-thing"

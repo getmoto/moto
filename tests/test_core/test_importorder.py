@@ -1,3 +1,4 @@
+import sys
 from typing import Any, List
 from unittest import SkipTest
 
@@ -5,6 +6,9 @@ import boto3
 import pytest
 
 from moto import mock_aws, settings
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @pytest.fixture(scope="function", name="aws_credentials")
@@ -70,6 +74,8 @@ def test_mock_works_with_resource_created_outside(
 
 
 def test_patch_can_be_called_on_a_mocked_client() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     # start S3 after the mock, ensuring that the client contains our event-handler
     m = mock_aws()
     m.start()
@@ -118,6 +124,8 @@ class ImportantBusinessLogic:
 def test_mock_works_when_replacing_client(
     aws_credentials: Any,  # pylint: disable=unused-argument
 ) -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     logic = ImportantBusinessLogic()
 
     m = mock_aws()

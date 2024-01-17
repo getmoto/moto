@@ -1,5 +1,7 @@
 import json
+import sys
 from typing import Any, Dict, Optional
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -9,6 +11,9 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
@@ -191,6 +196,8 @@ def test_invalid_client_token_id() -> None:
 @set_initial_no_auth_action_count(0)
 @mock_aws
 def test_auth_failure() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     client = boto3.client(
         "ec2",
         region_name="us-east-1",
@@ -230,6 +237,8 @@ def test_signature_does_not_match() -> None:
 @set_initial_no_auth_action_count(2)
 @mock_aws
 def test_auth_failure_with_valid_access_key_id() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     access_key = create_user_with_access_key()
     client = boto3.client(
         "ec2",
@@ -250,6 +259,8 @@ def test_auth_failure_with_valid_access_key_id() -> None:
 @set_initial_no_auth_action_count(2)
 @mock_aws
 def test_access_denied_with_no_policy() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     user_name = "test-user"
     access_key = create_user_with_access_key(user_name)
     client = boto3.client(
@@ -271,6 +282,8 @@ def test_access_denied_with_no_policy() -> None:
 @set_initial_no_auth_action_count(3)
 @mock_aws
 def test_access_denied_with_not_allowing_policy() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",
@@ -339,6 +352,8 @@ def test_access_denied_explicitly_on_specific_resource() -> None:
 @set_initial_no_auth_action_count(3)
 @mock_aws
 def test_access_denied_for_run_instances() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     # https://github.com/getmoto/moto/issues/2774
     # The run-instances method was broken between botocore versions 1.15.8 and 1.15.12
     # This was due to the inclusion of '"idempotencyToken":true' in the response, somehow altering the signature and breaking the authentication
@@ -372,6 +387,8 @@ def test_access_denied_for_run_instances() -> None:
 @set_initial_no_auth_action_count(3)
 @mock_aws
 def test_access_denied_with_denying_policy() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",
@@ -533,6 +550,8 @@ def test_s3_access_denied_with_denying_inline_group_policy() -> None:
 @set_initial_no_auth_action_count(10)
 @mock_aws
 def test_access_denied_with_many_irrelevant_policies() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Error handling is different in newer versions")
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",
