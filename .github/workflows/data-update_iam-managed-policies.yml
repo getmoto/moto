@@ -31,6 +31,12 @@ jobs:
       with:
         python-version: 3.9
 
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-region: us-east-1
+        role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
+
     - name: Pull IAM managed policies from AWS
       run: |
         pip install -r requirements-dev.txt
