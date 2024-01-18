@@ -18,7 +18,7 @@ def test_table_list():
         raise SkipTest("Only run test with external server")
     headers = {
         "X-Amz-Target": "DynamoDB_20111205.ListTables",
-        "Host": "dynamodb.us-east-1.amazonaws.com",
+        "AUTHORIZATION": "AWS4-HMAC-SHA256 Credential=ACCESS_KEY/20220226/us-east-1/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=sig",
     }
     requests.post(settings.test_server_mode_endpoint() + "/moto-api/reset")
     res = requests.get(settings.test_server_mode_endpoint(), headers=headers)
