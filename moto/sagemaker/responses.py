@@ -959,3 +959,23 @@ class SageMakerResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(dict(ModelPackageGroupArn=model_package_group_arn))
+
+    def create_feature_group(self) -> str:
+        feature_group_arn = self.sagemaker_backend.create_feature_group(
+            feature_group_name=self._get_param("FeatureGroupName"),
+            record_identifier_feature_name=self._get_param(
+                "RecordIdentifierFeatureName"
+            ),
+            event_time_feature_name=self._get_param("EventTimeFeatureName"),
+            feature_definitions=self._get_param("FeatureDefinitions"),
+            offline_store_config=self._get_param("OfflineStoreConfig"),
+            role_arn=self._get_param("RoleArn"),
+            tags=self._get_param("Tags"),
+        )
+        return json.dumps(dict(FeatureGroupArn=feature_group_arn))
+
+    def describe_feature_group(self) -> str:
+        resp = self.sagemaker_backend.describe_feature_group(
+            feature_group_name=self._get_param("FeatureGroupName"),
+        )
+        return json.dumps(resp)

@@ -980,6 +980,60 @@ class ModelPackageGroup(BaseObject):
         return {k: v for k, v in response_object.items() if k in response_values}
 
 
+class FeatureGroup(BaseObject):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        feature_group_name: str,
+        record_identifier_feature_name: str,
+        event_time_feature_name: str,
+        feature_definitions: List[Dict[str, str]],
+        offline_store_config: Dict[str, Any],
+        role_arn: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> None:
+        self.feature_group_name = feature_group_name
+        self.record_identifier_feature_name = record_identifier_feature_name
+        self.event_time_feature_name = event_time_feature_name
+        self.feature_definitions = feature_definitions
+
+        table_name = (
+            f"{feature_group_name.replace('-','_')}_{int(datetime.now().timestamp())}"
+        )
+        offline_store_config["DataCatalogConfig"] = {
+            "TableName": table_name,
+            "Catalog": "AwsDataCatalog",
+            "Database": "sagemaker_featurestore",
+        }
+
+        self.offline_store_config = offline_store_config
+        self.role_arn = role_arn
+
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.feature_group_arn = arn_formatter(
+            region_name=region_name,
+            account_id=account_id,
+            _type="feature-group",
+            _id=f"{self.feature_group_name.lower()}",
+        )
+        self.tags = tags
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "FeatureGroupArn": self.feature_group_arn,
+            "FeatureGroupName": self.feature_group_name,
+            "RecordIdentifierFeatureName": self.record_identifier_feature_name,
+            "EventTimeFeatureName": self.event_time_feature_name,
+            "FeatureDefinitions": self.feature_definitions,
+            "CreationTime": self.creation_time,
+            "OfflineStoreConfig": self.offline_store_config,
+            "RoleArn": self.role_arn,
+            "ThroughputConfig": {"ThroughputMode": "OnDemand"},
+            "FeatureGroupStatus": "Created",
+        }
+
+
 class ModelPackage(BaseObject):
     def __init__(
         self,
@@ -1768,6 +1822,7 @@ class SageMakerModelBackend(BaseBackend):
         self.model_package_groups: Dict[str, ModelPackageGroup] = {}
         self.model_packages: Dict[str, ModelPackage] = {}
         self.model_package_name_mapping: Dict[str, str] = {}
+        self.feature_groups: Dict[str, FeatureGroup] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -3463,6 +3518,44 @@ class SageMakerModelBackend(BaseBackend):
         ] = model_package.model_package_arn
         self.model_packages[model_package.model_package_arn] = model_package
         return model_package.model_package_arn
+
+    def create_feature_group(
+        self,
+        feature_group_name: str,
+        record_identifier_feature_name: str,
+        event_time_feature_name: str,
+        feature_definitions: List[Dict[str, str]],
+        offline_store_config: Dict[str, Any],
+        role_arn: str,
+        tags: Any,
+    ) -> str:
+        feature_group = FeatureGroup(
+            feature_group_name=feature_group_name,
+            record_identifier_feature_name=record_identifier_feature_name,
+            event_time_feature_name=event_time_feature_name,
+            feature_definitions=feature_definitions,
+            offline_store_config=offline_store_config,
+            role_arn=role_arn,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            tags=tags,
+        )
+        self.feature_groups[feature_group.feature_group_arn] = feature_group
+        return feature_group.feature_group_arn
+
+    def describe_feature_group(
+        self,
+        feature_group_name: str,
+    ) -> Dict[str, Any]:
+        feature_group_arn = arn_formatter(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            _type="feature-group",
+            _id=f"{feature_group_name.lower()}",
+        )
+
+        feature_group = self.feature_groups[feature_group_arn]
+        return feature_group.describe()
 
 
 class FakeExperiment(BaseObject):
