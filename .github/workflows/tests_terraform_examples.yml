@@ -33,4 +33,9 @@ jobs:
         cd other_langs/terraform/${{ matrix.service }}
         terraform init
         terraform apply --auto-approve
+        echo "Verify nothing changes when ACM certificates are validated"
+        sleep 30
+        terraform plan -detailed-exitcode
+        sleep 30
+        terraform plan -detailed-exitcode
         terraform apply -destroy --auto-approve

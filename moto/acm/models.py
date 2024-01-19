@@ -343,24 +343,22 @@ class CertBundle(BaseModel):
         domain_names = set(sans + [self.common_name])
         validation_options = []
 
-        if self.status == "PENDING_VALIDATION":
-            for san in domain_names:
-                resource_record = {
-                    "Name": f"_d930b28be6c5927595552b219965053e.{san}.",
-                    "Type": "CNAME",
-                    "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
+        for san in domain_names:
+            resource_record = {
+                "Name": f"_d930b28be6c5927595552b219965053e.{san}.",
+                "Type": "CNAME",
+                "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
+            }
+            validation_options.append(
+                {
+                    "DomainName": san,
+                    "ValidationDomain": san,
+                    "ValidationStatus": self.status,
+                    "ValidationMethod": "DNS",
+                    "ResourceRecord": resource_record,
                 }
-                validation_options.append(
-                    {
-                        "DomainName": san,
-                        "ValidationDomain": san,
-                        "ValidationStatus": self.status,
-                        "ValidationMethod": "DNS",
-                        "ResourceRecord": resource_record,
-                    }
-                )
-        else:
-            validation_options = [{"DomainName": name} for name in domain_names]
+            )
+
         result["Certificate"]["DomainValidationOptions"] = validation_options
 
         if self.type == "IMPORTED":
