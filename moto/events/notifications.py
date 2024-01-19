@@ -1,16 +1,18 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
-_EVENT_S3_OBJECT_CREATED: Dict[str, Any] = {
+from .utils import EventMessageType
+
+_EVENT_S3_OBJECT_CREATED: EventMessageType = {
     "version": "0",
     "id": "17793124-05d4-b198-2fde-7ededc63b103",
     "detail-type": "Object Created",
     "source": "aws.s3",
     "account": "123456789012",
     "time": "2021-11-12T00:00:00Z",
-    "region": None,
+    "region": "us-west-2",
     "resources": [],
-    "detail": None,
+    "detail": {},
 }
 
 
