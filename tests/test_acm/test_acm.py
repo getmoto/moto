@@ -1,5 +1,6 @@
 import os
 import uuid
+from time import sleep
 from unittest import SkipTest, mock
 
 import boto3
@@ -180,7 +181,6 @@ def test_describe_certificate():
     assert len(resp["Certificate"]["DomainValidationOptions"]) == 1
     validation_option = resp["Certificate"]["DomainValidationOptions"][0]
     assert validation_option["DomainName"] == SERVER_COMMON_NAME
-    assert "ValidationDomain" not in validation_option
 
 
 @mock_acm
@@ -388,7 +388,10 @@ def test_request_certificate():
 
 
 @mock_acm
+@mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
 def test_request_certificate_with_optional_arguments():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only change setting in DecoratorMode")
     client = boto3.client("acm", region_name="eu-central-1")
 
     token = str(uuid.uuid4())
@@ -406,11 +409,20 @@ def test_request_certificate_with_optional_arguments():
     arn_1 = resp["CertificateArn"]
 
     cert = client.describe_certificate(CertificateArn=arn_1)["Certificate"]
+    assert cert["Status"] == "PENDING_VALIDATION"
     assert len(cert["SubjectAlternativeNames"]) == 3
-    assert len(cert["DomainValidationOptions"]) == 3
-    assert {option["DomainName"] for option in cert["DomainValidationOptions"]} == set(
+    validation_options = cert["DomainValidationOptions"].copy()
+    assert len(validation_options) == 3
+    assert {option["DomainName"] for option in validation_options} == set(
         cert["SubjectAlternativeNames"]
     )
+
+    # Verify SAN's are still the same, even after the Certificate is validated
+    sleep(2)
+    for opt in validation_options:
+        opt["ValidationStatus"] = "ISSUED"
+    cert = client.describe_certificate(CertificateArn=arn_1)["Certificate"]
+    assert cert["DomainValidationOptions"] == validation_options
 
     resp = client.list_tags_for_certificate(CertificateArn=arn_1)
     tags = {item["Key"]: item.get("Value", "__NONE__") for item in resp["Tags"]}

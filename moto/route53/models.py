@@ -208,6 +208,7 @@ class RecordSet(CloudFormationModel):
         self.alias_target = kwargs.get("AliasTarget", [])
         self.failover = kwargs.get("Failover", [])
         self.geo_location = kwargs.get("GeoLocation", [])
+        self.multi_value = kwargs.get("MultiValueAnswer")
 
     @staticmethod
     def cloudformation_name_type() -> str:

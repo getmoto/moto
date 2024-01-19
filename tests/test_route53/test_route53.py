@@ -809,6 +809,7 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
     assert cname_record_detail["ResourceRecords"] == [
         {"Value": "SomeInitialValue&NewValue"}
     ]
+    assert cname_record_detail.get("MultiValueAnswer") == multi_value_answer
 
     # Delete record.
     delete_payload = {
