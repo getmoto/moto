@@ -92,7 +92,10 @@ def test_list_certificates():
     issued_arn = _import_cert(client)
     pending_arn = client.request_certificate(DomainName="google.com")["CertificateArn"]
 
-    certs = client.list_certificates()["CertificateSummaryList"]
+    try:
+        certs = client.list_certificates()["CertificateSummaryList"]
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
     assert issued_arn in [c["CertificateArn"] for c in certs]
     assert pending_arn in [c["CertificateArn"] for c in certs]
     for cert in certs:

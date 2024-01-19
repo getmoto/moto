@@ -736,6 +736,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -977,6 +986,15 @@
                 "Value": "logs",
                 "endpoint": {
                   "Value": "logs.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.af-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -2706,6 +2724,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5092,6 +5119,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -7569,6 +7605,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -8961,6 +9006,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -9171,6 +9225,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "macie": {
                 "Value": "macie",
                 "endpoint": {
@@ -9229,6 +9292,15 @@
                 "Value": "mediapackage-vod",
                 "endpoint": {
                   "Value": "mediapackage-vod.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11334,6 +11406,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -12645,6 +12726,15 @@
               },
               "fsx-ontap": {
                 "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
                 "endpoint": {
                   "Value": "fsx.ap-south-2.amazonaws.com"
                 },
@@ -15002,6 +15092,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -17671,6 +17770,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "nimble": {
                 "Value": "nimble",
                 "endpoint": {
@@ -19199,6 +19307,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -20668,6 +20785,15 @@
                 "Value": "mediapackage-vod",
                 "endpoint": {
                   "Value": "mediapackage-vod.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22555,6 +22681,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -22634,6 +22769,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24049,6 +24193,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "savingsplans": {
+                "Value": "savingsplans",
+                "endpoint": {
+                  "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -25003,6 +25156,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "iottwinmaker": {
+                "Value": "iottwinmaker"
               },
               "kafka": {
                 "Value": "kafka",
@@ -28750,6 +28906,10 @@
                 }
               },
               "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.eu-central-1.amazonaws.com"
+                },
                 "protocols": {
                   "Value": "HTTPS"
                 }
@@ -28767,6 +28927,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32070,6 +32239,15 @@
               "lumberyard": {
                 "Value": "lumberyard"
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "macie": {
                 "Value": "macie",
                 "endpoint": {
@@ -32245,6 +32423,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33658,6 +33845,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -33863,6 +34059,15 @@
                 "Value": "logs",
                 "endpoint": {
                   "Value": "logs.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37467,6 +37672,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "nimble": {
                 "Value": "nimble",
                 "endpoint": {
@@ -40060,6 +40274,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "nimble": {
                 "Value": "nimble",
                 "endpoint": {
@@ -41680,6 +41903,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -42146,6 +42378,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43388,6 +43629,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -44127,6 +44377,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
+                "endpoint": {
+                  "Value": "apigateway.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appconfig": {
                 "Value": "appconfig",
                 "endpoint": {
@@ -44615,6 +44874,15 @@
               },
               "fsx-ontap": {
                 "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
                 "endpoint": {
                   "Value": "fsx.me-central-1.amazonaws.com"
                 },
@@ -46045,6 +46313,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -46400,6 +46677,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.me-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47783,6 +48069,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -48255,6 +48550,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51089,6 +51393,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "nimble": {
                 "Value": "nimble",
                 "endpoint": {
@@ -53787,6 +54100,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58511,6 +58833,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fsx-windows": {
                 "Value": "fsx-windows",
                 "endpoint": {
@@ -58968,6 +59299,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -61677,6 +62017,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmonitor": {
+                "Value": "networkmonitor",
+                "endpoint": {
+                  "Value": "networkmonitor.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
