@@ -59,10 +59,10 @@ def _send_safe_notification(
 def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
     from moto.awslambda import lambda_backends
 
-    lmbda_region = fn_arn.split(":")[3]
+    lambda_region = fn_arn.split(":")[3]
 
     body = json.dumps(event)
-    lambda_backends[account_id][lmbda_region].invoke(
+    lambda_backends[account_id][lambda_region].invoke(
         function_name=fn_arn,
         qualifier=None,  # type: ignore[arg-type]
         body=body,
