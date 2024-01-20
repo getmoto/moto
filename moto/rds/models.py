@@ -229,6 +229,15 @@ class Cluster:
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
+        self.storage_encrypted = kwargs.get("storage_encrypted", False)
+        if self.storage_encrypted:
+            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+        else:
+            self.kms_key_id = kwargs.get("kms_key_id")
+        if self.engine == "aurora-mysql" or self.engine == "aurora-postgresql":
+            self.global_write_forwarding_requested = kwargs.get(
+                "enable_global_write_forwarding"
+            )
 
     @property
     def is_multi_az(self) -> bool:
@@ -361,7 +370,8 @@ class Cluster:
               {% endfor %}
               </VpcSecurityGroups>
               <HostedZoneId>{{ cluster.hosted_zone_id }}</HostedZoneId>
-              <StorageEncrypted>false</StorageEncrypted>
+              <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
+              <GlobalWriteForwardingRequested>{{ cluster.global_write_forwarding_requested }}</GlobalWriteForwardingRequested>
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
@@ -485,6 +495,7 @@ class ClusterSnapshot(BaseModel):
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds()
+        self.attributes: List[Dict[str, Any]] = []
 
     @property
     def arn(self) -> str:
@@ -1122,6 +1133,7 @@ class DatabaseSnapshot(BaseModel):
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds()
+        self.attributes: List[Dict[str, Any]] = []
 
     @property
     def arn(self) -> str:
@@ -2802,6 +2814,92 @@ class RDSBackend(BaseBackend):
         except:  # noqa: E722 Do not use bare except
             pass
         return None
+
+    def describe_db_snapshot_attributes(
+        self, db_snapshot_identifier: str
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_snapshots(
+            db_instance_identifier=None, db_snapshot_identifier=db_snapshot_identifier
+        )[0]
+        return snapshot.attributes
+
+    def modify_db_snapshot_attribute(
+        self,
+        db_snapshot_identifier: str,
+        attribute_name: str,
+        values_to_add: Optional[Dict[str, Dict[str, str]]] = None,
+        values_to_remove: Optional[Dict[str, Dict[str, str]]] = None,
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_snapshots(
+            db_instance_identifier=None, db_snapshot_identifier=db_snapshot_identifier
+        )[0]
+        attribute_present = False
+        for attribute in snapshot.attributes:
+            if attribute["AttributeName"] == attribute_name:
+                attribute_present = True
+                if values_to_add:
+                    attribute["AttributeValues"] = (
+                        values_to_add["AttributeValue"].values()
+                        + attribute["AttributeValues"]
+                    )
+                if values_to_remove:
+                    attribute["AttributeValues"] = [
+                        i
+                        for i in attribute["AttributeValues"]
+                        if i not in values_to_remove["AttributeValue"].values()
+                    ]
+        if not attribute_present and values_to_add:
+            snapshot.attributes.append(
+                {
+                    "AttributeName": attribute_name,
+                    "AttributeValues": values_to_add["AttributeValue"].values(),
+                }
+            )
+        return snapshot.attributes
+
+    def describe_db_cluster_snapshot_attributes(
+        self, db_cluster_snapshot_identifier: str
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_cluster_snapshots(
+            db_cluster_identifier=None,
+            db_snapshot_identifier=db_cluster_snapshot_identifier,
+        )[0]
+        return snapshot.attributes
+
+    def modify_db_cluster_snapshot_attribute(
+        self,
+        db_cluster_snapshot_identifier: str,
+        attribute_name: str,
+        values_to_add: Optional[Dict[str, Dict[str, str]]] = None,
+        values_to_remove: Optional[Dict[str, Dict[str, str]]] = None,
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_cluster_snapshots(
+            db_cluster_identifier=None,
+            db_snapshot_identifier=db_cluster_snapshot_identifier,
+        )[0]
+        attribute_present = False
+        for attribute in snapshot.attributes:
+            if attribute["AttributeName"] == attribute_name:
+                attribute_present = True
+                if values_to_add:
+                    attribute["AttributeValues"] = (
+                        values_to_add["AttributeValue"].values()
+                        + attribute["AttributeValues"]
+                    )
+                if values_to_remove:
+                    attribute["AttributeValues"] = [
+                        i
+                        for i in attribute["AttributeValues"]
+                        if i not in values_to_remove["AttributeValue"].values()
+                    ]
+        if not attribute_present and values_to_add:
+            snapshot.attributes.append(
+                {
+                    "AttributeName": attribute_name,
+                    "AttributeValues": values_to_add["AttributeValue"].values(),
+                }
+            )
+        return snapshot.attributes
 
 
 class OptionGroup:

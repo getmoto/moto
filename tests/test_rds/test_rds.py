@@ -2694,6 +2694,106 @@ def test_createdb_instance_engine_with_invalid_value():
     )
 
 
+@mock_rds
+def test_describe_db_snapshot_attributes_default():
+    client = boto3.client("rds", region_name="us-east-2")
+    client.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+
+    client.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    ).get("DBSnapshot")
+
+    resp = client.describe_db_snapshot_attributes(DBSnapshotIdentifier="snapshot-1")
+
+    assert resp["DBSnapshotAttributesResult"]["DBSnapshotIdentifier"] == "snapshot-1"
+    assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"] == []
+
+
+@mock_rds
+def test_describe_db_snapshot_attributes():
+    client = boto3.client("rds", region_name="us-east-2")
+    client.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+
+    client.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    ).get("DBSnapshot")
+
+    resp = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier="snapshot-1",
+        AttributeName="restore",
+        ValuesToAdd=["Test", "Test2"],
+    )
+
+    resp = client.describe_db_snapshot_attributes(DBSnapshotIdentifier="snapshot-1")
+
+    assert (
+        resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0]["AttributeName"]
+        == "restore"
+    )
+    assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0][
+        "AttributeValues"
+    ] == ["Test", "Test2"]
+
+
+@mock_rds
+def test_modify_db_snapshot_attribute():
+    client = boto3.client("rds", region_name="us-east-2")
+    client.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2",
+        Port=1234,
+        DBSecurityGroups=["my_sg"],
+    )
+
+    client.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+    ).get("DBSnapshot")
+
+    resp = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier="snapshot-1",
+        AttributeName="restore",
+        ValuesToAdd=["Test", "Test2"],
+    )
+    resp = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier="snapshot-1",
+        AttributeName="restore",
+        ValuesToRemove=["Test"],
+    )
+
+    assert (
+        resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0]["AttributeName"]
+        == "restore"
+    )
+    assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0][
+        "AttributeValues"
+    ] == ["Test2"]
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
