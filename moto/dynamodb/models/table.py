@@ -656,8 +656,8 @@ class Table(CloudFormationModel):
         filter_expression: Any = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-        results = []
 
+        # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()
             indexes_by_name = dict((i.name, i) for i in all_indexes)
@@ -683,6 +683,10 @@ class Table(CloudFormationModel):
                 ][0]
             except IndexError:
                 index_range_key = None
+                if range_comparison:
+                    raise ValueError(
+                        f"Range Key comparison but no range key found for index: {index_name}"
+                    )
 
             possible_results = []
             for item in self.all_items():
@@ -703,26 +707,51 @@ class Table(CloudFormationModel):
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
 
-        if range_comparison:
-            if index_name and not index_range_key:
-                raise ValueError(
-                    "Range Key comparison but no range key found for index: %s"
-                    % index_name
-                )
+        # FILTER
+        results: List[Item] = []
+        result_size = 0
+        scanned_count = 0
+        last_evaluated_key = None
+        processing_previous_page = exclusive_start_key is not None
+        for result in possible_results:
+            # Cycle through the previous page of results
+            # When we encounter our start key, we know we've reached the end of the previous page
+            if processing_previous_page:
+                if self._item_equals_dct(result, exclusive_start_key):
+                    processing_previous_page = False
+                continue
 
-            elif index_name:
-                for result in possible_results:
+            # Check wether we've reached the limit of our result set
+            # That can be either in number, or in size
+            reached_length_limit = len(results) == limit
+            reached_size_limit = (result_size + result.size()) > RESULT_SIZE_LIMIT
+            if reached_length_limit or reached_size_limit:
+                last_evaluated_key = self._get_last_evaluated_key(
+                    results[-1], index_name
+                )
+                break
+
+            if not range_comparison and not filter_kwargs:
+                # If we're not filtering on range key or on an index
+                results.append(result)
+                result_size += result.size()
+                scanned_count += 1
+
+            if range_comparison:
+                if index_name:
                     if result.attrs.get(index_range_key["AttributeName"]).compare(  # type: ignore
                         range_comparison, range_objs
                     ):
                         results.append(result)
-            else:
-                for result in possible_results:
+                        result_size += result.size()
+                        scanned_count += 1
+                else:
                     if result.range_key.compare(range_comparison, range_objs):  # type: ignore[union-attr]
                         results.append(result)
+                        result_size += result.size()
+                        scanned_count += 1
 
-        if filter_kwargs:
-            for result in possible_results:
+            if filter_kwargs:
                 for field, value in filter_kwargs.items():
                     dynamo_types = [
                         DynamoType(ele) for ele in value["AttributeValueList"]
@@ -731,12 +760,10 @@ class Table(CloudFormationModel):
                         value["ComparisonOperator"], dynamo_types
                     ):
                         results.append(result)
+                        result_size += result.size()
+                scanned_count += 1
 
-        if not range_comparison and not filter_kwargs:
-            # If we're not filtering on range key or on an index return all
-            # values
-            results = possible_results
-
+        # SORT
         if index_name:
             if index_range_key:
                 # Convert to float if necessary to ensure proper ordering
@@ -754,16 +781,10 @@ class Table(CloudFormationModel):
         if scan_index_forward is False:
             results.reverse()
 
-        scanned_count = len(list(self.all_items()))
-
         results = copy.deepcopy(results)
         if index_name:
             index = self.get_index(index_name)
             results = [index.project(r) for r in results]
-
-        results, last_evaluated_key = self._trim_results(
-            results, limit, exclusive_start_key, scanned_index=index_name
-        )
 
         if filter_expression is not None:
             results = [item for item in results if filter_expression.expr(item)]
@@ -890,35 +911,6 @@ class Table(CloudFormationModel):
         if range_key is not None:
             range_key = DynamoType(range_key)
         return item.hash_key == hash_key and item.range_key == range_key
-
-    def _trim_results(
-        self,
-        results: List[Item],
-        limit: int,
-        exclusive_start_key: Optional[Dict[str, Any]],
-        scanned_index: Optional[str] = None,
-    ) -> Tuple[List[Item], Optional[Dict[str, Any]]]:
-        if exclusive_start_key is not None:
-            for i in range(len(results)):
-                if self._item_equals_dct(results[i], exclusive_start_key):
-                    results = results[i + 1 :]
-                    break
-
-        last_evaluated_key = None
-        item_size = sum(res.size() for res in results)
-        if item_size > RESULT_SIZE_LIMIT:
-            item_size = idx = 0
-            while item_size + results[idx].size() < RESULT_SIZE_LIMIT:
-                item_size += results[idx].size()
-                idx += 1
-            limit = min(limit, idx) if limit else idx
-        if limit and len(results) > limit:
-            results = results[:limit]
-            last_evaluated_key = self._get_last_evaluated_key(
-                last_result=results[-1], index_name=scanned_index
-            )
-
-        return results, last_evaluated_key
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]

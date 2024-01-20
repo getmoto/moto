@@ -2,6 +2,31 @@
 from moto.core.exceptions import JsonRESTError
 
 
-class ResourceNotFound(JsonRESTError):
-    def __init__(self) -> None:
-        super().__init__("ResourceNotFound", "Account not found")
+class ResourceNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(
+            error_type="ResourceNotFoundException",
+            message=message,
+        )
+
+
+class ConflictException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(
+            error_type="ConflictException",
+            message=message,
+        )
+
+
+class ServiceQuotaExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(
+            error_type="ServiceQuotaExceededException",
+            message=message,
+        )

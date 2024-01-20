@@ -568,6 +568,9 @@ class CognitoIdpUserPool(BaseModel):
     def create_id_token(self, client_id: str, username: str) -> Tuple[str, int]:
         extra_data = self.get_user_extra_data_by_client_id(client_id, username)
         user = self._get_user(username)
+        for attr in user.attributes:
+            if attr["Name"].startswith("custom:"):
+                extra_data[attr["Name"]] = attr["Value"]
         if len(user.groups) > 0:
             extra_data["cognito:groups"] = [group.group_name for group in user.groups]
         id_token, expires_in = self.create_jwt(
@@ -909,7 +912,7 @@ class CognitoResourceServer(BaseModel):
             "Name": self.name,
         }
 
-        if len(self.scopes) != 0:
+        if self.scopes:
             res.update({"Scopes": self.scopes})
 
         return res
@@ -1490,16 +1493,12 @@ class CognitoIdpBackend(BaseBackend):
         challenge_name: str,
         challenge_responses: Dict[str, str],
     ) -> Dict[str, Any]:
-        """
-        Responds to an authentication challenge, as an administrator.
+        # Responds to an authentication challenge, as an administrator.
+        # The only differences between this admin endpoint and public endpoint are not relevant and so we can safely call
+        # the public endpoint to do the work:
+        #  - The admin endpoint requires a user pool id along with a session; the public endpoint searches across all pools
+        #  - ContextData is passed in; we don't use it
 
-        The only differences between this admin endpoint and public endpoint are not relevant and so we can safely call
-        the public endpoint to do the work:
-        - The admin endpoint requires a user pool id along with a session; the public endpoint searches across all pools
-        - ContextData is passed in; we don't use it
-
-        ref: https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminRespondToAuthChallenge.html
-        """
         return self.respond_to_auth_challenge(
             session, client_id, challenge_name, challenge_responses
         )
@@ -1511,11 +1510,6 @@ class CognitoIdpBackend(BaseBackend):
         challenge_name: str,
         challenge_responses: Dict[str, str],
     ) -> Dict[str, Any]:
-        """
-        Responds to an authentication challenge, from public client.
-
-        ref: https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_RespondToAuthChallenge.html
-        """
         if challenge_name == "PASSWORD_VERIFIER":
             session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")  # type: ignore[assignment]
 

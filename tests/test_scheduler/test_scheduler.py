@@ -176,6 +176,17 @@ def test_get_schedule_for_unknown_group():
 
 
 @mock_scheduler
+def test_get_schedule_for_none_existing_schedule():
+    client = boto3.client("scheduler", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schedule(Name="my-schedule")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Schedule my-schedule does not exist."
+
+
+@mock_scheduler
 def test_list_schedules():
     client = boto3.client("scheduler", region_name="eu-west-1")
 
@@ -206,3 +217,14 @@ def test_list_schedules():
 
     schedules = client.list_schedules(State="ENABLED")["Schedules"]
     assert len(schedules) == 4
+
+
+@mock_scheduler
+def test_delete_schedule_for_none_existing_schedule():
+    client = boto3.client("scheduler", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_schedule(Name="my-schedule")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Schedule my-schedule does not exist."

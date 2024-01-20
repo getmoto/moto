@@ -1,9 +1,7 @@
 """Handles incoming mq requests, invokes methods, returns responses."""
 import json
-from typing import Any
 from urllib.parse import unquote
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import MQBackend, mq_backends
@@ -20,67 +18,7 @@ class MQResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return mq_backends[self.current_account][self.region]
 
-    def broker(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.describe_broker()
-        if request.method == "DELETE":
-            return self.delete_broker()
-        if request.method == "PUT":
-            return self.update_broker()
-
-    def brokers(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_broker()
-        if request.method == "GET":
-            return self.list_brokers()
-
-    def configuration(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.describe_configuration()
-        if request.method == "PUT":
-            return self.update_configuration()
-
-    def configurations(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_configuration()
-        if request.method == "GET":
-            return self.list_configurations()
-
-    def configuration_revision(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_configuration_revision()
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_tags()
-        if request.method == "DELETE":
-            return self.delete_tags()
-        if request.method == "GET":
-            return self.list_tags()
-
-    def user(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_user()
-        if request.method == "GET":
-            return self.describe_user()
-        if request.method == "PUT":
-            return self.update_user()
-        if request.method == "DELETE":
-            return self.delete_user()
-
-    def users(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_users()
-
-    def create_broker(self) -> TYPE_RESPONSE:
+    def create_broker(self) -> str:
         params = json.loads(self.body)
         authentication_strategy = params.get("authenticationStrategy")
         auto_minor_version_upgrade = params.get("autoMinorVersionUpgrade")
@@ -122,9 +60,9 @@ class MQResponse(BaseResponse):
         )
         # Lowercase members - boto3 will convert it into UpperCase
         resp = {"brokerArn": broker_arn, "brokerId": broker_id}
-        return 200, {}, json.dumps(resp)
+        return json.dumps(resp)
 
-    def update_broker(self) -> TYPE_RESPONSE:
+    def update_broker(self) -> str:
         params = json.loads(self.body)
         broker_id = self.path.split("/")[-1]
         authentication_strategy = params.get("authenticationStrategy")
@@ -150,32 +88,32 @@ class MQResponse(BaseResponse):
         )
         return self.describe_broker()
 
-    def delete_broker(self) -> TYPE_RESPONSE:
+    def delete_broker(self) -> str:
         broker_id = self.path.split("/")[-1]
         self.mq_backend.delete_broker(broker_id=broker_id)
-        return 200, {}, json.dumps(dict(brokerId=broker_id))
+        return json.dumps(dict(brokerId=broker_id))
 
-    def describe_broker(self) -> TYPE_RESPONSE:
+    def describe_broker(self) -> str:
         broker_id = self.path.split("/")[-1]
         broker = self.mq_backend.describe_broker(broker_id=broker_id)
         resp = broker.to_json()
         resp["tags"] = self.mq_backend.list_tags(broker.arn)
-        return 200, {}, json.dumps(resp)
+        return json.dumps(resp)
 
-    def list_brokers(self) -> TYPE_RESPONSE:
+    def list_brokers(self) -> str:
         brokers = self.mq_backend.list_brokers()
-        return 200, {}, json.dumps(dict(brokerSummaries=[b.summary() for b in brokers]))
+        return json.dumps(dict(brokerSummaries=[b.summary() for b in brokers]))
 
-    def create_user(self) -> TYPE_RESPONSE:
+    def create_user(self) -> str:
         params = json.loads(self.body)
         broker_id = self.path.split("/")[-3]
         username = self.path.split("/")[-1]
         console_access = params.get("consoleAccess", False)
         groups = params.get("groups", [])
         self.mq_backend.create_user(broker_id, username, console_access, groups)
-        return 200, {}, "{}"
+        return "{}"
 
-    def update_user(self) -> TYPE_RESPONSE:
+    def update_user(self) -> str:
         params = json.loads(self.body)
         broker_id = self.path.split("/")[-3]
         username = self.path.split("/")[-1]
@@ -187,30 +125,30 @@ class MQResponse(BaseResponse):
             groups=groups,
             username=username,
         )
-        return 200, {}, "{}"
+        return "{}"
 
-    def describe_user(self) -> TYPE_RESPONSE:
+    def describe_user(self) -> str:
         broker_id = self.path.split("/")[-3]
         username = self.path.split("/")[-1]
         user = self.mq_backend.describe_user(broker_id, username)
-        return 200, {}, json.dumps(user.to_json())
+        return json.dumps(user.to_json())
 
-    def delete_user(self) -> TYPE_RESPONSE:
+    def delete_user(self) -> str:
         broker_id = self.path.split("/")[-3]
         username = self.path.split("/")[-1]
         self.mq_backend.delete_user(broker_id, username)
-        return 200, {}, "{}"
+        return "{}"
 
-    def list_users(self) -> TYPE_RESPONSE:
+    def list_users(self) -> str:
         broker_id = self.path.split("/")[-2]
         users = self.mq_backend.list_users(broker_id=broker_id)
         resp = {
             "brokerId": broker_id,
             "users": [{"username": u.username} for u in users],
         }
-        return 200, {}, json.dumps(resp)
+        return json.dumps(resp)
 
-    def create_configuration(self) -> TYPE_RESPONSE:
+    def create_configuration(self) -> str:
         params = json.loads(self.body)
         name = params.get("name")
         engine_type = params.get("engineType")
@@ -220,56 +158,54 @@ class MQResponse(BaseResponse):
         config = self.mq_backend.create_configuration(
             name, engine_type, engine_version, tags
         )
-        return 200, {}, json.dumps(config.to_json())
+        return json.dumps(config.to_json())
 
-    def describe_configuration(self) -> TYPE_RESPONSE:
+    def describe_configuration(self) -> str:
         config_id = self.path.split("/")[-1]
         config = self.mq_backend.describe_configuration(config_id)
         resp = config.to_json()
         resp["tags"] = self.mq_backend.list_tags(config.arn)
-        return 200, {}, json.dumps(resp)
+        return json.dumps(resp)
 
-    def list_configurations(self) -> TYPE_RESPONSE:
+    def list_configurations(self) -> str:
         configs = self.mq_backend.list_configurations()
         resp = {"configurations": [c.to_json() for c in configs]}
-        return 200, {}, json.dumps(resp)
+        return json.dumps(resp)
 
-    def update_configuration(self) -> TYPE_RESPONSE:
+    def update_configuration(self) -> str:
         config_id = self.path.split("/")[-1]
         params = json.loads(self.body)
         data = params.get("data")
         description = params.get("description")
         config = self.mq_backend.update_configuration(config_id, data, description)
-        return 200, {}, json.dumps(config.to_json())
+        return json.dumps(config.to_json())
 
-    def get_configuration_revision(self) -> TYPE_RESPONSE:
+    def describe_configuration_revision(self) -> str:
         revision_id = self.path.split("/")[-1]
         config_id = self.path.split("/")[-3]
         revision = self.mq_backend.describe_configuration_revision(
             config_id, revision_id
         )
-        return 200, {}, json.dumps(revision.to_json())
+        return json.dumps(revision.to_json())
 
-    def create_tags(self) -> TYPE_RESPONSE:
+    def create_tags(self) -> str:
         resource_arn = unquote(self.path.split("/")[-1])
         tags = json.loads(self.body).get("tags", {})
         self.mq_backend.create_tags(resource_arn, tags)
-        return 200, {}, "{}"
+        return "{}"
 
-    def delete_tags(self) -> TYPE_RESPONSE:
+    def delete_tags(self) -> str:
         resource_arn = unquote(self.path.split("/")[-1])
         tag_keys = self._get_param("tagKeys")
         self.mq_backend.delete_tags(resource_arn, tag_keys)
-        return 200, {}, "{}"
+        return "{}"
 
-    def list_tags(self) -> TYPE_RESPONSE:
+    def list_tags(self) -> str:
         resource_arn = unquote(self.path.split("/")[-1])
         tags = self.mq_backend.list_tags(resource_arn)
-        return 200, {}, json.dumps({"tags": tags})
+        return json.dumps({"tags": tags})
 
-    def reboot(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            broker_id = self.path.split("/")[-2]
-            self.mq_backend.reboot_broker(broker_id=broker_id)
-            return 200, {}, "{}"
+    def reboot_broker(self) -> str:
+        broker_id = self.path.split("/")[-2]
+        self.mq_backend.reboot_broker(broker_id=broker_id)
+        return "{}"

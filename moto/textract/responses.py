@@ -23,6 +23,10 @@ class TextractResponse(BaseResponse):
         job = self.textract_backend.get_document_text_detection(job_id=job_id).to_dict()
         return json.dumps(job)
 
+    def detect_document_text(self) -> str:
+        result = self.textract_backend.detect_document_text()
+        return json.dumps(result)
+
     def start_document_text_detection(self) -> str:
         params = json.loads(self.body)
         document_location = params.get("DocumentLocation")

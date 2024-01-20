@@ -215,6 +215,8 @@ def test_create_db_cluster__verify_default_properties():
     assert cluster["TagList"] == []
     assert "ClusterCreateTime" in cluster
     assert cluster["EarliestRestorableTime"] >= cluster["ClusterCreateTime"]
+    assert cluster["StorageEncrypted"] is False
+    assert cluster["GlobalWriteForwardingRequested"] is False
 
 
 @mock_rds
@@ -236,6 +238,8 @@ def test_create_db_cluster_additional_parameters():
         KmsKeyId="some:kms:arn",
         NetworkType="IPV4",
         DBSubnetGroupName="subnetgroupname",
+        StorageEncrypted=True,
+        EnableGlobalWriteForwarding=True,
         ScalingConfiguration={
             "MinCapacity": 5,
             "AutoPause": True,
@@ -260,6 +264,8 @@ def test_create_db_cluster_additional_parameters():
     assert cluster["KmsKeyId"] == "some:kms:arn"
     assert cluster["NetworkType"] == "IPV4"
     assert cluster["DBSubnetGroup"] == "subnetgroupname"
+    assert cluster["StorageEncrypted"] is True
+    assert cluster["GlobalWriteForwardingRequested"] is True
     assert cluster["ScalingConfigurationInfo"] == {"MinCapacity": 5, "AutoPause": True}
     assert cluster["ServerlessV2ScalingConfiguration"] == {
         "MaxCapacity": 4.0,
@@ -977,3 +983,120 @@ def test_createdb_instance_engine_mismatch_fail():
         == "The engine name requested for your DB instance (mysql) doesn't match "
         "the engine name of your DB cluster (aurora-postgresql)."
     )
+
+
+@mock_rds
+def test_describe_db_cluster_snapshot_attributes_default():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_cluster(
+        DBClusterIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DatabaseName="staging-postgres",
+        DBClusterInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2000",
+        Port=1234,
+    )
+
+    conn.create_db_cluster_snapshot(
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
+    ).get("DBClusterSnapshot")
+
+    resp = conn.describe_db_cluster_snapshot_attributes(
+        DBClusterSnapshotIdentifier="g-1"
+    )
+
+    assert (
+        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
+        == "g-1"
+    )
+    assert (
+        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"] == []
+    )
+
+
+@mock_rds
+def test_describe_db_cluster_snapshot_attributes():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_cluster(
+        DBClusterIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DatabaseName="staging-postgres",
+        DBClusterInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2000",
+        Port=1234,
+    )
+
+    conn.create_db_cluster_snapshot(
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
+    ).get("DBClusterSnapshot")
+
+    conn.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier="g-1",
+        AttributeName="restore",
+        ValuesToAdd=["test", "test2"],
+    )
+
+    resp = conn.describe_db_cluster_snapshot_attributes(
+        DBClusterSnapshotIdentifier="g-1"
+    )
+
+    assert (
+        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
+        == "g-1"
+    )
+    assert (
+        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
+            "AttributeName"
+        ]
+        == "restore"
+    )
+    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
+        "AttributeValues"
+    ] == ["test", "test2"]
+
+
+@mock_rds
+def test_modify_db_cluster_snapshot_attribute():
+    conn = boto3.client("rds", region_name="us-west-2")
+    conn.create_db_cluster(
+        DBClusterIdentifier="db-primary-1",
+        AllocatedStorage=10,
+        Engine="postgres",
+        DatabaseName="staging-postgres",
+        DBClusterInstanceClass="db.m1.small",
+        MasterUsername="root",
+        MasterUserPassword="hunter2000",
+        Port=1234,
+    )
+
+    conn.create_db_cluster_snapshot(
+        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
+    ).get("DBClusterSnapshot")
+
+    resp = conn.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier="g-1",
+        AttributeName="restore",
+        ValuesToAdd=["test", "test2"],
+    )
+    resp = conn.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier="g-1",
+        AttributeName="restore",
+        ValuesToRemove=["test"],
+    )
+    assert (
+        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
+        == "g-1"
+    )
+    assert (
+        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
+            "AttributeName"
+        ]
+        == "restore"
+    )
+    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
+        "AttributeValues"
+    ] == ["test2"]

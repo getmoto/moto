@@ -1101,6 +1101,7 @@
 - [ ] update_pull_request_status
 - [ ] update_pull_request_title
 - [ ] update_repository_description
+- [ ] update_repository_encryption_key
 - [ ] update_repository_name
 </details>
 
@@ -2689,16 +2690,19 @@
 
 ## eks
 <details>
-<summary>33% implemented</summary>
+<summary>26% implemented</summary>
 
+- [ ] associate_access_policy
 - [ ] associate_encryption_config
 - [ ] associate_identity_provider_config
+- [ ] create_access_entry
 - [ ] create_addon
 - [X] create_cluster
 - [ ] create_eks_anywhere_subscription
 - [X] create_fargate_profile
 - [X] create_nodegroup
 - [ ] create_pod_identity_association
+- [ ] delete_access_entry
 - [ ] delete_addon
 - [X] delete_cluster
 - [ ] delete_eks_anywhere_subscription
@@ -2706,6 +2710,7 @@
 - [X] delete_nodegroup
 - [ ] delete_pod_identity_association
 - [ ] deregister_cluster
+- [ ] describe_access_entry
 - [ ] describe_addon
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
@@ -2713,15 +2718,21 @@
 - [ ] describe_eks_anywhere_subscription
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
+- [ ] describe_insight
 - [X] describe_nodegroup
 - [ ] describe_pod_identity_association
 - [ ] describe_update
+- [ ] disassociate_access_policy
 - [ ] disassociate_identity_provider_config
+- [ ] list_access_entries
+- [ ] list_access_policies
 - [ ] list_addons
+- [ ] list_associated_access_policies
 - [X] list_clusters
 - [ ] list_eks_anywhere_subscriptions
 - [X] list_fargate_profiles
 - [ ] list_identity_provider_configs
+- [ ] list_insights
 - [X] list_nodegroups
 - [ ] list_pod_identity_associations
 - [X] list_tags_for_resource
@@ -2729,6 +2740,7 @@
 - [ ] register_cluster
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_access_entry
 - [ ] update_addon
 - [ ] update_cluster_config
 - [ ] update_cluster_version
@@ -3031,6 +3043,7 @@
 - [ ] remove_managed_scaling_policy
 - [X] remove_tags
 - [X] run_job_flow
+- [ ] set_keep_job_flow_alive_when_no_steps
 - [X] set_termination_protection
 - [X] set_visible_to_all_users
 - [ ] start_notebook_execution
@@ -3650,7 +3663,7 @@
 
 ## guardduty
 <details>
-<summary>16% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -3690,6 +3703,7 @@
 - [ ] get_master_account
 - [ ] get_member_detectors
 - [ ] get_members
+- [ ] get_organization_statistics
 - [ ] get_remaining_free_trial_days
 - [ ] get_threat_intel_set
 - [ ] get_usage_statistics
@@ -3889,7 +3903,7 @@
 
 ## identitystore
 <details>
-<summary>63% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -3905,7 +3919,7 @@
 - [ ] get_user_id
 - [ ] is_member_in_groups
 - [X] list_group_memberships
-- [ ] list_group_memberships_for_member
+- [X] list_group_memberships_for_member
 - [X] list_groups
 - [X] list_users
 - [ ] update_group
@@ -4663,7 +4677,7 @@
 
 ## mediaconnect
 <details>
-<summary>36% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] add_bridge_outputs
 - [ ] add_bridge_sources
@@ -4680,6 +4694,7 @@
 - [ ] deregister_gateway_instance
 - [ ] describe_bridge
 - [X] describe_flow
+- [ ] describe_flow_source_metadata
 - [ ] describe_gateway
 - [ ] describe_gateway_instance
 - [ ] describe_offering
@@ -5173,6 +5188,46 @@
 - [X] update_policy
 </details>
 
+## panorama
+<details>
+<summary>14% implemented</summary>
+
+- [ ] create_application_instance
+- [ ] create_job_for_devices
+- [ ] create_node_from_template_job
+- [ ] create_package
+- [ ] create_package_import_job
+- [X] delete_device
+- [ ] delete_package
+- [ ] deregister_package_version
+- [ ] describe_application_instance
+- [ ] describe_application_instance_details
+- [X] describe_device
+- [ ] describe_device_job
+- [ ] describe_node
+- [ ] describe_node_from_template_job
+- [ ] describe_package
+- [ ] describe_package_import_job
+- [ ] describe_package_version
+- [ ] list_application_instance_dependencies
+- [ ] list_application_instance_node_instances
+- [ ] list_application_instances
+- [X] list_devices
+- [ ] list_devices_jobs
+- [ ] list_node_from_template_jobs
+- [ ] list_nodes
+- [ ] list_package_import_jobs
+- [ ] list_packages
+- [ ] list_tags_for_resource
+- [X] provision_device
+- [ ] register_package_version
+- [ ] remove_application_instance
+- [ ] signal_application_instance_node_instances
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_device_metadata
+</details>
+
 ## personalize
 <details>
 <summary>5% implemented</summary>
@@ -5608,7 +5663,7 @@
 
 ## rds
 <details>
-<summary>36% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5684,6 +5739,7 @@
 - [ ] describe_db_proxy_endpoints
 - [ ] describe_db_proxy_target_groups
 - [ ] describe_db_proxy_targets
+- [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
 - [ ] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
@@ -5706,7 +5762,9 @@
 - [ ] describe_source_regions
 - [ ] describe_tenant_databases
 - [ ] describe_valid_db_instance_modifications
+- [ ] disable_http_endpoint
 - [ ] download_db_log_file_portion
+- [ ] enable_http_endpoint
 - [ ] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
@@ -5723,6 +5781,7 @@
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
 - [ ] modify_db_proxy_target_group
+- [ ] modify_db_recommendation
 - [ ] modify_db_snapshot
 - [ ] modify_db_snapshot_attribute
 - [X] modify_db_subnet_group
@@ -5748,7 +5807,7 @@
 - [ ] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
-- [ ] restore_db_instance_to_point_in_time
+- [X] restore_db_instance_to_point_in_time
 - [ ] revoke_db_security_group_ingress
 - [ ] start_activity_stream
 - [X] start_db_cluster
@@ -5932,10 +5991,10 @@
 
 ## rekognition
 <details>
-<summary>5% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] associate_faces
-- [ ] compare_faces
+- [X] compare_faces
 - [ ] copy_project_version
 - [ ] create_collection
 - [ ] create_dataset
@@ -5959,10 +6018,10 @@
 - [ ] describe_stream_processor
 - [ ] detect_custom_labels
 - [ ] detect_faces
-- [ ] detect_labels
+- [X] detect_labels
 - [ ] detect_moderation_labels
 - [ ] detect_protective_equipment
-- [ ] detect_text
+- [X] detect_text
 - [ ] disassociate_faces
 - [ ] distribute_dataset_entries
 - [ ] get_celebrity_info
@@ -7343,10 +7402,10 @@
 
 ## sso-admin
 <details>
-<summary>10% implemented</summary>
+<summary>24% implemented</summary>
 
-- [ ] attach_customer_managed_policy_reference_to_permission_set
-- [ ] attach_managed_policy_to_permission_set
+- [X] attach_customer_managed_policy_reference_to_permission_set
+- [X] attach_managed_policy_to_permission_set
 - [X] create_account_assignment
 - [ ] create_application
 - [ ] create_application_assignment
@@ -7360,7 +7419,7 @@
 - [ ] delete_application_assignment
 - [ ] delete_application_authentication_method
 - [ ] delete_application_grant
-- [ ] delete_inline_policy_from_permission_set
+- [X] delete_inline_policy_from_permission_set
 - [ ] delete_instance
 - [ ] delete_instance_access_control_attribute_configuration
 - [X] delete_permission_set
@@ -7376,18 +7435,18 @@
 - [X] describe_permission_set
 - [ ] describe_permission_set_provisioning_status
 - [ ] describe_trusted_token_issuer
-- [ ] detach_customer_managed_policy_reference_from_permission_set
-- [ ] detach_managed_policy_from_permission_set
+- [X] detach_customer_managed_policy_reference_from_permission_set
+- [X] detach_managed_policy_from_permission_set
 - [ ] get_application_access_scope
 - [ ] get_application_assignment_configuration
 - [ ] get_application_authentication_method
 - [ ] get_application_grant
-- [ ] get_inline_policy_for_permission_set
+- [X] get_inline_policy_for_permission_set
 - [ ] get_permissions_boundary_for_permission_set
 - [ ] list_account_assignment_creation_status
 - [ ] list_account_assignment_deletion_status
 - [X] list_account_assignments
-- [ ] list_account_assignments_for_principal
+- [X] list_account_assignments_for_principal
 - [ ] list_accounts_for_provisioned_permission_set
 - [ ] list_application_access_scopes
 - [ ] list_application_assignments
@@ -7396,9 +7455,9 @@
 - [ ] list_application_grants
 - [ ] list_application_providers
 - [ ] list_applications
-- [ ] list_customer_managed_policy_references_in_permission_set
+- [X] list_customer_managed_policy_references_in_permission_set
 - [ ] list_instances
-- [ ] list_managed_policies_in_permission_set
+- [X] list_managed_policies_in_permission_set
 - [ ] list_permission_set_provisioning_status
 - [X] list_permission_sets
 - [ ] list_permission_sets_provisioned_to_account
@@ -7409,7 +7468,7 @@
 - [ ] put_application_assignment_configuration
 - [ ] put_application_authentication_method
 - [ ] put_application_grant
-- [ ] put_inline_policy_to_permission_set
+- [X] put_inline_policy_to_permission_set
 - [ ] put_permissions_boundary_to_permission_set
 - [ ] tag_resource
 - [ ] untag_resource
@@ -7543,7 +7602,7 @@
 
 ## textract
 <details>
-<summary>8% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] analyze_document
 - [ ] analyze_expense
@@ -7552,7 +7611,7 @@
 - [ ] create_adapter_version
 - [ ] delete_adapter
 - [ ] delete_adapter_version
-- [ ] detect_document_text
+- [X] detect_document_text
 - [ ] get_adapter
 - [ ] get_adapter_version
 - [ ] get_document_analysis
@@ -7880,6 +7939,7 @@
 - neptunedata
 - network-firewall
 - networkmanager
+- networkmonitor
 - nimble
 - oam
 - omics
@@ -7887,7 +7947,6 @@
 - opsworkscm
 - osis
 - outposts
-- panorama
 - payment-cryptography
 - payment-cryptography-data
 - pca-connector-ad

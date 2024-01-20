@@ -195,6 +195,10 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_param("AllocatedStorage"),
             "global_cluster_identifier": self._get_param("GlobalClusterIdentifier"),
             "iops": self._get_param("Iops"),
+            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "enable_global_write_forwarding": self._get_param(
+                "EnableGlobalWriteForwarding"
+            ),
             "storage_type": self._get_param("StorageType"),
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_username": self._get_param("MasterUsername"),
@@ -365,6 +369,17 @@ class RDSResponse(BaseResponse):
             db_snapshot_identifier, db_kwargs
         )
         template = self.response_template(RESTORE_INSTANCE_FROM_SNAPSHOT_TEMPLATE)
+        return template.render(database=new_instance)
+
+    def restore_db_instance_to_point_in_time(self) -> str:
+        source_db_identifier = self._get_param("SourceDBInstanceIdentifier")
+        target_db_identifier = self._get_param("TargetDBInstanceIdentifier")
+
+        db_kwargs = self._get_db_kwargs()
+        new_instance = self.backend.restore_db_instance_to_point_in_time(
+            source_db_identifier, target_db_identifier, db_kwargs
+        )
+        template = self.response_template(RESTORE_INSTANCE_TO_POINT_IN_TIME_TEMPLATE)
         return template.render(database=new_instance)
 
     def list_tags_for_resource(self) -> str:
@@ -807,6 +822,66 @@ class RDSResponse(BaseResponse):
         template = self.response_template(PROMOTE_READ_REPLICA_DB_CLUSTER_TEMPLATE)
         return template.render(cluster=cluster)
 
+    def describe_db_snapshot_attributes(self) -> str:
+        params = self._get_params()
+        db_snapshot_identifier = params["DBSnapshotIdentifier"]
+        db_snapshot_attributes_result = self.backend.describe_db_snapshot_attributes(
+            db_snapshot_identifier=db_snapshot_identifier,
+        )
+        template = self.response_template(DESCRIBE_DB_SNAPSHOT_ATTRIBUTES_TEMPLATE)
+        return template.render(
+            db_snapshot_attributes_result=db_snapshot_attributes_result,
+            db_snapshot_identifier=db_snapshot_identifier,
+        )
+
+    def modify_db_snapshot_attribute(self) -> str:
+        params = self._get_params()
+        db_snapshot_identifier = params["DBSnapshotIdentifier"]
+        db_snapshot_attributes_result = self.backend.modify_db_snapshot_attribute(
+            db_snapshot_identifier=db_snapshot_identifier,
+            attribute_name=params["AttributeName"],
+            values_to_add=params.get("ValuesToAdd"),
+            values_to_remove=params.get("ValuesToRemove"),
+        )
+        template = self.response_template(MODIFY_DB_SNAPSHOT_ATTRIBUTE_TEMPLATE)
+        return template.render(
+            db_snapshot_attributes_result=db_snapshot_attributes_result,
+            db_snapshot_identifier=db_snapshot_identifier,
+        )
+
+    def describe_db_cluster_snapshot_attributes(self) -> str:
+        params = self._get_params()
+        db_cluster_snapshot_identifier = params["DBClusterSnapshotIdentifier"]
+        db_cluster_snapshot_attributes_result = (
+            self.backend.describe_db_cluster_snapshot_attributes(
+                db_cluster_snapshot_identifier=db_cluster_snapshot_identifier,
+            )
+        )
+        template = self.response_template(
+            DESCRIBE_DB_CLUSTER_SNAPSHOT_ATTRIBUTES_TEMPLATE
+        )
+        return template.render(
+            db_cluster_snapshot_attributes_result=db_cluster_snapshot_attributes_result,
+            db_cluster_snapshot_identifier=db_cluster_snapshot_identifier,
+        )
+
+    def modify_db_cluster_snapshot_attribute(self) -> str:
+        params = self._get_params()
+        db_cluster_snapshot_identifier = params["DBClusterSnapshotIdentifier"]
+        db_cluster_snapshot_attributes_result = (
+            self.backend.modify_db_cluster_snapshot_attribute(
+                db_cluster_snapshot_identifier=db_cluster_snapshot_identifier,
+                attribute_name=params["AttributeName"],
+                values_to_add=params.get("ValuesToAdd"),
+                values_to_remove=params.get("ValuesToRemove"),
+            )
+        )
+        template = self.response_template(MODIFY_DB_CLUSTER_SNAPSHOT_ATTRIBUTE_TEMPLATE)
+        return template.render(
+            db_cluster_snapshot_attributes_result=db_cluster_snapshot_attributes_result,
+            db_cluster_snapshot_identifier=db_cluster_snapshot_identifier,
+        )
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -913,6 +988,16 @@ RESTORE_INSTANCE_FROM_SNAPSHOT_TEMPLATE = """<RestoreDBInstanceFromDBSnapshotRes
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
   </ResponseMetadata>
 </RestoreDBInstanceFromDBSnapshotResponse>"""
+
+
+RESTORE_INSTANCE_TO_POINT_IN_TIME_TEMPLATE = """<RestoreDBInstanceToPointInTimeResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
+  <RestoreDBInstanceToPointInTimeResult>
+  {{ database.to_xml() }}
+  </RestoreDBInstanceToPointInTimeResult>
+  <ResponseMetadata>
+    <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
+  </ResponseMetadata>
+</RestoreDBInstanceToPointInTimeResponse>"""
 
 CREATE_SNAPSHOT_TEMPLATE = """<CreateDBSnapshotResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBSnapshotResult>
@@ -1453,3 +1538,95 @@ PROMOTE_READ_REPLICA_DB_CLUSTER_TEMPLATE = """<PromoteReadReplicaDBClusterRespon
     <RequestId>7369556f-b70d-11c3-faca-6ba18376ea1b</RequestId>
   </ResponseMetadata>
 </PromoteReadReplicaDBClusterResponse>"""
+
+DESCRIBE_DB_SNAPSHOT_ATTRIBUTES_TEMPLATE = """<DescribeDBSnapshotAttributesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <DescribeDBSnapshotAttributesResult>
+    <DBSnapshotAttributesResult>
+      <DBSnapshotAttributes>
+        {%- for attribute in db_snapshot_attributes_result -%}
+          <DBSnapshotAttribute>
+            <AttributeName>{{ attribute["AttributeName"] }}</AttributeName>
+            <AttributeValues>
+              {%- for value in attribute["AttributeValues"] -%}
+                <AttributeValue>{{ value }}</AttributeValue>
+              {%- endfor -%}
+            </AttributeValues>
+          </DBSnapshotAttribute>
+        {%- endfor -%}
+      </DBSnapshotAttributes>
+      <DBSnapshotIdentifier>{{ db_snapshot_identifier }}</DBSnapshotIdentifier>
+    </DBSnapshotAttributesResult>
+  </DescribeDBSnapshotAttributesResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334a</RequestId>
+  </ResponseMetadata>
+</DescribeDBSnapshotAttributesResponse>"""
+
+MODIFY_DB_SNAPSHOT_ATTRIBUTE_TEMPLATE = """<ModifyDBSnapshotAttributeResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ModifyDBSnapshotAttributeResult>
+    <DBSnapshotAttributesResult>
+      <DBSnapshotAttributes>
+        {%- for attribute in db_snapshot_attributes_result -%}
+          <DBSnapshotAttribute>
+            <AttributeName>{{ attribute["AttributeName"] }}</AttributeName>
+            <AttributeValues>
+              {%- for value in attribute["AttributeValues"] -%}
+                <AttributeValue>{{ value }}</AttributeValue>
+              {%- endfor -%}
+            </AttributeValues>
+          </DBSnapshotAttribute>
+        {%- endfor -%}
+      </DBSnapshotAttributes>
+      <DBSnapshotIdentifier>{{ db_snapshot_identifier }}</DBSnapshotIdentifier>
+    </DBSnapshotAttributesResult>
+  </ModifyDBSnapshotAttributeResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</ModifyDBSnapshotAttributeResponse>"""
+
+MODIFY_DB_CLUSTER_SNAPSHOT_ATTRIBUTE_TEMPLATE = """<ModifyDBClusterSnapshotAttributeResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ModifyDBClusterSnapshotAttributeResult>
+    <DBClusterSnapshotAttributesResult>
+      <DBClusterSnapshotAttributes>
+        {%- for attribute in db_cluster_snapshot_attributes_result -%}
+          <DBClusterSnapshotAttribute>
+            <AttributeName>{{ attribute["AttributeName"] }}</AttributeName>
+            <AttributeValues>
+              {%- for value in attribute["AttributeValues"] -%}
+                <AttributeValue>{{ value }}</AttributeValue>
+              {%- endfor -%}
+            </AttributeValues>
+          </DBClusterSnapshotAttribute>
+        {%- endfor -%}
+      </DBClusterSnapshotAttributes>
+      <DBClusterSnapshotIdentifier>{{ db_cluster_snapshot_identifier }}</DBClusterSnapshotIdentifier>
+    </DBClusterSnapshotAttributesResult>
+  </ModifyDBClusterSnapshotAttributeResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334a</RequestId>
+  </ResponseMetadata>
+</ModifyDBClusterSnapshotAttributeResponse>"""
+
+DESCRIBE_DB_CLUSTER_SNAPSHOT_ATTRIBUTES_TEMPLATE = """<DescribeDBClusterSnapshotAttributesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <DescribeDBClusterSnapshotAttributesResult>
+    <DBClusterSnapshotAttributesResult>
+      <DBClusterSnapshotAttributes>
+        {%- for attribute in db_cluster_snapshot_attributes_result -%}
+          <DBClusterSnapshotAttribute>
+            <AttributeName>{{ attribute["AttributeName"] }}</AttributeName>
+            <AttributeValues>
+              {%- for value in attribute["AttributeValues"] -%}
+                <AttributeValue>{{ value }}</AttributeValue>
+              {%- endfor -%}
+            </AttributeValues>
+          </DBClusterSnapshotAttribute> 
+        {%- endfor -%}
+      </DBClusterSnapshotAttributes>
+      <DBClusterSnapshotIdentifier>{{ db_cluster_snapshot_identifier }}</DBClusterSnapshotIdentifier>
+    </DBClusterSnapshotAttributesResult>
+  </DescribeDBClusterSnapshotAttributesResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334a</RequestId>
+  </ResponseMetadata>
+</DescribeDBClusterSnapshotAttributesResponse>"""

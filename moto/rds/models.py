@@ -229,6 +229,15 @@ class Cluster:
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
+        self.storage_encrypted = kwargs.get("storage_encrypted", False)
+        if self.storage_encrypted:
+            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+        else:
+            self.kms_key_id = kwargs.get("kms_key_id")
+        if self.engine == "aurora-mysql" or self.engine == "aurora-postgresql":
+            self.global_write_forwarding_requested = kwargs.get(
+                "enable_global_write_forwarding"
+            )
 
     @property
     def is_multi_az(self) -> bool:
@@ -361,7 +370,8 @@ class Cluster:
               {% endfor %}
               </VpcSecurityGroups>
               <HostedZoneId>{{ cluster.hosted_zone_id }}</HostedZoneId>
-              <StorageEncrypted>false</StorageEncrypted>
+              <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
+              <GlobalWriteForwardingRequested>{{ cluster.global_write_forwarding_requested }}</GlobalWriteForwardingRequested>
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
@@ -485,6 +495,7 @@ class ClusterSnapshot(BaseModel):
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds()
+        self.attributes: List[Dict[str, Any]] = []
 
     @property
     def arn(self) -> str:
@@ -1122,6 +1133,7 @@ class DatabaseSnapshot(BaseModel):
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds()
+        self.attributes: List[Dict[str, Any]] = []
 
     @property
     def arn(self) -> str:
@@ -1145,9 +1157,13 @@ class DatabaseSnapshot(BaseModel):
               <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
               <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
               <InstanceCreateTime>{{ snapshot.created_at }}</InstanceCreateTime>
+              {% if database.master_username %}
               <MasterUsername>{{ database.master_username }}</MasterUsername>
+              {% endif %}
               <EngineVersion>{{ database.engine_version }}</EngineVersion>
+              {% if database.license_model %}
               <LicenseModel>{{ database.license_model }}</LicenseModel>
+              {% endif %}
               <SnapshotType>{{ snapshot.snapshot_type }}</SnapshotType>
               {% if database.iops %}
               <Iops>{{ database.iops }}</Iops>
@@ -1166,10 +1182,14 @@ class DatabaseSnapshot(BaseModel):
               </TagList>
               <TdeCredentialArn></TdeCredentialArn>
               <Encrypted>{{ database.storage_encrypted }}</Encrypted>
+              {% if database.kms_key_id %}
               <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
+              {% endif %}
               <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
               <Timezone></Timezone>
+              {% if database.enable_iam_database_authentication %}
               <IAMDatabaseAuthenticationEnabled>{{ database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
+              {% endif %}
             </DBSnapshot>"""
         )
         return template.render(snapshot=self, database=self.database)
@@ -1786,6 +1806,30 @@ class RDSBackend(BaseBackend):
         for key, value in overrides.items():
             if value:
                 new_instance_props[key] = value
+
+        return self.create_db_instance(new_instance_props)
+
+    def restore_db_instance_to_point_in_time(
+        self,
+        source_db_identifier: str,
+        target_db_identifier: str,
+        overrides: Dict[str, Any],
+    ) -> Database:
+        db_instance = self.describe_db_instances(
+            db_instance_identifier=source_db_identifier
+        )[0]
+        new_instance_props = copy.deepcopy(db_instance.__dict__)
+        if not db_instance.option_group_supplied:
+            # If the option group is not supplied originally, the 'option_group_name' will receive a default value
+            # Force this reconstruction, and prevent any validation on the default value
+            del new_instance_props["option_group_name"]
+
+        for key, value in overrides.items():
+            if value:
+                new_instance_props[key] = value
+
+        # set the new db instance identifier
+        new_instance_props["db_instance_identifier"] = target_db_identifier
 
         return self.create_db_instance(new_instance_props)
 
@@ -2770,6 +2814,92 @@ class RDSBackend(BaseBackend):
         except:  # noqa: E722 Do not use bare except
             pass
         return None
+
+    def describe_db_snapshot_attributes(
+        self, db_snapshot_identifier: str
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_snapshots(
+            db_instance_identifier=None, db_snapshot_identifier=db_snapshot_identifier
+        )[0]
+        return snapshot.attributes
+
+    def modify_db_snapshot_attribute(
+        self,
+        db_snapshot_identifier: str,
+        attribute_name: str,
+        values_to_add: Optional[Dict[str, Dict[str, str]]] = None,
+        values_to_remove: Optional[Dict[str, Dict[str, str]]] = None,
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_snapshots(
+            db_instance_identifier=None, db_snapshot_identifier=db_snapshot_identifier
+        )[0]
+        attribute_present = False
+        for attribute in snapshot.attributes:
+            if attribute["AttributeName"] == attribute_name:
+                attribute_present = True
+                if values_to_add:
+                    attribute["AttributeValues"] = (
+                        values_to_add["AttributeValue"].values()
+                        + attribute["AttributeValues"]
+                    )
+                if values_to_remove:
+                    attribute["AttributeValues"] = [
+                        i
+                        for i in attribute["AttributeValues"]
+                        if i not in values_to_remove["AttributeValue"].values()
+                    ]
+        if not attribute_present and values_to_add:
+            snapshot.attributes.append(
+                {
+                    "AttributeName": attribute_name,
+                    "AttributeValues": values_to_add["AttributeValue"].values(),
+                }
+            )
+        return snapshot.attributes
+
+    def describe_db_cluster_snapshot_attributes(
+        self, db_cluster_snapshot_identifier: str
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_cluster_snapshots(
+            db_cluster_identifier=None,
+            db_snapshot_identifier=db_cluster_snapshot_identifier,
+        )[0]
+        return snapshot.attributes
+
+    def modify_db_cluster_snapshot_attribute(
+        self,
+        db_cluster_snapshot_identifier: str,
+        attribute_name: str,
+        values_to_add: Optional[Dict[str, Dict[str, str]]] = None,
+        values_to_remove: Optional[Dict[str, Dict[str, str]]] = None,
+    ) -> List[Dict[str, Any]]:
+        snapshot = self.describe_db_cluster_snapshots(
+            db_cluster_identifier=None,
+            db_snapshot_identifier=db_cluster_snapshot_identifier,
+        )[0]
+        attribute_present = False
+        for attribute in snapshot.attributes:
+            if attribute["AttributeName"] == attribute_name:
+                attribute_present = True
+                if values_to_add:
+                    attribute["AttributeValues"] = (
+                        values_to_add["AttributeValue"].values()
+                        + attribute["AttributeValues"]
+                    )
+                if values_to_remove:
+                    attribute["AttributeValues"] = [
+                        i
+                        for i in attribute["AttributeValues"]
+                        if i not in values_to_remove["AttributeValue"].values()
+                    ]
+        if not attribute_present and values_to_add:
+            snapshot.attributes.append(
+                {
+                    "AttributeName": attribute_name,
+                    "AttributeValues": values_to_add["AttributeValue"].values(),
+                }
+            )
+        return snapshot.attributes
 
 
 class OptionGroup:

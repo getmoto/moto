@@ -1,7 +1,7 @@
 {
   "ManagedRules": {
     "ACCESS_KEYS_ROTATED": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "90",
@@ -14,7 +14,7 @@
       "Trigger type": "Periodic"
     },
     "ACCOUNT_PART_OF_ORGANIZATIONS": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "MasterAccountId",
@@ -25,7 +25,7 @@
       "Trigger type": "Periodic"
     },
     "ACM_CERTIFICATE_EXPIRATION_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "14",
@@ -43,8 +43,20 @@
       "Resource Types": "AWS::ACM::Certificate",
       "Trigger type": "Configuration changes"
     },
+    "ACM_PCA_ROOT_CA_DISABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "exemptedCAArns",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::ACMPCA::CertificateAuthority",
+      "Trigger type": "Periodic"
+    },
     "ALB_DESYNC_MODE_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta) Region",
       "Parameters": [
         {
           "Name": "desyncMode",
@@ -67,7 +79,7 @@
       "Trigger type": "Periodic"
     },
     "ALB_WAF_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "wafWebAclIds",
@@ -79,13 +91,13 @@
       "Trigger type": "Configuration changes"
     },
     "API_GWV2_ACCESS_LOGS_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ApiGatewayV2::Stage",
       "Trigger type": "Configuration changes"
     },
     "API_GWV2_AUTHORIZATION_TYPE_CONFIGURED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "authorizationType",
@@ -97,7 +109,7 @@
       "Trigger type": "Periodic"
     },
     "API_GW_ASSOCIATED_WITH_WAF": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "WebAclArns",
@@ -109,13 +121,13 @@
       "Trigger type": "Configuration changes"
     },
     "API_GW_CACHE_ENABLED_AND_ENCRYPTED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [],
       "Resource Types": "AWS::ApiGateway::Stage",
       "Trigger type": "Configuration changes"
     },
     "API_GW_ENDPOINT_TYPE_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "endpointConfigurationTypes",
@@ -127,7 +139,7 @@
       "Trigger type": "Configuration changes"
     },
     "API_GW_EXECUTION_LOGGING_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), Canada West (Calgary) Region",
       "Parameters": [
         {
           "Default": "ERROR,INFO",
@@ -140,7 +152,7 @@
       "Trigger type": "Configuration changes"
     },
     "API_GW_SSL_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "CertificateIDs",
@@ -152,7 +164,7 @@
       "Trigger type": "Configuration changes"
     },
     "API_GW_XRAY_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [],
       "Resource Types": "AWS::ApiGateway::Stage",
       "Trigger type": "Configuration changes"
@@ -213,7 +225,7 @@
       "Trigger type": "Periodic"
     },
     "APPSYNC_LOGGING_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "fieldLoggingLevel",
@@ -259,8 +271,30 @@
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Periodic"
     },
+    "AURORA_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::RDS::DBCluster",
+      "Trigger type": "Periodic"
+    },
     "AURORA_MYSQL_BACKTRACKING_ENABLED": {
-      "AWS Region": "All supported AWS regions except Europe (Stockholm), Middle East (Bahrain), China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), South America (Sao Paulo), Asia Pacific (Hong Kong), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Europe (Stockholm), Middle East (Bahrain), China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), South America (Sao Paulo), Asia Pacific (Hong Kong), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "BacktrackWindowInHours",
@@ -320,37 +354,37 @@
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_GROUP_ELB_HEALTHCHECK_REQUIRED": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Melbourne) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Melbourne), Canada West (Calgary) Region",
       "Parameters": [],
       "Resource Types": "AWS::AutoScaling::AutoScalingGroup",
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_LAUNCHCONFIG_REQUIRES_IMDSV2": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta) Region",
       "Parameters": [],
       "Resource Types": "AWS::AutoScaling::LaunchConfiguration",
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_LAUNCH_CONFIG_HOP_LIMIT": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [],
       "Resource Types": "AWS::AutoScaling::LaunchConfiguration",
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_LAUNCH_CONFIG_PUBLIC_IP_DISABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary) Region",
       "Parameters": [],
       "Resource Types": "AWS::AutoScaling::LaunchConfiguration",
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_LAUNCH_TEMPLATE": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [],
       "Resource Types": "AWS::AutoScaling::AutoScalingGroup",
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_MULTIPLE_AZ": {
-      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [
         {
           "Name": "minAvailabilityZones",
@@ -362,7 +396,7 @@
       "Trigger type": "Configuration changes"
     },
     "AUTOSCALING_MULTIPLE_INSTANCE_TYPES": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta) Region",
       "Parameters": [],
       "Resource Types": "AWS::AutoScaling::AutoScalingGroup",
       "Trigger type": "Configuration changes"
@@ -424,13 +458,13 @@
       "Trigger type": "Configuration changes"
     },
     "BEANSTALK_ENHANCED_HEALTH_REPORTING_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElasticBeanstalk::Environment",
       "Trigger type": "Configuration changes"
     },
     "CLB_DESYNC_MODE_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "desyncMode",
@@ -442,7 +476,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLB_MULTIPLE_AZ": {
-      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [
         {
           "Name": "minAvailabilityZones",
@@ -454,7 +488,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDFORMATION_STACK_DRIFT_DETECTION_CHECK": {
-      "AWS Region": "All supported AWS regions except Europe (Stockholm), Europe (Paris), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Europe (Stockholm), Europe (Paris), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "cloudformationRoleArn",
@@ -466,7 +500,7 @@
       "Trigger type": "Configuration changes and Periodic"
     },
     "CLOUDFORMATION_STACK_NOTIFICATION_CHECK": {
-      "AWS Region": "All supported AWS regions except Europe (Stockholm), Middle East (Bahrain), Europe (Paris), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hong Kong), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Europe (Stockholm), Middle East (Bahrain), Europe (Paris), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hong Kong), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "snsTopic1",
@@ -558,7 +592,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDFRONT_S3_ORIGIN_NON_EXISTENT_BUCKET": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "Only available in China (Beijing), US East (N. Virginia) Region",
       "Parameters": [],
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Periodic"
@@ -588,7 +622,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDTRAIL_S3_DATAEVENTS_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "S3BucketNames",
@@ -654,7 +688,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDWATCH_ALARM_ACTION_ENABLED_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [],
       "Resource Types": "AWS::CloudWatch::Alarm",
       "Trigger type": "Configuration changes"
@@ -714,7 +748,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDWATCH_LOG_GROUP_ENCRYPTED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Israel (Tel Aviv), Europe (Spain), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "KmsKeyId",
@@ -778,7 +812,7 @@
       "Trigger type": "Configuration changes"
     },
     "CODEBUILD_PROJECT_ENVIRONMENT_PRIVILEGED_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "exemptedProjects",
@@ -790,13 +824,13 @@
       "Trigger type": "Configuration changes"
     },
     "CODEBUILD_PROJECT_ENVVAR_AWSCRED_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::CodeBuild::Project",
       "Trigger type": "Configuration changes"
     },
     "CODEBUILD_PROJECT_LOGGING_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "s3BucketNames",
@@ -813,7 +847,7 @@
       "Trigger type": "Configuration changes"
     },
     "CODEBUILD_PROJECT_S3_LOGS_ENCRYPTED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "exemptedProjects",
@@ -825,7 +859,7 @@
       "Trigger type": "Configuration changes"
     },
     "CODEBUILD_PROJECT_SOURCE_REPO_URL_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::CodeBuild::Project",
       "Trigger type": "Configuration changes"
@@ -993,7 +1027,7 @@
       "Trigger type": "Configuration changes"
     },
     "DMS_REPLICATION_NOT_PUBLIC": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -1089,7 +1123,7 @@
       "Trigger type": "Periodic"
     },
     "DYNAMODB_IN_BACKUP_PLAN": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::DynamoDB::Table",
       "Trigger type": "Periodic"
@@ -1116,6 +1150,28 @@
         {
           "Default": "days",
           "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::DynamoDB::Table",
+      "Trigger type": "Periodic"
+    },
+    "DYNAMODB_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
           "Optional": true,
           "Type": "String"
         }
@@ -1171,8 +1227,14 @@
       "Resource Types": "AWS::DynamoDB::Table",
       "Trigger type": "Periodic"
     },
+    "DYNAMODB_TABLE_DELETION_PROTECTION_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::DynamoDB::Table",
+      "Trigger type": "Configuration changes"
+    },
     "DYNAMODB_TABLE_ENCRYPTED_KMS": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -1190,7 +1252,7 @@
       "Trigger type": "Configuration changes"
     },
     "DYNAMODB_THROUGHPUT_LIMIT_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Default": "80",
@@ -1208,7 +1270,7 @@
       "Trigger type": "Periodic"
     },
     "EBS_IN_BACKUP_PLAN": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -1241,8 +1303,30 @@
       "Resource Types": "AWS::EC2::Volume",
       "Trigger type": "Periodic"
     },
+    "EBS_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EC2::Volume",
+      "Trigger type": "Periodic"
+    },
     "EBS_OPTIMIZED_INSTANCE": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [],
       "Resource Types": "AWS::EC2::Instance",
       "Trigger type": "Configuration changes"
@@ -1294,6 +1378,12 @@
       "Parameters": [],
       "Trigger type": "Periodic"
     },
+    "EC2_CLIENT_VPN_CONNECTION_LOG_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::EC2::ClientVpnEndpoint",
+      "Trigger type": "Configuration changes"
+    },
     "EC2_CLIENT_VPN_NOT_AUTHORIZE_ALL": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [],
@@ -1301,7 +1391,7 @@
       "Trigger type": "Periodic"
     },
     "EC2_EBS_ENCRYPTION_BY_DEFAULT": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -1318,7 +1408,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_INSTANCE_MANAGED_BY_SSM": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Israel (Tel Aviv), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [],
       "Resource Types": "AWS::EC2::Instance, AWS::SSM::ManagedInstanceInventory",
       "Trigger type": "Configuration changes"
@@ -1342,7 +1432,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_INSTANCE_PROFILE_ATTACHED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "IamInstanceProfileArnList",
@@ -1383,7 +1473,7 @@
       "Trigger type": "Periodic"
     },
     "EC2_LAUNCH_TEMPLATE_PUBLIC_IP_DISABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "exemptedLaunchTemplates",
@@ -1395,7 +1485,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_MANAGEDINSTANCE_APPLICATIONS_BLACKLISTED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "applicationNames",
@@ -1412,7 +1502,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_MANAGEDINSTANCE_APPLICATIONS_REQUIRED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "applicationNames",
@@ -1429,13 +1519,13 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_MANAGEDINSTANCE_ASSOCIATION_COMPLIANCE_STATUS_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::SSM::AssociationCompliance",
       "Trigger type": "Configuration changes"
     },
     "EC2_MANAGEDINSTANCE_INVENTORY_BLACKLISTED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "inventoryNames",
@@ -1452,13 +1542,13 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_MANAGEDINSTANCE_PATCH_COMPLIANCE_STATUS_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::SSM::PatchCompliance",
       "Trigger type": "Configuration changes"
     },
     "EC2_MANAGEDINSTANCE_PLATFORM_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "platformType",
@@ -1484,6 +1574,28 @@
       "Resource Types": "AWS::SSM::ManagedInstanceInventory",
       "Trigger type": "Configuration changes"
     },
+    "EC2_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EC2::Instance",
+      "Trigger type": "Periodic"
+    },
     "EC2_NO_AMAZON_KEY_PAIR": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [],
@@ -1491,7 +1603,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_PARAVIRTUAL_INSTANCE_CHECK": {
-      "AWS Region": "Only available in Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
+      "AWS Region": "Only available in China (Beijing), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
       "Parameters": [],
       "Resource Types": "AWS::EC2::Instance",
       "Trigger type": "Configuration changes"
@@ -1539,7 +1651,7 @@
       "Trigger type": "Periodic"
     },
     "EC2_SECURITY_GROUP_ATTACHED_TO_ENI": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Osaka) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Osaka), Canada West (Calgary) Region",
       "Parameters": [],
       "Resource Types": "AWS::EC2::SecurityGroup",
       "Trigger type": "Configuration changes"
@@ -1551,7 +1663,7 @@
       "Trigger type": "Periodic"
     },
     "EC2_STOPPED_INSTANCE": {
-      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv) Region",
+      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary) Region",
       "Parameters": [
         {
           "Default": "30",
@@ -1581,7 +1693,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_VOLUME_INUSE_CHECK": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "deleteOnTermination",
@@ -1599,13 +1711,13 @@
       "Trigger type": "Periodic"
     },
     "ECR_PRIVATE_LIFECYCLE_POLICY_CONFIGURED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECR::Repository",
       "Trigger type": "Configuration changes"
     },
     "ECR_PRIVATE_TAG_IMMUTABILITY_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECR::Repository",
       "Trigger type": "Configuration changes"
@@ -1617,25 +1729,25 @@
       "Trigger type": "Configuration changes"
     },
     "ECS_CONTAINERS_NONPRIVILEGED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Osaka), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECS::TaskDefinition",
       "Trigger type": "Configuration changes"
     },
     "ECS_CONTAINERS_READONLY_ACCESS": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECS::TaskDefinition",
       "Trigger type": "Configuration changes"
     },
     "ECS_CONTAINER_INSIGHTS_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Osaka), Europe (Milan), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), Europe (Milan) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECS::Cluster",
       "Trigger type": "Configuration changes"
     },
     "ECS_FARGATE_LATEST_PLATFORM_VERSION": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Osaka), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka) Region",
       "Parameters": [
         {
           "Name": "latestLinuxVersion",
@@ -1652,7 +1764,7 @@
       "Trigger type": "Configuration changes"
     },
     "ECS_NO_ENVIRONMENT_SECRETS": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Osaka), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [
         {
           "Name": "secretKeys",
@@ -1664,7 +1776,7 @@
       "Trigger type": "Configuration changes"
     },
     "ECS_TASK_DEFINITION_LOG_CONFIGURATION": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECS::TaskDefinition",
       "Trigger type": "Configuration changes"
@@ -1682,13 +1794,13 @@
       "Trigger type": "Configuration changes"
     },
     "ECS_TASK_DEFINITION_PID_MODE_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Osaka), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Osaka), AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [],
       "Resource Types": "AWS::ECS::TaskDefinition",
       "Trigger type": "Configuration changes"
     },
     "ECS_TASK_DEFINITION_USER_FOR_HOST_MODE_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "SkipInactiveTaskDefinitions",
@@ -1700,7 +1812,7 @@
       "Trigger type": "Configuration changes"
     },
     "EFS_ACCESS_POINT_ENFORCE_ROOT_DIRECTORY": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "approvedDirectories",
@@ -1712,7 +1824,7 @@
       "Trigger type": "Configuration changes"
     },
     "EFS_ACCESS_POINT_ENFORCE_USER_IDENTITY": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "approvedUids",
@@ -1729,7 +1841,7 @@
       "Trigger type": "Configuration changes"
     },
     "EFS_ENCRYPTED_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "KmsKeyId",
@@ -1740,7 +1852,7 @@
       "Trigger type": "Periodic"
     },
     "EFS_IN_BACKUP_PLAN": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -1766,6 +1878,28 @@
         {
           "Default": "days",
           "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EFS::FileSystem",
+      "Trigger type": "Periodic"
+    },
+    "EFS_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
           "Optional": true,
           "Type": "String"
         }
@@ -1827,6 +1961,18 @@
       "Resource Types": "AWS::EKS::Cluster",
       "Trigger type": "Periodic"
     },
+    "EKS_CLUSTER_LOG_ENABLED": {
+      "AWS Region": "All supported AWS regions except Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
+      "Parameters": [
+        {
+          "Name": "logTypes",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::EKS::Cluster",
+      "Trigger type": "Configuration changes"
+    },
     "EKS_CLUSTER_OLDEST_SUPPORTED_VERSION": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
@@ -1840,7 +1986,7 @@
       "Trigger type": "Configuration changes"
     },
     "EKS_CLUSTER_SUPPORTED_VERSION": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "oldestVersionSupported",
@@ -1852,12 +1998,12 @@
       "Trigger type": "Configuration changes"
     },
     "EKS_ENDPOINT_NO_PUBLIC_ACCESS": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), US West (N. California), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "EKS_SECRETS_ENCRYPTED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), US West (N. California), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -1868,7 +2014,7 @@
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_AUTO_MINOR_VERSION_UPGRADE_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElastiCache::CacheCluster",
       "Trigger type": "Periodic"
@@ -1886,7 +2032,7 @@
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_REDIS_CLUSTER_AUTOMATIC_BACKUP_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "15",
@@ -1899,13 +2045,13 @@
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_REPL_GRP_AUTO_FAILOVER_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElastiCache::ReplicationGroup",
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_REPL_GRP_ENCRYPTED_AT_REST": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
       "Parameters": [
         {
           "Name": "approvedKMSKeyIds",
@@ -1917,19 +2063,19 @@
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_REPL_GRP_ENCRYPTED_IN_TRANSIT": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElastiCache::ReplicationGroup",
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_REPL_GRP_REDIS_AUTH_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElastiCache::ReplicationGroup",
       "Trigger type": "Periodic"
     },
     "ELASTICACHE_SUBNET_GROUP_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElastiCache::CacheCluster",
       "Trigger type": "Periodic"
@@ -1952,17 +2098,17 @@
       "Trigger type": "Periodic"
     },
     "ELASTICSEARCH_ENCRYPTED_AT_REST": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "ELASTICSEARCH_IN_VPC_ONLY": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "ELASTICSEARCH_LOGS_TO_CLOUDWATCH": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "logTypes",
@@ -1974,7 +2120,7 @@
       "Trigger type": "Configuration changes"
     },
     "ELASTICSEARCH_NODE_TO_NODE_ENCRYPTION_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::Elasticsearch::Domain",
       "Trigger type": "Configuration changes"
@@ -1997,7 +2143,7 @@
       "Trigger type": "Configuration changes"
     },
     "ELASTIC_BEANSTALK_MANAGED_UPDATES_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "UpdateLevel",
@@ -2009,7 +2155,7 @@
       "Trigger type": "Configuration changes"
     },
     "ELBV2_ACM_CERTIFICATE_REQUIRED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "AcmCertificatesAllowed",
@@ -2020,7 +2166,7 @@
       "Trigger type": "Periodic"
     },
     "ELBV2_MULTIPLE_AZ": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
       "Parameters": [
         {
           "Name": "minAvailabilityZones",
@@ -2032,7 +2178,7 @@
       "Trigger type": "Configuration changes"
     },
     "ELB_ACM_CERTIFICATE_REQUIRED": {
-      "AWS Region": "All supported AWS regions except Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Trigger type": "Configuration changes"
@@ -2044,7 +2190,7 @@
       "Trigger type": "Configuration changes"
     },
     "ELB_CUSTOM_SECURITY_POLICY_SSL_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "sslProtocolsAndCiphers",
@@ -2074,7 +2220,7 @@
       "Trigger type": "Configuration changes"
     },
     "ELB_PREDEFINED_SECURITY_POLICY_SSL_CHECK": {
-      "AWS Region": "All supported AWS regions except Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Africa (Cape Town), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "predefinedPolicyName",
@@ -2086,13 +2232,19 @@
       "Trigger type": "Configuration changes"
     },
     "ELB_TLS_HTTPS_LISTENERS_ONLY": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Osaka), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::ElasticLoadBalancing::LoadBalancer",
       "Trigger type": "Configuration changes"
     },
+    "EMR_BLOCK_PUBLIC_ACCESS": {
+      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
+    },
     "EMR_KERBEROS_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "TicketLifetimeInHours",
@@ -2123,7 +2275,7 @@
       "Trigger type": "Periodic"
     },
     "EMR_MASTER_NO_PUBLIC_IP": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::EMR::Cluster",
       "Trigger type": "Periodic"
@@ -2141,7 +2293,7 @@
       "Trigger type": "Configuration changes"
     },
     "FMS_SHIELD_RESOURCE_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Canada West (Calgary), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "webACLId",
@@ -2178,7 +2330,7 @@
       "Trigger type": "Configuration changes"
     },
     "FMS_WEBACL_RESOURCE_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "webACLId",
@@ -2210,7 +2362,7 @@
       "Trigger type": "Configuration changes"
     },
     "FMS_WEBACL_RULEGROUP_ASSOCIATION_CHECK": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "ruleGroups",
@@ -2260,6 +2412,40 @@
       "Resource Types": "AWS::FSx::FileSystem",
       "Trigger type": "Periodic"
     },
+    "FSX_LUSTRE_COPY_TAGS_TO_BACKUPS": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::FSx::FileSystem",
+      "Trigger type": "Periodic"
+    },
+    "FSX_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::FSx::FileSystem",
+      "Trigger type": "Periodic"
+    },
+    "FSX_OPENZFS_COPY_TAGS_ENABLED": {
+      "AWS Region": "Only available in Europe (Stockholm), Asia Pacific (Mumbai), US East (Ohio), Europe (Ireland), Europe (Frankfurt), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::FSx::FileSystem",
+      "Trigger type": "Periodic"
+    },
     "FSX_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
@@ -2302,6 +2488,12 @@
       "Resource Types": "AWS::FSx::FileSystem",
       "Trigger type": "Periodic"
     },
+    "FSX_WINDOWS_AUDIT_LOG_CONFIGURED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::FSx::FileSystem",
+      "Trigger type": "Periodic"
+    },
     "GLOBAL_ENDPOINT_EVENT_REPLICATION_ENABLED": {
       "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hong Kong), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [],
@@ -2309,7 +2501,7 @@
       "Trigger type": "Configuration changes"
     },
     "GUARDDUTY_ENABLED_CENTRALIZED": {
-      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "CentralMonitoringAccount",
@@ -2320,7 +2512,7 @@
       "Trigger type": "Periodic"
     },
     "GUARDDUTY_NON_ARCHIVED_FINDINGS": {
-      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "30",
@@ -2344,7 +2536,7 @@
       "Trigger type": "Periodic"
     },
     "IAM_CUSTOMER_POLICY_BLOCKED_KMS_ACTIONS": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "blockedActionsPatterns",
@@ -2361,13 +2553,13 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_GROUP_HAS_USERS_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::IAM::Group",
       "Trigger type": "Configuration changes"
     },
     "IAM_INLINE_POLICY_BLOCKED_KMS_ACTIONS": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "blockedActionsPatterns",
@@ -2384,13 +2576,13 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_NO_INLINE_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::IAM::User, AWS::IAM::Role, AWS::IAM::Group",
       "Trigger type": "Configuration changes"
     },
     "IAM_PASSWORD_POLICY": {
-      "AWS Region": "All supported AWS regions except Israel (Tel Aviv) Region",
+      "AWS Region": "All supported AWS regions except Israel (Tel Aviv), Canada West (Calgary) Region",
       "Parameters": [
         {
           "Default": "true",
@@ -2438,7 +2630,7 @@
       "Trigger type": "Periodic"
     },
     "IAM_POLICY_BLACKLISTED_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "arn:aws:iam::aws:policy/AdministratorAccess",
@@ -2456,7 +2648,7 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_POLICY_IN_USE": {
-      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "policyARN",
@@ -2472,7 +2664,7 @@
       "Trigger type": "Periodic"
     },
     "IAM_POLICY_NO_STATEMENTS_WITH_ADMIN_ACCESS": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "excludePermissionBoundaryPolicy",
@@ -2484,7 +2676,7 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_POLICY_NO_STATEMENTS_WITH_FULL_ACCESS": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "excludePermissionBoundaryPolicy",
@@ -2496,7 +2688,7 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_ROLE_MANAGED_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "managedPolicyArns",
@@ -2508,12 +2700,12 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_ROOT_ACCESS_KEY_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "IAM_USER_GROUP_MEMBERSHIP_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "groupNames",
@@ -2525,18 +2717,18 @@
       "Trigger type": "Configuration changes"
     },
     "IAM_USER_MFA_ENABLED": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "IAM_USER_NO_POLICIES_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::IAM::User",
       "Trigger type": "Configuration changes"
     },
     "IAM_USER_UNUSED_CREDENTIALS_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "90",
@@ -2551,7 +2743,7 @@
       "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::EC2::SecurityGroup",
-      "Trigger type": "Configuration changes"
+      "Trigger type": "Configuration changes and Periodic"
     },
     "INSTANCES_IN_VPC": {
       "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
@@ -2566,7 +2758,7 @@
       "Trigger type": "Configuration changes"
     },
     "INTERNET_GATEWAY_AUTHORIZED_VPC_ONLY": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "AuthorizedVpcIds",
@@ -2578,13 +2770,13 @@
       "Trigger type": "Configuration changes"
     },
     "KINESIS_STREAM_ENCRYPTED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::Kinesis::Stream",
       "Trigger type": "Configuration changes"
     },
     "KMS_CMK_NOT_SCHEDULED_FOR_DELETION": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Europe (Milan), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Europe (Milan), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "kmsKeyIds",
@@ -2596,7 +2788,7 @@
       "Trigger type": "Periodic"
     },
     "LAMBDA_CONCURRENCY_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "ConcurrencyLimitLow",
@@ -2613,7 +2805,7 @@
       "Trigger type": "Configuration changes"
     },
     "LAMBDA_DLQ_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "dlqArns",
@@ -2672,7 +2864,7 @@
       "Trigger type": "Configuration changes"
     },
     "LAMBDA_VPC_MULTI_AZ_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "availabilityZones",
@@ -2690,7 +2882,7 @@
       "Trigger type": "Periodic"
     },
     "MFA_ENABLED_FOR_IAM_CONSOLE_ACCESS": {
-      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -2705,6 +2897,12 @@
       "Parameters": [],
       "Resource Types": "AWS::AmazonMQ::Broker",
       "Trigger type": "Periodic"
+    },
+    "MQ_AUTO_MINOR_VERSION_UPGRADE_ENABLED": {
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::AmazonMQ::Broker",
+      "Trigger type": "Configuration changes"
     },
     "MQ_CLOUDWATCH_AUDIT_LOGGING_ENABLED": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
@@ -2722,6 +2920,12 @@
       "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::AmazonMQ::Broker",
+      "Trigger type": "Configuration changes"
+    },
+    "MSK_ENHANCED_MONITORING_ENABLED": {
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::MSK::Cluster",
       "Trigger type": "Configuration changes"
     },
     "MSK_IN_CLUSTER_NODE_REQUIRE_TLS": {
@@ -2762,7 +2966,7 @@
       "Trigger type": "Periodic"
     },
     "NACL_NO_UNRESTRICTED_SSH_RDP": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::EC2::NetworkAcl",
       "Trigger type": "Configuration changes"
@@ -2810,6 +3014,12 @@
       "Trigger type": "Configuration changes"
     },
     "NEPTUNE_CLUSTER_IAM_DATABASE_AUTHENTICATION": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::RDS::DBCluster",
+      "Trigger type": "Configuration changes"
+    },
+    "NEPTUNE_CLUSTER_MULTI_AZ_ENABLED": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBCluster",
@@ -2900,7 +3110,7 @@
       "Trigger type": "Configuration changes"
     },
     "NO_UNRESTRICTED_ROUTE_TO_IGW": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "routeTableIds",
@@ -2973,6 +3183,12 @@
     },
     "OPENSEARCH_NODE_TO_NODE_ENCRYPTION_CHECK": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::OpenSearch::Domain",
+      "Trigger type": "Configuration changes"
+    },
+    "OPENSEARCH_UPDATE_CHECK": {
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
@@ -3086,7 +3302,7 @@
       "Trigger type": "Configuration changes"
     },
     "RDS_IN_BACKUP_PLAN": {
-      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -3130,6 +3346,28 @@
       ],
       "Resource Types": "AWS::RDS::DBInstance",
       "Trigger type": "Configuration changes"
+    },
+    "RDS_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::RDS::DBInstance",
+      "Trigger type": "Periodic"
     },
     "RDS_MULTI_AZ_SUPPORT": {
       "AWS Region": "All supported AWS regions except Europe (Spain), Europe (Zurich) Region",
@@ -3216,7 +3454,7 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_BACKUP_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "MinRetentionPeriod",
@@ -3233,7 +3471,7 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_CLUSTER_CONFIGURATION_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), Asia Pacific (Hyderabad), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), Asia Pacific (Hyderabad), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Default": "true",
@@ -3258,7 +3496,7 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_CLUSTER_KMS_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -3270,7 +3508,7 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_CLUSTER_MAINTENANCESETTINGS_CHECK": {
-      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Hyderabad), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Hyderabad), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Default": "true",
@@ -3294,13 +3532,13 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_CLUSTER_PUBLIC_ACCESS_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [],
       "Resource Types": "AWS::Redshift::Cluster",
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_DEFAULT_ADMIN_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Israel (Tel Aviv) Region",
       "Parameters": [
         {
           "Name": "validAdminUserNames",
@@ -3312,7 +3550,7 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_DEFAULT_DB_NAME_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv) Region",
       "Parameters": [
         {
           "Name": "validDatabaseNames",
@@ -3324,13 +3562,13 @@
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_ENHANCED_VPC_ROUTING_ENABLED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [],
       "Resource Types": "AWS::Redshift::Cluster",
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_REQUIRE_TLS_SSL": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Milan), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [],
       "Resource Types": "AWS::Redshift::Cluster",
       "Trigger type": "Configuration changes"
@@ -3404,7 +3642,7 @@
       "Trigger type": "Configuration changes"
     },
     "RESTRICTED_INCOMING_TRAFFIC": {
-      "AWS Region": "All supported AWS regions except Africa (Cape Town), Middle East (UAE), Asia Pacific (Osaka), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Default": "20",
@@ -3443,15 +3681,15 @@
         }
       ],
       "Resource Types": "AWS::EC2::SecurityGroup",
-      "Trigger type": "Configuration changes"
+      "Trigger type": "Configuration changes and Periodic"
     },
     "ROOT_ACCOUNT_HARDWARE_MFA_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Canada West (Calgary), China (Ningxia) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "ROOT_ACCOUNT_MFA_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Canada West (Calgary), China (Ningxia) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
@@ -3461,8 +3699,26 @@
       "Resource Types": "AWS::Route53::HostedZone",
       "Trigger type": "Configuration changes"
     },
+    "S3_ACCESS_POINT_IN_VPC_ONLY": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::S3::AccessPoint",
+      "Trigger type": "Configuration changes"
+    },
+    "S3_ACCESS_POINT_PUBLIC_ACCESS_BLOCKS": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "excludedAccessPoints",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::S3::AccessPoint",
+      "Trigger type": "Configuration changes"
+    },
     "S3_ACCOUNT_LEVEL_PUBLIC_ACCESS_BLOCKS": {
-      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Default": "True",
@@ -3520,7 +3776,7 @@
       "Trigger type": "Periodic"
     },
     "S3_BUCKET_ACL_PROHIBITED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::S3::Bucket",
       "Trigger type": "Configuration changes"
@@ -3578,8 +3834,14 @@
       "Resource Types": "AWS::S3::Bucket",
       "Trigger type": "Configuration changes"
     },
+    "S3_BUCKET_MFA_DELETE_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::S3::Bucket",
+      "Trigger type": "Configuration changes"
+    },
     "S3_BUCKET_POLICY_GRANTEE_CHECK": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "awsPrincipals",
@@ -3611,7 +3873,7 @@
       "Trigger type": "Configuration changes"
     },
     "S3_BUCKET_POLICY_NOT_MORE_PERMISSIVE": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "controlPolicy",
@@ -3671,7 +3933,7 @@
       "Trigger type": "Configuration changes"
     },
     "S3_DEFAULT_ENCRYPTION_KMS": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Europe (Spain) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Hyderabad), Asia Pacific (Osaka), Canada West (Calgary), Europe (Spain) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -3683,7 +3945,7 @@
       "Trigger type": "Configuration changes"
     },
     "S3_EVENT_NOTIFICATIONS_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta) Region",
       "Parameters": [
         {
           "Name": "destinationArn",
@@ -3729,7 +3991,7 @@
       "Trigger type": "Periodic"
     },
     "S3_LIFECYCLE_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta) Region",
       "Parameters": [
         {
           "Name": "targetTransitionDays",
@@ -3759,6 +4021,28 @@
       ],
       "Resource Types": "AWS::S3::Bucket",
       "Trigger type": "Configuration changes"
+    },
+    "S3_MEETS_RESTORE_TIME_TARGET": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "maxRestoreTime",
+          "Optional": false,
+          "Type": "int"
+        },
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::S3::Bucket",
+      "Trigger type": "Periodic"
     },
     "S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
@@ -3803,7 +4087,7 @@
       "Trigger type": "Periodic"
     },
     "S3_VERSION_LIFECYCLE_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "bucketNames",
@@ -3815,7 +4099,7 @@
       "Trigger type": "Configuration changes"
     },
     "SAGEMAKER_ENDPOINT_CONFIGURATION_KMS_KEY_CONFIGURED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -3826,7 +4110,7 @@
       "Trigger type": "Periodic"
     },
     "SAGEMAKER_NOTEBOOK_INSTANCE_INSIDE_VPC": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "SubnetIds",
@@ -3838,7 +4122,7 @@
       "Trigger type": "Configuration changes"
     },
     "SAGEMAKER_NOTEBOOK_INSTANCE_KMS_KEY_CONFIGURED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -3849,18 +4133,18 @@
       "Trigger type": "Periodic"
     },
     "SAGEMAKER_NOTEBOOK_INSTANCE_ROOT_ACCESS_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::SageMaker::NotebookInstance",
       "Trigger type": "Configuration changes"
     },
     "SAGEMAKER_NOTEBOOK_NO_DIRECT_INTERNET_ACCESS": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "SECRETSMANAGER_ROTATION_ENABLED_CHECK": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "maximumAllowedRotationFrequency",
@@ -3877,13 +4161,13 @@
       "Trigger type": "Configuration changes"
     },
     "SECRETSMANAGER_SCHEDULED_ROTATION_SUCCESS_CHECK": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [],
       "Resource Types": "AWS::SecretsManager::Secret",
       "Trigger type": "Configuration changes"
     },
     "SECRETSMANAGER_SECRET_PERIODIC_ROTATION": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "maxDaysSinceRotation",
@@ -3894,7 +4178,7 @@
       "Trigger type": "Periodic"
     },
     "SECRETSMANAGER_SECRET_UNUSED": {
-      "AWS Region": "All supported AWS regions",
+      "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
         {
           "Name": "unusedForDays",
@@ -3905,7 +4189,7 @@
       "Trigger type": "Periodic"
     },
     "SECRETSMANAGER_USING_CMK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Canada West (Calgary), China (Ningxia) Region",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -3917,12 +4201,12 @@
       "Trigger type": "Configuration changes"
     },
     "SECURITYHUB_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "SECURITY_ACCOUNT_INFORMATION_PROVIDED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions except AWS GovCloud (US-East), AWS GovCloud (US-West) Region",
       "Parameters": [],
       "Resource Types": "AWS::::Account",
       "Trigger type": "Periodic"
@@ -3967,18 +4251,18 @@
       "Trigger type": "Configuration changes"
     },
     "SNS_TOPIC_MESSAGE_DELIVERY_NOTIFICATION_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::SNS::Topic",
       "Trigger type": "Configuration changes"
     },
     "SSM_DOCUMENT_NOT_PUBLIC": {
-      "AWS Region": "All supported AWS regions except Israel (Tel Aviv) Region",
+      "AWS Region": "All supported AWS regions except Israel (Tel Aviv), Canada West (Calgary) Region",
       "Parameters": [],
       "Trigger type": "Periodic"
     },
     "STEP_FUNCTIONS_STATE_MACHINE_LOGGING_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "cloudWatchLogGroupArns",
@@ -4192,7 +4476,7 @@
         }
       ],
       "Resource Types": "AWS::EC2::SecurityGroup",
-      "Trigger type": "Configuration changes"
+      "Trigger type": "Configuration changes and Periodic"
     },
     "VPC_VPN_2_TUNNELS_UP": {
       "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Asia Pacific (Osaka), Israel (Tel Aviv), China (Ningxia) Region",
@@ -4201,7 +4485,7 @@
       "Trigger type": "Configuration changes"
     },
     "WAFV2_LOGGING_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except China (Beijing), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Europe (Milan), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
         {
           "Name": "KinesisFirehoseDeliveryStreamArns",
@@ -4224,7 +4508,7 @@
       "Trigger type": "Configuration changes"
     },
     "WAFV2_WEBACL_NOT_EMPTY": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), AWS GovCloud (US-East), AWS GovCloud (US-West), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), AWS GovCloud (US-East), AWS GovCloud (US-West), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::WAFv2::WebACL",
       "Trigger type": "Configuration changes"
@@ -4265,13 +4549,13 @@
       "Trigger type": "Configuration changes"
     },
     "WAF_REGIONAL_RULE_NOT_EMPTY": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::WAFRegional::Rule",
       "Trigger type": "Configuration changes"
     },
     "WAF_REGIONAL_WEBACL_NOT_EMPTY": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "AWS Region": "All supported AWS regions except Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [],
       "Resource Types": "AWS::WAFRegional::WebACL",
       "Trigger type": "Configuration changes"

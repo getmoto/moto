@@ -1,4 +1,5 @@
 """Unit tests for sagemaker-supported APIs."""
+import uuid
 from datetime import datetime
 from unittest import SkipTest
 
@@ -190,3 +191,63 @@ def test_describe_model_package_group():
     )
     assert resp["ModelPackageGroupStatus"] == "Completed"
     assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc())
+
+
+@mock_sagemaker
+def test_list_tags_model_package_group():
+    region_name = "eu-west-1"
+    model_package_group_name = "test-model-package-group"
+    client = boto3.client("sagemaker", region_name=region_name)
+    client.create_model_package_group(
+        ModelPackageGroupName=model_package_group_name,
+        ModelPackageGroupDescription="test-model-package-group-description",
+    )
+
+    tags = []
+    for _ in range(80):
+        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
+
+    resource_arn = (
+        f"arn:aws:sagemaker:{region_name}:123456789012"
+        f":model-package-group/{model_package_group_name}"
+    )
+    _ = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+
+    paginator = client.get_paginator("list_tags")
+    response_iterator = paginator.paginate(ResourceArn=resource_arn)
+    tags_from_paginator = []
+    for response in response_iterator:
+        tags_from_paginator.extend(response["Tags"])
+
+    assert tags_from_paginator == tags
+
+
+@mock_sagemaker
+def test_delete_tags_model_package_group():
+    region_name = "eu-west-1"
+    model_package_group_name = "test-model-package-group"
+    client = boto3.client("sagemaker", region_name=region_name)
+    client.create_model_package_group(
+        ModelPackageGroupName=model_package_group_name,
+        ModelPackageGroupDescription="test-model-package-group-description",
+    )
+
+    tags = []
+    for _ in range(80):
+        tags.append({"Key": str(uuid.uuid4()), "Value": "myValue"})
+
+    resource_arn = (
+        f"arn:aws:sagemaker:{region_name}:123456789012"
+        f":model-package-group/{model_package_group_name}"
+    )
+    _ = client.add_tags(ResourceArn=resource_arn, Tags=tags)
+
+    delete_tag_keys = [tag["Key"] for tag in tags[:20]]
+    _ = client.delete_tags(ResourceArn=resource_arn, TagKeys=delete_tag_keys)
+
+    paginator = client.get_paginator("list_tags")
+    response_iterator = paginator.paginate(ResourceArn=resource_arn)
+    remaining_tags = []
+    for response in response_iterator:
+        remaining_tags.extend(response["Tags"])
+    assert remaining_tags == tags[20:]

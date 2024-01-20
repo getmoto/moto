@@ -1,6 +1,57 @@
 Moto Changelog
 ==============
 
+4.2.13
+-----
+Docker Digest for 4.2.13: _sha256:20a2fdd4828b0ce1170ae26186ed28b64523cf6af83af892a74d9b3e23f84471_
+
+    New Services:
+        * Panorama:
+            * delete_device()
+            * describe_device()
+            * list_devices()
+            * provision_device()
+            * update_device_metadata()
+
+    New Methods:
+        * CognitoIDP:
+            * admin_respond_to_auth_challenge()
+
+        * IdentityStore:
+            *  list_group_memberships_for_member()
+
+        * Rekognition:
+            * compare_faces()
+            * detect_labels()
+            * detect_text()
+
+        * SSO-Admin:
+            * attach_customer_managed_policy_reference_to_permission_set()
+            * attach_managed_policy_to_permission_set()
+            * delete_inline_policy_from_permission_set()
+            * detach_customer_managed_policy_reference_from_permission_set()
+            * detach_managed_policy_from_permission_set()
+            * get_inline_policy_for_permission_set()
+            * list_account_assignments_for_principal()
+            * list_customer_managed_policy_references_in_permission_set()
+            * list_managed_policies_in_permission_set()
+            * put_inline_policy_to_permission_set()
+
+        * Textract:
+            * detect_document_text()
+
+    Miscellaneous:
+        * ACM: describe_certificate() now returns a DomainValidationOption for each SN
+        * CloudFormation: create_change_set() now longer throws an exception when supplying a YAML TemplateBody
+        * CognitoIDP: create_resource_server() no longer crashes when the scope-parameter is not provided
+        * DynamoDB: scan() now correctly handles the ScanFilter-attribute again (broken in 4.2.11)
+        * EC2: launch templates created by CloudFormation now have a generated name if not provided
+        * EC2: describe_instance_types() now handles unknown values for EnaSupport correctly
+        * Sagemaker: create_model_package() nown supports Versioned packages
+        * Scheduler: delete_scheduler() now throws the correct exception when a Schedule does not exist
+        * SSO-Admin: list_account_assignments() now supports pagination
+
+
 4.2.12
 ------
 

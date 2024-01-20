@@ -562,6 +562,9 @@ LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
            {% if record.failover %}
                <Failover>{{ record.failover }}</Failover>
            {% endif %}
+           {% if record.multi_value %}
+               <MultiValueAnswer>{{ record.multi_value }}</MultiValueAnswer>
+           {% endif %}
            {% if record.geo_location %}
            <GeoLocation>
            {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}

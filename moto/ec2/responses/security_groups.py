@@ -272,6 +272,14 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
                 <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
                 <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
                 <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+                <tagSet>
+                {% for tag in rule.get_tags() %}
+                    <item>
+                      <key>{{ tag.key }}</key>
+                      <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+                </tagSet> 
             </item>
         {% endfor %}
     {% endfor %}

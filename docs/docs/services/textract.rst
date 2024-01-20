@@ -34,7 +34,7 @@ textract
 - [ ] create_adapter_version
 - [ ] delete_adapter
 - [ ] delete_adapter_version
-- [ ] detect_document_text
+- [X] detect_document_text
 - [ ] get_adapter
 - [ ] get_adapter_version
 - [ ] get_document_analysis

@@ -8,8 +8,10 @@ class ScheduleExists(JsonRESTError):
 
 
 class ScheduleNotFound(JsonRESTError):
-    def __init__(self) -> None:
-        super().__init__("ResourceNotFoundException", "Schedule not found")
+    def __init__(self, name: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException", f"Schedule {name} does not exist."
+        )
 
 
 class ScheduleGroupNotFound(JsonRESTError):

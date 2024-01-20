@@ -628,6 +628,42 @@
   "Location": "eu-south-1a"
  },
  {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
   "InstanceType": "m6i.12xlarge",
   "Location": "eu-south-1a"
  },
@@ -1760,6 +1796,42 @@
   "Location": "eu-south-1b"
  },
  {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
   "InstanceType": "m6i.12xlarge",
   "Location": "eu-south-1b"
  },
@@ -2873,6 +2945,42 @@
  },
  {
   "InstanceType": "m6g.xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.12xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.16xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.2xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.4xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.8xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.large",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.medium",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.metal",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "m6gd.xlarge",
   "Location": "eu-south-1c"
  },
  {

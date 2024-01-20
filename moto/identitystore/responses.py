@@ -137,6 +137,25 @@ class IdentityStoreResponse(BaseResponse):
             dict(GroupMemberships=group_memberships, NextToken=next_token)
         )
 
+    def list_group_memberships_for_member(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        member_id = self._get_param("MemberId")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        (
+            group_memberships,
+            next_token,
+        ) = self.identitystore_backend.list_group_memberships_for_member(
+            identity_store_id=identity_store_id,
+            member_id=member_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return json.dumps(
+            dict(GroupMemberships=group_memberships, NextToken=next_token)
+        )
+
     def list_groups(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         max_results = self._get_param("MaxResults")

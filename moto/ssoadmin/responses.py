@@ -62,12 +62,40 @@ class SSOAdminResponse(BaseResponse):
         instance_arn = params.get("InstanceArn")
         account_id = params.get("AccountId")
         permission_set_arn = params.get("PermissionSetArn")
-        assignments = self.ssoadmin_backend.list_account_assignments(
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        assignments, next_token = self.ssoadmin_backend.list_account_assignments(
             instance_arn=instance_arn,
             account_id=account_id,
             permission_set_arn=permission_set_arn,
+            next_token=next_token,
+            max_results=max_results,
         )
-        return json.dumps({"AccountAssignments": assignments})
+
+        return json.dumps(dict(AccountAssignments=assignments, NextToken=next_token))
+
+    def list_account_assignments_for_principal(self) -> str:
+        filter_ = self._get_param("Filter", {})
+        instance_arn = self._get_param("InstanceArn")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        principal_id = self._get_param("PrincipalId")
+        principal_type = self._get_param("PrincipalType")
+
+        (
+            assignments,
+            next_token,
+        ) = self.ssoadmin_backend.list_account_assignments_for_principal(
+            filter_=filter_,
+            instance_arn=instance_arn,
+            max_results=max_results,
+            next_token=next_token,
+            principal_id=principal_id,
+            principal_type=principal_type,
+        )
+
+        return json.dumps(dict(AccountAssignments=assignments, NextToken=next_token))
 
     def create_permission_set(self) -> str:
         name = self._get_param("Name")
@@ -138,3 +166,137 @@ class SSOAdminResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
+
+    def put_inline_policy_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        inline_policy = self._get_param("InlinePolicy")
+        self.ssoadmin_backend.put_inline_policy_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            inline_policy=inline_policy,
+        )
+        return json.dumps({})
+
+    def get_inline_policy_for_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        inline_policy = self.ssoadmin_backend.get_inline_policy_for_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps({"InlinePolicy": inline_policy})
+
+    def delete_inline_policy_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        self.ssoadmin_backend.delete_inline_policy_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps({})
+
+    def attach_managed_policy_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        managed_policy_arn = self._get_param("ManagedPolicyArn")
+        self.ssoadmin_backend.attach_managed_policy_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            managed_policy_arn=managed_policy_arn,
+        )
+        return json.dumps({})
+
+    def list_managed_policies_in_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        (
+            managed_policies,
+            next_token,
+        ) = self.ssoadmin_backend.list_managed_policies_in_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        managed_policies_response = [
+            {"Arn": managed_policy.arn, "Name": managed_policy.name}
+            for managed_policy in managed_policies
+        ]
+        return json.dumps(
+            {
+                "AttachedManagedPolicies": managed_policies_response,
+                "NextToken": next_token,
+            }
+        )
+
+    def detach_managed_policy_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        managed_policy_arn = self._get_param("ManagedPolicyArn")
+        self.ssoadmin_backend.detach_managed_policy_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            managed_policy_arn=managed_policy_arn,
+        )
+        return json.dumps({})
+
+    def attach_customer_managed_policy_reference_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        customer_managed_policy_reference = self._get_param(
+            "CustomerManagedPolicyReference"
+        )
+        self.ssoadmin_backend.attach_customer_managed_policy_reference_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            customer_managed_policy_reference=customer_managed_policy_reference,
+        )
+        return json.dumps({})
+
+    def list_customer_managed_policy_references_in_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        (
+            customer_managed_policy_references,
+            next_token,
+        ) = self.ssoadmin_backend.list_customer_managed_policy_references_in_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        customer_managed_policy_references_response = [
+            {
+                "Name": customer_managed_policy_reference.name,
+                "Path": customer_managed_policy_reference.path,
+            }
+            for customer_managed_policy_reference in customer_managed_policy_references
+        ]
+        return json.dumps(
+            {
+                "CustomerManagedPolicyReferences": customer_managed_policy_references_response,
+                "NextToken": next_token,
+            }
+        )
+
+    def detach_customer_managed_policy_reference_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        customer_managed_policy_reference = self._get_param(
+            "CustomerManagedPolicyReference"
+        )
+        self.ssoadmin_backend.detach_customer_managed_policy_reference_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            customer_managed_policy_reference=customer_managed_policy_reference,
+        )
+        return json.dumps({})

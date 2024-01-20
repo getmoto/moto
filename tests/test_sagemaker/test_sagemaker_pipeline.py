@@ -515,7 +515,10 @@ def test_list_pipelines_created_after(sagemaker_client):
     _ = create_sagemaker_pipelines(sagemaker_client, pipelines)
 
     created_after_str = "2099-12-31 23:59:59"
-    response = sagemaker_client.list_pipelines(CreatedAfter=created_after_str)
+    try:
+        response = sagemaker_client.list_pipelines(CreatedAfter=created_after_str)
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
     assert not response["PipelineSummaries"]
 
     created_after_datetime = datetime.strptime(created_after_str, "%Y-%m-%d %H:%M:%S")

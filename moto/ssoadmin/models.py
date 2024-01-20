@@ -1,12 +1,21 @@
-from typing import Any, Dict, List
+import json
+from typing import Any, Dict, List, Optional
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
+from moto.iam.aws_managed_policies import aws_managed_policies_data
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 
-from .exceptions import ResourceNotFound
+from .exceptions import (
+    ConflictException,
+    ResourceNotFoundException,
+    ServiceQuotaExceededException,
+)
 from .utils import PAGINATION_MODEL
+
+# https://docs.aws.amazon.com/singlesignon/latest/userguide/limits.html
+MAX_MANAGED_POLICIES_PER_PERMISSION_SET = 20
 
 
 class AccountAssignment(BaseModel):
@@ -59,6 +68,12 @@ class PermissionSet(BaseModel):
         self.relay_state = relay_state
         self.tags = tags
         self.created_date = unix_time()
+        self.inline_policy = ""
+        self.managed_policies: List[ManagedPolicy] = list()
+        self.customer_managed_policies: List[CustomerManagedPolicy] = list()
+        self.total_managed_policies_attached = (
+            0  # this will also include customer managed policies
+        )
 
     def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
         summary: Dict[str, Any] = {
@@ -82,6 +97,28 @@ class PermissionSet(BaseModel):
         )
 
 
+class ManagedPolicy(BaseModel):
+    def __init__(self, arn: str, name: str):
+        self.arn = arn
+        self.name = name
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ManagedPolicy):
+            return False
+        return self.arn == other.arn
+
+
+class CustomerManagedPolicy(BaseModel):
+    def __init__(self, name: str, path: str = "/"):
+        self.name = name
+        self.path = path
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, CustomerManagedPolicy):
+            return False
+        return f"{self.path}{self.name}" == f"{other.path}{other.name}"
+
+
 class SSOAdminBackend(BaseBackend):
     """Implementation of SSOAdmin APIs."""
 
@@ -89,6 +126,7 @@ class SSOAdminBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.account_assignments: List[AccountAssignment] = list()
         self.permission_sets: List[PermissionSet] = list()
+        self.aws_managed_policies: Optional[Dict[str, Any]] = None
 
     def create_account_assignment(
         self,
@@ -155,14 +193,32 @@ class SSOAdminBackend(BaseBackend):
                 and principal_id_match
             ):
                 return account
-        raise ResourceNotFound
+        raise ResourceNotFoundException
 
+    def _find_managed_policy(self, managed_policy_arn: str) -> ManagedPolicy:
+        """
+        Checks to make sure the managed policy exists.
+        This pulls from moto/iam/aws_managed_policies.py
+        """
+        # Lazy loading of aws managed policies file
+        if self.aws_managed_policies is None:
+            self.aws_managed_policies = json.loads(aws_managed_policies_data)
+
+        policy_name = managed_policy_arn.split("/")[-1]
+        managed_policy = self.aws_managed_policies.get(policy_name, None)
+        if managed_policy is not None:
+            path = managed_policy.get("path", "/")
+            expected_arn = f"arn:aws:iam::aws:policy{path}{policy_name}"
+            if managed_policy_arn == expected_arn:
+                return ManagedPolicy(managed_policy_arn, policy_name)
+        raise ResourceNotFoundException(
+            f"Policy does not exist with ARN: {managed_policy_arn}"
+        )
+
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_account_assignments(
         self, instance_arn: str, account_id: str, permission_set_arn: str
     ) -> List[Dict[str, Any]]:
-        """
-        Pagination has not yet been implemented
-        """
         account_assignments = []
         for assignment in self.account_assignments:
             if (
@@ -172,13 +228,40 @@ class SSOAdminBackend(BaseBackend):
             ):
                 account_assignments.append(
                     {
-                        "AccountId": account_id,
+                        "AccountId": assignment.target_id,
                         "PermissionSetArn": assignment.permission_set_arn,
                         "PrincipalType": assignment.principal_type,
                         "PrincipalId": assignment.principal_id,
                     }
                 )
         return account_assignments
+
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_account_assignments_for_principal(
+        self,
+        filter_: Dict[str, Any],
+        instance_arn: str,
+        principal_id: str,
+        principal_type: str,
+    ) -> List[Dict[str, Any]]:
+        return [
+            {
+                "AccountId": account_assignment.target_id,
+                "PermissionSetArn": account_assignment.permission_set_arn,
+                "PrincipalId": account_assignment.principal_id,
+                "PrincipalType": account_assignment.principal_type,
+            }
+            for account_assignment in self.account_assignments
+            if all(
+                [
+                    filter_.get("AccountId", account_assignment.target_id)
+                    == account_assignment.target_id,
+                    principal_id == account_assignment.principal_id,
+                    principal_type == account_assignment.principal_type,
+                    instance_arn == account_assignment.instance_arn,
+                ]
+            )
+        ]
 
     def create_permission_set(
         self,
@@ -248,7 +331,10 @@ class SSOAdminBackend(BaseBackend):
             )
             if instance_arn_match and permission_set_match:
                 return permission_set
-        raise ResourceNotFound
+        ps_id = permission_set_arn.split("/")[-1]
+        raise ResourceNotFoundException(
+            message=f"Could not find PermissionSet with id {ps_id}"
+        )
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:
@@ -257,6 +343,174 @@ class SSOAdminBackend(BaseBackend):
             if permission_set.instance_arn == instance_arn:
                 permission_sets.append(permission_set)
         return permission_sets
+
+    def put_inline_policy_to_permission_set(
+        self, instance_arn: str, permission_set_arn: str, inline_policy: str
+    ) -> None:
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        permission_set.inline_policy = inline_policy
+
+    def get_inline_policy_for_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> str:
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        return permission_set.inline_policy
+
+    def delete_inline_policy_from_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> None:
+        permission_set = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        permission_set.inline_policy = ""
+
+    def attach_managed_policy_to_permission_set(
+        self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
+    ) -> None:
+        permissionset = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        managed_policy = self._find_managed_policy(managed_policy_arn)
+
+        permissionset_id = permission_set_arn.split("/")[-1]
+        if managed_policy in permissionset.managed_policies:
+            raise ConflictException(
+                f"Permission set with id {permissionset_id} already has a typed link attachment to a manged policy with {managed_policy_arn}"
+            )
+
+        if (
+            permissionset.total_managed_policies_attached
+            >= MAX_MANAGED_POLICIES_PER_PERMISSION_SET
+        ):
+            permissionset_id = permission_set_arn.split("/")[-1]
+            raise ServiceQuotaExceededException(
+                f"You have exceeded AWS SSO limits. Cannot create ManagedPolicy more than {MAX_MANAGED_POLICIES_PER_PERMISSION_SET} for id {permissionset_id}. Please refer to https://docs.aws.amazon.com/singlesignon/latest/userguide/limits.html"
+            )
+
+        permissionset.managed_policies.append(managed_policy)
+        permissionset.total_managed_policies_attached += 1
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_managed_policies_in_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+    ) -> List[ManagedPolicy]:
+        permissionset = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+        return permissionset.managed_policies
+
+    def _detach_managed_policy(
+        self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
+    ) -> None:
+        # ensure permission_set exists
+        permissionset = self._find_permission_set(
+            instance_arn,
+            permission_set_arn,
+        )
+
+        for managed_policy in permissionset.managed_policies:
+            if managed_policy.arn == managed_policy_arn:
+                permissionset.managed_policies.remove(managed_policy)
+                permissionset.total_managed_policies_attached -= 1
+                return
+
+        raise ResourceNotFoundException(
+            f"Could not find ManagedPolicy with arn {managed_policy_arn}"
+        )
+
+    def detach_managed_policy_from_permission_set(
+        self, instance_arn: str, permission_set_arn: str, managed_policy_arn: str
+    ) -> None:
+        self._detach_managed_policy(
+            instance_arn, permission_set_arn, managed_policy_arn
+        )
+
+    def attach_customer_managed_policy_reference_to_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        customer_managed_policy_reference: Dict[str, str],
+    ) -> None:
+        permissionset = self._find_permission_set(
+            permission_set_arn=permission_set_arn, instance_arn=instance_arn
+        )
+
+        name = customer_managed_policy_reference["Name"]
+        path = customer_managed_policy_reference.get("Path", "/")  # default path is "/"
+        customer_managed_policy = CustomerManagedPolicy(name=name, path=path)
+
+        if customer_managed_policy in permissionset.customer_managed_policies:
+            raise ConflictException(
+                f"Given customer managed policy with name: {name}  and path {path} already attached"
+            )
+
+        if (
+            permissionset.total_managed_policies_attached
+            >= MAX_MANAGED_POLICIES_PER_PERMISSION_SET
+        ):
+            raise ServiceQuotaExceededException(
+                f"Cannot attach managed policy: number of attached managed policies is already at maximum {MAX_MANAGED_POLICIES_PER_PERMISSION_SET}"
+            )
+
+        permissionset.customer_managed_policies.append(customer_managed_policy)
+        permissionset.total_managed_policies_attached += 1
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_customer_managed_policy_references_in_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> List[CustomerManagedPolicy]:
+        permissionset = self._find_permission_set(
+            permission_set_arn=permission_set_arn, instance_arn=instance_arn
+        )
+        return permissionset.customer_managed_policies
+
+    def _detach_customer_managed_policy_from_permissionset(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        customer_managed_policy_reference: Dict[str, str],
+    ) -> None:
+        permissionset = self._find_permission_set(
+            permission_set_arn=permission_set_arn, instance_arn=instance_arn
+        )
+        path: str = customer_managed_policy_reference.get("Path", "/")
+        name: str = customer_managed_policy_reference["Name"]
+
+        for customer_managed_policy in permissionset.customer_managed_policies:
+            if (
+                customer_managed_policy.name == name
+                and customer_managed_policy.path == path
+            ):
+                permissionset.customer_managed_policies.remove(customer_managed_policy)
+                permissionset.total_managed_policies_attached -= 1
+                return
+
+        raise ResourceNotFoundException(
+            f"Given managed policy with name: {name}  and path {path} does not exist on PermissionSet"
+        )
+
+    def detach_customer_managed_policy_reference_from_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        customer_managed_policy_reference: Dict[str, str],
+    ) -> None:
+        self._detach_customer_managed_policy_from_permissionset(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            customer_managed_policy_reference=customer_managed_policy_reference,
+        )
 
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")

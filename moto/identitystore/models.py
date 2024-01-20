@@ -82,6 +82,12 @@ class IdentityStoreBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "MembershipId",
         },
+        "list_group_memberships_for_member": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "MembershipId",
+        },
         "list_groups": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -262,6 +268,19 @@ class IdentityStoreBackend(BaseBackend):
             m
             for m in identity_store.group_memberships.values()
             if m["GroupId"] == group_id
+        ]
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_group_memberships_for_member(
+        self, identity_store_id: str, member_id: Dict[str, str]
+    ) -> List[Any]:
+        identity_store = self.__get_identity_store(identity_store_id)
+        user_id = member_id["UserId"]
+
+        return [
+            m
+            for m in identity_store.group_memberships.values()
+            if m["MemberId"]["UserId"] == user_id
         ]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore

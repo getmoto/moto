@@ -41,7 +41,7 @@ identitystore
 - [ ] get_user_id
 - [ ] is_member_in_groups
 - [X] list_group_memberships
-- [ ] list_group_memberships_for_member
+- [X] list_group_memberships_for_member
 - [X] list_groups
 - [X] list_users
 - [ ] update_group
