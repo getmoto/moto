@@ -1,6 +1,18 @@
 Moto Changelog
 ==============
 
+5.0.0alpha3
+-----------
+
+    Miscellaneous:
+        * IAM: The AWS managed Policies are no longer loaded by default.
+          If your application depends on these policies, tell Moto explicitly to load them like so:
+
+          @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
+
+          Or by setting an environment variable:
+          MOTO_IAM_LOAD_MANAGED_POLICIES=true
+
 5.0.0alpha2:
 ------------
 
