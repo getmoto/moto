@@ -14,6 +14,7 @@ from moto.utilities.paginator import paginate
 from .exceptions import (
     AWSValidationException,
     MissingModel,
+    ResourceInUseException,
     ResourceNotFound,
     ValidationError,
 )
@@ -1006,6 +1007,9 @@ class FeatureGroup(BaseObject):
             "Catalog": "AwsDataCatalog",
             "Database": "sagemaker_featurestore",
         }
+        offline_store_config["S3StorageConfig"][
+            "ResolvedOutputS3Uri"
+        ] = f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
 
         self.offline_store_config = offline_store_config
         self.role_arn = role_arn
@@ -3529,6 +3533,17 @@ class SageMakerModelBackend(BaseBackend):
         role_arn: str,
         tags: Any,
     ) -> str:
+        feature_group_arn = arn_formatter(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            _type="feature-group",
+            _id=f"{feature_group_name.lower()}",
+        )
+        if feature_group_arn in self.feature_groups:
+            raise ResourceInUseException(
+                message=f"An error occurred (ResourceInUse) when calling the CreateFeatureGroup operation: Resource Already Exists: FeatureGroup with name {feature_group_name} already exists. Choose a different name.\nInfo: Feature Group '{feature_group_name}' already exists."
+            )
+
         feature_group = FeatureGroup(
             feature_group_name=feature_group_name,
             record_identifier_feature_name=record_identifier_feature_name,

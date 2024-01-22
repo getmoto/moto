@@ -3,6 +3,8 @@ import re
 from datetime import datetime
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_sagemaker
 
@@ -34,6 +36,29 @@ def test_create_feature_group():
         == "arn:aws:sagemaker:us-east-2:123456789012:feature-group/some-feature-group-name"
     )
 
+    with pytest.raises(ClientError) as raised_exception:
+        client.create_feature_group(
+            FeatureGroupName="some-feature-group-name",
+            RecordIdentifierFeatureName="some_record_identifier",
+            EventTimeFeatureName="EventTime",
+            FeatureDefinitions=[
+                {"FeatureName": "some_feature", "FeatureType": "String"},
+                {"FeatureName": "EventTime", "FeatureType": "Fractional"},
+                {"FeatureName": "some_record_identifier", "FeatureType": "String"},
+            ],
+            RoleArn="arn:aws:iam::123456789012:role/AWSFeatureStoreAccess",
+            OfflineStoreConfig={
+                "DisableGlueTableCreation": False,
+                "S3StorageConfig": {"S3Uri": "s3://mybucket"},
+            },
+        )
+
+    assert raised_exception.value.response["Error"]["Code"] == "ResourceInUse"
+    assert (
+        raised_exception.value.response["Error"]["Message"]
+        == "An error occurred (ResourceInUse) when calling the CreateFeatureGroup operation: Resource Already Exists: FeatureGroup with name some-feature-group-name already exists. Choose a different name.\nInfo: Feature Group 'some-feature-group-name' already exists."
+    )
+
 
 @mock_sagemaker
 def test_describe_feature_group():
@@ -55,7 +80,7 @@ def test_describe_feature_group():
         RoleArn=role_arn,
         OfflineStoreConfig={
             "DisableGlueTableCreation": False,
-            "S3StorageConfig": {"S3Uri": "s3://mybucket"},
+            "S3StorageConfig": {"S3Uri": "s3://mybucket/some-folder/some-subfolder"},
         },
     )
     resp = client.describe_feature_group(FeatureGroupName=feature_group_name)
@@ -70,7 +95,7 @@ def test_describe_feature_group():
     assert resp["FeatureDefinitions"] == feature_definitions
     assert resp["RoleArn"] == role_arn
     assert re.match(
-        r"^some_feature_group_name_[0-9]+$",
+        f"^{feature_group_name.replace('-', '_')}_[0-9]+$",
         resp["OfflineStoreConfig"]["DataCatalogConfig"]["TableName"],
     )
     assert (
@@ -80,6 +105,13 @@ def test_describe_feature_group():
         resp["OfflineStoreConfig"]["DataCatalogConfig"]["Database"]
         == "sagemaker_featurestore"
     )
-    assert resp["OfflineStoreConfig"]["S3StorageConfig"]["S3Uri"] == "s3://mybucket"
+    assert (
+        resp["OfflineStoreConfig"]["S3StorageConfig"]["S3Uri"]
+        == "s3://mybucket/some-folder/some-subfolder"
+    )
+    assert re.match(
+        f"^s3://mybucket/some-folder/some-subfolder/123456789012/us-east-2/offline-store/{feature_group_name}-[0-9]+/data$",
+        resp["OfflineStoreConfig"]["S3StorageConfig"]["ResolvedOutputS3Uri"],
+    )
     assert isinstance(resp["CreationTime"], datetime)
     assert resp["FeatureGroupStatus"] == "Created"
