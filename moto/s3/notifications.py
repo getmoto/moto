@@ -5,34 +5,45 @@ from typing import Any, Dict, List
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
+
 class S3NotificationEvent(str, Enum):
-    REDUCED_REDUNDANCY_LOST_OBJECT_EVENT = 's3:ReducedRedundancyLostObject'
-    OBJCET_CREATED_EVENT = 's3:ObjectCreated:*'
-    OBJECT_CREATED_PUT_EVENT = 's3:ObjectCreated:Put'
-    OBJECT_CREATED_POST_EVENT = 's3:ObjectCreated:Post'
-    OBJECT_CREATED_COPY_EVENT = 's3:ObjectCreated:Copy'
-    OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD_EVENT = 's3:ObjectCreated:CompleteMultipartUpload'
-    OBJECT_REMOVED_EVENT = 's3:ObjectRemoved:*'
-    OBJECTREMOVED_DELETE_EVENT = 's3:ObjectRemoved:Delete'
-    OBJECTREMOVED_DELETE_MARKER_CREATED_EVENT = 's3:ObjectRemoved:DeleteMarkerCreated'
-    OBJECT_RESTORE_EVENT = 's3:ObjectRestore:*'
-    OBJECT_RESTORE_POST_EVENT = 's3:ObjectRestore:Post'
-    OBJECT_RESTORE_COMPLETED_EVENT = 's3:ObjectRestore:Completed'
-    REPLICATION_EVENT = 's3:Replication:*'
-    REPLICATION_OPERATION_FAILED_REPLICATION_EVENT = 's3:Replication:OperationFailedReplication'
-    REPLICATION_OPERATION_NOT_TRACKED_EVENT = 's3:Replication:OperationNotTracked'
-    REPLICATION_OPERATION_MISSED_THRESHOLD_EVENT ='s3:Replication:OperationMissedThreshold'
-    REPLICATION_OPERATION_REPLICATED_AFTER_THRESHOLD_EVENT = 's3:Replication:OperationReplicatedAfterThreshold'
-    OBJECT_RESTORE_DELETE_EVENT = 's3:ObjectRestore:Delete'
-    LIFECYCLE_TRANSITION_EVENT = 's3:LifecycleTransition'
-    INTELLIGENT_TIERING_EVENT = 's3:IntelligentTiering'
-    OBJECT_ACL_EVENT = 's3:ObjectAcl:Put'
-    LIFECYCLE_EXPIRATION_EVENT = 's3:LifecycleExpiration:*'
-    LIFECYCLEEXPIRATION_DELETE_EVENT = 's3:LifecycleExpiration:Delete'
-    LIFECYCLE_EXPIRATION_DELETE_MARKER_CREATED_EVENT = 's3:LifecycleExpiration:DeleteMarkerCreated'
-    OBJECT_TAGGING_EVENT = 's3:ObjectTagging:*'
-    OBJECT_TAGGING_PUT_EVENT = 's3:ObjectTagging:Put'
-    OBJECTTAGGING_DELETE_EVENT = 's3:ObjectTagging:Delete'
+    REDUCED_REDUNDANCY_LOST_OBJECT_EVENT = "s3:ReducedRedundancyLostObject"
+    OBJCET_CREATED_EVENT = "s3:ObjectCreated:*"
+    OBJECT_CREATED_PUT_EVENT = "s3:ObjectCreated:Put"
+    OBJECT_CREATED_POST_EVENT = "s3:ObjectCreated:Post"
+    OBJECT_CREATED_COPY_EVENT = "s3:ObjectCreated:Copy"
+    OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD_EVENT = (
+        "s3:ObjectCreated:CompleteMultipartUpload"
+    )
+    OBJECT_REMOVED_EVENT = "s3:ObjectRemoved:*"
+    OBJECTREMOVED_DELETE_EVENT = "s3:ObjectRemoved:Delete"
+    OBJECTREMOVED_DELETE_MARKER_CREATED_EVENT = "s3:ObjectRemoved:DeleteMarkerCreated"
+    OBJECT_RESTORE_EVENT = "s3:ObjectRestore:*"
+    OBJECT_RESTORE_POST_EVENT = "s3:ObjectRestore:Post"
+    OBJECT_RESTORE_COMPLETED_EVENT = "s3:ObjectRestore:Completed"
+    REPLICATION_EVENT = "s3:Replication:*"
+    REPLICATION_OPERATION_FAILED_REPLICATION_EVENT = (
+        "s3:Replication:OperationFailedReplication"
+    )
+    REPLICATION_OPERATION_NOT_TRACKED_EVENT = "s3:Replication:OperationNotTracked"
+    REPLICATION_OPERATION_MISSED_THRESHOLD_EVENT = (
+        "s3:Replication:OperationMissedThreshold"
+    )
+    REPLICATION_OPERATION_REPLICATED_AFTER_THRESHOLD_EVENT = (
+        "s3:Replication:OperationReplicatedAfterThreshold"
+    )
+    OBJECT_RESTORE_DELETE_EVENT = "s3:ObjectRestore:Delete"
+    LIFECYCLE_TRANSITION_EVENT = "s3:LifecycleTransition"
+    INTELLIGENT_TIERING_EVENT = "s3:IntelligentTiering"
+    OBJECT_ACL_EVENT = "s3:ObjectAcl:Put"
+    LIFECYCLE_EXPIRATION_EVENT = "s3:LifecycleExpiration:*"
+    LIFECYCLEEXPIRATION_DELETE_EVENT = "s3:LifecycleExpiration:Delete"
+    LIFECYCLE_EXPIRATION_DELETE_MARKER_CREATED_EVENT = (
+        "s3:LifecycleExpiration:DeleteMarkerCreated"
+    )
+    OBJECT_TAGGING_EVENT = "s3:ObjectTagging:*"
+    OBJECT_TAGGING_PUT_EVENT = "s3:ObjectTagging:Put"
+    OBJECTTAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
 
     @classmethod
     def events(self) -> List[str]:
@@ -72,7 +83,9 @@ def _get_region_from_arn(arn: str) -> str:
     return arn.split(":")[3]
 
 
-def send_event(account_id: str, event_name: S3NotificationEvent, bucket: Any, key: Any) -> None:
+def send_event(
+    account_id: str, event_name: S3NotificationEvent, bucket: Any, key: Any
+) -> None:
     if bucket.notification_configuration is None:
         return
 
