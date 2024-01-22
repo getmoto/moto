@@ -1764,6 +1764,10 @@
   "Location": "apne2-az1"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "apne2-az1"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "apne2-az1"
  },

@@ -1288,6 +1288,86 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "m6idn.12xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.16xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.24xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.2xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.32xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.4xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.8xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.large",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.metal",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6idn.xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.12xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.16xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.24xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.2xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.32xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.4xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.8xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.large",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.metal",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "m6in.xlarge",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "m7g.12xlarge",
   "Location": "us-east-1a"
  },
@@ -3033,6 +3113,38 @@
  },
  {
   "InstanceType": "c7gd.xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.12xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.16xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.2xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.4xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.8xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.large",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.medium",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "c7gn.xlarge",
   "Location": "us-east-1b"
  },
  {
