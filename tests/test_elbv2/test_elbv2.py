@@ -1293,6 +1293,28 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
 
 @mock_elbv2
 @mock_ec2
+def test_modify_load_balancer_attributes_connection_logs_s3():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[
+            {"Key": "connection_logs.s3.enabled", "Value": "true"},
+            {"Key": "connection_logs.s3.bucket", "Value": "s3bucket"},
+            {"Key": "connection_logs.s3.prefix", "Value": "test_prefix"},
+        ],
+    )
+
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
+    assert {"Key": "connection_logs.s3.enabled", "Value": "true"} in attrs
+    assert {"Key": "connection_logs.s3.bucket", "Value": "s3bucket"} in attrs
+    assert {"Key": "connection_logs.s3.prefix", "Value": "test_prefix"} in attrs
+
+
+@mock_elbv2
+@mock_ec2
 @mock_acm
 def test_modify_listener_http_to_https():
     client = boto3.client("elbv2", region_name="eu-central-1")

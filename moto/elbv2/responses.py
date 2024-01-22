@@ -1578,40 +1578,6 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
 </DescribeLoadBalancerAttributesResponse>
 """
 
-MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
-  <ModifyLoadBalancerAttributesResult>
-  <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
-    <LoadBalancerAttributes>
-      <AccessLog>
-        <Enabled>{{ attributes.access_log.enabled }}</Enabled>
-        {% if attributes.access_log.enabled %}
-        <S3BucketName>{{ attributes.access_log.s3_bucket_name }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes.access_log.s3_bucket_prefix }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes.access_log.emit_interval }}</EmitInterval>
-        {% endif %}
-      </AccessLog>
-      <ConnectionSettings>
-        <IdleTimeout>{{ attributes.connecting_settings.idle_timeout }}</IdleTimeout>
-      </ConnectionSettings>
-      <CrossZoneLoadBalancing>
-        <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
-      </CrossZoneLoadBalancing>
-      <ConnectionDraining>
-        {% if attributes.connection_draining.enabled %}
-        <Enabled>true</Enabled>
-        <Timeout>{{ attributes.connection_draining.timeout }}</Timeout>
-        {% else %}
-        <Enabled>false</Enabled>
-        {% endif %}
-      </ConnectionDraining>
-    </LoadBalancerAttributes>
-  </ModifyLoadBalancerAttributesResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</ModifyLoadBalancerAttributesResponse>
-"""
-
 CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <CreateLoadBalancerPolicyResult/>
   <ResponseMetadata>
