@@ -3330,8 +3330,14 @@ class SageMakerModelBackend(BaseBackend):
     ) -> ModelPackageGroup:
         model_package_group = self.model_package_groups.get(model_package_group_name)
         if model_package_group is None:
+            model_package_group_arn = arn_formatter(
+                region_name=self.region_name,
+                account_id=self.account_id,
+                _type="model-package-group",
+                _id=f"{model_package_group_name}",
+            )
             raise ValidationError(
-                f"Model package group {model_package_group_name} not found"
+                f"ModelPackageGroup {model_package_group_arn} does not exist."
             )
         return model_package_group
 
