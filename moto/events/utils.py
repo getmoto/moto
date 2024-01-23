@@ -1,7 +1,7 @@
-from typing import TYPE_CHECKING, List, TypedDict, Union
+from typing import TYPE_CHECKING, List, TypedDict
 
 if TYPE_CHECKING:
-    from typing_extentions import Any, Dict, Required
+    from typing_extentions import Any, Dict, Required, Union
 
 
 # NOTE: Typing is based on the following document https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html
@@ -10,8 +10,8 @@ EventMessageType = TypedDict(
     {
         "version": str,
         "id": str,
-        "detail-type": Required[Union[str, List[str]]],
-        "source": Required[Union[str, List[str]]],
+        "detail-type": "Required[Union[str, List[str]]]",
+        "source": "Required[Union[str, List[str]]]",
         "account": str,
         "time": str,
         "region": str,
