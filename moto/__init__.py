@@ -236,10 +236,6 @@ mock_xray = lazy_load(".xray", "mock_xray")
 mock_xray_client = lazy_load(".xray", "mock_xray_client")
 mock_wafv2 = lazy_load(".wafv2", "mock_wafv2")
 mock_backup = lazy_load(".backup", "mock_backup", boto3_name="backup")
-mock_backup = lazy_load(".backup", "mock_backup", boto3_name="backup")
-mock_backup = lazy_load(".backup", "mock_backup", boto3_name="backup")
-mock_backup = lazy_load(".backup", "mock_backup", boto3_name="backup")
-mock_backup = lazy_load(".backup", "mock_backup", boto3_name="backup")
 
 
 class MockAll(ContextDecorator):

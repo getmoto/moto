@@ -188,7 +188,6 @@ quicksight
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_dashboard
-- [ ] update_dashboard_links
 - [ ] update_dashboard_permissions
 - [ ] update_dashboard_published_version
 - [ ] update_data_set

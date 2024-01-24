@@ -1,7 +1,7 @@
 """Handles incoming backup requests, invokes methods, returns responses."""
 import json
-from urllib.parse import unquote
 from moto.core.responses import BaseResponse
+from urllib.parse import unquote
 from .models import backup_backends, BackupBackend
 
 
@@ -28,7 +28,30 @@ class BackupResponse(BaseResponse):
         )
         return json.dumps(dict(plan.to_dict()))
 
-    
+    def get_backup_plan(self) -> str:
+        params = self._get_params()
+        backup_plan_id = self.path.split("/")[-2]
+        version_id = params.get("versionId")
+        plan = self.backup_backend.get_backup_plan(
+            backup_plan_id=backup_plan_id,
+            version_id=version_id
+        )
+        return json.dumps(dict(plan.to_get_dict()))
+
+    def delete_backup_plan(self) -> str:
+        backup_plan_id = self.path.split("/")[-1]
+        backup_plan_id, backup_plan_arn, deletion_date, version_id = self.backup_backend.delete_backup_plan(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps(dict(BackupPlanId=backup_plan_id, BackupPlanArn=backup_plan_arn, DeletionDate=deletion_date, VersionId=version_id))
+
+    def list_backup_plans(self) -> str:
+        params = self._get_params()
+        include_deleted = params.get("includeDeleted")
+        backup_plans_list = self.backup_backend.list_backup_plans(
+            include_deleted=include_deleted)
+        return json.dumps(dict(BackupPlansList=[p.to_list_dict() for p in backup_plans_list]))
+
     def create_backup_vault(self) -> str:
         params = json.loads(self.body)
         backup_vault_name = self.path.split("/")[-1]
@@ -43,53 +66,17 @@ class BackupResponse(BaseResponse):
         )
         return json.dumps(dict(backup_vault.to_dict()))
 
-    # def describe_backup_vault(self) -> str:
-    #     backup_vault_name = self._get_param("BackupVaultName")
-    #     backup_vault_account_id=self._get_param("BackupVaultAccountId")
-
-    #     backup_vault = self.backup_backend.describe_backup_vault(
-    #         BackupVaultName=backup_vault_name,
-    #         BackupVaultAccountId=backup_vault_account_id
-    #     )
-    #     return json.dumps(dict(backup_vault.to_dict()))
-    
-    def get_backup_plan(self) -> str:
-        params = self._get_params()
-        backup_plan_id = self.path.split("/")[-2]
-        version_id = params.get("versionId")
-        plan = self.backup_backend.get_backup_plan(
-            backup_plan_id=backup_plan_id,
-            version_id=version_id
-        )
-        return json.dumps(dict(plan.to_get_dict()))
-    
-    def delete_backup_plan(self) -> str:
-        backup_plan_id = self.path.split("/")[-1]
-        backup_plan_id, backup_plan_arn, deletion_date, version_id = self.backup_backend.delete_backup_plan(
-            backup_plan_id=backup_plan_id,
-        )
-        return json.dumps(dict(BackupPlanId=backup_plan_id, BackupPlanArn=backup_plan_arn, DeletionDate=deletion_date, VersionId=version_id))
-    
-    def list_backup_plans(self) -> str:
-        params = self._get_params()
-        include_deleted = params.get("includeDeleted")
-        backup_plans_list = self.backup_backend.list_backup_plans()
-        return json.dumps(dict(BackupPlansList=[p.to_list_dict() for p in backup_plans_list]))
-    
     def list_backup_vaults(self) -> str:
-        params = self._get_params()
-        by_vault_type = params.get("vaultType")
-        by_shared = params.get("shared")
         backup_vault_list = self.backup_backend.list_backup_vaults()
         return json.dumps(dict(BackupVaultList=[v.to_list_dict() for v in backup_vault_list]))
-    
+
     def list_tags(self) -> str:
         resource_arn = unquote(self.path.split("/")[-2])
         tags = self.backup_backend.list_tags(
             resource_arn=resource_arn,
         )
         return json.dumps(dict(Tags=tags))
-    
+
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = unquote(self.path.split("/")[-1])
@@ -99,7 +86,7 @@ class BackupResponse(BaseResponse):
             tags=tags,
         )
         return "{}"
-    
+
     def untag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = unquote(self.path.split("/")[-1])

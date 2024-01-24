@@ -49,7 +49,6 @@ iot
 - [ ] create_authorizer
 - [ ] create_billing_group
 - [X] create_certificate_from_csr
-- [ ] create_certificate_provider
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
@@ -86,7 +85,6 @@ iot
 - [ ] delete_billing_group
 - [X] delete_ca_certificate
 - [X] delete_certificate
-- [ ] delete_certificate_provider
 - [ ] delete_custom_metric
 - [ ] delete_dimension
 - [X] delete_domain_configuration
@@ -132,7 +130,6 @@ iot
 - [ ] describe_billing_group
 - [X] describe_ca_certificate
 - [X] describe_certificate
-- [ ] describe_certificate_provider
 - [ ] describe_custom_metric
 - [ ] describe_default_authorizer
 - [ ] describe_detect_mitigation_actions_task
@@ -196,7 +193,6 @@ iot
 - [ ] list_authorizers
 - [ ] list_billing_groups
 - [ ] list_ca_certificates
-- [ ] list_certificate_providers
 - [X] list_certificates
   
         Pagination is not yet implemented
@@ -325,7 +321,6 @@ iot
         
 
 - [X] update_certificate
-- [ ] update_certificate_provider
 - [ ] update_custom_metric
 - [ ] update_dimension
 - [X] update_domain_configuration
