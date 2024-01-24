@@ -32,6 +32,7 @@ lint:
 
 format:
 	black moto/ tests/
+	ruff --fix moto/ tests/
 
 test-only:
 	rm -f .coverage
