@@ -732,8 +732,17 @@ class SNSBackend(BaseBackend):
             raise SNSNotFoundError(
                 "Subscription does not exist", template="wrapped_single_error"
             )
+        # AWS does not return the FilterPolicy scope if the FilterPolicy is not set
+        # if the FilterPolicy is set and not the FilterPolicyScope, it returns the default value
+        attributes = {**subscription.attributes}
+        if "FilterPolicyScope" in attributes and not attributes.get("FilterPolicy"):
+            attributes.pop("FilterPolicyScope", None)
+            attributes.pop("FilterPolicy", None)
 
-        return subscription.attributes
+        elif "FilterPolicy" in attributes and "FilterPolicyScope" not in attributes:
+            attributes["FilterPolicyScope"] = "MessageAttributes"
+
+        return attributes
 
     def set_subscription_attributes(self, arn: str, name: str, value: Any) -> None:
         if name not in [
@@ -753,15 +762,19 @@ class SNSBackend(BaseBackend):
         subscription = _subscription[0]
 
         if name == "FilterPolicy":
-            filter_policy = json.loads(value)
-            # we validate the filter policy differently depending on the scope
-            # we need to always set the scope first
-            filter_policy_scope = subscription.attributes.get("FilterPolicyScope")
-            self._validate_filter_policy(filter_policy, scope=filter_policy_scope)
-            subscription._filter_policy = filter_policy
-            subscription._filter_policy_matcher = FilterPolicyMatcher(
-                filter_policy, filter_policy_scope
-            )
+            if value:
+                filter_policy = json.loads(value)
+                # we validate the filter policy differently depending on the scope
+                # we need to always set the scope first
+                filter_policy_scope = subscription.attributes.get("FilterPolicyScope")
+                self._validate_filter_policy(filter_policy, scope=filter_policy_scope)
+                subscription._filter_policy = filter_policy
+                subscription._filter_policy_matcher = FilterPolicyMatcher(
+                    filter_policy, filter_policy_scope
+                )
+            else:
+                subscription._filter_policy = None
+                subscription._filter_policy_matcher = None
 
         subscription.attributes[name] = value
 
