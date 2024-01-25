@@ -63,6 +63,7 @@ from .models import (
     get_canned_acl,
     s3_backends,
 )
+from .notifications import S3NotificationEvent
 from .select_object_content import serialize_select
 from .utils import (
     ARCHIVE_STORAGE_CLASSES,
@@ -2113,18 +2114,6 @@ class S3Response(BaseResponse):
             ("CloudFunction", "lambda"),
         ]
 
-        event_names = [
-            "s3:ReducedRedundancyLostObject",
-            "s3:ObjectCreated:*",
-            "s3:ObjectCreated:Put",
-            "s3:ObjectCreated:Post",
-            "s3:ObjectCreated:Copy",
-            "s3:ObjectCreated:CompleteMultipartUpload",
-            "s3:ObjectRemoved:*",
-            "s3:ObjectRemoved:Delete",
-            "s3:ObjectRemoved:DeleteMarkerCreated",
-        ]
-
         found_notifications = (
             0  # Tripwire -- if this is not ever set, then there were no notifications
         )
@@ -2151,8 +2140,8 @@ class S3Response(BaseResponse):
                         n["Event"] = [n["Event"]]
 
                     for event in n["Event"]:
-                        if event not in event_names:
-                            raise InvalidNotificationEvent()
+                        if event not in S3NotificationEvent.events():
+                            raise InvalidNotificationEvent(event)
 
                     # Parse out the filters:
                     if n.get("Filter"):

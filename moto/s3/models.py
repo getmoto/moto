@@ -2088,7 +2088,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket.keys.setlist(key_name, keys)
 
         notifications.send_event(
-            self.account_id, notifications.S3_OBJECT_CREATE_PUT, bucket, new_key
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT,
+            bucket,
+            new_key,
         )
 
         return new_key
@@ -2640,7 +2643,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         # Send notifications that an object was copied
         notifications.send_event(
-            self.account_id, notifications.S3_OBJECT_CREATE_COPY, bucket, new_key
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_CREATED_COPY_EVENT,
+            bucket,
+            new_key,
         )
 
     def put_bucket_acl(self, bucket_name: str, acl: Optional[FakeAcl]) -> None:
