@@ -4,6 +4,8 @@ from datetime import datetime
 from unittest import SkipTest
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 from dateutil.tz import tzutc  # type: ignore
 from freezegun import freeze_time
 
@@ -191,6 +193,21 @@ def test_describe_model_package_group():
     )
     assert resp["ModelPackageGroupStatus"] == "Completed"
     assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc())
+
+
+@mock_sagemaker
+def test_describe_model_package_group_not_exists():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as e:
+        client.describe_model_package_group(
+            ModelPackageGroupName="test-model-package-group"
+        )
+
+    assert e.value.response["Error"]["Code"] == "ValidationException"
+    assert "does not exist" in e.value.response["Error"]["Message"]
 
 
 @mock_sagemaker
