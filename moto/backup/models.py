@@ -30,7 +30,7 @@ class Plan(BaseModel):
         self.deletion_date: Optional[float] = None
         # Deletion Date is updated when the backup_plan is deleted
         self.last_execution_date = None  # start_restore_job not yet supported
-        rules = backup_plan.get("Rules")
+        rules = backup_plan["Rules"]
         for rule in rules:
             rule["ScheduleExpression"] = rule.get(
                 "ScheduleExpression", "cron(0 5 ? * * *)"
