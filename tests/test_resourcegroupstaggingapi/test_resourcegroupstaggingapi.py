@@ -49,11 +49,9 @@ def test_get_resources_cloudformation():
         Tags=[{"Key": "tag", "Value": "three"}],
     ).get("StackId")
 
-    rgta_client = boto3.client(
-        "resourcegroupstaggingapi", region_name="us-east-1")
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
 
-    resp = rgta_client.get_resources(
-        TagFilters=[{"Key": "tag", "Values": ["one"]}])
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["one"]}])
     assert len(resp["ResourceTagMappingList"]) == 1
     assert stack_one in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
@@ -69,8 +67,7 @@ def test_get_resources_cloudformation():
         KeyUsage="ENCRYPT_DECRYPT", Tags=[{"TagKey": "tag", "TagValue": "two"}]
     )
 
-    resp = rgta_client.get_resources(
-        TagFilters=[{"Key": "tag", "Values": ["two"]}])
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["two"]}])
     assert len(resp["ResourceTagMappingList"]) == 2
     assert stack_two in resp["ResourceTagMappingList"][0]["ResourceARN"]
     assert "kms" in resp["ResourceTagMappingList"][1]["ResourceARN"]
@@ -105,8 +102,7 @@ def test_get_resources_acm():
             {"Key": "Color", "Value": "Green"},
         ],
     )
-    rgta_client = boto3.client(
-        "resourcegroupstaggingapi", region_name="us-east-1")
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
     resources_no_filter = rgta_client.get_resources(
         ResourceTypeFilters=["acm"],
     )
@@ -138,8 +134,7 @@ def test_get_resources_backup():
             },
         )
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
 
     # Basic test
     resp = rtapi.get_resources(ResourceTypeFilters=["backup"])
@@ -151,8 +146,7 @@ def test_get_resources_backup():
         TagFilters=[{"Key": "Test", "Values": ["1"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "Test",
-            "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
 @mock_ecs
@@ -177,10 +171,8 @@ def test_get_resources_ecs():
         .get("clusterArn")
     )
 
-    rgta_client = boto3.client(
-        "resourcegroupstaggingapi", region_name="us-east-1")
-    resp = rgta_client.get_resources(
-        TagFilters=[{"Key": "tag", "Values": ["a tag"]}])
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["a tag"]}])
     assert len(resp["ResourceTagMappingList"]) == 1
     assert cluster_one in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
@@ -205,8 +197,7 @@ def test_get_resources_ecs():
         .get("serviceArn")
     )
 
-    resp = rgta_client.get_resources(
-        TagFilters=[{"Key": "tag", "Values": ["a tag"]}])
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["a tag"]}])
     assert len(resp["ResourceTagMappingList"]) == 2
     assert service_one in resp["ResourceTagMappingList"][0]["ResourceARN"]
     assert cluster_one in resp["ResourceTagMappingList"][1]["ResourceARN"]
@@ -246,8 +237,7 @@ def test_get_resources_ecs():
     )
 
     ec2_client = boto3.client("ec2", region_name="us-east-1")
-    vpc = ec2_client.create_vpc(
-        CidrBlock="10.0.0.0/16").get("Vpc").get("VpcId")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc").get("VpcId")
     subnet = (
         ec2_client.create_subnet(VpcId=vpc, CidrBlock="10.0.0.0/18")
         .get("Subnet")
@@ -291,8 +281,7 @@ def test_get_resources_ecs():
         .get("taskArn")
     )
 
-    resp = rgta_client.get_resources(
-        TagFilters=[{"Key": "tag", "Values": ["b tag"]}])
+    resp = rgta_client.get_resources(TagFilters=[{"Key": "tag", "Values": ["b tag"]}])
     assert len(resp["ResourceTagMappingList"]) == 3
     assert service_two in resp["ResourceTagMappingList"][0]["ResourceARN"]
     assert cluster_two in resp["ResourceTagMappingList"][1]["ResourceARN"]
@@ -332,14 +321,11 @@ def test_get_resources_ec2():
         ],
     )
     instance_id = instances["Instances"][0]["InstanceId"]
-    image_id = client.create_image(
-        Name="testami", InstanceId=instance_id)["ImageId"]
+    image_id = client.create_image(Name="testami", InstanceId=instance_id)["ImageId"]
 
-    client.create_tags(Resources=[image_id], Tags=[
-                       {"Key": "ami", "Value": "test"}])
+    client.create_tags(Resources=[image_id], Tags=[{"Key": "ami", "Value": "test"}])
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
     resp = rtapi.get_resources()
     # Check we have 1 entry for Instance, 1 Entry for AMI
     assert len(resp["ResourceTagMappingList"]) == 2
@@ -356,8 +342,7 @@ def test_get_resources_ec2():
 
     # Basic test of tag filters
     resp = rtapi.get_resources(
-        TagFilters=[{"Key": "MY_TAG1", "Values": [
-            "MY_VALUE1", "some_other_value"]}]
+        TagFilters=[{"Key": "MY_TAG1", "Values": ["MY_VALUE1", "some_other_value"]}]
     )
     assert len(resp["ResourceTagMappingList"]) == 1
     assert "instance/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
@@ -368,8 +353,7 @@ def test_get_resources_ec2():
 def test_get_resources_ec2_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    ec2.create_tags(Resources=[vpc.id], Tags=[
-                    {"Key": "test", "Value": "test"}])
+    ec2.create_tags(Resources=[vpc.id], Tags=[{"Key": "test", "Value": "test"}])
 
     def assert_response(resp):
         results = resp.get("ResourceTagMappingList", [])
@@ -381,8 +365,7 @@ def test_get_resources_ec2_vpc():
     assert_response(resp)
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:vpc"])
     assert_response(resp)
-    resp = rtapi.get_resources(
-        TagFilters=[{"Key": "test", "Values": ["test"]}])
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test"]}])
     assert_response(resp)
 
 
@@ -411,8 +394,7 @@ def test_get_tag_keys_ec2():
         ],
     )
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
     resp = rtapi.get_tag_keys()
 
     assert "MY_TAG1" in resp["TagKeys"]
@@ -466,8 +448,7 @@ def test_get_tag_values_ec2():
         ],
     )
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
     resp = rtapi.get_tag_values(Key="MY_TAG1")
 
     assert "MY_VALUE1" in resp["TagValues"]
@@ -567,12 +548,10 @@ def test_get_resources_target_group():
             Tags=[{"Key": "Test", "Value": i_str}],
         )
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
 
     # Basic test
-    resp = rtapi.get_resources(
-        ResourceTypeFilters=["elasticloadbalancing:targetgroup"])
+    resp = rtapi.get_resources(ResourceTypeFilters=["elasticloadbalancing:targetgroup"])
     assert len(resp["ResourceTagMappingList"]) == 2
 
     # Test tag filtering
@@ -581,8 +560,7 @@ def test_get_resources_target_group():
         TagFilters=[{"Key": "Test", "Values": ["1"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "Test",
-            "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
 @mock_s3
@@ -603,13 +581,11 @@ def test_get_resources_s3():
         )
         s3_client.put_bucket_tagging(
             Bucket="test_bucket" + i_str,
-            Tagging={"TagSet": [
-                {"Key": "key" + i_str, "Value": "value" + i_str}]},
+            Tagging={"TagSet": [{"Key": "key" + i_str, "Value": "value" + i_str}]},
         )
         response_keys.add("key" + i_str)
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
     resp = rtapi.get_resources(ResourcesPerPage=2)
     for resource in resp["ResourceTagMappingList"]:
         response_keys.remove(resource["Tags"][0]["Key"])
@@ -672,8 +648,7 @@ def test_multiple_tag_filters():
     )
     instance_2_id = resp["Instances"][0]["InstanceId"]
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
     results = rtapi.get_resources(
         TagFilters=[
             {"Key": "MY_TAG1", "Values": ["MY_UNIQUE_VALUE"]},
@@ -763,16 +738,13 @@ def test_get_resources_lambda():
     resp = rtapi.get_resources(ResourceTypeFilters=["lambda"])
     assert_response(resp, [circle_arn, rectangle_arn])
 
-    resp = rtapi.get_resources(
-        TagFilters=[{"Key": "Color", "Values": ["green"]}])
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Color", "Values": ["green"]}])
     assert_response(resp, [circle_arn, rectangle_arn])
 
-    resp = rtapi.get_resources(
-        TagFilters=[{"Key": "Shape", "Values": ["circle"]}])
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["circle"]}])
     assert_response(resp, [circle_arn])
 
-    resp = rtapi.get_resources(
-        TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
+    resp = rtapi.get_resources(TagFilters=[{"Key": "Shape", "Values": ["rectangle"]}])
     assert_response(resp, [rectangle_arn])
 
 
@@ -792,8 +764,7 @@ def test_get_resources_sqs():
             },
         )
 
-    rtapi = boto3.client("resourcegroupstaggingapi",
-                         region_name="eu-central-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
 
     # Basic test
     resp = rtapi.get_resources(ResourceTypeFilters=["sqs"])
@@ -805,8 +776,7 @@ def test_get_resources_sqs():
         TagFilters=[{"Key": "Test", "Values": ["1"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "Test",
-            "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
 @mock_resourcegroupstaggingapi

@@ -100,7 +100,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
-    
+
     @property
     def backup_backend(self) -> BackupBackend:
         return backup_backends[self.account_id][self.region_name]
@@ -173,7 +173,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Backup
         if not resource_type_filters or "backup" in resource_type_filters:
             for vault in self.backup_backend.vaults.values():
-                tags = self.backup_backend.tagger.list_tags_for_resource(vault.backup_vault_arn)["Tags"]
+                tags = self.backup_backend.tagger.list_tags_for_resource(
+                    vault.backup_vault_arn
+                )["Tags"]
                 if not tags or not tag_filter(
                     tags
                 ):  # Skip if no tags, or invalid filter

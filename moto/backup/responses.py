@@ -35,24 +35,38 @@ class BackupResponse(BaseResponse):
         backup_plan_id = self.path.split("/")[-2]
         version_id = params.get("versionId")
         plan = self.backup_backend.get_backup_plan(
-            backup_plan_id=backup_plan_id,
-            version_id=version_id
+            backup_plan_id=backup_plan_id, version_id=version_id
         )
         return json.dumps(dict(plan.to_get_dict()))
 
     def delete_backup_plan(self) -> str:
         backup_plan_id = self.path.split("/")[-1]
-        backup_plan_id, backup_plan_arn, deletion_date, version_id = self.backup_backend.delete_backup_plan(
+        (
+            backup_plan_id,
+            backup_plan_arn,
+            deletion_date,
+            version_id,
+        ) = self.backup_backend.delete_backup_plan(
             backup_plan_id=backup_plan_id,
         )
-        return json.dumps(dict(BackupPlanId=backup_plan_id, BackupPlanArn=backup_plan_arn, DeletionDate=deletion_date, VersionId=version_id))
+        return json.dumps(
+            dict(
+                BackupPlanId=backup_plan_id,
+                BackupPlanArn=backup_plan_arn,
+                DeletionDate=deletion_date,
+                VersionId=version_id,
+            )
+        )
 
     def list_backup_plans(self) -> str:
         params = self._get_params()
         include_deleted = params.get("includeDeleted")
         backup_plans_list = self.backup_backend.list_backup_plans(
-            include_deleted=include_deleted)
-        return json.dumps(dict(BackupPlansList=[p.to_list_dict() for p in backup_plans_list]))
+            include_deleted=include_deleted
+        )
+        return json.dumps(
+            dict(BackupPlansList=[p.to_list_dict() for p in backup_plans_list])
+        )
 
     def create_backup_vault(self) -> str:
         params = json.loads(self.body)
@@ -70,7 +84,9 @@ class BackupResponse(BaseResponse):
 
     def list_backup_vaults(self) -> str:
         backup_vault_list = self.backup_backend.list_backup_vaults()
-        return json.dumps(dict(BackupVaultList=[v.to_list_dict() for v in backup_vault_list]))
+        return json.dumps(
+            dict(BackupVaultList=[v.to_list_dict() for v in backup_vault_list])
+        )
 
     def list_tags(self) -> str:
         resource_arn = unquote(self.path.split("/")[-2])

@@ -10,15 +10,15 @@ from moto import mock_backup
 def test_create_backup_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
     )
     resp = client.create_backup_plan(
         BackupPlan={
-            'BackupPlanName': 'backupplan-foobar',
-            'Rules': [
+            "BackupPlanName": "backupplan-foobar",
+            "Rules": [
                 {
-                    'RuleName': 'foobar',
-                    'TargetBackupVaultName': response['BackupVaultName'],
+                    "RuleName": "foobar",
+                    "TargetBackupVaultName": response["BackupVaultName"],
                 },
             ],
         },
@@ -35,16 +35,18 @@ def test_create_backup_plan_already_exists():
     backup_plan_name = "backup_plan_foobar"
     rules = [
         {
-            'RuleName': 'foobar',
-            'TargetBackupVaultName': 'backup-vault-foobar',
+            "RuleName": "foobar",
+            "TargetBackupVaultName": "backup-vault-foobar",
         },
     ]
     client.create_backup_plan(
-        BackupPlan={'BackupPlanName': backup_plan_name, 'Rules': rules})
+        BackupPlan={"BackupPlanName": backup_plan_name, "Rules": rules}
+    )
 
     with pytest.raises(ClientError) as exc:
         client.create_backup_plan(
-            BackupPlan={'BackupPlanName': backup_plan_name, 'Rules': rules})
+            BackupPlan={"BackupPlanName": backup_plan_name, "Rules": rules}
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "AlreadyExistsException"
 
@@ -53,22 +55,21 @@ def test_create_backup_plan_already_exists():
 def test_get_backup_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
     )
     plan = client.create_backup_plan(
         BackupPlan={
-            'BackupPlanName': 'backupplan-foobar',
-            'Rules': [
+            "BackupPlanName": "backupplan-foobar",
+            "Rules": [
                 {
-                    'RuleName': 'foobar',
-                    'TargetBackupVaultName': response['BackupVaultName'],
+                    "RuleName": "foobar",
+                    "TargetBackupVaultName": response["BackupVaultName"],
                 },
             ],
         },
     )
     resp = client.get_backup_plan(
-        BackupPlanId=plan['BackupPlanId'],
-        VersionId=plan['VersionId']
+        BackupPlanId=plan["BackupPlanId"], VersionId=plan["VersionId"]
     )
     assert "BackupPlan" in resp
 
@@ -88,25 +89,23 @@ def test_get_backup_plan_with_multiple_rules():
     client = boto3.client("backup", region_name="eu-west-1")
     plan = client.create_backup_plan(
         BackupPlan={
-            'BackupPlanName': 'backupplan-foobar',
-            'Rules': [
+            "BackupPlanName": "backupplan-foobar",
+            "Rules": [
                 {
-                    'RuleName': 'rule1',
-                    'TargetBackupVaultName': 'backupvault-foobar',
-                    'ScheduleExpression': 'cron(0 1 ? * * *)',
-                    'StartWindowMinutes': 60,
-                    'CompletionWindowMinutes': 120,
+                    "RuleName": "rule1",
+                    "TargetBackupVaultName": "backupvault-foobar",
+                    "ScheduleExpression": "cron(0 1 ? * * *)",
+                    "StartWindowMinutes": 60,
+                    "CompletionWindowMinutes": 120,
                 },
                 {
-                    'RuleName': 'rule2',
-                    'TargetBackupVaultName': 'backupvault-foobar',
+                    "RuleName": "rule2",
+                    "TargetBackupVaultName": "backupvault-foobar",
                 },
             ],
         },
     )
-    resp = client.get_backup_plan(
-        BackupPlanId=plan['BackupPlanId']
-    )
+    resp = client.get_backup_plan(BackupPlanId=plan["BackupPlanId"])
     for rule in resp["BackupPlan"]["Rules"]:
         assert "ScheduleExpression" in rule
         assert "StartWindowMinutes" in rule
@@ -118,31 +117,28 @@ def test_get_backup_plan_with_multiple_rules():
 def test_delete_backup_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
     )
     plan = client.create_backup_plan(
         BackupPlan={
-            'BackupPlanName': 'backupplan-foobar',
-            'Rules': [
+            "BackupPlanName": "backupplan-foobar",
+            "Rules": [
                 {
-                    'RuleName': 'foobar',
-                    'TargetBackupVaultName': response['BackupVaultName'],
+                    "RuleName": "foobar",
+                    "TargetBackupVaultName": response["BackupVaultName"],
                 },
             ],
         },
     )
 
-    resp = client.delete_backup_plan(
-        BackupPlanId=plan['BackupPlanId']
-    )
+    resp = client.delete_backup_plan(BackupPlanId=plan["BackupPlanId"])
     assert "BackupPlanId" in resp
     assert "BackupPlanArn" in resp
     assert "DeletionDate" in resp
     assert "VersionId" in resp
 
     resp = client.get_backup_plan(
-        BackupPlanId=plan['BackupPlanId'],
-        VersionId=plan['VersionId']
+        BackupPlanId=plan["BackupPlanId"], VersionId=plan["VersionId"]
     )
     assert "DeletionDate" in resp
 
@@ -153,11 +149,11 @@ def test_list_backup_plans():
     for i in range(1, 3):
         client.create_backup_plan(
             BackupPlan={
-                'BackupPlanName': f'backup-plan-{i}',
-                'Rules': [
+                "BackupPlanName": f"backup-plan-{i}",
+                "Rules": [
                     {
-                        'RuleName': 'foobar',
-                        'TargetBackupVaultName': 'backupvault-foobar',
+                        "RuleName": "foobar",
+                        "TargetBackupVaultName": "backupvault-foobar",
                     },
                 ],
             },
@@ -177,19 +173,17 @@ def test_list_backup_plans_without_include_deleted():
     for i in range(1, 3):
         client.create_backup_plan(
             BackupPlan={
-                'BackupPlanName': f'backup-plan-{i}',
-                'Rules': [
+                "BackupPlanName": f"backup-plan-{i}",
+                "Rules": [
                     {
-                        'RuleName': 'foobar',
-                        'TargetBackupVaultName': 'backupvault-foobar',
+                        "RuleName": "foobar",
+                        "TargetBackupVaultName": "backupvault-foobar",
                     },
                 ],
             },
         )
     resp = client.list_backup_plans()
-    client.delete_backup_plan(
-        BackupPlanId=resp["BackupPlansList"][0]["BackupPlanId"]
-    )
+    client.delete_backup_plan(BackupPlanId=resp["BackupPlansList"][0]["BackupPlanId"])
     resp_list = client.list_backup_plans()
     backup_plans = resp_list["BackupPlansList"]
     assert backup_plans[0]["BackupPlanName"] == "backup-plan-2"
@@ -202,19 +196,17 @@ def test_list_backup_plans_with_include_deleted():
     for i in range(1, 3):
         client.create_backup_plan(
             BackupPlan={
-                'BackupPlanName': f'backup-plan-{i}',
-                'Rules': [
+                "BackupPlanName": f"backup-plan-{i}",
+                "Rules": [
                     {
-                        'RuleName': 'foobar',
-                        'TargetBackupVaultName': 'backupvault-foobar',
+                        "RuleName": "foobar",
+                        "TargetBackupVaultName": "backupvault-foobar",
                     },
                 ],
             },
         )
     resp = client.list_backup_plans()
-    client.delete_backup_plan(
-        BackupPlanId=resp["BackupPlansList"][0]["BackupPlanId"]
-    )
+    client.delete_backup_plan(BackupPlanId=resp["BackupPlansList"][0]["BackupPlanId"])
     resp_list = client.list_backup_plans(IncludeDeleted=True)
     backup_plans = resp_list["BackupPlansList"]
     assert backup_plans[0]["BackupPlanName"] == "backup-plan-1"
@@ -226,9 +218,9 @@ def test_list_backup_plans_with_include_deleted():
 def test_create_backup_vault():
     client = boto3.client("backup", region_name="eu-west-1")
     resp = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
         BackupVaultTags={
-            'foo': 'bar',
+            "foo": "bar",
         },
     )
     assert "BackupVaultName" in resp
@@ -253,7 +245,7 @@ def test_list_backup_vaults():
     client = boto3.client("backup", region_name="eu-west-1")
     for i in range(1, 3):
         client.create_backup_vault(
-            BackupVaultName=f'backup-vault-{i}',
+            BackupVaultName=f"backup-vault-{i}",
         )
     resp = client.list_backup_vaults()
     backup_plans = resp["BackupVaultList"]
@@ -266,10 +258,10 @@ def test_list_backup_vaults():
 def test_list_tags_vault():
     client = boto3.client("backup", region_name="eu-west-1")
     vault = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
         BackupVaultTags={
-            'key1': 'value1',
-            'key2': 'value2',
+            "key1": "value1",
+            "key2": "value2",
         },
     )
     resp = client.list_tags(ResourceArn=vault["BackupVaultArn"])
@@ -280,21 +272,21 @@ def test_list_tags_vault():
 def test_list_tags_plan():
     client = boto3.client("backup", region_name="eu-west-1")
     response = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
     )
     plan = client.create_backup_plan(
         BackupPlan={
-            'BackupPlanName': 'backupplan-foobar',
-            'Rules': [
+            "BackupPlanName": "backupplan-foobar",
+            "Rules": [
                 {
-                    'RuleName': 'foobar',
-                    'TargetBackupVaultName': response['BackupVaultName'],
+                    "RuleName": "foobar",
+                    "TargetBackupVaultName": response["BackupVaultName"],
                 },
             ],
         },
         BackupPlanTags={
-            'key1': 'value1',
-            'key2': 'value2',
+            "key1": "value1",
+            "key2": "value2",
         },
     )
     resp = client.list_tags(ResourceArn=plan["BackupPlanArn"])
@@ -305,9 +297,9 @@ def test_list_tags_plan():
 def test_tag_resource():
     client = boto3.client("backup", region_name="eu-west-1")
     vault = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
         BackupVaultTags={
-            'key1': 'value1',
+            "key1": "value1",
         },
     )
     resource_arn = vault["BackupVaultArn"]
@@ -315,17 +307,16 @@ def test_tag_resource():
         ResourceArn=resource_arn, Tags={"key2": "value2", "key3": "value3"}
     )
     resp = client.list_tags(ResourceArn=resource_arn)
-    assert resp["Tags"] == {"key1": "value1",
-                            "key2": "value2", "key3": "value3"}
+    assert resp["Tags"] == {"key1": "value1", "key2": "value2", "key3": "value3"}
 
 
 @mock_backup
 def test_untag_resource():
     client = boto3.client("backup", region_name="eu-west-1")
     vault = client.create_backup_vault(
-        BackupVaultName='backupvault-foobar',
+        BackupVaultName="backupvault-foobar",
         BackupVaultTags={
-            'key1': 'value1',
+            "key1": "value1",
         },
     )
     resource_arn = vault["BackupVaultArn"]

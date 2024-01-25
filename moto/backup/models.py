@@ -33,13 +33,17 @@ class Plan(BaseModel):
         rules = backup_plan.get("Rules")
         for rule in rules:
             rule["ScheduleExpression"] = rule.get(
-                "ScheduleExpression", "cron(0 5 ? * * *)")  # Default CRON expression in UTC
+                "ScheduleExpression", "cron(0 5 ? * * *)"
+            )  # Default CRON expression in UTC
             rule["StartWindowMinutes"] = rule.get(
-                "StartWindowMinutes", 480)  # Default=480
+                "StartWindowMinutes", 480
+            )  # Default=480
             rule["CompletionWindowMinutes"] = rule.get(
-                "CompletionWindowMinutes", 10080)  # Default=10080
+                "CompletionWindowMinutes", 10080
+            )  # Default=10080
             rule["ScheduleExpressionTimezone"] = rule.get(
-                "ScheduleExpressionTimezone", "Etc/UTC")  # set to Etc/UTc by default
+                "ScheduleExpressionTimezone", "Etc/UTC"
+            )  # set to Etc/UTc by default
             rule["RuleId"] = str(mock_random.uuid4())
 
     def to_dict(self) -> Dict[str, Any]:
@@ -58,7 +62,7 @@ class Plan(BaseModel):
             "BackupPlan": self.backup_plan,
             "CreatorRequestId": self.creator_request_id,
             "DeletionDate": self.deletion_date,
-            "LastExecutionDate": self.last_execution_date
+            "LastExecutionDate": self.last_execution_date,
         }
         for key, value in dct_options.items():
             if value is not None:
@@ -109,7 +113,7 @@ class Vault(BaseModel):
             "Locked": self.locked,
             "MinRetentionDays": self.min_retention_days,
             "MaxRetentionDays": self.max_retention_days,
-            "LockDate": self.lock_date
+            "LockDate": self.lock_date,
         }
         for key, value in dct_options.items():
             if value is not None:
@@ -127,11 +131,19 @@ class BackupBackend(BaseBackend):
         self.plans: Dict[str, Plan] = dict()
         self.tagger = TaggingService()
 
-    def create_backup_plan(self, backup_plan: Dict[str, Any], backup_plan_tags: Dict[str, str], creator_request_id: str) -> Plan:
+    def create_backup_plan(
+        self,
+        backup_plan: Dict[str, Any],
+        backup_plan_tags: Dict[str, str],
+        creator_request_id: str,
+    ) -> Plan:
 
-        if backup_plan["BackupPlanName"] in list(p.backup_plan["BackupPlanName"] for p in list(self.plans.values())):
+        if backup_plan["BackupPlanName"] in list(
+            p.backup_plan["BackupPlanName"] for p in list(self.plans.values())
+        ):
             raise AlreadyExistsException(
-                msg="Backup plan with the same plan document already exists")
+                msg="Backup plan with the same plan document already exists"
+            )
         plan = Plan(
             backup_plan=backup_plan,
             creator_request_id=creator_request_id,
@@ -157,7 +169,8 @@ class BackupBackend(BaseBackend):
     def delete_backup_plan(self, backup_plan_id: str) -> tuple[str, str, float, str]:
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(
-                msg="Failed reading Backup plan with provided version")
+                msg="Failed reading Backup plan with provided version"
+            )
         deletion_date = unix_time()
         res = self.plans[backup_plan_id]
         res.deletion_date = deletion_date
@@ -177,11 +190,18 @@ class BackupBackend(BaseBackend):
             return list(self.plans.values())
         return list(plans_list.values())
 
-    def create_backup_vault(self, backup_vault_name: str, backup_vault_tags: Dict[str, str], encryption_key_arn: str, creator_request_id: str) -> Vault:
+    def create_backup_vault(
+        self,
+        backup_vault_name: str,
+        backup_vault_tags: Dict[str, str],
+        encryption_key_arn: str,
+        creator_request_id: str,
+    ) -> Vault:
 
         if backup_vault_name in self.vaults:
             raise AlreadyExistsException(
-                msg="Backup vault with the same name already exists")
+                msg="Backup vault with the same name already exists"
+            )
         vault = Vault(
             backup_vault_name=backup_vault_name,
             encryption_key_arn=encryption_key_arn,
