@@ -1,12 +1,13 @@
 """BackupBackend class with methods for supported APIs."""
-
 from copy import deepcopy
+from typing import Any, Dict, List, Optional
+
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from typing import Any, Dict, Optional, List
-from .exceptions import (AlreadyExistsException, ResourceNotFoundException)
+
+from .exceptions import AlreadyExistsException, ResourceNotFoundException
 
 
 class Plan(BaseModel):

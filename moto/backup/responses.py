@@ -1,8 +1,10 @@
 """Handles incoming backup requests, invokes methods, returns responses."""
 import json
-from moto.core.responses import BaseResponse
 from urllib.parse import unquote
-from .models import backup_backends, BackupBackend
+
+from moto.core.responses import BaseResponse
+
+from .models import BackupBackend, backup_backends
 
 
 class BackupResponse(BaseResponse):
