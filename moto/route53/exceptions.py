@@ -12,6 +12,19 @@ class Route53ClientError(RESTError):
         super().__init__(*args, **kwargs)
 
 
+class ConflictingDomainExists(Route53ClientError):
+    """Domain already exists."""
+
+    code = 400
+
+    def __init__(self, domain_name: str, delegation_set_id: str) -> None:
+        message = (
+            f"Cannot create hosted zone with DelegationSetId DelegationSetId:{delegation_set_id} as the DNSName"
+            f"{domain_name} conflicts with existing ones sharing the delegation set"
+        )
+        super().__init__("ConflictingDomainExists", message)
+
+
 class InvalidInput(Route53ClientError):
     """Malformed ARN for the CloudWatch log group."""
 

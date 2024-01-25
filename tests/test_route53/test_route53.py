@@ -1516,3 +1516,54 @@ def test_get_dns_sec():
     )["HostedZone"]["Id"]
     dns_sec = client.get_dnssec(HostedZoneId=hosted_zone_id)
     assert dns_sec["Status"] == {"ServeSignature": "NOT_SIGNING"}
+
+
+@mock_route53
+@pytest.mark.parametrize(
+    "domain1,domain2",
+    (
+        ["a.com", "a.com"],
+        ["a.b.com", "b.com"],
+        ["b.com", "a.b.com"],
+        ["a.b.com", "a.b.com"],
+    ),
+)
+def test_conflicting_domain_exists(domain1, domain2):
+    delegation_set_id = "N10015061S366L6NMTRKQ"
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name=domain1,
+        CallerReference=str(hash("foo")),
+        DelegationSetId=delegation_set_id,
+    )
+    with pytest.raises(ClientError) as exc_info:
+        conn.create_hosted_zone(
+            Name=domain2,
+            CallerReference=str(hash("bar")),
+            DelegationSetId=delegation_set_id,
+        )
+    assert exc_info.value.response.get("Error").get("Code") == "ConflictingDomainExists"
+    for string in [delegation_set_id, domain2]:
+        assert string in exc_info.value.response.get("Error").get("Message")
+
+    # Now test that these domains can be created with different delegation set ids
+    conn.create_hosted_zone(
+        Name=domain1,
+        CallerReference=str(hash("foo")),
+    )
+    conn.create_hosted_zone(
+        Name=domain2,
+        CallerReference=str(hash("bar")),
+    )
+
+    # And, finally, test that these domains can be created with different named delegation sets
+    conn.create_hosted_zone(
+        Name=domain1,
+        CallerReference=str(hash("foo")),
+        DelegationSetId="1",
+    )
+    conn.create_hosted_zone(
+        Name=domain2,
+        CallerReference=str(hash("bar")),
+        DelegationSetId="2",
+    )

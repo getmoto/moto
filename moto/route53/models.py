@@ -12,6 +12,7 @@ from jinja2 import Template
 from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
 from moto.route53.exceptions import (
+    ConflictingDomainExists,
     DnsNameInvalidForZone,
     HostedZoneNotEmpty,
     InvalidActionValue,
@@ -532,6 +533,24 @@ class Route53Backend(BaseBackend):
         self.query_logging_configs: Dict[str, QueryLoggingConfig] = {}
         self.delegation_sets: Dict[str, DelegationSet] = dict()
 
+    def _has_prev_conflicting_domain(
+        self, name: str, delegation_set_id: str | None
+    ) -> bool:
+        """Check if a conflicting domain exists in the backend"""
+        if not delegation_set_id:
+            return False
+        for zone in self.zones.values():
+            if not zone.delegation_set or zone.delegation_set.id != delegation_set_id:
+                # Delegation sets don't match, so can't possibly conflict
+                continue
+            if (
+                zone.name == name
+                or zone.name.endswith(f".{name}")
+                or name.endswith(f".{zone.name}")
+            ):
+                return True
+        return False
+
     def create_hosted_zone(
         self,
         name: str,
@@ -542,6 +561,8 @@ class Route53Backend(BaseBackend):
         comment: Optional[str] = None,
         delegation_set_id: Optional[str] = None,
     ) -> FakeZone:
+        if self._has_prev_conflicting_domain(name, delegation_set_id):
+            raise ConflictingDomainExists(name, delegation_set_id)
         new_id = create_route53_zone_id()
         caller_reference = caller_reference or create_route53_caller_reference()
         delegation_set = self.create_reusable_delegation_set(
