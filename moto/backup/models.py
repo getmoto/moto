@@ -1,6 +1,6 @@
 """BackupBackend class with methods for supported APIs."""
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core import BackendDict, BaseBackend, BaseModel
 from moto.core.utils import unix_time
@@ -166,7 +166,7 @@ class BackupBackend(BaseBackend):
                 raise ResourceNotFoundException(msg=msg)
         return plan
 
-    def delete_backup_plan(self, backup_plan_id: str) -> tuple[str, str, float, str]:
+    def delete_backup_plan(self, backup_plan_id: str) -> Tuple[str, str, float, str]:
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(
                 msg="Failed reading Backup plan with provided version"
