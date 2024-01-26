@@ -170,10 +170,36 @@ def iso_8601_datetime_without_milliseconds_s3(
 
 
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
+EN_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+EN_MONTHS = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+]
 
 
 def rfc_1123_datetime(src: datetime.datetime) -> str:
-    return src.strftime(RFC1123)
+    """
+    Returns the datetime in the RFC-1123 format
+    Names of weekdays/months are in English
+    """
+    # strftime uses the current locale to translate values
+    # So weekday/month values may not be in English
+    # For our usecase, we need these values to always be in English, otherwise botocore is unable to parse it
+    # Having a hardcoded list ensures this always works, even if the user does not have an English locale installed
+    eng_weekday = EN_WEEKDAYS[src.isoweekday() - 1]
+    eng_month = EN_MONTHS[src.month - 1]
+    non_locallized_rfc1123 = RFC1123.replace("%a", "{}").replace("%b", "{}")
+    return src.strftime(non_locallized_rfc1123).format(eng_weekday, eng_month)
 
 
 def str_to_rfc_1123_datetime(value: str) -> datetime.datetime:
