@@ -63,6 +63,7 @@ guardduty
 - [ ] get_master_account
 - [ ] get_member_detectors
 - [ ] get_members
+- [ ] get_organization_statistics
 - [ ] get_remaining_free_trial_days
 - [ ] get_threat_intel_set
 - [ ] get_usage_statistics

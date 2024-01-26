@@ -35,6 +35,8 @@ backup
 - [ ] create_legal_hold
 - [ ] create_logically_air_gapped_backup_vault
 - [ ] create_report_plan
+- [ ] create_restore_testing_plan
+- [ ] create_restore_testing_selection
 - [X] delete_backup_plan
 - [ ] delete_backup_selection
 - [ ] delete_backup_vault
@@ -44,6 +46,8 @@ backup
 - [ ] delete_framework
 - [ ] delete_recovery_point
 - [ ] delete_report_plan
+- [ ] delete_restore_testing_plan
+- [ ] delete_restore_testing_selection
 - [ ] describe_backup_job
 - [ ] describe_backup_vault
 - [ ] describe_copy_job
@@ -66,6 +70,10 @@ backup
 - [ ] get_backup_vault_notifications
 - [ ] get_legal_hold
 - [ ] get_recovery_point_restore_metadata
+- [ ] get_restore_job_metadata
+- [ ] get_restore_testing_inferred_metadata
+- [ ] get_restore_testing_plan
+- [ ] get_restore_testing_selection
 - [ ] get_supported_resource_types
 - [ ] list_backup_job_summaries
 - [ ] list_backup_jobs
@@ -95,6 +103,9 @@ backup
 - [ ] list_report_plans
 - [ ] list_restore_job_summaries
 - [ ] list_restore_jobs
+- [ ] list_restore_jobs_by_protected_resource
+- [ ] list_restore_testing_plans
+- [ ] list_restore_testing_selections
 - [X] list_tags
   
         Pagination is not yet implemented
@@ -103,6 +114,7 @@ backup
 - [ ] put_backup_vault_access_policy
 - [ ] put_backup_vault_lock_configuration
 - [ ] put_backup_vault_notifications
+- [ ] put_restore_validation_result
 - [ ] start_backup_job
 - [ ] start_copy_job
 - [ ] start_report_job
@@ -116,4 +128,6 @@ backup
 - [ ] update_recovery_point_lifecycle
 - [ ] update_region_settings
 - [ ] update_report_plan
+- [ ] update_restore_testing_plan
+- [ ] update_restore_testing_selection
 

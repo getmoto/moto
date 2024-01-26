@@ -94,6 +94,7 @@ dynamodb
 - [ ] update_global_table
 - [ ] update_global_table_settings
 - [X] update_item
+- [ ] update_kinesis_streaming_destination
 - [X] update_table
 - [ ] update_table_replica_auto_scaling
 - [X] update_time_to_live

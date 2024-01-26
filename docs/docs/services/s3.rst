@@ -32,6 +32,7 @@ s3
 - [X] copy_object
 - [X] create_bucket
 - [X] create_multipart_upload
+- [ ] create_session
 - [X] delete_bucket
 - [ ] delete_bucket_analytics_configuration
 - [X] delete_bucket_cors
@@ -91,6 +92,7 @@ s3
 - [ ] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
+- [ ] list_directory_buckets
 - [ ] list_multipart_uploads
 - [X] list_object_versions
 - [X] list_objects

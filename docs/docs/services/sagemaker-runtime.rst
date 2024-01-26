@@ -62,6 +62,6 @@ sagemaker-runtime
 
         
 
-- [ ] invoke_endpoint_async
+- [X] invoke_endpoint_async
 - [ ] invoke_endpoint_with_response_stream
 
