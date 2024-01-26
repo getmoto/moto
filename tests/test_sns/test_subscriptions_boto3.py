@@ -393,6 +393,7 @@ def test_set_subscription_attributes():
     assert attrs["Attributes"]["RawMessageDelivery"] == "true"
     assert attrs["Attributes"]["DeliveryPolicy"] == delivery_policy
     assert attrs["Attributes"]["FilterPolicy"] == filter_policy
+    assert attrs["Attributes"]["FilterPolicyScope"] == "MessageAttributes"
 
     filter_policy_scope = "MessageBody"
     conn.set_subscription_attributes(
@@ -405,6 +406,17 @@ def test_set_subscription_attributes():
 
     assert attrs["Attributes"]["FilterPolicyScope"] == filter_policy_scope
 
+    # test unsetting a filter policy
+    conn.set_subscription_attributes(
+        SubscriptionArn=subscription_arn,
+        AttributeName="FilterPolicy",
+        AttributeValue="",
+    )
+
+    attrs = conn.get_subscription_attributes(SubscriptionArn=subscription_arn)
+    assert "FilterPolicy" not in attrs["Attributes"]
+    assert "FilterPolicyScope" not in attrs["Attributes"]
+
     # not existing subscription
     with pytest.raises(ClientError):
         conn.set_subscription_attributes(
@@ -413,7 +425,7 @@ def test_set_subscription_attributes():
             AttributeValue="true",
         )
     with pytest.raises(ClientError):
-        attrs = conn.get_subscription_attributes(SubscriptionArn="invalid")
+        conn.get_subscription_attributes(SubscriptionArn="invalid")
 
     # invalid attr name
     with pytest.raises(ClientError):
