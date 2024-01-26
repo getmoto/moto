@@ -5,6 +5,7 @@ from botocore.client import ClientError
 
 from moto import (
     mock_acm,
+    mock_backup,
     mock_cloudformation,
     mock_ec2,
     mock_ecs,
@@ -115,6 +116,37 @@ def test_get_resources_acm():
         cert_blue["CertificateArn"]
         == resources_blue_filter["ResourceTagMappingList"][0]["ResourceARN"]
     )
+
+
+@mock_backup
+@mock_resourcegroupstaggingapi
+def test_get_resources_backup():
+    backup = boto3.client("backup", region_name="eu-central-1")
+
+    # Create two tagged Backup Vaults
+    for i in range(1, 3):
+        i_str = str(i)
+
+        backup.create_backup_vault(
+            BackupVaultName="backup-vault-tag-" + i_str,
+            BackupVaultTags={
+                "Test": i_str,
+            },
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
+
+    # Basic test
+    resp = rtapi.get_resources(ResourceTypeFilters=["backup"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["backup"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
 @mock_ecs
