@@ -85,6 +85,27 @@ def test_get_backup_plan_invalid_id():
 
 
 @mock_backup
+def test_get_backup_plan_invalid_version_id():
+    client = boto3.client("backup", region_name="eu-west-1")
+
+    plan = client.create_backup_plan(
+        BackupPlan={
+            "BackupPlanName": "backupplan-foobar",
+            "Rules": [
+                {
+                    "RuleName": "foobar",
+                    "TargetBackupVaultName": "Backup-vault-foobar",
+                },
+            ],
+        },
+    )
+    with pytest.raises(ClientError) as exc:
+        client.get_backup_plan(BackupPlanId=plan["BackupPlanId"], VersionId="foobar")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_backup
 def test_get_backup_plan_with_multiple_rules():
     client = boto3.client("backup", region_name="eu-west-1")
     plan = client.create_backup_plan(
@@ -141,6 +162,16 @@ def test_delete_backup_plan():
         BackupPlanId=plan["BackupPlanId"], VersionId=plan["VersionId"]
     )
     assert "DeletionDate" in resp
+
+
+@mock_backup
+def test_delete_backup_plan_invalid_id():
+    client = boto3.client("backup", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_backup_plan(BackupPlanId="foobar")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_backup
