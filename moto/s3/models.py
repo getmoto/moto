@@ -880,6 +880,7 @@ class NotificationConfiguration(BaseModel):
         topic: Optional[List[Dict[str, Any]]] = None,
         queue: Optional[List[Dict[str, Any]]] = None,
         cloud_function: Optional[List[Dict[str, Any]]] = None,
+        event_bridge: Optional[Dict] = None,
     ):
         self.topic = (
             [
@@ -920,6 +921,7 @@ class NotificationConfiguration(BaseModel):
             if cloud_function
             else []
         )
+        self.event_bridge = event_bridge
 
     def to_config_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {"configurations": {}}
@@ -942,6 +944,8 @@ class NotificationConfiguration(BaseModel):
             cf_config["type"] = "LambdaConfiguration"
             data["configurations"][cloud_function.id] = cf_config
 
+        if self.event_bridge is not None:
+            data["configurations"]["EventBridgeConfiguration"] = self.event_bridge
         return data
 
 
@@ -1322,6 +1326,7 @@ class FakeBucket(CloudFormationModel):
             topic=notification_config.get("TopicConfiguration"),
             queue=notification_config.get("QueueConfiguration"),
             cloud_function=notification_config.get("CloudFunctionConfiguration"),
+            event_bridge=notification_config.get("EventBridgeConfiguration"),
         )
 
         # Validate that the region is correct:
@@ -2311,11 +2316,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - AWSLambda
          - SNS
          - SQS
-
-        For the following events:
-
-         - 's3:ObjectCreated:Copy'
-         - 's3:ObjectCreated:Put'
+         - EventBridge
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)

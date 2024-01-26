@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
+from moto.events.notifications import _BASE_EVENT_MESSAGE
+
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
@@ -144,6 +146,21 @@ def _send_sns_message(
         # Even if this part fails, the calling function should pass, so catch all errors
         # Possible exceptions that could be thrown:
         # - Topic does not exist
+        pass
+
+
+def _send_event_bridge_message(
+    account_id: str, event_body: Any, region_name: str, resources: Any, detail: Any
+):
+    try:
+        from moto.events.models import events_backends
+        event = None
+        if source == "aws.s3" and event_name in 
+    except:  # noqa
+        # This is an async action in AWS.
+        # Even if this part fails, the calling function should pass, so catch all errors
+        # Possible exceptions that could be thrown:
+        # - EventBridge does not exist
         pass
 
 
