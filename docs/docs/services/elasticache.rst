@@ -32,6 +32,7 @@ elasticache
 - [ ] batch_apply_update_action
 - [ ] batch_stop_update_action
 - [ ] complete_migration
+- [ ] copy_serverless_cache_snapshot
 - [ ] copy_snapshot
 - [X] create_cache_cluster
 - [ ] create_cache_parameter_group
@@ -39,6 +40,8 @@ elasticache
 - [ ] create_cache_subnet_group
 - [ ] create_global_replication_group
 - [ ] create_replication_group
+- [ ] create_serverless_cache
+- [ ] create_serverless_cache_snapshot
 - [ ] create_snapshot
 - [X] create_user
 - [ ] create_user_group
@@ -50,6 +53,8 @@ elasticache
 - [ ] delete_cache_subnet_group
 - [ ] delete_global_replication_group
 - [ ] delete_replication_group
+- [ ] delete_serverless_cache
+- [ ] delete_serverless_cache_snapshot
 - [ ] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
@@ -65,6 +70,8 @@ elasticache
 - [ ] describe_replication_groups
 - [ ] describe_reserved_cache_nodes
 - [ ] describe_reserved_cache_nodes_offerings
+- [ ] describe_serverless_cache_snapshots
+- [ ] describe_serverless_caches
 - [ ] describe_service_updates
 - [ ] describe_snapshots
 - [ ] describe_update_actions
@@ -76,6 +83,7 @@ elasticache
         
 
 - [ ] disassociate_global_replication_group
+- [ ] export_serverless_cache_snapshot
 - [ ] failover_global_replication_group
 - [ ] increase_node_groups_in_global_replication_group
 - [ ] increase_replica_count
@@ -87,6 +95,7 @@ elasticache
 - [ ] modify_global_replication_group
 - [ ] modify_replication_group
 - [ ] modify_replication_group_shard_configuration
+- [ ] modify_serverless_cache
 - [ ] modify_user
 - [ ] modify_user_group
 - [ ] purchase_reserved_cache_nodes_offering

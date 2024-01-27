@@ -1,6 +1,45 @@
 Moto Changelog
 ==============
 
+4.2.14
+-----
+Docker Digest for 4.2.14: <autopopulateddigest>
+
+    New Services:
+        * Backup:
+            * create_backup_plan()
+            * create_backup_vault()
+            * get_backup_plan()
+            * describe_backup_vault()
+            * delete_backup_plan()
+            * list_backup_plans()
+            * list_backup_vaults()
+            * list_tags()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * RDS:
+            * describe_db_cluster_snapshot_attributes()
+            * describe_db_snapshot_attributes()
+            * modify_db_cluster_snapshot_attribute()
+            * modify_db_snapshot_attribute()
+            * restore_db_instance_to_point_in_time()
+
+        * SageMaker:
+            * create_feature_group()
+
+        * SageMakerRuntime:
+            * invoke_endpoint_async()
+
+    Miscellaneous:
+        * Cognito: The ID-token now contains custom attributes
+        * DynamoDB: query() now returns the correct ScannedCount
+        * EC2: Security Group Rules now have tag support 
+        * LakeFormation: grant_permissions() now has better support for known principal-resource pairs
+        * SNS: set_subscription_attributes() can now unset the FilterPolicy
+
+
 4.2.13
 -----
 Docker Digest for 4.2.13: _sha256:20a2fdd4828b0ce1170ae26186ed28b64523cf6af83af892a74d9b3e23f84471_

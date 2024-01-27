@@ -50,6 +50,7 @@ rds
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
+- [ ] create_db_shard_group
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
@@ -70,6 +71,7 @@ rds
 - [ ] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
+- [ ] delete_db_shard_group
 - [X] delete_db_snapshot
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
@@ -86,7 +88,7 @@ rds
 - [ ] describe_db_cluster_endpoints
 - [X] describe_db_cluster_parameter_groups
 - [X] describe_db_cluster_parameters
-- [ ] describe_db_cluster_snapshot_attributes
+- [X] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
@@ -99,8 +101,10 @@ rds
 - [ ] describe_db_proxy_endpoints
 - [ ] describe_db_proxy_target_groups
 - [ ] describe_db_proxy_targets
+- [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
-- [ ] describe_db_snapshot_attributes
+- [ ] describe_db_shard_groups
+- [X] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
@@ -125,7 +129,9 @@ rds
 - [ ] describe_source_regions
 - [ ] describe_tenant_databases
 - [ ] describe_valid_db_instance_modifications
+- [ ] disable_http_endpoint
 - [ ] download_db_log_file_portion
+- [ ] enable_http_endpoint
 - [ ] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
@@ -136,14 +142,16 @@ rds
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
-- [ ] modify_db_cluster_snapshot_attribute
+- [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
 - [ ] modify_db_proxy_target_group
+- [ ] modify_db_recommendation
+- [ ] modify_db_shard_group
 - [ ] modify_db_snapshot
-- [ ] modify_db_snapshot_attribute
+- [X] modify_db_snapshot_attribute
 - [X] modify_db_subnet_group
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
@@ -154,6 +162,7 @@ rds
 - [ ] purchase_reserved_db_instances_offering
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
+- [ ] reboot_db_shard_group
 - [ ] register_db_proxy_targets
 - [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster

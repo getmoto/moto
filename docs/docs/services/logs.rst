@@ -126,6 +126,7 @@ logs
 
 - [X] put_retention_policy
 - [X] put_subscription_filter
+- [ ] start_live_tail
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
