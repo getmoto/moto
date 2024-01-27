@@ -2140,7 +2140,7 @@ class S3Response(BaseResponse):
                         n["Event"] = [n["Event"]]
 
                     for event in n["Event"]:
-                        if event not in S3NotificationEvent.events():
+                        if not S3NotificationEvent.is_event_valid(event):
                             raise InvalidNotificationEvent(event)
 
                     # Parse out the filters:

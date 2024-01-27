@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
+from . import exceptions
+
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 
@@ -49,13 +51,10 @@ class S3NotificationEvent(str, Enum):
     def events(self) -> List[str]:
         return sorted([item.value for item in S3NotificationEvent])
 
-    @classmethod(self)
+    @classmethod
     def is_event_valid(self, event_name: str) -> bool:
-        # Ex) s3:ObjectRestore:Post
+        # Ex) s3:ObjectCreated:Put
         if event_name in self.events():
-            return True
-        # Ex) event name with asterisk like ObjectCreated:Put:*
-        if event_name.join("*") in self.events():
             return True
         # Ex) event name without `s3:` like ObjectCreated:Put
         if event_name in [e[:3] for e in self.events()]:
@@ -67,6 +66,8 @@ def _get_s3_event(
     event_name: str, bucket: Any, key: Any, notification_id: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     etag = key.etag.replace('"', "")
+    if not S3NotificationEvent.is_event_valid(event_name):
+        raise exceptions.InvalidNotificationEvent(event_name)
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
@@ -101,6 +102,9 @@ def send_event(
 ) -> None:
     if bucket.notification_configuration is None:
         return
+
+    if not S3NotificationEvent.is_event_valid(event_name):
+        exceptions.InvalidNotificationEvent(event_name)
 
     for notification in bucket.notification_configuration.cloud_function:
         if notification.matches(event_name, key.name):
