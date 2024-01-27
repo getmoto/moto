@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.0
 -----
-Docker Digest for 5.0.0: <autopopulateddigest>
+Docker Digest for 5.0.0: _sha256:2faf2460a6446dfe472ac0d799e00341b1c84203d08540c247a6cc09be7c54e9_
 
     General:
         * All decorators have been replaced with a single decorator:
