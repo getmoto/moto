@@ -1,6 +1,36 @@
 Moto Changelog
 ==============
 
+5.0.0
+-----
+Docker Digest for 5.0.0: <autopopulateddigest>
+
+    General:
+        * All decorators have been replaced with a single decorator:
+          `mock_aws`
+
+        * The `mock_batch_simple` and `mock_lambda_simple` decorators can now be configured using the `config`-parameter:
+          `@mock_aws(config={"batch": {"use_docker": False}, "lambda": {"use_docker": False}})`
+
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+
+        * All requests now return a RequestId
+
+    Miscellaneous:
+
+        * IAM: The AWS managed Policies are no longer loaded by default.
+          If your application depends on these policies, tell Moto explicitly to load them like so:
+
+          @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
+
+          Or by setting an environment variable:
+          MOTO_IAM_LOAD_MANAGED_POLICIES=true
+
+        * S3: list_objects() now returns a hashed ContinuationToken
+
 
 4.2.14
 -----

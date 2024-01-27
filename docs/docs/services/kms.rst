@@ -84,6 +84,7 @@ kms
         Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
+        - The MessageType-parameter DIGEST is not yet implemented
         
 
 - [ ] verify_mac
