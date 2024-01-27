@@ -534,7 +534,7 @@ class Route53Backend(BaseBackend):
         self.delegation_sets: Dict[str, DelegationSet] = dict()
 
     def _has_prev_conflicting_domain(
-        self, name: str, delegation_set_id: str | None
+        self, name: str, delegation_set_id: Optional[str]
     ) -> bool:
         """Check if a conflicting domain exists in the backend"""
         if not delegation_set_id:
