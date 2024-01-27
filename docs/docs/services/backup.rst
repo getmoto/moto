@@ -14,17 +14,6 @@ backup
 
 .. autoclass:: moto.backup.models.BackupBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_backup
-            def test_backup_behaviour:
-                boto3.client("backup")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] cancel_legal_hold

@@ -274,7 +274,7 @@ def patch_client(client: botocore.client.BaseClient) -> None:
     """
     """
     Adding the botocore_stubber to the BUILTIN_HANDLERS, as above, will mock everything as long as the import ordering is correct
-     - user:   start mock_service decorator
+     - user:   start mock_aws decorator
      - system: imports core.model
      - system: adds the stubber to the BUILTIN_HANDLERS
      - user:   create a boto3 client - which will use the BUILTIN_HANDLERS
