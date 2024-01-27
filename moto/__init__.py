@@ -257,7 +257,7 @@ class MockAll(ContextDecorator):
 mock_all = MockAll
 
 __title__ = "moto"
-__version__ = "4.2.14.dev"
+__version__ = "4.2.15.dev"
 
 
 try:

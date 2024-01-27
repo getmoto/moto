@@ -3,7 +3,7 @@ Moto Changelog
 
 4.2.14
 -----
-Docker Digest for 4.2.14: <autopopulateddigest>
+Docker Digest for 4.2.14: _sha256:2fa10aa48e32f85c63c62a7d437b8a4b320a56a8494bc25d45ced370bc159c23_
 
     New Services:
         * Backup:
