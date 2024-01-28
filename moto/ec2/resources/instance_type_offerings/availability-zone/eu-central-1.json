@@ -1456,6 +1456,10 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "mac2-m2.metal",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "p2.16xlarge",
   "Location": "eu-central-1a"
  },
@@ -2845,6 +2849,50 @@
  },
  {
   "InstanceType": "c7gd.xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.16xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.24xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.2xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.48xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.8xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.large",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c7i.xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -5392,6 +5440,50 @@
   "Location": "eu-central-1c"
  },
  {
+  "InstanceType": "c7i.12xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.16xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.24xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.2xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.48xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.4xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.8xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.large",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c7i.xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "eu-central-1c"
  },
@@ -6313,6 +6405,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "mac2-m2.metal",
   "Location": "eu-central-1c"
  },
  {
