@@ -33,14 +33,6 @@ class OriginDoesNotExist(CloudFrontException):
         )
 
 
-class InvalidOriginServer(CloudFrontException):
-    def __init__(self) -> None:
-        super().__init__(
-            "InvalidOrigin",
-            message="The specified origin server does not exist or is not valid.",
-        )
-
-
 class DomainNameNotAnS3Bucket(CloudFrontException):
     def __init__(self) -> None:
         super().__init__(

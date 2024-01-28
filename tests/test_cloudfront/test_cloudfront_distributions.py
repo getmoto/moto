@@ -369,36 +369,6 @@ def test_get_distribution_config_with_mismatched_originid():
 
 
 @mock_aws
-def test_create_origin_without_origin_config():
-    client = boto3.client("cloudfront", region_name="us-west-1")
-
-    with pytest.raises(ClientError) as exc:
-        client.create_distribution(
-            DistributionConfig={
-                "CallerReference": "ref",
-                "Origins": {
-                    "Quantity": 1,
-                    "Items": [{"Id": "origin1", "DomainName": "https://getmoto.org"}],
-                },
-                "DefaultCacheBehavior": {
-                    "TargetOriginId": "origin1",
-                    "ViewerProtocolPolicy": "allow-all",
-                },
-                "Comment": "an optional comment that's not actually optional",
-                "Enabled": False,
-            }
-        )
-
-    metadata = exc.value.response["ResponseMetadata"]
-    assert metadata["HTTPStatusCode"] == 400
-    err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidOrigin"
-    assert (
-        err["Message"] == "The specified origin server does not exist or is not valid."
-    )
-
-
-@mock_aws
 def test_create_distribution_with_invalid_s3_bucket():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
