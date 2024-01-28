@@ -24607,11 +24607,11 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 15,
+   "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 25.0,
-     "MaximumNetworkInterfaces": 15,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "25 Gigabit",
      "PeakBandwidthInGbps": 25.0
@@ -54057,6 +54057,7 @@
    "ebs"
   ],
   "SupportedUsageClasses": [
+   "capacity-block",
    "on-demand",
    "spot"
   ],
