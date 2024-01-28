@@ -55,8 +55,11 @@ class SecretsManagerResponse(BaseResponse):
         secret_binary = self._get_param("SecretBinary")
         description = self._get_param("Description", if_none="")
         tags = self._get_param("Tags", if_none=[])
-        kms_key_id = self._get_param("KmsKeyId", if_none=None)
-        client_request_token = self._get_param("ClientRequestToken", if_none=None)
+        kms_key_id = self._get_param("KmsKeyId")
+        client_request_token = self._get_param("ClientRequestToken")
+        replica_regions = self._get_param("AddReplicaRegions", [])
+        force_overwrite = self._get_bool_param("ForceOverwriteReplicaSecret", False)
+
         return self.backend.create_secret(
             name=name,
             secret_string=secret_string,
@@ -65,6 +68,8 @@ class SecretsManagerResponse(BaseResponse):
             tags=tags,
             kms_key_id=kms_key_id,
             client_request_token=client_request_token,
+            replica_regions=replica_regions,
+            force_overwrite=force_overwrite,
         )
 
     def update_secret(self) -> str:
@@ -108,7 +113,7 @@ class SecretsManagerResponse(BaseResponse):
     def describe_secret(self) -> str:
         secret_id = self._get_param("SecretId")
         secret = self.backend.describe_secret(secret_id=secret_id)
-        return json.dumps(secret)
+        return json.dumps(secret.to_dict())
 
     def rotate_secret(self) -> str:
         client_request_token = self._get_param("ClientRequestToken")
@@ -212,3 +217,22 @@ class SecretsManagerResponse(BaseResponse):
             move_to_version_id=move_to_version_id,
         )
         return json.dumps({"ARN": arn, "Name": name})
+
+    def replicate_secret_to_regions(self) -> str:
+        secret_id = self._get_param("SecretId")
+        replica_regions = self._get_param("AddReplicaRegions", [])
+        force_overwrite = self._get_bool_param("ForceOverwriteReplicaSecret", False)
+
+        arn, statuses = self.backend.replicate_secret_to_regions(
+            secret_id, replica_regions, force_overwrite=force_overwrite
+        )
+        return json.dumps({"ARN": arn, "ReplicationStatus": statuses})
+
+    def remove_regions_from_replication(self) -> str:
+        secret_id = self._get_param("SecretId")
+        replica_regions = self._get_param("RemoveReplicaRegions", [])
+
+        arn, statuses = self.backend.remove_regions_from_replication(
+            secret_id, replica_regions
+        )
+        return json.dumps({"ARN": arn, "ReplicationStatus": statuses})

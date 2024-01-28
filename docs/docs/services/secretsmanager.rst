@@ -31,8 +31,8 @@ secretsmanager
         
 
 - [X] put_secret_value
-- [ ] remove_regions_from_replication
-- [ ] replicate_secret_to_regions
+- [X] remove_regions_from_replication
+- [X] replicate_secret_to_regions
 - [X] restore_secret
 - [X] rotate_secret
 - [ ] stop_replication_to_replica
