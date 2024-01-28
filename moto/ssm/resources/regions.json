@@ -6630,6 +6630,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "detective": {
                 "Value": "detective",
                 "endpoint": {
@@ -8323,6 +8332,15 @@
                 "Value": "wellarchitectedtool",
                 "endpoint": {
                   "Value": "wellarchitected.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "wisdom": {
+                "Value": "wisdom",
+                "endpoint": {
+                  "Value": "wisdom.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15937,6 +15955,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "wisdom": {
+                "Value": "wisdom",
+                "endpoint": {
+                  "Value": "wisdom.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "workdocs": {
                 "Value": "workdocs",
                 "endpoint": {
@@ -20715,6 +20742,18 @@
                   "Value": "HTTPS"
                 }
               },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -23575,6 +23614,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "wisdom": {
+                "Value": "wisdom",
+                "endpoint": {
+                  "Value": "wisdom.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "workspaces": {
                 "Value": "workspaces",
                 "endpoint": {
@@ -25357,6 +25405,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -29658,6 +29715,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "supplychain": {
+                "Value": "supplychain",
+                "endpoint": {
+                  "Value": "scn.eu-central-1.amazonaws.com"
+                }
+              },
               "support": {
                 "Value": "support",
                 "endpoint": {
@@ -30578,6 +30641,18 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
               },
               "license-manager": {
                 "Value": "license-manager",
@@ -35313,6 +35388,18 @@
                   "Value": "HTTPS"
                 }
               },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "launchwizard": {
+                "Value": "launchwizard"
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -39318,6 +39405,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.eu-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52185,6 +52281,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "supplychain": {
+                "Value": "supplychain",
+                "endpoint": {
+                  "Value": "scn.us-east-1.amazonaws.com"
+                }
+              },
               "support": {
                 "Value": "support",
                 "endpoint": {
@@ -54243,6 +54345,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -56044,6 +56149,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "rosa": {
+                "Value": "rosa"
+              },
               "route53-application-recovery-controller": {
                 "Value": "route53-application-recovery-controller"
               },
@@ -57646,6 +57754,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "rosa": {
+                "Value": "rosa"
               },
               "route53-application-recovery-controller": {
                 "Value": "route53-application-recovery-controller"
@@ -62824,6 +62935,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "supplychain": {
+                "Value": "supplychain",
+                "endpoint": {
+                  "Value": "scn.us-west-2.amazonaws.com"
                 }
               },
               "support": {
