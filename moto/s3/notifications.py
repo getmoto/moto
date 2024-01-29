@@ -49,6 +49,16 @@ class S3NotificationEvent(str, Enum):
     def events(self) -> List[str]:
         return sorted([item.value for item in S3NotificationEvent])
 
+    @classmethod
+    def is_event_valid(self, event_name: str) -> bool:
+        # Ex) s3:ObjectCreated:Put
+        if event_name in self.events():
+            return True
+        # Ex) event name without `s3:` like ObjectCreated:Put
+        if event_name in [e[:3] for e in self.events()]:
+            return True
+        return False
+
 
 def _get_s3_event(
     event_name: str, bucket: Any, key: Any, notification_id: str

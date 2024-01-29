@@ -35,7 +35,6 @@ from .exceptions import (
     InvalidMaxPartArgument,
     InvalidMaxPartNumberArgument,
     InvalidNotificationARN,
-    InvalidNotificationEvent,
     InvalidObjectState,
     InvalidPartOrder,
     InvalidRange,
@@ -62,7 +61,6 @@ from .models import (
     get_canned_acl,
     s3_backends,
 )
-from .notifications import S3NotificationEvent
 from .select_object_content import serialize_select
 from .utils import (
     ARCHIVE_STORAGE_CLASSES,
@@ -2120,10 +2118,6 @@ class S3Response(BaseResponse):
                     assert n["Event"]
                     if not isinstance(n["Event"], list):
                         n["Event"] = [n["Event"]]
-
-                    for event in n["Event"]:
-                        if event not in S3NotificationEvent.events():
-                            raise InvalidNotificationEvent(event)
 
                     # Parse out the filters:
                     if n.get("Filter"):

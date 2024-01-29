@@ -41,6 +41,7 @@ from moto.s3.exceptions import (
     HeadOnDeleteMarker,
     InvalidBucketName,
     InvalidNotificationDestination,
+    InvalidNotificationEvent,
     InvalidPart,
     InvalidPublicAccessBlockConfiguration,
     InvalidRequest,
@@ -821,6 +822,9 @@ class Notification(BaseModel):
             random.choice(string.ascii_letters + string.digits) for _ in range(50)
         )
         self.arn = arn
+        for event_name in events:
+            if not notifications.S3NotificationEvent.is_event_valid(event_name):
+                raise InvalidNotificationEvent(event_name)
         self.events = events
         self.filters = filters if filters else {}
 
