@@ -370,7 +370,12 @@ class LambdaResponse(BaseResponse):
         if result:
             return 200, {}, json.dumps(result.get_configuration())
         else:
-            return 404, {}, "{}"
+            err = {
+                "Type": "User",
+                "Message": "The resource you requested does not exist.",
+            }
+            headers = {"x-amzn-errortype": "ResourceNotFoundException"}
+            return 404, headers, json.dumps(err)
 
     def _update_event_source_mapping(self, uuid: str) -> TYPE_RESPONSE:
         result = self.backend.update_event_source_mapping(uuid, self.json_body)

@@ -7,7 +7,7 @@ from base64 import b64decode, b64encode
 from collections import OrderedDict
 from gzip import GzipFile
 from operator import attrgetter
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -38,6 +38,9 @@ from .utils import (
     compose_shard_iterator,
     decompose_shard_iterator,
 )
+
+if TYPE_CHECKING:
+    from moto.awslambda.models import EventSourceMapping
 
 
 class Consumer(BaseModel):
@@ -218,6 +221,7 @@ class Stream(CloudFormationModel):
         self.encryption_type = "NONE"
         self.key_id: Optional[str] = None
         self.consumers: List[Consumer] = []
+        self.lambda_event_source_mappings: Dict[str, "EventSourceMapping"] = {}
 
     def delete_consumer(self, consumer_arn: str) -> None:
         self.consumers = [c for c in self.consumers if c.consumer_arn != consumer_arn]
@@ -406,10 +410,25 @@ class Stream(CloudFormationModel):
     def put_record(
         self, partition_key: str, explicit_hash_key: str, data: str
     ) -> Tuple[str, str]:
-        shard = self.get_shard_for_key(partition_key, explicit_hash_key)
+        shard: Shard = self.get_shard_for_key(partition_key, explicit_hash_key)  # type: ignore
 
-        sequence_number = shard.put_record(partition_key, data, explicit_hash_key)  # type: ignore
-        return sequence_number, shard.shard_id  # type: ignore
+        sequence_number = shard.put_record(partition_key, data, explicit_hash_key)
+
+        from moto.awslambda.utils import get_backend
+
+        for arn, esm in self.lambda_event_source_mappings.items():
+            region = arn.split(":")[3]
+
+            get_backend(self.account_id, region).send_kinesis_message(
+                function_name=esm.function_arn,
+                kinesis_stream=self.arn,
+                kinesis_data=data,
+                kinesis_shard_id=shard.shard_id,
+                kinesis_partition_key=partition_key,
+                kinesis_sequence_number=sequence_number,
+            )
+
+        return sequence_number, shard.shard_id
 
     def to_json(self, shard_limit: Optional[int] = None) -> Dict[str, Any]:
         all_shards = list(self.shards.values())

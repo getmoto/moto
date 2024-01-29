@@ -33,11 +33,12 @@ from moto.ecr.exceptions import ImageNotFoundException
 from moto.ecr.models import ecr_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.iam.models import iam_backends
+from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.logs.models import logs_backends
 from moto.moto_api._internal import mock_random as random
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
-from moto.sqs import sqs_backends
+from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
 from moto.utilities.utils import load_resource_as_bytes
 
@@ -1258,7 +1259,7 @@ class EventSourceMapping(CloudFormationModel):
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
 
-        self.function_arn = spec["FunctionArn"]
+        self.function_arn: str = spec["FunctionArn"]
         self.uuid = str(random.uuid4())
         self.last_modified = time.mktime(utcnow().timetuple())
 
@@ -1266,6 +1267,7 @@ class EventSourceMapping(CloudFormationModel):
         return event_source_arn.split(":")[2].lower()
 
     def _validate_event_source(self, event_source_arn: str) -> bool:
+
         valid_services = ("dynamodb", "kinesis", "sqs")
         service = self._get_service_source_from_arn(event_source_arn)
         return service in valid_services
@@ -1314,9 +1316,10 @@ class EventSourceMapping(CloudFormationModel):
             "EventSourceArn": self.event_source_arn,
             "FunctionArn": self.function_arn,
             "LastModified": self.last_modified,
-            "LastProcessingResult": "",
+            "LastProcessingResult": None,
             "State": "Enabled" if self.enabled else "Disabled",
             "StateTransitionReason": "User initiated",
+            "StartingPosition": self.starting_position,
         }
 
     def delete(self, account_id: str, region_name: str) -> None:
@@ -2037,6 +2040,18 @@ class LambdaBackend(BaseBackend):
                 table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
+
+        kinesis_backend: KinesisBackend = kinesis_backends[self.account_id][
+            self.region_name
+        ]
+        for stream in kinesis_backend.streams.values():
+            if stream.arn == spec["EventSourceArn"]:
+                spec.update({"FunctionArn": func.function_arn})
+                esm = EventSourceMapping(spec)
+                self._event_source_mappings[esm.uuid] = esm
+                stream.lambda_event_source_mappings[esm.event_source_arn] = esm
+                return esm
+
         raise RESTError("ResourceNotFoundException", "Invalid EventSourceArn")
 
     def publish_layer_version(self, spec: Dict[str, Any]) -> LayerVersion:
@@ -2185,6 +2200,40 @@ class LambdaBackend(BaseBackend):
             response_headers=response_headers,
         )
         return "x-amz-function-error" not in response_headers
+
+    def send_kinesis_message(
+        self,
+        function_name: str,
+        kinesis_stream: str,
+        kinesis_partition_key: str,
+        kinesis_sequence_number: str,
+        kinesis_data: str,
+        kinesis_shard_id: str,
+    ) -> None:
+        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            function_name, qualifier=None
+        )
+        event = {
+            "Records": [
+                {
+                    "kinesis": {
+                        "kinesisSchemaVersion": "1.0",
+                        "partitionKey": kinesis_partition_key,
+                        "sequenceNumber": kinesis_sequence_number,
+                        "data": kinesis_data,
+                        "approximateArrivalTimestamp": round(time.time(), 3),
+                    },
+                    "eventSource": "aws:kinesis",
+                    "eventVersion": "1.0",
+                    "eventID": f"{kinesis_shard_id}:{kinesis_sequence_number}",
+                    "eventName": "aws:kinesis:record",
+                    "invokeIdentityArn": func.role,
+                    "awsRegion": self.region_name,
+                    "eventSourceARN": kinesis_stream,
+                }
+            ]
+        }
+        func.invoke(json.dumps(event), {}, {})
 
     def send_sns_message(
         self,
