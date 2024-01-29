@@ -66,8 +66,6 @@ def _get_s3_event(
     event_name: str, bucket: Any, key: Any, notification_id: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     etag = key.etag.replace('"', "")
-    if not S3NotificationEvent.is_event_valid(event_name):
-        raise exceptions.InvalidNotificationEvent(event_name)
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
@@ -102,9 +100,6 @@ def send_event(
 ) -> None:
     if bucket.notification_configuration is None:
         return
-
-    if not S3NotificationEvent.is_event_valid(event_name):
-        exceptions.InvalidNotificationEvent(event_name)
 
     for notification in bucket.notification_configuration.cloud_function:
         if notification.matches(event_name, key.name):
