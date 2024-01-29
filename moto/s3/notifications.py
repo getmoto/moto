@@ -8,7 +8,7 @@ _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 class S3NotificationEvent(str, Enum):
     REDUCED_REDUNDANCY_LOST_OBJECT_EVENT = "s3:ReducedRedundancyLostObject"
-    OBJCET_CREATED_EVENT = "s3:ObjectCreated:*"
+    OBJECT_CREATED_EVENT = "s3:ObjectCreated:*"
     OBJECT_CREATED_PUT_EVENT = "s3:ObjectCreated:Put"
     OBJECT_CREATED_POST_EVENT = "s3:ObjectCreated:Post"
     OBJECT_CREATED_COPY_EVENT = "s3:ObjectCreated:Copy"
@@ -16,8 +16,8 @@ class S3NotificationEvent(str, Enum):
         "s3:ObjectCreated:CompleteMultipartUpload"
     )
     OBJECT_REMOVED_EVENT = "s3:ObjectRemoved:*"
-    OBJECTREMOVED_DELETE_EVENT = "s3:ObjectRemoved:Delete"
-    OBJECTREMOVED_DELETE_MARKER_CREATED_EVENT = "s3:ObjectRemoved:DeleteMarkerCreated"
+    OBJECT_REMOVED_DELETE_EVENT = "s3:ObjectRemoved:Delete"
+    OBJECT_REMOVED_DELETE_MARKER_CREATED_EVENT = "s3:ObjectRemoved:DeleteMarkerCreated"
     OBJECT_RESTORE_EVENT = "s3:ObjectRestore:*"
     OBJECT_RESTORE_POST_EVENT = "s3:ObjectRestore:Post"
     OBJECT_RESTORE_COMPLETED_EVENT = "s3:ObjectRestore:Completed"
@@ -43,7 +43,7 @@ class S3NotificationEvent(str, Enum):
     )
     OBJECT_TAGGING_EVENT = "s3:ObjectTagging:*"
     OBJECT_TAGGING_PUT_EVENT = "s3:ObjectTagging:Put"
-    OBJECTTAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
+    OBJECT_TAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
 
     @classmethod
     def events(self) -> List[str]:
