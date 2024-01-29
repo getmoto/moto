@@ -1386,6 +1386,25 @@ def test_query_filter():
     )
     assert response["Count"] == 2
 
+    # Combine Limit + Scan
+    response = table.query(
+        KeyConditionExpression=Key("client").eq("client1"),
+        Limit=1,
+        ScanIndexForward=False,
+    )
+    assert response["Count"] == 1
+    assert response["ScannedCount"] == 1
+    assert response["Items"][0]["app"] == "app2"
+
+    response = table.query(
+        KeyConditionExpression=Key("client").eq("client1"),
+        Limit=1,
+        ScanIndexForward=True,
+    )
+    assert response["Count"] == 1
+    assert response["ScannedCount"] == 1
+    assert response["Items"][0]["app"] == "app1"
+
 
 @mock_aws
 def test_query_filter_overlapping_expression_prefixes():
