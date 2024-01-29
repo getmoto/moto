@@ -3,8 +3,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
-from . import exceptions
-
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
 

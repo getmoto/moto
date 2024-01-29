@@ -36,7 +36,6 @@ from .exceptions import (
     InvalidMaxPartArgument,
     InvalidMaxPartNumberArgument,
     InvalidNotificationARN,
-    InvalidNotificationEvent,
     InvalidObjectState,
     InvalidPartOrder,
     InvalidRange,
