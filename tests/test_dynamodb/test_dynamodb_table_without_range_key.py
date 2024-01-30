@@ -7,11 +7,18 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import patch_client, patch_resource
+
+# Instantiating a client takes a long time
+# Creating one here means we can reuse it across all tests
+# We do have to patch the client everywhere, because it is instantiated before the mock starts
+client = boto3.client("dynamodb", region_name="us-east-1")
+resource = boto3.resource("dynamodb", region_name="us-east-1")
 
 
 @mock_aws
 def test_create_table():
-    client = boto3.client("dynamodb", region_name="us-east-2")
+    patch_client(client)
     client.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -62,7 +69,7 @@ def test_create_table():
     assert actual["TableName"] == "messages"
     assert actual["TableStatus"] == "ACTIVE"
     assert (
-        actual["TableArn"] == f"arn:aws:dynamodb:us-east-2:{ACCOUNT_ID}:table/messages"
+        actual["TableArn"] == f"arn:aws:dynamodb:us-east-1:{ACCOUNT_ID}:table/messages"
     )
     assert actual["KeySchema"] == [{"AttributeName": "id", "KeyType": "HASH"}]
     assert actual["ItemCount"] == 0
@@ -70,20 +77,20 @@ def test_create_table():
 
 @mock_aws
 def test_delete_table():
-    conn = boto3.client("dynamodb", region_name="us-west-2")
-    conn.create_table(
+    patch_client(client)
+    client.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    assert len(conn.list_tables()["TableNames"]) == 1
+    assert len(client.list_tables()["TableNames"]) == 1
 
-    conn.delete_table(TableName="messages")
-    assert conn.list_tables()["TableNames"] == []
+    client.delete_table(TableName="messages")
+    assert client.list_tables()["TableNames"] == []
 
     with pytest.raises(ClientError) as ex:
-        conn.delete_table(TableName="messages")
+        client.delete_table(TableName="messages")
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -92,8 +99,8 @@ def test_delete_table():
 
 @mock_aws
 def test_item_add_and_describe_and_update():
-    conn = boto3.resource("dynamodb", region_name="us-west-2")
-    table = conn.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
@@ -132,10 +139,10 @@ def test_item_add_and_describe_and_update():
 
 @mock_aws
 def test_item_put_without_table():
-    conn = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
 
     with pytest.raises(ClientError) as ex:
-        conn.put_item(
+        client.put_item(
             TableName="messages",
             Item={
                 "forum_name": {"S": "LOLCat Forum"},
@@ -151,10 +158,10 @@ def test_item_put_without_table():
 
 @mock_aws
 def test_get_item_with_undeclared_table():
-    conn = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
 
     with pytest.raises(ClientError) as ex:
-        conn.get_item(TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}})
+        client.get_item(TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}})
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -163,8 +170,8 @@ def test_get_item_with_undeclared_table():
 
 @mock_aws
 def test_delete_item():
-    conn = boto3.resource("dynamodb", region_name="us-west-2")
-    table = conn.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
@@ -190,10 +197,10 @@ def test_delete_item():
 
 @mock_aws
 def test_delete_item_with_undeclared_table():
-    conn = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
 
     with pytest.raises(ClientError) as ex:
-        conn.delete_item(
+        client.delete_item(
             TableName="messages", Key={"forum_name": {"S": "LOLCat Forum"}}
         )
 
@@ -204,10 +211,10 @@ def test_delete_item_with_undeclared_table():
 
 @mock_aws
 def test_scan_with_undeclared_table():
-    conn = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
 
     with pytest.raises(ClientError) as ex:
-        conn.scan(TableName="messages")
+        client.scan(TableName="messages")
 
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
@@ -216,8 +223,8 @@ def test_scan_with_undeclared_table():
 
 @mock_aws
 def test_get_key_schema():
-    conn = boto3.resource("dynamodb", region_name="us-west-2")
-    table = conn.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
@@ -229,8 +236,8 @@ def test_get_key_schema():
 
 @mock_aws
 def test_update_item_double_nested_remove():
-    conn = boto3.client("dynamodb", region_name="us-east-1")
-    conn.create_table(
+    patch_client(client)
+    client.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
@@ -243,18 +250,18 @@ def test_update_item_double_nested_remove():
             "M": {"Name": {"M": {"First": {"S": "Steve"}, "Last": {"S": "Urkel"}}}}
         },
     }
-    conn.put_item(TableName="messages", Item=item)
+    client.put_item(TableName="messages", Item=item)
     key_map = {"username": {"S": "steve"}}
 
     # Then remove the Meta.FullName field
-    conn.update_item(
+    client.update_item(
         TableName="messages",
         Key=key_map,
         UpdateExpression="REMOVE Meta.#N.#F",
         ExpressionAttributeNames={"#N": "Name", "#F": "First"},
     )
 
-    returned_item = conn.get_item(TableName="messages", Key=key_map)
+    returned_item = client.get_item(TableName="messages", Key=key_map)
     expected_item = {
         "username": {"S": "steve"},
         "Meta": {"M": {"Name": {"M": {"Last": {"S": "Urkel"}}}}},
@@ -264,8 +271,8 @@ def test_update_item_double_nested_remove():
 
 @mock_aws
 def test_update_item_set():
-    conn = boto3.resource("dynamodb", region_name="us-east-1")
-    table = conn.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="messages",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
@@ -288,9 +295,9 @@ def test_update_item_set():
 
 @mock_aws
 def test_create_table__using_resource():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
-    table = dynamodb.create_table(
+    table = resource.create_table(
         TableName="users",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
@@ -300,15 +307,15 @@ def test_create_table__using_resource():
 
 
 def _create_user_table():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
-    dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    return dynamodb.Table("users")
+    return resource.Table("users")
 
 
 @mock_aws
@@ -540,9 +547,9 @@ def test_scan_pagination():
 
 @mock_aws
 def test_scan_by_index():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
-    dynamodb.create_table(
+    client.create_table(
         TableName="test",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[
@@ -563,27 +570,27 @@ def test_scan_by_index():
         ],
     )
 
-    dynamodb.put_item(
+    client.put_item(
         TableName="test",
         Item={"id": {"S": "1"}, "col1": {"S": "val1"}, "gsi_col": {"S": "gsi_val1"}},
     )
 
-    dynamodb.put_item(
+    client.put_item(
         TableName="test",
         Item={"id": {"S": "2"}, "col1": {"S": "val2"}, "gsi_col": {"S": "gsi_val2"}},
     )
 
-    dynamodb.put_item(TableName="test", Item={"id": {"S": "3"}, "col1": {"S": "val3"}})
+    client.put_item(TableName="test", Item={"id": {"S": "3"}, "col1": {"S": "val3"}})
 
-    res = dynamodb.scan(TableName="test")
+    res = client.scan(TableName="test")
     assert res["Count"] == 3
     assert len(res["Items"]) == 3
 
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi")
+    res = client.scan(TableName="test", IndexName="test_gsi")
     assert res["Count"] == 2
     assert len(res["Items"]) == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi", Limit=1)
+    res = client.scan(TableName="test", IndexName="test_gsi", Limit=1)
     assert res["Count"] == 1
     assert len(res["Items"]) == 1
     last_eval_key = res["LastEvaluatedKey"]

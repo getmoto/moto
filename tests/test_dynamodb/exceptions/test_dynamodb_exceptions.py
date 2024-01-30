@@ -7,8 +7,15 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
+from moto.core import patch_client, patch_resource
 
 from .. import dynamodb_aws_verified
+
+# Instantiating a client takes a long time
+# Creating one here means we can reuse it across all tests
+# We do have to patch the client everywhere, because it is instantiated before the mock starts
+client = boto3.client("dynamodb", region_name="us-east-1")
+resource = boto3.resource("dynamodb", region_name="us-east-1")
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -39,11 +46,11 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
         "someAttribute": "lore ipsum",
     }
 
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = dynamodb.Table("test-table")
+    table = resource.Table("test-table")
     table.put_item(Item=item)
 
     # check using wrong name for sort key throws exception
@@ -104,11 +111,11 @@ def test_query_table_with_wrong_key_attribute_names_throws_exception():
         "someAttribute": "lore ipsum",
     }
 
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = dynamodb.Table("test-table")
+    table = resource.Table("test-table")
     table.put_item(Item=item)
 
     # check using wrong name for sort key throws exception
@@ -124,11 +131,11 @@ def test_query_table_with_wrong_key_attribute_names_throws_exception():
 
 @mock_aws
 def test_empty_expressionattributenames():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
+    table = resource.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
     err = exc.value.response["Error"]
@@ -141,11 +148,11 @@ def test_empty_expressionattributenames():
 
 @mock_aws
 def test_empty_expressionattributenames_with_empty_projection():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
+    table = resource.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
             Key={"id": "my_id"}, ProjectionExpression="a", ExpressionAttributeNames={}
@@ -157,11 +164,11 @@ def test_empty_expressionattributenames_with_empty_projection():
 
 @mock_aws
 def test_empty_expressionattributenames_with_projection():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
+    table = resource.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.get_item(
             Key={"id": "my_id"}, ProjectionExpression="id", ExpressionAttributeNames={}
@@ -173,10 +180,10 @@ def test_empty_expressionattributenames_with_projection():
 
 @mock_aws
 def test_update_item_range_key_set():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    table = ddb.create_table(
+    table = resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
 
@@ -196,7 +203,7 @@ def test_update_item_range_key_set():
 
 @mock_aws
 def test_batch_get_item_non_existing_table():
-    client = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
 
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
         client.batch_get_item(RequestItems={"my-table": {"Keys": [{"id": {"N": "0"}}]}})
@@ -207,7 +214,7 @@ def test_batch_get_item_non_existing_table():
 
 @mock_aws
 def test_batch_write_item_non_existing_table():
-    client = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
 
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
         # Table my-table does not exist
@@ -221,10 +228,10 @@ def test_batch_write_item_non_existing_table():
 
 @mock_aws
 def test_create_table_with_redundant_attributes():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        client.create_table(
             TableName="test-table",
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
@@ -242,7 +249,7 @@ def test_create_table_with_redundant_attributes():
     )
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        client.create_table(
             TableName="test-table",
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
@@ -270,10 +277,10 @@ def test_create_table_with_redundant_attributes():
 
 @mock_aws
 def test_create_table_with_missing_attributes():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        client.create_table(
             TableName="test-table",
             AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             KeySchema=[
@@ -291,7 +298,7 @@ def test_create_table_with_missing_attributes():
     )
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        client.create_table(
             TableName="test-table",
             AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
             KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
@@ -315,10 +322,10 @@ def test_create_table_with_missing_attributes():
 
 @mock_aws
 def test_create_table_with_redundant_and_missing_attributes():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        client.create_table(
             TableName="test-table",
             AttributeDefinitions=[
                 {"AttributeName": "created_at", "AttributeType": "N"}
@@ -334,7 +341,7 @@ def test_create_table_with_redundant_and_missing_attributes():
     )
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        client.create_table(
             TableName="test-table",
             AttributeDefinitions=[
                 {"AttributeName": "id", "AttributeType": "S"},
@@ -360,9 +367,9 @@ def test_create_table_with_redundant_and_missing_attributes():
 
 @mock_aws
 def test_put_item_wrong_attribute_type():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
-    dynamodb.create_table(
+    client.create_table(
         TableName="test-table",
         AttributeDefinitions=[
             {"AttributeName": "id", "AttributeType": "S"},
@@ -382,7 +389,7 @@ def test_put_item_wrong_attribute_type():
     }
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.put_item(TableName="test-table", Item=item)
+        client.put_item(TableName="test-table", Item=item)
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -397,7 +404,7 @@ def test_put_item_wrong_attribute_type():
     }
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.put_item(TableName="test-table", Item=item)
+        client.put_item(TableName="test-table", Item=item)
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -409,8 +416,8 @@ def test_put_item_wrong_attribute_type():
 @mock_aws
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
@@ -427,7 +434,7 @@ def test_hash_key_cannot_use_begins_with_operations():
         for item in items:
             batch.put_item(Item=item)
 
-    table = dynamodb.Table("test-table")
+    table = resource.Table("test-table")
     with pytest.raises(ClientError) as ex:
         table.query(KeyConditionExpression=Key("key").begins_with("prefix-"))
     assert ex.value.response["Error"]["Code"] == "ValidationException"
@@ -438,14 +445,14 @@ def test_hash_key_cannot_use_begins_with_operations():
 @mock_aws
 @pytest.mark.parametrize("operator", ["<", "<=", ">", ">="])
 def test_hash_key_can_only_use_equals_operations(operator):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
-    table = dynamodb.Table("test-table")
+    table = resource.Table("test-table")
 
     with pytest.raises(ClientError) as exc:
         table.query(
@@ -459,10 +466,10 @@ def test_hash_key_can_only_use_equals_operations(operator):
 
 @mock_aws
 def test_creating_table_with_0_local_indexes():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        resource.create_table(
             TableName="test-table",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
@@ -479,10 +486,10 @@ def test_creating_table_with_0_local_indexes():
 
 @mock_aws
 def test_creating_table_with_0_global_indexes():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.create_table(
+        resource.create_table(
             TableName="test-table",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
@@ -503,12 +510,10 @@ def test_multiple_transactions_on_same_item():
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
+    patch_client(client)
+    client.create_table(TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema)
     # Insert an item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    client.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
 
     def update_email_transact(email):
         return {
@@ -522,7 +527,7 @@ def test_multiple_transactions_on_same_item():
         }
 
     with pytest.raises(ClientError) as exc:
-        dynamodb.transact_write_items(
+        client.transact_write_items(
             TransactItems=[
                 update_email_transact("test1@moto.com"),
                 update_email_transact("test2@moto.com"),
@@ -542,10 +547,8 @@ def test_transact_write_items__too_many_transactions():
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
+    patch_client(client)
+    client.create_table(TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema)
 
     def update_email_transact(email):
         return {
@@ -558,7 +561,7 @@ def test_transact_write_items__too_many_transactions():
 
     update_email_transact("test1@moto.com")
     with pytest.raises(ClientError) as exc:
-        dynamodb.transact_write_items(
+        client.transact_write_items(
             TransactItems=[
                 update_email_transact(f"test{idx}@moto.com") for idx in range(101)
             ]
@@ -573,7 +576,7 @@ def test_transact_write_items__too_many_transactions():
 
 @mock_aws
 def test_update_item_non_existent_table():
-    client = boto3.client("dynamodb", region_name="us-west-2")
+    patch_client(client)
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
         client.update_item(
             TableName="non-existent",
@@ -595,8 +598,8 @@ def test_update_item_non_existent_table():
     ],
 )
 def test_update_item_with_duplicate_expressions(expression):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="example_table",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
@@ -606,7 +609,7 @@ def test_update_item_with_duplicate_expressions(expression):
         "pk": "example_id",
         "example_column": "example",
     }
-    table = dynamodb.Table("example_table")
+    table = resource.Table("example_table")
     table.put_item(Item=record)
     with pytest.raises(ClientError) as exc:
         table.update_item(
@@ -632,22 +635,22 @@ def test_put_item_wrong_datatype():
         raise SkipTest("Unable to mock a session with Config in ServerMode")
     session = botocore.session.Session()
     config = botocore.client.Config(parameter_validation=False)
-    client = session.create_client("dynamodb", region_name="us-east-1", config=config)
-    client.create_table(
+    _client = session.create_client("dynamodb", region_name="us-east-1", config=config)
+    _client.create_table(
         TableName="test2",
         KeySchema=[{"AttributeName": "mykey", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "mykey", "AttributeType": "N"}],
         BillingMode="PAY_PER_REQUEST",
     )
     with pytest.raises(ClientError) as exc:
-        client.put_item(TableName="test2", Item={"mykey": {"N": 123}})
+        _client.put_item(TableName="test2", Item={"mykey": {"N": 123}})
     err = exc.value.response["Error"]
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
     # Same thing - but with a non-key, and nested
     with pytest.raises(ClientError) as exc:
-        client.put_item(
+        _client.put_item(
             TableName="test2",
             Item={"mykey": {"N": "123"}, "nested": {"M": {"sth": {"N": 5}}}},
         )
@@ -658,15 +661,15 @@ def test_put_item_wrong_datatype():
 
 @mock_aws
 def test_put_item_empty_set():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_client(client)
+    patch_resource(resource)
     client.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "Key", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "Key", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     )
-    table = dynamodb.Table("test-table")
+    table = resource.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
     err = exc.value.response["Error"]
@@ -679,8 +682,8 @@ def test_put_item_empty_set():
 
 @mock_aws
 def test_put_item_returns_old_item():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
@@ -721,7 +724,7 @@ def test_put_item_returns_old_item():
 
 @mock_aws
 def test_update_expression_with_trailing_comma():
-    resource = boto3.resource(service_name="dynamodb", region_name="us-east-1")
+    patch_resource(resource)
     table = resource.create_table(
         TableName="test-table",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
@@ -748,8 +751,8 @@ def test_update_expression_with_trailing_comma():
 
 @mock_aws
 def test_batch_put_item_with_empty_value():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         AttributeDefinitions=[
             {"AttributeName": "pk", "AttributeType": "S"},
             {"AttributeName": "sk", "AttributeType": "S"},
@@ -761,7 +764,7 @@ def test_batch_put_item_with_empty_value():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = ddb.Table("test-table")
+    table = resource.Table("test-table")
 
     # Empty Partition Key throws an error
     with pytest.raises(botocore.exceptions.ClientError) as exc:
@@ -792,7 +795,7 @@ def test_batch_put_item_with_empty_value():
 
 @mock_aws
 def test_query_begins_with_without_brackets():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="test-table",
         AttributeDefinitions=[
@@ -823,13 +826,13 @@ def test_transact_write_items_multiple_operations_fail():
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     table_name = "test-table"
-    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
+    client.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
 
     # Execute
     with pytest.raises(ClientError) as exc:
-        dynamodb.transact_write_items(
+        client.transact_write_items(
             TransactItems=[
                 {
                     "Put": {
@@ -854,7 +857,7 @@ def test_transact_write_items_multiple_operations_fail():
 
 @mock_aws
 def test_transact_write_items_with_empty_gsi_key():
-    client = boto3.client("dynamodb", "us-east-2")
+    patch_client(client)
 
     client.create_table(
         TableName="test_table",
@@ -894,7 +897,7 @@ def test_transact_write_items_with_empty_gsi_key():
 
 @mock_aws
 def test_update_primary_key_with_sortkey():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
     schema = {
         "KeySchema": [
             {"AttributeName": "pk", "KeyType": "HASH"},
@@ -905,11 +908,11 @@ def test_update_primary_key_with_sortkey():
             {"AttributeName": "sk", "AttributeType": "S"},
         ],
     }
-    dynamodb.create_table(
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
     )
 
-    table = dynamodb.Table("test-table")
+    table = resource.Table("test-table")
     base_item = {"pk": "testchangepk", "sk": "else"}
     table.put_item(Item=base_item)
 
@@ -933,16 +936,16 @@ def test_update_primary_key_with_sortkey():
 
 @mock_aws
 def test_update_primary_key():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
     schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
-    dynamodb.create_table(
+    resource.create_table(
         TableName="without_sk", BillingMode="PAY_PER_REQUEST", **schema
     )
 
-    table = dynamodb.Table("without_sk")
+    table = resource.Table("without_sk")
     base_item = {"pk": "testchangepk"}
     table.put_item(Item=base_item)
 
@@ -970,22 +973,22 @@ def test_put_item__string_as_integer_value():
         raise SkipTest("Unable to mock a session with Config in ServerMode")
     session = botocore.session.Session()
     config = botocore.client.Config(parameter_validation=False)
-    client = session.create_client("dynamodb", region_name="us-east-1", config=config)
-    client.create_table(
+    _client = session.create_client("dynamodb", region_name="us-east-1", config=config)
+    _client.create_table(
         TableName="without_sk",
         KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 10},
     )
     with pytest.raises(ClientError) as exc:
-        client.put_item(TableName="without_sk", Item={"pk": {"S": 123}})
+        _client.put_item(TableName="without_sk", Item={"pk": {"S": 123}})
     err = exc.value.response["Error"]
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
     # A primary key cannot be of type S, but then point to a dictionary
     with pytest.raises(ClientError) as exc:
-        client.put_item(TableName="without_sk", Item={"pk": {"S": {"S": "asdf"}}})
+        _client.put_item(TableName="without_sk", Item={"pk": {"S": {"S": "asdf"}}})
     err = exc.value.response["Error"]
     assert err["Code"] == "SerializationException"
     assert err["Message"] == "Start of structure or map found where not expected"
@@ -995,13 +998,13 @@ def test_put_item__string_as_integer_value():
     client.put_item(
         TableName="without_sk", Item={"pk": {"S": "val"}, "S": {"S": "asdf"}}
     )
-    item = client.get_item(TableName="without_sk", Key={"pk": {"S": "val"}})["Item"]
+    item = _client.get_item(TableName="without_sk", Key={"pk": {"S": "val"}})["Item"]
     assert item == {"pk": {"S": "val"}, "S": {"S": "asdf"}}
 
 
 @mock_aws
 def test_gsi_key_cannot_be_empty():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
     hello_index = {
         "IndexName": "hello-index",
         "KeySchema": [{"AttributeName": "hello", "KeyType": "HASH"}],
@@ -1010,7 +1013,7 @@ def test_gsi_key_cannot_be_empty():
     table_name = "lilja-test"
 
     # Let's create a table with [id: str, hello: str], with an index to hello
-    dynamodb.create_table(
+    resource.create_table(
         TableName=table_name,
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
@@ -1023,7 +1026,7 @@ def test_gsi_key_cannot_be_empty():
         BillingMode="PAY_PER_REQUEST",
     )
 
-    table = dynamodb.Table(table_name)
+    table = resource.Table(table_name)
     with pytest.raises(ClientError) as exc:
         table.put_item(
             TableName=table_name,
@@ -1043,7 +1046,7 @@ def test_gsi_key_cannot_be_empty():
 @mock_aws
 def test_list_append_errors_for_unknown_attribute_value():
     # Verify whether the list_append operation works as expected
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     client.create_table(
         AttributeDefinitions=[{"AttributeName": "key", "AttributeType": "S"}],
@@ -1117,11 +1120,11 @@ def test_list_append_errors_for_unknown_attribute_value():
 
 @mock_aws
 def test_query_with_empty_filter_expression():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
+    patch_resource(resource)
+    resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    table = ddb.Table("test-table")
+    table = resource.Table("test-table")
     with pytest.raises(ClientError) as exc:
         table.query(
             KeyConditionExpression="partitionKey = sth", ProjectionExpression=""
@@ -1144,9 +1147,11 @@ def test_query_with_empty_filter_expression():
 
 @mock_aws
 def test_query_with_missing_expression_attribute():
-    ddb = boto3.resource("dynamodb", region_name="us-west-2")
-    ddb.create_table(TableName="test", BillingMode="PAY_PER_REQUEST", **table_schema)
-    client = boto3.client("dynamodb", region_name="us-west-2")
+    patch_resource(resource)
+    resource.create_table(
+        TableName="test", BillingMode="PAY_PER_REQUEST", **table_schema
+    )
+    patch_client(client)
     with pytest.raises(ClientError) as exc:
         client.query(
             TableName="test",
@@ -1164,8 +1169,8 @@ def test_query_with_missing_expression_attribute():
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 def test_update_item_returns_old_item(table_name=None):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.Table(table_name)
+    patch_resource(resource)
+    table = resource.Table(table_name)
     table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
 
     with pytest.raises(ClientError) as exc:
@@ -1214,8 +1219,8 @@ def test_update_item_returns_old_item(table_name=None):
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 def test_scan_with_missing_value(table_name=None):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.Table(table_name)
+    patch_resource(resource)
+    table = resource.Table(table_name)
 
     with pytest.raises(ClientError) as exc:
         table.scan(

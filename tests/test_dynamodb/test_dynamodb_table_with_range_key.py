@@ -7,12 +7,19 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import patch_client, patch_resource
+
+# Instantiating a client takes a long time
+# Creating one here means we can reuse it across all tests
+# We do have to patch the client everywhere, because it is instantiated before the mock starts
+client = boto3.client("dynamodb", region_name="us-east-1")
+resource = boto3.resource("dynamodb", region_name="us-east-1")
 
 
 @mock_aws
 def test_get_item_without_range_key_boto3():
-    client = boto3.resource("dynamodb", region_name="us-east-1")
-    table = client.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="messages",
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
@@ -49,8 +56,8 @@ def test_query_filter_boto3():
         ],
     }
 
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
+    patch_resource(resource)
+    table = resource.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
 
@@ -79,10 +86,10 @@ def test_query_filter_boto3():
 
 @mock_aws
 def test_boto3_conditions():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -94,7 +101,7 @@ def test_boto3_conditions():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     table.put_item(Item={"forum_name": "the-key", "subject": "123"})
     table.put_item(Item={"forum_name": "the-key", "subject": "456"})
@@ -153,10 +160,10 @@ def test_boto3_conditions():
 
 @mock_aws
 def test_boto3_conditions_ignorecase():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
+    client.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -169,15 +176,15 @@ def test_boto3_conditions_ignorecase():
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    dynamodb.put_item(
+    client.put_item(
         TableName="users",
         Item={"forum_name": {"S": "the-key"}, "subject": {"S": "100"}},
     )
-    dynamodb.put_item(
+    client.put_item(
         TableName="users",
         Item={"forum_name": {"S": "the-key"}, "subject": {"S": "199"}},
     )
-    dynamodb.put_item(
+    client.put_item(
         TableName="users",
         Item={"forum_name": {"S": "the-key"}, "subject": {"S": "250"}},
     )
@@ -189,7 +196,7 @@ def test_boto3_conditions_ignorecase():
         "between :start  AnD  :end",
     ]
     for expr in between_expressions:
-        results = dynamodb.query(
+        results = client.query(
             TableName="users",
             KeyConditionExpression=f"forum_name = :forum_name and subject {expr}",
             ExpressionAttributeValues={
@@ -201,7 +208,7 @@ def test_boto3_conditions_ignorecase():
         assert results["Count"] == 2
 
     with pytest.raises(ClientError) as ex:
-        dynamodb.query(
+        client.query(
             TableName="users",
             KeyConditionExpression="forum_name = :forum_name and BegIns_WiTh(subject, :subject )",
             ExpressionAttributeValues={
@@ -218,10 +225,10 @@ def test_boto3_conditions_ignorecase():
 
 @mock_aws
 def test_boto3_put_item_with_conditions():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -233,7 +240,7 @@ def test_boto3_put_item_with_conditions():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     table.put_item(Item={"forum_name": "the-key", "subject": "123"})
 
@@ -260,10 +267,10 @@ def test_boto3_put_item_with_conditions():
 
 
 def _create_table_with_range_key():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -291,7 +298,7 @@ def _create_table_with_range_key():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    return dynamodb.Table("users")
+    return resource.Table("users")
 
 
 @mock_aws
@@ -842,10 +849,10 @@ def test_boto3_query_gsi_range_comparison():
 
 @mock_aws
 def test_boto3_update_table_throughput():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -857,7 +864,7 @@ def test_boto3_update_table_throughput():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     assert table.provisioned_throughput["ReadCapacityUnits"] == 5
     assert table.provisioned_throughput["WriteCapacityUnits"] == 6
@@ -866,7 +873,7 @@ def test_boto3_update_table_throughput():
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 11}
     )
 
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     assert table.provisioned_throughput["ReadCapacityUnits"] == 10
     assert table.provisioned_throughput["WriteCapacityUnits"] == 11
@@ -874,10 +881,10 @@ def test_boto3_update_table_throughput():
 
 @mock_aws
 def test_boto3_update_table_gsi_throughput():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -905,7 +912,7 @@ def test_boto3_update_table_gsi_throughput():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
     assert gsi_throughput["ReadCapacityUnits"] == 3
@@ -928,7 +935,7 @@ def test_boto3_update_table_gsi_throughput():
         ]
     )
 
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     # Primary throughput has not changed
     assert table.provisioned_throughput["ReadCapacityUnits"] == 5
@@ -941,10 +948,10 @@ def test_boto3_update_table_gsi_throughput():
 
 @mock_aws
 def test_update_table_gsi_create():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -956,7 +963,7 @@ def test_update_table_gsi_create():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     assert len(table.global_secondary_indexes) == 0
     assert len(table.attribute_definitions) == 2
@@ -986,7 +993,7 @@ def test_update_table_gsi_create():
         ],
     )
 
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
     table.reload()
     assert len(table.global_secondary_indexes) == 1
     assert len(table.attribute_definitions) == 4
@@ -1009,7 +1016,7 @@ def test_update_table_gsi_create():
             }
         ]
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
     assert gsi_throughput["ReadCapacityUnits"] == 10
@@ -1017,16 +1024,16 @@ def test_update_table_gsi_create():
 
     table.update(GlobalSecondaryIndexUpdates=[{"Delete": {"IndexName": "TestGSI"}}])
 
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
     assert len(table.global_secondary_indexes) == 0
 
 
 @mock_aws
 def test_update_table_gsi_throughput():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    patch_resource(resource)
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    resource.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
@@ -1054,12 +1061,12 @@ def test_update_table_gsi_throughput():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
     assert len(table.global_secondary_indexes) == 1
 
     table.update(GlobalSecondaryIndexUpdates=[{"Delete": {"IndexName": "TestGSI"}}])
 
-    table = dynamodb.Table("users")
+    table = resource.Table("users")
     assert len(table.global_secondary_indexes) == 0
 
 
@@ -1098,9 +1105,9 @@ def test_query_pagination():
 
 @mock_aws
 def test_scan_by_index():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
-    dynamodb.create_table(
+    client.create_table(
         TableName="test",
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
@@ -1140,7 +1147,7 @@ def test_scan_by_index():
         ],
     )
 
-    dynamodb.put_item(
+    client.put_item(
         TableName="test",
         Item={
             "id": {"S": "1"},
@@ -1152,7 +1159,7 @@ def test_scan_by_index():
         },
     )
 
-    dynamodb.put_item(
+    client.put_item(
         TableName="test",
         Item={
             "id": {"S": "1"},
@@ -1164,29 +1171,29 @@ def test_scan_by_index():
         },
     )
 
-    dynamodb.put_item(
+    client.put_item(
         TableName="test",
         Item={"id": {"S": "3"}, "range_key": {"S": "1"}, "col1": {"S": "val3"}},
     )
 
-    res = dynamodb.scan(TableName="test")
+    res = client.scan(TableName="test")
     assert res["Count"] == 3
     assert len(res["Items"]) == 3
 
-    res = dynamodb.scan(TableName="test", Limit=1)
+    res = client.scan(TableName="test", Limit=1)
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
 
-    res = dynamodb.scan(TableName="test", ExclusiveStartKey=res["LastEvaluatedKey"])
+    res = client.scan(TableName="test", ExclusiveStartKey=res["LastEvaluatedKey"])
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi")
+    res = client.scan(TableName="test", IndexName="test_gsi")
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi", Limit=1)
+    res = client.scan(TableName="test", IndexName="test_gsi", Limit=1)
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
     assert len(res["Items"]) == 1
@@ -1195,18 +1202,18 @@ def test_scan_by_index():
     assert last_eval_key["gsi_col"]["S"] == "1"
     assert last_eval_key["gsi_range_key"]["S"] == "1"
 
-    res = dynamodb.scan(
+    res = client.scan(
         TableName="test", IndexName="test_gsi", ExclusiveStartKey=last_eval_key
     )
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
 
-    res = dynamodb.scan(TableName="test", IndexName="test_lsi")
+    res = client.scan(TableName="test", IndexName="test_lsi")
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_lsi", Limit=1)
+    res = client.scan(TableName="test", IndexName="test_lsi", Limit=1)
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
     assert len(res["Items"]) == 1
@@ -1224,7 +1231,7 @@ def test_scan_by_index():
 def test_update_item_throws_exception_when_updating_hash_or_range_key(
     create_item_first, expression
 ):
-    client = boto3.client("dynamodb", region_name="ap-northeast-3")
+    patch_client(client)
     table_name = "testtable_3877"
 
     client.create_table(

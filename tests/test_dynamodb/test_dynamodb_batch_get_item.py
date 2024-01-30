@@ -3,10 +3,16 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import patch_client
+
+# Instantiating a client takes a long time
+# Creating one here means we can reuse it across all tests
+# We do have to patch the client everywhere, because it is instantiated before the mock starts
+client = boto3.client("dynamodb", region_name="us-east-1")
 
 
 def _create_user_table():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="users",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
@@ -168,7 +174,7 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
 
 @mock_aws
 def test_batch_items_should_throw_exception_for_duplicate_request():
-    client = _create_user_table()
+    _create_user_table()
     with pytest.raises(ClientError) as ex:
         client.batch_get_item(
             RequestItems={
@@ -197,7 +203,7 @@ def test_batch_items_should_return_16mb_max():
     It also returns an appropriate UnprocessedKeys value so you can get the next page of results.
     If desired, your application can include its own logic to assemble the pages of results into one dataset.
     """
-    client = _create_user_table()
+    _create_user_table()
     # Fill table with all the data
     for i in range(100):
         client.put_item(

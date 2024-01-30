@@ -6,13 +6,16 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import patch_client
 
 from . import dynamodb_aws_verified
+
+client = boto3.client("dynamodb", region_name="us-east-1")
 
 
 @mock_aws
 def test_create_table_standard():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="messages",
         KeySchema=[
@@ -54,7 +57,7 @@ def test_create_table_standard():
 
 @mock_aws
 def test_create_table_with_local_index():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="messages",
         KeySchema=[
@@ -190,9 +193,9 @@ def test_create_table_with_gsi():
 
 @mock_aws
 def test_create_table_with_stream_specification():
-    conn = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
-    resp = conn.create_table(
+    resp = client.create_table(
         TableName="test-streams",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
@@ -210,14 +213,14 @@ def test_create_table_with_stream_specification():
     assert "LatestStreamLabel" in resp["TableDescription"]
     assert "LatestStreamArn" in resp["TableDescription"]
 
-    resp = conn.delete_table(TableName="test-streams")
+    resp = client.delete_table(TableName="test-streams")
 
     assert "StreamSpecification" in resp["TableDescription"]
 
 
 @mock_aws
 def test_create_table_with_tags():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     resp = client.create_table(
         TableName="test-streams",
@@ -235,7 +238,7 @@ def test_create_table_with_tags():
 
 @mock_aws
 def test_create_table_pay_per_request():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="test1",
         AttributeDefinitions=[
@@ -260,7 +263,7 @@ def test_create_table_pay_per_request():
 
 @mock_aws
 def test_create_table__provisioned_throughput():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="test1",
         AttributeDefinitions=[
@@ -285,10 +288,10 @@ def test_create_table__provisioned_throughput():
 
 @mock_aws
 def test_create_table_without_specifying_throughput():
-    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     with pytest.raises(ClientError) as exc:
-        dynamodb_client.create_table(
+        client.create_table(
             TableName="my-table",
             AttributeDefinitions=[
                 {"AttributeName": "some_field", "AttributeType": "S"}
@@ -307,7 +310,7 @@ def test_create_table_without_specifying_throughput():
 
 @mock_aws
 def test_create_table_error_pay_per_request_with_provisioned_param():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
 
     with pytest.raises(ClientError) as exc:
         client.create_table(
@@ -333,7 +336,7 @@ def test_create_table_error_pay_per_request_with_provisioned_param():
 
 @mock_aws
 def test_create_table_with_ssespecification__false():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="test1",
         AttributeDefinitions=[
@@ -354,7 +357,7 @@ def test_create_table_with_ssespecification__false():
 
 @mock_aws
 def test_create_table_with_ssespecification__true():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="test1",
         AttributeDefinitions=[
@@ -379,7 +382,7 @@ def test_create_table_with_ssespecification__true():
 
 @mock_aws
 def test_create_table_with_ssespecification__custom_kms_key():
-    client = boto3.client("dynamodb", region_name="us-east-1")
+    patch_client(client)
     client.create_table(
         TableName="test1",
         AttributeDefinitions=[
