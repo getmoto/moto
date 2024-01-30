@@ -324,7 +324,7 @@ def test_register_task_definition_fargate_with_pid_mode():
 
 
 @mock_aws
-def test_register_task_definition_memory_validation():
+def test_register_task_definition_memory_validation_ec2():
     client = boto3.client("ecs", region_name=ECS_REGION)
     container_name = "hello_world"
     bad_definition1 = dict(
@@ -333,7 +333,7 @@ def test_register_task_definition_memory_validation():
             {"name": container_name, "image": "hello-world:latest", "memory": 400},
             {"name": f"{container_name}2", "image": "hello-world:latest"},
         ],
-        requiresCompatibilities=["FARGATE"],
+        requiresCompatibilities=["EC2"],
     )
 
     with pytest.raises(ClientError) as exc:
@@ -346,6 +346,25 @@ def test_register_task_definition_memory_validation():
         ex.response["Error"]["Message"]
         == f"Invalid setting for container '{container_name}2'. At least one of 'memory' or 'memoryReservation' must be specified."
     )
+
+
+@mock_aws
+def test_register_task_definition_memory_validation_fargate():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    container_name = "hello_world"
+    good_definition1 = dict(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {"name": container_name, "image": "hello-world:latest", "memory": 400},
+            {"name": f"{container_name}2", "image": "hello-world:latest"},
+        ],
+        requiresCompatibilities=["FARGATE"],
+    )
+
+    response = client.register_task_definition(**good_definition1)
+    print(response)
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
 @mock_aws
