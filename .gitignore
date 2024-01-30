@@ -39,3 +39,4 @@ other_langs/tests_dotnet/ExampleTestProject/obj
 other_langs/tests_ruby/Gemfile.lock
 other_langs/terraform/*/.terraform*
 other_langs/terraform/*/terraform*
+other_langs/terraform/awslambda/lambda_function_payload.zip
