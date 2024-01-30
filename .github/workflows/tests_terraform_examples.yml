@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ["acm", "cloudfront", "route53"]
+        service: ["acm", "cloudfront", "elb", "route53"]
 
     steps:
     - uses: actions/checkout@v4
