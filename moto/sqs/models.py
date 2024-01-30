@@ -243,6 +243,7 @@ class Queue(CloudFormationModel):
         "RedrivePolicy",
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
+        "SqsManagedSseEnabled",
     ]
     FIFO_ATTRIBUTES = [
         "ContentBasedDeduplication",
@@ -298,6 +299,7 @@ class Queue(CloudFormationModel):
             "ReceiveMessageWaitTimeSeconds": 0,
             "RedrivePolicy": None,
             "VisibilityTimeout": 30,
+            "SqsManagedSseEnabled": True,
         }
 
         defaults.update(kwargs)
