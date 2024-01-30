@@ -362,8 +362,6 @@ def test_register_task_definition_memory_validation_fargate():
     )
 
     response = client.register_task_definition(**good_definition1)
-    print(response)
-
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
