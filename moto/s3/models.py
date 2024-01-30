@@ -2451,7 +2451,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         prefix: Optional[str],
         delimiter: Optional[str],
         marker: Optional[str],
-        max_keys: int,
+        max_keys: Optional[int],
     ) -> Tuple[Set[FakeKey], Set[str], bool, Optional[str]]:
         key_results = set()
         folder_results = set()
@@ -2487,9 +2487,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             limit = self._pagination_tokens.get(marker)
             key_results = self._get_results_from_token(key_results, limit)
 
-        key_results, is_truncated, next_marker = self._truncate_result(
-            key_results, max_keys
-        )
+        if max_keys is not None:
+            key_results, is_truncated, next_marker = self._truncate_result(
+                key_results, max_keys
+            )
+        else:
+            is_truncated = False
+            next_marker = None
 
         return key_results, folder_results, is_truncated, next_marker
 
@@ -2503,7 +2507,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         max_keys: int,
     ) -> Tuple[Set[Union[FakeKey, str]], bool, Optional[str]]:
         result_keys, result_folders, _, _ = self.list_objects(
-            bucket, prefix, delimiter, marker=None, max_keys=1000
+            bucket, prefix, delimiter, marker=None, max_keys=None
         )
         # sort the combination of folders and keys into lexicographical order
         all_keys = result_keys + result_folders  # type: ignore
