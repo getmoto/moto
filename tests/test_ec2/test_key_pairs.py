@@ -29,6 +29,7 @@ moto@github.com"""
 
 RSA_PUBLIC_KEY_RFC4716 = b"""\
 ---- BEGIN SSH2 PUBLIC KEY ----
+cOmmENt: moto@github.com
 AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H6cZANO
 Q+P1o/W4BdtcAL3sor4iGi7SOeJgo8kweyMQrhrt6HaKGgromRiz37LQx4YIAcBi4Zd023
 mO/V7Rc2Chh18mWgLSmA6ng+j37ip6452zxtv0jHAz9pJolbKBpJzbZlPN45ZCTk9ck0fS
