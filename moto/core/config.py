@@ -14,6 +14,7 @@ class _passthrough_config(TypedDict, total=False):
 class _core_config(TypedDict, total=False):
     mock_credentials: bool
     passthrough: _passthrough_config
+    reset_boto3_session: bool
 
 
 class _iam_config(TypedDict, total=False):
@@ -34,7 +35,11 @@ DefaultConfig = TypedDict(
 default_user_config: DefaultConfig = {
     "batch": {"use_docker": True},
     "lambda": {"use_docker": True},
-    "core": {"mock_credentials": True, "passthrough": {"urls": [], "services": []}},
+    "core": {
+        "mock_credentials": True,
+        "passthrough": {"urls": [], "services": []},
+        "reset_boto3_session": True,
+    },
     "iam": {"load_aws_managed_policies": False},
 }
 
