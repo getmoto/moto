@@ -1,12 +1,12 @@
 import boto3
 
-from moto import mock_kinesis
+from moto import mock_aws
 from tests import DEFAULT_ACCOUNT_ID
 
 from .test_kinesis import get_stream_arn
 
 
-@mock_kinesis
+@mock_aws
 def test_enable_enhanced_monitoring_all():
     client = boto3.client("kinesis", region_name="us-east-1")
     stream_name = "my_stream_summary"
@@ -25,7 +25,7 @@ def test_enable_enhanced_monitoring_all():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_enable_enhanced_monitoring_is_persisted():
     client = boto3.client("kinesis", region_name="us-east-1")
     stream_name = "my_stream_summary"
@@ -40,7 +40,7 @@ def test_enable_enhanced_monitoring_is_persisted():
     assert set(metrics) == {"IncomingBytes", "OutgoingBytes"}
 
 
-@mock_kinesis
+@mock_aws
 def test_enable_enhanced_monitoring_in_steps():
     client = boto3.client("kinesis", region_name="us-east-1")
     stream_name = "my_stream_summary"
@@ -70,7 +70,7 @@ def test_enable_enhanced_monitoring_in_steps():
     assert "WriteProvisionedThroughputExceeded" in metrics
 
 
-@mock_kinesis
+@mock_aws
 def test_disable_enhanced_monitoring():
     client = boto3.client("kinesis", region_name="us-east-1")
     stream_name = "my_stream_summary"
@@ -118,7 +118,7 @@ def test_disable_enhanced_monitoring():
     assert len(resp["DesiredShardLevelMetrics"]) == 1
 
 
-@mock_kinesis
+@mock_aws
 def test_disable_enhanced_monitoring_all():
     client = boto3.client("kinesis", region_name="us-east-1")
     stream_name = "my_stream_summary"

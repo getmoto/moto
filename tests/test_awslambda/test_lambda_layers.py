@@ -1,4 +1,5 @@
 import os
+import sys
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -7,17 +8,19 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_lambda, mock_s3, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 
 from .utilities import get_role_name, get_test_zip_file1
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
+
+boto3_version = sys.modules["botocore"].__version__
 
 
-@mock_lambda
+@mock_aws
 def test_publish_lambda_layers__without_content():
     conn = boto3.client("lambda", _lambda_region)
     layer_name = str(uuid4())[0:6]
@@ -34,7 +37,7 @@ def test_publish_lambda_layers__without_content():
     assert err["Message"] == "Missing Content"
 
 
-@mock_lambda
+@mock_aws
 @mock.patch.dict(os.environ, {"VALIDATE_LAMBDA_S3": "false"})
 def test_publish_layer_with_unknown_s3_file():
     if not settings.TEST_DECORATOR_MODE:
@@ -48,10 +51,11 @@ def test_publish_layer_with_unknown_s3_file():
     assert content["CodeSize"] == 0
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 @freeze_time("2015-01-01 00:00:00")
 def test_get_lambda_layers():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -152,9 +156,10 @@ def test_get_lambda_layers():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_layer_version():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -184,8 +189,7 @@ def test_get_layer_version():
     assert resp["LicenseInfo"] == "MIT"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_layer_version__unknown():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
@@ -219,8 +223,7 @@ def test_get_layer_version__unknown():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize("use_arn", [True, False])
 def test_delete_layer_version(use_arn):
     bucket_name = str(uuid4())
@@ -255,8 +258,7 @@ def test_delete_layer_version(use_arn):
     assert result == []
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_layer_with_no_layer_versions():
     def get_layer_by_layer_name_from_list_of_layer_dicts(layer_name, layer_list):
         for layer in layer_list:

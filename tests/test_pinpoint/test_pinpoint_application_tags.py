@@ -1,10 +1,10 @@
 """Unit tests for pinpoint-supported APIs."""
 import boto3
 
-from moto import mock_pinpoint
+from moto import mock_aws
 
 
-@mock_pinpoint
+@mock_aws
 def test_list_tags_for_resource_empty():
     client = boto3.client("pinpoint", region_name="ap-southeast-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -14,7 +14,7 @@ def test_list_tags_for_resource_empty():
     assert resp["TagsModel"] == {"tags": {}}
 
 
-@mock_pinpoint
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("pinpoint", region_name="ap-southeast-1")
     resp = client.create_app(
@@ -30,7 +30,7 @@ def test_list_tags_for_resource():
     assert resp["TagsModel"]["tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_pinpoint
+@mock_aws
 def test_tag_resource():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -45,7 +45,7 @@ def test_tag_resource():
     assert resp["TagsModel"]["tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_pinpoint
+@mock_aws
 def test_untag_resource():
     client = boto3.client("pinpoint", region_name="eu-west-1")
     resp = client.create_app(

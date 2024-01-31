@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ec2
+@mock_aws
 def test_describe_carrier_gateways_none():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -16,7 +16,7 @@ def test_describe_carrier_gateways_none():
     assert ec2.describe_carrier_gateways()["CarrierGateways"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_describe_carrier_gateways_multiple():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -43,7 +43,7 @@ def test_describe_carrier_gateways_multiple():
     assert find_one[0]["CarrierGatewayId"] == cg2["CarrierGatewayId"]
 
 
-@mock_ec2
+@mock_aws
 def test_create_carrier_gateways_without_tags():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -57,7 +57,7 @@ def test_create_carrier_gateways_without_tags():
     assert cg["Tags"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_carrier_gateways_with_tags():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -76,7 +76,7 @@ def test_create_carrier_gateways_with_tags():
     assert cg["Tags"] == [{"Key": "tk", "Value": "tv"}]
 
 
-@mock_ec2
+@mock_aws
 def test_create_carrier_gateways_invalid_vpc():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -86,7 +86,7 @@ def test_create_carrier_gateways_invalid_vpc():
     assert err["Message"] == "VpcID vpc-asdf does not exist."
 
 
-@mock_ec2
+@mock_aws
 def test_delete_carrier_gateways():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

@@ -3,7 +3,8 @@ from collections import OrderedDict
 from enum import Enum, unique
 from typing import Dict, List, Optional, Tuple, Union
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.ecs import ecs_backends
 from moto.moto_api._internal import mock_random
 

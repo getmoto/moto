@@ -12,17 +12,6 @@
 rds
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_rds
-            def test_rds_behaviour:
-                boto3.client("rds")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_role_to_db_cluster
@@ -50,6 +39,7 @@ rds
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
+- [ ] create_db_shard_group
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
@@ -70,6 +60,7 @@ rds
 - [ ] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
+- [ ] delete_db_shard_group
 - [X] delete_db_snapshot
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
@@ -86,7 +77,7 @@ rds
 - [ ] describe_db_cluster_endpoints
 - [X] describe_db_cluster_parameter_groups
 - [X] describe_db_cluster_parameters
-- [ ] describe_db_cluster_snapshot_attributes
+- [X] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
@@ -101,7 +92,8 @@ rds
 - [ ] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
-- [ ] describe_db_snapshot_attributes
+- [ ] describe_db_shard_groups
+- [X] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
@@ -139,15 +131,16 @@ rds
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
-- [ ] modify_db_cluster_snapshot_attribute
+- [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
 - [ ] modify_db_proxy_target_group
 - [ ] modify_db_recommendation
+- [ ] modify_db_shard_group
 - [ ] modify_db_snapshot
-- [ ] modify_db_snapshot_attribute
+- [X] modify_db_snapshot_attribute
 - [X] modify_db_subnet_group
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
@@ -158,6 +151,7 @@ rds
 - [ ] purchase_reserved_db_instances_offering
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
+- [ ] reboot_db_shard_group
 - [ ] register_db_proxy_targets
 - [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster
@@ -171,7 +165,7 @@ rds
 - [ ] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
-- [ ] restore_db_instance_to_point_in_time
+- [X] restore_db_instance_to_point_in_time
 - [ ] revoke_db_security_group_ingress
 - [ ] start_activity_stream
 - [X] start_db_cluster

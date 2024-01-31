@@ -2,7 +2,7 @@ import copy
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
-from moto.core import BaseModel, CloudFormationModel
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
 from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
@@ -203,14 +203,14 @@ class StreamShard(BaseModel):
         seq = len(self.items) + self.starting_sequence_number
         self.items.append(StreamRecord(self.table, t, event_name, old, new, seq))
         result = None
-        from moto.awslambda import lambda_backends
+        from moto.awslambda.utils import get_backend
 
         for arn, esm in self.table.lambda_event_source_mappings.items():
             region = arn[
                 len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
             ]
 
-            result = lambda_backends[self.account_id][region].send_dynamodb_items(
+            result = get_backend(self.account_id, region).send_dynamodb_items(
                 arn, self.items, esm.event_source_arn
             )
 
@@ -707,6 +707,24 @@ class Table(CloudFormationModel):
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
 
+        # SORT
+        if index_name:
+            if index_range_key:
+                # Convert to float if necessary to ensure proper ordering
+                def conv(x: DynamoType) -> Any:
+                    return float(x.value) if x.type == "N" else x.value
+
+                possible_results.sort(
+                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
+                    if item.attrs.get(index_range_key["AttributeName"])  # type: ignore
+                    else None
+                )
+        else:
+            possible_results.sort(key=lambda item: item.range_key)  # type: ignore
+
+        if scan_index_forward is False:
+            possible_results.reverse()
+
         # FILTER
         results: List[Item] = []
         result_size = 0
@@ -762,24 +780,6 @@ class Table(CloudFormationModel):
                         results.append(result)
                         result_size += result.size()
                 scanned_count += 1
-
-        # SORT
-        if index_name:
-            if index_range_key:
-                # Convert to float if necessary to ensure proper ordering
-                def conv(x: DynamoType) -> Any:
-                    return float(x.value) if x.type == "N" else x.value
-
-                results.sort(
-                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
-                    if item.attrs.get(index_range_key["AttributeName"])  # type: ignore
-                    else None
-                )
-        else:
-            results.sort(key=lambda item: item.range_key)  # type: ignore
-
-        if scan_index_forward is False:
-            results.reverse()
 
         results = copy.deepcopy(results)
         if index_name:

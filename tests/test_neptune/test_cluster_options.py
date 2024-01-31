@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_neptune
+from moto import mock_aws
 
 
-@mock_neptune
+@mock_aws
 def test_db_cluster_options():
     # Verified against AWS on 23-02-2023
     # We're not checking the exact data here, that is already done in TF

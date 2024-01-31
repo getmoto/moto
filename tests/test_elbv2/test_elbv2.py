@@ -5,14 +5,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_acm, mock_ec2, mock_elbv2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.elbv2 import elbv2_backends
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_load_balancer():
     response, _, security_group, subnet1, subnet2, conn = create_load_balancer()
 
@@ -63,8 +62,7 @@ def create_load_balancer():
     return response, vpc, security_group, subnet1, subnet2, conn
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_elb_using_subnetmapping():
     region = "us-west-1"
     conn = boto3.client("elbv2", region_name=region)
@@ -95,8 +93,7 @@ def test_create_elb_using_subnetmapping():
     assert {"ZoneName": "us-west-1b", "SubnetId": subnet2.id} in lb["AvailabilityZones"]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_describe_load_balancers():
     response, _, _, _, _, conn = create_load_balancer()
 
@@ -119,8 +116,7 @@ def test_describe_load_balancers():
         conn.describe_load_balancers(Names=["nope"])
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_describe_listeners():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -133,8 +129,7 @@ def test_describe_listeners():
     )
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_add_remove_tags():
     _, _, _, _, _, conn = create_load_balancer()
 
@@ -221,8 +216,7 @@ def test_add_remove_tags():
     assert tags["j"] == "c"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_elb_in_multiple_region():
     for region in ["us-west-1", "us-west-2"]:
         conn = boto3.client("elbv2", region_name=region)
@@ -253,8 +247,7 @@ def test_create_elb_in_multiple_region():
     assert len(west_2_lbs["LoadBalancers"]) == 1
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_listeners_without_port():
     response, vpc, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -288,8 +281,7 @@ def test_create_listeners_without_port():
     ]
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_create_rule_forward_config_as_second_arg():
     # https://github.com/getmoto/moto/issues/4123
     # Necessary because there was some convoluted way of parsing arguments
@@ -365,8 +357,7 @@ def test_create_rule_forward_config_as_second_arg():
     }
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_describe_paginated_balancers():
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -399,8 +390,7 @@ def test_describe_paginated_balancers():
     assert "NextToken" not in resp2.keys()
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_delete_load_balancer():
     response, _, _, _, _, conn = create_load_balancer()
 
@@ -412,8 +402,7 @@ def test_delete_load_balancer():
     assert len(balancers) == 0
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_register_targets():
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -517,8 +506,7 @@ def test_register_targets():
     assert_target_not_registered(target_custom_port)
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_stopped_instance_target():
     target_group_port = 8080
 
@@ -600,8 +588,7 @@ def test_stopped_instance_target():
     }
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_terminated_instance_target():
     target_group_port = 8080
 
@@ -675,8 +662,7 @@ def test_terminated_instance_target():
     assert len(response["TargetHealthDescriptions"]) == 0
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_rule_priority_in_use():
     response, _, _, _, _, elbv2 = create_load_balancer()
 
@@ -702,8 +688,7 @@ def test_create_rule_priority_in_use():
     assert err["Message"] == "The specified priority is in use."
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_rule_conditions():
     response, _, _, _, _, elbv2 = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -757,8 +742,7 @@ def test_modify_rule_conditions():
     assert len(rule["Conditions"]) == 2
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_handle_listener_rules():
     response, vpc, _, _, _, conn = create_load_balancer()
 
@@ -1107,7 +1091,7 @@ def test_handle_listener_rules():
         )
 
 
-@mock_elbv2
+@mock_aws
 def test_describe_account_limits():
     client = boto3.client("elbv2", region_name="eu-central-1")
 
@@ -1116,7 +1100,7 @@ def test_describe_account_limits():
     assert "Max" in resp["Limits"][0]
 
 
-@mock_elbv2
+@mock_aws
 def test_describe_ssl_policies():
     client = boto3.client("elbv2", region_name="eu-central-1")
 
@@ -1138,8 +1122,7 @@ def test_describe_ssl_policies():
     assert len(resp["SslPolicies"]) == 2
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_set_ip_address_type():
     response, _, security_group, subnet1, subnet2, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1166,8 +1149,7 @@ def test_set_ip_address_type():
     assert err["Code"] == "ValidationError"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_set_security_groups():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1206,8 +1188,7 @@ def test_set_security_groups():
         client.set_security_groups(LoadBalancerArn=arn, SecurityGroups=["non_existent"])
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_load_balancer_attributes_idle_timeout():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1228,8 +1209,7 @@ def test_modify_load_balancer_attributes_idle_timeout():
     assert idle_timeout["Value"] == "600"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_load_balancer_attributes_routing_http2_enabled():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1248,8 +1228,7 @@ def test_modify_load_balancer_attributes_routing_http2_enabled():
     assert routing_http2_enabled["Value"] == "false"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_load_balancer_attributes_crosszone_enabled():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1267,8 +1246,7 @@ def test_modify_load_balancer_attributes_crosszone_enabled():
     assert {"Key": "load_balancing.cross_zone.enabled", "Value": "false"} in attrs
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields_enabled():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1291,8 +1269,7 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
     assert routing_http_drop_invalid_header_fields_enabled["Value"] == "false"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_load_balancer_attributes_connection_logs_s3():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1313,9 +1290,7 @@ def test_modify_load_balancer_attributes_connection_logs_s3():
     assert {"Key": "connection_logs.s3.prefix", "Value": "test_prefix"} in attrs
 
 
-@mock_elbv2
-@mock_ec2
-@mock_acm
+@mock_aws
 def test_modify_listener_http_to_https():
     client = boto3.client("elbv2", region_name="eu-central-1")
     acm = boto3.client("acm", region_name="eu-central-1")
@@ -1444,9 +1419,7 @@ def test_modify_listener_http_to_https():
     assert err["Message"] == "Protocol HTP is not supported"
 
 
-@mock_acm
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_modify_listener_of_https_target_group():
     # Verify we can add a listener for a TargetGroup that is already HTTPS
     client = boto3.client("elbv2", region_name="eu-central-1")
@@ -1508,7 +1481,7 @@ def test_modify_listener_of_https_target_group():
     assert listener["Certificates"] == [{"CertificateArn": yahoo_arn}]
 
 
-@mock_elbv2
+@mock_aws
 def test_add_unknown_listener_certificate():
     client = boto3.client("elbv2", region_name="eu-central-1")
     with pytest.raises(ClientError) as exc:
@@ -1519,7 +1492,7 @@ def test_add_unknown_listener_certificate():
     assert err["Code"] == "ListenerNotFound"
 
 
-@mock_elbv2
+@mock_aws
 def test_describe_unknown_listener_certificate():
     client = boto3.client("elbv2", region_name="eu-central-1")
     with pytest.raises(ClientError) as exc:
@@ -1528,9 +1501,7 @@ def test_describe_unknown_listener_certificate():
     assert err["Code"] == "ListenerNotFound"
 
 
-@mock_acm
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_add_listener_certificate():
     # Verify we can add a listener for a TargetGroup that is already HTTPS
     client = boto3.client("elbv2", region_name="eu-central-1")
@@ -1591,8 +1562,7 @@ def test_add_listener_certificate():
     assert len(certs) == 0
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_forward_config_action():
     response, vpc, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1629,8 +1599,7 @@ def test_forward_config_action():
     assert describe_listener_actions == [expected_action]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_forward_config_action__with_stickiness():
     response, vpc, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1666,8 +1635,7 @@ def test_forward_config_action__with_stickiness():
     assert describe_listener_actions == [action]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_redirect_action_listener_rule():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1716,8 +1684,7 @@ def test_redirect_action_listener_rule():
     assert modify_listener_actions == [action]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_cognito_action_listener_rule():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1758,8 +1725,7 @@ def test_cognito_action_listener_rule():
     assert describe_listener_actions == action
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_oidc_action_listener__simple():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1801,8 +1767,7 @@ def test_oidc_action_listener__simple():
     assert describe_listener_actions == action
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("use_secret", [True, False])
 def test_oidc_action_listener(use_secret):
     response, _, _, _, _, conn = create_load_balancer()
@@ -1852,8 +1817,7 @@ def test_oidc_action_listener(use_secret):
     assert describe_listener_actions == action
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_fixed_response_action_listener_rule():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1893,8 +1857,7 @@ def test_fixed_response_action_listener_rule():
     assert describe_listener_actions == action
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_fixed_response_action_listener_rule_validates_status_code():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1919,8 +1882,7 @@ def test_fixed_response_action_listener_rule_validates_status_code():
     assert exc.value.response["Error"]["Code"] == "ValidationError"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_fixed_response_action_listener_rule_validates_content_type():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1943,8 +1905,7 @@ def test_fixed_response_action_listener_rule_validates_content_type():
     assert exc.value.response["Error"]["Code"] == "InvalidLoadBalancerAction"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_listener_with_alpn_policy():
     response, _, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]

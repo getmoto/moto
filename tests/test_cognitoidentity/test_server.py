@@ -1,14 +1,14 @@
 import json
 
 import moto.server as server
-from moto import mock_cognitoidentity
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_create_identity_pool():
 
     backend = server.create_backend_app("cognito-identity")
@@ -26,7 +26,7 @@ def test_create_identity_pool():
     assert json_data["IdentityPoolName"] == "test"
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_get_id():
     backend = server.create_backend_app("cognito-identity")
     test_client = backend.test_client()
@@ -58,7 +58,7 @@ def test_get_id():
     assert ":" in json_data["IdentityId"]
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_list_identities():
     backend = server.create_backend_app("cognito-identity")
     test_client = backend.test_client()

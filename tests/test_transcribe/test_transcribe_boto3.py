@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import boto3
 import pytest
 
-from moto import mock_transcribe
+from moto import mock_aws
 
 
-@mock_transcribe
+@mock_aws
 def test_run_medical_transcription_job_minimal_params():
 
     region_name = "us-east-1"
@@ -73,7 +72,7 @@ def test_run_medical_transcription_job_minimal_params():
         client.get_medical_transcription_job(MedicalTranscriptionJobName=job_name)
 
 
-@mock_transcribe
+@mock_aws
 def test_run_medical_transcription_job_all_params():
 
     region_name = "us-east-1"
@@ -175,7 +174,7 @@ def test_run_medical_transcription_job_all_params():
     }
 
 
-@mock_transcribe
+@mock_aws
 def test_run_transcription_job_all_params():
 
     region_name = "us-east-1"
@@ -287,7 +286,7 @@ def test_run_transcription_job_all_params():
     }
 
 
-@mock_transcribe
+@mock_aws
 def test_run_transcription_job_minimal_params():
 
     region_name = "us-east-1"
@@ -357,7 +356,7 @@ def test_run_transcription_job_minimal_params():
         client.get_transcription_job(TranscriptionJobName=job_name)
 
 
-@mock_transcribe
+@mock_aws
 def test_run_transcription_job_s3output_params():
 
     region_name = "us-east-1"
@@ -437,7 +436,7 @@ def test_run_transcription_job_s3output_params():
     )
 
 
-@mock_transcribe
+@mock_aws
 def test_run_transcription_job_identify_languages_params():
 
     region_name = "us-east-1"
@@ -507,7 +506,7 @@ def test_run_transcription_job_identify_languages_params():
             assert transcription_job["IdentifiedLanguageScore"] == 0.999645948
 
 
-@mock_transcribe
+@mock_aws
 def test_get_nonexistent_medical_transcription_job():
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
@@ -518,7 +517,7 @@ def test_get_nonexistent_medical_transcription_job():
         )
 
 
-@mock_transcribe
+@mock_aws
 def test_get_nonexistent_transcription_job():
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
@@ -527,7 +526,7 @@ def test_get_nonexistent_transcription_job():
         client.get_transcription_job(TranscriptionJobName="NonexistentJobName")
 
 
-@mock_transcribe
+@mock_aws
 def test_run_medical_transcription_job_with_existing_job_name():
 
     region_name = "us-east-1"
@@ -549,7 +548,7 @@ def test_run_medical_transcription_job_with_existing_job_name():
         client.start_medical_transcription_job(**args)
 
 
-@mock_transcribe
+@mock_aws
 def test_run_transcription_job_with_existing_job_name():
 
     region_name = "us-east-1"
@@ -568,7 +567,7 @@ def test_run_transcription_job_with_existing_job_name():
         client.start_transcription_job(**args)
 
 
-@mock_transcribe
+@mock_aws
 def test_run_medical_transcription_job_nonexistent_vocabulary():
 
     region_name = "us-east-1"
@@ -588,7 +587,7 @@ def test_run_medical_transcription_job_nonexistent_vocabulary():
         client.start_medical_transcription_job(**args)
 
 
-@mock_transcribe
+@mock_aws
 def test_run_transcription_job_nonexistent_vocabulary():
 
     region_name = "us-east-1"
@@ -606,7 +605,7 @@ def test_run_transcription_job_nonexistent_vocabulary():
         client.start_transcription_job(**args)
 
 
-@mock_transcribe
+@mock_aws
 def test_list_medical_transcription_jobs():
 
     region_name = "us-east-1"
@@ -698,7 +697,7 @@ def test_list_medical_transcription_jobs():
     assert "NextToken" not in response
 
 
-@mock_transcribe
+@mock_aws
 def test_list_transcription_jobs():
 
     region_name = "us-east-1"
@@ -782,7 +781,7 @@ def test_list_transcription_jobs():
     assert "NextToken" not in response
 
 
-@mock_transcribe
+@mock_aws
 def test_create_medical_vocabulary():
 
     region_name = "us-east-1"
@@ -817,7 +816,7 @@ def test_create_medical_vocabulary():
         client.get_medical_vocabulary(VocabularyName=vocabulary_name)
 
 
-@mock_transcribe
+@mock_aws
 def test_create_vocabulary():
 
     region_name = "us-east-1"
@@ -872,7 +871,7 @@ def test_create_vocabulary():
     assert resp["VocabularyState"] == "READY"
 
 
-@mock_transcribe
+@mock_aws
 def test_list_vocabularies():
 
     region_name = "us-east-1"
@@ -955,7 +954,7 @@ def test_list_vocabularies():
     assert len(response["Vocabularies"]) == 14
 
 
-@mock_transcribe
+@mock_aws
 def test_list_medical_vocabularies():
 
     region_name = "us-east-1"
@@ -1041,7 +1040,7 @@ def test_list_medical_vocabularies():
     assert len(response["Vocabularies"]) == 14
 
 
-@mock_transcribe
+@mock_aws
 def test_get_nonexistent_medical_vocabulary():
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
@@ -1050,7 +1049,7 @@ def test_get_nonexistent_medical_vocabulary():
         client.get_medical_vocabulary(VocabularyName="NonexistentVocabularyName")
 
 
-@mock_transcribe
+@mock_aws
 def test_get_nonexistent_vocabulary():
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
@@ -1059,7 +1058,7 @@ def test_get_nonexistent_vocabulary():
         client.get_vocabulary(VocabularyName="NonexistentVocabularyName")
 
 
-@mock_transcribe
+@mock_aws
 def test_create_medical_vocabulary_with_existing_vocabulary_name():
 
     region_name = "us-east-1"
@@ -1078,7 +1077,7 @@ def test_create_medical_vocabulary_with_existing_vocabulary_name():
         client.create_medical_vocabulary(**args)
 
 
-@mock_transcribe
+@mock_aws
 def test_create_vocabulary_with_existing_vocabulary_name():
 
     region_name = "us-east-1"
@@ -1097,7 +1096,7 @@ def test_create_vocabulary_with_existing_vocabulary_name():
         client.create_vocabulary(**args)
 
 
-@mock_transcribe
+@mock_aws
 def test_create_vocabulary_with_bad_request():
 
     region_name = "us-east-1"

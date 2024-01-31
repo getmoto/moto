@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_guardduty
+from moto import mock_aws
 
 
-@mock_guardduty
+@mock_aws
 def test_create_detector():
     client = boto3.client("guardduty", region_name="us-east-1")
     response = client.create_detector(
@@ -19,7 +19,7 @@ def test_create_detector():
     assert response["DetectorId"] is not None
 
 
-@mock_guardduty
+@mock_aws
 def test_create_detector_with_minimal_params():
     client = boto3.client("guardduty", region_name="us-east-1")
     response = client.create_detector(Enable=True)
@@ -27,7 +27,7 @@ def test_create_detector_with_minimal_params():
     assert response["DetectorId"] is not None
 
 
-@mock_guardduty
+@mock_aws
 def test_get_detector_with_s3():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(
@@ -44,7 +44,7 @@ def test_get_detector_with_s3():
     assert "CreatedAt" in resp
 
 
-@mock_guardduty
+@mock_aws
 def test_get_detector_with_all_data_sources():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(
@@ -65,7 +65,7 @@ def test_get_detector_with_all_data_sources():
     assert "CreatedAt" in resp
 
 
-@mock_guardduty
+@mock_aws
 def test_update_detector():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(
@@ -91,7 +91,7 @@ def test_update_detector():
     assert resp["DataSources"]["Kubernetes"]["AuditLogs"] == {"Status": "DISABLED"}
 
 
-@mock_guardduty
+@mock_aws
 def test_list_detectors_initial():
     client = boto3.client("guardduty", region_name="us-east-1")
 
@@ -99,7 +99,7 @@ def test_list_detectors_initial():
     assert response["DetectorIds"] == []
 
 
-@mock_guardduty
+@mock_aws
 def test_list_detectors():
     client = boto3.client("guardduty", region_name="us-east-1")
     d1 = client.create_detector(
@@ -115,7 +115,7 @@ def test_list_detectors():
     assert set(response["DetectorIds"]) == {d1, d2}
 
 
-@mock_guardduty
+@mock_aws
 def test_delete_detector():
     client = boto3.client("guardduty", region_name="us-east-1")
     detector_id = client.create_detector(

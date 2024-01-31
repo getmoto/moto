@@ -6,18 +6,14 @@ from uuid import uuid4
 import botocore.exceptions
 import pytest
 
-from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, mock_logs, settings
+from moto import mock_aws, settings
 from tests import DEFAULT_ACCOUNT_ID
 
 from ..markers import requires_docker
 from . import DEFAULT_REGION, _get_clients, _setup
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_submit_job_by_name():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -92,10 +88,7 @@ def test_submit_job_by_name():
 # SLOW TESTS
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_submit_job_array_size():
@@ -138,10 +131,7 @@ def test_submit_job_array_size():
     assert len(child_job_1["attempts"]) == 1
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_submit_job_array_size__reset_while_job_is_running():
@@ -171,11 +161,7 @@ def test_submit_job_array_size__reset_while_job_is_running():
     batch_backends[DEFAULT_ACCOUNT_ID][DEFAULT_REGION].reset()
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_submit_job():
@@ -234,11 +220,7 @@ def test_submit_job():
     assert attempt["stoppedAt"] == stopped_at
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_submit_job_multinode():
@@ -299,11 +281,7 @@ def test_submit_job_multinode():
     assert attempt["stoppedAt"] == stopped_at
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @pytest.mark.network
 @requires_docker
 def test_list_jobs():
@@ -370,11 +348,7 @@ def test_list_jobs():
     assert filtered_jobs[0]["jobName"] == "test2"
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_terminate_job():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
@@ -412,7 +386,7 @@ def test_terminate_job():
     assert resp["events"][0]["message"] == "start"
 
 
-@mock_batch
+@mock_aws
 def test_terminate_nonexisting_job():
     """
     Test verifies that you get a 200 HTTP status code when terminating a non-existing job.
@@ -424,7 +398,7 @@ def test_terminate_nonexisting_job():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_batch
+@mock_aws
 def test_terminate_job_empty_argument_strings():
     """
     Test verifies that a `ClientException` is raised if `jobId` or `reason` is a empty string when terminating a job.
@@ -439,11 +413,8 @@ def test_terminate_job_empty_argument_strings():
     assert exc.match("ClientException")
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@requires_docker
+@mock_aws
 @requires_docker
 def test_cancel_pending_job():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
@@ -478,11 +449,7 @@ def test_cancel_pending_job():
     assert "logStreamName" not in resp["jobs"][0]["container"]
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_cancel_running_job():
     """
@@ -513,7 +480,7 @@ def test_cancel_running_job():
     assert "logStreamName" in resp["jobs"][0]["container"]
 
 
-@mock_batch
+@mock_aws
 def test_cancel_nonexisting_job():
     """
     Test verifies that you get a 200 HTTP status code when cancelling a non-existing job.
@@ -525,7 +492,7 @@ def test_cancel_nonexisting_job():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_batch
+@mock_aws
 def test_cancel_job_empty_argument_strings():
     """
     Test verifies that a `ClientException` is raised if `jobId` or `reason` is a empty string when cancelling a job.
@@ -559,11 +526,7 @@ def _wait_for_job_statuses(client, job_id, statuses, seconds_to_wait=30):
         )
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_failed_job():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
@@ -593,11 +556,7 @@ def test_failed_job():
         raise RuntimeError("Batch job timed out")
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_dependencies():
     ec2_client, iam_client, _, logs_client, batch_client = _get_clients()
@@ -680,11 +639,7 @@ def retrieve_all_streams(log_stream_name, logs_client):
     return all_streams
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_failed_dependencies():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
@@ -780,11 +735,7 @@ def test_failed_dependencies():
         raise RuntimeError("Batch job timed out")
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_container_overrides():
     """
@@ -981,7 +932,7 @@ def prepare_multinode_job(batch_client, commands, iam_arn, job_def_name):
     return job_def_arn, queue_arn
 
 
-@mock_batch
+@mock_aws
 def test_update_job_definition():
     _, _, _, _, batch_client = _get_clients()
 
@@ -1027,7 +978,7 @@ def test_update_job_definition():
     assert job_defs[1]["tags"] == tags[1]
 
 
-@mock_batch
+@mock_aws
 def test_register_job_definition_with_timeout():
     _, _, _, _, batch_client = _get_clients()
 
@@ -1051,9 +1002,7 @@ def test_register_job_definition_with_timeout():
     assert job_def["timeout"] == {"attemptDurationSeconds": 3}
 
 
-@mock_batch
-@mock_ec2
-@mock_iam
+@mock_aws
 @requires_docker
 def test_submit_job_with_timeout():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
@@ -1081,9 +1030,7 @@ def test_submit_job_with_timeout():
     _wait_for_job_status(batch_client, job_id, "FAILED")
 
 
-@mock_batch
-@mock_ec2
-@mock_iam
+@mock_aws
 @requires_docker
 def test_submit_job_with_timeout_set_at_definition():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
@@ -1114,7 +1061,7 @@ def test_submit_job_with_timeout_set_at_definition():
     _wait_for_job_status(batch_client, job_id, "FAILED")
 
 
-@mock_batch
+@mock_aws
 def test_submit_job_invalid_name():
     """
     Test verifies that a `ClientException` is raised if `jobName` isn't valid

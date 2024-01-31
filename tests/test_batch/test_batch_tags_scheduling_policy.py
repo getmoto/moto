@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_batch
+from moto import mock_aws
 
 
-@mock_batch
+@mock_aws
 def test_create_with_tags():
     client = boto3.client("batch", "us-east-2")
     arn = client.create_scheduling_policy(name="test", tags={"key": "val"})["arn"]

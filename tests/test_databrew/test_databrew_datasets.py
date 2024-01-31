@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_databrew
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
@@ -94,7 +94,7 @@ def _create_test_datasets(client, count):
         _create_test_dataset(client)
 
 
-@mock_databrew
+@mock_aws
 def test_dataset_list_when_empty():
     client = _create_databrew_client()
 
@@ -103,7 +103,7 @@ def test_dataset_list_when_empty():
     assert len(response["Datasets"]) == 0
 
 
-@mock_databrew
+@mock_aws
 def test_list_datasets_with_max_results():
     client = _create_databrew_client()
 
@@ -114,7 +114,7 @@ def test_list_datasets_with_max_results():
     assert "NextToken" in response
 
 
-@mock_databrew
+@mock_aws
 def test_list_datasets_from_next_token():
     client = _create_databrew_client()
     _create_test_datasets(client, 10)
@@ -123,7 +123,7 @@ def test_list_datasets_from_next_token():
     assert len(response["Datasets"]) == 7
 
 
-@mock_databrew
+@mock_aws
 def test_list_datasets_with_max_results_greater_than_actual_results():
     client = _create_databrew_client()
     _create_test_datasets(client, 4)
@@ -131,7 +131,7 @@ def test_list_datasets_with_max_results_greater_than_actual_results():
     assert len(response["Datasets"]) == 4
 
 
-@mock_databrew
+@mock_aws
 def test_describe_dataset():
     client = _create_databrew_client()
 
@@ -152,7 +152,7 @@ def test_describe_dataset():
     # endregion
 
 
-@mock_databrew
+@mock_aws
 def test_describe_dataset_that_does_not_exist():
     client = _create_databrew_client()
 
@@ -163,7 +163,7 @@ def test_describe_dataset_that_does_not_exist():
     assert err["Message"] == "One or more resources can't be found."
 
 
-@mock_databrew
+@mock_aws
 def test_create_dataset_that_already_exists():
     client = _create_databrew_client()
 
@@ -176,7 +176,7 @@ def test_create_dataset_that_already_exists():
     assert err["Message"] == f"{response['Name']} already exists."
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("name", ["name", "name with space"])
 def test_delete_dataset(name):
     client = _create_databrew_client()
@@ -206,7 +206,7 @@ def test_delete_dataset(name):
     assert err["Message"] == "One or more resources can't be found."
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("name", ["name", "name with space"])
 def test_update_dataset(name):
     client = _create_databrew_client()
@@ -247,7 +247,7 @@ def test_update_dataset(name):
     )
 
 
-@mock_databrew
+@mock_aws
 def test_update_dataset_that_does_not_exist():
     client = _create_databrew_client()
 

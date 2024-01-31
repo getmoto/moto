@@ -62,3 +62,10 @@ class InvalidRequestException(SecretsManagerClientError):
 class ValidationException(SecretsManagerClientError):
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
+
+
+class OperationNotPermittedOnReplica(InvalidParameterException):
+    def __init__(self) -> None:
+        super().__init__(
+            "Operation not permitted on a replica secret. Call must be made in primary secret's region."
+        )

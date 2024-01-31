@@ -1,16 +1,20 @@
 import json
+import sys
+from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 import moto.iotdata.models
-from moto import mock_iot, mock_iotdata, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
-@mock_iot
-@mock_iotdata
+@mock_aws
 def test_basic():
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
@@ -43,8 +47,7 @@ def test_basic():
         client.get_thing_shadow(thingName=name)
 
 
-@mock_iot
-@mock_iotdata
+@mock_aws
 def test_update():
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
@@ -94,9 +97,10 @@ def test_update():
     assert ex.value.response["Error"]["Message"] == "Version conflict"
 
 
-@mock_iot
-@mock_iotdata
+@mock_aws
 def test_create_named_shadows():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameter only available in newer versions")
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     thing_name = "my-thing"
@@ -149,7 +153,7 @@ def test_create_named_shadows():
     )
 
 
-@mock_iotdata
+@mock_aws
 def test_publish():
     region_name = "ap-northeast-1"
     client = boto3.client("iot-data", region_name=region_name)
@@ -165,8 +169,7 @@ def test_publish():
         assert ("test/topic3", b"\xbf") in mock_backend.published_payloads
 
 
-@mock_iot
-@mock_iotdata
+@mock_aws
 def test_delete_field_from_device_shadow():
     test_thing_name = "TestThing"
 

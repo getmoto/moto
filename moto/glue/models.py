@@ -5,7 +5,8 @@ from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState

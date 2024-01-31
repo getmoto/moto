@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sagemaker
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 TEST_REGION_NAME = "us-east-1"
@@ -28,7 +28,7 @@ FAKE_INSTANCE_TYPE_PARAM = "ml.t2.medium"
 
 @pytest.fixture(name="client")
 def fixture_sagemaker_client():
-    with mock_sagemaker():
+    with mock_aws():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 

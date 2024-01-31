@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.dynamodb.comparisons import get_expected, get_filter_expression

@@ -1,7 +1,6 @@
 import json
 
 from moto.core.responses import BaseResponse
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import TranscribeBackend, transcribe_backends
 
@@ -14,7 +13,6 @@ class TranscribeResponse(BaseResponse):
     def transcribe_backend(self) -> TranscribeBackend:
         return transcribe_backends[self.current_account][self.region]
 
-    @amzn_request_id
     def start_transcription_job(self) -> str:
         name = self._get_param("TranscriptionJobName")
         response = self.transcribe_backend.start_transcription_job(
@@ -37,7 +35,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def start_medical_transcription_job(self) -> str:
         name = self._get_param("MedicalTranscriptionJobName")
         response = self.transcribe_backend.start_medical_transcription_job(
@@ -54,7 +51,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def list_transcription_jobs(self) -> str:
         state_equals = self._get_param("Status")
         job_name_contains = self._get_param("JobNameContains")
@@ -69,7 +65,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def list_medical_transcription_jobs(self) -> str:
         status = self._get_param("Status")
         job_name_contains = self._get_param("JobNameContains")
@@ -84,7 +79,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def get_transcription_job(self) -> str:
         transcription_job_name = self._get_param("TranscriptionJobName")
         response = self.transcribe_backend.get_transcription_job(
@@ -92,7 +86,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def get_medical_transcription_job(self) -> str:
         medical_transcription_job_name = self._get_param("MedicalTranscriptionJobName")
         response = self.transcribe_backend.get_medical_transcription_job(
@@ -100,7 +93,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def delete_transcription_job(self) -> str:
         transcription_job_name = self._get_param("TranscriptionJobName")
         self.transcribe_backend.delete_transcription_job(
@@ -108,7 +100,6 @@ class TranscribeResponse(BaseResponse):
         )
         return "{}"
 
-    @amzn_request_id
     def delete_medical_transcription_job(self) -> str:
         medical_transcription_job_name = self._get_param("MedicalTranscriptionJobName")
         self.transcribe_backend.delete_medical_transcription_job(
@@ -116,7 +107,6 @@ class TranscribeResponse(BaseResponse):
         )
         return "{}"
 
-    @amzn_request_id
     def create_vocabulary(self) -> str:
         vocabulary_name = self._get_param("VocabularyName")
         language_code = self._get_param("LanguageCode")
@@ -130,7 +120,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def create_medical_vocabulary(self) -> str:
         vocabulary_name = self._get_param("VocabularyName")
         language_code = self._get_param("LanguageCode")
@@ -142,7 +131,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def get_vocabulary(self) -> str:
         vocabulary_name = self._get_param("VocabularyName")
         response = self.transcribe_backend.get_vocabulary(
@@ -150,7 +138,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def get_medical_vocabulary(self) -> str:
         vocabulary_name = self._get_param("VocabularyName")
         response = self.transcribe_backend.get_medical_vocabulary(
@@ -158,7 +145,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def list_vocabularies(self) -> str:
         state_equals = self._get_param("StateEquals")
         name_contains = self._get_param("NameContains")
@@ -173,7 +159,6 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def list_medical_vocabularies(self) -> str:
         state_equals = self._get_param("StateEquals")
         name_contains = self._get_param("NameContains")
@@ -188,13 +173,11 @@ class TranscribeResponse(BaseResponse):
         )
         return json.dumps(response)
 
-    @amzn_request_id
     def delete_vocabulary(self) -> str:
         vocabulary_name = self._get_param("VocabularyName")
         self.transcribe_backend.delete_vocabulary(vocabulary_name=vocabulary_name)
         return "{}"
 
-    @amzn_request_id
     def delete_medical_vocabulary(self) -> str:
         vocabulary_name = self._get_param("VocabularyName")
         self.transcribe_backend.delete_medical_vocabulary(

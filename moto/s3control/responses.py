@@ -7,7 +7,6 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import S3ControlBackend, s3control_backends
 
@@ -20,7 +19,6 @@ class S3ControlResponse(BaseResponse):
     def backend(self) -> S3ControlBackend:
         return s3control_backends[self.current_account]["global"]
 
-    @amzn_request_id
     def public_access_block(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         self.setup_class(request, full_url, headers)
         try:

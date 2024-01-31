@@ -158,7 +158,7 @@ class Fleet(TaggedEC2Resource):
     def create_on_demand_requests(self, weight_to_add: float) -> None:
         weight_map, added_weight = self.get_launch_spec_counts(weight_to_add)
         for launch_spec, count in weight_map.items():
-            reservation = self.ec2_backend.add_instances(
+            reservation = self.ec2_backend.run_instances(
                 image_id=launch_spec.image_id,
                 count=count,
                 instance_type=launch_spec.instance_type,

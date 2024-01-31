@@ -1,9 +1,8 @@
-"""Unit tests for apigatewaymanagementapi-supported APIs."""
 from unittest import SkipTest
 
 import boto3
 
-from moto import mock_apigatewaymanagementapi, settings
+from moto import mock_aws, settings
 from moto.apigatewaymanagementapi.models import apigatewaymanagementapi_backends
 from moto.core.versions import is_werkzeug_2_3_x
 from tests import DEFAULT_ACCOUNT_ID
@@ -12,7 +11,7 @@ from tests import DEFAULT_ACCOUNT_ID
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_apigatewaymanagementapi
+@mock_aws
 def test_delete_connection():
     if settings.TEST_SERVER_MODE and not is_werkzeug_2_3_x():
         # URL matching changed between 2.2.x and 2.3.x
@@ -23,7 +22,7 @@ def test_delete_connection():
     client.delete_connection(ConnectionId="anything")
 
 
-@mock_apigatewaymanagementapi
+@mock_aws
 def test_get_connection():
     if settings.TEST_SERVER_MODE and not is_werkzeug_2_3_x():
         # URL matching changed between 2.2.x and 2.3.x
@@ -37,7 +36,7 @@ def test_get_connection():
     assert "LastActiveAt" in conn
 
 
-@mock_apigatewaymanagementapi
+@mock_aws
 def test_post_to_connection():
     if settings.TEST_SERVER_MODE and not is_werkzeug_2_3_x():
         # URL matching changed between 2.2.x and 2.3.x

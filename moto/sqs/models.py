@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import ParseResult
 from xml.sax.saxutils import escape
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -242,6 +243,7 @@ class Queue(CloudFormationModel):
         "RedrivePolicy",
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
+        "SqsManagedSseEnabled",
     ]
     FIFO_ATTRIBUTES = [
         "ContentBasedDeduplication",
@@ -297,6 +299,7 @@ class Queue(CloudFormationModel):
             "ReceiveMessageWaitTimeSeconds": 0,
             "RedrivePolicy": None,
             "VisibilityTimeout": 30,
+            "SqsManagedSseEnabled": True,
         }
 
         defaults.update(kwargs)
@@ -586,9 +589,9 @@ class Queue(CloudFormationModel):
                 self.visibility_timeout,  # type: ignore
             )
 
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
-            result = lambda_backends[self.account_id][self.region].send_sqs_batch(
+            result = get_backend(self.account_id, self.region).send_sqs_batch(
                 arn, messages, self.queue_arn
             )
 

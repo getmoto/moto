@@ -6,12 +6,12 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_managedblockchain
+from moto import mock_aws
 
 from . import helpers
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_one_member_total_yes():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -57,7 +57,7 @@ def test_vote_on_proposal_one_member_total_yes():
     assert response["Proposal"]["OutstandingVoteCount"] == 0
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_one_member_total_no():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -100,7 +100,7 @@ def test_vote_on_proposal_one_member_total_no():
     assert response["Proposal"]["OutstandingVoteCount"] == 0
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_yes_greater_than():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -180,7 +180,7 @@ def test_vote_on_proposal_yes_greater_than():
     assert response["Proposal"]["Status"] == "REJECTED"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_no_greater_than():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -253,7 +253,7 @@ def test_vote_on_proposal_no_greater_than():
     assert response["Proposal"]["Status"] == "REJECTED"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_expiredproposal():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
         raise SkipTest("Cant manipulate time in server mode")
@@ -308,7 +308,7 @@ def test_vote_on_proposal_expiredproposal():
         assert response["Proposal"]["Status"] == "EXPIRED"
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_status_check():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -423,7 +423,7 @@ def test_vote_on_proposal_status_check():
     assert len(pendinginvs) == 1
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -439,7 +439,7 @@ def test_vote_on_proposal_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_badproposal():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -465,7 +465,7 @@ def test_vote_on_proposal_badproposal():
     assert "Proposal p-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -497,7 +497,7 @@ def test_vote_on_proposal_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_badvote():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -531,7 +531,7 @@ def test_vote_on_proposal_badvote():
     assert "Invalid request body" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_vote_on_proposal_alreadyvoted():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -616,7 +616,7 @@ def test_vote_on_proposal_alreadyvoted():
     )
 
 
-@mock_managedblockchain
+@mock_aws
 def test_list_proposal_votes_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -630,7 +630,7 @@ def test_list_proposal_votes_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_list_proposal_votes_badproposal():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 

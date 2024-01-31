@@ -1,15 +1,15 @@
 import boto3
 
-from moto import mock_neptune
+from moto import mock_aws
 
 
-@mock_neptune
+@mock_aws
 def test_describe():
     client = boto3.client("neptune", "us-east-2")
     assert client.describe_global_clusters()["GlobalClusters"] == []
 
 
-@mock_neptune
+@mock_aws
 def test_create_global_cluster():
     client = boto3.client("neptune", "us-east-1")
     resp = client.create_global_cluster(
@@ -30,7 +30,7 @@ def test_create_global_cluster():
     assert len(europe_client.describe_global_clusters()["GlobalClusters"]) == 1
 
 
-@mock_neptune
+@mock_aws
 def test_create_global_cluster_with_additional_params():
     client = boto3.client("neptune", "us-east-1")
     resp = client.create_global_cluster(
@@ -46,7 +46,7 @@ def test_create_global_cluster_with_additional_params():
     assert resp["DeletionProtection"] is True
 
 
-@mock_neptune
+@mock_aws
 def test_delete_global_cluster():
     client = boto3.client("neptune", "us-east-2")
     client.create_global_cluster(GlobalClusterIdentifier="g-id2", Engine="neptune")

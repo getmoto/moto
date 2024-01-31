@@ -6,8 +6,8 @@ from typing import Any, List, Optional
 import pytest
 
 from moto.autoscaling.models import AutoScalingBackend
-from moto.core import DEFAULT_ACCOUNT_ID, BackendDict, BaseBackend
-from moto.core.base_backend import AccountSpecificBackend
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import AccountSpecificBackend, BackendDict, BaseBackend
 from moto.ec2.models import EC2Backend
 from moto.elbv2.models import ELBv2Backend
 
@@ -176,86 +176,3 @@ def test_multiple_backends_cache_behaviour() -> None:
 
     as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
     assert type(as_1) == AutoScalingBackend
-
-
-def test_backenddict_cache_hits_and_misses() -> None:
-    backend = BackendDict(ExampleBackend, "ebs")
-    backend.__getitem__.cache_clear()
-
-    assert backend.__getitem__.cache_info().hits == 0
-    assert backend.__getitem__.cache_info().misses == 0
-    assert backend.__getitem__.cache_info().currsize == 0
-
-    # Create + Retrieve an account - verify it is stored in cache
-    accnt_1 = backend["accnt1"]
-    assert accnt_1.account_id == "accnt1"
-
-    assert backend.__getitem__.cache_info().hits == 0
-    assert backend.__getitem__.cache_info().misses == 1
-    assert backend.__getitem__.cache_info().currsize == 1
-
-    # Creating + Retrieving a second account
-    accnt_2 = backend["accnt2"]
-    assert accnt_2.account_id == "accnt2"
-
-    assert backend.__getitem__.cache_info().hits == 0
-    assert backend.__getitem__.cache_info().misses == 2
-    assert backend.__getitem__.cache_info().currsize == 2
-
-    # Retrieving the first account from cache
-    accnt_1_again = backend["accnt1"]
-    assert accnt_1_again.account_id == "accnt1"
-
-    assert backend.__getitem__.cache_info().hits == 1
-    assert backend.__getitem__.cache_info().misses == 2
-    assert backend.__getitem__.cache_info().currsize == 2
-
-    # Retrieving the second account from cache
-    accnt_2_again = backend["accnt2"]
-    assert accnt_2_again.account_id == "accnt2"
-
-    assert backend.__getitem__.cache_info().hits == 2
-    assert backend.__getitem__.cache_info().misses == 2
-    assert backend.__getitem__.cache_info().currsize == 2
-
-
-def test_asb_cache_hits_and_misses() -> None:
-    backend = BackendDict(ExampleBackend, "ebs")
-    acb = backend["accnt_id"]
-    acb.__getitem__.cache_clear()
-
-    assert acb.__getitem__.cache_info().hits == 0
-    assert acb.__getitem__.cache_info().misses == 0
-    assert acb.__getitem__.cache_info().currsize == 0
-
-    # Create + Retrieve an account - verify it is stored in cache
-    region_1 = acb["us-east-1"]
-    assert region_1.region_name == "us-east-1"
-
-    assert acb.__getitem__.cache_info().hits == 0
-    assert acb.__getitem__.cache_info().misses == 1
-    assert acb.__getitem__.cache_info().currsize == 1
-
-    # Creating + Retrieving a second account
-    region_2 = acb["us-east-2"]
-    assert region_2.region_name == "us-east-2"
-
-    assert acb.__getitem__.cache_info().hits == 0
-    assert acb.__getitem__.cache_info().misses == 2
-    assert acb.__getitem__.cache_info().currsize == 2
-
-    # Retrieving the first account from cache
-    region_1_again = acb["us-east-1"]
-    assert region_1_again.region_name == "us-east-1"
-
-    assert acb.__getitem__.cache_info().hits == 1
-    assert acb.__getitem__.cache_info().misses == 2
-    assert acb.__getitem__.cache_info().currsize == 2
-
-    # Retrieving the second account from cache
-    region_2_again = acb["us-east-2"]
-    assert region_2_again.region_name == "us-east-2"
-
-    assert acb.__getitem__.cache_info().hits == 2
-    assert acb.__getitem__.cache_info().misses == 2
-    assert acb.__getitem__.cache_info().currsize == 2

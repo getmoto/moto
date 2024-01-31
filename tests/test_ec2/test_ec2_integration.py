@@ -1,11 +1,10 @@
 import boto3
 
-from moto import mock_ec2, mock_kms
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
-@mock_kms
+@mock_aws
 def test_run_instance_with_encrypted_ebs():
     kms = boto3.client("kms", region_name="us-east-1")
     resp = kms.create_key(Description="my key", KeyUsage="ENCRYPT_DECRYPT")

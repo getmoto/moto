@@ -1,7 +1,8 @@
 import string
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -11,7 +12,6 @@ from .exceptions import (
     DistributionAlreadyExists,
     DomainNameNotAnS3Bucket,
     InvalidIfMatchVersion,
-    InvalidOriginServer,
     NoSuchDistribution,
     NoSuchOriginAccessControl,
     OriginDoesNotExist,
@@ -119,9 +119,6 @@ class Origin:
         self.origin_shield = origin.get("OriginShield")
         self.connection_attempts = origin.get("ConnectionAttempts") or 3
         self.connection_timeout = origin.get("ConnectionTimeout") or 10
-
-        if "S3OriginConfig" not in origin and "CustomOriginConfig" not in origin:
-            raise InvalidOriginServer
 
         if "S3OriginConfig" in origin:
             # Very rough validation

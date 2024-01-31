@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_with_tags():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     resp = client.create_api(
@@ -13,7 +13,7 @@ def test_create_api_with_tags():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_tag_resource():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -28,7 +28,7 @@ def test_tag_resource():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_tags():
     client = boto3.client("apigatewayv2", region_name="eu-west-2")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -43,7 +43,7 @@ def test_get_tags():
     assert resp["Tags"] == {"key1": "value1", "key2": "value2"}
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_untag_resource():
     client = boto3.client("apigatewayv2", region_name="eu-west-2")
     api_id = client.create_api(

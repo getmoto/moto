@@ -1,5 +1,6 @@
 import io
 import json
+import sys
 import zipfile
 from decimal import Decimal
 from string import Template
@@ -8,27 +9,17 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import (
-    mock_autoscaling,
-    mock_cloudformation,
-    mock_dynamodb,
-    mock_ec2,
-    mock_elbv2,
-    mock_events,
-    mock_kms,
-    mock_lambda,
-    mock_logs,
-    mock_s3,
-    mock_sqs,
-    mock_ssm,
-)
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
 
+boto3_version = sys.modules["botocore"].__version__
 
-@mock_cloudformation
+
+@mock_aws
 def test_create_template_without_required_param_boto3():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -39,8 +30,7 @@ def test_create_template_without_required_param_boto3():
     assert err["Message"] == "Missing parameter KeyName"
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_fn_join_boto3():
     template_json = json.dumps(fn_join.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -53,8 +43,7 @@ def test_fn_join_boto3():
     assert fn_join_output["OutputValue"] == f"test eip:{eip['PublicIp']}"
 
 
-@mock_cloudformation
-@mock_sqs
+@mock_aws
 def test_conditional_resources_boto3():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -89,8 +78,7 @@ def test_conditional_resources_boto3():
     assert len(sqs.list_queues()["QueueUrls"]) == 1
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_conditional_if_handling_boto3():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -133,8 +121,7 @@ def test_conditional_if_handling_boto3():
     assert ec2_instance["ImageId"] == EXAMPLE_AMI_ID
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_cloudformation_mapping_boto3():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -175,8 +162,7 @@ def test_cloudformation_mapping_boto3():
     assert ec2_instance["ImageId"] == EXAMPLE_AMI_ID2
 
 
-@mock_cloudformation
-@mock_lambda
+@mock_aws
 @requires_docker
 def test_lambda_function():
     # switch this to python as backend lambda only supports python execution.
@@ -254,9 +240,7 @@ def _make_zipfile(func_str):
     return zip_output.read()
 
 
-@mock_cloudformation
-@mock_s3
-@mock_lambda
+@mock_aws
 def test_lambda_layer():
     # switch this to python as backend lambda only supports python execution.
     layer_code = """
@@ -294,22 +278,22 @@ def lambda_handler(event, context):
     lambda_conn = boto3.client("lambda", region)
     result = lambda_conn.list_layers()
     layer_name = result["Layers"][0]["LayerName"]
-    result = lambda_conn.list_layer_versions(LayerName=layer_name)
-    result["LayerVersions"][0].pop("CreatedDate")
-    assert result["LayerVersions"] == [
-        {
-            "Version": 1,
-            "LayerVersionArn": f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1",
-            "CompatibleRuntimes": ["python2.7", "python3.6"],
-            "Description": "Test Layer",
-            "LicenseInfo": "MIT",
-            "CompatibleArchitectures": [],
-        }
-    ]
+    lv = lambda_conn.list_layer_versions(LayerName=layer_name)["LayerVersions"][0]
+
+    assert lv["Version"] == 1
+    assert (
+        lv["LayerVersionArn"]
+        == f"arn:aws:lambda:{region}:{ACCOUNT_ID}:layer:{layer_name}:1"
+    )
+    assert lv["CompatibleRuntimes"] == ["python2.7", "python3.6"]
+    assert lv["Description"] == "Test Layer"
+    assert lv["LicenseInfo"] == "MIT"
+    if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
+        # "Parameters only available in newer versions"
+        assert lv["CompatibleArchitectures"] == []
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_nat_gateway():
     ec2_conn = boto3.client("ec2", "us-east-1")
     vpc_id = ec2_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
@@ -371,8 +355,7 @@ def test_nat_gateway():
     assert "rtb-" in route_resource["PhysicalResourceId"]
 
 
-@mock_cloudformation()
-@mock_kms()
+@mock_aws
 def test_stack_kms():
     kms_key_template = {
         "Resources": {
@@ -401,8 +384,7 @@ def test_stack_kms():
     assert result["KeyMetadata"]["KeyUsage"] == "ENCRYPT_DECRYPT"
 
 
-@mock_cloudformation()
-@mock_ec2()
+@mock_aws
 def test_stack_spot_fleet():
     conn = boto3.client("ec2", "us-east-1")
 
@@ -486,8 +468,7 @@ def test_stack_spot_fleet():
     assert launch_spec["WeightedCapacity"] == 2.0
 
 
-@mock_cloudformation()
-@mock_ec2()
+@mock_aws
 def test_stack_spot_fleet_should_figure_out_default_price():
     conn = boto3.client("ec2", "us-east-1")
 
@@ -560,9 +541,7 @@ def test_stack_spot_fleet_should_figure_out_default_price():
     assert "SpotPrice" not in launch_spec2
 
 
-@mock_ec2
-@mock_elbv2
-@mock_cloudformation
+@mock_aws
 def test_invalid_action_type_listener_rule():
     invalid_listener_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -628,10 +607,7 @@ def test_invalid_action_type_listener_rule():
     assert err["Code"] == "ValidationError"
 
 
-@mock_ec2
-@mock_elbv2
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_update_stack_listener_and_rule():
     initial_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -726,9 +702,7 @@ def test_update_stack_listener_and_rule():
     assert l_rule[0]["Conditions"] == [{"Field": "host-header", "Values": ["*"]}]
 
 
-@mock_ec2
-@mock_elbv2
-@mock_cloudformation
+@mock_aws
 def test_stack_elbv2_resources_integration():
     alb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -965,8 +939,7 @@ def test_stack_elbv2_resources_integration():
     assert name["OutputValue"] == lbs[0]["LoadBalancerName"]
 
 
-@mock_dynamodb
-@mock_cloudformation
+@mock_aws
 def test_stack_dynamodb_resources_integration():
     dynamodb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1070,9 +1043,7 @@ def test_stack_dynamodb_resources_integration():
     assert response["Item"]["Album"] == "myAlbum"
 
 
-@mock_cloudformation
-@mock_logs
-@mock_s3
+@mock_aws
 def test_create_log_group_using_fntransform():
     s3_resource = boto3.resource("s3")
     s3_resource.create_bucket(
@@ -1113,8 +1084,7 @@ def test_create_log_group_using_fntransform():
     assert log_group["logGroupName"] == "some-log-group"
 
 
-@mock_cloudformation
-@mock_logs
+@mock_aws
 def test_create_cloudwatch_logs_resource_policy():
     policy_document = json.dumps(
         {
@@ -1191,8 +1161,7 @@ def test_create_cloudwatch_logs_resource_policy():
     assert policies[0]["policyDocument"] == policy_document
 
 
-@mock_cloudformation
-@mock_logs
+@mock_aws
 def test_delete_stack_containing_cloudwatch_logs_resource_policy():
     template1 = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1219,8 +1188,7 @@ def test_delete_stack_containing_cloudwatch_logs_resource_policy():
     assert len(policies) == 0
 
 
-@mock_cloudformation
-@mock_sqs
+@mock_aws
 def test_delete_stack_with_deletion_policy_boto3():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1247,8 +1215,7 @@ def test_delete_stack_with_deletion_policy_boto3():
     assert len(sqs.list_queues()["QueueUrls"]) == 1
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_create_rule_integration():
     events_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1275,8 +1242,7 @@ def test_stack_events_create_rule_integration():
     assert rules["Rules"][0]["ScheduleExpression"] == "rate(5 minutes)"
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_delete_rule_integration():
     events_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1305,8 +1271,7 @@ def test_stack_events_delete_rule_integration():
     assert len(rules["Rules"]) == 0
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_create_rule_without_name_integration():
     events_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1329,9 +1294,7 @@ def test_stack_events_create_rule_without_name_integration():
     assert "test_stack-Event-" in rules["Rules"][0]["Name"]
 
 
-@mock_cloudformation
-@mock_events
-@mock_logs
+@mock_aws
 def test_stack_events_create_rule_as_target():
     events_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1366,8 +1329,7 @@ def test_stack_events_create_rule_as_target():
     assert log_groups["logGroups"][0]["retentionInDays"] == 3
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_update_rule_integration():
     events_template = Template(
         """{
@@ -1405,8 +1367,7 @@ def test_stack_events_update_rule_integration():
     assert rules["Rules"][0]["State"] == "DISABLED"
 
 
-@mock_cloudformation
-@mock_autoscaling
+@mock_aws
 def test_autoscaling_propagate_tags():
     autoscaling_group_with_tags = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1475,8 +1436,7 @@ def test_autoscaling_propagate_tags():
     assert not propagation_dict["test-key-no-propagate"]
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_eventbus_create_from_cfn_integration():
     eventbus_template = """{
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1501,8 +1461,7 @@ def test_stack_eventbus_create_from_cfn_integration():
     assert event_buses["EventBuses"][0]["Name"] == "MyCustomEventBus"
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_delete_eventbus_integration():
     eventbus_template = """{
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1531,8 +1490,7 @@ def test_stack_events_delete_eventbus_integration():
     assert len(event_buses["EventBuses"]) == 0
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_delete_from_cfn_integration():
     eventbus_template = Template(
         """{
@@ -1574,8 +1532,7 @@ def test_stack_events_delete_from_cfn_integration():
     assert update_event_buses["EventBuses"][0]["Arn"] != original_eventbus["Arn"]
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_update_from_cfn_integration():
     eventbus_template = Template(
         """{
@@ -1614,8 +1571,7 @@ def test_stack_events_update_from_cfn_integration():
     assert update_event_buses["EventBuses"][0]["Arn"] != original_eventbus["Arn"]
 
 
-@mock_cloudformation
-@mock_events
+@mock_aws
 def test_stack_events_get_attribute_integration():
     eventbus_template = """{
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1650,8 +1606,7 @@ def test_stack_events_get_attribute_integration():
     assert output_name["OutputValue"] == event_bus["Name"]
 
 
-@mock_cloudformation
-@mock_dynamodb
+@mock_aws
 def test_dynamodb_table_creation():
     CFN_TEMPLATE = {
         "Outputs": {"MyTableName": {"Value": {"Ref": "MyTable"}}},
@@ -1686,8 +1641,7 @@ def test_dynamodb_table_creation():
     assert table_names == [outputs[0]["OutputValue"]]
 
 
-@mock_cloudformation
-@mock_ssm
+@mock_aws
 def test_ssm_parameter():
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1724,8 +1678,7 @@ def test_ssm_parameter():
     assert parameters[0]["Value"] == "Test SSM Parameter"
 
 
-@mock_cloudformation
-@mock_ssm
+@mock_aws
 def test_ssm_parameter_update_stack():
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1771,8 +1724,7 @@ def test_ssm_parameter_update_stack():
     assert parameters[0]["Value"] == "Test SSM Parameter Updated"
 
 
-@mock_cloudformation
-@mock_ssm
+@mock_aws
 def test_ssm_parameter_update_stack_and_remove_resource():
     parameter_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1814,8 +1766,7 @@ def test_ssm_parameter_update_stack_and_remove_resource():
     assert len(parameters) == 0
 
 
-@mock_cloudformation
-@mock_ssm
+@mock_aws
 def test_ssm_parameter_update_stack_and_add_resource():
     parameter_template = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
     stack_name = "test_stack"

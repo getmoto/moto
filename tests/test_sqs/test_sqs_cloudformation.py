@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_cloudformation, mock_sqs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 simple_queue = Template(
@@ -43,8 +43,7 @@ sqs_template_with_tags = """
 }"""
 
 
-@mock_sqs
-@mock_cloudformation
+@mock_aws
 def test_describe_stack_subresources():
     res = boto3.resource("cloudformation", region_name="us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -65,8 +64,7 @@ def test_describe_stack_subresources():
         assert f"/{q_name}" in s.physical_resource_id
 
 
-@mock_sqs
-@mock_cloudformation
+@mock_aws
 def test_list_stack_resources():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
@@ -87,8 +85,7 @@ def test_list_stack_resources():
     assert queue["PhysicalResourceId"] == expected_url
 
 
-@mock_sqs
-@mock_cloudformation
+@mock_aws
 def test_create_from_cloudformation_json_with_tags():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("sqs", region_name="us-east-1")
@@ -106,8 +103,7 @@ def test_create_from_cloudformation_json_with_tags():
     assert queue_tags == {"keyname1": "value1", "keyname2": "value2"}
 
 
-@mock_cloudformation
-@mock_sqs
+@mock_aws
 def test_update_stack():
     q_name = str(uuid4())[0:6]
     sqs_template = {
@@ -147,8 +143,7 @@ def test_update_stack():
     assert attrs["VisibilityTimeout"] == "100"
 
 
-@mock_cloudformation
-@mock_sqs
+@mock_aws
 def test_update_stack_and_remove_resource():
     q_name = str(uuid4())[0:6]
     sqs_template = {
@@ -177,8 +172,7 @@ def test_update_stack_and_remove_resource():
     assert "QueueUrls" not in client.list_queues(QueueNamePrefix=q_name)
 
 
-@mock_cloudformation
-@mock_sqs
+@mock_aws
 def test_update_stack_and_add_resource():
     sqs_template = {"AWSTemplateFormatVersion": "2010-09-09", "Resources": {}}
     sqs_template_json = json.dumps(sqs_template)
@@ -207,8 +201,7 @@ def test_update_stack_and_add_resource():
     assert len(client.list_queues(QueueNamePrefix=q_name)["QueueUrls"]) == 1
 
 
-@mock_sqs
-@mock_cloudformation
+@mock_aws
 def test_create_queue_passing_integer_as_name():
     """
     Passing the queue name as an Integer in the CloudFormation template

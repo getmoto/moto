@@ -416,6 +416,50 @@
   "Location": "ca-central-1a"
  },
  {
+  "InstanceType": "c7i.12xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.16xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.24xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.2xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.48xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.4xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.8xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.large",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.metal-24xl",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.metal-48xl",
+  "Location": "ca-central-1a"
+ },
+ {
+  "InstanceType": "c7i.xlarge",
+  "Location": "ca-central-1a"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "ca-central-1a"
  },
@@ -2961,6 +3005,70 @@
  },
  {
   "InstanceType": "m7g.xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i-flex.2xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i-flex.4xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i-flex.8xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i-flex.large",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i-flex.xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.12xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.16xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.24xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.2xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.48xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.4xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.8xlarge",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.large",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.metal-24xl",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.metal-48xl",
+  "Location": "ca-central-1b"
+ },
+ {
+  "InstanceType": "m7i.xlarge",
   "Location": "ca-central-1b"
  },
  {

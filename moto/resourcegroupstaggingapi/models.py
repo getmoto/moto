@@ -2,7 +2,8 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
-from moto.core import BackendDict, BaseBackend
+from moto.backup.models import BackupBackend, backup_backends
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
@@ -100,6 +101,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
 
+    @property
+    def backup_backend(self) -> BackupBackend:
+        return backup_backends[self.account_id][self.region_name]
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -128,8 +133,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     and v in vl
                 )
 
-        # Any in this case means: str | Optional[str]
-        # When we drop Python 3.7 we should look into replacing this with a TypedDict
         def tag_filter(tag_list: List[Dict[str, Any]]) -> bool:
             result = []
             if tag_filters:
@@ -164,6 +167,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{certificate.arn}", "Tags": tags}
+
+        # Backup
+        if not resource_type_filters or "backup" in resource_type_filters:
+            for vault in self.backup_backend.vaults.values():
+                tags = self.backup_backend.tagger.list_tags_for_resource(
+                    vault.backup_vault_arn
+                )["Tags"]
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
         # S3
         if not resource_type_filters or "s3" in resource_type_filters:

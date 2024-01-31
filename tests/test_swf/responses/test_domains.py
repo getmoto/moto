@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_swf
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 # RegisterDomain endpoint
-@mock_swf
+@mock_aws
 def test_register_domain_boto3():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
@@ -26,7 +26,7 @@ def test_register_domain_boto3():
     assert domain["arn"] == f"arn:aws:swf:us-west-1:{ACCOUNT_ID}:/domain/test-domain"
 
 
-@mock_swf
+@mock_aws
 def test_register_already_existing_domain_boto3():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
@@ -47,7 +47,7 @@ def test_register_already_existing_domain_boto3():
 
 
 # ListDomains endpoint
-@mock_swf
+@mock_aws
 def test_list_domains_order_boto3():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
@@ -67,7 +67,7 @@ def test_list_domains_order_boto3():
     assert names == ["a-test-domain", "b-test-domain", "c-test-domain"]
 
 
-@mock_swf
+@mock_aws
 def test_list_domains_reverse_order_boto3():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
@@ -90,7 +90,7 @@ def test_list_domains_reverse_order_boto3():
 
 
 # DeprecateDomain endpoint
-@mock_swf
+@mock_aws
 def test_deprecate_domain_boto3():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
@@ -108,7 +108,7 @@ def test_deprecate_domain_boto3():
     assert domain["name"] == "test-domain"
 
 
-@mock_swf
+@mock_aws
 def test_deprecate_already_deprecated_domain_boto3():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
@@ -123,7 +123,7 @@ def test_deprecate_already_deprecated_domain_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_deprecate_non_existent_domain_boto3():
     client = boto3.client("swf", region_name="us-west-1")
 
@@ -135,7 +135,7 @@ def test_deprecate_non_existent_domain_boto3():
 
 
 # UndeprecateDomain endpoint
-@mock_swf
+@mock_aws
 def test_undeprecate_domain():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -149,7 +149,7 @@ def test_undeprecate_domain():
     assert resp["domainInfo"]["status"] == "REGISTERED"
 
 
-@mock_swf
+@mock_aws
 def test_undeprecate_already_undeprecated_domain():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -162,7 +162,7 @@ def test_undeprecate_already_undeprecated_domain():
         client.undeprecate_domain(name="test-domain")
 
 
-@mock_swf
+@mock_aws
 def test_undeprecate_never_deprecated_domain():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -173,7 +173,7 @@ def test_undeprecate_never_deprecated_domain():
         client.undeprecate_domain(name="test-domain")
 
 
-@mock_swf
+@mock_aws
 def test_undeprecate_non_existent_domain():
     client = boto3.client("swf", region_name="us-east-1")
 
@@ -182,7 +182,7 @@ def test_undeprecate_non_existent_domain():
 
 
 # DescribeDomain endpoint
-@mock_swf
+@mock_aws
 def test_describe_domain_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -198,7 +198,7 @@ def test_describe_domain_boto3():
     assert domain["domainInfo"]["status"] == "REGISTERED"
 
 
-@mock_swf
+@mock_aws
 def test_describe_non_existent_domain_boto3():
     client = boto3.client("swf", region_name="us-west-1")
 

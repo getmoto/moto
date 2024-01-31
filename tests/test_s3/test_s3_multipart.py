@@ -10,12 +10,12 @@ import requests
 from botocore.client import ClientError
 
 import moto.s3.models as s3model
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 from moto.settings import (
     S3_UPLOAD_PART_MIN_SIZE,
     get_s3_default_key_buffer_size,
-    test_proxy_mode,
+    is_test_proxy_mode,
 )
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -44,7 +44,7 @@ def reduced_min_part_size(func):
     return wrapped
 
 
-@mock_s3
+@mock_aws
 def test_default_key_buffer_size():
     # save original DEFAULT_KEY_BUFFER_SIZE environment variable content
     original_default_key_buffer_size = os.environ.get(
@@ -72,7 +72,7 @@ def test_default_key_buffer_size():
         os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = original_default_key_buffer_size
 
 
-@mock_s3
+@mock_aws
 def test_multipart_upload_too_small():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -113,7 +113,7 @@ def test_multipart_upload_too_small():
 
 
 @pytest.mark.parametrize("key", ["the-key", "the%20key"])
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_upload(key: str):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -154,7 +154,7 @@ def test_multipart_upload(key: str):
     assert response["Body"].read() == part1 + part2
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_upload_out_of_order():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -195,7 +195,7 @@ def test_multipart_upload_out_of_order():
     assert response["Body"].read() == part1 + part2
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_upload_with_headers():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -251,7 +251,7 @@ def test_multipart_upload_with_headers():
         "key-with%2Fembedded%2Furl%2Fencoding",
     ],
 )
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_upload_with_copy_key(original_key_name):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -290,7 +290,7 @@ def test_multipart_upload_with_copy_key(original_key_name):
     assert response["Body"].read() == part1 + b"key_"
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_upload_cancel():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -317,7 +317,7 @@ def test_multipart_upload_cancel():
     assert "Uploads" not in s3_client.list_multipart_uploads(Bucket="foobar")
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_etag_quotes_stripped():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -358,7 +358,7 @@ def test_multipart_etag_quotes_stripped():
     assert response["Body"].read() == part1 + b"key_"
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_duplicate_upload():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -407,7 +407,7 @@ def test_multipart_duplicate_upload():
     assert response["Body"].read() == part1 + part2
 
 
-@mock_s3
+@mock_aws
 def test_list_multiparts():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="foobar")
@@ -437,7 +437,7 @@ def test_list_multiparts():
     assert "Uploads" not in res
 
 
-@mock_s3
+@mock_aws
 def test_multipart_should_throw_nosuchupload_if_there_are_no_parts():
     bucket = boto3.resource("s3", region_name=DEFAULT_REGION_NAME).Bucket(
         "randombucketname"
@@ -459,7 +459,7 @@ def test_multipart_should_throw_nosuchupload_if_there_are_no_parts():
     assert err["UploadId"] == multipart_upload.id
 
 
-@mock_s3
+@mock_aws
 def test_multipart_wrong_partnumber():
     bucket_name = "mputest-3593"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -486,7 +486,7 @@ def test_multipart_wrong_partnumber():
     )
 
 
-@mock_s3
+@mock_aws
 def test_multipart_upload_with_tags():
     bucket = "mybucket"
     key = "test/multipartuploadtag/file.txt"
@@ -513,7 +513,7 @@ def test_multipart_upload_with_tags():
     assert actual == {"a": "b"}
 
 
-@mock_s3
+@mock_aws
 def test_multipart_upload_should_return_part_10000():
     bucket = "dummybucket"
     s3_client = boto3.client("s3", "us-east-1")
@@ -538,7 +538,7 @@ def test_multipart_upload_should_return_part_10000():
     assert part_nrs == [1, 2, 10000]
 
 
-@mock_s3
+@mock_aws
 def test_multipart_upload_without_parts():
     bucket = "dummybucket"
     s3_client = boto3.client("s3", "us-east-1")
@@ -553,7 +553,7 @@ def test_multipart_upload_without_parts():
     assert list_parts_result["IsTruncated"] is False
 
 
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize("part_nr", [10001, 10002, 20000])
 def test_s3_multipart_upload_cannot_upload_part_over_10000(part_nr):
     bucket = "dummy"
@@ -578,7 +578,7 @@ def test_s3_multipart_upload_cannot_upload_part_over_10000(part_nr):
     assert err["ArgumentValue"] == f"{part_nr}"
 
 
-@mock_s3
+@mock_aws
 def test_s3_abort_multipart_data_with_invalid_upload_and_key():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -597,7 +597,7 @@ def test_s3_abort_multipart_data_with_invalid_upload_and_key():
     assert err["UploadId"] == "dummy_upload_id"
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_etag():
     # Create Bucket so that test can run
@@ -645,7 +645,7 @@ def test_multipart_etag():
     assert resp["ETag"] == EXPECTED_ETAG
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_version():
     # Create Bucket so that test can run
@@ -695,7 +695,7 @@ def test_multipart_version():
     assert re.match("[-a-z0-9]+", response["VersionId"])
 
 
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize(
     "part_nr,msg,msg2",
     [
@@ -737,7 +737,7 @@ def test_multipart_list_parts_invalid_argument(part_nr, msg, msg2):
     assert err_rsp["Message"] == msg2
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_list_parts():
     s3_client = boto3.client("s3", region_name="us-east-1")
@@ -846,7 +846,7 @@ def test_multipart_list_parts():
     )
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_multipart_part_size():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -882,7 +882,7 @@ def test_multipart_part_size():
         assert obj["ContentLength"] == REDUCED_PART_SIZE + i
 
 
-@mock_s3
+@mock_aws
 def test_complete_multipart_with_empty_partlist():
     """Verify InvalidXML-error sent for MultipartUpload with empty part list."""
     bucket = "testbucketthatcompletesmultipartuploadwithoutparts"
@@ -906,7 +906,7 @@ def test_complete_multipart_with_empty_partlist():
     )
 
 
-@mock_s3
+@mock_aws
 def test_ssm_key_headers_in_create_multipart():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -946,7 +946,7 @@ def test_ssm_key_headers_in_create_multipart():
     assert complete_multipart_response["SSEKMSKeyId"] == kms_key_id
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_generate_presigned_url_on_multipart_upload_without_acl():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -986,13 +986,13 @@ def test_generate_presigned_url_on_multipart_upload_without_acl():
         "head_object", Params={"Bucket": bucket_name, "Key": object_key}
     )
     kwargs = {}
-    if test_proxy_mode():
+    if is_test_proxy_mode():
         add_proxy_details(kwargs)
     res = requests.get(url, **kwargs)
     assert res.status_code == 200
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_head_object_returns_part_count():
     bucket = "telstra-energy-test"
@@ -1032,7 +1032,7 @@ def test_head_object_returns_part_count():
     assert "PartsCount" not in resp
 
 
-@mock_s3
+@mock_aws
 @reduced_min_part_size
 def test_generate_presigned_url_for_multipart_upload():
     if not settings.TEST_DECORATOR_MODE:

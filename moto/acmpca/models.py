@@ -9,7 +9,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import Certificate, NameOID, load_pem_x509_certificate
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService

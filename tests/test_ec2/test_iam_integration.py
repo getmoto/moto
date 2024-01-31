@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_iam
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 
@@ -25,8 +25,7 @@ def quick_instance_profile_creation(name):
     return test_instance_profile.arn, test_instance_profile.name
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_associate():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
@@ -49,8 +48,7 @@ def test_associate():
     assert association["IamInstanceProfileAssociation"]["State"] == "associating"
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_invalid_associate():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
@@ -101,8 +99,7 @@ def test_invalid_associate():
     assert "does not exist" in ex.value.response["Error"]["Message"]
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_describe():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -178,8 +175,7 @@ def test_describe():
     )
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_replace():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id1 = quick_instance_creation()
@@ -213,8 +209,7 @@ def test_replace():
     assert association["IamInstanceProfileAssociation"]["State"] == "associating"
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_invalid_replace():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
@@ -255,8 +250,7 @@ def test_invalid_replace():
     assert "not found" in ex.value.response["Error"]["Message"]
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_disassociate():
     client = boto3.client("ec2", region_name="us-east-1")
     instance_id = quick_instance_creation()
@@ -295,8 +289,7 @@ def test_disassociate():
     ]
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_invalid_disassociate():
     client = boto3.client("ec2", region_name="us-east-1")
 

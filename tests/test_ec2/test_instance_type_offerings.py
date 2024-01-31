@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_type_offerings():
     client = boto3.client("ec2", "us-east-1")
     offerings = client.describe_instance_type_offerings()
@@ -14,7 +14,7 @@ def test_describe_instance_type_offerings():
     assert "LocationType" in offerings["InstanceTypeOfferings"][0]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_type_offering_filter_by_type():
     client = boto3.client("ec2", "us-east-1")
 
@@ -50,7 +50,7 @@ def test_describe_instance_type_offering_filter_by_type():
         ]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_type_offering_filter_by_zone():
     client = boto3.client("ec2", "us-east-1")
     offerings = client.describe_instance_type_offerings(
@@ -67,7 +67,7 @@ def test_describe_instance_type_offering_filter_by_zone():
     assert any([o["InstanceType"] == "a1.2xlarge" for o in offerings])
 
 
-@mock_ec2
+@mock_aws
 def test_describe_instance_type_offering_filter_by_zone_id():
     client = boto3.client("ec2", "ca-central-1")
     offerings = client.describe_instance_type_offerings(

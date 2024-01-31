@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_model():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -21,7 +21,7 @@ def test_create_model():
     assert resp["Schema"] == "cs"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_model():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -39,7 +39,7 @@ def test_get_model():
     assert resp["Schema"] == "cs"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_model():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -57,7 +57,7 @@ def test_delete_model():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_model_unknown():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -69,7 +69,7 @@ def test_get_model_unknown():
     assert err["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_model_single_attr():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]
@@ -89,7 +89,7 @@ def test_update_model_single_attr():
     assert resp["Schema"] == "cs2"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_model_all_attrs():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]

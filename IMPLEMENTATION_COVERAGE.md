@@ -575,6 +575,103 @@
 - [X] update_auto_scaling_group
 </details>
 
+## backup
+<details>
+<summary>9% implemented</summary>
+
+- [ ] cancel_legal_hold
+- [X] create_backup_plan
+- [ ] create_backup_selection
+- [X] create_backup_vault
+- [ ] create_framework
+- [ ] create_legal_hold
+- [ ] create_logically_air_gapped_backup_vault
+- [ ] create_report_plan
+- [ ] create_restore_testing_plan
+- [ ] create_restore_testing_selection
+- [X] delete_backup_plan
+- [ ] delete_backup_selection
+- [ ] delete_backup_vault
+- [ ] delete_backup_vault_access_policy
+- [ ] delete_backup_vault_lock_configuration
+- [ ] delete_backup_vault_notifications
+- [ ] delete_framework
+- [ ] delete_recovery_point
+- [ ] delete_report_plan
+- [ ] delete_restore_testing_plan
+- [ ] delete_restore_testing_selection
+- [ ] describe_backup_job
+- [ ] describe_backup_vault
+- [ ] describe_copy_job
+- [ ] describe_framework
+- [ ] describe_global_settings
+- [ ] describe_protected_resource
+- [ ] describe_recovery_point
+- [ ] describe_region_settings
+- [ ] describe_report_job
+- [ ] describe_report_plan
+- [ ] describe_restore_job
+- [ ] disassociate_recovery_point
+- [ ] disassociate_recovery_point_from_parent
+- [ ] export_backup_plan_template
+- [X] get_backup_plan
+- [ ] get_backup_plan_from_json
+- [ ] get_backup_plan_from_template
+- [ ] get_backup_selection
+- [ ] get_backup_vault_access_policy
+- [ ] get_backup_vault_notifications
+- [ ] get_legal_hold
+- [ ] get_recovery_point_restore_metadata
+- [ ] get_restore_job_metadata
+- [ ] get_restore_testing_inferred_metadata
+- [ ] get_restore_testing_plan
+- [ ] get_restore_testing_selection
+- [ ] get_supported_resource_types
+- [ ] list_backup_job_summaries
+- [ ] list_backup_jobs
+- [ ] list_backup_plan_templates
+- [ ] list_backup_plan_versions
+- [X] list_backup_plans
+- [ ] list_backup_selections
+- [X] list_backup_vaults
+- [ ] list_copy_job_summaries
+- [ ] list_copy_jobs
+- [ ] list_frameworks
+- [ ] list_legal_holds
+- [ ] list_protected_resources
+- [ ] list_protected_resources_by_backup_vault
+- [ ] list_recovery_points_by_backup_vault
+- [ ] list_recovery_points_by_legal_hold
+- [ ] list_recovery_points_by_resource
+- [ ] list_report_jobs
+- [ ] list_report_plans
+- [ ] list_restore_job_summaries
+- [ ] list_restore_jobs
+- [ ] list_restore_jobs_by_protected_resource
+- [ ] list_restore_testing_plans
+- [ ] list_restore_testing_selections
+- [X] list_tags
+- [ ] put_backup_vault_access_policy
+- [ ] put_backup_vault_lock_configuration
+- [ ] put_backup_vault_notifications
+- [ ] put_restore_validation_result
+- [ ] start_backup_job
+- [ ] start_copy_job
+- [ ] start_report_job
+- [ ] start_restore_job
+- [ ] stop_backup_job
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_backup_plan
+- [ ] update_framework
+- [ ] update_global_settings
+- [ ] update_recovery_point_lifecycle
+- [ ] update_region_settings
+- [ ] update_report_plan
+- [ ] update_restore_testing_plan
+- [ ] update_restore_testing_selection
+</details>
+
 ## batch
 <details>
 <summary>100% implemented</summary>
@@ -873,7 +970,7 @@
 
 ## cloudtrail
 <details>
-<summary>33% implemented</summary>
+<summary>32% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
@@ -902,6 +999,7 @@
 - [ ] list_event_data_stores
 - [ ] list_import_failures
 - [ ] list_imports
+- [ ] list_insights_metric_data
 - [ ] list_public_keys
 - [ ] list_queries
 - [X] list_tags
@@ -971,18 +1069,21 @@
 
 ## codebuild
 <details>
-<summary>17% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] batch_delete_builds
 - [ ] batch_get_build_batches
 - [X] batch_get_builds
+- [ ] batch_get_fleets
 - [ ] batch_get_projects
 - [ ] batch_get_report_groups
 - [ ] batch_get_reports
+- [ ] create_fleet
 - [X] create_project
 - [ ] create_report_group
 - [ ] create_webhook
 - [ ] delete_build_batch
+- [ ] delete_fleet
 - [X] delete_project
 - [ ] delete_report
 - [ ] delete_report_group
@@ -1000,6 +1101,7 @@
 - [X] list_builds
 - [X] list_builds_for_project
 - [ ] list_curated_environment_images
+- [ ] list_fleets
 - [X] list_projects
 - [ ] list_report_groups
 - [ ] list_reports
@@ -1014,6 +1116,7 @@
 - [ ] start_build_batch
 - [X] stop_build
 - [ ] stop_build_batch
+- [ ] update_fleet
 - [ ] update_project
 - [ ] update_project_visibility
 - [ ] update_report_group
@@ -1832,7 +1935,7 @@
 
 ## dynamodb
 <details>
-<summary>60% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] batch_execute_statement
 - [X] batch_get_item
@@ -1884,6 +1987,7 @@
 - [ ] update_global_table
 - [ ] update_global_table_settings
 - [X] update_item
+- [ ] update_kinesis_streaming_destination
 - [X] update_table
 - [ ] update_table_replica_auto_scaling
 - [X] update_time_to_live
@@ -3928,7 +4032,7 @@
 
 ## inspector2
 <details>
-<summary>41% implemented</summary>
+<summary>32% implemented</summary>
 
 - [X] associate_member
 - [X] batch_get_account_status
@@ -3939,9 +4043,11 @@
 - [ ] batch_update_member_ec2_deep_inspection_status
 - [ ] cancel_findings_report
 - [ ] cancel_sbom_export
+- [ ] create_cis_scan_configuration
 - [X] create_filter
 - [ ] create_findings_report
 - [ ] create_sbom_export
+- [ ] delete_cis_scan_configuration
 - [X] delete_filter
 - [X] describe_organization_configuration
 - [X] disable
@@ -3949,6 +4055,8 @@
 - [X] disassociate_member
 - [X] enable
 - [X] enable_delegated_admin_account
+- [ ] get_cis_scan_report
+- [ ] get_cis_scan_result_details
 - [ ] get_configuration
 - [ ] get_delegated_admin_account
 - [ ] get_ec2_deep_inspection_configuration
@@ -3957,6 +4065,10 @@
 - [X] get_member
 - [ ] get_sbom_export
 - [ ] list_account_permissions
+- [ ] list_cis_scan_configurations
+- [ ] list_cis_scan_results_aggregated_by_checks
+- [ ] list_cis_scan_results_aggregated_by_target_resource
+- [ ] list_cis_scans
 - [ ] list_coverage
 - [ ] list_coverage_statistics
 - [X] list_delegated_admin_accounts
@@ -3968,8 +4080,13 @@
 - [ ] list_usage_totals
 - [ ] reset_encryption_key
 - [ ] search_vulnerabilities
+- [ ] send_cis_session_health
+- [ ] send_cis_session_telemetry
+- [ ] start_cis_session
+- [ ] stop_cis_session
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_cis_scan_configuration
 - [ ] update_configuration
 - [ ] update_ec2_deep_inspection_configuration
 - [ ] update_encryption_key
@@ -5663,7 +5780,7 @@
 
 ## rds
 <details>
-<summary>35% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5690,6 +5807,7 @@
 - [ ] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
+- [ ] create_db_shard_group
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
@@ -5710,6 +5828,7 @@
 - [ ] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
+- [ ] delete_db_shard_group
 - [X] delete_db_snapshot
 - [ ] delete_db_subnet_group
 - [X] delete_event_subscription
@@ -5726,7 +5845,7 @@
 - [ ] describe_db_cluster_endpoints
 - [X] describe_db_cluster_parameter_groups
 - [X] describe_db_cluster_parameters
-- [ ] describe_db_cluster_snapshot_attributes
+- [X] describe_db_cluster_snapshot_attributes
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
@@ -5741,7 +5860,8 @@
 - [ ] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
-- [ ] describe_db_snapshot_attributes
+- [ ] describe_db_shard_groups
+- [X] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
 - [X] describe_db_subnet_groups
@@ -5775,15 +5895,16 @@
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
 - [ ] modify_db_cluster_parameter_group
-- [ ] modify_db_cluster_snapshot_attribute
+- [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
 - [ ] modify_db_proxy_target_group
 - [ ] modify_db_recommendation
+- [ ] modify_db_shard_group
 - [ ] modify_db_snapshot
-- [ ] modify_db_snapshot_attribute
+- [X] modify_db_snapshot_attribute
 - [X] modify_db_subnet_group
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
@@ -5794,6 +5915,7 @@
 - [ ] purchase_reserved_db_instances_offering
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
+- [ ] reboot_db_shard_group
 - [ ] register_db_proxy_targets
 - [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster
@@ -6526,7 +6648,7 @@
 
 ## sagemaker
 <details>
-<summary>19% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -6552,7 +6674,7 @@
 - [X] create_endpoint
 - [X] create_endpoint_config
 - [X] create_experiment
-- [ ] create_feature_group
+- [X] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_hub
 - [ ] create_human_task_ui
@@ -6611,6 +6733,7 @@
 - [ ] delete_hub
 - [ ] delete_hub_content
 - [ ] delete_human_task_ui
+- [ ] delete_hyper_parameter_tuning_job
 - [ ] delete_image
 - [ ] delete_image_version
 - [ ] delete_inference_component
@@ -6658,7 +6781,7 @@
 - [X] describe_endpoint
 - [X] describe_endpoint_config
 - [X] describe_experiment
-- [ ] describe_feature_group
+- [X] describe_feature_group
 - [ ] describe_feature_metadata
 - [ ] describe_flow_definition
 - [ ] describe_hub
@@ -6850,10 +6973,10 @@
 
 ## sagemaker-runtime
 <details>
-<summary>33% implemented</summary>
+<summary>66% implemented</summary>
 
 - [X] invoke_endpoint
-- [ ] invoke_endpoint_async
+- [X] invoke_endpoint_async
 - [ ] invoke_endpoint_with_response_stream
 </details>
 
@@ -6893,7 +7016,7 @@
 
 ## secretsmanager
 <details>
-<summary>78% implemented</summary>
+<summary>86% implemented</summary>
 
 - [ ] batch_get_secret_value
 - [X] cancel_rotate_secret
@@ -6908,8 +7031,8 @@
 - [X] list_secrets
 - [X] put_resource_policy
 - [X] put_secret_value
-- [ ] remove_regions_from_replication
-- [ ] replicate_secret_to_regions
+- [X] remove_regions_from_replication
+- [X] replicate_secret_to_regions
 - [X] restore_secret
 - [X] rotate_secret
 - [ ] stop_replication_to_replica
@@ -7786,7 +7909,6 @@
 - auditmanager
 - autoscaling-plans
 - b2bi
-- backup
 - backup-gateway
 - backupstorage
 - bcm-data-exports
@@ -8000,6 +8122,7 @@
 - sso
 - sso-oidc
 - storagegateway
+- supplychain
 - support-app
 - synthetics
 - timestream-query

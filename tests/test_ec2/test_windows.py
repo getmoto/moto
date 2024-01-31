@@ -3,14 +3,14 @@ from unittest import SkipTest, mock
 
 import boto3
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_PARAVIRTUAL, EXAMPLE_AMI_WINDOWS
 
 
 # The default AMIs are not loaded for our test case, to speed things up
 # But we do need it for this specific test (and others in this file..)
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 def test_get_password_data():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set environment variables in ServerMode")

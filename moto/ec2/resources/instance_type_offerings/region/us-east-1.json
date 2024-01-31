@@ -1904,6 +1904,10 @@
   "Location": "us-east-1"
  },
  {
+  "InstanceType": "mac2-m2pro.metal",
+  "Location": "us-east-1"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "us-east-1"
  },

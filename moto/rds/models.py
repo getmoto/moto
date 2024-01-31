@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Un
 
 from jinja2 import Template
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random

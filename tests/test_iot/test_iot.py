@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_iot
+@mock_aws
 def test_endpoints():
     region_name = "ap-northeast-1"
     client = boto3.client("iot", region_name=region_name)
@@ -35,7 +35,7 @@ def test_endpoints():
     assert err["Code"] == "InvalidRequestException"
 
 
-@mock_iot
+@mock_aws
 def test_principal_policy():
     client = boto3.client("iot", region_name="ap-northeast-1")
     policy_name = "my-policy"
@@ -77,7 +77,7 @@ def test_principal_policy():
     assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_iot
+@mock_aws
 def test_principal_policy_deprecated():
     client = boto3.client("iot", region_name="ap-northeast-1")
     policy_name = "my-policy"
@@ -109,7 +109,7 @@ def test_principal_policy_deprecated():
     assert len(res["principals"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_principal_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     thing_name = "my-thing"

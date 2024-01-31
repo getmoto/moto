@@ -1,13 +1,11 @@
-"""Unit tests for route53resolver rule-related APIs."""
 from datetime import datetime, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_route53resolver
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ec2 import mock_ec2
 from moto.moto_api._internal import mock_random
 
 from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint, create_vpc
@@ -37,7 +35,7 @@ def create_test_rule(client, name=None, tags=None):
     return resolver_rule["ResolverRule"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_invalid_create_rule_args():
     """Test invalid arguments to the create_resolver_rule API."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -121,8 +119,7 @@ def test_route53resolver_invalid_create_rule_args():
     ) in err["Message"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_create_resolver_rule():  # pylint: disable=too-many-locals
     """Test good create_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -176,8 +173,7 @@ def test_route53resolver_create_resolver_rule():  # pylint: disable=too-many-loc
     assert modification_time <= now
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_create_resolver_rule():
     """Test error scenarios for create_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -275,7 +271,7 @@ def test_route53resolver_bad_create_resolver_rule():
     assert f"Account '{ACCOUNT_ID}' has exceeded 'max-rules" in err["Message"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_delete_resolver_rule():
     """Test good delete_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -298,8 +294,7 @@ def test_route53resolver_delete_resolver_rule():
     assert rule["CreationTime"] == created_rule["CreationTime"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_delete_resolver_rule():
     """Test delete_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -338,7 +333,7 @@ def test_route53resolver_bad_delete_resolver_rule():
     ) in err["Message"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_get_resolver_rule():
     """Test good get_resolver_rule API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -362,7 +357,7 @@ def test_route53resolver_get_resolver_rule():
     assert rule["ModificationTime"] == created_rule["ModificationTime"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_get_resolver_rule():
     """Test get_resolver_rule API calls with a bad ID."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -388,7 +383,7 @@ def test_route53resolver_bad_get_resolver_rule():
     assert f"Resolver rule with ID '{random_num}' does not exist" in err["Message"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_list_resolver_rules():
     """Test good list_resolver_rules API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -427,8 +422,7 @@ def test_route53resolver_list_resolver_rules():
         assert rule["Name"].startswith(f"A{idx + 1}")
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_list_resolver_rules_filters():
     """Test good list_resolver_rules API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -509,7 +503,7 @@ def test_route53resolver_list_resolver_rules_filters():
     assert len(response["ResolverRules"]) == 0
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_list_resolver_rules_filters():
     """Test bad list_resolver_rules API calls that use filters."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -526,7 +520,7 @@ def test_route53resolver_bad_list_resolver_rules_filters():
     assert "The filter 'foo' is invalid" in err["Message"]
 
 
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_list_resolver_rules():
     """Test bad list_resolver_rules API calls."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)

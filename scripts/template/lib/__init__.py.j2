@@ -1,5 +1,1 @@
-"""{{ escaped_service }} module initialization; sets value for base decorator."""
-from .models import {{ escaped_service }}_backends
-from ..core.models import base_decorator
-
-mock_{{ escaped_service }} = base_decorator({{ escaped_service }}_backends)
+from .models import {{ escaped_service }}_backends  #noqa: F401

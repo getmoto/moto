@@ -3,12 +3,12 @@ import pytest
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from moto import mock_managedblockchain
+from moto import mock_aws
 
 from . import helpers
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_node():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -78,7 +78,7 @@ def test_create_node():
     assert f"Node {node_id} not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_node_standard_edition():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -145,7 +145,7 @@ def test_create_node_standard_edition():
     assert f"Member {member_id} not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_too_many_nodes():
     # This test throws a ResourceLimitException, with HTTP status code 429
     # Boto3 automatically retries a request with that status code up to 5 times
@@ -196,7 +196,7 @@ def test_create_too_many_nodes():
     assert f"Maximum number of nodes exceeded in member {member_id}" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -211,7 +211,7 @@ def test_create_node_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_node_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -236,7 +236,7 @@ def test_create_node_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_create_node_badnodeconfig():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -289,7 +289,7 @@ def test_create_node_badnodeconfig():
     assert "Availability Zone is not valid" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_list_nodes_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -303,7 +303,7 @@ def test_list_nodes_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_list_nodes_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -324,7 +324,7 @@ def test_list_nodes_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -339,7 +339,7 @@ def test_get_node_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_node_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -364,7 +364,7 @@ def test_get_node_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_get_node_badnode():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -391,7 +391,7 @@ def test_get_node_badnode():
     assert "Node nd-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_delete_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -406,7 +406,7 @@ def test_delete_node_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_delete_node_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -431,7 +431,7 @@ def test_delete_node_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_delete_node_badnode():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -458,7 +458,7 @@ def test_delete_node_badnode():
     assert "Node nd-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_update_node_badnetwork():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -476,7 +476,7 @@ def test_update_node_badnetwork():
     assert "Network n-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_update_node_badmember():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 
@@ -504,7 +504,7 @@ def test_update_node_badmember():
     assert "Member m-ABCDEFGHIJKLMNOP0123456789 not found" in err["Message"]
 
 
-@mock_managedblockchain
+@mock_aws
 def test_update_node_badnode():
     conn = boto3.client("managedblockchain", region_name="us-east-1")
 

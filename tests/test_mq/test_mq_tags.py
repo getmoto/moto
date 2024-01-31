@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_mq
+from moto import mock_aws
 
 
-@mock_mq
+@mock_aws
 def test_create_broker_with_tags():
     client = boto3.client("mq", region_name="us-east-2")
     broker_id = client.create_broker(
@@ -23,7 +23,7 @@ def test_create_broker_with_tags():
     assert resp["Tags"] == {"key1": "val2", "key2": "val2"}
 
 
-@mock_mq
+@mock_aws
 def test_create_tags():
     client = boto3.client("mq", region_name="us-east-2")
     resp = client.create_broker(
@@ -50,7 +50,7 @@ def test_create_tags():
     assert tags == {"key1": "val2", "key2": "val2"}
 
 
-@mock_mq
+@mock_aws
 def test_delete_tags():
     client = boto3.client("mq", region_name="us-east-2")
     resp = client.create_broker(
@@ -76,7 +76,7 @@ def test_delete_tags():
     assert resp["Tags"] == {"key2": "val2"}
 
 
-@mock_mq
+@mock_aws
 def test_create_configuration_with_tags():
     client = boto3.client("mq", region_name="ap-southeast-1")
     resp = client.create_configuration(
@@ -94,7 +94,7 @@ def test_create_configuration_with_tags():
     assert resp["Tags"] == {"key1": "val1", "key2": "val2"}
 
 
-@mock_mq
+@mock_aws
 def test_add_tags_to_configuration():
     client = boto3.client("mq", region_name="ap-southeast-1")
     resp = client.create_configuration(

@@ -9,7 +9,8 @@ from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
 import yaml
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
@@ -131,7 +132,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
 
     def _get_secretsmanager_parameter(self, secret_name: str) -> List["Parameter"]:
         secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
-        secret = secrets_backend.describe_secret(secret_name)
+        secret = secrets_backend.describe_secret(secret_name).to_dict()
         version_id_to_stage = secret["VersionIdsToStages"]
         # Sort version ID's so that AWSCURRENT is last
         sorted_version_ids = [

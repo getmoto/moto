@@ -6,7 +6,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_logs, settings
+from moto import mock_aws, settings
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
 
@@ -47,7 +47,7 @@ access_policy_doc = json.dumps(
 )
 
 
-@mock_logs
+@mock_aws
 def test_describe_metric_filters_happy_prefix():
     conn = boto3.client("logs", "us-west-2")
 
@@ -63,7 +63,7 @@ def test_describe_metric_filters_happy_prefix():
     assert response["metricFilters"][1]["filterName"] == "filterName2"
 
 
-@mock_logs
+@mock_aws
 def test_describe_metric_filters_happy_log_group_name():
     conn = boto3.client("logs", "us-west-2")
 
@@ -78,7 +78,7 @@ def test_describe_metric_filters_happy_log_group_name():
     assert response["metricFilters"][0]["logGroupName"] == "logGroupName2"
 
 
-@mock_logs
+@mock_aws
 def test_describe_metric_filters_happy_metric_name():
     conn = boto3.client("logs", "us-west-2")
 
@@ -97,7 +97,7 @@ def test_describe_metric_filters_happy_metric_name():
     assert metrics[0]["metricNamespace"] == "metricNamespace1"
 
 
-@mock_logs
+@mock_aws
 def test_put_metric_filters_validation():
     conn = boto3.client("logs", "us-west-2")
 
@@ -137,7 +137,7 @@ def test_put_metric_filters_validation():
         assert response["Error"]["Code"] == "InvalidParameterException"
 
 
-@mock_logs
+@mock_aws
 def test_describe_metric_filters_validation():
     conn = boto3.client("logs", "us-west-2")
 
@@ -165,7 +165,7 @@ def test_describe_metric_filters_validation():
         assert response["Error"]["Code"] == "InvalidParameterException"
 
 
-@mock_logs
+@mock_aws
 def test_describe_metric_filters_multiple_happy():
     conn = boto3.client("logs", "us-west-2")
 
@@ -186,7 +186,7 @@ def test_describe_metric_filters_multiple_happy():
     assert response["metricFilters"][0]["filterName"] == "filterName1"
 
 
-@mock_logs
+@mock_aws
 def test_delete_metric_filter():
     client = boto3.client("logs", "us-west-2")
 
@@ -216,7 +216,7 @@ def test_delete_metric_filter():
     assert response["metricFilters"] == []
 
 
-@mock_logs
+@mock_aws
 @pytest.mark.parametrize(
     "filter_name, failing_constraint",
     [
@@ -241,7 +241,7 @@ def test_delete_metric_filter_invalid_filter_name(filter_name, failing_constrain
     assert failing_constraint in response["Error"]["Message"]
 
 
-@mock_logs
+@mock_aws
 @pytest.mark.parametrize(
     "log_group_name, failing_constraint",
     [
@@ -268,7 +268,7 @@ def test_delete_metric_filter_invalid_log_group_name(
     assert failing_constraint in response["Error"]["Message"]
 
 
-@mock_logs
+@mock_aws
 def test_destinations():
     conn = boto3.client("logs", "us-west-2")
     destination_name = "test-destination"
@@ -422,7 +422,7 @@ def build_describe_case(
     }
 
 
-@mock_logs
+@mock_aws
 @pytest.mark.parametrize(
     "kms_key_id",
     [
@@ -453,7 +453,7 @@ def test_create_log_group(kms_key_id):
         assert log_group["kmsKeyId"] == kms_key_id
 
 
-@mock_logs
+@mock_aws
 def test_exceptions():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -485,7 +485,7 @@ def test_exceptions():
     assert error["Message"] == "The specified log stream does not exist."
 
 
-@mock_logs
+@mock_aws
 def test_put_logs():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -509,7 +509,7 @@ def test_put_logs():
     assert len(events) == 2
 
 
-@mock_logs
+@mock_aws
 def test_put_log_events_in_wrong_order():
     conn = boto3.client("logs", "us-east-1")
     log_group_name = "test"
@@ -540,7 +540,7 @@ def test_put_log_events_in_wrong_order():
     )
 
 
-@mock_logs
+@mock_aws
 @pytest.mark.parametrize("days_ago", [15, 400])
 def test_put_log_events_in_the_past(days_ago):
     conn = boto3.client("logs", "us-east-1")
@@ -559,7 +559,7 @@ def test_put_log_events_in_the_past(days_ago):
     assert resp["rejectedLogEventsInfo"] == {"tooOldLogEventEndIndex": 0}
 
 
-@mock_logs
+@mock_aws
 @pytest.mark.parametrize("minutes", [181, 300, 999999])
 def test_put_log_events_in_the_future(minutes):
     conn = boto3.client("logs", "us-east-1")
@@ -578,7 +578,7 @@ def test_put_log_events_in_the_future(minutes):
     assert resp["rejectedLogEventsInfo"] == {"tooNewLogEventStartIndex": 0}
 
 
-@mock_logs
+@mock_aws
 def test_put_retention_policy():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -593,7 +593,7 @@ def test_put_retention_policy():
     conn.delete_log_group(logGroupName=log_group_name)
 
 
-@mock_logs
+@mock_aws
 def test_delete_log_stream():
     logs = boto3.client("logs", TEST_REGION)
     logs.create_log_group(logGroupName="logGroup")
@@ -605,7 +605,7 @@ def test_delete_log_stream():
     assert resp["logStreams"] == []
 
 
-@mock_logs
+@mock_aws
 def test_delete_retention_policy():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -626,7 +626,7 @@ def test_delete_retention_policy():
     conn.delete_log_group(logGroupName=log_group_name)
 
 
-@mock_logs
+@mock_aws
 def test_put_resource_policy():
     client = boto3.client("logs", TEST_REGION)
 
@@ -672,7 +672,7 @@ def test_put_resource_policy():
         assert created_time < policy_info["lastUpdatedTime"] <= int(unix_time_millis())
 
 
-@mock_logs
+@mock_aws
 def test_put_resource_policy_too_many():
     client = boto3.client("logs", TEST_REGION)
 
@@ -700,7 +700,7 @@ def test_put_resource_policy_too_many():
     )
 
 
-@mock_logs
+@mock_aws
 def test_delete_resource_policy():
     client = boto3.client("logs", TEST_REGION)
 
@@ -733,7 +733,7 @@ def test_delete_resource_policy():
     )
 
 
-@mock_logs
+@mock_aws
 def test_describe_resource_policies():
     client = boto3.client("logs", TEST_REGION)
 
@@ -759,7 +759,7 @@ def test_describe_resource_policies():
         assert policy["lastUpdatedTime"] <= now_millis
 
 
-@mock_logs
+@mock_aws
 def test_get_log_events():
     client = boto3.client("logs", TEST_REGION)
     log_group_name = "test"
@@ -852,7 +852,7 @@ def test_get_log_events():
     )
 
 
-@mock_logs
+@mock_aws
 def test_get_log_events_with_start_from_head():
     client = boto3.client("logs", TEST_REGION)
     log_group_name = "test"
@@ -948,7 +948,7 @@ def test_get_log_events_with_start_from_head():
     )
 
 
-@mock_logs
+@mock_aws
 def test_get_log_events_errors():
     client = boto3.client("logs", TEST_REGION)
     log_group_name = "test"
@@ -985,7 +985,7 @@ def test_get_log_events_errors():
     )
 
 
-@mock_logs
+@mock_aws
 def test_list_tags_log_group():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -1003,7 +1003,7 @@ def test_list_tags_log_group():
     conn.delete_log_group(logGroupName=log_group_name)
 
 
-@mock_logs
+@mock_aws
 def test_tag_log_group():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -1027,7 +1027,7 @@ def test_tag_log_group():
     conn.delete_log_group(logGroupName=log_group_name)
 
 
-@mock_logs
+@mock_aws
 def test_untag_log_group():
     conn = boto3.client("logs", TEST_REGION)
     log_group_name = "dummy"
@@ -1047,7 +1047,7 @@ def test_untag_log_group():
     conn.delete_log_group(logGroupName=log_group_name)
 
 
-@mock_logs
+@mock_aws
 def test_describe_subscription_filters():
     # given
     client = boto3.client("logs", "us-east-1")
@@ -1061,7 +1061,7 @@ def test_describe_subscription_filters():
     assert len(response["subscriptionFilters"]) == 0
 
 
-@mock_logs
+@mock_aws
 def test_describe_subscription_filters_errors():
     # given
     client = boto3.client("logs", "us-east-1")
@@ -1081,7 +1081,7 @@ def test_describe_subscription_filters_errors():
     )
 
 
-@mock_logs
+@mock_aws
 def test_describe_log_groups_paging():
     client = boto3.client("logs", "us-east-1")
 
@@ -1117,7 +1117,7 @@ def test_describe_log_groups_paging():
     assert "nextToken" not in resp
 
 
-@mock_logs
+@mock_aws
 def test_describe_log_streams_simple_paging():
     client = boto3.client("logs", "us-east-1")
 
@@ -1169,7 +1169,7 @@ def test_describe_log_streams_simple_paging():
     assert "nextToken" not in resp
 
 
-@mock_logs
+@mock_aws
 def test_describe_log_streams_paging():
     client = boto3.client("logs", "us-east-1")
 
@@ -1229,7 +1229,7 @@ def test_describe_log_streams_paging():
 
 
 @pytest.mark.parametrize("nr_of_events", [10001, 1000000])
-@mock_logs
+@mock_aws
 def test_get_too_many_log_events(nr_of_events):
     client = boto3.client("logs", "us-east-1")
     log_group_name = "dummy"
@@ -1254,7 +1254,7 @@ def test_get_too_many_log_events(nr_of_events):
 
 
 @pytest.mark.parametrize("nr_of_events", [10001, 1000000])
-@mock_logs
+@mock_aws
 def test_filter_too_many_log_events(nr_of_events):
     client = boto3.client("logs", "us-east-1")
     log_group_name = "dummy"
@@ -1279,7 +1279,7 @@ def test_filter_too_many_log_events(nr_of_events):
 
 
 @pytest.mark.parametrize("nr_of_groups", [51, 100])
-@mock_logs
+@mock_aws
 def test_describe_too_many_log_groups(nr_of_groups):
     client = boto3.client("logs", "us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1295,7 +1295,7 @@ def test_describe_too_many_log_groups(nr_of_groups):
 
 
 @pytest.mark.parametrize("nr_of_streams", [51, 100])
-@mock_logs
+@mock_aws
 def test_describe_too_many_log_streams(nr_of_streams):
     client = boto3.client("logs", "us-east-1")
     log_group_name = "dummy"
@@ -1313,7 +1313,7 @@ def test_describe_too_many_log_streams(nr_of_streams):
 
 
 @pytest.mark.parametrize("length", [513, 1000])
-@mock_logs
+@mock_aws
 def test_create_log_group_invalid_name_length(length):
     log_group_name = "a" * length
     client = boto3.client("logs", "us-east-1")
@@ -1330,7 +1330,7 @@ def test_create_log_group_invalid_name_length(length):
 
 
 @pytest.mark.parametrize("invalid_orderby", ["", "sth", "LogStreamname"])
-@mock_logs
+@mock_aws
 def test_describe_log_streams_invalid_order_by(invalid_orderby):
     client = boto3.client("logs", "us-east-1")
     log_group_name = "dummy"
@@ -1352,7 +1352,7 @@ def test_describe_log_streams_invalid_order_by(invalid_orderby):
     )
 
 
-@mock_logs
+@mock_aws
 def test_describe_log_streams_no_prefix():
     """
     From the docs: If orderBy is LastEventTime , you cannot specify [logStreamNamePrefix]

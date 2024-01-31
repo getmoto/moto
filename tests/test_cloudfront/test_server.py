@@ -1,10 +1,10 @@
 import xmltodict
 
 import moto.server as server
-from moto import mock_cloudfront
+from moto import mock_aws
 
 
-@mock_cloudfront
+@mock_aws
 def test_cloudfront_list():
     backend = server.create_backend_app("cloudfront")
     test_client = backend.test_client()

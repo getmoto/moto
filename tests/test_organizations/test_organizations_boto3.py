@@ -6,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_organizations
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.organizations import utils
 from moto.organizations.exceptions import InvalidInputException, TargetNotFoundException
@@ -30,7 +30,7 @@ from .organizations_test_utils import (
 )
 
 
-@mock_organizations
+@mock_aws
 def test_create_organization():
     client = boto3.client("organizations", region_name="us-east-1")
     response = client.create_organization(FeatureSet="ALL")
@@ -57,7 +57,7 @@ def test_create_organization():
     assert master_account["Name"] == "master"
 
 
-@mock_organizations
+@mock_aws
 def test_create_organization_without_feature_set():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization()
@@ -66,7 +66,7 @@ def test_create_organization_without_feature_set():
     assert response["Organization"]["FeatureSet"] == "ALL"
 
 
-@mock_organizations
+@mock_aws
 def test_describe_organization():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -74,7 +74,7 @@ def test_describe_organization():
     validate_organization(response)
 
 
-@mock_organizations
+@mock_aws
 def test_describe_organization_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -91,7 +91,7 @@ def test_describe_organization_exception():
 # Organizational Units
 
 
-@mock_organizations
+@mock_aws
 def test_list_roots():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -99,7 +99,7 @@ def test_list_roots():
     validate_roots(org, response)
 
 
-@mock_organizations
+@mock_aws
 def test_create_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -110,7 +110,7 @@ def test_create_organizational_unit():
     assert response["OrganizationalUnit"]["Name"] == ou_name
 
 
-@mock_organizations
+@mock_aws
 def test_delete_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -133,7 +133,7 @@ def test_delete_organizational_unit():
     assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
 
 
-@mock_organizations
+@mock_aws
 def test_describe_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -145,7 +145,7 @@ def test_describe_organizational_unit():
     validate_organizational_unit(org, response)
 
 
-@mock_organizations
+@mock_aws
 def test_describe_organizational_unit_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -159,7 +159,7 @@ def test_describe_organizational_unit_exception():
     assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
 
 
-@mock_organizations
+@mock_aws
 def test_list_organizational_units_for_parent():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -173,7 +173,7 @@ def test_list_organizational_units_for_parent():
         validate_organizational_unit(org, {"OrganizationalUnit": ou})
 
 
-@mock_organizations
+@mock_aws
 def test_list_organizational_units_pagination():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -193,7 +193,7 @@ def test_list_organizational_units_pagination():
     assert "19" in page_list[-1]["OrganizationalUnits"][-1]["Name"]
 
 
-@mock_organizations
+@mock_aws
 def test_list_organizational_units_for_parent_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -212,7 +212,7 @@ mockdomain = "moto-example.org"
 mockemail = "@".join([mockname, mockdomain])
 
 
-@mock_organizations
+@mock_aws
 def test_create_account():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -223,7 +223,7 @@ def test_create_account():
     assert create_status["AccountName"] == mockname
 
 
-@mock_organizations
+@mock_aws
 def test_close_account_returns_nothing():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -239,7 +239,7 @@ def test_close_account_returns_nothing():
     assert resp == {}
 
 
-@mock_organizations
+@mock_aws
 def test_close_account_puts_account_in_suspended_status():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -254,7 +254,7 @@ def test_close_account_puts_account_in_suspended_status():
     assert account["Status"] == "SUSPENDED"
 
 
-@mock_organizations
+@mock_aws
 def test_close_account_id_not_in_org_raises_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -271,7 +271,7 @@ def test_close_account_id_not_in_org_raises_exception():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_describe_create_account_status():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -282,7 +282,7 @@ def test_describe_create_account_status():
     validate_create_account_status(response["CreateAccountStatus"])
 
 
-@mock_organizations
+@mock_aws
 def test_describe_account():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -295,7 +295,7 @@ def test_describe_account():
     assert response["Account"]["Email"] == mockemail
 
 
-@mock_organizations
+@mock_aws
 def test_describe_account_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -309,7 +309,7 @@ def test_describe_account_exception():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_list_accounts():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -327,7 +327,7 @@ def test_list_accounts():
     assert accounts[3]["Email"] == mockname + "2" + "@" + mockdomain
 
 
-@mock_organizations
+@mock_aws
 def test_list_accounts_pagination():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -347,7 +347,7 @@ def test_list_accounts_pagination():
     assert "24" in page_list[-1]["Accounts"][-1]["Name"]
 
 
-@mock_organizations
+@mock_aws
 def test_list_accounts_for_parent():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -359,7 +359,7 @@ def test_list_accounts_for_parent():
     assert account_id in [account["Id"] for account in response["Accounts"]]
 
 
-@mock_organizations
+@mock_aws
 def test_list_accounts_for_parent_pagination():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -382,7 +382,7 @@ def test_list_accounts_for_parent_pagination():
     assert "20" in page_list[-1]["Accounts"][-1]["Name"]
 
 
-@mock_organizations
+@mock_aws
 def test_move_account():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -399,7 +399,7 @@ def test_move_account():
     assert account_id in [account["Id"] for account in response["Accounts"]]
 
 
-@mock_organizations
+@mock_aws
 def test_list_parents_for_ou():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -418,7 +418,7 @@ def test_list_parents_for_ou():
     assert response02["Parents"][0]["Type"] == "ORGANIZATIONAL_UNIT"
 
 
-@mock_organizations
+@mock_aws
 def test_list_parents_for_accounts():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -444,7 +444,7 @@ def test_list_parents_for_accounts():
     assert response02["Parents"][0]["Type"] == "ORGANIZATIONAL_UNIT"
 
 
-@mock_organizations
+@mock_aws
 def test_list_children():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -478,7 +478,7 @@ def test_list_children():
     assert response04["Children"][0]["Type"] == "ORGANIZATIONAL_UNIT"
 
 
-@mock_organizations
+@mock_aws
 def test_list_children_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -498,7 +498,7 @@ def test_list_children_exception():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_list_create_account_status():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -517,7 +517,7 @@ def test_list_create_account_status():
         validate_create_account_status(createAccountStatus)
 
 
-@mock_organizations
+@mock_aws
 def test_list_create_account_status_succeeded():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -528,7 +528,7 @@ def test_list_create_account_status_succeeded():
     validate_create_account_status(createAccountStatuses[0])
 
 
-@mock_organizations
+@mock_aws
 def test_list_create_account_status_in_progress():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -538,7 +538,7 @@ def test_list_create_account_status_in_progress():
     assert len(createAccountStatuses) == 0
 
 
-@mock_organizations
+@mock_aws
 def test_get_paginated_list_create_account_status():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -561,7 +561,7 @@ def test_get_paginated_list_create_account_status():
         validate_create_account_status(createAccountStatus)
 
 
-@mock_organizations
+@mock_aws
 def test_remove_account_from_organization():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -586,7 +586,7 @@ def test_remove_account_from_organization():
     assert not created_account_exists(accounts)
 
 
-@mock_organizations
+@mock_aws
 def test_delete_organization_with_existing_account():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -618,7 +618,7 @@ policy_doc01 = {
 }
 
 
-@mock_organizations
+@mock_aws
 def test_create_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -634,7 +634,7 @@ def test_create_policy():
     assert policy["Content"] == json.dumps(policy_doc01)
 
 
-@mock_organizations
+@mock_aws
 def test_create_policy_errors():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -658,7 +658,7 @@ def test_create_policy_errors():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_describe_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -675,7 +675,7 @@ def test_describe_policy():
     assert policy["Content"] == json.dumps(policy_doc01)
 
 
-@mock_organizations
+@mock_aws
 def test_describe_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -697,7 +697,7 @@ def test_describe_policy_exception():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_attach_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -722,7 +722,7 @@ def test_attach_policy():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_organizations
+@mock_aws
 def test_detach_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -770,7 +770,7 @@ def get_nonaws_policies(account_id, client):
     ]
 
 
-@mock_organizations
+@mock_aws
 def test_detach_policy_root_ou_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -797,7 +797,7 @@ def test_detach_policy_root_ou_not_found_exception():
     assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
 
 
-@mock_organizations
+@mock_aws
 def test_detach_policy_ou_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -820,7 +820,7 @@ def test_detach_policy_ou_not_found_exception():
     assert "OrganizationalUnitNotFoundException" in ex.response["Error"]["Message"]
 
 
-@mock_organizations
+@mock_aws
 def test_detach_policy_account_id_not_found_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -845,7 +845,7 @@ def test_detach_policy_account_id_not_found_exception():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_detach_policy_invalid_target_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -869,7 +869,7 @@ def test_detach_policy_invalid_target_exception():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_delete_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -890,7 +890,7 @@ def test_delete_policy():
     assert len(new_policies) == 1
 
 
-@mock_organizations
+@mock_aws
 def test_delete_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -922,7 +922,7 @@ def test_delete_policy_exception():
     assert "PolicyInUseException" in ex.response["Error"]["Message"]
 
 
-@mock_organizations
+@mock_aws
 def test_attach_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -965,7 +965,7 @@ def test_attach_policy_exception():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_update_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -990,7 +990,7 @@ def test_update_policy():
     validate_service_control_policy(org, response["Policy"])
 
 
-@mock_organizations
+@mock_aws
 def test_update_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1006,7 +1006,7 @@ def test_update_policy_exception():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_list_polices():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1022,7 +1022,7 @@ def test_list_polices():
         validate_policy_summary(org, policy)
 
 
-@mock_organizations
+@mock_aws
 def test_list_policies_for_target():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1053,7 +1053,7 @@ def test_list_policies_for_target():
         validate_policy_summary(org, policy)
 
 
-@mock_organizations
+@mock_aws
 def test_list_policies_for_target_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1116,7 +1116,7 @@ def test_list_policies_for_target_exception():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_list_targets_for_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1145,7 +1145,7 @@ def test_list_targets_for_policy():
         assert target["Type"] in ["ROOT", "ORGANIZATIONAL_UNIT", "ACCOUNT"]
 
 
-@mock_organizations
+@mock_aws
 def test_list_targets_for_policy_exception():
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1167,7 +1167,7 @@ def test_list_targets_for_policy_exception():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_tag_resource_account():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1194,7 +1194,7 @@ def test_tag_resource_account():
     assert response["Tags"] == []
 
 
-@mock_organizations
+@mock_aws
 def test_tag_resource_organization_organization_root():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1219,7 +1219,7 @@ def test_tag_resource_organization_organization_root():
     assert response["Tags"] == []
 
 
-@mock_organizations
+@mock_aws
 def test_tag_resource_organization_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1247,7 +1247,7 @@ def test_tag_resource_organization_organizational_unit():
     assert response["Tags"] == []
 
 
-@mock_organizations
+@mock_aws
 def test_tag_resource_policy():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1279,7 +1279,7 @@ def test_tag_resource_policy():
     assert response["Tags"] == []
 
 
-@mock_organizations
+@mock_aws
 def test_tag_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1400,7 +1400,7 @@ def test__get_resource_to_tag_incorrect_resource():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1414,7 +1414,7 @@ def test_list_tags_for_resource():
     assert response["Tags"] == [{"Key": "key", "Value": "value"}]
 
 
-@mock_organizations
+@mock_aws
 def test_list_tags_for_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1439,7 +1439,7 @@ def test_list_tags_for_resource_errors():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_untag_resource():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1460,7 +1460,7 @@ def test_untag_resource():
     assert len(response["Tags"]) == 0
 
 
-@mock_organizations
+@mock_aws
 def test_untag_resource_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1485,7 +1485,7 @@ def test_untag_resource_errors():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_update_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1502,7 +1502,7 @@ def test_update_organizational_unit():
     assert response["OrganizationalUnit"]["Name"] == new_ou_name
 
 
-@mock_organizations
+@mock_aws
 def test_update_organizational_unit_duplicate_error():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]
@@ -1523,7 +1523,7 @@ def test_update_organizational_unit_duplicate_error():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_enable_aws_service_access():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1552,7 +1552,7 @@ def test_enable_aws_service_access():
     assert service["DateEnabled"] == date_enabled
 
 
-@mock_organizations
+@mock_aws
 def test_enable_aws_service_access_error():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1568,7 +1568,7 @@ def test_enable_aws_service_access_error():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_enable_multiple_aws_service_access():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1590,7 +1590,7 @@ def test_enable_multiple_aws_service_access():
     assert isinstance(services[1]["DateEnabled"], datetime)
 
 
-@mock_organizations
+@mock_aws
 def test_disable_aws_service_access():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1613,7 +1613,7 @@ def test_disable_aws_service_access():
     assert len(response["EnabledServicePrincipals"]) == 0
 
 
-@mock_organizations
+@mock_aws
 def test_disable_aws_service_access_errors():
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -1629,7 +1629,7 @@ def test_disable_aws_service_access_errors():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_register_delegated_administrator():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1659,7 +1659,7 @@ def test_register_delegated_administrator():
     assert isinstance(admin["DelegationEnabledDate"], datetime)
 
 
-@mock_organizations
+@mock_aws
 def test_register_delegated_administrator_errors():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1738,7 +1738,7 @@ def test_register_delegated_administrator_errors():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_list_delegated_administrators():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1785,7 +1785,7 @@ def test_list_delegated_administrators():
     assert isinstance(admin["DelegationEnabledDate"], datetime)
 
 
-@mock_organizations
+@mock_aws
 def test_list_delegated_administrators_erros():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1806,7 +1806,7 @@ def test_list_delegated_administrators_erros():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_list_delegated_services_for_account():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1831,7 +1831,7 @@ def test_list_delegated_services_for_account():
     ) == ["guardduty.amazonaws.com", "ssm.amazonaws.com"]
 
 
-@mock_organizations
+@mock_aws
 def test_list_delegated_services_for_account_erros():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1866,7 +1866,7 @@ def test_list_delegated_services_for_account_erros():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_deregister_delegated_administrator():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1888,7 +1888,7 @@ def test_deregister_delegated_administrator():
     assert len(response["DelegatedAdministrators"]) == 0
 
 
-@mock_organizations
+@mock_aws
 def test_deregister_delegated_administrator_erros():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1968,7 +1968,7 @@ def test_deregister_delegated_administrator_erros():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_enable_policy_type():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -1992,7 +1992,7 @@ def test_enable_policy_type():
     )
 
 
-@mock_organizations
+@mock_aws
 def test_enable_policy_type_errors():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -2045,7 +2045,7 @@ def test_enable_policy_type_errors():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_disable_policy_type():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -2068,7 +2068,7 @@ def test_disable_policy_type():
     assert root["PolicyTypes"] == []
 
 
-@mock_organizations
+@mock_aws
 def test_disable_policy_type_errors():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -2120,7 +2120,7 @@ def test_disable_policy_type_errors():
     assert ex.response["Error"]["Message"] == "You specified an invalid value."
 
 
-@mock_organizations
+@mock_aws
 def test_aiservices_opt_out_policy():
     # given
     client = boto3.client("organizations", region_name="us-east-1")

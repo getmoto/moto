@@ -4,12 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_logs, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_create_flow_logs_s3():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -66,8 +65,7 @@ def test_create_flow_logs_s3():
     assert flow_log["MaxAggregationInterval"] == 600
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_create_multiple_flow_logs_s3():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -116,8 +114,7 @@ def test_create_multiple_flow_logs_s3():
     assert flow_log_1["LogDestination"] != flow_log_2["LogDestination"]
 
 
-@mock_logs
-@mock_ec2
+@mock_aws
 def test_create_flow_logs_cloud_watch():
     client = boto3.client("ec2", region_name="us-west-1")
     logs_client = boto3.client("logs", region_name="us-west-1")
@@ -178,8 +175,7 @@ def test_create_flow_logs_cloud_watch():
     assert flow_log["MaxAggregationInterval"] == 600
 
 
-@mock_logs
-@mock_ec2
+@mock_aws
 def test_create_multiple_flow_logs_cloud_watch():
     client = boto3.client("ec2", region_name="us-west-1")
     logs_client = boto3.client("logs", region_name="us-west-1")
@@ -223,8 +219,7 @@ def test_create_multiple_flow_logs_cloud_watch():
     assert flow_log_1["LogGroupName"] != flow_log_2["LogGroupName"]
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_create_flow_log_create():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -260,8 +255,7 @@ def test_create_flow_log_create():
     )
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_delete_flow_logs():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -299,8 +293,7 @@ def test_delete_flow_logs():
     assert len(flow_logs) == 0
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_delete_flow_logs_delete_many():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -333,7 +326,7 @@ def test_delete_flow_logs_delete_many():
         assert fl_id not in all_ids
 
 
-@mock_ec2
+@mock_aws
 def test_delete_flow_logs_non_existing():
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -356,7 +349,7 @@ def test_delete_flow_logs_non_existing():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_create_flow_logs_unsuccessful():
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -382,8 +375,7 @@ def test_create_flow_logs_unsuccessful():
     assert error2["Message"] == "LogDestination: non-existing-bucket does not exist."
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_create_flow_logs_invalid_parameters():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -504,9 +496,7 @@ def test_create_flow_logs_invalid_parameters():
     )
 
 
-@mock_s3
-@mock_ec2
-@mock_logs
+@mock_aws
 def test_describe_flow_logs_filtering():
     s3 = boto3.resource("s3", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -667,8 +657,7 @@ def test_describe_flow_logs_filtering():
         client.describe_flow_logs(Filters=[{"Name": "unknown", "Values": ["foobar"]}])
 
 
-@mock_s3
-@mock_ec2
+@mock_aws
 def test_flow_logs_by_ids():
     client = boto3.client("ec2", region_name="us-west-1")
 

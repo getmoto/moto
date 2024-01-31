@@ -3,14 +3,14 @@ import pytest
 import requests
 from botocore.client import ClientError
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 from . import s3_aws_verified
 from .test_s3 import add_proxy_details
 
 
-@mock_s3
+@mock_aws
 def test_get_bucket_tagging_unknown_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -142,7 +142,7 @@ def test_get_bucket_tagging(bucket_name=None):
     assert err["Message"] == "The TagSet does not exist"
 
 
-@mock_s3
+@mock_aws
 def test_delete_bucket_tagging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -233,7 +233,7 @@ def test_put_object_tagging(bucket_name=None):
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_s3
+@mock_aws
 def test_put_object_tagging_on_earliest_version():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -305,7 +305,7 @@ def test_put_object_tagging_on_earliest_version():
     assert resp["TagSet"] == []
 
 
-@mock_s3
+@mock_aws
 def test_put_object_tagging_on_both_version():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -390,7 +390,7 @@ def test_put_object_tagging_on_both_version():
     ]
 
 
-@mock_s3
+@mock_aws
 def test_put_object_tagging_with_single_tag():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -408,7 +408,7 @@ def test_put_object_tagging_with_single_tag():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_s3
+@mock_aws
 def test_get_object_tagging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -437,7 +437,7 @@ def test_get_object_tagging():
     assert {"Key": "item2", "Value": "bar"} in resp["TagSet"]
 
 
-@mock_s3
+@mock_aws
 def test_objects_tagging_with_same_key_name():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     key_name = "file.txt"
@@ -465,7 +465,7 @@ def test_objects_tagging_with_same_key_name():
     assert variable2 == "two"
 
 
-@mock_s3
+@mock_aws
 def test_generate_url_for_tagged_object():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="my-bucket")
@@ -476,7 +476,7 @@ def test_generate_url_for_tagged_object():
         "get_object", Params={"Bucket": "my-bucket", "Key": "test.txt"}
     )
     kwargs = {}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.get(url, **kwargs)
     assert response.content == b"abc"

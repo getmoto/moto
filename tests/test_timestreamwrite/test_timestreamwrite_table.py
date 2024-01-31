@@ -5,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_timestreamwrite, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import timestreamwrite_aws_verified
@@ -122,7 +122,7 @@ def test_create_table_without_retention_properties():
         ts.delete_database(DatabaseName=db_name)
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_describe_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -167,7 +167,7 @@ def test_describe_unknown_database():
         ts.delete_database(DatabaseName=db_name)
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_create_multiple_tables():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -199,7 +199,7 @@ def test_create_multiple_tables():
     assert {t["TableStatus"] for t in tables} == {"ACTIVE"}
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_delete_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -224,7 +224,7 @@ def test_delete_table():
     assert {t["TableName"] for t in tables} == {"mytable_0", "mytable_2"}
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_update_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -257,7 +257,7 @@ def test_update_table():
     }
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_update_table__with_magnetic_store_write_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -289,7 +289,7 @@ def test_update_table__with_magnetic_store_write_properties():
     }
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_write_records():
     # The query-feature is not available at the moment,
     # so there's no way for us to verify writing records is successful

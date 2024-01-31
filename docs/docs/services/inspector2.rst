@@ -12,17 +12,6 @@
 inspector2
 ==========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_inspector2
-            def test_inspector2_behaviour:
-                boto3.client("inspector2")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] associate_member
@@ -34,9 +23,11 @@ inspector2
 - [ ] batch_update_member_ec2_deep_inspection_status
 - [ ] cancel_findings_report
 - [ ] cancel_sbom_export
+- [ ] create_cis_scan_configuration
 - [X] create_filter
 - [ ] create_findings_report
 - [ ] create_sbom_export
+- [ ] delete_cis_scan_configuration
 - [X] delete_filter
 - [X] describe_organization_configuration
 - [X] disable
@@ -44,6 +35,8 @@ inspector2
 - [X] disassociate_member
 - [X] enable
 - [X] enable_delegated_admin_account
+- [ ] get_cis_scan_report
+- [ ] get_cis_scan_result_details
 - [ ] get_configuration
 - [ ] get_delegated_admin_account
 - [ ] get_ec2_deep_inspection_configuration
@@ -52,6 +45,10 @@ inspector2
 - [X] get_member
 - [ ] get_sbom_export
 - [ ] list_account_permissions
+- [ ] list_cis_scan_configurations
+- [ ] list_cis_scan_results_aggregated_by_checks
+- [ ] list_cis_scan_results_aggregated_by_target_resource
+- [ ] list_cis_scans
 - [ ] list_coverage
 - [ ] list_coverage_statistics
 - [X] list_delegated_admin_accounts
@@ -99,8 +96,13 @@ inspector2
 - [ ] list_usage_totals
 - [ ] reset_encryption_key
 - [ ] search_vulnerabilities
+- [ ] send_cis_session_health
+- [ ] send_cis_session_telemetry
+- [ ] start_cis_session
+- [ ] stop_cis_session
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_cis_scan_configuration
 - [ ] update_configuration
 - [ ] update_ec2_deep_inspection_configuration
 - [ ] update_encryption_key

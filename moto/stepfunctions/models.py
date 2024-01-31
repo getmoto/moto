@@ -6,7 +6,8 @@ from typing import Any, Dict, Iterable, List, Optional, Pattern
 from dateutil.tz import tzlocal
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -188,7 +189,7 @@ class StateMachine(CloudFormationModel):
         definition = properties.get("DefinitionString", "")
         role_arn = properties.get("RoleArn", "")
         tags = cfn_to_api_tags(properties.get("Tags", []))
-        sf_backend = stepfunction_backends[account_id][region_name]
+        sf_backend = stepfunctions_backends[account_id][region_name]
         return sf_backend.create_state_machine(name, definition, role_arn, tags=tags)
 
     @classmethod
@@ -199,7 +200,7 @@ class StateMachine(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        sf_backend = stepfunction_backends[account_id][region_name]
+        sf_backend = stepfunctions_backends[account_id][region_name]
         sf_backend.delete_state_machine(resource_name)
 
     @classmethod
@@ -231,7 +232,7 @@ class StateMachine(CloudFormationModel):
             definition = properties.get("DefinitionString")
             role_arn = properties.get("RoleArn")
             tags = cfn_to_api_tags(properties.get("Tags", []))
-            sf_backend = stepfunction_backends[account_id][region_name]
+            sf_backend = stepfunctions_backends[account_id][region_name]
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )
@@ -684,4 +685,4 @@ class StepFunctionBackend(BaseBackend):
         return self.describe_state_machine(state_machine_arn)
 
 
-stepfunction_backends = BackendDict(StepFunctionBackend, "stepfunctions")
+stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

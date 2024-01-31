@@ -14,17 +14,6 @@ rekognition
 
 .. autoclass:: moto.rekognition.models.RekognitionBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_rekognition
-            def test_rekognition_behaviour:
-                boto3.client("rekognition")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_faces

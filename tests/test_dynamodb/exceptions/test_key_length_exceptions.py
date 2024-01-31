@@ -3,11 +3,11 @@ import pytest
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb
+from moto import mock_aws
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 
 
-@mock_dynamodb
+@mock_aws
 def test_item_add_long_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -49,7 +49,7 @@ def test_item_add_long_string_hash_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_item_add_long_string_nonascii_hash_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -97,7 +97,7 @@ def test_item_add_long_string_nonascii_hash_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_item_add_long_string_range_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -145,7 +145,7 @@ def test_item_add_long_string_range_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_long_string_gsi_range_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -215,7 +215,7 @@ def test_put_long_string_gsi_range_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_with_long_string_hash_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -256,7 +256,7 @@ def test_update_item_with_long_string_hash_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_with_long_string_range_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -302,7 +302,7 @@ def test_update_item_with_long_string_range_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_item_add_empty_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")
@@ -326,7 +326,7 @@ def test_item_add_empty_key_exception():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_empty_key_exception():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="us-west-2")

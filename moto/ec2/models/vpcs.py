@@ -5,7 +5,7 @@ from collections import defaultdict
 from operator import itemgetter
 from typing import Any, Dict, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import (
     CidrLimitExceeded,
@@ -44,7 +44,7 @@ IMPLEMENTED_ENDPOINT_SERVICES = [
     "applicationautoscaling",
     "athena",
     "autoscaling",
-    "lambda",
+    "awslambda",
     "cloudformation",
     "cloudwatch",
     "codecommit",

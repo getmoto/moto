@@ -1,5 +1,4 @@
 import base64
-import copy
 import json
 import os
 import re
@@ -12,13 +11,9 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from jinja2 import Template
 
-from moto.core import (
-    DEFAULT_ACCOUNT_ID,
-    BackendDict,
-    BaseBackend,
-    BaseModel,
-    CloudFormationModel,
-)
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
@@ -31,6 +26,7 @@ from moto.iam.policy_validation import (
     IAMTrustPolicyDocumentValidator,
 )
 from moto.moto_api._internal import mock_random as random
+from moto.settings import load_iam_aws_managed_policies
 from moto.utilities.utils import md5_hash
 
 from ..utilities.tagging_service import TaggingService
@@ -1795,12 +1791,7 @@ def filter_items_with_path_prefix(
 
 
 class IAMBackend(BaseBackend):
-    def __init__(
-        self,
-        region_name: str,
-        account_id: str,
-        aws_policies: Optional[List[ManagedPolicy]] = None,
-    ):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name=region_name, account_id=account_id)
         self.instance_profiles: Dict[str, InstanceProfile] = {}
         self.roles: Dict[str, Role] = {}
@@ -1808,7 +1799,7 @@ class IAMBackend(BaseBackend):
         self.groups: Dict[str, Group] = {}
         self.users: Dict[str, User] = {}
         self.credential_report: Optional[bool] = None
-        self.aws_managed_policies = aws_policies or self._init_aws_policies()
+        self.aws_managed_policies = self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
         self.account_aliases: List[str] = []
         self.saml_providers: Dict[str, SAMLProvider] = {}
@@ -1825,6 +1816,8 @@ class IAMBackend(BaseBackend):
         self.initialize_service_roles()
 
     def _init_aws_policies(self) -> List[ManagedPolicy]:
+        if not load_iam_aws_managed_policies():
+            return []
         # AWS defines some of its own managed policies
         # we periodically import them via `make aws_managed_policies`
         aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
@@ -1834,15 +1827,7 @@ class IAMBackend(BaseBackend):
         ]
 
     def _init_managed_policies(self) -> Dict[str, ManagedPolicy]:
-        return dict((p.arn, copy.deepcopy(p)) for p in self.aws_managed_policies)
-
-    def reset(self) -> None:
-        region_name = self.region_name
-        account_id = self.account_id
-        # Do not reset these policies, as they take a long time to load
-        aws_policies = self.aws_managed_policies
-        self.__dict__ = {}
-        IAMBackend.__init__(self, region_name, account_id, aws_policies)
+        return dict((p.arn, p) for p in self.aws_managed_policies)
 
     def initialize_service_roles(self) -> None:
         pass

@@ -4,11 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_stepfunctions
+from moto import mock_aws
 
 
-@mock_stepfunctions
-@mock_cloudformation
+@mock_aws
 def test_state_machine_cloudformation():
     sf = boto3.client("stepfunctions", region_name="us-east-1")
     cf = boto3.resource("cloudformation", region_name="us-east-1")
@@ -64,8 +63,7 @@ def test_state_machine_cloudformation():
     assert "Does Not Exist" in ex.value.response["Error"]["Message"]
 
 
-@mock_stepfunctions
-@mock_cloudformation
+@mock_aws
 def test_state_machine_cloudformation_update_with_replacement():
     sf = boto3.client("stepfunctions", region_name="us-east-1")
     cf = boto3.resource("cloudformation", region_name="us-east-1")
@@ -143,8 +141,7 @@ def test_state_machine_cloudformation_update_with_replacement():
     assert "State Machine Does Not Exist" in ex.value.response["Error"]["Message"]
 
 
-@mock_stepfunctions
-@mock_cloudformation
+@mock_aws
 def test_state_machine_cloudformation_update_with_no_interruption():
     sf = boto3.client("stepfunctions", region_name="us-east-1")
     cf = boto3.resource("cloudformation", region_name="us-east-1")

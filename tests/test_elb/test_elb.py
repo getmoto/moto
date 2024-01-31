@@ -4,15 +4,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_acm, mock_ec2, mock_elb, mock_iam
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
 
 @pytest.mark.parametrize("region_name", ["us-east-1", "ap-south-1"])
 @pytest.mark.parametrize("zones", [["a"], ["a", "b"]])
-@mock_elb
-@mock_ec2
+@mock_aws
 def test_create_load_balancer(zones, region_name):
     zones = [f"{region_name}{z}" for z in zones]
     # Both regions and availability zones are parametrized
@@ -76,7 +75,7 @@ def test_create_load_balancer(zones, region_name):
     }
 
 
-@mock_elb
+@mock_aws
 def test_get_missing_elb():
     client = boto3.client("elb", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -86,7 +85,7 @@ def test_get_missing_elb():
     assert err["Message"] == "The specified load balancer does not exist: unknown-lb"
 
 
-@mock_elb
+@mock_aws
 def test_create_elb_in_multiple_region():
     client_east = boto3.client("elb", region_name="us-east-2")
     client_west = boto3.client("elb", region_name="us-west-2")
@@ -120,8 +119,7 @@ def test_create_elb_in_multiple_region():
     assert name_east not in west_names
 
 
-@mock_acm
-@mock_elb
+@mock_aws
 def test_create_load_balancer_with_certificate():
     acm_client = boto3.client("acm", region_name="us-east-2")
     acm_request_response = acm_client.request_certificate(
@@ -158,7 +156,7 @@ def test_create_load_balancer_with_certificate():
     assert listener["SSLCertificateId"] == certificate_arn
 
 
-@mock_elb
+@mock_aws
 def test_create_load_balancer_with_invalid_certificate():
     client = boto3.client("elb", region_name="us-east-2")
 
@@ -181,7 +179,7 @@ def test_create_load_balancer_with_invalid_certificate():
     assert err["Code"] == "CertificateNotFoundException"
 
 
-@mock_elb
+@mock_aws
 def test_create_and_delete_load_balancer():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -196,7 +194,7 @@ def test_create_and_delete_load_balancer():
     assert len(client.describe_load_balancers()["LoadBalancerDescriptions"]) == 0
 
 
-@mock_elb
+@mock_aws
 def test_create_load_balancer_with_no_listeners_defined():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -208,8 +206,7 @@ def test_create_load_balancer_with_no_listeners_defined():
         )
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_create_load_balancer_without_security_groups():
     lb_name = str(uuid4())[0:6]
     client = boto3.client("elb", region_name="us-east-1")
@@ -228,7 +225,7 @@ def test_create_load_balancer_without_security_groups():
     assert sg["GroupName"].startswith("default_elb_")
 
 
-@mock_elb
+@mock_aws
 def test_describe_paginated_balancers():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -251,8 +248,7 @@ def test_describe_paginated_balancers():
     assert "NextToken" not in resp2.keys()
 
 
-@mock_elb
-@mock_ec2
+@mock_aws
 def test_apply_security_groups_to_load_balancer():
     client = boto3.client("elb", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -286,7 +282,7 @@ def test_apply_security_groups_to_load_balancer():
     )
 
 
-@mock_elb
+@mock_aws
 def test_create_and_delete_listener():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -318,7 +314,7 @@ def test_create_and_delete_listener():
     assert len(balancer["ListenerDescriptions"]) == 1
 
 
-@mock_elb
+@mock_aws
 @pytest.mark.parametrize("first,second", [["tcp", "http"], ["http", "TCP"]])
 def test_create_duplicate_listener_different_protocols(first, second):
     client = boto3.client("elb", region_name="us-east-1")
@@ -345,7 +341,7 @@ def test_create_duplicate_listener_different_protocols(first, second):
     )
 
 
-@mock_elb
+@mock_aws
 @pytest.mark.parametrize(
     "first,second", [["tcp", "tcp"], ["tcp", "TcP"], ["http", "HTTP"]]
 )
@@ -369,8 +365,7 @@ def test_create_duplicate_listener_same_details(first, second):
     assert len(balancer["ListenerDescriptions"]) == 1
 
 
-@mock_acm
-@mock_elb
+@mock_aws
 def test_create_lb_listener_with_ssl_certificate_from_acm():
     acm_client = boto3.client("acm", region_name="eu-west-1")
     acm_request_response = acm_client.request_certificate(
@@ -411,8 +406,7 @@ def test_create_lb_listener_with_ssl_certificate_from_acm():
     assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
 
 
-@mock_iam
-@mock_elb
+@mock_aws
 def test_create_lb_listener_with_ssl_certificate_from_iam():
     iam_client = boto3.client("iam", region_name="eu-west-2")
     iam_cert_response = iam_client.upload_server_certificate(
@@ -452,8 +446,7 @@ def test_create_lb_listener_with_ssl_certificate_from_iam():
     assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
 
 
-@mock_acm
-@mock_elb
+@mock_aws
 def test_create_lb_listener_with_invalid_ssl_certificate():
     client = boto3.client("elb", region_name="eu-west-1")
 
@@ -479,8 +472,7 @@ def test_create_lb_listener_with_invalid_ssl_certificate():
     assert err["Code"] == "CertificateNotFoundException"
 
 
-@mock_acm
-@mock_elb
+@mock_aws
 def test_set_sslcertificate():
     acm_client = boto3.client("acm", region_name="us-east-1")
     acm_request_response = acm_client.request_certificate(
@@ -518,7 +510,7 @@ def test_set_sslcertificate():
     assert listener["SSLCertificateId"] == certificate_arn
 
 
-@mock_elb
+@mock_aws
 def test_get_load_balancers_by_name():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name1 = str(uuid4())[0:6]
@@ -559,7 +551,7 @@ def test_get_load_balancers_by_name():
     assert "The specified load balancer does not exist:" in err["Message"]
 
 
-@mock_elb
+@mock_aws
 def test_delete_load_balancer():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name1 = str(uuid4())[0:6]
@@ -590,7 +582,7 @@ def test_delete_load_balancer():
     assert lb_name2 in lb_names
 
 
-@mock_elb
+@mock_aws
 def test_create_health_check():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -618,8 +610,7 @@ def test_create_health_check():
     assert balancer["HealthCheck"]["UnhealthyThreshold"] == 5
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_register_instances():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
@@ -641,8 +632,7 @@ def test_register_instances():
     assert set(instance_ids) == set([instance_id1, instance_id2])
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_deregister_instances():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     response = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
@@ -672,7 +662,7 @@ def test_deregister_instances():
     assert balancer["Instances"][0]["InstanceId"] == instance_id2
 
 
-@mock_elb
+@mock_aws
 def test_default_attributes():
     lb_name = str(uuid4())[0:6]
 
@@ -692,7 +682,7 @@ def test_default_attributes():
     assert attributes["ConnectionSettings"] == {"IdleTimeout": 60}
 
 
-@mock_elb
+@mock_aws
 def test_cross_zone_load_balancing_attribute():
     lb_name = str(uuid4())[0:6]
 
@@ -727,7 +717,7 @@ def test_cross_zone_load_balancing_attribute():
     assert attributes["CrossZoneLoadBalancing"] == {"Enabled": False}
 
 
-@mock_elb
+@mock_aws
 def test_connection_draining_attribute():
     lb_name = str(uuid4())[0:6]
 
@@ -759,7 +749,7 @@ def test_connection_draining_attribute():
     assert attributes["ConnectionDraining"] == {"Enabled": False, "Timeout": 300}
 
 
-@mock_elb
+@mock_aws
 def test_access_log_attribute():
     lb_name = str(uuid4())[0:6]
 
@@ -811,7 +801,7 @@ def test_access_log_attribute():
     assert access_log == {"Enabled": False}
 
 
-@mock_elb
+@mock_aws
 def test_connection_settings_attribute():
     lb_name = str(uuid4())[0:6]
 
@@ -840,8 +830,7 @@ def test_connection_settings_attribute():
     assert conn_settings == {"IdleTimeout": 123}
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_describe_instance_health():
     elb = boto3.client("elb", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
@@ -867,8 +856,7 @@ def test_describe_instance_health():
     assert len(instances_health) == 2
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_describe_instance_health__with_instance_ids():
     elb = boto3.client("elb", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
@@ -910,7 +898,7 @@ def test_describe_instance_health__with_instance_ids():
     assert instances_health[2]["State"] == "OutOfService"
 
 
-@mock_elb
+@mock_aws
 def test_describe_instance_health_of_unknown_lb():
     elb = boto3.client("elb", region_name="us-east-1")
 
@@ -921,7 +909,7 @@ def test_describe_instance_health_of_unknown_lb():
     assert err["Message"] == "There is no ACTIVE Load Balancer named 'what'"
 
 
-@mock_elb
+@mock_aws
 def test_add_remove_tags():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -1038,7 +1026,7 @@ def test_add_remove_tags():
     assert lb_tags["other-lb"]["other"] == "something"
 
 
-@mock_elb
+@mock_aws
 def test_create_with_tags():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -1058,7 +1046,7 @@ def test_create_with_tags():
     assert tags["k"] == "v"
 
 
-@mock_elb
+@mock_aws
 def test_modify_attributes():
     client = boto3.client("elb", region_name="us-east-1")
 
@@ -1087,8 +1075,7 @@ def test_modify_attributes():
     assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"] == 45
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_subnets():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
@@ -1112,7 +1099,7 @@ def test_subnets():
     }
 
 
-@mock_elb
+@mock_aws
 def test_create_load_balancer_duplicate():
     lb_name = str(uuid4())[0:6]
     client = boto3.client("elb", region_name="us-east-1")

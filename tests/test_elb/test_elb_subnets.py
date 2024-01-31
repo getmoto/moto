@@ -1,10 +1,9 @@
 import boto3
 
-from moto import mock_ec2, mock_elb
+from moto import mock_aws
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_elb_attach_load_balancer_to_subnets():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
@@ -28,8 +27,7 @@ def test_elb_attach_load_balancer_to_subnets():
     assert subnet2.id in lb["Subnets"]
 
 
-@mock_ec2
-@mock_elb
+@mock_aws
 def test_elb_detach_load_balancer_to_subnets():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")

@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2, mock_route53
+from moto import mock_aws
 from tests.test_cloudformation.fixtures import (
     route53_ec2_instance_with_public_ip,
     route53_health_check,
@@ -44,8 +44,7 @@ template_record_set = {
 }
 
 
-@mock_cloudformation
-@mock_route53
+@mock_aws
 def test_create_stack_hosted_zone_by_id():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     conn = boto3.client("route53", region_name="us-east-1")
@@ -74,8 +73,7 @@ def test_create_stack_hosted_zone_by_id():
     assert updated_zone["ResourceRecordSetCount"] == 3
 
 
-@mock_cloudformation
-@mock_route53
+@mock_aws
 def test_route53_roundrobin():
     cf = boto3.client("cloudformation", region_name="us-west-1")
     route53 = boto3.client("route53", region_name="us-west-1")
@@ -113,9 +111,7 @@ def test_route53_roundrobin():
     assert output["OutputValue"] == f"arn:aws:route53:::hostedzone/{zone_id}"
 
 
-@mock_cloudformation
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_route53_ec2_instance_with_public_ip():
     route53 = boto3.client("route53", region_name="us-west-1")
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -146,8 +142,7 @@ def test_route53_ec2_instance_with_public_ip():
     assert "Weight" not in record_set
 
 
-@mock_cloudformation
-@mock_route53
+@mock_aws
 def test_route53_associate_health_check():
     route53 = boto3.client("route53", region_name="us-west-1")
 
@@ -179,8 +174,7 @@ def test_route53_associate_health_check():
     assert record_set["HealthCheckId"] == health_check_id
 
 
-@mock_cloudformation
-@mock_route53
+@mock_aws
 def test_route53_with_update():
     route53 = boto3.client("route53", region_name="us-west-1")
 
@@ -226,8 +220,7 @@ def test_route53_with_update():
     assert record_set["ResourceRecords"][0]["Value"] == "my_other.example.com"
 
 
-@mock_cloudformation
-@mock_route53
+@mock_aws
 def test_delete_route53_recordset():
     cf = boto3.client("cloudformation", region_name="us-west-1")
 

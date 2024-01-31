@@ -5,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sagemaker
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 FAKE_ROLE_ARN = f"arn:aws:iam::{ACCOUNT_ID}:role/FakeRole"
@@ -99,7 +99,7 @@ class MyTrainingJobModel:
         return sagemaker.create_training_job(**params)
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_training_job():
     sagemaker = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -218,7 +218,7 @@ def test_create_training_job():
     assert "Timestamp" in resp["FinalMetricDataList"][0]
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs():
     client = boto3.client("sagemaker", region_name="us-east-1")
     name = "blah"
@@ -236,7 +236,7 @@ def test_list_training_jobs():
     assert training_jobs.get("NextToken") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_multiple():
     client = boto3.client("sagemaker", region_name="us-east-1")
     name_job_1 = "blah"
@@ -260,14 +260,14 @@ def test_list_training_jobs_multiple():
     assert training_jobs.get("NextToken") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_none():
     client = boto3.client("sagemaker", region_name="us-east-1")
     training_jobs = client.list_training_jobs()
     assert len(training_jobs["TrainingJobSummaries"]) == 0
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_should_validate_input():
     client = boto3.client("sagemaker", region_name="us-east-1")
     junk_status_equals = "blah"
@@ -292,7 +292,7 @@ def test_list_training_jobs_should_validate_input():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_with_name_filters():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
@@ -310,7 +310,7 @@ def test_list_training_jobs_with_name_filters():
     assert len(training_jobs_with_2["TrainingJobSummaries"]) == 2
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_paginated():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
@@ -340,7 +340,7 @@ def test_list_training_jobs_paginated():
     assert xgboost_training_job_next.get("NextToken") is not None
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_paginated_with_target_in_middle():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
@@ -369,7 +369,7 @@ def test_list_training_jobs_paginated_with_target_in_middle():
     assert vgg_training_job_10.get("NextToken") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_training_jobs_paginated_with_fragmented_targets():
     client = boto3.client("sagemaker", region_name="us-east-1")
     for i in range(5):
@@ -400,7 +400,7 @@ def test_list_training_jobs_paginated_with_fragmented_targets():
     assert training_jobs_with_2_next_next.get("NextToken") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_add_tags_to_training_job():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
     name = "blah"
@@ -420,7 +420,7 @@ def test_add_tags_to_training_job():
     assert response["Tags"] == tags
 
 
-@mock_sagemaker
+@mock_aws
 def test_delete_tags_from_training_job():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
     name = "blah"
@@ -444,7 +444,7 @@ def test_delete_tags_from_training_job():
     assert response["Tags"] == []
 
 
-@mock_sagemaker
+@mock_aws
 def test_describe_unknown_training_job():
     client = boto3.client("sagemaker", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:

@@ -5,7 +5,7 @@ from unittest.mock import patch
 import boto3
 import pytest
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 
 DEFAULT_REGION_NAME = "us-east-1"
 CUSTOM_ENDPOINT = "https://s3.local.some-test-domain.de"
@@ -19,7 +19,7 @@ def test_create_and_list_buckets(url):
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         # Mock needs to be started after the environment variable is patched in
-        with mock_s3():
+        with mock_aws():
             bucket = "mybucket"
             conn = boto3.resource(
                 "s3", endpoint_url=url, region_name=DEFAULT_REGION_NAME
@@ -41,7 +41,7 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
         {"MOTO_S3_CUSTOM_ENDPOINTS": f"{CUSTOM_ENDPOINT},{CUSTOM_ENDPOINT_2}"},
     ):
         # Mock needs to be started after the environment variable is patched in
-        with mock_s3():
+        with mock_aws():
             bucket = "mybucket"
             conn = boto3.resource(
                 "s3", endpoint_url=url, region_name=DEFAULT_REGION_NAME
@@ -54,12 +54,12 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
 
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
-@mock_s3
+@mock_aws
 def test_put_and_get_object(url):
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
-        with mock_s3():
+        with mock_aws():
             bucket = "mybucket"
             key = "file.txt"
             contents = "file contents"
@@ -77,12 +77,12 @@ def test_put_and_get_object(url):
 
 
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
-@mock_s3
+@mock_aws
 def test_put_and_list_objects(url):
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
-        with mock_s3():
+        with mock_aws():
             bucket = "mybucket"
 
             s3_client = boto3.client(

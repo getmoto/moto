@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_route53
+from moto import mock_aws
 
 
-@mock_route53
+@mock_aws
 def test_create_health_check():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -45,7 +45,7 @@ def test_create_health_check():
     assert "HealthThreshold" not in config
 
 
-@mock_route53
+@mock_aws
 def test_create_health_check_with_additional_options():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -81,7 +81,7 @@ def test_create_health_check_with_additional_options():
     assert config["EnableSNI"] is True
 
 
-@mock_route53
+@mock_aws
 def test_create_calculated_health_check():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -114,7 +114,7 @@ def test_create_calculated_health_check():
     assert "MeasureLatency" not in config
 
 
-@mock_route53
+@mock_aws
 def test_create_calculated_health_check_with_children():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -167,7 +167,7 @@ def test_create_calculated_health_check_with_children():
     ]
 
 
-@mock_route53
+@mock_aws
 def test_get_health_check():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -187,7 +187,7 @@ def test_get_health_check():
     assert resp["HealthCheckVersion"] == 1
 
 
-@mock_route53
+@mock_aws
 def test_get_unknown_health_check():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -198,7 +198,7 @@ def test_get_unknown_health_check():
     assert err["Message"] == "A health check with id unknown does not exist."
 
 
-@mock_route53
+@mock_aws
 def test_list_health_checks():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -221,7 +221,7 @@ def test_list_health_checks():
     assert conn.list_health_checks()["HealthChecks"] == [check]
 
 
-@mock_route53
+@mock_aws
 def test_delete_health_checks():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -247,7 +247,7 @@ def test_delete_health_checks():
     assert len(checks) == 0
 
 
-@mock_route53
+@mock_aws
 def test_update_health_check():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -289,7 +289,7 @@ def test_update_health_check():
     assert config["Regions"] == ["us-east-1", "us-east-2", "us-west-1"]
 
 
-@mock_route53
+@mock_aws
 def test_health_check_status():
     client = boto3.client("route53", region_name="us-east-1")
 

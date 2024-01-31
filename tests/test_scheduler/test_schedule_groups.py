@@ -1,16 +1,15 @@
-"""Unit tests for scheduler-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_scheduler
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_scheduler
+@mock_aws
 def test_create_get_delete_schedule_group():
     client = boto3.client("scheduler", region_name="eu-west-1")
     arn = client.create_schedule_group(Name="sg")["ScheduleGroupArn"]
@@ -30,7 +29,7 @@ def test_create_get_delete_schedule_group():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_scheduler
+@mock_aws
 def test_list_schedule_groups():
     client = boto3.client("scheduler", region_name="ap-southeast-1")
 

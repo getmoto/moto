@@ -2,11 +2,10 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_logs
+from moto import mock_aws
 
 
-@mock_logs
-@mock_cloudformation
+@mock_aws
 def test_tagging():
     logs_client = boto3.client("logs", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")

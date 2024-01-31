@@ -7,7 +7,8 @@ from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 from dateutil.tz import tzutc
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
 

@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_opensearch
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_opensearch
+@mock_aws
 def test_create_domain__minimal_options():
     client = boto3.client("opensearch", region_name="eu-west-1")
     status = client.create_domain(DomainName="testdn")["DomainStatus"]
@@ -19,7 +19,7 @@ def test_create_domain__minimal_options():
     assert "Endpoints" not in status
 
 
-@mock_opensearch
+@mock_aws
 def test_create_domain_in_vpc():
     client = boto3.client("opensearch", region_name="eu-west-1")
     status = client.create_domain(
@@ -32,7 +32,7 @@ def test_create_domain_in_vpc():
     assert status["Endpoints"] is not None
 
 
-@mock_opensearch
+@mock_aws
 def test_create_domain_with_some_options():
     client = boto3.client("opensearch", region_name="eu-north-1")
     status = client.create_domain(
@@ -57,7 +57,7 @@ def test_create_domain_with_some_options():
     assert status["SnapshotOptions"] == {"AutomatedSnapshotStartHour": 20}
 
 
-@mock_opensearch
+@mock_aws
 def test_get_compatible_versions():
     client = boto3.client("opensearch", region_name="us-east-2")
     client.create_domain(DomainName="testdn")
@@ -66,7 +66,7 @@ def test_get_compatible_versions():
     assert len(versions) == 22
 
 
-@mock_opensearch
+@mock_aws
 def test_get_compatible_versions_unknown_domain():
     client = boto3.client("opensearch", region_name="us-east-2")
 
@@ -77,7 +77,7 @@ def test_get_compatible_versions_unknown_domain():
     assert err["Message"] == "Domain not found: testdn"
 
 
-@mock_opensearch
+@mock_aws
 def test_describe_unknown_domain():
     client = boto3.client("opensearch", region_name="eu-west-1")
 
@@ -88,7 +88,7 @@ def test_describe_unknown_domain():
     assert err["Message"] == "Domain not found: testdn"
 
 
-@mock_opensearch
+@mock_aws
 def test_describe_domain():
     client = boto3.client("opensearch", region_name="eu-west-1")
     client.create_domain(DomainName="testdn")
@@ -99,7 +99,7 @@ def test_describe_domain():
     assert status["DomainName"] == "testdn"
 
 
-@mock_opensearch
+@mock_aws
 def test_delete_domain():
     client = boto3.client("opensearch", region_name="eu-west-1")
     client.create_domain(DomainName="testdn")
@@ -112,7 +112,7 @@ def test_delete_domain():
     assert err["Message"] == "Domain not found: testdn"
 
 
-@mock_opensearch
+@mock_aws
 def test_update_domain_config():
     client = boto3.client("opensearch", region_name="eu-north-1")
     client.create_domain(
@@ -141,7 +141,7 @@ def test_update_domain_config():
     }
 
 
-@mock_opensearch
+@mock_aws
 def test_list_domain_names():
     client = boto3.client("opensearch", region_name="ap-southeast-1")
 
@@ -164,7 +164,7 @@ def test_list_domain_names():
     assert test_domain_names_list_exist
 
 
-@mock_opensearch
+@mock_aws
 def test_list_filtered_domain_names():
     client = boto3.client("opensearch", region_name="ap-southeast-1")
 
@@ -188,7 +188,7 @@ def test_list_filtered_domain_names():
     assert test_domain_names_list_exist
 
 
-@mock_opensearch
+@mock_aws
 def test_list_unknown_domain_names_engine_type():
     client = boto3.client("opensearch", region_name="ap-southeast-1")
 

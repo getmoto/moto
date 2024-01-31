@@ -10,7 +10,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
 
-from moto import mock_acm, mock_elb, settings
+from moto import mock_aws, settings
 from moto.acm.models import AWS_ROOT_CA
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
@@ -38,7 +38,7 @@ def _import_cert(client):
 
 
 # Also tests GetCertificate
-@mock_acm
+@mock_aws
 def test_import_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -51,7 +51,7 @@ def test_import_certificate():
     assert "CertificateChain" in resp
 
 
-@mock_acm
+@mock_aws
 def test_import_certificate_with_tags():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -75,7 +75,7 @@ def test_import_certificate_with_tags():
     assert tags["KeyOnly"] == "__NONE__"
 
 
-@mock_acm
+@mock_aws
 def test_import_bad_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -87,7 +87,7 @@ def test_import_bad_certificate():
         raise RuntimeError("Should have raised ValidationException")
 
 
-@mock_acm
+@mock_aws
 def test_list_certificates():
     client = boto3.client("acm", region_name="eu-central-1")
     issued_arn = _import_cert(client)
@@ -131,7 +131,7 @@ def test_list_certificates():
     assert pending_arn in [c["CertificateArn"] for c in certs]
 
 
-@mock_acm
+@mock_aws
 def test_get_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -144,7 +144,7 @@ def test_get_invalid_certificate():
 
 
 # Also tests deleting invalid certificate
-@mock_acm
+@mock_aws
 def test_delete_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -160,7 +160,7 @@ def test_delete_certificate():
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
-@mock_acm
+@mock_aws
 def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -183,7 +183,7 @@ def test_describe_certificate():
     assert validation_option["DomainName"] == SERVER_COMMON_NAME
 
 
-@mock_acm
+@mock_aws
 def test_describe_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -193,7 +193,7 @@ def test_describe_certificate_with_bad_arn():
     assert err.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_acm
+@mock_aws
 def test_export_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -215,7 +215,7 @@ def test_export_certificate():
     assert private_key == SERVER_KEY
 
 
-@mock_acm
+@mock_aws
 def test_export_certificate_with_bad_arn():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -226,7 +226,7 @@ def test_export_certificate_with_bad_arn():
 
 
 # Also tests ListTagsForCertificate
-@mock_acm
+@mock_aws
 def test_add_tags_to_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -247,7 +247,7 @@ def test_add_tags_to_certificate():
     assert tags["key2"] == "__NONE__"
 
 
-@mock_acm
+@mock_aws
 def test_add_tags_to_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -262,7 +262,7 @@ def test_add_tags_to_invalid_certificate():
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
-@mock_acm
+@mock_aws
 def test_list_tags_for_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -274,7 +274,7 @@ def test_list_tags_for_invalid_certificate():
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
-@mock_acm
+@mock_aws
 def test_remove_tags_from_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -308,7 +308,7 @@ def test_remove_tags_from_certificate():
     assert "key1" in tags
 
 
-@mock_acm
+@mock_aws
 def test_remove_tags_from_invalid_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -323,7 +323,7 @@ def test_remove_tags_from_invalid_certificate():
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
-@mock_acm
+@mock_aws
 def test_resend_validation_email():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -334,7 +334,7 @@ def test_resend_validation_email():
     # Returns nothing, boto would raise Exceptions otherwise
 
 
-@mock_acm
+@mock_aws
 def test_resend_validation_email_invalid():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -364,7 +364,7 @@ def test_resend_validation_email_invalid():
         raise RuntimeError("Should have raised ResourceNotFoundException")
 
 
-@mock_acm
+@mock_aws
 def test_request_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -387,7 +387,7 @@ def test_request_certificate():
     assert resp["CertificateArn"] == arn
 
 
-@mock_acm
+@mock_aws
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
 def test_request_certificate_with_optional_arguments():
     if not settings.TEST_DECORATOR_MODE:
@@ -470,7 +470,7 @@ def test_request_certificate_with_optional_arguments():
     assert arn_1 != arn_4  # if tags are matched, ACM would have returned same arn
 
 
-@mock_acm
+@mock_aws
 def test_operations_with_invalid_tags():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -521,7 +521,7 @@ def test_operations_with_invalid_tags():
     assert "AWS internal tags cannot be changed with this API" in err["Message"]
 
 
-@mock_acm
+@mock_aws
 def test_add_too_many_tags():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
@@ -554,7 +554,7 @@ def test_add_too_many_tags():
     assert len(client.list_tags_for_certificate(CertificateArn=arn)["Tags"]) == 49
 
 
-@mock_acm
+@mock_aws
 def test_request_certificate_no_san():
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -574,7 +574,7 @@ def test_request_certificate_no_san():
 
 
 # Also tests the SAN code
-@mock_acm
+@mock_aws
 def test_request_certificate_issued_status():
     # After requesting a certificate, it should then auto-validate after 1 minute
     # Some sneaky programming for that ;-)
@@ -612,7 +612,7 @@ def test_request_certificate_issued_status():
 
 
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 3)
-@mock_acm
+@mock_aws
 def test_request_certificate_issued_status_with_wait_in_envvar():
     # After requesting a certificate, it should then auto-validate after 3 seconds
     if not settings.TEST_DECORATOR_MODE:
@@ -641,7 +641,7 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
     assert resp["Certificate"]["Status"] == "ISSUED"
 
 
-@mock_acm
+@mock_aws
 def test_request_certificate_with_mutiple_times():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cant manipulate time in server mode")
@@ -689,8 +689,7 @@ def test_request_certificate_with_mutiple_times():
     assert arn != original_arn
 
 
-@mock_acm
-@mock_elb
+@mock_aws
 def test_elb_acm_in_use_by():
     acm_client = boto3.client("acm", region_name="us-west-2")
     elb_client = boto3.client("elb", region_name="us-west-2")

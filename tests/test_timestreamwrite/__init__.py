@@ -1,7 +1,7 @@
 import os
 from functools import wraps
 
-from moto import mock_s3, mock_sts, mock_timestreamwrite
+from moto import mock_aws
 
 
 def timestreamwrite_aws_verified(func):
@@ -10,7 +10,7 @@ def timestreamwrite_aws_verified(func):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_timestreamwrite`, `mock_s3` and `mock_sts` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     """
 
@@ -23,7 +23,7 @@ def timestreamwrite_aws_verified(func):
         if allow_aws_request:
             return func()
         else:
-            with mock_timestreamwrite(), mock_s3(), mock_sts():
+            with mock_aws():
                 return func()
 
     return pagination_wrapper

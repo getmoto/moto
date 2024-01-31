@@ -48,8 +48,8 @@ from moto.config.exceptions import (
     TooManyTags,
     ValidationException,
 )
-from moto.core import BackendDict, BaseBackend, BaseModel
-from moto.core.common_models import ConfigQueryModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import utcnow
 from moto.iam.config import policy_config_query, role_config_query
@@ -684,10 +684,10 @@ class Source(ConfigEmptyDictable):
 
         # Import is slow and as it's not needed for all config service
         # operations, only load it if needed.
-        from moto.awslambda import lambda_backends
+        from moto.awslambda.utils import get_backend
 
         try:
-            lambda_backends[account_id][region].get_function(source_identifier)
+            get_backend(account_id, region).get_function(source_identifier)
         except Exception:
             raise InsufficientPermissionsException(
                 f"The AWS Lambda function {source_identifier} cannot be "

@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_rds
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
@@ -48,7 +48,7 @@ def _prepare_db_cluster_snapshot(client, snapshot_name="cluster-snapshot-1"):
     return resp["DBClusterSnapshot"]["DBClusterSnapshotArn"]
 
 
-@mock_rds
+@mock_aws
 def test_start_export_task_fails_unknown_snapshot():
     client = boto3.client("rds", region_name="us-west-2")
 
@@ -66,7 +66,7 @@ def test_start_export_task_fails_unknown_snapshot():
     assert err["Message"] == "DBSnapshot snapshot-1 not found."
 
 
-@mock_rds
+@mock_aws
 def test_start_export_task_db():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_snapshot(client)
@@ -93,7 +93,7 @@ def test_start_export_task_db():
     assert export["SourceType"] == "SNAPSHOT"
 
 
-@mock_rds
+@mock_aws
 def test_start_export_task_db_cluster():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_cluster_snapshot(client)
@@ -120,7 +120,7 @@ def test_start_export_task_db_cluster():
     assert export["SourceType"] == "CLUSTER"
 
 
-@mock_rds
+@mock_aws
 def test_start_export_task_fail_already_exists():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_snapshot(client)
@@ -149,7 +149,7 @@ def test_start_export_task_fail_already_exists():
     )
 
 
-@mock_rds
+@mock_aws
 def test_cancel_export_task_fails_unknown_task():
     client = boto3.client("rds", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -163,7 +163,7 @@ def test_cancel_export_task_fails_unknown_task():
     )
 
 
-@mock_rds
+@mock_aws
 def test_cancel_export_task():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_snapshot(client)
@@ -182,7 +182,7 @@ def test_cancel_export_task():
     assert export["Status"] == "canceled"
 
 
-@mock_rds
+@mock_aws
 def test_describe_export_tasks():
     client = boto3.client("rds", region_name="us-west-2")
     source_arn = _prepare_db_snapshot(client)
@@ -200,7 +200,7 @@ def test_describe_export_tasks():
     assert exports[0]["ExportTaskIdentifier"] == "export-snapshot-1"
 
 
-@mock_rds
+@mock_aws
 def test_describe_export_tasks_fails_unknown_task():
     client = boto3.client("rds", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:

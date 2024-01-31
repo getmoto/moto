@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_managedblockchain
+from moto import mock_aws
 
 from . import helpers
 
 
 class TestManagedBlockchainInvitations:
-    mock = mock_managedblockchain()
+    mock = mock_aws()
 
     @classmethod
     def setup_class(cls):

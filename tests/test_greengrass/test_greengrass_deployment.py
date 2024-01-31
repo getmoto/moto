@@ -5,12 +5,12 @@ import freezegun
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_greengrass
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.settings import TEST_SERVER_MODE
 
 
-@mock_greengrass
+@mock_aws
 def test_create_deployment():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -40,7 +40,7 @@ def test_create_deployment():
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_greengrass
+@mock_aws
 def test_re_deployment_with_no_deployment_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -76,7 +76,7 @@ def test_re_deployment_with_no_deployment_id():
     assert err["Code"] == "InvalidInputException"
 
 
-@mock_greengrass
+@mock_aws
 def test_re_deployment_with_invalid_deployment_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -111,7 +111,7 @@ def test_re_deployment_with_invalid_deployment_id():
     assert err["Code"] == "InvalidInputException"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_deployment_with_no_core_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_group_res = client.create_group(Name="TestGroup")
@@ -137,7 +137,7 @@ def test_create_deployment_with_no_core_group():
     )
 
 
-@mock_greengrass
+@mock_aws
 def test_create_deployment_with_invalid_group_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -154,7 +154,7 @@ def test_create_deployment_with_invalid_group_id():
     )
 
 
-@mock_greengrass
+@mock_aws
 def test_create_deployment_with_invalid_group_version_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -191,7 +191,7 @@ def test_create_deployment_with_invalid_group_version_id():
     )
 
 
-@mock_greengrass
+@mock_aws
 def test_create_deployment_with_invalid_deployment_type():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_group_res = client.create_group(Name="TestGroup")
@@ -215,7 +215,7 @@ def test_create_deployment_with_invalid_deployment_type():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_deployments():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -257,7 +257,7 @@ def test_list_deployments():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_deployment_status():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -295,7 +295,7 @@ def test_get_deployment_status():
         assert res["UpdatedAt"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_deployment_status_with_invalid_deployment_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_group_res = client.create_group(Name="TestGroup")
@@ -310,7 +310,7 @@ def test_get_deployment_status_with_invalid_deployment_id():
     assert err["Code"] == "InvalidInputException"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_deployment_status_with_invalid_group_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -352,7 +352,7 @@ def test_get_deployment_status_with_invalid_group_id():
     reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
 )
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_reset_deployments():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -400,7 +400,7 @@ def test_reset_deployments():
     TEST_SERVER_MODE,
     reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
 )
-@mock_greengrass
+@mock_aws
 def test_reset_deployments_with_invalid_group_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -415,7 +415,7 @@ def test_reset_deployments_with_invalid_group_id():
     TEST_SERVER_MODE,
     reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
 )
-@mock_greengrass
+@mock_aws
 def test_reset_deployments_with_never_deployed_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [
@@ -449,7 +449,7 @@ def test_reset_deployments_with_never_deployed_group():
     TEST_SERVER_MODE,
     reason="Can't handle path that contains $ in server mode.So ResetGroup api can't use in server mode",
 )
-@mock_greengrass
+@mock_aws
 def test_reset_deployments_with_already_reset_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     cores = [

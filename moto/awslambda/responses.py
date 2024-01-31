@@ -5,13 +5,14 @@ from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.core.utils import path_url
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
     FunctionAlreadyExists,
     UnknownFunctionException,
 )
-from .models import LambdaBackend, lambda_backends
+from .models import LambdaBackend
+from .utils import get_backend
 
 
 class LambdaResponse(BaseResponse):
@@ -24,7 +25,7 @@ class LambdaResponse(BaseResponse):
 
     @property
     def backend(self) -> LambdaBackend:
-        return lambda_backends[self.current_account][self.region]
+        return get_backend(self.current_account, self.region)
 
     def root(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
@@ -128,9 +129,8 @@ class LambdaResponse(BaseResponse):
             raise ValueError("Cannot handle request")
 
     @amz_crc32
-    @amzn_request_id
-    def invoke(  # type: ignore
-        self, request=None, full_url="", headers=None
+    def invoke(
+        self, request: Any, full_url: str, headers: Any
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -139,7 +139,6 @@ class LambdaResponse(BaseResponse):
             raise ValueError("Cannot handle request")
 
     @amz_crc32
-    @amzn_request_id
     def invoke_async(
         self, request: Any, full_url: str, headers: Any
     ) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
@@ -371,7 +370,12 @@ class LambdaResponse(BaseResponse):
         if result:
             return 200, {}, json.dumps(result.get_configuration())
         else:
-            return 404, {}, "{}"
+            err = {
+                "Type": "User",
+                "Message": "The resource you requested does not exist.",
+            }
+            headers = {"x-amzn-errortype": "ResourceNotFoundException"}
+            return 404, headers, json.dumps(err)
 
     def _update_event_source_mapping(self, uuid: str) -> TYPE_RESPONSE:
         result = self.backend.update_event_source_mapping(uuid, self.json_body)

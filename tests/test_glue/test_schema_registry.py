@@ -1,9 +1,8 @@
-"""Unit tests for glue-schema-registry-supported APIs."""
 import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_glue
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import helpers
@@ -43,7 +42,7 @@ from .fixtures.schema_registry import (
 
 @pytest.fixture(name="client")
 def fixture_client():
-    with mock_glue():
+    with mock_aws():
         yield boto3.client("glue", region_name="us-east-1")
 
 

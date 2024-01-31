@@ -3,25 +3,11 @@ import json
 import boto3
 from botocore.client import ClientError
 
-from moto import (
-    mock_acm,
-    mock_cloudformation,
-    mock_ec2,
-    mock_ecs,
-    mock_elbv2,
-    mock_iam,
-    mock_kms,
-    mock_lambda,
-    mock_resourcegroupstaggingapi,
-    mock_s3,
-    mock_sqs,
-)
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 
-@mock_kms
-@mock_cloudformation
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_cloudformation():
 
     template = {
@@ -79,8 +65,7 @@ def test_get_resources_cloudformation():
     assert stack_two in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
-@mock_acm
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_acm():
     client = boto3.client("acm", region_name="us-east-1")
     cert_blue = client.request_certificate(
@@ -117,9 +102,37 @@ def test_get_resources_acm():
     )
 
 
-@mock_ecs
-@mock_ec2
-@mock_resourcegroupstaggingapi
+@mock_aws
+def test_get_resources_backup():
+    backup = boto3.client("backup", region_name="eu-central-1")
+
+    # Create two tagged Backup Vaults
+    for i in range(1, 3):
+        i_str = str(i)
+
+        backup.create_backup_vault(
+            BackupVaultName="backup-vault-tag-" + i_str,
+            BackupVaultTags={
+                "Test": i_str,
+            },
+        )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
+
+    # Basic test
+    resp = rtapi.get_resources(ResourceTypeFilters=["backup"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["backup"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+
+
+@mock_aws
 def test_get_resources_ecs():
 
     # ecs:cluster
@@ -264,8 +277,7 @@ def test_get_resources_ecs():
     assert task_two not in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
-@mock_ec2
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
@@ -316,8 +328,7 @@ def test_get_resources_ec2():
     assert "instance/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
-@mock_ec2
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_ec2_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -337,8 +348,7 @@ def test_get_resources_ec2_vpc():
     assert_response(resp)
 
 
-@mock_ec2
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_tag_keys_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
@@ -372,8 +382,7 @@ def test_get_tag_keys_ec2():
     # TODO test pagenation
 
 
-@mock_ec2
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_tag_values_ec2():
     client = boto3.client("ec2", region_name="eu-central-1")
 
@@ -423,10 +432,7 @@ def test_get_tag_values_ec2():
     assert "MY_VALUE4" in resp["TagValues"]
 
 
-@mock_ec2
-@mock_elbv2
-@mock_kms
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_many_resources():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -490,9 +496,7 @@ def test_get_many_resources():
     # TODO test pagination
 
 
-@mock_ec2
-@mock_elbv2
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_target_group():
     ec2 = boto3.resource("ec2", region_name="eu-central-1")
     elbv2 = boto3.client("elbv2", region_name="eu-central-1")
@@ -531,8 +535,7 @@ def test_get_resources_target_group():
     assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
-@mock_s3
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_s3():
     # Tests pagination
     s3_client = boto3.client("s3", region_name="eu-central-1")
@@ -569,8 +572,7 @@ def test_get_resources_s3():
     assert len(response_keys) == 0
 
 
-@mock_ec2
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_multiple_tag_filters():
     client = boto3.client("ec2", region_name="eu-central-1")
 
@@ -628,21 +630,18 @@ def test_multiple_tag_filters():
     assert instance_2_id not in results[0]["ResourceARN"]
 
 
-@mock_lambda
-@mock_resourcegroupstaggingapi
-@mock_iam
+@mock_aws
 def test_get_resources_lambda():
     def get_role_name():
-        with mock_iam():
-            iam = boto3.client("iam", region_name="us-west-2")
-            try:
-                return iam.get_role(RoleName="my-role")["Role"]["Arn"]
-            except ClientError:
-                return iam.create_role(
-                    RoleName="my-role",
-                    AssumeRolePolicyDocument="some policy",
-                    Path="/my-path/",
-                )["Role"]["Arn"]
+        iam = boto3.client("iam", region_name="us-west-2")
+        try:
+            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+        except ClientError:
+            return iam.create_role(
+                RoleName="my-role",
+                AssumeRolePolicyDocument="some policy",
+                Path="/my-path/",
+            )["Role"]["Arn"]
 
     client = boto3.client("lambda", region_name="us-west-2")
 
@@ -716,8 +715,7 @@ def test_get_resources_lambda():
     assert_response(resp, [rectangle_arn])
 
 
-@mock_sqs
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_get_resources_sqs():
     sqs = boto3.resource("sqs", region_name="eu-central-1")
 
@@ -747,7 +745,7 @@ def test_get_resources_sqs():
     assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_tag_resources_for_unknown_service():
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
     missing_resources = rtapi.tag_resources(

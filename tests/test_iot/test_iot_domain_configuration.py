@@ -1,10 +1,10 @@
 import boto3
 import pytest
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_create_domain_configuration_only_name():
     client = boto3.client("iot", region_name="us-east-1")
     domain_config = client.create_domain_configuration(
@@ -14,7 +14,7 @@ def test_create_domain_configuration_only_name():
     assert domain_config["domainConfigurationArn"] is not None
 
 
-@mock_iot
+@mock_aws
 def test_create_duplicate_domain_configuration_fails():
     client = boto3.client("iot", region_name="us-east-1")
     domain_config = client.create_domain_configuration(
@@ -29,7 +29,7 @@ def test_create_duplicate_domain_configuration_fails():
     assert err["Message"] == "Domain configuration with given name already exists."
 
 
-@mock_iot
+@mock_aws
 def test_create_domain_configuration_full_params():
     client = boto3.client("iot", region_name="us-east-1")
     domain_config = client.create_domain_configuration(
@@ -47,7 +47,7 @@ def test_create_domain_configuration_full_params():
     assert domain_config["domainConfigurationArn"] is not None
 
 
-@mock_iot
+@mock_aws
 def test_create_domain_configuration_invalid_service_type():
     client = boto3.client("iot", region_name="us-east-1")
     with pytest.raises(client.exceptions.InvalidRequestException) as exc:
@@ -62,7 +62,7 @@ def test_create_domain_configuration_invalid_service_type():
     )
 
 
-@mock_iot
+@mock_aws
 def test_describe_nonexistent_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
@@ -72,7 +72,7 @@ def test_describe_nonexistent_domain_configuration():
     assert err["Message"] == "The specified resource does not exist."
 
 
-@mock_iot
+@mock_aws
 def test_describe_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -100,7 +100,7 @@ def test_describe_domain_configuration():
     assert described_config["lastStatusChangeDate"]
 
 
-@mock_iot
+@mock_aws
 def test_update_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
     client.create_domain_configuration(
@@ -128,7 +128,7 @@ def test_update_domain_configuration():
     assert updated["domainConfigurationStatus"] == "DISABLED"
 
 
-@mock_iot
+@mock_aws
 def test_update_domain_configuration_remove_authorizer_type():
     client = boto3.client("iot", region_name="us-east-1")
     client.create_domain_configuration(
@@ -149,7 +149,7 @@ def test_update_domain_configuration_remove_authorizer_type():
     assert "authorizerConfig" not in config
 
 
-@mock_iot
+@mock_aws
 def test_update_nonexistent_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
@@ -159,7 +159,7 @@ def test_update_nonexistent_domain_configuration():
     assert err["Message"] == "The specified resource does not exist."
 
 
-@mock_iot
+@mock_aws
 def test_list_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
     client.create_domain_configuration(domainConfigurationName="testConfig1")
@@ -170,7 +170,7 @@ def test_list_domain_configuration():
     assert domain_configs[1]["domainConfigurationName"] == "testConfig2"
 
 
-@mock_iot
+@mock_aws
 def test_delete_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
     client.create_domain_configuration(domainConfigurationName="testConfig")
@@ -181,7 +181,7 @@ def test_delete_domain_configuration():
     assert len(domain_configs["domainConfigurations"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_delete_nonexistent_domain_configuration():
     client = boto3.client("iot", region_name="us-east-1")
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:

@@ -10,12 +10,12 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_cloudwatch, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_no_dimensions():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
 
@@ -27,7 +27,7 @@ def test_put_metric_data_no_dimensions():
     assert {"Namespace": "tester", "MetricName": "metric", "Dimensions": []} in metrics
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_can_not_have_nan():
     client = boto3.client("cloudwatch", region_name="us-west-2")
     utc_now = datetime.now(tz=timezone.utc)
@@ -51,7 +51,7 @@ def test_put_metric_data_can_not_have_nan():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_can_not_have_value_and_values():
     client = boto3.client("cloudwatch", region_name="us-west-2")
     utc_now = datetime.now(tz=timezone.utc)
@@ -76,7 +76,7 @@ def test_put_metric_data_can_not_have_value_and_values():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_can_not_have_and_values_mismatched_counts():
     client = boto3.client("cloudwatch", region_name="us-west-2")
     utc_now = datetime.now(tz=timezone.utc)
@@ -101,7 +101,7 @@ def test_put_metric_data_can_not_have_and_values_mismatched_counts():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_values_and_counts():
     client = boto3.client("cloudwatch", region_name="us-west-2")
     utc_now = datetime.now(tz=timezone.utc)
@@ -132,7 +132,7 @@ def test_put_metric_data_values_and_counts():
     assert datapoint["Maximum"] == 10.0
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_values_without_counts():
     client = boto3.client("cloudwatch", region_name="us-west-2")
     utc_now = datetime.now(tz=timezone.utc)
@@ -162,7 +162,7 @@ def test_put_metric_data_values_without_counts():
     assert datapoint["Maximum"] == 23.45
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_value_and_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -186,7 +186,7 @@ def test_put_metric_data_value_and_statistics():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_data_with_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -262,7 +262,7 @@ def test_put_metric_data_with_statistics():
     assert datapoint["Average"] == 56.0
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_statistics():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -287,7 +287,7 @@ def test_get_metric_statistics():
     assert datapoint["Sum"] == 1.5
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_invalid_parameter_combination():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -312,7 +312,7 @@ def test_get_metric_invalid_parameter_combination():
     assert err["Message"] == "Must specify either Statistics or ExtendedStatistics"
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_statistics_dimensions():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -381,7 +381,7 @@ def test_get_metric_statistics_dimensions():
         assert datapoint["Average"] == params[2]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_statistics_endtime_sooner_than_starttime():
     # given
     utc_now = datetime.now(tz=timezone.utc)
@@ -410,7 +410,7 @@ def test_get_metric_statistics_endtime_sooner_than_starttime():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_statistics_starttime_endtime_equals():
     # given
     utc_now = datetime.now(tz=timezone.utc)
@@ -439,7 +439,7 @@ def test_get_metric_statistics_starttime_endtime_equals():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_statistics_starttime_endtime_within_1_second():
     # given
     utc_now = datetime.now(tz=timezone.utc)
@@ -468,7 +468,7 @@ def test_get_metric_statistics_starttime_endtime_within_1_second():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_statistics_starttime_endtime_ignore_miliseconds():
     cloudwatch = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -499,7 +499,7 @@ def test_get_metric_statistics_starttime_endtime_ignore_miliseconds():
     assert datapoint["Sum"] == 1.5
 
 
-@mock_cloudwatch
+@mock_aws
 def test_duplicate_put_metric_data():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
     utc_now = datetime.now(tz=timezone.utc)
@@ -594,7 +594,7 @@ def test_duplicate_put_metric_data():
     ]
 
 
-@mock_cloudwatch
+@mock_aws
 @freeze_time("2020-02-10 18:44:05")
 def test_custom_timestamp():
     utc_now = datetime.now(tz=timezone.utc)
@@ -624,7 +624,7 @@ def test_custom_timestamp():
     assert resp["Datapoints"] == []
 
 
-@mock_cloudwatch
+@mock_aws
 def test_list_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify namespace has to exist
@@ -653,7 +653,7 @@ def test_list_metrics():
     assert res == []
 
 
-@mock_cloudwatch
+@mock_aws
 def test_list_metrics_paginated():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Verify that only a single page of metrics is returned
@@ -702,7 +702,7 @@ def test_list_metrics_paginated():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_list_metrics_without_value():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
     # Create some metrics to filter on
@@ -721,7 +721,7 @@ def test_list_metrics_without_value():
     assert results[0]["Dimensions"] == [{"Name": "D1", "Value": "V1"}]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_list_metrics_with_same_dimensions_different_metric_name():
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
 
@@ -792,7 +792,7 @@ def create_metrics_with_dimensions(cloudwatch, namespace, data_points=5):
         )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -864,7 +864,7 @@ def test_get_metric_data_for_multiple_metrics_w_same_dimensions():
     assert res2["Values"] == [25.0]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_within_timeframe():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -925,7 +925,7 @@ def test_get_metric_data_within_timeframe():
     assert [int(val) for val in max_["Values"]] == [100]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_partially_within_timeframe():
     utc_now = datetime.now(tz=timezone.utc)
     yesterday = utc_now - timedelta(days=1)
@@ -1049,7 +1049,7 @@ def test_get_metric_data_partially_within_timeframe():
     assert response["MetricDataResults"][0]["Values"] == [10.0, 20.0, 10.0]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_outside_timeframe():
     utc_now = datetime.now(tz=timezone.utc)
     last_week = utc_now - timedelta(days=7)
@@ -1090,7 +1090,7 @@ def test_get_metric_data_outside_timeframe():
     assert response["MetricDataResults"][0]["Values"] == []
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_for_multiple_metrics():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -1151,7 +1151,7 @@ def test_get_metric_data_for_multiple_metrics():
     assert res2["Values"] == [25.0]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_for_dimensions():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -1259,7 +1259,7 @@ def test_get_metric_data_for_dimensions():
     assert res4["Values"] == [75.0]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_for_unit():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -1331,7 +1331,7 @@ def test_get_metric_data_for_unit():
         assert metric_result_data[0]["Values"][0] == expected_value
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_endtime_sooner_than_starttime():
     # given
     utc_now = datetime.now(tz=timezone.utc)
@@ -1367,7 +1367,7 @@ def test_get_metric_data_endtime_sooner_than_starttime():
     assert err["Message"] == "The parameter EndTime must be greater than StartTime."
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_starttime_endtime_equals():
     # given
     utc_now = datetime.now(tz=timezone.utc)
@@ -1403,7 +1403,7 @@ def test_get_metric_data_starttime_endtime_equals():
     assert err["Message"] == "The parameter StartTime must not equal parameter EndTime."
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_starttime_endtime_within_1_second():
     # given
     utc_now = datetime.now(tz=timezone.utc)
@@ -1441,7 +1441,7 @@ def test_get_metric_data_starttime_endtime_within_1_second():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_starttime_endtime_ignore_miliseconds():
     utc_now = datetime.now(tz=timezone.utc).replace(microsecond=200 * 1000)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -1482,8 +1482,7 @@ def test_get_metric_data_starttime_endtime_ignore_miliseconds():
     assert response["MetricDataResults"][0]["Values"][0] == 1.0
 
 
-@mock_cloudwatch
-@mock_s3
+@mock_aws
 def test_cloudwatch_return_s3_metrics():
     utc_now = datetime.now(tz=timezone.utc)
     bucket_name = "examplebucket"
@@ -1567,7 +1566,7 @@ def test_cloudwatch_return_s3_metrics():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_alarm():
     # given
     region_name = "eu-central-1"
@@ -1635,7 +1634,7 @@ def test_put_metric_alarm():
     assert alarm["TreatMissingData"] == "notBreaching"
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_alarm_with_percentile():
     # given
     region_name = "eu-central-1"
@@ -1697,7 +1696,7 @@ def test_put_metric_alarm_with_percentile():
     assert alarm["EvaluateLowSampleCountPercentile"] == "ignore"
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_alarm_with_anomaly_detection():
     # given
     region_name = "eu-central-1"
@@ -1756,7 +1755,7 @@ def test_put_metric_alarm_with_anomaly_detection():
     assert alarm["ThresholdMetricId"] == "t1"
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_alarm_error_extended_statistic():
     # given
     region_name = "eu-central-1"
@@ -1795,7 +1794,7 @@ def test_put_metric_alarm_error_extended_statistic():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
     # given
     region_name = "eu-central-1"
@@ -1836,7 +1835,7 @@ def test_put_metric_alarm_error_evaluate_low_sample_count_percentile():
     )
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_with_custom_label():
     utc_now = datetime.now(tz=timezone.utc)
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -1907,7 +1906,7 @@ def test_get_metric_data_with_custom_label():
         assert metric_result_data[0]["Label"] == expected_value
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_metric_data_queries():
     """
     verify that >= 10 queries can still be parsed

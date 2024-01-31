@@ -1,7 +1,7 @@
 import boto3
 import requests
 
-from moto import mock_athena, mock_sts, settings
+from moto import mock_aws, settings
 
 DEFAULT_COLUMN_INFO = [
     {
@@ -19,7 +19,7 @@ DEFAULT_COLUMN_INFO = [
 ]
 
 
-@mock_athena
+@mock_aws
 def test_set_athena_result():
     base_url = (
         "localhost:5000" if settings.TEST_SERVER_MODE else "motoapi.amazonaws.com"
@@ -55,7 +55,7 @@ def test_set_athena_result():
     assert details["Rows"] == []
 
 
-@mock_athena
+@mock_aws
 def test_set_multiple_athena_result():
     base_url = (
         "localhost:5000" if settings.TEST_SERVER_MODE else "motoapi.amazonaws.com"
@@ -95,8 +95,7 @@ def test_set_multiple_athena_result():
     assert details["Rows"] == []
 
 
-@mock_athena
-@mock_sts
+@mock_aws
 def test_set_athena_result_with_custom_region_account():
     base_url = (
         "localhost:5000" if settings.TEST_SERVER_MODE else "motoapi.amazonaws.com"

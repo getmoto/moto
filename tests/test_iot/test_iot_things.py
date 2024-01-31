@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_iot
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_iot
+@mock_aws
 def test_create_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -20,7 +20,7 @@ def test_create_thing():
     assert res["things"][0]["thingArn"] == thing["thingArn"]
 
 
-@mock_iot
+@mock_aws
 def test_create_thing_with_type():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -41,7 +41,7 @@ def test_create_thing_with_type():
     assert thing["thingTypeName"] == type_name
 
 
-@mock_iot
+@mock_aws
 def test_update_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -97,7 +97,7 @@ def test_update_thing():
     assert res["things"][0]["attributes"] == {}
 
 
-@mock_iot
+@mock_aws
 def test_describe_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -113,7 +113,7 @@ def test_describe_thing():
     assert thing["version"] == 1
 
 
-@mock_iot
+@mock_aws
 def test_delete_thing():
     client = boto3.client("iot", region_name="ap-northeast-1")
     name = "my-thing"
@@ -127,7 +127,7 @@ def test_delete_thing():
     assert len(res["things"]) == 0
 
 
-@mock_iot
+@mock_aws
 def test_list_things_with_next_token():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -188,7 +188,7 @@ def test_list_things_with_next_token():
     )
 
 
-@mock_iot
+@mock_aws
 def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
     client = boto3.client("iot", region_name="ap-northeast-1")
     client.create_thing_type(thingTypeName="my-thing-type")

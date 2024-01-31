@@ -6,7 +6,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_organizations, mock_sqs, settings
+from moto import mock_aws, settings
 from moto.cloudformation import cloudformation_backends as cf_backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.sqs import sqs_backends
@@ -103,9 +103,7 @@ class TestStackSetMultipleAccounts(TestCase):
         )
 
 
-@mock_cloudformation
-@mock_organizations
-@mock_sqs
+@mock_aws
 class TestServiceManagedStacks(TestStackSetMultipleAccounts):
     def setUp(self) -> None:
         super().setUp()
@@ -191,9 +189,7 @@ class TestServiceManagedStacks(TestStackSetMultipleAccounts):
         self._verify_queues(self.acct22, ["testqueue"])
 
 
-@mock_cloudformation
-@mock_organizations
-@mock_sqs
+@mock_aws
 class TestSelfManagedStacks(TestStackSetMultipleAccounts):
     def setUp(self) -> None:
         super().setUp()

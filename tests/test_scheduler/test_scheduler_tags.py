@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_scheduler
+from moto import mock_aws
 
 
-@mock_scheduler
+@mock_aws
 def test_schedule_tags():
     client = boto3.client("scheduler", "us-east-1")
     arn = client.create_schedule(
@@ -36,7 +36,7 @@ def test_schedule_tags():
     assert resp["Tags"] == [{"Key": "k2", "Value": "v2"}]
 
 
-@mock_scheduler
+@mock_aws
 def test_schedule_group_tags():
     client = boto3.client("scheduler", "us-east-1")
     arn = client.create_schedule_group(

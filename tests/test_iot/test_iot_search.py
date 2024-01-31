@@ -1,10 +1,10 @@
 import boto3
 import pytest
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 @pytest.mark.parametrize(
     "query_string,results",
     [
@@ -33,7 +33,7 @@ def test_search_things(query_string, results):
         assert thing["connectivity"] == {"connected": True}
 
 
-@mock_iot
+@mock_aws
 @pytest.mark.parametrize(
     "query_string,results",
     [["attributes.attr0:abc", {"abc"}], ["attributes.attr1:abc", set()]],

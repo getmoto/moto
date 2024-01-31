@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_eip_allocate_classic():
     """Allocate/release Classic EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -47,7 +47,7 @@ def test_eip_allocate_classic():
     assert public_ip not in [a["PublicIp"] for a in all_addresses]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_addresses_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -61,7 +61,7 @@ def test_describe_addresses_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_eip_allocate_vpc():
     """Allocate/release VPC EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -106,7 +106,7 @@ def test_eip_allocate_vpc():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_specific_eip_allocate_vpc():
     """Allocate VPC EIP with specific address"""
     client = boto3.client("ec2", region_name="us-west-1")
@@ -116,7 +116,7 @@ def test_specific_eip_allocate_vpc():
     assert vpc["PublicIp"] == "127.38.43.222"
 
 
-@mock_ec2
+@mock_aws
 def test_eip_associate_classic():
     """Associate/Disassociate EIP to classic instance"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -177,7 +177,7 @@ def test_eip_associate_classic():
     instance.terminate()
 
 
-@mock_ec2
+@mock_aws
 def test_eip_associate_vpc():
     """Associate/Disassociate EIP to VPC instance"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -223,7 +223,7 @@ def test_eip_associate_vpc():
     instance.terminate()
 
 
-@mock_ec2
+@mock_aws
 def test_eip_vpc_association():
     """Associate EIP to VPC instance in a new subnet with boto3"""
     service = boto3.resource("ec2", region_name="us-west-1")
@@ -270,7 +270,7 @@ def test_eip_vpc_association():
     assert address.instance_id == ""
 
 
-@mock_ec2
+@mock_aws
 def test_eip_associate_network_interface():
     """Associate/Disassociate EIP to NIC"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -306,7 +306,7 @@ def test_eip_associate_network_interface():
     eip.release()
 
 
-@mock_ec2
+@mock_aws
 def test_eip_reassociate():
     """reassociate EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -347,7 +347,7 @@ def test_eip_reassociate():
     instance2.terminate()
 
 
-@mock_ec2
+@mock_aws
 def test_eip_reassociate_nic():
     """reassociate EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -384,7 +384,7 @@ def test_eip_reassociate_nic():
     eip.release()
 
 
-@mock_ec2
+@mock_aws
 def test_eip_associate_invalid_args():
     """Associate EIP, invalid args"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -404,7 +404,7 @@ def test_eip_associate_invalid_args():
     instance.terminate()
 
 
-@mock_ec2
+@mock_aws
 def test_eip_disassociate_bogus_association():
     """Disassociate bogus EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -416,7 +416,7 @@ def test_eip_disassociate_bogus_association():
     assert ex.value.response["Error"]["Code"] == "InvalidAssociationID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_eip_release_bogus_eip():
     """Release bogus EIP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -428,7 +428,7 @@ def test_eip_release_bogus_eip():
     assert ex.value.response["Error"]["Code"] == "InvalidAllocationID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_eip_disassociate_arg_error():
     """Invalid arguments disassociate address"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -440,7 +440,7 @@ def test_eip_disassociate_arg_error():
     assert ex.value.response["Error"]["Code"] == "MissingParameter"
 
 
-@mock_ec2
+@mock_aws
 def test_eip_release_arg_error():
     """Invalid arguments release address"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -452,7 +452,7 @@ def test_eip_release_arg_error():
     assert ex.value.response["Error"]["Code"] == "MissingParameter"
 
 
-@mock_ec2
+@mock_aws
 def test_eip_describe():
     """Listing of allocated Elastic IP Addresses."""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -498,7 +498,7 @@ def test_eip_describe():
     assert eips[1].public_ip not in [a["PublicIp"] for a in all_addresses]
 
 
-@mock_ec2
+@mock_aws
 def test_eip_describe_none():
     """Error when search for bogus IP"""
     client = boto3.client("ec2", region_name="us-east-1")
@@ -510,7 +510,7 @@ def test_eip_describe_none():
     assert ex.value.response["Error"]["Code"] == "InvalidAddress.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_eip_filters():
     service = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -613,7 +613,7 @@ def test_eip_filters():
     assert inst1.public_ip_address in public_ips
 
 
-@mock_ec2
+@mock_aws
 def test_eip_tags():
     service = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -662,7 +662,7 @@ def test_eip_tags():
     assert alloc_tags["AllocationId"] in [a.allocation_id for a in addresses]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_addresses_tags():
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -680,7 +680,7 @@ def test_describe_addresses_tags():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_addresses_with_vpc_associated_eni():
     """Extra attributes for EIP associated with a ENI inside a VPC"""
     client = boto3.client("ec2", region_name="us-east-1")

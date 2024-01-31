@@ -5,11 +5,11 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
-@mock_s3
+@mock_aws
 def test_cross_account_region_access():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Multi-accounts env config only works serverside")

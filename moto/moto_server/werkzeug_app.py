@@ -17,7 +17,8 @@ except ImportError:
 
 import moto.backend_index as backend_index
 import moto.backends as backends
-from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
 
 from .utilities import AWSTestHelper, RegexConverter
@@ -56,26 +57,20 @@ class DomainDispatcherApplication:
     value. We'll match the host header value with the url_bases of each backend.
     """
 
-    def __init__(
-        self,
-        create_app: Callable[[backends.SERVICE_NAMES], Flask],
-        service: Optional[str] = None,
-    ):
+    def __init__(self, create_app: Callable[[backends.SERVICE_NAMES], Flask]):
         self.create_app = create_app
         self.lock = Lock()
         self.app_instances: Dict[str, Flask] = {}
-        self.service = service
         self.backend_url_patterns = backend_index.backend_url_patterns
 
-    def get_backend_for_host(self, host: str) -> Any:
+    def get_backend_for_host(self, host: Optional[str]) -> Any:
+        if host is None:
+            return None
 
         if host == "moto_api":
             return host
 
-        if self.service:
-            return self.service
-
-        if host in backends.BACKENDS:
+        if host in backends.list_of_moto_modules():
             return host
 
         for backend, pattern in self.backend_url_patterns:
@@ -89,8 +84,8 @@ class DomainDispatcherApplication:
             )
 
     def infer_service_region_host(
-        self, body: Optional[str], environ: Dict[str, Any]
-    ) -> str:
+        self, environ: Dict[str, Any], path: str
+    ) -> Optional[str]:
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
         service = None
@@ -116,25 +111,24 @@ class DomainDispatcherApplication:
                 # infer a service-region. A reduced set of services still use
                 # the deprecated SigV2, ergo prefer S3 as most likely default.
                 # https://docs.aws.amazon.com/general/latest/gr/signature-version-2.html
-                service, region = DEFAULT_SERVICE_REGION
+                return None
         else:
             # Unsigned request
+            body = self._get_body(environ)
             action = self.get_action_from_body(body)
             if target:
                 service, _ = target.split(".", 1)
-                service, region = UNSIGNED_REQUESTS.get(service, DEFAULT_SERVICE_REGION)
+                service, region = UNSIGNED_REQUESTS.get(service, (None, None))
             elif action and action in UNSIGNED_ACTIONS:
                 # See if we can match the Action to a known service
                 service, region = UNSIGNED_ACTIONS[action]
             if not service:
                 service, region = self.get_service_from_body(body, environ)
             if not service:
-                service, region = self.get_service_from_path(environ)
+                service, region = self.get_service_from_path(path)
             if not service:
-                # S3 is the last resort when the target is also unknown
-                service, region = DEFAULT_SERVICE_REGION
+                return None
 
-        path = environ.get("PATH_INFO", "")
         if service in ["budgets", "cloudfront"]:
             # Global Services - they do not have/expect a region
             host = f"{service}.amazonaws.com"
@@ -184,14 +178,16 @@ class DomainDispatcherApplication:
         elif path_info.startswith("/latest/meta-data/"):
             host = "instance_metadata"
         else:
-            host = environ["HTTP_HOST"].split(":")[0]
+            host = None
 
         with self.lock:
             backend = self.get_backend_for_host(host)
             if not backend:
                 # No regular backend found; try parsing body/other headers
-                body = self._get_body(environ)
-                host = self.infer_service_region_host(body, environ)
+                host = self.infer_service_region_host(environ, path_info)
+                if host is None:
+                    service, region = DEFAULT_SERVICE_REGION
+                    host = f"{service}.{region}.amazonaws.com"
                 backend = self.get_backend_for_host(host)
 
             app = self.app_instances.get(backend, None)
@@ -246,12 +242,11 @@ class DomainDispatcherApplication:
             return None
 
     def get_service_from_path(
-        self, environ: Dict[str, Any]
+        self, path_info: str
     ) -> Tuple[Optional[str], Optional[str]]:
         # Moto sometimes needs to send a HTTP request to itself
         # In which case it will send a request to 'http://localhost/service_region/whatever'
         try:
-            path_info = environ.get("PATH_INFO", "/")
             service, region = path_info[1 : path_info.index("/", 1)].split("_")
             return service, region
         except (AttributeError, KeyError, ValueError):

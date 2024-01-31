@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_kms, mock_rds
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 DEFAULT_REGION = "us-west-2"
 
 
-@mock_rds
+@mock_aws
 def test_create_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -50,7 +50,7 @@ def test_create_database():
     assert db_instance["DbInstancePort"] == 1234
 
 
-@mock_rds
+@mock_aws
 def test_database_with_deletion_protection_cannot_be_deleted():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -66,7 +66,7 @@ def test_database_with_deletion_protection_cannot_be_deleted():
     assert db_instance["DeletionProtection"] is True
 
 
-@mock_rds
+@mock_aws
 def test_create_database_no_allocated_storage():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -82,7 +82,7 @@ def test_create_database_no_allocated_storage():
     assert db_instance["PreferredMaintenanceWindow"] == "wed:06:38-wed:07:08"
 
 
-@mock_rds
+@mock_aws
 def test_create_database_invalid_preferred_maintenance_window_more_24_hours():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -98,7 +98,7 @@ def test_create_database_invalid_preferred_maintenance_window_more_24_hours():
     assert err["Message"] == "Maintenance window must be less than 24 hours."
 
 
-@mock_rds
+@mock_aws
 def test_create_database_invalid_preferred_maintenance_window_less_30_mins():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -114,7 +114,7 @@ def test_create_database_invalid_preferred_maintenance_window_less_30_mins():
     assert err["Message"] == "The maintenance window must be at least 30 minutes."
 
 
-@mock_rds
+@mock_aws
 def test_create_database_invalid_preferred_maintenance_window_value():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -130,7 +130,7 @@ def test_create_database_invalid_preferred_maintenance_window_value():
     assert "Invalid day:hour:minute" in err["Message"]
 
 
-@mock_rds
+@mock_aws
 def test_create_database_invalid_preferred_maintenance_window_format():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -149,7 +149,7 @@ def test_create_database_invalid_preferred_maintenance_window_format():
     ) in err["Message"]
 
 
-@mock_rds
+@mock_aws
 def test_create_database_preferred_backup_window_overlap_no_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -168,7 +168,7 @@ def test_create_database_preferred_backup_window_overlap_no_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_database_preferred_backup_window_overlap_maintenance_window_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -187,7 +187,7 @@ def test_create_database_preferred_backup_window_overlap_maintenance_window_spil
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_database_preferred_backup_window_overlap_backup_window_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -206,7 +206,7 @@ def test_create_database_preferred_backup_window_overlap_backup_window_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_database_preferred_backup_window_overlap_both_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -225,7 +225,7 @@ def test_create_database_preferred_backup_window_overlap_both_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_database_valid_preferred_maintenance_window_format():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -240,7 +240,7 @@ def test_create_database_valid_preferred_maintenance_window_format():
     assert db_instance["PreferredMaintenanceWindow"] == "sun:16:00-sun:16:30"
 
 
-@mock_rds
+@mock_aws
 def test_create_database_valid_preferred_maintenance_window_uppercase_format():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -255,7 +255,7 @@ def test_create_database_valid_preferred_maintenance_window_uppercase_format():
     assert db_instance["PreferredMaintenanceWindow"] == "mon:16:00-tue:01:30"
 
 
-@mock_rds
+@mock_aws
 def test_create_database_non_existing_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -269,7 +269,7 @@ def test_create_database_non_existing_option_group():
         )
 
 
-@mock_rds
+@mock_aws
 def test_create_database_with_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -293,7 +293,7 @@ def test_create_database_with_option_group():
     assert db_instance["OptionGroupMemberships"][0]["OptionGroupName"] == "my-og"
 
 
-@mock_rds
+@mock_aws
 def test_stop_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -330,7 +330,7 @@ def test_stop_database():
     assert response["DBSnapshots"] == []
 
 
-@mock_rds
+@mock_aws
 def test_start_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -381,7 +381,7 @@ def test_start_database():
     assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
 
 
-@mock_rds
+@mock_aws
 def test_fail_to_stop_multi_az_and_sqlserver():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -410,7 +410,7 @@ def test_fail_to_stop_multi_az_and_sqlserver():
         conn.start_db_instance(DBInstanceIdentifier=mydb["DBInstanceIdentifier"])
 
 
-@mock_rds
+@mock_aws
 def test_stop_multi_az_postgres():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -437,7 +437,7 @@ def test_stop_multi_az_postgres():
     assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
 
 
-@mock_rds
+@mock_aws
 def test_fail_to_stop_readreplica():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -471,7 +471,7 @@ def test_fail_to_stop_readreplica():
         conn.start_db_instance(DBInstanceIdentifier=mydb["DBInstanceIdentifier"])
 
 
-@mock_rds
+@mock_aws
 def test_get_databases():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -516,7 +516,7 @@ def test_get_databases():
     assert instances["DBInstances"][0]["DbInstancePort"] == 1234
 
 
-@mock_rds
+@mock_aws
 def test_get_databases_paginated():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -540,14 +540,14 @@ def test_get_databases_paginated():
     assert len(resp3["DBInstances"]) == 51
 
 
-@mock_rds
+@mock_aws
 def test_describe_non_existent_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.describe_db_instances(DBInstanceIdentifier="not-a-db")
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -579,7 +579,7 @@ def test_modify_db_instance():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_not_existent_db_parameter_group_name():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -601,7 +601,7 @@ def test_modify_db_instance_not_existent_db_parameter_group_name():
         )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_valid_preferred_maintenance_window():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -625,7 +625,7 @@ def test_modify_db_instance_valid_preferred_maintenance_window():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_valid_preferred_maintenance_window_uppercase():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -649,7 +649,7 @@ def test_modify_db_instance_valid_preferred_maintenance_window_uppercase():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_invalid_preferred_maintenance_window_more_than_24_hours():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -672,7 +672,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_more_than_24_ho
     assert err["Message"] == "Maintenance window must be less than 24 hours."
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_invalid_preferred_maintenance_window_less_than_30_mins():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -695,7 +695,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_less_than_30_mi
     assert err["Message"] == "The maintenance window must be at least 30 minutes."
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_invalid_preferred_maintenance_window_value():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -718,7 +718,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_value():
     assert "Invalid day:hour:minute value" in err["Message"]
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_invalid_preferred_maintenance_window_format():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -744,7 +744,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_format():
     ) in err["Message"]
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_maintenance_backup_window_no_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -770,7 +770,7 @@ def test_modify_db_instance_maintenance_backup_window_no_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_maintenance_backup_window_maintenance_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -796,7 +796,7 @@ def test_modify_db_instance_maintenance_backup_window_maintenance_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_maintenance_backup_window_backup_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -822,7 +822,7 @@ def test_modify_db_instance_maintenance_backup_window_backup_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_maintenance_backup_window_both_spill():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -848,7 +848,7 @@ def test_modify_db_instance_maintenance_backup_window_both_spill():
     )
 
 
-@mock_rds
+@mock_aws
 def test_rename_db_instance():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -876,7 +876,7 @@ def test_rename_db_instance():
     assert len(list(instances["DBInstances"])) == 1
 
 
-@mock_rds
+@mock_aws
 def test_modify_non_existent_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -885,7 +885,7 @@ def test_modify_non_existent_database():
         )
 
 
-@mock_rds
+@mock_aws
 def test_reboot_db_instance():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -902,14 +902,14 @@ def test_reboot_db_instance():
     assert database["DBInstance"]["DBInstanceIdentifier"] == "db-master-1"
 
 
-@mock_rds
+@mock_aws
 def test_reboot_non_existent_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.reboot_db_instance(DBInstanceIdentifier="not-a-db")
 
 
-@mock_rds
+@mock_aws
 def test_delete_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     instances = conn.describe_db_instances()
@@ -941,7 +941,7 @@ def test_delete_database():
     assert snapshot["SnapshotType"] == "automated"
 
 
-@mock_rds
+@mock_aws
 def test_create_db_snapshots():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -972,7 +972,7 @@ def test_create_db_snapshots():
     assert result["TagList"] == []
 
 
-@mock_rds
+@mock_aws
 def test_create_db_snapshots_copy_tags():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -1008,7 +1008,7 @@ def test_create_db_snapshots_copy_tags():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_create_db_snapshots_with_tags():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1039,7 +1039,7 @@ def test_create_db_snapshots_with_tags():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_copy_db_snapshots():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -1070,7 +1070,7 @@ def test_copy_db_snapshots():
     assert result["TagList"] == []
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_snapshots():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1112,7 +1112,7 @@ def test_describe_db_snapshots():
     assert len(snapshots) == 2
 
 
-@mock_rds
+@mock_aws
 def test_promote_read_replica():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1140,7 +1140,7 @@ def test_promote_read_replica():
     assert replicas is None
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_snapshot():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1166,7 +1166,7 @@ def test_delete_db_snapshot():
         conn.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
 
 
-@mock_rds
+@mock_aws
 def test_restore_db_instance_from_db_snapshot():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1214,7 +1214,7 @@ def test_restore_db_instance_from_db_snapshot():
     )
 
 
-@mock_rds
+@mock_aws
 def test_restore_db_instance_to_point_in_time():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1259,7 +1259,7 @@ def test_restore_db_instance_to_point_in_time():
     )
 
 
-@mock_rds
+@mock_aws
 def test_restore_db_instance_from_db_snapshot_and_override_params():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1298,7 +1298,7 @@ def test_restore_db_instance_from_db_snapshot_and_override_params():
     assert new_instance["Endpoint"]["Port"] == 10000
 
 
-@mock_rds
+@mock_aws
 def test_create_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     option_group = conn.create_option_group(
@@ -1318,7 +1318,7 @@ def test_create_option_group():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_option_group_bad_engine_name():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -1330,7 +1330,7 @@ def test_create_option_group_bad_engine_name():
         )
 
 
-@mock_rds
+@mock_aws
 def test_create_option_group_bad_engine_major_version():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -1342,7 +1342,7 @@ def test_create_option_group_bad_engine_major_version():
         )
 
 
-@mock_rds
+@mock_aws
 def test_create_option_group_empty_description():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -1354,7 +1354,7 @@ def test_create_option_group_empty_description():
         )
 
 
-@mock_rds
+@mock_aws
 def test_create_option_group_duplicate():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1372,7 +1372,7 @@ def test_create_option_group_duplicate():
         )
 
 
-@mock_rds
+@mock_aws
 def test_describe_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1385,14 +1385,14 @@ def test_describe_option_group():
     assert option_groups["OptionGroupsList"][0]["OptionGroupName"] == "test"
 
 
-@mock_rds
+@mock_aws
 def test_describe_non_existent_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.describe_option_groups(OptionGroupName="not-a-option-group")
 
 
-@mock_rds
+@mock_aws
 def test_delete_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1408,14 +1408,14 @@ def test_delete_option_group():
         conn.describe_option_groups(OptionGroupName="test")
 
 
-@mock_rds
+@mock_aws
 def test_delete_non_existent_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.delete_option_group(OptionGroupName="non-existent")
 
 
-@mock_rds
+@mock_aws
 def test_describe_option_group_options():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     option_group_options = conn.describe_option_group_options(EngineName="sqlserver-ee")
@@ -1436,7 +1436,7 @@ def test_describe_option_group_options():
         )
 
 
-@mock_rds
+@mock_aws
 def test_modify_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1459,7 +1459,7 @@ def test_modify_option_group():
     assert result["OptionGroup"]["OptionGroupName"] == "test"
 
 
-@mock_rds
+@mock_aws
 def test_modify_option_group_no_options():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1472,7 +1472,7 @@ def test_modify_option_group_no_options():
         conn.modify_option_group(OptionGroupName="test")
 
 
-@mock_rds
+@mock_aws
 def test_modify_non_existent_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as client_err:
@@ -1485,7 +1485,7 @@ def test_modify_non_existent_option_group():
     )
 
 
-@mock_rds
+@mock_aws
 def test_delete_database_with_protection():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1502,7 +1502,7 @@ def test_delete_database_with_protection():
     assert err["Message"] == "Can't delete Instance with protection enabled"
 
 
-@mock_rds
+@mock_aws
 def test_delete_non_existent_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
@@ -1511,14 +1511,14 @@ def test_delete_non_existent_database():
     assert ex.value.response["Error"]["Message"] == "DBInstance non-existent not found."
 
 
-@mock_rds
+@mock_aws
 def test_list_tags_invalid_arn():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.list_tags_for_resource(ResourceName="arn:aws:rds:bad-arn")
 
 
-@mock_rds
+@mock_aws
 def test_list_tags_db():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     result = conn.list_tags_for_resource(
@@ -1545,7 +1545,7 @@ def test_list_tags_db():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_add_tags_db():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1573,7 +1573,7 @@ def test_add_tags_db():
     assert len(list(result["TagList"])) == 3
 
 
-@mock_rds
+@mock_aws
 def test_remove_tags_db():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1600,7 +1600,7 @@ def test_remove_tags_db():
     assert len(result["TagList"]) == 1
 
 
-@mock_rds
+@mock_aws
 def test_list_tags_snapshot():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     result = conn.list_tags_for_resource(
@@ -1632,7 +1632,7 @@ def test_list_tags_snapshot():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_add_tags_snapshot():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1665,7 +1665,7 @@ def test_add_tags_snapshot():
     assert len(list(result["TagList"])) == 3
 
 
-@mock_rds
+@mock_aws
 def test_remove_tags_snapshot():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
@@ -1698,7 +1698,7 @@ def test_remove_tags_snapshot():
     assert len(result["TagList"]) == 1
 
 
-@mock_rds
+@mock_aws
 def test_add_tags_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1721,7 +1721,7 @@ def test_add_tags_option_group():
     assert len(list(result["TagList"])) == 2
 
 
-@mock_rds
+@mock_aws
 def test_remove_tags_option_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_option_group(
@@ -1750,7 +1750,7 @@ def test_remove_tags_option_group():
     assert len(list(result["TagList"])) == 1
 
 
-@mock_rds
+@mock_aws
 def test_create_database_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -1764,7 +1764,7 @@ def test_create_database_security_group():
     assert result["DBSecurityGroup"]["IPRanges"] == []
 
 
-@mock_rds
+@mock_aws
 def test_get_security_groups():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -1786,14 +1786,14 @@ def test_get_security_groups():
     assert result["DBSecurityGroups"][0]["DBSecurityGroupName"] == "db_sg1"
 
 
-@mock_rds
+@mock_aws
 def test_get_non_existent_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.describe_db_security_groups(DBSecurityGroupName="not-a-sg")
 
 
-@mock_rds
+@mock_aws
 def test_delete_database_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_security_group(
@@ -1808,14 +1808,14 @@ def test_delete_database_security_group():
     assert len(result["DBSecurityGroups"]) == 0
 
 
-@mock_rds
+@mock_aws
 def test_delete_non_existent_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.delete_db_security_group(DBSecurityGroupName="not-a-db")
 
 
-@mock_rds
+@mock_aws
 def test_security_group_authorize():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     security_group = conn.create_db_security_group(
@@ -1844,7 +1844,7 @@ def test_security_group_authorize():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_add_security_group_to_database():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -1873,7 +1873,7 @@ def test_add_security_group_to_database():
     )
 
 
-@mock_rds
+@mock_aws
 def test_list_tags_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     result = conn.describe_db_subnet_groups()
@@ -1892,7 +1892,7 @@ def test_list_tags_security_group():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_add_tags_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     result = conn.describe_db_subnet_groups()
@@ -1915,7 +1915,7 @@ def test_add_tags_security_group():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_remove_tags_security_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     result = conn.describe_db_subnet_groups()
@@ -1934,8 +1934,7 @@ def test_remove_tags_security_group():
     assert result["TagList"] == [{"Value": "bar1", "Key": "foo1"}]
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_create_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -1960,8 +1959,7 @@ def test_create_database_subnet_group():
     assert list(subnet_group_ids) == subnet_ids
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_modify_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -1990,8 +1988,7 @@ def test_modify_database_subnet_group():
     # TODO: we should check whether all attrs are persisted
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_create_database_in_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -2021,8 +2018,7 @@ def test_create_database_in_subnet_group():
     )
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_describe_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -2063,8 +2059,7 @@ def test_describe_database_subnet_group():
         conn.describe_db_subnet_groups(DBSubnetGroupName="not-a-subnet")
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_delete_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -2092,8 +2087,7 @@ def test_delete_database_subnet_group():
         conn.delete_db_subnet_group(DBSubnetGroupName="db_subnet1")
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_list_tags_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -2120,7 +2114,7 @@ def test_list_tags_database_subnet_group():
     ]
 
 
-@mock_rds
+@mock_aws
 def test_modify_tags_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     client_tags = [{"Key": "character_set_client", "Value": "utf-8"}]
@@ -2146,7 +2140,7 @@ def test_modify_tags_parameter_group():
     assert result["TagList"] == server_tags
 
 
-@mock_rds
+@mock_aws
 def test_modify_tags_event_subscription():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     tags = [{"Key": "hello", "Value": "world"}]
@@ -2171,8 +2165,7 @@ def test_modify_tags_event_subscription():
     assert result["TagList"] == tags
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_add_tags_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -2204,8 +2197,7 @@ def test_add_tags_database_subnet_group():
     ]
 
 
-@mock_ec2
-@mock_rds
+@mock_aws
 def test_remove_tags_database_subnet_group():
     vpc_conn = boto3.client("ec2", DEFAULT_REGION)
     vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -2231,7 +2223,7 @@ def test_remove_tags_database_subnet_group():
     assert result["TagList"] == [{"Value": "bar1", "Key": "foo1"}]
 
 
-@mock_rds
+@mock_aws
 def test_create_database_replica():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -2272,7 +2264,7 @@ def test_create_database_replica():
     assert master["DBInstances"][0]["ReadReplicaDBInstanceIdentifiers"] == []
 
 
-@mock_rds
+@mock_aws
 def test_create_database_replica_cross_region():
     us1 = boto3.client("rds", region_name="us-east-1")
     us2 = boto3.client("rds", region_name=DEFAULT_REGION)
@@ -2303,8 +2295,7 @@ def test_create_database_replica_cross_region():
     assert target_db["ReadReplicaSourceDBInstanceIdentifier"] == source_arn
 
 
-@mock_rds
-@mock_kms
+@mock_aws
 def test_create_database_with_encrypted_storage():
     kms_conn = boto3.client("kms", region_name=DEFAULT_REGION)
     key = kms_conn.create_key(
@@ -2331,7 +2322,7 @@ def test_create_database_with_encrypted_storage():
     assert database["DBInstance"]["KmsKeyId"] == key["KeyMetadata"]["KeyId"]
 
 
-@mock_rds
+@mock_aws
 def test_create_db_parameter_group():
     region = DEFAULT_REGION
     pg_name = "test"
@@ -2354,7 +2345,7 @@ def test_create_db_parameter_group():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_db_instance_with_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_parameter_group(
@@ -2383,7 +2374,7 @@ def test_create_db_instance_with_parameter_group():
     )
 
 
-@mock_rds
+@mock_aws
 def test_create_database_with_default_port():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -2398,7 +2389,7 @@ def test_create_database_with_default_port():
     assert database["DBInstance"]["Endpoint"]["Port"] == 5432
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_instance_with_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     database = conn.create_db_instance(
@@ -2438,7 +2429,7 @@ def test_modify_db_instance_with_parameter_group():
     assert database["DBParameterGroups"][0]["ParameterApplyStatus"] == "in-sync"
 
 
-@mock_rds
+@mock_aws
 def test_create_db_parameter_group_empty_description():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
@@ -2449,7 +2440,7 @@ def test_create_db_parameter_group_empty_description():
         )
 
 
-@mock_rds
+@mock_aws
 def test_create_db_parameter_group_duplicate():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_parameter_group(
@@ -2465,7 +2456,7 @@ def test_create_db_parameter_group_duplicate():
         )
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_parameter_group():
     region = DEFAULT_REGION
     pg_name = "test"
@@ -2484,14 +2475,14 @@ def test_describe_db_parameter_group():
     )
 
 
-@mock_rds
+@mock_aws
 def test_describe_non_existent_db_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     db_parameter_groups = conn.describe_db_parameter_groups(DBParameterGroupName="test")
     assert len(db_parameter_groups["DBParameterGroups"]) == 0
 
 
-@mock_rds
+@mock_aws
 def test_delete_db_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_parameter_group(
@@ -2508,7 +2499,7 @@ def test_delete_db_parameter_group():
     assert len(db_parameter_groups["DBParameterGroups"]) == 0
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_parameter_group(
@@ -2538,14 +2529,14 @@ def test_modify_db_parameter_group():
     assert db_parameters["Parameters"][0]["ApplyMethod"] == "immediate"
 
 
-@mock_rds
+@mock_aws
 def test_delete_non_existent_db_parameter_group():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError):
         conn.delete_db_parameter_group(DBParameterGroupName="non-existent")
 
 
-@mock_rds
+@mock_aws
 def test_create_parameter_group_with_tags():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_parameter_group(
@@ -2560,7 +2551,7 @@ def test_create_parameter_group_with_tags():
     assert result["TagList"] == [{"Value": "bar", "Key": "foo"}]
 
 
-@mock_rds
+@mock_aws
 def test_create_db_with_iam_authentication():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
@@ -2581,7 +2572,7 @@ def test_create_db_with_iam_authentication():
     assert snapshot.get("IAMDatabaseAuthenticationEnabled") is True
 
 
-@mock_rds
+@mock_aws
 def test_create_db_instance_with_tags():
     client = boto3.client("rds", region_name=DEFAULT_REGION)
     tags = [{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}]
@@ -2599,7 +2590,7 @@ def test_create_db_instance_with_tags():
     assert resp["DBInstances"][0]["TagList"] == tags
 
 
-@mock_rds
+@mock_aws
 def test_create_db_instance_without_availability_zone():
     region = "us-east-1"
     client = boto3.client("rds", region_name=region)
@@ -2616,7 +2607,7 @@ def test_create_db_instance_without_availability_zone():
     assert region in resp["DBInstances"][0]["AvailabilityZone"]
 
 
-@mock_rds
+@mock_aws
 def test_create_db_instance_with_availability_zone():
     region = "us-east-1"
     availability_zone = f"{region}c"
@@ -2635,7 +2626,7 @@ def test_create_db_instance_with_availability_zone():
     assert resp["DBInstances"][0]["AvailabilityZone"] == availability_zone
 
 
-@mock_rds
+@mock_aws
 def test_validate_db_identifier():
     client = boto3.client("rds", region_name=DEFAULT_REGION)
     invalid_db_instance_identifier = "arn:aws:rds:eu-west-1:123456789012:db:mydb"
@@ -2674,7 +2665,7 @@ def test_validate_db_identifier():
     validation_helper(exc)
 
 
-@mock_rds
+@mock_aws
 def test_createdb_instance_engine_with_invalid_value():
     client = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as exc:
@@ -2694,7 +2685,7 @@ def test_createdb_instance_engine_with_invalid_value():
     )
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_snapshot_attributes_default():
     client = boto3.client("rds", region_name="us-east-2")
     client.create_db_instance(
@@ -2719,7 +2710,7 @@ def test_describe_db_snapshot_attributes_default():
     assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"] == []
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_snapshot_attributes():
     client = boto3.client("rds", region_name="us-east-2")
     client.create_db_instance(
@@ -2755,7 +2746,7 @@ def test_describe_db_snapshot_attributes():
     ] == ["Test", "Test2"]
 
 
-@mock_rds
+@mock_aws
 def test_modify_db_snapshot_attribute():
     client = boto3.client("rds", region_name="us-east-2")
     client.create_db_instance(

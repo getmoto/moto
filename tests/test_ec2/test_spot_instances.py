@@ -6,12 +6,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_request_spot_instances():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -110,7 +110,7 @@ def test_request_spot_instances():
     assert launch_spec["SubnetId"] == subnet_id
 
 
-@mock_ec2
+@mock_aws
 def test_request_spot_instances_default_arguments():
     """
     Test that moto set the correct default arguments
@@ -151,7 +151,7 @@ def test_request_spot_instances_default_arguments():
     assert "SubnetId" not in request
 
 
-@mock_ec2
+@mock_aws
 def test_cancel_spot_instance_request():
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -192,7 +192,7 @@ def test_cancel_spot_instance_request():
     assert len(requests) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_request_spot_instances_fulfilled():
     """
     Test that moto correctly fullfills a spot instance request
@@ -213,7 +213,7 @@ def test_request_spot_instances_fulfilled():
     assert request["State"] == "active"
 
 
-@mock_ec2
+@mock_aws
 def test_tag_spot_instance_request():
     """
     Test that moto correctly tags a spot instance request
@@ -240,7 +240,7 @@ def test_tag_spot_instance_request():
     assert {"Key": "tag2", "Value": "value2"} in request["Tags"]
 
 
-@mock_ec2
+@mock_aws
 def test_get_all_spot_instance_requests_filtering():
     """
     Test that moto correctly filters spot instance requests
@@ -296,7 +296,7 @@ def test_get_all_spot_instance_requests_filtering():
     assert len(requests) == 1
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.filterwarnings("ignore")
 def test_request_spot_instances_instance_lifecycle():
     if settings.TEST_SERVER_MODE:
@@ -312,7 +312,7 @@ def test_request_spot_instances_instance_lifecycle():
     assert instance["InstanceLifecycle"] == "spot"
 
 
-@mock_ec2
+@mock_aws
 @pytest.mark.filterwarnings("ignore")
 def test_request_spot_instances_with_tags():
     client = boto3.client("ec2", region_name="us-east-1")
@@ -334,7 +334,7 @@ def test_request_spot_instances_with_tags():
     assert request["Tags"] == [{"Key": "k", "Value": "v"}]
 
 
-@mock_ec2
+@mock_aws
 def test_launch_spot_instance_instance_lifecycle():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -358,7 +358,7 @@ def test_launch_spot_instance_instance_lifecycle():
     assert instance["InstanceLifecycle"] == "spot"
 
 
-@mock_ec2
+@mock_aws
 def test_launch_instance_instance_lifecycle():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -381,7 +381,7 @@ def test_launch_instance_instance_lifecycle():
     assert instance.get("InstanceLifecycle") is None
 
 
-@mock_ec2
+@mock_aws
 def test_spot_price_history():
     client = boto3.client("ec2", region_name="us-east-1")
     # test filter
@@ -402,7 +402,7 @@ def test_spot_price_history():
     assert price["InstanceType"] in i_types
 
 
-@mock_ec2
+@mock_aws
 def test_request_spot_instances__instance_should_exist():
     client = boto3.client("ec2", region_name="us-east-1")
     request = client.request_spot_instances(

@@ -2,9 +2,8 @@ import json
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from moto.utilities.aws_headers import amzn_request_id
 
-from .models import StepFunctionBackend, stepfunction_backends
+from .models import StepFunctionBackend, stepfunctions_backends
 
 
 class StepFunctionResponse(BaseResponse):
@@ -13,9 +12,8 @@ class StepFunctionResponse(BaseResponse):
 
     @property
     def stepfunction_backend(self) -> StepFunctionBackend:
-        return stepfunction_backends[self.current_account][self.region]
+        return stepfunctions_backends[self.current_account][self.region]
 
-    @amzn_request_id
     def create_state_machine(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
         definition = self._get_param("definition")
@@ -30,7 +28,6 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_state_machines(self) -> TYPE_RESPONSE:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
@@ -50,12 +47,10 @@ class StepFunctionResponse(BaseResponse):
             response["nextToken"] = next_token
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_state_machine(self) -> TYPE_RESPONSE:
         arn = self._get_param("stateMachineArn")
         return self._describe_state_machine(arn)
 
-    @amzn_request_id
     def _describe_state_machine(self, state_machine_arn: str) -> TYPE_RESPONSE:
         state_machine = self.stepfunction_backend.describe_state_machine(
             state_machine_arn
@@ -70,13 +65,11 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def delete_state_machine(self) -> TYPE_RESPONSE:
         arn = self._get_param("stateMachineArn")
         self.stepfunction_backend.delete_state_machine(arn)
         return 200, {}, json.dumps("{}")
 
-    @amzn_request_id
     def update_state_machine(self) -> TYPE_RESPONSE:
         arn = self._get_param("stateMachineArn")
         definition = self._get_param("definition")
@@ -89,28 +82,24 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("resourceArn")
         tags = self.stepfunction_backend.list_tags_for_resource(arn)
         response = {"tags": tags}
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def tag_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("resourceArn")
         tags = self._get_param("tags", [])
         self.stepfunction_backend.tag_resource(arn, tags)
         return 200, {}, json.dumps({})
 
-    @amzn_request_id
     def untag_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
         self.stepfunction_backend.untag_resource(arn, tag_keys)
         return 200, {}, json.dumps({})
 
-    @amzn_request_id
     def start_execution(self) -> TYPE_RESPONSE:
         arn = self._get_param("stateMachineArn")
         name = self._get_param("name")
@@ -124,7 +113,6 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def list_executions(self) -> TYPE_RESPONSE:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
@@ -153,7 +141,6 @@ class StepFunctionResponse(BaseResponse):
             response["nextToken"] = next_token
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_execution(self) -> TYPE_RESPONSE:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.describe_execution(arn)
@@ -168,20 +155,17 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def describe_state_machine_for_execution(self) -> TYPE_RESPONSE:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.describe_execution(arn)
         return self._describe_state_machine(execution.state_machine_arn)
 
-    @amzn_request_id
     def stop_execution(self) -> TYPE_RESPONSE:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.stop_execution(arn)
         response = {"stopDate": execution.stop_date}
         return 200, {}, json.dumps(response)
 
-    @amzn_request_id
     def get_execution_history(self) -> TYPE_RESPONSE:
         execution_arn = self._get_param("executionArn")
         execution_history = self.stepfunction_backend.get_execution_history(

@@ -1,6 +1,6 @@
 import requests
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 
 if settings.TEST_SERVER_MODE:
     BASE_URL = "http://localhost:5000"
@@ -8,13 +8,13 @@ else:
     BASE_URL = "http://169.254.169.254"
 
 
-@mock_ec2
+@mock_aws
 def test_latest_meta_data() -> None:
     res = requests.get(f"{BASE_URL}/latest/meta-data/")
     assert res.content == b"iam"
 
 
-@mock_ec2
+@mock_aws
 def test_meta_data_iam() -> None:
     res = requests.get(f"{BASE_URL}/latest/meta-data/iam")
     json_response = res.json()
@@ -25,13 +25,13 @@ def test_meta_data_iam() -> None:
     assert "Expiration" in default_role
 
 
-@mock_ec2
+@mock_aws
 def test_meta_data_security_credentials() -> None:
     res = requests.get(f"{BASE_URL}/latest/meta-data/iam/security-credentials/")
     assert res.content == b"default-role"
 
 
-@mock_ec2
+@mock_aws
 def test_meta_data_default_role() -> None:
     res = requests.get(
         f"{BASE_URL}/latest/meta-data/iam/security-credentials/default-role"

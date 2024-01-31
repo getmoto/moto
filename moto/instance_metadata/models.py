@@ -1,4 +1,4 @@
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 
 
 class InstanceMetadataBackend(BaseBackend):

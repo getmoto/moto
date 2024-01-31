@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterable, List, Optional, Set
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 
 from ..exceptions import (

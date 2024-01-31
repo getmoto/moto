@@ -4,12 +4,12 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_glue, settings
+from moto import mock_aws, settings
 
 from . import helpers
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_expression_unknown_column():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -35,7 +35,7 @@ def test_get_partitions_expression_unknown_column():
     assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_expression_int_column():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -96,7 +96,7 @@ def test_get_partitions_expression_int_column():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_expression_decimal_column():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -152,7 +152,7 @@ def test_get_partitions_expression_decimal_column():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_expression_string_column():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -203,7 +203,7 @@ def test_get_partitions_expression_string_column():
     assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_expression_date_column():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -257,7 +257,7 @@ def test_get_partitions_expression_date_column():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_expression_timestamp_column():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -327,7 +327,7 @@ def test_get_partitions_expression_timestamp_column():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_partition_expression_warnings_and_exceptions():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cannot catch warnings in server mode")

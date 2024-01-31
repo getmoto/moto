@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_dynamodb
+from moto import mock_aws
 
 template_create_table = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -29,8 +29,7 @@ template_create_table = {
 }
 
 
-@mock_dynamodb
-@mock_cloudformation
+@mock_aws
 def test_delete_stack_dynamo_template_boto3():
     conn = boto3.client("cloudformation", region_name="us-east-1")
     dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")

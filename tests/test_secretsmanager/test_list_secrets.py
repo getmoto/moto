@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 
 import boto3
@@ -6,14 +5,14 @@ import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 
-from moto import mock_secretsmanager
+from moto import mock_aws
 
 
 def boto_client():
     return boto3.client("secretsmanager", region_name="us-west-2")
 
 
-@mock_secretsmanager
+@mock_aws
 def test_empty():
     conn = boto_client()
 
@@ -22,7 +21,7 @@ def test_empty():
     assert secrets["SecretList"] == []
 
 
-@mock_secretsmanager
+@mock_aws
 def test_list_secrets():
     conn = boto_client()
 
@@ -49,7 +48,7 @@ def test_list_secrets():
     assert secrets["SecretList"][1]["LastChangedDate"] <= datetime.now(tz=tzlocal())
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_name_filter():
     conn = boto_client()
 
@@ -62,7 +61,7 @@ def test_with_name_filter():
     assert secret_names == ["foo"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_tag_key_filter():
     conn = boto_client()
 
@@ -77,7 +76,7 @@ def test_with_tag_key_filter():
     assert secret_names == ["foo"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_tag_value_filter():
     conn = boto_client()
 
@@ -92,7 +91,7 @@ def test_with_tag_value_filter():
     assert secret_names == ["foo"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_description_filter():
     conn = boto_client()
 
@@ -105,7 +104,7 @@ def test_with_description_filter():
     assert secret_names == ["foo"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_all_filter():
     # The 'all' filter will match a secret that contains ANY field with
     # the criteria. In other words an implicit OR.
@@ -131,7 +130,7 @@ def test_with_all_filter():
     assert sorted(secret_names) == ["bar", "baz", "foo", "multi", "qux"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_no_filter_key():
     conn = boto_client()
 
@@ -142,7 +141,7 @@ def test_with_no_filter_key():
     assert ire.value.response["Error"]["Message"] == "Invalid filter key"
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_no_filter_values():
     conn = boto_client()
 
@@ -157,7 +156,7 @@ def test_with_no_filter_values():
     )
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_invalid_filter_key():
     conn = boto_client()
 
@@ -172,7 +171,7 @@ def test_with_invalid_filter_key():
     )
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_duplicate_filter_keys():
     # Multiple filters with the same key combine with an implicit AND operator
 
@@ -194,7 +193,7 @@ def test_with_duplicate_filter_keys():
     assert secret_names == ["foo"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_multiple_filters():
     # Multiple filters combine with an implicit AND operator
 
@@ -224,7 +223,7 @@ def test_with_multiple_filters():
     assert secret_names == ["foo"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_filter_with_multiple_values():
     conn = boto_client()
 
@@ -238,7 +237,7 @@ def test_with_filter_with_multiple_values():
     assert secret_names == ["foo", "bar"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_filter_with_value_with_multiple_words():
     conn = boto_client()
 
@@ -254,7 +253,7 @@ def test_with_filter_with_value_with_multiple_words():
     assert secret_names == ["foo", "bar"]
 
 
-@mock_secretsmanager
+@mock_aws
 def test_with_filter_with_negation():
     conn = boto_client()
 
@@ -270,3 +269,13 @@ def test_with_filter_with_negation():
 
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     assert secret_names == ["baz"]
+
+
+@mock_aws
+def test_filter_with_owning_service():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="foo", SecretString="secret")
+
+    resp = conn.list_secrets(Filters=[{"Key": "owning-service", "Values": ["n/a"]}])
+    assert resp["SecretList"] == []

@@ -3,14 +3,14 @@ import json
 import boto3
 import requests
 
-from moto import mock_s3, mock_sagemakerruntime, settings
+from moto import mock_aws, settings
 from moto.s3.utils import bucket_and_name_from_url
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_sagemakerruntime
+@mock_aws
 def test_invoke_endpoint__default_results():
     client = boto3.client("sagemaker-runtime", region_name="ap-southeast-1")
     body = client.invoke_endpoint(
@@ -21,7 +21,7 @@ def test_invoke_endpoint__default_results():
     assert body["CustomAttributes"] == "custom_attributes"
 
 
-@mock_sagemakerruntime
+@mock_aws
 def test_invoke_endpoint():
     client = boto3.client("sagemaker-runtime", region_name="us-east-1")
     base_url = (
@@ -59,8 +59,7 @@ def test_invoke_endpoint():
     assert body["Body"].read() == b"second body"
 
 
-@mock_s3
-@mock_sagemakerruntime
+@mock_aws
 def test_invoke_endpoint_async():
     client = boto3.client("sagemaker-runtime", region_name="us-east-1")
     base_url = (

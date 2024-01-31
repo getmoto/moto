@@ -14,17 +14,6 @@ quicksight
 
 .. autoclass:: moto.quicksight.models.QuickSightBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_quicksight
-            def test_quicksight_behaviour:
-                boto3.client("quicksight")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] cancel_ingestion

@@ -4,12 +4,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudwatch
+from moto import mock_aws
 from moto.cloudwatch.utils import make_arn_for_alarm
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_cloudwatch
+@mock_aws
 def test_list_tags_for_resource():
     # given
     client = boto3.client("cloudwatch", region_name="eu-central-1")
@@ -42,7 +42,7 @@ def test_list_tags_for_resource():
     assert response["Tags"] == [{"Key": "key-1", "Value": "value-1"}]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_list_tags_for_resource_with_unknown_resource():
     # given
     region_name = "eu-central-1"
@@ -59,7 +59,7 @@ def test_list_tags_for_resource_with_unknown_resource():
     assert response["Tags"] == []
 
 
-@mock_cloudwatch
+@mock_aws
 def test_tag_resource():
     # given
     client = boto3.client("cloudwatch", region_name="eu-central-1")
@@ -96,7 +96,7 @@ def test_tag_resource():
     ]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_tag_resource_on_resource_without_tags():
     cw = boto3.client("cloudwatch", region_name="eu-central-1")
     cw.put_metric_alarm(
@@ -118,7 +118,7 @@ def test_tag_resource_on_resource_without_tags():
     assert len(cw.list_tags_for_resource(ResourceARN=alarm_arn)["Tags"]) == 1
 
 
-@mock_cloudwatch
+@mock_aws
 def test_tag_resource_error_not_exists():
     # given
     region_name = "eu-central-1"
@@ -141,7 +141,7 @@ def test_tag_resource_error_not_exists():
     assert ex.response["Error"]["Message"] == "Unknown"
 
 
-@mock_cloudwatch
+@mock_aws
 def test_untag_resource():
     # given
     client = boto3.client("cloudwatch", region_name="eu-central-1")
@@ -178,7 +178,7 @@ def test_untag_resource():
     assert response["Tags"] == [{"Key": "key-1", "Value": "value-1"}]
 
 
-@mock_cloudwatch
+@mock_aws
 def test_untag_resource_error_not_exists():
     # given
     region_name = "eu-central-1"

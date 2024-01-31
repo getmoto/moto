@@ -3,7 +3,7 @@ from unittest import SkipTest
 
 import boto3
 
-from moto import mock_iam, mock_lambda_simple, settings
+from moto import mock_aws, settings
 
 from ..test_awslambda.utilities import get_role_name, get_test_zip_file1
 
@@ -15,8 +15,7 @@ if settings.TEST_SERVER_MODE:
     raise SkipTest("No point in testing batch_simple in ServerMode")
 
 
-@mock_iam
-@mock_lambda_simple
+@mock_aws(config={"lambda": {"use_docker": False}})
 def test_run_function():
     # Setup
     client = setup_lambda()
@@ -32,8 +31,7 @@ def test_run_function():
     assert result["Payload"].read().decode("utf-8") == "Simple Lambda happy path OK"
 
 
-@mock_iam
-@mock_lambda_simple
+@mock_aws(config={"lambda": {"use_docker": False}})
 def test_run_function_no_log():
     # Setup
     client = setup_lambda()

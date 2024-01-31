@@ -5,10 +5,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway
+from moto import mock_aws
 
 
-@mock_apigateway
+@mock_aws
 def test_import_rest_api__api_is_created():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -44,7 +44,7 @@ def test_import_rest_api__api_is_created():
     assert set(body["paths"]["/pet/{petId}"].keys()) == {"DELETE", "GET", "POST"}
 
 
-@mock_apigateway
+@mock_aws
 def test_export_api__unknown_api():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -55,7 +55,7 @@ def test_export_api__unknown_api():
     assert err["Message"] == "Invalid stage identifier specified"
 
 
-@mock_apigateway
+@mock_aws
 def test_export_api__unknown_export_type():
     client = boto3.client("apigateway", region_name="us-east-1")
 

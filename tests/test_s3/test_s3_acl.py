@@ -7,7 +7,7 @@ import requests
 from botocore.exceptions import ClientError
 from botocore.handlers import disable_signing
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 
 from .test_s3 import add_proxy_details
 
@@ -22,7 +22,7 @@ DEFAULT_REGION_NAME = "us-east-1"
 )
 @pytest.mark.parametrize("has_quotes", [True, False])
 @pytest.mark.parametrize("readwrite", ["Read", "Write"])
-@mock_s3
+@mock_aws
 def test_put_object_acl_using_grant(readwrite, type_key, value, has_quotes):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -47,7 +47,7 @@ def test_put_object_acl_using_grant(readwrite, type_key, value, has_quotes):
     assert grants[0]["Permission"] == readwrite.upper()
 
 
-@mock_s3
+@mock_aws
 def test_acl_switching_boto3():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -68,7 +68,7 @@ def test_acl_switching_boto3():
     } not in grants
 
 
-@mock_s3
+@mock_aws
 def test_acl_switching_nonexistent_key():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -79,7 +79,7 @@ def test_acl_switching_nonexistent_key():
     assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
 
-@mock_s3
+@mock_aws
 def test_s3_object_in_public_bucket():
     s3_resource = boto3.resource("s3")
     bucket = s3_resource.Bucket("test-bucket")
@@ -105,7 +105,7 @@ def test_s3_object_in_public_bucket():
     assert exc.value.response["Error"]["Code"] == "403"
 
 
-@mock_s3
+@mock_aws
 def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
     s3_resource = boto3.resource("s3")
     bucket = s3_resource.Bucket("test-bucket")
@@ -119,14 +119,14 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
         "get_object", params, ExpiresIn=900
     )
     kwargs = {}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     for i in range(1, 10):
         response = requests.get(presigned_url, **kwargs)
         assert response.status_code == 200, f"Failed on req number {i}"
 
 
-@mock_s3
+@mock_aws
 def test_s3_object_in_private_bucket():
     s3_resource = boto3.resource("s3")
     bucket = s3_resource.Bucket("test-bucket")
@@ -151,7 +151,7 @@ def test_s3_object_in_private_bucket():
     assert contents == b"ABCD"
 
 
-@mock_s3
+@mock_aws
 def test_put_bucket_acl_body():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="bucket")
@@ -251,7 +251,7 @@ def test_put_bucket_acl_body():
     assert not result.get("Grants")
 
 
-@mock_s3
+@mock_aws
 def test_object_acl_with_presigned_post():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -269,7 +269,7 @@ def test_object_acl_with_presigned_post():
 
     with open(object_name, "rb") as fhandle:
         kwargs = {"files": {"file": (object_name, fhandle)}}
-        if settings.test_proxy_mode():
+        if settings.is_test_proxy_mode():
             add_proxy_details(kwargs)
         requests.post(response["url"], data=response["fields"], **kwargs)
 
@@ -286,7 +286,7 @@ def test_object_acl_with_presigned_post():
     os.remove("text.txt")
 
 
-@mock_s3
+@mock_aws
 def test_acl_setting_boto3():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -309,7 +309,7 @@ def test_acl_setting_boto3():
     } in grants
 
 
-@mock_s3
+@mock_aws
 def test_acl_setting_via_headers_boto3():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -331,7 +331,7 @@ def test_acl_setting_via_headers_boto3():
     } in grants
 
 
-@mock_s3
+@mock_aws
 def test_raise_exception_for_grant_and_acl():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)

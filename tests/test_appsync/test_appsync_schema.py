@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_appsync
+from moto import mock_aws
 
 schema = """type Mutation {
     putPost(id: ID!, title: String!): Post
@@ -54,7 +54,7 @@ type Subscription {
 """
 
 
-@mock_appsync
+@mock_aws
 def test_start_schema_creation():
     client = boto3.client("appsync", region_name="us-east-2")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -66,7 +66,7 @@ def test_start_schema_creation():
     assert resp["status"] == "PROCESSING"
 
 
-@mock_appsync
+@mock_aws
 def test_get_schema_creation_status():
     client = boto3.client("appsync", region_name="eu-west-1")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -80,7 +80,7 @@ def test_get_schema_creation_status():
     assert "details" not in resp
 
 
-@mock_appsync
+@mock_aws
 def test_get_schema_creation_status_invalid():
     client = boto3.client("appsync", region_name="eu-west-1")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -94,7 +94,7 @@ def test_get_schema_creation_status_invalid():
     assert "Syntax Error" in resp["details"]
 
 
-@mock_appsync
+@mock_aws
 def test_get_type_from_schema():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -118,7 +118,7 @@ def test_get_type_from_schema():
     assert "description" not in query_type
 
 
-@mock_appsync
+@mock_aws
 def test_get_introspection_schema_raise_gql_schema_error_if_no_schema():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -134,7 +134,7 @@ def test_get_introspection_schema_raise_gql_schema_error_if_no_schema():
     assert err["Message"] == "InvalidSyntaxError"
 
 
-@mock_appsync
+@mock_aws
 def test_get_introspection_schema_sdl():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -150,7 +150,7 @@ def test_get_introspection_schema_sdl():
     assert "singlePost(id: ID!): Post" in schema_sdl
 
 
-@mock_appsync
+@mock_aws
 def test_get_introspection_schema_json():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -170,7 +170,7 @@ def test_get_introspection_schema_json():
     assert "directives" in schema_json["__schema"]
 
 
-@mock_appsync
+@mock_aws
 def test_get_introspection_schema_bad_format():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -188,7 +188,7 @@ def test_get_introspection_schema_bad_format():
     assert err["Message"] == "Invalid format NotAFormat given"
 
 
-@mock_appsync
+@mock_aws
 def test_get_introspection_schema_include_directives_true():
     client = boto3.client("appsync", region_name="us-east-2")
 
@@ -209,7 +209,7 @@ def test_get_introspection_schema_include_directives_true():
     assert "@aws_subscribe" in schema_sdl
 
 
-@mock_appsync
+@mock_aws
 def test_get_introspection_schema_include_directives_false():
     client = boto3.client("appsync", region_name="us-east-2")
 

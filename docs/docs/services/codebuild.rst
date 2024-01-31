@@ -12,29 +12,21 @@
 codebuild
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_codebuild
-            def test_codebuild_behaviour:
-                boto3.client("codebuild")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_delete_builds
 - [ ] batch_get_build_batches
 - [X] batch_get_builds
+- [ ] batch_get_fleets
 - [ ] batch_get_projects
 - [ ] batch_get_report_groups
 - [ ] batch_get_reports
+- [ ] create_fleet
 - [X] create_project
 - [ ] create_report_group
 - [ ] create_webhook
 - [ ] delete_build_batch
+- [ ] delete_fleet
 - [X] delete_project
 - [ ] delete_report
 - [ ] delete_report_group
@@ -52,6 +44,7 @@ codebuild
 - [X] list_builds
 - [X] list_builds_for_project
 - [ ] list_curated_environment_images
+- [ ] list_fleets
 - [X] list_projects
 - [ ] list_report_groups
 - [ ] list_reports
@@ -66,6 +59,7 @@ codebuild
 - [ ] start_build_batch
 - [X] stop_build
 - [ ] stop_build_batch
+- [ ] update_fleet
 - [ ] update_project
 - [ ] update_project_visibility
 - [ ] update_report_group

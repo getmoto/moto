@@ -3,14 +3,13 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_lambda
+from moto import mock_aws
 from tests.markers import requires_docker
 
 from .utilities import _process_lambda, get_role_name
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
 def get_requests_zip_file():
@@ -23,7 +22,7 @@ def lambda_handler(event, context):
 
 
 @requires_docker
-@mock_lambda
+@mock_aws
 def test_invoke_local_lambda_layers():
     conn = boto3.client("lambda", _lambda_region)
     lambda_name = str(uuid4())[0:6]

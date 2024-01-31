@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_dms
+from moto import mock_aws
 
 
-@mock_dms
+@mock_aws
 def test_create_and_get_replication_task():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -40,7 +40,7 @@ def test_create_and_get_replication_task():
     assert isinstance(json.loads(task["ReplicationTaskSettings"]), dict)
 
 
-@mock_dms
+@mock_aws
 def test_create_existing_replication_task_throws_error():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -71,7 +71,7 @@ def test_create_existing_replication_task_throws_error():
     )
 
 
-@mock_dms
+@mock_aws
 def test_start_replication_task():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -94,7 +94,7 @@ def test_start_replication_task():
     assert tasks["ReplicationTasks"][0]["Status"] == "running"
 
 
-@mock_dms
+@mock_aws
 def test_start_replication_task_throws_resource_not_found_error():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -111,7 +111,7 @@ def test_start_replication_task_throws_resource_not_found_error():
     )
 
 
-@mock_dms
+@mock_aws
 def test_stop_replication_task_throws_invalid_state_error():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -133,7 +133,7 @@ def test_stop_replication_task_throws_invalid_state_error():
     assert ex.value.response["Error"]["Message"] == "Replication task is not running"
 
 
-@mock_dms
+@mock_aws
 def test_stop_replication_task_throws_resource_not_found_error():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -147,7 +147,7 @@ def test_stop_replication_task_throws_resource_not_found_error():
     )
 
 
-@mock_dms
+@mock_aws
 def test_stop_replication_task():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -171,7 +171,7 @@ def test_stop_replication_task():
     assert tasks["ReplicationTasks"][0]["Status"] == "stopped"
 
 
-@mock_dms
+@mock_aws
 def test_delete_replication_task():
     client = boto3.client("dms", region_name="us-east-1")
 
@@ -192,7 +192,7 @@ def test_delete_replication_task():
     assert len(tasks["ReplicationTasks"]) == 0
 
 
-@mock_dms
+@mock_aws
 def test_delete_replication_task_throws_resource_not_found_error():
     client = boto3.client("dms", region_name="us-east-1")
 

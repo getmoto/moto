@@ -2,13 +2,13 @@ from unittest import SkipTest
 
 import boto3
 
-from moto import mock_iam, settings
+from moto import mock_aws, settings
 from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
 
-@mock_iam
+@mock_aws
 def test_password_last_used():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set password_last_used in ServerMode")

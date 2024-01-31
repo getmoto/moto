@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.exceptions import (
     InvalidParameterException,
@@ -209,9 +210,9 @@ class LogStream(BaseModel):
     ) -> None:
 
         if service == "lambda":
-            from moto.awslambda import lambda_backends  # due to circular dependency
+            from moto.awslambda.utils import get_backend
 
-            lambda_backends[self.account_id][self.region].send_log_event(
+            get_backend(self.account_id, self.region).send_log_event(
                 destination_arn,
                 filter_name,
                 self.log_group.name,
@@ -1146,10 +1147,10 @@ class LogsBackend(BaseBackend):
 
         service = destination_arn.split(":")[2]
         if service == "lambda":
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
             try:
-                lambda_backends[self.account_id][self.region_name].get_function(
+                get_backend(self.account_id, self.region_name).get_function(
                     destination_arn
                 )
             # no specific permission check implemented

@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.kinesisvideo.models import KinesisVideoBackend, kinesisvideo_backends
 from moto.sts.utils import random_session_token
 

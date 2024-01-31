@@ -1,17 +1,14 @@
-"""Route53Resolver-related unit tests focusing on tag-related functionality."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_route53resolver
-from moto.ec2 import mock_ec2
+from moto import mock_aws
 from moto.route53resolver.models import ResolverEndpoint
 
 from .test_route53resolver_endpoint import TEST_REGION, create_test_endpoint
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_tag_resource():
     """Test the addition of tags to a resource."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -61,8 +58,7 @@ def test_route53resolver_tag_resource():
     assert result["Tags"] == added_tags
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_untag_resource():
     """Test the removal of tags to a resource."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -85,8 +81,7 @@ def test_route53resolver_untag_resource():
     assert "NextToken" not in result
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_list_tags_for_resource():
     """Test ability to list all tags for a resource."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)
@@ -119,8 +114,7 @@ def test_route53resolver_list_tags_for_resource():
     assert result["NextToken"]
 
 
-@mock_ec2
-@mock_route53resolver
+@mock_aws
 def test_route53resolver_bad_list_tags_for_resource():
     """Test ability to list all tags for a resource."""
     client = boto3.client("route53resolver", region_name=TEST_REGION)

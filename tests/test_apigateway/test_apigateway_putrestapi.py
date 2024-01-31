@@ -1,15 +1,13 @@
 import os
-import sys
-from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigateway, settings
+from moto import mock_aws
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__api_details_are_persisted():
     client = boto3.client("apigateway", region_name="us-west-2")
 
@@ -30,7 +28,7 @@ def test_put_rest_api__api_details_are_persisted():
     assert response["description"] == "this is my api"
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__methods_are_created():
     client = boto3.client("apigateway", region_name="us-east-2")
 
@@ -58,7 +56,7 @@ def test_put_rest_api__methods_are_created():
     assert resp["methodResponses"] == {"201": {"statusCode": "201"}}
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__existing_methods_are_overwritten():
     client = boto3.client("apigateway", region_name="us-east-2")
 
@@ -109,7 +107,7 @@ def test_put_rest_api__existing_methods_are_overwritten():
     client.get_method(restApiId=api_id, resourceId=new_root_id, httpMethod="GET")
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__existing_methods_still_exist():
     client = boto3.client("apigateway", region_name="us-east-2")
 
@@ -143,11 +141,8 @@ def test_put_rest_api__existing_methods_still_exist():
     assert response["httpMethod"] == "POST"
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__fail_on_invalid_spec():
-    if sys.version_info < (3, 8) or settings.TEST_SERVER_MODE:
-        raise SkipTest("openapi-module throws an error in Py3.7")
-
     client = boto3.client("apigateway", region_name="us-east-2")
 
     response = client.create_rest_api(name="my_api", description="this is my api")
@@ -167,7 +162,7 @@ def test_put_rest_api__fail_on_invalid_spec():
         )
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__fail_on_invalid_version():
     client = boto3.client("apigateway", region_name="us-east-2")
 
@@ -185,7 +180,7 @@ def test_put_rest_api__fail_on_invalid_version():
         assert err["Message"] == "Only OpenAPI 3.x.x are currently supported"
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__fail_on_invalid_mode():
     client = boto3.client("apigateway", region_name="us-east-2")
 
@@ -204,7 +199,7 @@ def test_put_rest_api__fail_on_invalid_mode():
         )
 
 
-@mock_apigateway
+@mock_aws
 def test_put_rest_api__as_yaml():
     client = boto3.client("apigateway", region_name="us-west-2")
 

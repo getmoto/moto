@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_batch, mock_cloudformation, mock_ec2, mock_ecs, mock_iam
+from moto import mock_aws
 
 DEFAULT_REGION = "eu-central-1"
 
@@ -48,11 +48,7 @@ def _setup(ec2_client, iam_client):
     return vpc_id, subnet_id, sg_id, iam_arn
 
 
-@mock_cloudformation()
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_env_cf():
     ec2_client, iam_client, _, _, _ = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
@@ -95,11 +91,7 @@ def test_create_env_cf():
     assert stack_name in summary["PhysicalResourceId"]
 
 
-@mock_cloudformation()
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_job_queue_cf():
     ec2_client, iam_client, _, _, _ = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
@@ -162,11 +154,7 @@ def test_create_job_queue_cf():
     assert "job-queue/" in job_queue_resource["PhysicalResourceId"]
 
 
-@mock_cloudformation()
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_job_def_cf():
     ec2_client, iam_client, _, _, _ = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)

@@ -1,6 +1,113 @@
 Moto Changelog
 ==============
 
+5.0.0
+-----
+Docker Digest for 5.0.0: _sha256:2faf2460a6446dfe472ac0d799e00341b1c84203d08540c247a6cc09be7c54e9_
+
+    General:
+        * All decorators have been replaced with a single decorator:
+          `mock_aws`
+
+        * The `mock_batch_simple` and `mock_lambda_simple` decorators can now be configured using the `config`-parameter:
+          `@mock_aws(config={"batch": {"use_docker": False}, "lambda": {"use_docker": False}})`
+
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+
+        * All requests now return a RequestId
+
+    Miscellaneous:
+
+        * IAM: The AWS managed Policies are no longer loaded by default.
+          If your application depends on these policies, tell Moto explicitly to load them like so:
+
+          @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
+
+          Or by setting an environment variable:
+          MOTO_IAM_LOAD_MANAGED_POLICIES=true
+
+        * S3: list_objects() now returns a hashed ContinuationToken
+
+
+4.2.14
+-----
+Docker Digest for 4.2.14: _sha256:2fa10aa48e32f85c63c62a7d437b8a4b320a56a8494bc25d45ced370bc159c23_
+
+    New Services:
+        * Backup:
+            * create_backup_plan()
+            * create_backup_vault()
+            * get_backup_plan()
+            * describe_backup_vault()
+            * delete_backup_plan()
+            * list_backup_plans()
+            * list_backup_vaults()
+            * list_tags()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * RDS:
+            * describe_db_cluster_snapshot_attributes()
+            * describe_db_snapshot_attributes()
+            * modify_db_cluster_snapshot_attribute()
+            * modify_db_snapshot_attribute()
+            * restore_db_instance_to_point_in_time()
+
+        * SageMaker:
+            * create_feature_group()
+
+        * SageMakerRuntime:
+            * invoke_endpoint_async()
+
+    Miscellaneous:
+        * Cognito: The ID-token now contains custom attributes
+        * DynamoDB: query() now returns the correct ScannedCount
+        * EC2: Security Group Rules now have tag support 
+        * LakeFormation: grant_permissions() now has better support for known principal-resource pairs
+        * SNS: set_subscription_attributes() can now unset the FilterPolicy
+
+
+5.0.0alpha3
+-----------
+
+    Miscellaneous:
+        * IAM: The AWS managed Policies are no longer loaded by default.
+          If your application depends on these policies, tell Moto explicitly to load them like so:
+
+          @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
+
+          Or by setting an environment variable:
+          MOTO_IAM_LOAD_MANAGED_POLICIES=true
+
+
+5.0.0alpha2:
+------------
+
+    General:
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+        * All requests now return a RequestId
+
+    Miscellaneous:
+        * S3: list_objects() now returns a hashed ContinuationToken
+
+
+5.0.0alpha1:
+------------
+
+    General:
+        * All decorators have been replaced with a single decorator:
+          `mock_aws`
+        * The `mock_batch_simple` and `mock_lambda_simple` decorators can now be configured using the `config`-parameter:
+          `@mock_aws(config={"batch": {"use_docker": False}, "lambda": {"use_docker": False}})`
+
+
 4.2.13
 -----
 Docker Digest for 4.2.13: _sha256:20a2fdd4828b0ce1170ae26186ed28b64523cf6af83af892a74d9b3e23f84471_

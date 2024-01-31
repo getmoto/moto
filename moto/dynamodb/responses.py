@@ -6,12 +6,11 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
     KeyIsEmptyStringException,
@@ -40,10 +39,12 @@ def include_consumed_capacity(
             expected_capacity = handler.body.get("ReturnConsumedCapacity", "NONE")
             if expected_capacity not in ["NONE", "TOTAL", "INDEXES"]:
                 type_ = "ValidationException"
+                headers = handler.response_headers.copy()
+                headers["status"] = "400"
                 message = f"1 validation error detected: Value '{expected_capacity}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
                 return (
                     400,
-                    handler.response_headers,
+                    headers,
                     dynamo_json_dump({"__type": type_, "message": message}),
                 )
             table_name = handler.body.get("TableName", "")
@@ -189,22 +190,9 @@ class DynamoHandler(BaseResponse):
         return dynamodb_backends[self.current_account][self.region]
 
     @amz_crc32
-    @amzn_request_id
     def call_action(self) -> TYPE_RESPONSE:
         self.body = json.loads(self.body or "{}")
-        endpoint = self.get_endpoint_name(self.headers)
-        if endpoint:
-            endpoint = camelcase_to_underscores(endpoint)
-            response = getattr(self, endpoint)()
-            if isinstance(response, str):
-                return 200, self.response_headers, response
-
-            else:
-                status_code, new_headers, response_content = response
-                self.response_headers.update(new_headers)
-                return status_code, self.response_headers, response_content
-        else:
-            return 404, self.response_headers, ""
+        return super().call_action()
 
     def list_tables(self) -> str:
         body = self.body

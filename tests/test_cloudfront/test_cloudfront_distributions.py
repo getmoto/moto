@@ -2,13 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudfront
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import cloudfront_test_scaffolding as scaffold
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_s3_minimum():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -119,7 +119,7 @@ def test_create_distribution_s3_minimum():
     assert config["WebACLId"] == ""
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_logging():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -141,7 +141,7 @@ def test_create_distribution_with_logging():
     }
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_web_acl():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -153,7 +153,7 @@ def test_create_distribution_with_web_acl():
     assert config["WebACLId"] == "test-web-acl"
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_field_level_encryption_and_real_time_log_config_arn():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -170,7 +170,7 @@ def test_create_distribution_with_field_level_encryption_and_real_time_log_confi
     assert default_cache["RealtimeLogConfigArn"] == real_time_log_config_arn
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_georestriction():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -192,7 +192,7 @@ def test_create_distribution_with_georestriction():
     assert "GB" in restriction["Items"]
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_allowed_methods():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -219,7 +219,7 @@ def test_create_distribution_with_allowed_methods():
     }
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_origins():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -238,7 +238,7 @@ def test_create_distribution_with_origins():
     assert origin["OriginShield"] == {"Enabled": True, "OriginShieldRegion": "east"}
 
 
-@mock_cloudfront
+@mock_aws
 @pytest.mark.parametrize("compress", [True, False])
 @pytest.mark.parametrize("qs", [True, False])
 @pytest.mark.parametrize("smooth", [True, False])
@@ -280,7 +280,7 @@ def test_create_distribution_with_additional_fields(
     assert forwarded["Cookies"]["WhitelistedNames"]["Items"] == ["x-amz-header"]
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_returns_etag():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -296,7 +296,7 @@ def test_create_distribution_returns_etag():
     )
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_needs_unique_caller_reference():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -325,7 +325,7 @@ def test_create_distribution_needs_unique_caller_reference():
     assert len(resp["Items"]) == 2
 
 
-@mock_cloudfront
+@mock_aws
 def test_get_distribution_config_with_unknown_distribution_id():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
@@ -339,7 +339,7 @@ def test_get_distribution_config_with_unknown_distribution_id():
     assert err["Message"] == "The specified distribution does not exist."
 
 
-@mock_cloudfront
+@mock_aws
 def test_get_distribution_config_with_mismatched_originid():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
@@ -368,37 +368,7 @@ def test_get_distribution_config_with_mismatched_originid():
     )
 
 
-@mock_cloudfront
-def test_create_origin_without_origin_config():
-    client = boto3.client("cloudfront", region_name="us-west-1")
-
-    with pytest.raises(ClientError) as exc:
-        client.create_distribution(
-            DistributionConfig={
-                "CallerReference": "ref",
-                "Origins": {
-                    "Quantity": 1,
-                    "Items": [{"Id": "origin1", "DomainName": "https://getmoto.org"}],
-                },
-                "DefaultCacheBehavior": {
-                    "TargetOriginId": "origin1",
-                    "ViewerProtocolPolicy": "allow-all",
-                },
-                "Comment": "an optional comment that's not actually optional",
-                "Enabled": False,
-            }
-        )
-
-    metadata = exc.value.response["ResponseMetadata"]
-    assert metadata["HTTPStatusCode"] == 400
-    err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidOrigin"
-    assert (
-        err["Message"] == "The specified origin server does not exist or is not valid."
-    )
-
-
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_with_invalid_s3_bucket():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
@@ -435,7 +405,7 @@ def test_create_distribution_with_invalid_s3_bucket():
     )
 
 
-@mock_cloudfront
+@mock_aws
 @pytest.mark.parametrize("ssl_protocols", (["TLSv1"], ["TLSv1", "SSLv3"]))
 def test_create_distribution_custom_config(ssl_protocols):
     client = boto3.client("cloudfront", region_name="us-west-1")
@@ -458,7 +428,7 @@ def test_create_distribution_custom_config(ssl_protocols):
     }
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_distribution_minimal_custom_config():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.minimal_dist_custom_config("ref")
@@ -480,7 +450,7 @@ def test_create_distribution_minimal_custom_config():
     assert custom_config == get_custom_config
 
 
-@mock_cloudfront
+@mock_aws
 def test_list_distributions_without_any():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -492,7 +462,7 @@ def test_list_distributions_without_any():
     assert "Items" not in dlist
 
 
-@mock_cloudfront
+@mock_aws
 def test_list_distributions():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -516,7 +486,7 @@ def test_list_distributions():
     assert item2["Status"] == "Deployed"
 
 
-@mock_cloudfront
+@mock_aws
 def test_get_distribution():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -538,7 +508,7 @@ def test_get_distribution():
     assert config["CallerReference"] == "ref"
 
 
-@mock_cloudfront
+@mock_aws
 def test_get_unknown_distribution():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
@@ -553,7 +523,7 @@ def test_get_unknown_distribution():
     assert err["Message"] == "The specified distribution does not exist."
 
 
-@mock_cloudfront
+@mock_aws
 def test_delete_unknown_distribution():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
@@ -567,7 +537,7 @@ def test_delete_unknown_distribution():
     assert err["Message"] == "The specified distribution does not exist."
 
 
-@mock_cloudfront
+@mock_aws
 def test_delete_distribution_without_ifmatch():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
@@ -585,7 +555,7 @@ def test_delete_distribution_without_ifmatch():
     )
 
 
-@mock_cloudfront
+@mock_aws
 def test_delete_distribution_random_etag():
     """
     Etag validation is not implemented yet
@@ -606,7 +576,7 @@ def test_delete_distribution_random_etag():
     assert err["Code"] == "NoSuchDistribution"
 
 
-@mock_cloudfront
+@mock_aws
 def test_get_distribution_config():
     client = boto3.client("cloudfront", region_name="us-east-1")
 

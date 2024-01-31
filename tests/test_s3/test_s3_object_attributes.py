@@ -3,10 +3,10 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 class TestS3ObjectAttributes:
     def setup_method(self, *args) -> None:  # pylint: disable=unused-argument
         self.bucket_name = str(uuid4())

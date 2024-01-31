@@ -3,11 +3,11 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_opsworks
+from moto import mock_aws
 
 
 @freeze_time("2015-01-01")
-@mock_opsworks
+@mock_aws
 def test_create_app_response():
     client = boto3.client("opsworks", region_name="us-east-1")
     stack_id = client.create_stack(
@@ -44,7 +44,7 @@ def test_create_app_response():
 
 
 @freeze_time("2015-01-01")
-@mock_opsworks
+@mock_aws
 def test_describe_apps():
     client = boto3.client("opsworks", region_name="us-east-1")
     stack_id = client.create_stack(

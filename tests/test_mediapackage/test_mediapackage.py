@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError  # Boto3 will always throw this exception
 
-from moto import mock_mediapackage
+from moto import mock_aws
 
 region = "eu-west-1"
 
@@ -52,7 +52,7 @@ def _create_origin_endpoint_config(**kwargs):
     return origin_endpoint_config
 
 
-@mock_mediapackage
+@mock_aws
 def test_create_channel_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
@@ -65,7 +65,7 @@ def test_create_channel_succeeds():
     assert channel["Tags"]["Customer"] == "moto"
 
 
-@mock_mediapackage
+@mock_aws
 def test_describe_channel_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
@@ -77,7 +77,7 @@ def test_describe_channel_succeeds():
     assert channel["Tags"]["Customer"] == "moto"
 
 
-@mock_mediapackage
+@mock_aws
 def test_describe_unknown_channel_throws_error():
     client = boto3.client("mediapackage", region_name=region)
     channel_id = "unknown-channel"
@@ -88,7 +88,7 @@ def test_describe_unknown_channel_throws_error():
     assert err["Message"] == f"channel with id={channel_id} not found"
 
 
-@mock_mediapackage
+@mock_aws
 def test_delete_unknown_channel_throws_error():
     client = boto3.client("mediapackage", region_name=region)
     channel_id = "unknown-channel"
@@ -99,7 +99,7 @@ def test_delete_unknown_channel_throws_error():
     assert err["Message"] == f"channel with id={channel_id} not found"
 
 
-@mock_mediapackage
+@mock_aws
 def test_delete_channel_successfully_deletes():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
@@ -114,7 +114,7 @@ def test_delete_channel_successfully_deletes():
     assert len(post_deletion_channels_list) == len(channels_list) - 1
 
 
-@mock_mediapackage
+@mock_aws
 def test_list_channels_succeds():
     client = boto3.client("mediapackage", region_name=region)
     channel_config = _create_channel_config()
@@ -129,7 +129,7 @@ def test_list_channels_succeds():
     assert channel["Tags"]["Customer"] == "moto"
 
 
-@mock_mediapackage
+@mock_aws
 def test_create_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -143,7 +143,7 @@ def test_create_origin_endpoint_succeeds():
     assert endpoint["Origination"] == "ALLOW"
 
 
-@mock_mediapackage
+@mock_aws
 def test_describe_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -162,7 +162,7 @@ def test_describe_origin_endpoint_succeeds():
     )
 
 
-@mock_mediapackage
+@mock_aws
 def test_describe_unknown_origin_endpoint_throws_error():
     client = boto3.client("mediapackage", region_name=region)
     channel_id = "unknown-channel"
@@ -173,7 +173,7 @@ def test_describe_unknown_origin_endpoint_throws_error():
     assert err["Message"] == f"origin endpoint with id={channel_id} not found"
 
 
-@mock_mediapackage
+@mock_aws
 def test_delete_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -188,7 +188,7 @@ def test_delete_origin_endpoint_succeeds():
     assert len(post_deletion_origin_endpoints_list) == len(origin_endpoints_list) - 1
 
 
-@mock_mediapackage
+@mock_aws
 def test_delete_unknown_origin_endpoint_throws_error():
     client = boto3.client("mediapackage", region_name=region)
     channel_id = "unknown-channel"
@@ -199,7 +199,7 @@ def test_delete_unknown_origin_endpoint_throws_error():
     assert err["Message"] == f"origin endpoint with id={channel_id} not found"
 
 
-@mock_mediapackage
+@mock_aws
 def test_update_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()
@@ -214,7 +214,7 @@ def test_update_origin_endpoint_succeeds():
     assert endpoint["ManifestName"] == "updated-manifest-name"
 
 
-@mock_mediapackage
+@mock_aws
 def test_update_unknown_origin_endpoint_throws_error():
     client = boto3.client("mediapackage", region_name=region)
     channel_id = "unknown-channel"
@@ -229,7 +229,7 @@ def test_update_unknown_origin_endpoint_throws_error():
     assert err["Message"] == f"origin endpoint with id={channel_id} not found"
 
 
-@mock_mediapackage
+@mock_aws
 def test_list_origin_endpoint_succeeds():
     client = boto3.client("mediapackage", region_name=region)
     origin_endpoint_config = _create_origin_endpoint_config()

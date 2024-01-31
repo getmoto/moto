@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudwatch
+from moto import mock_aws
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_list_dashboard():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
     widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
@@ -16,7 +16,7 @@ def test_put_list_dashboard():
     assert len(resp["DashboardEntries"]) == 1
 
 
-@mock_cloudwatch
+@mock_aws
 def test_put_list_prefix_nomatch_dashboard():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
     widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
@@ -27,7 +27,7 @@ def test_put_list_prefix_nomatch_dashboard():
     assert len(resp["DashboardEntries"]) == 0
 
 
-@mock_cloudwatch
+@mock_aws
 def test_delete_dashboard():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
     widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
@@ -41,7 +41,7 @@ def test_delete_dashboard():
     assert len(resp["DashboardEntries"]) == 1
 
 
-@mock_cloudwatch
+@mock_aws
 def test_delete_dashboard_fail():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
     widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
@@ -58,7 +58,7 @@ def test_delete_dashboard_fail():
     assert len(resp["DashboardEntries"]) == 3
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_dashboard():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
     widget = '{"widgets": [{"type": "text", "x": 0, "y": 7, "width": 3, "height": 3, "properties": {"markdown": "Hello world"}}]}'
@@ -70,7 +70,7 @@ def test_get_dashboard():
     assert resp["DashboardName"] == "test1"
 
 
-@mock_cloudwatch
+@mock_aws
 def test_get_dashboard_fail():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 

@@ -1,7 +1,7 @@
 import os
 from functools import wraps
 
-from moto import mock_ec2, mock_ssm
+from moto import mock_aws
 
 
 def ec2_aws_verified(func):
@@ -10,7 +10,7 @@ def ec2_aws_verified(func):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_s3` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     This decorator will:
       - Create a bucket
@@ -27,7 +27,7 @@ def ec2_aws_verified(func):
         if allow_aws:
             resp = func()
         else:
-            with mock_ec2(), mock_ssm():
+            with mock_aws():
                 resp = func()
         return resp
 

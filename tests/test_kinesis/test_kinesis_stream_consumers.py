@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_kinesis
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
@@ -13,7 +13,7 @@ def create_stream(client):
     return stream["StreamARN"]
 
 
-@mock_kinesis
+@mock_aws
 def test_list_stream_consumers():
     client = boto3.client("kinesis", region_name="eu-west-1")
     stream_arn = create_stream(client)
@@ -23,7 +23,7 @@ def test_list_stream_consumers():
     assert resp["Consumers"] == []
 
 
-@mock_kinesis
+@mock_aws
 def test_register_stream_consumer():
     client = boto3.client("kinesis", region_name="eu-west-1")
     stream_arn = create_stream(client)
@@ -56,7 +56,7 @@ def test_register_stream_consumer():
     assert "ConsumerCreationTimestamp" in consumer
 
 
-@mock_kinesis
+@mock_aws
 def test_describe_stream_consumer_by_name():
     client = boto3.client("kinesis", region_name="us-east-2")
     stream_arn = create_stream(client)
@@ -75,7 +75,7 @@ def test_describe_stream_consumer_by_name():
     assert consumer["StreamARN"] == stream_arn
 
 
-@mock_kinesis
+@mock_aws
 def test_describe_stream_consumer_by_arn():
     client = boto3.client("kinesis", region_name="us-east-2")
     stream_arn = create_stream(client)
@@ -95,7 +95,7 @@ def test_describe_stream_consumer_by_arn():
     assert consumer["StreamARN"] == stream_arn
 
 
-@mock_kinesis
+@mock_aws
 def test_describe_stream_consumer_unknown():
     client = boto3.client("kinesis", region_name="us-east-2")
     create_stream(client)
@@ -108,7 +108,7 @@ def test_describe_stream_consumer_unknown():
     assert err["Message"] == f"Consumer {unknown_arn}, account {ACCOUNT_ID} not found."
 
 
-@mock_kinesis
+@mock_aws
 def test_deregister_stream_consumer_by_name():
     client = boto3.client("kinesis", region_name="ap-southeast-1")
     stream_arn = create_stream(client)
@@ -123,7 +123,7 @@ def test_deregister_stream_consumer_by_name():
     assert len(client.list_stream_consumers(StreamARN=stream_arn)["Consumers"]) == 1
 
 
-@mock_kinesis
+@mock_aws
 def test_deregister_stream_consumer_by_arn():
     client = boto3.client("kinesis", region_name="ap-southeast-1")
     stream_arn = create_stream(client)

@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_route53
+from moto import mock_aws
 
 
-@mock_route53
+@mock_aws
 def test_list_reusable_delegation_set():
     client = boto3.client("route53", region_name="us-east-1")
     resp = client.list_reusable_delegation_sets()
@@ -14,7 +14,7 @@ def test_list_reusable_delegation_set():
     assert resp["IsTruncated"] is False
 
 
-@mock_route53
+@mock_aws
 def test_create_reusable_delegation_set():
     client = boto3.client("route53", region_name="us-east-1")
     resp = client.create_reusable_delegation_set(CallerReference="r3f3r3nc3")
@@ -27,7 +27,7 @@ def test_create_reusable_delegation_set():
     assert len(resp["DelegationSet"]["NameServers"]) == 4
 
 
-@mock_route53
+@mock_aws
 def test_create_reusable_delegation_set_from_hosted_zone():
     client = boto3.client("route53", region_name="us-east-1")
     response = client.create_hosted_zone(
@@ -43,7 +43,7 @@ def test_create_reusable_delegation_set_from_hosted_zone():
     assert set(resp["DelegationSet"]["NameServers"]) == hosted_zone_name_servers
 
 
-@mock_route53
+@mock_aws
 def test_create_reusable_delegation_set_from_hosted_zone_with_delegationsetid():
     client = boto3.client("route53", region_name="us-east-1")
     response = client.create_hosted_zone(
@@ -65,7 +65,7 @@ def test_create_reusable_delegation_set_from_hosted_zone_with_delegationsetid():
     assert set(resp["DelegationSet"]["NameServers"]) == hosted_zone_name_servers
 
 
-@mock_route53
+@mock_aws
 def test_get_reusable_delegation_set():
     client = boto3.client("route53", region_name="us-east-1")
     ds_id = client.create_reusable_delegation_set(CallerReference="r3f3r3nc3")[
@@ -81,7 +81,7 @@ def test_get_reusable_delegation_set():
     assert len(resp["DelegationSet"]["NameServers"]) == 4
 
 
-@mock_route53
+@mock_aws
 def test_get_reusable_delegation_set_unknown():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -92,7 +92,7 @@ def test_get_reusable_delegation_set_unknown():
     assert err["Message"] == "unknown"
 
 
-@mock_route53
+@mock_aws
 def test_list_reusable_delegation_sets():
     client = boto3.client("route53", region_name="us-east-1")
     client.create_reusable_delegation_set(CallerReference="r3f3r3nc3")
@@ -103,7 +103,7 @@ def test_list_reusable_delegation_sets():
     assert resp["IsTruncated"] is False
 
 
-@mock_route53
+@mock_aws
 def test_delete_reusable_delegation_set():
     client = boto3.client("route53", region_name="us-east-1")
     ds_id = client.create_reusable_delegation_set(CallerReference="r3f3r3nc3")[

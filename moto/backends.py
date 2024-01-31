@@ -1,6 +1,6 @@
 import importlib
-import sys
-from typing import TYPE_CHECKING, Iterable, Tuple, Union, overload
+import os
+from typing import TYPE_CHECKING, Iterable, Optional, Union, overload
 
 import moto
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from moto.cognitoidp.models import CognitoIdpBackend
     from moto.comprehend.models import ComprehendBackend
     from moto.config.models import ConfigBackend
-    from moto.core import SERVICE_BACKEND, BackendDict, BaseBackend
+    from moto.core.base_backend import SERVICE_BACKEND, BackendDict
     from moto.databrew.models import DataBrewBackend
     from moto.datapipeline.models import DataPipelineBackend
     from moto.datasync.models import DataSyncBackend
@@ -136,13 +136,33 @@ if TYPE_CHECKING:
     from moto.xray.models import XRayBackend
 
 
-decorators = [d for d in dir(moto) if d.startswith("mock_") and not d == "mock_all"]
-decorator_functions = [getattr(moto, f) for f in decorators]
-BACKENDS = {f.boto3_name: (f.name, f.backend) for f in decorator_functions}
-BACKENDS["dynamodb_v20111205"] = ("dynamodb_v20111205", "dynamodb_backends")
-BACKENDS["moto_api"] = ("moto_api._internal", "moto_api_backends")
-BACKENDS["instance_metadata"] = ("instance_metadata", "instance_metadata_backends")
-BACKENDS["s3bucket_path"] = ("s3", "s3_backends")
+ALT_SERVICE_NAMES = {"lambda": "awslambda", "moto_api": "moto_api._internal"}
+ALT_BACKEND_NAMES = {
+    "moto_api._internal": "moto_api",
+    "awslambda": "lambda",
+    "awslambda_simple": "lambda_simple",
+    "dynamodb_v20111205": "dynamodb",
+    "elasticbeanstalk": "eb",
+}
+
+
+def list_of_moto_modules() -> Iterable[str]:
+    path = os.path.dirname(moto.__file__)
+    for backend in sorted(os.listdir(path)):
+        is_dir = os.path.isdir(os.path.join(path, backend))
+        valid_folder = not backend.startswith("__")
+        if is_dir and valid_folder:
+            yield backend
+
+
+def get_service_from_url(url: str) -> Optional[str]:
+    from moto.backend_index import backend_url_patterns
+
+    for service, pattern in backend_url_patterns:
+        if pattern.match(url):
+            return service
+    return None
+
 
 # There's a similar Union that we could import from boto3-stubs, but it wouldn't have
 # moto's custom service backends
@@ -281,30 +301,6 @@ def _import_backend(
 ) -> "BackendDict[SERVICE_BACKEND]":
     module = importlib.import_module("moto." + module_name)
     return getattr(module, backends_name)
-
-
-def backends() -> "Iterable[BackendDict[BaseBackend]]":
-    for module_name, backends_name in BACKENDS.values():
-        yield _import_backend(module_name, backends_name)
-
-
-def service_backends() -> "Iterable[BackendDict[BaseBackend]]":
-    services = [(f.name, f.backend) for f in decorator_functions]
-    for module_name, backends_name in sorted(set(services)):
-        yield _import_backend(module_name, backends_name)
-
-
-def loaded_backends() -> "Iterable[Tuple[str, BackendDict[BaseBackend]]]":
-    loaded_modules = sys.modules.keys()
-    moto_modules = [m for m in loaded_modules if m.startswith("moto.")]
-    imported_backends = [
-        name
-        for name, (module_name, _) in BACKENDS.items()
-        if f"moto.{module_name}" in moto_modules
-    ]
-    for name in imported_backends:
-        module_name, backends_name = BACKENDS[name]
-        yield name, _import_backend(module_name, backends_name)
 
 
 # fmt: off
@@ -565,5 +561,8 @@ def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
 
 
 def get_backend(name: SERVICE_NAMES) -> "BackendDict[SERVICE_BACKEND]":
-    module_name, backends_name = BACKENDS[name]
-    return _import_backend(module_name, backends_name)
+    safe_name = name.replace("-", "")
+    return _import_backend(
+        ALT_SERVICE_NAMES.get(safe_name, safe_name),
+        f"{ALT_BACKEND_NAMES.get(safe_name, safe_name)}_backends",
+    )

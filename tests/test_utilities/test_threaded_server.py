@@ -4,7 +4,7 @@ from unittest import SkipTest
 import boto3
 import requests
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 from moto.server import ThreadedMotoServer
 
 
@@ -20,26 +20,14 @@ class TestThreadedMotoServer(unittest.TestCase):
         self.server.stop()
 
     def test_server_is_reachable(self):
-        s3_client = boto3.client(
-            "s3",
-            endpoint_url="http://127.0.0.1:5000",
-            aws_access_key_id="ak",
-            aws_secret_access_key="sk",
-            region_name="us-east-1",
-        )
+        s3_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
         s3_client.create_bucket(Bucket="test")
         buckets = s3_client.list_buckets()["Buckets"]
         assert len(buckets) == 1
         assert [b["Name"] for b in buckets] == ["test"]
 
     def test_server_can_handle_multiple_services(self):
-        s3_client = boto3.client(
-            "s3",
-            endpoint_url="http://127.0.0.1:5000",
-            aws_access_key_id="ak",
-            aws_secret_access_key="sk",
-            region_name="us-east-1",
-        )
+        s3_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
         dynamodb_client = boto3.client(
             "dynamodb",
             endpoint_url="http://127.0.0.1:5000",
@@ -58,15 +46,9 @@ class TestThreadedMotoServer(unittest.TestCase):
 
         assert dynamodb_client.list_tables()["TableNames"] == ["table1"]
 
-    @mock_s3
+    @mock_aws
     def test_load_data_from_inmemory_client(self):
-        server_client = boto3.client(
-            "s3",
-            endpoint_url="http://127.0.0.1:5000",
-            aws_access_key_id="ak",
-            aws_secret_access_key="sk",
-            region_name="us-east-1",
-        )
+        server_client = boto3.client("s3", endpoint_url="http://127.0.0.1:5000")
         server_client.create_bucket(Bucket="test")
 
         in_mem_client = boto3.client("s3")

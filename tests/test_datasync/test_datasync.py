@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_datasync
+from moto import mock_aws
 
 
 def create_locations(client, create_smb=False, create_s3=False):
@@ -31,7 +31,7 @@ def create_locations(client, create_smb=False, create_s3=False):
     return {"smb_arn": smb_arn, "s3_arn": s3_arn}
 
 
-@mock_datasync
+@mock_aws
 def test_create_location_smb():
     client = boto3.client("datasync", region_name="us-east-1")
     response = client.create_location_smb(
@@ -44,7 +44,7 @@ def test_create_location_smb():
     assert "LocationArn" in response
 
 
-@mock_datasync
+@mock_aws
 def test_describe_location_smb():
     client = boto3.client("datasync", region_name="us-east-1")
     agent_arns = ["stuff"]
@@ -63,7 +63,7 @@ def test_describe_location_smb():
     assert response["AgentArns"] == agent_arns
 
 
-@mock_datasync
+@mock_aws
 def test_create_location_s3():
     client = boto3.client("datasync", region_name="us-east-1")
     response = client.create_location_s3(
@@ -74,7 +74,7 @@ def test_create_location_s3():
     assert "LocationArn" in response
 
 
-@mock_datasync
+@mock_aws
 def test_describe_location_s3():
     client = boto3.client("datasync", region_name="us-east-1")
     s3_config = {"BucketAccessRoleArn": "role"}
@@ -87,7 +87,7 @@ def test_describe_location_s3():
     assert response["S3Config"] == s3_config
 
 
-@mock_datasync
+@mock_aws
 def test_describe_location_wrong():
     client = boto3.client("datasync", region_name="us-east-1")
     agent_arns = ["stuff"]
@@ -106,7 +106,7 @@ def test_describe_location_wrong():
     assert err["Message"] == "Invalid Location type: SMB"
 
 
-@mock_datasync
+@mock_aws
 def test_list_locations():
     client = boto3.client("datasync", region_name="us-east-1")
     response = client.list_locations()
@@ -128,7 +128,7 @@ def test_list_locations():
     assert response["Locations"][2]["LocationUri"] == "s3://my_bucket/dir"
 
 
-@mock_datasync
+@mock_aws
 def test_delete_location():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_smb=True)
@@ -144,7 +144,7 @@ def test_delete_location():
         client.delete_location(LocationArn=location_arn)
 
 
-@mock_datasync
+@mock_aws
 def test_create_task():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_smb=True, create_s3=True)
@@ -155,7 +155,7 @@ def test_create_task():
     assert "TaskArn" in response
 
 
-@mock_datasync
+@mock_aws
 def test_create_task_fail():
     """Test that Locations must exist before a Task can be created"""
     client = boto3.client("datasync", region_name="us-east-1")
@@ -177,7 +177,7 @@ def test_create_task_fail():
     assert err["Message"] == "Location 2 not found."
 
 
-@mock_datasync
+@mock_aws
 def test_list_tasks():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -204,7 +204,7 @@ def test_list_tasks():
     assert task["Name"] == "task_name"
 
 
-@mock_datasync
+@mock_aws
 def test_describe_task():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -224,7 +224,7 @@ def test_describe_task():
     assert "DestinationLocationArn" in response
 
 
-@mock_datasync
+@mock_aws
 def test_describe_task_not_exist():
     client = boto3.client("datasync", region_name="us-east-1")
 
@@ -235,7 +235,7 @@ def test_describe_task_not_exist():
     assert err["Message"] == "The request is not valid."
 
 
-@mock_datasync
+@mock_aws
 def test_update_task():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -275,7 +275,7 @@ def test_update_task():
         client.update_task(TaskArn="doesnt_exist")
 
 
-@mock_datasync
+@mock_aws
 def test_delete_task():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -299,7 +299,7 @@ def test_delete_task():
         client.delete_task(TaskArn=task_arn)
 
 
-@mock_datasync
+@mock_aws
 def test_start_task_execution():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -321,7 +321,7 @@ def test_start_task_execution():
     assert response["CurrentTaskExecutionArn"] == task_execution_arn
 
 
-@mock_datasync
+@mock_aws
 def test_start_task_execution_twice():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -342,7 +342,7 @@ def test_start_task_execution_twice():
     assert err["Code"] == "InvalidRequestException"
 
 
-@mock_datasync
+@mock_aws
 def test_describe_task_execution():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)
@@ -398,7 +398,7 @@ def test_describe_task_execution():
     assert response["Status"] == "AVAILABLE"
 
 
-@mock_datasync
+@mock_aws
 def test_describe_task_execution_not_exist():
     client = boto3.client("datasync", region_name="us-east-1")
 
@@ -409,7 +409,7 @@ def test_describe_task_execution_not_exist():
     assert err["Message"] == "The request is not valid."
 
 
-@mock_datasync
+@mock_aws
 def test_cancel_task_execution():
     client = boto3.client("datasync", region_name="us-east-1")
     locations = create_locations(client, create_s3=True, create_smb=True)

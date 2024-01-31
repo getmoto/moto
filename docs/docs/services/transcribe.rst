@@ -12,17 +12,6 @@
 transcribe
 ==========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_transcribe
-            def test_transcribe_behaviour:
-                boto3.client("transcribe")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_call_analytics_category

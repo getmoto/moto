@@ -12,17 +12,6 @@
 kms
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_kms
-            def test_kms_behaviour:
-                boto3.client("kms")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] cancel_key_deletion
@@ -95,6 +84,7 @@ kms
         Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
+        - The MessageType-parameter DIGEST is not yet implemented
         
 
 - [ ] verify_mac

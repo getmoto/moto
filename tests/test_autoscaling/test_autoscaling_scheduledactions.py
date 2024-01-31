@@ -2,10 +2,10 @@ from unittest import TestCase
 
 import boto3
 
-from moto import mock_autoscaling
+from moto import mock_aws
 
 
-@mock_autoscaling
+@mock_aws
 class TestAutoScalingScheduledActions(TestCase):
     def setUp(self) -> None:
         self.client = boto3.client("autoscaling", region_name="us-east-1")

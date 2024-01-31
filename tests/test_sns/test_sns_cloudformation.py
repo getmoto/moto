@@ -3,11 +3,10 @@ import json
 import boto3
 import pytest
 
-from moto import mock_cloudformation, mock_sns
+from moto import mock_aws
 
 
-@mock_cloudformation
-@mock_sns
+@mock_aws
 def test_sns_topic():
     dummy_template = get_template(with_properties=True)
     template_json = json.dumps(dummy_template)
@@ -37,8 +36,7 @@ def test_sns_topic():
     assert topic_arn_output["OutputValue"] == topic_arn
 
 
-@mock_cloudformation
-@mock_sns
+@mock_aws
 def test_sns_update_topic():
     dummy_template = get_template(with_properties=True)
     sns_template_json = json.dumps(dummy_template)
@@ -69,8 +67,7 @@ def test_sns_update_topic():
     assert subscription["Endpoint"] == "https://example-updated.com"
 
 
-@mock_cloudformation
-@mock_sns
+@mock_aws
 @pytest.mark.parametrize("with_properties", [True, False])
 def test_sns_update_remove_topic(with_properties):
     dummy_template = get_template(with_properties)
@@ -91,8 +88,7 @@ def test_sns_update_remove_topic(with_properties):
     assert len(topics) == 0
 
 
-@mock_cloudformation
-@mock_sns
+@mock_aws
 @pytest.mark.parametrize("with_properties", [True, False])
 def test_sns_delete_topic(with_properties):
     sns_template_json = json.dumps(get_template(with_properties))

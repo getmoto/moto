@@ -14,17 +14,6 @@ wafv2
 
 .. autoclass:: moto.wafv2.models.WAFV2Backend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_wafv2
-            def test_wafv2_behaviour:
-                boto3.client("wafv2")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] associate_web_acl

@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import dateutil.parser
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import EC2Backend, ec2_backends
@@ -1270,7 +1271,7 @@ class BatchBackend(BaseBackend):
             subnet_cycle = cycle(compute_resources["subnets"])
 
             for instance_type in needed_instance_types:
-                reservation = self.ec2_backend.add_instances(
+                reservation = self.ec2_backend.run_instances(
                     image_id="ami-03cf127a",  # Todo import AMIs
                     count=1,
                     user_data=None,

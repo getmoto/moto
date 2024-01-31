@@ -5,7 +5,8 @@ from typing import Any, Dict, Iterable, List, Optional
 from botocore.exceptions import ParamValidationError
 from jinja2 import Template
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
@@ -580,6 +581,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "connection_logs.s3.enabled",
         "connection_logs.s3.prefix",
         "deletion_protection.enabled",
+        "dns_record.client_routing_policy",
         "idle_timeout.timeout_seconds",
         "ipv6.deny_all_igw_traffic",
         "load_balancing.cross_zone.enabled",

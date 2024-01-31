@@ -8,11 +8,11 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_panorama, settings
+from moto import mock_aws, settings
 from moto.moto_api import state_manager
 
 
-@mock_panorama
+@mock_aws
 def test_provision_device() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't use ManagedState in ServerMode")
@@ -59,7 +59,7 @@ def test_provision_device() -> None:
     assert resp["Status"] == "AWAITING_PROVISIONING"
 
 
-@mock_panorama
+@mock_aws
 def test_describe_device() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -140,7 +140,7 @@ def test_describe_device() -> None:
     assert resp["Type"] == "PANORAMA_APPLIANCE"
 
 
-@mock_panorama
+@mock_aws
 def test_provision_device_aggregated_status_lifecycle() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't use ManagedState in ServerMode")
@@ -208,7 +208,7 @@ def test_provision_device_aggregated_status_lifecycle() -> None:
     assert resp_3["ProvisioningStatus"] == "PENDING"
 
 
-@mock_panorama
+@mock_aws
 def test_list_device() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp_1 = client.provision_device(
@@ -256,7 +256,7 @@ def test_list_device() -> None:
     assert resp["Devices"][1]["DeviceId"] == resp_2["DeviceId"]
 
 
-@mock_panorama
+@mock_aws
 def test_list_device_name_filter() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp_1 = client.provision_device(
@@ -282,7 +282,7 @@ def test_list_device_name_filter() -> None:
     assert resp["Devices"][1]["DeviceId"] == resp_2["DeviceId"]
 
 
-@mock_panorama
+@mock_aws
 def test_list_device_max_result_and_next_token() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     _ = client.provision_device(
@@ -314,7 +314,7 @@ def test_list_device_max_result_and_next_token() -> None:
         ("DESCENDING", [1, 0]),
     ],
 )
-@mock_panorama
+@mock_aws
 def test_list_devices_sort_order(sort_order: str, indexes: List[int]) -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp_1 = client.provision_device(
@@ -344,7 +344,7 @@ def test_list_devices_sort_order(sort_order: str, indexes: List[int]) -> None:
         ("DEVICE_AGGREGATED_STATUS", [1, 0]),
     ],
 )
-@mock_panorama
+@mock_aws
 def test_list_devices_sort_by(sort_by: str, indexes: List[int]) -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -373,7 +373,7 @@ def test_list_devices_sort_by(sort_by: str, indexes: List[int]) -> None:
     assert resp["Devices"][indexes[1]]["DeviceId"] == resp_2["DeviceId"]
 
 
-@mock_panorama
+@mock_aws
 def test_list_devices_device_aggregated_status_filter() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't use ManagedState in ServerMode")
@@ -401,7 +401,7 @@ def test_list_devices_device_aggregated_status_filter() -> None:
     assert resp["Devices"][0]["DeviceId"] == resp_2["DeviceId"]
 
 
-@mock_panorama
+@mock_aws
 def test_update_device_metadata() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp = client.provision_device(
@@ -418,7 +418,7 @@ def test_update_device_metadata() -> None:
     assert resp_updated["Description"] == "updated device description"
 
 
-@mock_panorama
+@mock_aws
 def test_delete_device() -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp = client.provision_device(
