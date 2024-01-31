@@ -3,7 +3,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
-from moto.events.notifications import _BASE_EVENT_MESSAGE
+from moto.core.utils import (
+    unix_time,
+)
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -124,6 +126,10 @@ def send_event(
 
             _send_sns_message(account_id, event_body, topic_arn, region_name)
 
+    if bucket.notification_configuration.event_bridge is not None:
+        event_body = {"test event": 123}
+        _send_event_bridge_message(account_id, event_body, "us-east-1")
+
 
 def _send_sqs_message(
     account_id: str, event_body: Any, queue_name: str, region_name: str
@@ -160,12 +166,29 @@ def _send_sns_message(
 
 
 def _send_event_bridge_message(
-    account_id: str, event_body: Any, region_name: str, resources: Any, detail: Any
+    account_id: str,
+    event_body: Any,
+    region_name: str,  # resources: Any, detail: Any
 ):
     try:
         from moto.events.models import events_backends
-        event = None
-        if source == "aws.s3" and event_name in 
+
+        event = {
+            "version": "0",
+            "id": "17793124-05d4-b198-2fde-7ededc63b103",
+            "detail-type": "Object Created Custom Event Here",
+            "source": "aws.s3",
+            "account": "123456789012",
+            "time": unix_time(),
+            "region": "us-west-2",
+            "resources": [],
+            "detail": {},
+        }
+        events_backend = events_backends[account_id][region_name]
+        for event_bus in events_backend.event_buses.values():
+            for rule in event_bus.rules.values():
+                rule.send_to_targets(event)
+
     except:  # noqa
         # This is an async action in AWS.
         # Even if this part fails, the calling function should pass, so catch all errors

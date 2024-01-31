@@ -37,7 +37,7 @@ PAGINATION_MODEL = {
     },
 }
 
-_BASE_EVENT_MESSAGE = {
+_BASE_EVENT_MESSAGE: EventMessageType = {
     "version": "0",
     "id": "17793124-05d4-b198-2fde-7ededc63b103",
     "detail-type": "",
