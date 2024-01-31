@@ -1,6 +1,8 @@
 import logging
 import os
 
+from moto.core.config import default_user_config
+
 # Disable extra logging for tests
 logging.getLogger("boto").setLevel(logging.CRITICAL)
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -17,3 +19,6 @@ DEFAULT_ACCOUNT_ID = "123456789012"
 
 # For the majority of tests we don't need the default AMI's
 os.environ["MOTO_EC2_LOAD_DEFAULT_AMIS"] = "false"
+
+# Don't reset boto3 Session, as it's unnecessarily slow
+default_user_config["core"]["reset_boto3_session"] = False
