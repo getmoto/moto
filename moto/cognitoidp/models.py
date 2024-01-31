@@ -8,7 +8,7 @@ import typing
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from jose import jws
+from joserfc import jwk, jwt
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -444,7 +444,7 @@ class CognitoIdpUserPool(BaseModel):
         with open(
             os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
         ) as f:
-            self.json_web_key = json.loads(f.read())
+            self.json_web_key = jwk.RSAKey.import_key(json.loads(f.read()))
 
     @property
     def backend(self) -> "CognitoIdpBackend":
@@ -543,10 +543,10 @@ class CognitoIdpUserPool(BaseModel):
             "username" if token_use == "access" else "cognito:username": username,
         }
         payload.update(extra_data or {})
-        headers = {"kid": "dummy"}  # KID as present in jwks-public.json
+        headers = {"kid": "dummy", "alg": "RS256"}  # KID as present in jwks-public.json
 
         return (
-            jws.sign(payload, self.json_web_key, headers, algorithm="RS256"),
+            jwt.encode(headers, payload, self.json_web_key),
             expires_in,
         )
 
