@@ -37,7 +37,7 @@ from botocore.session import Session
 import boto3
 
 from moto.core.responses import BaseResponse
-from moto.core import BaseBackend
+from moto.core.base_backend import BaseBackend
 from inflection import singularize
 from implementation_coverage import get_moto_implementation
 
