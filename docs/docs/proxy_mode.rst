@@ -125,3 +125,5 @@ Drawbacks
 Configuring a proxy means that all requests are intercepted, but the MotoProxy can only handle requests to AWS.
 
 If your test includes a call to `https://www.thirdpartyservice.com`, that will also be intercepted by `MotoProxy` - and subsequently throw an error because it doesn't know how to handle non-AWS requests.
+
+You can exclude `www.thirdpartyservice.com` from being proxied by setting `NO_PROXY=www.thirdpartyservice.com` to work around. `NO_PROXY` accepts a comma separated list of domains, e.g. `NO_PROXY=.thirdpartyservice.com,api.anotherservice.com`.
