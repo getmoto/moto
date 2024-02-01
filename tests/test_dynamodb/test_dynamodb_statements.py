@@ -334,6 +334,75 @@ def test_update_data(table_name=None):
     assert item2 in items
 
 
+@mock_aws
+def test_batch_update__not_enough_parameters():
+    ddb_cli = boto3.client("dynamodb", "us-east-1")
+    ddb_res = boto3.resource("dynamodb", "us-east-1")
+    ddb_res.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    statements = [
+        {
+            "Statement": 'UPDATE users SET "first_name" = ?, "last_name" = ? WHERE "username"= ?',
+            "Parameters": [{"S": "test5"}, {"S": "test6"}],
+        }
+    ]
+    resp = ddb_cli.batch_execute_statement(Statements=statements)["Responses"]
+    assert resp == [
+        {
+            "Error": {
+                "Code": "ValidationError",
+                "Message": "Number of parameters in request and statement don't match.",
+            }
+        }
+    ]
+
+
+@mock_aws
+def test_batch_update():
+    ddb_cli = boto3.client("dynamodb", "us-east-1")
+    ddb_res = boto3.resource("dynamodb", "us-east-1")
+    table = ddb_res.create_table(
+        TableName="users",
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table.put_item(
+        Item={"username": "XXXX", "first_name": "test1", "last_name": "test2"}
+    )
+    table.put_item(
+        Item={"username": "YYYY", "first_name": "test3", "last_name": "test4"}
+    )
+
+    statements = [
+        {
+            "Statement": 'UPDATE users SET "first_name" = ?, "last_name" = ? WHERE "username"= ?',
+            "Parameters": [{"S": "test5"}, {"S": "test6"}, {"S": "XXXX"}],
+        },
+        {"Statement": "DELETE FROM users WHERE username='YYYY'"},
+        {"Statement": "INSERT INTO users value {'username': 'new'}"},
+    ]
+    response = ddb_cli.batch_execute_statement(Statements=statements)["Responses"]
+    assert response == [
+        {"TableName": "users"},
+        {"TableName": "users"},
+        {"TableName": "users"},
+    ]
+
+    users = ddb_res.Table("users").scan()["Items"]
+    assert len(users) == 2
+
+    # Changed
+    assert {"username": "XXXX", "first_name": "test5", "last_name": "test6"} in users
+    # New
+    assert {"username": "new"} in users
+
+
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
 def test_delete_data(table_name=None):
