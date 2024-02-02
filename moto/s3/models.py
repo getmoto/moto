@@ -2674,6 +2674,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     mdirective == "REPLACE",
                     website_redirect_location,
                     bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
+                    bucket.is_versioned,
                 )
             ):
                 raise CopyObjectMustChangeSomething
