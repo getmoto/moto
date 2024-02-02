@@ -810,7 +810,7 @@ def test_copy_object_in_place_with_versioning():
 
     response = client.copy_object(
         Bucket=bucket_name,
-        CopySource={"Bucket": bucket_name, "Key": key},
+        CopySource={"Bucket": bucket_name, "Key": key, "VersionId": version_id},
         Key=key,
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
