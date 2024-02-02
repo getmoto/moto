@@ -108,7 +108,7 @@ class FakeKey(BaseModel, ManagedState):
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
-        version_id: str = "null",
+        version_id: Optional[str] = None,
         max_buffer_size: Optional[int] = None,
         multipart: Optional["FakeMultipart"] = None,
         bucket_name: Optional[str] = None,
@@ -170,7 +170,7 @@ class FakeKey(BaseModel, ManagedState):
 
     @property
     def version_id(self) -> str:
-        return self._version_id
+        return self._version_id or "null"
 
     @property
     def value(self) -> bytes:
@@ -2674,7 +2674,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     mdirective == "REPLACE",
                     website_redirect_location,
                     bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
-                    src_key.version_id != "null" and bucket.is_versioned,
+                    src_key._version_id and bucket.is_versioned,
                 )
             ):
                 raise CopyObjectMustChangeSomething
