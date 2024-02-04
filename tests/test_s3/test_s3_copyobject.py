@@ -791,6 +791,12 @@ def test_copy_object_in_place_with_versioning():
     client.create_bucket(Bucket=bucket_name)
     key = "source-key"
 
+    response = client.put_object(
+        Body=b"",
+        Bucket=bucket_name,
+        Key=key,
+    )
+
     response = client.put_bucket_versioning(
         Bucket=bucket_name,
         VersioningConfiguration={
@@ -815,11 +821,18 @@ def test_copy_object_in_place_with_versioning():
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
+    response = client.copy_object(
+        Bucket=bucket_name,
+        CopySource={"Bucket": bucket_name, "Key": key, "VersionId": "null"},
+        Key=key,
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
     response = client.list_object_versions(
         Bucket=bucket_name,
         Prefix=key,
     )
-    assert len(response["Versions"]) == 2
+    assert len(response["Versions"]) == 4
 
 
 @mock_aws
