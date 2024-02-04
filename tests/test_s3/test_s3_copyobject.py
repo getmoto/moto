@@ -784,6 +784,58 @@ def test_copy_object_in_place_with_bucket_encryption():
 
 
 @mock_aws
+def test_copy_object_in_place_with_versioning():
+    # If a bucket has versioning enabled, it will allow copy in place
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "testbucket"
+    client.create_bucket(Bucket=bucket_name)
+    key = "source-key"
+
+    response = client.put_object(
+        Body=b"",
+        Bucket=bucket_name,
+        Key=key,
+    )
+
+    response = client.put_bucket_versioning(
+        Bucket=bucket_name,
+        VersioningConfiguration={
+            "MFADelete": "Disabled",
+            "Status": "Enabled",
+        },
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.put_object(
+        Body=b"",
+        Bucket=bucket_name,
+        Key=key,
+    )
+    version_id = response["ResponseMetadata"]["HTTPHeaders"]["x-amz-version-id"]
+    assert version_id and version_id != "null"
+
+    response = client.copy_object(
+        Bucket=bucket_name,
+        CopySource={"Bucket": bucket_name, "Key": key, "VersionId": version_id},
+        Key=key,
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.copy_object(
+        Bucket=bucket_name,
+        CopySource={"Bucket": bucket_name, "Key": key, "VersionId": "null"},
+        Key=key,
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = client.list_object_versions(
+        Bucket=bucket_name,
+        Prefix=key,
+    )
+    assert len(response["Versions"]) == 4
+
+
+@mock_aws
 @pytest.mark.parametrize(
     "algorithm",
     ["CRC32", "SHA1", "SHA256"],
