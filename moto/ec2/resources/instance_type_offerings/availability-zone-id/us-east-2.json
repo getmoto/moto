@@ -1776,6 +1776,10 @@
   "Location": "use2-az1"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "use2-az1"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "use2-az1"
  },
