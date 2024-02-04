@@ -1,6 +1,27 @@
 Moto Changelog
 ==============
 
+5.0.1
+-----
+Docker Digest for 5.0.1: <autopopulateddigest>
+
+    New Methods:
+        * SecretsManager:
+            * remove_regions_from_replication()
+            * replicate_secret_to_regions()
+
+    Miscellaneous:
+        * AWSLambda: create_event_source_mapping() now supports Kinesis streams as targets
+        * CloudFront: Removed error handling for InvalidOriginServer, as our validation was too strict
+        * DynamoDB: batch_execute_statement() now supports for Update/Insert/Delete-statements
+        * DynamoDB: query() now correctly handles calls where both Limit and ScanIndexForward are supplied
+        * EC2: Now supports availability zones for eu-central-2 (Zurich)
+        * S3: list_objects_v2() can now return more then 1000 results max (again)
+        * S3: copy_object() now allows in-place copies when bucket versioning is enabled
+        * SecretsManager: create_secrets() now supports the parameters AddReplicaRegions and ForceOverwriteReplicaSecret
+        * SecretsManager: list_secrets() now supports the filters primary-region and owning-service
+
+
 5.0.0
 -----
 Docker Digest for 5.0.0: _sha256:2faf2460a6446dfe472ac0d799e00341b1c84203d08540c247a6cc09be7c54e9_
