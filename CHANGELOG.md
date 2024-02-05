@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.1
 -----
-Docker Digest for 5.0.1: <autopopulateddigest>
+Docker Digest for 5.0.1: _sha256:b6004b2e112c0ba870b2103049548abecec476edeac7a724ed9c71249358e821_
 
     New Methods:
         * SecretsManager:
