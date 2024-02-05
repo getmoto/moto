@@ -53,6 +53,7 @@ def test_objectcreated_put__unknown_lambda_is_handled_gracefully():
     event_message = json.loads(events[0]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectCreated"

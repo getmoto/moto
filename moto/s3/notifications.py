@@ -1,11 +1,11 @@
+import copy
 import json
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
 
-from moto.core.utils import (
-    unix_time,
-)
+from moto.core.utils import unix_time
+from moto.events.utils import _BASE_EVENT_MESSAGE
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -173,31 +173,28 @@ def _send_event_bridge_message(
     try:
         from moto.events.models import events_backends
 
-        event = {
+        event = copy.deepcopy(_BASE_EVENT_MESSAGE)
+        event["detail-type"] = _detail_type(event_name)
+        event["source"] = "aws.s3"
+        event["account"] = account_id
+        event["time"] = unix_time()
+        event["region"] = bucket.region_name
+        event["resources"] = [f"arn:aws:s3:::{bucket.name}"]
+        event["detail"] = {
             "version": "0",
-            "id": "17793124-05d4-b198-2fde-7ededc63b103",
-            "detail-type": _detail_type(event_name),
-            "source": "aws.s3",
-            "account": "123456789012",
-            "time": unix_time(),
-            "region": bucket.region_name,
-            "resources": [f"arn:aws:s3:::{bucket.name}"],
-            "detail": {
-                "version": "0",
-                "bucket": {"name": bucket.name},
-                "object": {
-                    "key": key.name,
-                    "size": key.size,
-                    "eTag": key.etag.replace('"', ""),
-                    "version-id": "IYV3p45BT0ac8hjHg1houSdS1a.Mro8e",
-                    "sequencer": "617f08299329d189",
-                },
-                "request-id": "N4N7GDK58NMKJ12R",
-                "requester": "123456789012",
-                "source-ip-address": "1.2.3.4",
-                # ex) s3:ObjectCreated:Put -> ObjectCreated
-                "reason": event_name.split(":")[1],
+            "bucket": {"name": bucket.name},
+            "object": {
+                "key": key.name,
+                "size": key.size,
+                "eTag": key.etag.replace('"', ""),
+                "version-id": "IYV3p45BT0ac8hjHg1houSdS1a.Mro8e",
+                "sequencer": "617f08299329d189",
             },
+            "request-id": "N4N7GDK58NMKJ12R",
+            "requester": "123456789012",
+            "source-ip-address": "1.2.3.4",
+            # ex) s3:ObjectCreated:Put -> ObjectCreated
+            "reason": event_name.split(":")[1],
         }
 
         events_backend = events_backends[account_id][bucket.region_name]
@@ -214,6 +211,10 @@ def _send_event_bridge_message(
 
 
 def _detail_type(event_name: str) -> str:
+    """Detail type field values for event messages of s3 EventBridge notification
+
+    document: https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html
+    """
     if event_name in [e for e in S3NotificationEvent.events() if "ObjectCreated" in e]:
         return "Object Created"
     elif event_name in [
