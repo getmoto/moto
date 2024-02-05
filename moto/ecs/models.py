@@ -1225,19 +1225,15 @@ class EC2ContainerServiceBackend(BaseBackend):
             if (
                 requires_compatibilities
                 and "EC2" in requires_compatibilities
-                and (
-                    "memory" not in cd
-                    and "Memory" not in cd
-                    and not memory
-                )
+                and ("memory" not in cd and "Memory" not in cd and not memory)
             ):
                 raise TaskDefinitionMemoryError(cd["name"])
             if (
-                    "memory" not in cd
-                    and "Memory" not in cd
-                    and "memoryReservation" not in cd
-                    and "MemoryReservation" not in cd
-                    and not memory
+                "memory" not in cd
+                and "Memory" not in cd
+                and "memoryReservation" not in cd
+                and "MemoryReservation" not in cd
+                and not memory
             ):
                 raise TaskDefinitionMemoryError(cd["name"])
 
