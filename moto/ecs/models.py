@@ -1178,8 +1178,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                 raise EcsClientException(
                     f"Tasks using the Fargate launch type do not support pidMode '{pid_mode}'. The supported value for pidMode is 'task'."
                 )
-
-        self._validate_container_defs(memory, container_definitions)
+        self._validate_container_defs(
+            memory, container_definitions, requires_compatibilities
+        )
 
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -1214,13 +1215,19 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_definition
 
     @staticmethod
-    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
+    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]], requires_compatibilities: Optional[List[str]]) -> None:  # type: ignore[misc]
         # The capitalised keys are passed by Cloudformation
         for cd in container_definitions:
             if "name" not in cd and "Name" not in cd:
                 raise TaskDefinitionMissingPropertyError("name")
             if "image" not in cd and "Image" not in cd:
                 raise TaskDefinitionMissingPropertyError("image")
+            if (
+                requires_compatibilities
+                and "EC2" in requires_compatibilities
+                and ("memory" not in cd and "Memory" not in cd and not memory)
+            ):
+                raise TaskDefinitionMemoryError(cd["name"])
             if (
                 "memory" not in cd
                 and "Memory" not in cd
