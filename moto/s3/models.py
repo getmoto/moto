@@ -883,7 +883,7 @@ class NotificationConfiguration(BaseModel):
         topic: Optional[List[Dict[str, Any]]] = None,
         queue: Optional[List[Dict[str, Any]]] = None,
         cloud_function: Optional[List[Dict[str, Any]]] = None,
-        event_bridge: Optional[Dict] = None,
+        event_bridge: Optional[Dict[str, Any]] = None,
     ):
         self.topic = (
             [

@@ -49,4 +49,10 @@ def test_objectcreated_put__unknown_lambda_is_handled_gracefully():
         logs_client.filter_log_events(logGroupName=log_group_name)["events"],
         key=lambda item: item["eventId"],
     )
-    print(events)
+    assert len(events) == 1
+    event_message = json.loads(events[0]["message"])
+    assert event_message["detail-type"] == "Object Created"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["reason"] == "ObjectCreated"

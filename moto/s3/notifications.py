@@ -127,8 +127,7 @@ def send_event(
             _send_sns_message(account_id, event_body, topic_arn, region_name)
 
     if bucket.notification_configuration.event_bridge is not None:
-        event_body = {"test event": 123}
-        _send_event_bridge_message(account_id, event_body, "us-east-1")
+        _send_event_bridge_message(account_id, bucket, event_name, key)
 
 
 def _send_sqs_message(
@@ -167,24 +166,41 @@ def _send_sns_message(
 
 def _send_event_bridge_message(
     account_id: str,
-    event_body: Any,
-    region_name: str,  # resources: Any, detail: Any
-):
+    bucket: Any,
+    event_name: str,
+    key: Any,
+) -> None:
     try:
         from moto.events.models import events_backends
 
         event = {
             "version": "0",
             "id": "17793124-05d4-b198-2fde-7ededc63b103",
-            "detail-type": "Object Created Custom Event Here",
+            "detail-type": _detail_type(event_name),
             "source": "aws.s3",
             "account": "123456789012",
             "time": unix_time(),
-            "region": "us-west-2",
-            "resources": [],
-            "detail": {},
+            "region": bucket.region_name,
+            "resources": [f"arn:aws:s3:::{bucket.name}"],
+            "detail": {
+                "version": "0",
+                "bucket": {"name": bucket.name},
+                "object": {
+                    "key": key.name,
+                    "size": key.size,
+                    "eTag": key.etag.replace('"', ""),
+                    "version-id": "IYV3p45BT0ac8hjHg1houSdS1a.Mro8e",
+                    "sequencer": "617f08299329d189",
+                },
+                "request-id": "N4N7GDK58NMKJ12R",
+                "requester": "123456789012",
+                "source-ip-address": "1.2.3.4",
+                # ex) s3:ObjectCreated:Put -> ObjectCreated
+                "reason": event_name.split(":")[1],
+            },
         }
-        events_backend = events_backends[account_id][region_name]
+
+        events_backend = events_backends[account_id][bucket.region_name]
         for event_bus in events_backend.event_buses.values():
             for rule in event_bus.rules.values():
                 rule.send_to_targets(event)
@@ -195,6 +211,47 @@ def _send_event_bridge_message(
         # Possible exceptions that could be thrown:
         # - EventBridge does not exist
         pass
+
+
+def _detail_type(event_name: str) -> str:
+    if event_name in [e for e in S3NotificationEvent.events() if "ObjectCreated" in e]:
+        return "Object Created"
+    elif event_name in [
+        e
+        for e in S3NotificationEvent.events()
+        if "ObjectRemoved" in e or "LifecycleExpiration" in e
+    ]:
+        return "Object Deleted"
+    elif event_name in [
+        e for e in S3NotificationEvent.events() if "ObjectRestore" in e
+    ]:
+        if event_name == S3NotificationEvent.OBJECT_RESTORE_POST_EVENT:
+            return "Object Restore Initiated"
+        elif event_name == S3NotificationEvent.OBJECT_RESTORE_COMPLETED_EVENT:
+            return "Object Restore Completed"
+        else:
+            # s3:ObjectRestore:Delete event
+            return "Object Restore Expired"
+    elif event_name in [
+        e for e in S3NotificationEvent.events() if "LifecycleTransition" in e
+    ]:
+        return "Object Storage Class Changed"
+    elif event_name in [
+        e for e in S3NotificationEvent.events() if "IntelligentTiering" in e
+    ]:
+        return "Object Access Tier Changed"
+    elif event_name in [e for e in S3NotificationEvent.events() if "ObjectAcl" in e]:
+        return "Object ACL Updated"
+    elif event_name in [e for e in S3NotificationEvent.events() if "ObjectTagging"]:
+        if event_name == S3NotificationEvent.OBJECT_TAGGING_PUT_EVENT:
+            return "Object Tags Added"
+        else:
+            # s3:ObjectTagging:Delete event
+            return "Object Tags Deleted"
+    else:
+        raise ValueError(
+            "unsupported event for s3 eventbridge notification (https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html)"
+        )
 
 
 def _invoke_awslambda(
