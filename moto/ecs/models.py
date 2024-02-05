@@ -1228,10 +1228,16 @@ class EC2ContainerServiceBackend(BaseBackend):
                 and (
                     "memory" not in cd
                     and "Memory" not in cd
+                    and not memory
+                )
+            ):
+                raise TaskDefinitionMemoryError(cd["name"])
+            if (
+                    "memory" not in cd
+                    and "Memory" not in cd
                     and "memoryReservation" not in cd
                     and "MemoryReservation" not in cd
                     and not memory
-                )
             ):
                 raise TaskDefinitionMemoryError(cd["name"])
 

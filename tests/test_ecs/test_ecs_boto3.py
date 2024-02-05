@@ -330,7 +330,7 @@ def test_register_task_definition_memory_validation_ec2():
     bad_definition1 = dict(
         family="test_ecs_task",
         containerDefinitions=[
-            {"name": container_name, "image": "hello-world:latest", "memory": 400},
+            {"name": container_name, "image": "hello-world:latest"},
             {"name": f"{container_name}2", "image": "hello-world:latest"},
         ],
         requiresCompatibilities=["EC2"],
@@ -344,7 +344,7 @@ def test_register_task_definition_memory_validation_ec2():
     assert ex.response["Error"]["Code"] == "ClientException"
     assert (
         ex.response["Error"]["Message"]
-        == f"Invalid setting for container '{container_name}2'. At least one of 'memory' or 'memoryReservation' must be specified."
+        == f"Invalid setting for container '{container_name}'. At least one of 'memory' or 'memoryReservation' must be specified."
     )
 
 
@@ -354,8 +354,9 @@ def test_register_task_definition_memory_validation_fargate():
     container_name = "hello_world"
     good_definition1 = dict(
         family="test_ecs_task",
+        memory="1024",
         containerDefinitions=[
-            {"name": container_name, "image": "hello-world:latest", "memory": 400},
+            {"name": container_name, "image": "hello-world:latest"},
             {"name": f"{container_name}2", "image": "hello-world:latest"},
         ],
         requiresCompatibilities=["FARGATE"],
