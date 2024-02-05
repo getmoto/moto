@@ -1150,6 +1150,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -4008,15 +4017,6 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
-              "deeplens": {
-                "Value": "deeplens",
-                "endpoint": {
-                  "Value": "deeplens.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "detective": {
                 "Value": "detective",
                 "endpoint": {
@@ -5403,7 +5403,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-northeast-1.api.aws"
+                  "Value": "resource-explorer-2.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -7707,6 +7707,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -7839,7 +7848,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-northeast-2.api.aws"
+                  "Value": "resource-explorer-2.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9435,6 +9444,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -9504,7 +9522,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-northeast-3.api.aws"
+                  "Value": "resource-explorer-2.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11667,7 +11685,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-south-1.api.aws"
+                  "Value": "resource-explorer-2.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13004,6 +13022,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15406,7 +15433,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-southeast-1.api.aws"
+                  "Value": "resource-explorer-2.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18103,7 +18130,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-southeast-2.api.aws"
+                  "Value": "resource-explorer-2.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19646,6 +19673,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -19706,7 +19742,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ap-southeast-3.api.aws"
+                  "Value": "resource-explorer-2.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20926,6 +20962,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23083,7 +23128,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.ca-central-1.api.aws"
+                  "Value": "resource-explorer-2.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27906,15 +27951,6 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
-              "deeplens": {
-                "Value": "deeplens",
-                "endpoint": {
-                  "Value": "deeplens.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "detective": {
                 "Value": "detective",
                 "endpoint": {
@@ -29313,7 +29349,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.eu-central-1.api.aws"
+                  "Value": "resource-explorer-2.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29713,12 +29749,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "supplychain": {
-                "Value": "supplychain",
-                "endpoint": {
-                  "Value": "scn.eu-central-1.amazonaws.com"
                 }
               },
               "support": {
@@ -30763,6 +30793,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32578,6 +32617,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -32665,7 +32713,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.eu-north-1.api.aws"
+                  "Value": "resource-explorer-2.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34271,6 +34319,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -35436,6 +35493,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "marketplace": {
                 "Value": "marketplace"
               },
@@ -35509,6 +35575,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38077,7 +38152,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.eu-west-1.api.aws"
+                  "Value": "resource-explorer-2.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40616,7 +40691,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.eu-west-2.api.aws"
+                  "Value": "resource-explorer-2.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42554,6 +42629,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -42659,7 +42743,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.eu-west-3.api.aws"
+                  "Value": "resource-explorer-2.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43914,6 +43998,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "m2": {
+                "Value": "m2",
+                "endpoint": {
+                  "Value": "m2.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "macie": {
                 "Value": "macie",
                 "endpoint": {
@@ -44008,6 +44101,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45329,6 +45431,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46871,6 +46982,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -46949,7 +47069,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.me-south-1.api.aws"
+                  "Value": "resource-explorer-2.me-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48753,6 +48873,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -48840,7 +48969,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.sa-east-1.api.aws"
+                  "Value": "resource-explorer-2.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49395,9 +49524,6 @@
               },
               "use1-dfw1-az1": {
                 "Value": "use1-dfw1-az1"
-              },
-              "use1-iah1-az1": {
-                "Value": "use1-iah1-az1"
               },
               "use1-lim1-az1": {
                 "Value": "use1-lim1-az1"
@@ -50245,15 +50371,6 @@
                 "Value": "deepcomposer",
                 "endpoint": {
                   "Value": "deepcomposer.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "deeplens": {
-                "Value": "deeplens",
-                "endpoint": {
-                  "Value": "deeplens.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51858,7 +51975,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.us-east-1.api.aws"
+                  "Value": "resource-explorer-2.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52279,12 +52396,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "supplychain": {
-                "Value": "supplychain",
-                "endpoint": {
-                  "Value": "scn.us-east-1.amazonaws.com"
                 }
               },
               "support": {
@@ -54384,6 +54495,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -54525,7 +54645,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.us-east-2.api.aws"
+                  "Value": "resource-explorer-2.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56060,6 +56180,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59553,6 +59682,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pipes": {
                 "Value": "pipes",
                 "endpoint": {
@@ -59658,7 +59796,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.us-west-1.api.aws"
+                  "Value": "resource-explorer-2.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62496,7 +62634,7 @@
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
-                  "Value": "resource-explorer-2.us-west-2.api.aws"
+                  "Value": "resource-explorer-2.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62935,12 +63073,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "supplychain": {
-                "Value": "supplychain",
-                "endpoint": {
-                  "Value": "scn.us-west-2.amazonaws.com"
                 }
               },
               "support": {

@@ -855,27 +855,31 @@ class DynamoDBBackend(BaseBackend):
                 }
             else:
                 response["TableName"] = table_name
-                table = self.tables[table_name]
-                for required_attr in table.table_key_attrs:
-                    if required_attr not in filter_keys:
-                        response["Error"] = {
-                            "Code": "ValidationError",
-                            "Message": "Select statements within BatchExecuteStatement must specify the primary key in the where clause.",
-                        }
+                if metadata.is_select_query():
+                    table = self.tables[table_name]
+                    for required_attr in table.table_key_attrs:
+                        if required_attr not in filter_keys:
+                            response["Error"] = {
+                                "Code": "ValidationError",
+                                "Message": "Select statements within BatchExecuteStatement must specify the primary key in the where clause.",
+                            }
             responses.append(response)
 
         # Execution
         for idx, stmt in enumerate(statements):
             if "Error" in responses[idx]:
                 continue
-            items = self.execute_statement(
-                statement=stmt["Statement"], parameters=stmt.get("Parameters", [])
-            )
-            # Statements should always contain a HashKey and SortKey
-            # An item with those keys may not exist
-            if items:
-                # But if it does, it will always only contain one item at most
-                responses[idx]["Item"] = items[0]
+            try:
+                items = self.execute_statement(
+                    statement=stmt["Statement"], parameters=stmt.get("Parameters", [])
+                )
+                # Statements should always contain a HashKey and SortKey
+                # An item with those keys may not exist
+                if items:
+                    # But if it does, it will always only contain one item at most
+                    responses[idx]["Item"] = items[0]
+            except Exception as e:
+                responses[idx] = {"Error": {"Code": e.name, "Message": e.message}}  # type: ignore
         return responses
 
 
