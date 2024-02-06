@@ -123,7 +123,10 @@ class GlueBackend(BaseBackend):
         )
 
     def create_database(
-        self, database_name: str, database_input: Dict[str, Any]
+        self,
+        database_name: str,
+        database_input: Dict[str, Any],
+        tags: Optional[Dict[str, str]] = None,
     ) -> "FakeDatabase":
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()
@@ -132,6 +135,11 @@ class GlueBackend(BaseBackend):
             database_name, database_input, catalog_id=self.account_id
         )
         self.databases[database_name] = database
+        if tags:
+            resource_arn = f"arn:aws:glue:{self.region_name}:{self.account_id}:database/{database_name}"
+            self.tagger.tag_resource(
+                resource_arn, self.tagger.convert_dict_to_tags_input(tags)
+            )
         return database
 
     def get_database(self, database_name: str) -> "FakeDatabase":

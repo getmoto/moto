@@ -24,7 +24,7 @@ class GlueResponse(BaseResponse):
         database_name = database_input.get("Name")  # type: ignore
         if "CatalogId" in self.parameters:
             database_input["CatalogId"] = self.parameters.get("CatalogId")  # type: ignore
-        self.glue_backend.create_database(database_name, database_input)  # type: ignore[arg-type]
+        self.glue_backend.create_database(database_name, database_input, self.parameters.get("Tags"))  # type: ignore[arg-type]
         return ""
 
     def get_database(self) -> str:
