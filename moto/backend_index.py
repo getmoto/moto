@@ -142,6 +142,10 @@ backend_url_patterns = [
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
     ),
+    (
+        "route53domains",
+        re.compile("https?://route53domains\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("s3", re.compile("https?://s3(?!-control)(.*)\\.amazonaws.com")),
     (
         "s3",
