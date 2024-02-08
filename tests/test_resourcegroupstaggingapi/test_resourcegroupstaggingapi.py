@@ -757,3 +757,54 @@ def test_tag_resources_for_unknown_service():
         missing_resources["arn:aws:service_x"]["ErrorCode"]
         == "InternalServiceException"
     )
+
+@mock_aws
+def test_get_resources_elb():
+    client = boto3.client("elb", region_name="us-east-1")
+    lb_name = "my-lb"
+    lb2_name = "second-lb"
+    lb = client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[
+            {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080},
+            {"Protocol": "http", "LoadBalancerPort": 81, "InstancePort": 9000},
+        ],
+        Scheme="internal",
+    )
+    client.add_tags(
+        LoadBalancerNames=[lb_name],
+        Tags=[
+            {"Key": "burger", "Value": "krabby patty"},
+        ],
+    )
+    lb2 = client.create_load_balancer(
+        LoadBalancerName=lb2_name,
+        Listeners=[
+            {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080},
+            {"Protocol": "http", "LoadBalancerPort": 81, "InstancePort": 9000},
+        ],
+        Scheme="internal",
+    )
+    client.add_tags(
+        LoadBalancerNames=[lb2_name],
+        Tags=[
+            {"Key": "color", "Value": "blue"},
+            {"Key": "shape", "Value": "square"},
+        ],
+    )
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resources_no_filter = rgta_client.get_resources(
+        ResourceTypeFilters=["elb"],
+    )
+    print(f"tags results: {resources_no_filter}")
+    assert len(resources_no_filter["ResourceTagMappingList"]) == 2
+
+    resources_burger_filter = rgta_client.get_resources(
+        TagFilters=[{"Key": "burger", "Values": ["krabby patty"]}]
+    )
+    assert len(resources_burger_filter["ResourceTagMappingList"]) == 1
+    assert (
+        f"arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/{lb_name}"
+        == resources_burger_filter["ResourceTagMappingList"][0]["ResourceARN"]
+    )
+
