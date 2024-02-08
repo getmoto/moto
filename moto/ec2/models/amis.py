@@ -101,11 +101,10 @@ class Ami(TaggedEC2Resource):
             if not description:
                 self.description = source_ami.description
 
-        self.launch_permission_groups: Set[str] = set()
-        self.launch_permission_users: Set[str] = set()
+        self.launch_permissions: List[Dict[str, str]] = []
 
         if public:
-            self.launch_permission_groups.add("all")
+            self.launch_permissions.append({"Group": "all"})
 
         # AWS auto-creates these, we should reflect the same.
         volume = self.ec2_backend.create_volume(size=15, zone_name=region_name)
@@ -119,7 +118,7 @@ class Ami(TaggedEC2Resource):
 
     @property
     def is_public(self) -> bool:
-        return "all" in self.launch_permission_groups
+        return {"Group": "all"} in self.launch_permissions
 
     @property
     def is_public_string(self) -> str:
@@ -273,8 +272,9 @@ class AmiBackend:
                 tmp_images = []
                 for ami in images:
                     for user_id in exec_users:
-                        if user_id in ami.launch_permission_users:
-                            tmp_images.append(ami)
+                        for lp in ami.launch_permissions:
+                            if lp.get("UserId") == user_id:
+                                tmp_images.append(ami)
                 images = tmp_images
 
             # Limit by owner ids
@@ -305,38 +305,39 @@ class AmiBackend:
         else:
             raise InvalidAMIIdError(ami_id)
 
-    def validate_permission_targets(
-        self, user_ids: Optional[List[str]] = None, group: Optional[str] = None
-    ) -> None:
-        # If anything is invalid, nothing is added. (No partial success.)
-        if user_ids:
-            """
-            AWS docs:
-              "The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
-              http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
-            """
-            for user_id in user_ids:
-                if len(user_id) != 12 or not user_id.isdigit():
-                    raise InvalidAMIAttributeItemValueError("userId", user_id)
+    def validate_permission_targets(self, permissions: List[Dict[str, str]]) -> None:
+        for perm in permissions:
+            # If anything is invalid, nothing is added. (No partial success.)
+            # AWS docs:
+            # The AWS account ID is a 12-digit number, such as 123456789012, that you use to construct Amazon Resource Names (ARNs)."
+            # http://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html
 
-        if group and group != "all":
-            raise InvalidAMIAttributeItemValueError("UserGroup", group)
+            if "UserId" in perm and (
+                len(perm["UserId"]) != 12 or not perm["UserId"].isdigit()
+            ):
+                raise InvalidAMIAttributeItemValueError("userId", perm["UserId"])
 
-    def add_launch_permission(
+            if "Group" in perm and perm["Group"] != "all":
+                raise InvalidAMIAttributeItemValueError("UserGroup", perm["Group"])
+
+    def modify_image_attribute(
         self,
         ami_id: str,
-        user_ids: Optional[List[str]] = None,
-        group: Optional[str] = None,
+        launch_permissions_to_add: List[Dict[str, str]],
+        launch_permissions_to_remove: List[Dict[str, str]],
     ) -> None:
         ami = self.describe_images(ami_ids=[ami_id])[0]
-        self.validate_permission_targets(user_ids=user_ids, group=group)
-
-        if user_ids:
-            for user_id in user_ids:
-                ami.launch_permission_users.add(user_id)
-
-        if group:
-            ami.launch_permission_groups.add(group)
+        self.validate_permission_targets(launch_permissions_to_add)
+        self.validate_permission_targets(launch_permissions_to_remove)
+        for lp in launch_permissions_to_add:
+            if lp not in ami.launch_permissions:
+                ami.launch_permissions.append(lp)
+        for lp in launch_permissions_to_remove:
+            try:
+                ami.launch_permissions.remove(lp)
+            except ValueError:
+                # The LaunchPermission may not exist
+                pass
 
     def register_image(
         self, name: Optional[str] = None, description: Optional[str] = None
@@ -352,22 +353,6 @@ class AmiBackend:
         )
         self.amis[ami_id] = ami
         return ami
-
-    def remove_launch_permission(
-        self,
-        ami_id: str,
-        user_ids: Optional[List[str]] = None,
-        group: Optional[str] = None,
-    ) -> None:
-        ami = self.describe_images(ami_ids=[ami_id])[0]
-        self.validate_permission_targets(user_ids=user_ids, group=group)
-
-        if user_ids:
-            for user_id in user_ids:
-                ami.launch_permission_users.discard(user_id)
-
-        if group:
-            ami.launch_permission_groups.discard(group)
 
     def describe_image_attribute(self, ami_id: str, attribute_name: str) -> Any:
         return self.amis[ami_id].__getattribute__(attribute_name)
