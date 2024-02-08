@@ -135,11 +135,8 @@ class GlueBackend(BaseBackend):
             database_name, database_input, catalog_id=self.account_id
         )
         self.databases[database_name] = database
-        if tags:
-            resource_arn = f"arn:aws:glue:{self.region_name}:{self.account_id}:database/{database_name}"
-            self.tagger.tag_resource(
-                resource_arn, self.tagger.convert_dict_to_tags_input(tags)
-            )
+        resource_arn = f"arn:aws:glue:{self.region_name}:{self.account_id}:database/{database_name}"
+        self.tag_resource(resource_arn, tags)
         return database
 
     def get_database(self, database_name: str) -> "FakeDatabase":
@@ -437,7 +434,7 @@ class GlueBackend(BaseBackend):
     def get_tags(self, resource_id: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: Optional[Dict[str, str]]) -> None:
         tag_list = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tag_list)
 
