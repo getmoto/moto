@@ -758,12 +758,13 @@ def test_tag_resources_for_unknown_service():
         == "InternalServiceException"
     )
 
+
 @mock_aws
 def test_get_resources_elb():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name = "my-lb"
     lb2_name = "second-lb"
-    lb = client.create_load_balancer(
+    client.create_load_balancer(
         LoadBalancerName=lb_name,
         Listeners=[
             {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080},
@@ -777,7 +778,7 @@ def test_get_resources_elb():
             {"Key": "burger", "Value": "krabby patty"},
         ],
     )
-    lb2 = client.create_load_balancer(
+    client.create_load_balancer(
         LoadBalancerName=lb2_name,
         Listeners=[
             {"Protocol": "tcp", "LoadBalancerPort": 80, "InstancePort": 8080},
@@ -807,4 +808,3 @@ def test_get_resources_elb():
         f"arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/{lb_name}"
         == resources_burger_filter["ResourceTagMappingList"][0]["ResourceARN"]
     )
-
