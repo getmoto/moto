@@ -882,6 +882,46 @@ class RDSResponse(BaseResponse):
             db_cluster_snapshot_identifier=db_cluster_snapshot_identifier,
         )
 
+    def describe_db_proxies(self) -> str:
+        params = self._get_params()
+        db_proxy_name = params.get("DBProxyName")
+        filters = params.get("Filters")
+        marker = params.get("Marker")
+        db_proxies, marker = self.backend.describe_db_proxies(
+            db_proxy_name=db_proxy_name,
+            filters=filters,
+        )
+        template = self.response_template(DESCRIBE_DB_PROXIES_TEMPLATE)
+        rendered = template.render(dbproxies=db_proxies, marker=marker)
+        return rendered
+
+    def create_db_proxy(self) -> str:
+        params = self._get_params()
+        db_proxy_name = params["DBProxyName"]
+        engine_family = params["EngineFamily"]
+        auth = params["Auth"]
+        role_arn = params["RoleArn"]
+        vpc_subnet_ids = params["VpcSubnetIds"]
+        vpc_security_group_ids = params.get("VpcSecurityGroupIds")
+        require_tls = params.get("RequireTLS")
+        idle_client_timeout = params.get("IdleClientTimeout")
+        debug_logging = params.get("DebugLogging")
+        tags = self.unpack_list_params("Tags", "Tag")
+        db_proxy = self.backend.create_db_proxy(
+            db_proxy_name=db_proxy_name,
+            engine_family=engine_family,
+            auth=auth,
+            role_arn=role_arn,
+            vpc_subnet_ids=vpc_subnet_ids,
+            vpc_security_group_ids=vpc_security_group_ids,
+            require_tls=require_tls,
+            idle_client_timeout=idle_client_timeout,
+            debug_logging=debug_logging,
+            tags=tags,
+        )
+        template = self.response_template(CREATE_DB_PROXY_TEMPLATE)
+        return template.render(dbproxy=db_proxy)
+
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBInstanceResult>
@@ -1630,3 +1670,30 @@ DESCRIBE_DB_CLUSTER_SNAPSHOT_ATTRIBUTES_TEMPLATE = """<DescribeDBClusterSnapshot
     <RequestId>1549581b-12b7-11e3-895e-1334a</RequestId>
   </ResponseMetadata>
 </DescribeDBClusterSnapshotAttributesResponse>"""
+
+CREATE_DB_PROXY_TEMPLATE = """<CreateDBProxyResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <CreateDBProxyResult>
+    <DBProxy>
+    {{ dbproxy.to_xml() }}
+    </DBProxy>
+  </CreateDBProxyResult>
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+</CreateDBProxyResponse>"""
+
+DESCRIBE_DB_PROXIES_TEMPLATE = """<DescribeDBProxiesResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+    <DescribeDBProxiesResult>
+        <DBProxies>
+          {% for dbproxy in dbproxies %}
+            <member>
+              {{ dbproxy.to_xml() }}
+            </member>
+          {% endfor %}
+        </DBProxies>
+    </DescribeDBProxiesResult>
+    <ResponseMetadata>
+        <RequestId>1549581b-12b7-11e3-895e-1334a</RequestId>
+    </ResponseMetadata>
+</DescribeDBProxiesResponse>
+"""

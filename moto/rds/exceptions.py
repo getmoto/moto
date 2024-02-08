@@ -218,3 +218,35 @@ class InvalidDBInstanceEngine(InvalidParameterCombination):
             f"The engine name requested for your DB instance ({instance_engine}) doesn't match "
             f"the engine name of your DB cluster ({cluster_engine})."
         )
+
+
+class InvalidSubnet(RDSClientError):
+    def __init__(self, subnet_identifier: str):
+        super().__init__(
+            "InvalidSubnet",
+            f"The requested subnet {subnet_identifier} is invalid, or multiple subnets were requested that are not all in a common VPC.",
+        )
+
+
+class DBProxyAlreadyExistsFault(RDSClientError):
+    def __init__(self, db_proxy_identifier: str):
+        super().__init__(
+            "DBProxyAlreadyExistsFault",
+            f"Cannot create the DBProxy because a DBProxy with the identifier {db_proxy_identifier} already exists.",
+        )
+
+
+class DBProxyQuotaExceededFault(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "DBProxyQuotaExceeded",
+            "The request cannot be processed because it would exceed the maximum number of DBProxies.",
+        )
+
+
+class DBProxyNotFoundFault(RDSClientError):
+    def __init__(self, db_proxy_identifier: str):
+        super().__init__(
+            "DBProxyNotFoundFault",
+            f"The specified proxy name {db_proxy_identifier} doesn't correspond to a proxy owned by your Amazon Web Services account in the specified Amazon Web Services Region.",
+        )
