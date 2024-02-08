@@ -2,14 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_rds
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 DEFAULT_REGION = "us-west-2"
 
 
-@mock_rds
-@mock_ec2
+@mock_aws
 def test_create_db_proxy():
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
@@ -65,8 +64,7 @@ def test_create_db_proxy():
     assert db_proxy["DebugLogging"] is False
 
 
-@mock_rds
-@mock_ec2
+@mock_aws
 def test_describe_db_proxies():
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
@@ -100,7 +98,6 @@ def test_describe_db_proxies():
     )
     response = rds_client.describe_db_proxies(DBProxyName="testrdsproxydescribe")
     db_proxy = response["DBProxies"][0]
-    # assert False
     assert db_proxy["DBProxyName"] == "testrdsproxydescribe"
     assert (
         db_proxy["DBProxyArn"]
@@ -126,8 +123,7 @@ def test_describe_db_proxies():
     assert db_proxy["DebugLogging"] is False
 
 
-@mock_rds
-@mock_ec2
+@mock_aws
 def test_list_tags_db_proxy():
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
@@ -167,8 +163,7 @@ def test_list_tags_db_proxy():
     ]
 
 
-@mock_rds
-@mock_ec2
+@mock_aws
 def test_create_db_proxy_invalid_subnet():
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
@@ -204,8 +199,7 @@ def test_create_db_proxy_invalid_subnet():
     assert err["Code"] == "InvalidSubnet"
 
 
-@mock_rds
-@mock_ec2
+@mock_aws
 def test_create_db_proxy_duplicate_name():
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     ec2_client = boto3.client("ec2", region_name=DEFAULT_REGION)
@@ -262,7 +256,7 @@ def test_create_db_proxy_duplicate_name():
     )
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_proxies_not_found():
     rds_client = boto3.client("rds", region_name=DEFAULT_REGION)
     with pytest.raises(ClientError) as ex:
