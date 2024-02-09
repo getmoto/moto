@@ -131,7 +131,7 @@ class DataBrewBackend(BaseBackend):
         recipe = self.recipes[recipe_name]
         recipe.update(recipe_description, recipe_steps)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_recipes(
         self, recipe_version: Optional[str] = None
     ) -> List["FakeRecipeVersion"]:
@@ -148,7 +148,7 @@ class DataBrewBackend(BaseBackend):
         recipes = [getattr(self.recipes[key], version) for key in self.recipes]
         return [r for r in recipes if r is not None]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_recipe_versions(self, recipe_name: str) -> List["FakeRecipeVersion"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         self.validate_length(recipe_name, "name", 255)
@@ -252,7 +252,7 @@ class DataBrewBackend(BaseBackend):
             raise RulesetNotFoundException(ruleset_name)
         return self.rulesets[ruleset_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rulesets(self) -> List["FakeRuleset"]:
         return list(self.rulesets.values())
 
@@ -287,7 +287,7 @@ class DataBrewBackend(BaseBackend):
         self.datasets[dataset_name] = dataset
         return dataset
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_datasets(self) -> List["FakeDataset"]:
         return list(self.datasets.values())
 
@@ -404,7 +404,7 @@ class DataBrewBackend(BaseBackend):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_UpdateProfileJob.html
         return self.update_job(**kwargs)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(
         self, dataset_name: Optional[str] = None, project_name: Optional[str] = None
     ) -> List["FakeJob"]:
