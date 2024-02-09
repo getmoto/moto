@@ -603,6 +603,44 @@ def test_list_hosted_zones_by_dns_name():
 
 
 @mock_aws
+def test_list_hosted_zones_pagination():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    for idx in range(150):
+        conn.create_hosted_zone(
+            Name=f"test{idx}.com.", CallerReference=str(hash(f"h{idx}"))
+        )
+
+    page1 = conn.list_hosted_zones()
+    assert "Marker" not in page1
+    assert page1["IsTruncated"] is True
+    assert "NextMarker" in page1
+    assert "MaxItems" not in page1
+    assert len(page1["HostedZones"]) == 100
+
+    page2 = conn.list_hosted_zones(Marker=page1["NextMarker"])
+    assert page2["Marker"] == page1["NextMarker"]
+    assert page2["IsTruncated"] is False
+    assert "NextMarker" not in page2
+    assert "MaxItems" not in page2
+    assert len(page2["HostedZones"]) == 50
+
+    small_page = conn.list_hosted_zones(MaxItems="75")
+    assert "Marker" not in small_page
+    assert small_page["IsTruncated"] is True
+    assert "NextMarker" in small_page
+    assert small_page["MaxItems"] == "75"
+    assert len(small_page["HostedZones"]) == 75
+
+    remainer = conn.list_hosted_zones(Marker=small_page["NextMarker"])
+    assert remainer["Marker"] == small_page["NextMarker"]
+    assert remainer["IsTruncated"] is False
+    assert "NextMarker" not in remainer
+    assert "MaxItems" not in remainer
+    assert len(remainer["HostedZones"]) == 75
+
+
+@mock_aws
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
