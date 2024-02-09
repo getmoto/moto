@@ -477,7 +477,7 @@ class DirectoryServiceBackend(BaseBackend):
         directory = self.directories[directory_id]
         directory.enable_sso(True)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def describe_directories(
         self, directory_ids: Optional[List[str]] = None
     ) -> List[Directory]:
@@ -533,7 +533,7 @@ class DirectoryServiceBackend(BaseBackend):
         self._validate_directory_id(resource_id)
         self.tagger.untag_resource_using_names(resource_id, tag_keys)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(self, resource_id: str) -> List[Dict[str, str]]:
         """List all tags on a directory."""
         self._validate_directory_id(resource_id)

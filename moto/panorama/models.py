@@ -251,7 +251,7 @@ class PanoramaBackend(BaseBackend):
             raise ValidationError(f"Device {device_id} not found")
         return device
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_devices(
         self,
         device_aggregated_status_filter: str,

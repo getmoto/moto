@@ -157,9 +157,7 @@ class KinesisResponse(BaseResponse):
             limit=max_results,
             next_token=next_token,
         )
-        res = {"Shards": shards}
-        if token:
-            res["NextToken"] = token
+        res = {"Shards": shards, "NextToken": token}
         return json.dumps(res)
 
     def update_shard_count(self) -> str:

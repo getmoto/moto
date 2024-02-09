@@ -1971,7 +1971,7 @@ class SageMakerModelBackend(BaseBackend):
         resource.tags.extend(tags)
         return resource.tags
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags(self, arn: str) -> List[Dict[str, str]]:
         resource = self._get_resource_from_arn(arn)
         return resource.tags
@@ -1980,7 +1980,7 @@ class SageMakerModelBackend(BaseBackend):
         resource = self._get_resource_from_arn(arn)
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self) -> List["FakeExperiment"]:
         return list(self.experiments.values())
 
@@ -2150,7 +2150,7 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find trial configuration '{arn}'."
             )
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(
         self,
         experiment_name: Optional[str] = None,
@@ -2213,7 +2213,7 @@ class SageMakerModelBackend(BaseBackend):
     ) -> None:
         self.trial_components[trial_component_name].update(details_json)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trial_components(
         self, trial_name: Optional[str] = None
     ) -> List["FakeTrialComponent"]:
@@ -2337,14 +2337,14 @@ class SageMakerModelBackend(BaseBackend):
             raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_notebook_instances(
         self,
         sort_by: str,
         sort_order: str,
         name_contains: Optional[str],
         status: Optional[str],
-    ) -> Iterable[FakeSagemakerNotebookInstance]:
+    ) -> List[FakeSagemakerNotebookInstance]:
         """
         The following parameters are not yet implemented:
         CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
@@ -3283,8 +3283,8 @@ class SageMakerModelBackend(BaseBackend):
             return True
         raise ValueError(f"Invalid model package type: {model_package_type}")
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_model_package_groups(  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_package_groups(
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],
@@ -3346,8 +3346,8 @@ class SageMakerModelBackend(BaseBackend):
             )
         return model_package_group
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_model_packages(  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_packages(
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],

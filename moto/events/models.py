@@ -1183,7 +1183,7 @@ class EventsBackend(BaseBackend):
 
         return False
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(
         self, target_arn: str, event_bus_arn: Optional[str]
     ) -> List[Rule]:
@@ -1198,7 +1198,7 @@ class EventsBackend(BaseBackend):
 
         return matching_rules
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(
         self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None
     ) -> List[Rule]:

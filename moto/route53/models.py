@@ -898,9 +898,8 @@ class Route53Backend(BaseBackend):
 
         from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
 
-        response = logs_backends[self.account_id][region].describe_log_groups()
-        log_groups = response[0] if response else []
-        for entry in log_groups:  # type: ignore
+        log_groups = logs_backends[self.account_id][region].describe_log_groups()
+        for entry in log_groups[0] if log_groups else []:
             if log_group_arn == entry["arn"]:
                 break
         else:
@@ -935,7 +934,7 @@ class Route53Backend(BaseBackend):
             raise NoSuchQueryLoggingConfig()
         return self.query_logging_configs[query_logging_config_id]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_query_logging_configs(
         self, hosted_zone_id: Optional[str] = None
     ) -> List[QueryLoggingConfig]:

@@ -322,10 +322,8 @@ class SageMakerResponse(BaseResponse):
 
         response = {
             "ExperimentSummaries": experiment_summaries,
+            "NextToken": next_token,
         }
-
-        if next_token:
-            response["NextToken"] = next_token
 
         return 200, {}, json.dumps(response)
 
@@ -368,12 +366,7 @@ class SageMakerResponse(BaseResponse):
             for trial_data in paged_results
         ]
 
-        response = {
-            "TrialSummaries": trial_summaries,
-        }
-
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"TrialSummaries": trial_summaries, "NextToken": next_token}
 
         return 200, {}, json.dumps(response)
 
@@ -406,10 +399,8 @@ class SageMakerResponse(BaseResponse):
 
         response = {
             "TrialComponentSummaries": trial_component_summaries,
+            "NextToken": next_token,
         }
-
-        if next_token:
-            response["NextToken"] = next_token
 
         return 200, {}, json.dumps(response)
 

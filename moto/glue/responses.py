@@ -4,7 +4,14 @@ from typing import Any, Dict, List
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .models import FakeCrawler, FakeJob, FakeSession, GlueBackend, glue_backends
+from .models import (
+    FakeCrawler,
+    FakeJob,
+    FakeSession,
+    FakeTrigger,
+    GlueBackend,
+    glue_backends,
+)
 
 
 class GlueResponse(BaseResponse):
@@ -417,7 +424,7 @@ class GlueResponse(BaseResponse):
         return [job.get_name() for job in jobs if self.is_tags_match(job.arn, tags)]
 
     def filter_triggers_by_tags(
-        self, triggers: List[FakeJob], tags: Dict[str, str]
+        self, triggers: List[FakeTrigger], tags: Dict[str, str]
     ) -> List[str]:
         if not tags:
             return [trigger.get_name() for trigger in triggers]
