@@ -11,8 +11,9 @@ class Route53DomainsResponse(BaseResponse):
     @property
     def route53domains_backend(self) -> Route53DomainsBackend:
         """Return backend instance specific for this region."""
-        return route53domains_backends[self.current_account][self.region]
+        return route53domains_backends[self.current_account]['global']
 
+    # TODO: Validate parameters
     def register_domain(self) -> str:
         domain_name = self._get_param('DomainName')
         idn_lang_code = self._get_param('IdnLangCode')
@@ -25,7 +26,7 @@ class Route53DomainsResponse(BaseResponse):
         privacy_protection_registrant_contact = self._get_param('PrivacyProtectRegistrantContact')
         privacy_protection_tech_contact = self._get_param('PrivacyProtectTechContact')
 
-        domain = self.route53domains_backend.register_domain(
+        operation = self.route53domains_backend.register_domain(
             domain_name=domain_name,
             idn_lang_code=idn_lang_code,
             duration_in_years=duration_in_years,
@@ -38,4 +39,8 @@ class Route53DomainsResponse(BaseResponse):
             private_protect_tech_contact=privacy_protection_tech_contact,
         )
 
-        return json.dumps({'OperationId': '123'})
+        return json.dumps({'OperationId': operation.operation_id})
+
+    # TODO: Add and handle parameters
+    def list_operations(self):
+        return json.dumps({'Operations': [operation.to_json() for operation in self.route53domains_backend.list_operations()]})
