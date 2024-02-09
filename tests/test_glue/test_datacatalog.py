@@ -41,6 +41,23 @@ def test_create_database():
 
 
 @mock_aws
+def test_create_database_with_tags():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    database_catalog_id = ACCOUNT_ID
+    database_input = helpers.create_database_input(database_name)
+    database_tags = {"key": "value"}
+    helpers.create_database(
+        client, database_name, database_input, database_catalog_id, tags=database_tags
+    )
+
+    response = client.get_tags(
+        ResourceArn=f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:database/{database_name}"
+    )
+    assert response["Tags"] == database_tags
+
+
+@mock_aws
 def test_create_database_already_exists():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "cantcreatethisdatabasetwice"
