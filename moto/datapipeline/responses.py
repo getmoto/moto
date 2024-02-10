@@ -76,7 +76,7 @@ class DataPipelineResponse(BaseResponse):
         return json.dumps(
             {
                 "pipelineObjects": [
-                    pipeline_object.to_json() for pipeline_object in pipeline_definition
+                    pipeline_object.to_dict() for pipeline_object in pipeline_definition
                 ]
             }
         )
@@ -93,7 +93,7 @@ class DataPipelineResponse(BaseResponse):
                 "hasMoreResults": False,
                 "marker": None,
                 "pipelineObjects": [
-                    pipeline_object.to_json() for pipeline_object in pipeline_objects
+                    pipeline_object.to_dict() for pipeline_object in pipeline_objects
                 ],
             }
         )

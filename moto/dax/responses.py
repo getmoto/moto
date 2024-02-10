@@ -59,7 +59,7 @@ class DAXResponse(BaseResponse):
             cluster_names=cluster_names, max_results=max_results, next_token=next_token
         )
         return json.dumps(
-            {"Clusters": [c.to_json() for c in clusters], "NextToken": next_token}
+            {"Clusters": [c.to_dict() for c in clusters], "NextToken": next_token}
         )
 
     def _validate_arn(self, arn: str) -> None:

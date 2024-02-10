@@ -1,4 +1,5 @@
 import json
+from typing import Dict
 
 from moto.core.responses import BaseResponse
 from moto.route53domains.models import Route53DomainsBackend, route53domains_backends
@@ -15,20 +16,18 @@ class Route53DomainsResponse(BaseResponse):
 
     # TODO: Validate parameters
     def register_domain(self) -> str:
-        domain_name = self._get_param('DomainName')
-        idn_lang_code = self._get_param('IdnLangCode')
-        duration_in_years = self._get_param('DurationInYears')
-        auto_renew = self._get_param('AutoRenew')
-        admin_contact = self._get_param('AdminContact')
-        registrant_contact = self._get_param('RegistrantContact')
-        tech_contact = self._get_param('TechContact')
-        privacy_protection_admin_contact = self._get_param('PrivacyProtectAdminContact')
-        privacy_protection_registrant_contact = self._get_param('PrivacyProtectRegistrantContact')
-        privacy_protection_tech_contact = self._get_param('PrivacyProtectTechContact')
+        domain_name: str = self._get_param('DomainName')
+        duration_in_years: int = self._get_int_param('DurationInYears')
+        auto_renew: bool = self._get_bool_param('AutoRenew', if_none=True)
+        admin_contact: Dict = self._get_param('AdminContact')
+        registrant_contact: Dict = self._get_param('RegistrantContact')
+        tech_contact: Dict = self._get_param('TechContact')
+        privacy_protection_admin_contact: bool = self._get_bool_param('PrivacyProtectAdminContact', if_none=True)
+        privacy_protection_registrant_contact: bool = self._get_bool_param('PrivacyProtectRegistrantContact', if_none=True)
+        privacy_protection_tech_contact: bool = self._get_bool_param('PrivacyProtectTechContact', if_none=True)
 
         operation = self.route53domains_backend.register_domain(
             domain_name=domain_name,
-            idn_lang_code=idn_lang_code,
             duration_in_years=duration_in_years,
             auto_renew=auto_renew,
             admin_contact=admin_contact,
@@ -39,8 +38,8 @@ class Route53DomainsResponse(BaseResponse):
             private_protect_tech_contact=privacy_protection_tech_contact,
         )
 
-        return json.dumps({'OperationId': operation.operation_id})
+        return json.dumps({'OperationId': operation.id_})
 
     # TODO: Add and handle parameters
     def list_operations(self):
-        return json.dumps({'Operations': [operation.to_json() for operation in self.route53domains_backend.list_operations()]})
+        return json.dumps({'Operations': [operation.model_dump(by_alias=True) for operation in self.route53domains_backend.list_operations()]})

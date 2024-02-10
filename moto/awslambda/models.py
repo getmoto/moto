@@ -2278,12 +2278,12 @@ class LambdaBackend(BaseBackend):
         event = {
             "Records": [
                 {
-                    "eventID": item.to_json()["eventID"],
+                    "eventID": item.to_dict()["eventID"],
                     "eventName": "INSERT",
-                    "eventVersion": item.to_json()["eventVersion"],
-                    "eventSource": item.to_json()["eventSource"],
+                    "eventVersion": item.to_dict()["eventVersion"],
+                    "eventSource": item.to_dict()["eventSource"],
                     "awsRegion": self.region_name,
-                    "dynamodb": item.to_json()["dynamodb"],
+                    "dynamodb": item.to_dict()["dynamodb"],
                     "eventSourceARN": source,
                 }
                 for item in items

@@ -10,6 +10,7 @@ typing-extensions
 packaging
 build
 prompt_toolkit
+pydantic
 
 # type stubs that mypy doesn't install automatically
 botocore-stubs
