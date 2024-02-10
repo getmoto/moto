@@ -716,7 +716,7 @@ class Table(CloudFormationModel):
 
                 possible_results.sort(
                     key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
-                    if item.attrs.get(index_range_key["AttributeName"])  # type: ignore
+                    if item.attrs.get(index_range_key["AttributeName"])
                     else None
                 )
         else:
