@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import set_initial_no_auth_action_count
 
 
 @mock_aws
@@ -153,6 +154,8 @@ def test_get_random_identity_id():
 
 
 @mock_aws
+# Verify we can call this operation without Authentication
+@set_initial_no_auth_action_count(1)
 def test_get_id():
     conn = boto3.client("cognito-identity", "us-west-2")
     identity_pool_data = conn.create_identity_pool(
@@ -217,6 +220,7 @@ def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id()
 
 
 @mock_aws
+@set_initial_no_auth_action_count(0)
 def test_get_open_id_token():
     conn = boto3.client("cognito-identity", "us-west-2")
     result = conn.get_open_id_token(IdentityId="12345", Logins={"someurl": "12345"})
