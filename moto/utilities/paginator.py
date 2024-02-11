@@ -1,20 +1,34 @@
 import inspect
 from copy import deepcopy
 from functools import wraps
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 
 from moto.core.exceptions import InvalidToken
 
-# This should be typed using ParamSpec
-# https://stackoverflow.com/a/70591060/13245310
-# This currently does not work for our usecase
-# I believe this could be fixed after https://github.com/python/mypy/pull/14903 is accepted
+if TYPE_CHECKING:
+    from typing_extensions import ParamSpec, Protocol
+
+    P1 = ParamSpec("P1")
+    P2 = ParamSpec("P2")
+else:
+    Protocol = object
+
+T = TypeVar("T")
 
 
-def paginate(pagination_model: Dict[str, Any]) -> Any:
-    def pagination_decorator(func: Any) -> Any:
+class GenericFunction(Protocol):
+    def __call__(
+        self, func: "Callable[P1, List[T]]"
+    ) -> "Callable[P2, Tuple[List[T], Optional[str]]]":
+        ...
+
+
+def paginate(pagination_model: Dict[str, Any]) -> GenericFunction:
+    def pagination_decorator(
+        func: Callable[..., List[T]]
+    ) -> Callable[..., Tuple[List[T], Optional[str]]]:
         @wraps(func)
         def pagination_wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore
             method = func.__name__

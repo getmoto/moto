@@ -13,11 +13,14 @@ EventMessageType = TypedDict(
         "detail-type": "Required[Union[str, List[str]]]",
         "source": "Required[Union[str, List[str]]]",
         "account": str,
+        # support float type for internal use of moto.
         "time": "Union[str, float]",
+        "replay-name": str,
         "region": str,
         "resources": List[str],
         "detail": "Required[Dict[str, Any]]",
     },
+    total=False,
 )
 
 PAGINATION_MODEL = {

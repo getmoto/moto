@@ -723,7 +723,11 @@ class Route53Backend(BaseBackend):
                     the_zone.delete_rrset(record_set)
             the_zone.rr_changes.append(original_change)
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_hosted_zones(self) -> List[FakeZone]:
+        """
+        The parameters DelegationSetId and HostedZoneType are not yet implemented
+        """
         return list(self.zones.values())
 
     def list_hosted_zones_by_name(
@@ -733,7 +737,7 @@ class Route53Backend(BaseBackend):
             dnsname = dnsnames[0]
             if dnsname[-1] != ".":
                 dnsname += "."
-            zones = [zone for zone in self.list_hosted_zones() if zone.name == dnsname]
+            zones = [zone for zone in self.zones.values() if zone.name == dnsname]
         else:
             dnsname = None
             # sort by names, but with domain components reversed
@@ -745,8 +749,7 @@ class Route53Backend(BaseBackend):
                     domains = domains[-1:] + domains[:-1]
                 return ".".join(reversed(domains))
 
-            zones = self.list_hosted_zones()
-            zones = sorted(zones, key=sort_key)
+            zones = sorted(self.zones.values(), key=sort_key)
         return dnsname, zones
 
     def list_hosted_zones_by_vpc(self, vpc_id: str) -> List[Dict[str, Any]]:
@@ -754,7 +757,7 @@ class Route53Backend(BaseBackend):
         Pagination is not yet implemented
         """
         zone_list = []
-        for zone in self.list_hosted_zones():
+        for zone in self.zones.values():
             if zone.private_zone is True:
                 this_zone = self.get_hosted_zone(zone.id)
                 for vpc in this_zone.vpcs:
@@ -776,10 +779,10 @@ class Route53Backend(BaseBackend):
         return the_zone
 
     def get_hosted_zone_count(self) -> int:
-        return len(self.list_hosted_zones())
+        return len(self.zones.values())
 
     def get_hosted_zone_by_name(self, name: str) -> Optional[FakeZone]:
-        for zone in self.list_hosted_zones():
+        for zone in self.zones.values():
             if zone.name == name:
                 return zone
         return None
@@ -875,8 +878,7 @@ class Route53Backend(BaseBackend):
     ) -> QueryLoggingConfig:
         """Process the create_query_logging_config request."""
         # Does the hosted_zone_id exist?
-        response = self.list_hosted_zones()
-        zones = list(response) if response else []
+        zones = list(self.zones.values())
         for zone in zones:
             if zone.id == hosted_zone_id:
                 break
@@ -896,9 +898,8 @@ class Route53Backend(BaseBackend):
 
         from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
 
-        response = logs_backends[self.account_id][region].describe_log_groups()
-        log_groups = response[0] if response else []
-        for entry in log_groups:  # type: ignore
+        log_groups = logs_backends[self.account_id][region].describe_log_groups()
+        for entry in log_groups[0] if log_groups else []:
             if log_group_arn == entry["arn"]:
                 break
         else:
@@ -933,15 +934,14 @@ class Route53Backend(BaseBackend):
             raise NoSuchQueryLoggingConfig()
         return self.query_logging_configs[query_logging_config_id]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_query_logging_configs(
         self, hosted_zone_id: Optional[str] = None
     ) -> List[QueryLoggingConfig]:
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
-            response = self.list_hosted_zones()
-            zones = list(response) if response else []
+            zones = list(self.zones.values())
             for zone in zones:
                 if zone.id == hosted_zone_id:
                     break

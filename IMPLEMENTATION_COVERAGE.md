@@ -2523,7 +2523,7 @@
 - [X] modify_hosts
 - [ ] modify_id_format
 - [ ] modify_identity_id_format
-- [ ] modify_image_attribute
+- [X] modify_image_attribute
 - [X] modify_instance_attribute
 - [ ] modify_instance_capacity_reservation_attributes
 - [ ] modify_instance_credit_specification
