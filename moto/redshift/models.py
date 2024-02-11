@@ -277,7 +277,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             "MasterUserPassword": "****",
             "ClusterVersion": self.cluster_version,
             "VpcSecurityGroups": [
-                {"Status": "active", "VpcSecurityGroupId": group.id}  # type: ignore
+                {"Status": "active", "VpcSecurityGroupId": group.id}
                 for group in self.vpc_security_groups
             ],
             "ClusterSubnetGroupName": self.cluster_subnet_group_name,

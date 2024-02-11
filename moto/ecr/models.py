@@ -679,14 +679,14 @@ class ECRBackend(BaseBackend):
                     found = True
                     response["images"].append(image.response_batch_get_image)
 
-        if not found:
-            response["failures"].append(
-                {
-                    "imageId": {"imageTag": image_id.get("imageTag", "null")},
-                    "failureCode": "ImageNotFound",
-                    "failureReason": "Requested image not found",
-                }
-            )
+            if not found:
+                response["failures"].append(
+                    {
+                        "imageId": {"imageTag": image_id.get("imageTag", "null")},
+                        "failureCode": "ImageNotFound",
+                        "failureReason": "Requested image not found",
+                    }
+                )
 
         return response
 

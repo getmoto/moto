@@ -68,7 +68,7 @@ class ForecastResponse(BaseResponse):
                 }
                 for dsg in self.forecast_backend.list_dataset_groups()
             ],
-            key=lambda x: x["LastModificationTime"],  # type: ignore
+            key=lambda x: x["LastModificationTime"],
             reverse=True,
         )
         response = {"DatasetGroups": list_all}

@@ -32,7 +32,7 @@ def dynamodb_aws_verified(create_table: bool = True):
 
             if allow_aws_request:
                 if create_table:
-                    print(f"Test {func} will create DynamoDB Table {table_name}")
+                    print(f"Test {func} will create DDB Table {table_name}")  # noqa
                     return create_table_and_test(table_name)
                 else:
                     return func()

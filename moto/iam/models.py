@@ -449,7 +449,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
         return policy
 
     def __eq__(self, other: Any) -> bool:
-        return self.arn == other.arn  # type: ignore[no-any-return]
+        return self.arn == other.arn
 
     def __hash__(self) -> int:
         return self.arn.__hash__()
@@ -982,7 +982,7 @@ class InstanceProfile(CloudFormationModel):
 
     def to_embedded_config_dict(self) -> Dict[str, Any]:
         # Instance Profiles aren't a config item itself, but they are returned in IAM roles with
-        # a "config like" json structure It's also different than Role.to_config_dict()
+        # a "config like" json structure. It's also different than Role.to_config_dict()
         roles = []
         for role in self.roles:
             roles.append(
@@ -1012,7 +1012,7 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": f"arn:aws:iam::{self.account_id}:instance-profile/{role.name}",
+            "arn": f"arn:aws:iam::{self.account_id}:instance-profile/{role.name}",  # pylint: disable=W0631
             "createDate": str(self.create_date),
             "roles": roles,
         }

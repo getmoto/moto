@@ -46,7 +46,7 @@ class BaseObject(BaseModel):
                 response_object[key[0].upper() + key[1:]] = value
         return response_object
 
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> Dict[str, Any]:
         return self.gen_response_object()
 
 

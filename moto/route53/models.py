@@ -94,13 +94,13 @@ class HealthCheck(CloudFormationModel):
 
     def set_children(self, children: Any) -> None:
         if children and isinstance(children, list):
-            self.children = children  # type: ignore
+            self.children = children
         elif children and isinstance(children, str):
             self.children = [children]  # type: ignore
 
     def set_regions(self, regions: Any) -> None:
         if regions and isinstance(regions, list):
-            self.regions = regions  # type: ignore
+            self.regions = regions
         elif regions and isinstance(regions, str):
             self.regions = [regions]  # type: ignore
 
@@ -723,7 +723,7 @@ class Route53Backend(BaseBackend):
                     the_zone.delete_rrset(record_set)
             the_zone.rr_changes.append(original_change)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_hosted_zones(self) -> List[FakeZone]:
         """
         The parameters DelegationSetId and HostedZoneType are not yet implemented
