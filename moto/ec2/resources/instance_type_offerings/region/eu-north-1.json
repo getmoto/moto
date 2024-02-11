@@ -1044,6 +1044,10 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eu-north-1"
  },
