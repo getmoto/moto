@@ -144,6 +144,8 @@ class ActionAuthenticatorMixin(object):
     request_count: ClassVar[int] = 0
 
     PUBLIC_OPERATIONS = [
+        "AWSCognitoIdentityService.GetId",
+        "AWSCognitoIdentityService.GetOpenIdToken",
         "AWSCognitoIdentityProviderService.ConfirmSignUp",
         "AWSCognitoIdentityProviderService.GetUser",
         "AWSCognitoIdentityProviderService.ForgotPassword",
