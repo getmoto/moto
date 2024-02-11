@@ -66,9 +66,12 @@ def test_get_federation_token_boto3():
 
 @freeze_time("2012-01-01 12:00:00")
 @mock_aws
-def test_assume_role():
-    client = boto3.client("sts", region_name="us-east-1")
-    iam_client = boto3.client("iam", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_assume_role(region, partition):
+    client = boto3.client("sts", region_name=region)
+    iam_client = boto3.client("iam", region_name=region)
 
     session_name = "session-name"
     policy = json.dumps(
@@ -114,7 +117,7 @@ def test_assume_role():
     assert len(credentials["SecretAccessKey"]) == 40
 
     assert assume_role_response["AssumedRoleUser"]["Arn"] == (
-        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name}"
+        f"arn:{partition}:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name}"
     )
     assert assume_role_response["AssumedRoleUser"]["AssumedRoleId"].startswith("AROA")
     assert (
@@ -583,8 +586,11 @@ def test_assume_role_with_saml_when_saml_attribute_not_provided():
 
 @freeze_time("2012-01-01 12:00:00")
 @mock_aws
-def test_assume_role_with_web_identity_boto3():
-    client = boto3.client("sts", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_assume_role_with_web_identity_boto3(region, partition):
+    client = boto3.client("sts", region_name=region)
 
     policy = json.dumps(
         {
@@ -625,30 +631,37 @@ def test_assume_role_with_web_identity_boto3():
     assert len(creds["SecretAccessKey"]) == 40
 
     assert user["Arn"] == (
-        f"arn:aws:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name}"
+        f"arn:{partition}:sts::{ACCOUNT_ID}:assumed-role/{role_name}/{session_name}"
     )
     assert "session-name" in user["AssumedRoleId"]
 
 
 @mock_aws
-def test_get_caller_identity_with_default_credentials():
-    identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_get_caller_identity_with_default_credentials(region, partition):
+    identity = boto3.client("sts", region_name=region).get_caller_identity()
 
-    assert identity["Arn"] == f"arn:aws:sts::{ACCOUNT_ID}:user/moto"
+    assert identity["Arn"] == f"arn:{partition}:sts::{ACCOUNT_ID}:user/moto"
     assert identity["UserId"] == "AKIAIOSFODNN7EXAMPLE"
     assert identity["Account"] == str(ACCOUNT_ID)
 
 
 @mock_aws
-def test_get_caller_identity_with_iam_user_credentials():
-    iam_client = boto3.client("iam", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_get_caller_identity_with_iam_user_credentials(region, partition):
+    iam_client = boto3.client("iam", region_name=region)
     iam_user_name = "new-user"
     iam_user = iam_client.create_user(UserName=iam_user_name)["User"]
+    assert iam_user["Arn"] == f"arn:{partition}:iam::123456789012:user/new-user"
     access_key = iam_client.create_access_key(UserName=iam_user_name)["AccessKey"]
 
     identity = boto3.client(
         "sts",
-        region_name="us-east-1",
+        region_name=region,
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     ).get_caller_identity()
@@ -659,9 +672,12 @@ def test_get_caller_identity_with_iam_user_credentials():
 
 
 @mock_aws
-def test_get_caller_identity_with_assumed_role_credentials():
-    iam_client = boto3.client("iam", region_name="us-east-1")
-    sts_client = boto3.client("sts", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_get_caller_identity_with_assumed_role_credentials(region, partition):
+    iam_client = boto3.client("iam", region_name=region)
+    sts_client = boto3.client("sts", region_name=region)
     iam_role_name = "new-user"
     trust_policy_document = {
         "Version": "2012-10-17",
@@ -678,6 +694,10 @@ def test_get_caller_identity_with_assumed_role_credentials():
     session_name = "new-session"
     assumed_role = sts_client.assume_role(
         RoleArn=iam_role_arn, RoleSessionName=session_name
+    )
+    assert (
+        assumed_role["AssumedRoleUser"]["Arn"]
+        == f"arn:{partition}:sts::123456789012:assumed-role/new-user/new-session"
     )
     access_key = assumed_role["Credentials"]
 

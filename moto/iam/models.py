@@ -16,6 +16,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
+    get_partition_from_region,
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
     unix_time,
@@ -1271,8 +1272,11 @@ class Group(BaseModel):
 
 
 class User(CloudFormationModel):
-    def __init__(self, account_id: str, name: str, path: Optional[str] = None):
+    def __init__(
+        self, account_id: str, region_name: str, name: str, path: Optional[str] = None
+    ):
         self.account_id = account_id
+        self.region_name = region_name
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
@@ -1291,7 +1295,8 @@ class User(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:user{self.path}{self.name}"
+        partition = get_partition_from_region(self.region_name)
+        return f"arn:{partition}:iam::{self.account_id}:user{self.path}{self.name}"
 
     @property
     def created_iso_8601(self) -> str:
@@ -1515,7 +1520,9 @@ class User(CloudFormationModel):
     ) -> "User":
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backends[account_id]["global"].create_user(resource_name, path)
+        user, _ = iam_backends[account_id]["global"].create_user(
+            region_name=region_name, user_name=resource_name, path=path
+        )
         return user
 
     @classmethod
@@ -2554,6 +2561,7 @@ class IAMBackend(BaseBackend):
 
     def create_user(
         self,
+        region_name: str,
         user_name: str,
         path: str = "/",
         tags: Optional[List[Dict[str, str]]] = None,
@@ -2563,7 +2571,7 @@ class IAMBackend(BaseBackend):
                 "EntityAlreadyExists", f"User {user_name} already exists"
             )
 
-        user = User(self.account_id, user_name, path)
+        user = User(self.account_id, region_name, user_name, path)
         self.tagger.tag_resource(user.arn, tags or [])
         self.users[user_name] = user
         return user, self.tagger.list_tags_for_resource(user.arn)
