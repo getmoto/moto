@@ -251,7 +251,7 @@ def _detail_type(event_name: str) -> str:
             return "Object Tags Deleted"
     else:
         raise ValueError(
-            "unsupported event for s3 eventbridge notification (https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html)"
+            f"unsupported event `{event_name}` for s3 eventbridge notification (https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html)"
         )
 
 
