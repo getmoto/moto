@@ -10,7 +10,7 @@ REGION_NAME = "us-east-1"
 
 
 @mock_aws
-def test_objectcreated_put__unknown_lambda_is_handled_gracefully():
+def test_pub_object_notification():
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     events_client = boto3.client("events", region_name=REGION_NAME)
