@@ -746,6 +746,21 @@ def test_get_resources_sqs():
 
 
 @mock_aws
+def test_get_resources_sns():
+    sns = boto3.client("sns", region_name="us-east-1")
+
+    sns.create_topic(Name="test", Tags=[{"Key": "Shape", "Value": "Square"}])
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["sns"])
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Shape", "Value": "Square"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
 def test_tag_resources_for_unknown_service():
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
     missing_resources = rtapi.tag_resources(

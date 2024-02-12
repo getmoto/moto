@@ -19,6 +19,7 @@ from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
+from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.utilities.tagging_service import TaggingService
 
@@ -96,6 +97,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def acm_backend(self) -> AWSCertificateManagerBackend:
         return acm_backends[self.account_id][self.region_name]
+
+    @property
+    def sns_backend(self) -> SNSBackend:
+        print("SNS BACKEND")
+        return sns_backends[self.account_id][self.region_name]
 
     @property
     def sqs_backend(self) -> SQSBackend:
@@ -473,6 +479,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
+
+        # SNS
+        if not resource_type_filters or "sns" in resource_type_filters:
+
+            for topic in self.sns_backend.topics.values():
+                tags = format_tags(topic._tags)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+                yield {"ResourceARN": f"{topic.arn}", "Tags": tags}
 
         # VPC
         if (
