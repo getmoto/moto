@@ -100,7 +100,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def sns_backend(self) -> SNSBackend:
-        print("SNS BACKEND")
         return sns_backends[self.account_id][self.region_name]
 
     @property
