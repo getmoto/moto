@@ -365,14 +365,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "elasticloadbalancing" in resource_type_filters
             or "elasticloadbalancing:loadbalancer" in resource_type_filters
         ):
-            for elb in self.elbv2_backend.load_balancers.values():
+            for elbv2 in self.elbv2_backend.load_balancers.values():
                 tags = self.elbv2_backend.tagging_service.list_tags_for_resource(
-                    elb.arn
+                    elbv2.arn
                 )["Tags"]
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
-                yield {"ResourceARN": f"{elb.arn}", "Tags": tags}
+                yield {"ResourceARN": f"{elbv2.arn}", "Tags": tags}
 
         # ELB Target Group, resource type elasticloadbalancing:targetgroup
         if (

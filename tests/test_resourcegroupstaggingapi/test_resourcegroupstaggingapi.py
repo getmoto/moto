@@ -797,7 +797,6 @@ def test_get_resources_elb():
     resources_no_filter = rgta_client.get_resources(
         ResourceTypeFilters=["elb"],
     )
-    print(f"tags results: {resources_no_filter}")
     assert len(resources_no_filter["ResourceTagMappingList"]) == 2
 
     resources_burger_filter = rgta_client.get_resources(
