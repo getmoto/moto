@@ -1001,6 +1001,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             "host.docker.internal": "host-gateway"
                         }
 
+                    # Change entry point if requested
+                    if self.image_config.entry_point:
+                        run_kwargs["entrypoint"] = self.image_config.entry_point
+
                     # The requested image can be found in one of a few repos:
                     # - User-provided repo
                     # - mlupin/docker-lambda (the repo with up-to-date AWSLambda images
