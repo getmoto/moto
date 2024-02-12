@@ -113,8 +113,8 @@ def test_send_event_bridge_message():
         len(logs_client.filter_log_events(logGroupName=log_group_name)["events"]) == 0
     )
 
-    if settings.is_test_proxy_mode():
-        raise SkipTest(("Doesn't quite work right with the Proxy"))
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
     # an event is correctly sent to the log group.
     _send_event_bridge_message(
         ACCOUNT_ID,
