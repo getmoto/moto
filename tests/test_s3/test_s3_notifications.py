@@ -1,6 +1,7 @@
 import json
 from typing import List
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -80,7 +81,7 @@ def test_send_event_bridge_message():
     )
     log_group_name = "/test-group"
     logs_client.create_log_group(logGroupName=log_group_name)
-    mocked_bucket = FakeBucket("test-bucket", ACCOUNT_ID, REGION_NAME)
+    mocked_bucket = FakeBucket(str(uuid4()), ACCOUNT_ID, REGION_NAME)
     mocked_key = FakeKey(
         "test-key", bytes("test content", encoding="utf-8"), ACCOUNT_ID
     )
