@@ -161,7 +161,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 host=host,
                 path=path,
                 headers=req.headers,
-                body=req_body,  # type: ignore[arg-type]
+                body=req_body,
                 form_data=form_data,
             )
             debug("\t=====RESPONSE========")

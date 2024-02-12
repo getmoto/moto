@@ -1,2 +1,0 @@
-ignore = ["E501"]
-extend-select = ["I"]

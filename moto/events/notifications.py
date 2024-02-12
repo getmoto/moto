@@ -66,7 +66,7 @@ def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
     body = json.dumps(event)
     get_backend(account_id, lambda_region).invoke(
         function_name=fn_arn,
-        qualifier=None,  # type: ignore[arg-type]
+        qualifier=None,
         body=body,
         headers=dict(),
         response_headers=dict(),

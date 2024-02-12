@@ -31,7 +31,7 @@ def s3_aws_verified(func):
         )
 
         if allow_aws_request:
-            print(f"Test {func} will create {bucket_name}")
+            print(f"Test {func} will create {bucket_name}")  # noqa: T201
             resp = create_bucket_and_test(bucket_name)
         else:
             with mock_aws():

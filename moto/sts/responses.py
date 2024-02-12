@@ -51,6 +51,7 @@ class TokenResponse(BaseResponse):
         external_id = self.querystring.get("ExternalId", [None])[0]
 
         role = self.backend.assume_role(
+            region_name=self.region,
             role_session_name=role_session_name,
             role_arn=role_arn,
             policy=policy,
@@ -69,6 +70,7 @@ class TokenResponse(BaseResponse):
         external_id = self.querystring.get("ExternalId", [None])[0]
 
         role = self.backend.assume_role_with_web_identity(
+            region_name=self.region,
             role_session_name=role_session_name,
             role_arn=role_arn,
             policy=policy,
@@ -95,7 +97,9 @@ class TokenResponse(BaseResponse):
         template = self.response_template(GET_CALLER_IDENTITY_RESPONSE)
 
         access_key_id = self.get_access_key()
-        user_id, arn, account_id = self.backend.get_caller_identity(access_key_id)
+        user_id, arn, account_id = self.backend.get_caller_identity(
+            access_key_id, self.region
+        )
 
         return template.render(account_id=account_id, user_id=user_id, arn=arn)
 

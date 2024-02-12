@@ -371,7 +371,7 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
 
             if new_fulfilled_capacity - spec.weighted_capacity < self.target_capacity:
                 continue
-            new_fulfilled_capacity -= spec.weighted_capacity
+            new_fulfilled_capacity -= spec.weighted_capacity  # pylint: disable=W0631
             instance_ids.append(instance.id)
 
         self.spot_requests = [
