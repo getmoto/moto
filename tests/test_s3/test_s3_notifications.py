@@ -1,10 +1,11 @@
 import json
 from typing import List
+from unittest import SkipTest
 
 import boto3
 import pytest
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.s3.models import FakeBucket, FakeKey
 from moto.s3.notifications import (
@@ -111,7 +112,9 @@ def test_send_event_bridge_message():
         len(logs_client.filter_log_events(logGroupName=log_group_name)["events"]) == 0
     )
 
-    # an event is correctlly sent to the log group.
+    if settings.is_test_proxy_mode():
+        raise SkipTest(("Doesn't quite work right with the Proxy"))
+    # an event is correctly sent to the log group.
     _send_event_bridge_message(
         ACCOUNT_ID,
         mocked_bucket,
