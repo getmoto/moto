@@ -26,6 +26,7 @@ class Route53DomainsBackend(BaseBackend):
                         private_protect_admin_contact: bool,
                         private_protect_registrant_contact: bool,
                         private_protect_tech_contact: bool,
+                        extra_params: List[Dict]
                         ) -> Route53DomainsOperation:
 
         expiration_date = datetime.now(timezone.utc) + timedelta(days=365*duration_in_years)
@@ -40,7 +41,8 @@ class Route53DomainsBackend(BaseBackend):
             'RegistrantPrivacy': private_protect_registrant_contact,
             'TechPrivacy': private_protect_tech_contact,
             'ExpirationDate': expiration_date.isoformat(),
-            'StatusList': ['SUCCESSFUL']
+            'StatusList': ['OK'],
+            'ExtraParams': extra_params
         })
 
         operation = Route53DomainsOperation.model_validate({

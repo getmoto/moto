@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, List
 
 from moto.core.responses import BaseResponse
 from moto.route53domains.models import Route53DomainsBackend, route53domains_backends
@@ -25,6 +25,7 @@ class Route53DomainsResponse(BaseResponse):
         privacy_protection_admin_contact: bool = self._get_bool_param('PrivacyProtectAdminContact', if_none=True)
         privacy_protection_registrant_contact: bool = self._get_bool_param('PrivacyProtectRegistrantContact', if_none=True)
         privacy_protection_tech_contact: bool = self._get_bool_param('PrivacyProtectTechContact', if_none=True)
+        extra_params: List[Dict] = self._get_param('ExtraParams', if_none=[])
 
         operation = self.route53domains_backend.register_domain(
             domain_name=domain_name,
@@ -36,6 +37,7 @@ class Route53DomainsResponse(BaseResponse):
             private_protect_admin_contact=privacy_protection_admin_contact,
             private_protect_registrant_contact=privacy_protection_registrant_contact,
             private_protect_tech_contact=privacy_protection_tech_contact,
+            extra_params=extra_params
         )
 
         return json.dumps({'OperationId': operation.id_})
