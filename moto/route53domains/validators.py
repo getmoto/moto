@@ -157,26 +157,19 @@ class Route53Domain(PydanticBaseModel, BaseModel, metaclass=CommonBaseModelMeta)
     admin_privacy: bool = True
     registrant_privacy: bool = True
     tech_privacy: bool = True
-    registrar_name: str = 'AMAZON'
-    whois_server: str = 'whois.iana.org'
-    registrar_url: str = 'https://aws.amazon.com'
-    abuse_contact_email: str = 'abuse@aws.com'
-    abuse_contact_phone: str = '+11234567890'
-    registry_domain_id: str | None = None  # Reserved for future use
+    registrar_name: Literal['GANDI SAS'] = 'GANDI SAS'
+    whois_server: Literal['whois.gandi.net'] = 'whois.gandi.net'
+    registrar_url: Literal['http://www.gandi.net'] = 'http://www.gandi.net'
+    abuse_contact_email: Literal['abuse@support.gandi.net'] = 'abuse@support.gandi.net'
+    abuse_contact_phone: Literal['+33.17037761'] = '+33.17037761'
+    registry_domain_id: Literal[''] = ''  # reserved for future use
     creation_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expiration_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=365))
-    reseller: str = 'Amazon'
-    status_list: List[DomainOperationStatus] = []
-    dns_sec_keys: List[Dict] = [{  # FIXME
-        'Algorithm': 13,  # Always 13 for Route53 domains
-        'Flags': 257,  # Code for KSK - Key Singing Key
-        'PublicKey': 'some-public-key-in-base-64',
-        'DigestType': 1,  # SHA1
-        'Digest': 'some-digest',
-        'KeyTag': 123,
-        'Id': 'some-id'
-    }]
+    reseller: Literal['Amazon'] = 'Amazon'
+    status_list: List[str] = []
+    dns_sec_keys: List[Dict] = []
+    extra_params: List[Dict] = []
 
     @field_validator('domain_name')
     def validate_domain_name(cls, v: str):
@@ -195,24 +188,6 @@ class Route53Domain(PydanticBaseModel, BaseModel, metaclass=CommonBaseModelMeta)
         if timedelta(days=365) <= duration_in_years <= timedelta(days=365 * 10):
             return v
         raise ValueError('Cannot register domain for a duration that is less than 1 year or more than 10 years')
-
-    @model_validator(mode='after')
-    def validate_registrar_name(self):
-        """
-        All .com .net and .org domains are registered by Amazon Registrar. All other domains are registered by Gandi
-        """
-        if not (self.domain_name.endswith('.com') or
-                self.domain_name.endswith('.net') or
-                self.domain_name.endswith('.org')):
-            self.registrar_name = 'GANDISAS'
-        return self
-
-    @model_validator(mode='after')
-    def validate_registrar_url(self):
-        if self.registrar_name == 'GANDISAS':
-            self.registrar_url = 'https://gandi.net'
-
-        return self
 
     @field_serializer('creation_date', 'updated_date', 'expiration_date')
     def serialize_datetime(self, dt: datetime, _info):
