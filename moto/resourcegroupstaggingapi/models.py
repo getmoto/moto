@@ -340,6 +340,24 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+        # ELB (Classic Load Balancers)
+        if (
+            not resource_type_filters
+            or "elb" in resource_type_filters
+            or "elb:loadbalancer" in resource_type_filters
+        ):
+            for elb in self.elb_backend.load_balancers.values():
+                tags = format_tags(elb.tags)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {
+                    "ResourceARN": f"arn:aws:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}",
+                    "Tags": tags,
+                }
+
         # TODO add these to the keys and values functions / combine functions
         # ELB, resource type elasticloadbalancing:loadbalancer
         if (
@@ -347,14 +365,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "elasticloadbalancing" in resource_type_filters
             or "elasticloadbalancing:loadbalancer" in resource_type_filters
         ):
-            for elb in self.elbv2_backend.load_balancers.values():
+            for elbv2 in self.elbv2_backend.load_balancers.values():
                 tags = self.elbv2_backend.tagging_service.list_tags_for_resource(
-                    elb.arn
+                    elbv2.arn
                 )["Tags"]
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
-                yield {"ResourceARN": f"{elb.arn}", "Tags": tags}
+                yield {"ResourceARN": f"{elbv2.arn}", "Tags": tags}
 
         # ELB Target Group, resource type elasticloadbalancing:targetgroup
         if (
