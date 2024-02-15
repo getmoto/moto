@@ -660,6 +660,7 @@ class SecretsManagerBackend(BaseBackend):
         client_request_token: Optional[str] = None,
         rotation_lambda_arn: Optional[str] = None,
         rotation_rules: Optional[Dict[str, Any]] = None,
+        rotate_immediately: bool = True,
     ) -> str:
         rotation_days = "AutomaticallyAfterDays"
 
@@ -758,25 +759,32 @@ class SecretsManagerBackend(BaseBackend):
             response_headers: Dict[str, Any] = {}
 
             try:
-                func = lambda_backend.get_function(secret.rotation_lambda_arn)
+                lambda_backend.get_function(secret.rotation_lambda_arn)
             except Exception:
                 msg = f"Resource not found for ARN '{secret.rotation_lambda_arn}'."
                 raise ResourceNotFoundException(msg)
 
-            for step in ["create", "set", "test", "finish"]:
-                func.invoke(
-                    json.dumps(
+            rotation_steps = ["create", "set", "test", "finish"]
+            if not rotate_immediately:
+                # if you don't immediately rotate the secret,
+                # Secrets Manager tests the rotation configuration by running the testSecretstep of the Lambda rotation function.
+                rotation_steps = ["test"]
+            for step in rotation_steps:
+                lambda_backend.invoke(
+                    secret.rotation_lambda_arn,
+                    qualifier=None,
+                    body=json.dumps(
                         {
                             "Step": step + "Secret",
                             "SecretId": secret.name,
                             "ClientRequestToken": new_version_id,
                         }
                     ),
-                    request_headers,
-                    response_headers,
+                    headers=request_headers,
+                    response_headers=response_headers,
                 )
-
             secret.set_default_version_id(new_version_id)
+
         elif secret.versions:
             # AWS will always require a Lambda ARN
             # without that, Moto can still apply the 'AWSCURRENT'-label

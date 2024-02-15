@@ -379,7 +379,9 @@ def test_invoke_lambda_with_proxy():
     assert json.loads(payload) == expected_payload
 
 
+@pytest.mark.network
 @mock_aws
+@requires_docker
 def test_invoke_lambda_with_entrypoint():
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
