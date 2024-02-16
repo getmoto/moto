@@ -238,12 +238,12 @@ class CertBundle(BaseModel):
             )
 
             now = utcnow()
-            if _cert.not_valid_after < now:
+            if self._not_valid_after(_cert) < now:
                 raise AWSValidationException(
                     "The certificate has expired, is not valid."
                 )
 
-            if _cert.not_valid_before > now:
+            if self._not_valid_before(_cert) > now:
                 raise AWSValidationException(
                     "The certificate is not in effect yet, is not valid."
                 )
@@ -256,6 +256,22 @@ class CertBundle(BaseModel):
             )
         return _cert
 
+    def _not_valid_after(
+        self, _cert: cryptography.x509.base.Certificate
+    ) -> datetime.datetime:
+        try:
+            return _cert.not_valid_after_utc.replace(tzinfo=None)
+        except AttributeError:
+            return _cert.not_valid_after
+
+    def _not_valid_before(
+        self, _cert: cryptography.x509.base.Certificate
+    ) -> datetime.datetime:
+        try:
+            return _cert.not_valid_before_utc.replace(tzinfo=None)
+        except AttributeError:
+            return _cert.not_valid_before
+
     def validate_chain(self) -> None:
         try:
             for cert_armored in self.chain.split(b"-\n-"):
@@ -267,12 +283,12 @@ class CertBundle(BaseModel):
                 )
 
                 now = utcnow()
-                if self._cert.not_valid_after < now:
+                if self._not_valid_after(self._cert) < now:
                     raise AWSValidationException(
                         "The certificate chain has expired, is not valid."
                     )
 
-                if self._cert.not_valid_before > now:
+                if self._not_valid_before(self._cert) > now:
                     raise AWSValidationException(
                         "The certificate chain is not in effect yet, is not valid."
                     )
@@ -325,8 +341,8 @@ class CertBundle(BaseModel):
                     0
                 ].value,
                 "KeyAlgorithm": key_algo,
-                "NotAfter": datetime_to_epoch(self._cert.not_valid_after),
-                "NotBefore": datetime_to_epoch(self._cert.not_valid_before),
+                "NotAfter": datetime_to_epoch(self._not_valid_after(self._cert)),
+                "NotBefore": datetime_to_epoch(self._not_valid_before(self._cert)),
                 "Serial": str(self._cert.serial_number),
                 "SignatureAlgorithm": self._cert.signature_algorithm_oid._name.upper().replace(
                     "ENCRYPTION", ""

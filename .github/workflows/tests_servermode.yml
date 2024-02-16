@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -60,8 +60,6 @@ jobs:
       if: always()
       run: |
         mkdir serverlogs
-        pwd
-        ls -la
         cp server_output.log serverlogs/server_output.log
         docker stop motoserver
     - name: Archive TF logs

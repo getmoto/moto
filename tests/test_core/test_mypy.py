@@ -5,13 +5,13 @@ from moto.core.decorator import MockAWS
 
 
 @mock_aws
-def test_without_parentheses() -> int:
+def method_without_parentheses() -> int:
     assert boto3.client("s3").list_buckets()["Buckets"] == []
     return 123
 
 
 @mock_aws()
-def test_with_parentheses() -> int:
+def method_with_parentheses() -> int:
     assert boto3.client("s3").list_buckets()["Buckets"] == []
     return 456
 
@@ -35,8 +35,8 @@ def test_manual() -> None:
     m.stop()
 
 
-x: int = test_with_parentheses()
+x: int = method_with_parentheses()
 assert x == 456
 
-y: int = test_without_parentheses()
+y: int = method_without_parentheses()
 assert y == 123
