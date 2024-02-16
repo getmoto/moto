@@ -885,11 +885,11 @@ class RDSResponse(BaseResponse):
     def describe_db_proxies(self) -> str:
         params = self._get_params()
         db_proxy_name = params.get("DBProxyName")
-        filters = params.get("Filters")
+        # filters = params.get("Filters")
         marker = params.get("Marker")
-        db_proxies, marker = self.backend.describe_db_proxies(
+        db_proxies = self.backend.describe_db_proxies(
             db_proxy_name=db_proxy_name,
-            filters=filters,
+            # filters=filters,
         )
         template = self.response_template(DESCRIBE_DB_PROXIES_TEMPLATE)
         rendered = template.render(dbproxies=db_proxies, marker=marker)

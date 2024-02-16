@@ -1580,67 +1580,64 @@ class SubnetGroup(CloudFormationModel):
 class DBProxy(BaseModel):
     def __init__(
         self,
-        DBProxyName: str,
-        EngineFamily: str,
-        Auth: List[Dict[str, str]],
-        RoleArn: str,
-        VpcSubnetIds: List[str],
+        db_proxy_name: str,
+        engine_family: str,
+        auth: List[Dict[str, str]],
+        role_arn: str,
+        vpc_subnet_ids: List[str],
         region_name: str,
         account_id: str,
-        VpcSecurityGroupIds: Optional[List[str]],
-        RequireTLS: Optional[bool] = False,
-        IdleClientTimeout: Optional[int] = 1800,
-        DebugLogging: Optional[bool] = False,
+        vpc_security_group_ids: Optional[List[str]],
+        require_tls: Optional[bool] = False,
+        idle_client_timeout: Optional[int] = 1800,
+        debug_logging: Optional[bool] = False,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
-        self.DBProxyName = DBProxyName
-        self.EngineFamily = EngineFamily
-        if self.EngineFamily not in ["MYSQL", "POSTGRESQ", "SQLSERVER"]:
+        self.db_proxy_name = db_proxy_name
+        self.engine_family = engine_family
+        if self.engine_family not in ["MYSQL", "POSTGRESQ", "SQLSERVER"]:
             raise InvalidParameterValue("Provided EngineFamily is not valid.")
-        self.Auth = Auth
-        self.RoleArn = RoleArn
-        self.VpcSubnetIds = VpcSubnetIds
-        self.VpcSecurityGroupIds = VpcSecurityGroupIds
-        self.RequireTLS = RequireTLS
-        if IdleClientTimeout is None:
-            self.IdleClientTimeout = 1800
+        self.auth = auth
+        self.role_arn = role_arn
+        self.vpc_subnet_ids = vpc_subnet_ids
+        self.vpc_security_group_ids = vpc_security_group_ids
+        self.require_tls = require_tls
+        if idle_client_timeout is None:
+            self.idle_client_timeout = 1800
         else:
-            if int(IdleClientTimeout) < 1:
-                self.IdleClientTimeout = 1
-            elif int(IdleClientTimeout) > 28800:
-                self.IdleClientTimeout = 28800
+            if int(idle_client_timeout) < 1:
+                self.idle_client_timeout = 1
+            elif int(idle_client_timeout) > 28800:
+                self.idle_client_timeout = 28800
             else:
-                self.IdleClientTimeout = IdleClientTimeout
-        self.DebugLogging = DebugLogging
-        self.CreatedDate = iso_8601_datetime_with_milliseconds()
-        self.UpdatedDate = iso_8601_datetime_with_milliseconds()
+                self.idle_client_timeout = idle_client_timeout
+        self.debug_logging = debug_logging
+        self.created_date = iso_8601_datetime_with_milliseconds()
+        self.updated_date = iso_8601_datetime_with_milliseconds()
         if tags is None:
             self.tags = []
         else:
             self.tags = tags
         self.region_name = region_name
         self.account_id = account_id
-        self.DBProxyARN = f"arn:aws:rds:{self.region_name}:{self.account_id}:db-proxy:{self.DBProxyName}"
-        self.arn = self.DBProxyARN
+        self.db_proxy_arn = f"arn:aws:rds:{self.region_name}:{self.account_id}:db-proxy:{self.db_proxy_name}"
+        self.arn = self.db_proxy_arn
         ec2_backend = ec2_backends[self.account_id][self.region_name]
-        try:
-            subnets = ec2_backend.describe_subnets(subnet_ids=self.VpcSubnetIds)
-        except Exception as e:
-            raise e
+        subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
         vpcs = []
         for subnet in subnets:
             vpcs.append(subnet.vpc_id)
             if subnet.vpc_id != vpcs[0]:
                 raise InvalidSubnet(subnet_identifier=subnet.id)
 
-        self.VpcId = ec2_backend.describe_subnets(subnet_ids=[self.VpcSubnetIds[0]])[
+        self.vpc_id = ec2_backend.describe_subnets(subnet_ids=[self.vpc_subnet_ids[0]])[
             0
         ].vpc_id
-        self.Status = "availible"
+        self.status = "availible"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
-        self.Endpoint = f"{self.DBProxyName}.db-proxy-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
+        self.endpoint = f"{self.db_proxy_name}.db-proxy-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
@@ -1657,7 +1654,7 @@ class DBProxy(BaseModel):
     def to_xml(self) -> str:
         template = Template(
             """
-                <RequireTLS>{{ dbproxy.RequireTLS }}</RequireTLS>
+                <RequireTLS>{{ dbproxy.require_tls }}</RequireTLS>
                 <VpcSecurityGroupIds>
                 {% if dbproxy.VpcSecurityGroupIds %}
                   {% for vpcsecuritygroupid in dbproxy.VpcSecurityGroupIds %}
@@ -1666,7 +1663,7 @@ class DBProxy(BaseModel):
                 {% endif %}
                 </VpcSecurityGroupIds>
                 <Auth>
-                  {% for auth in dbproxy.Auth %}
+                  {% for auth in dbproxy.auth %}
                     <member>
                         <UserName>{{ auth["UserName"] }}</UserName>
                         <AuthScheme>{{ auth["AuthScheme"] }}</AuthScheme>
@@ -1676,22 +1673,22 @@ class DBProxy(BaseModel):
                     </member>
                   {% endfor %}
                 </Auth>
-                <EngineFamily>{{ dbproxy.EngineFamily }}</EngineFamily>
-                <UpdatedDate>{{ dbproxy.UpdatedDate }}</UpdatedDate>
-                <DBProxyName>{{ dbproxy.DBProxyName }}</DBProxyName>
-                <IdleClientTimeout>{{ dbproxy.IdleClientTimeout }}</IdleClientTimeout>
-                <Endpoint>{{ dbproxy.Endpoint }}</Endpoint>
-                <CreatedDate>{{ dbproxy.CreatedDate }}</CreatedDate>
-                <RoleArn>{{ dbproxy.RoleArn }}</RoleArn>
-                <DebugLogging>{{ dbproxy.DebugLogging }}</DebugLogging>
-                <VpcId>{{ dbproxy.VpcId }}</VpcId>
-                <DBProxyArn>{{ dbproxy.DBProxyARN }}</DBProxyArn>
+                <EngineFamily>{{ dbproxy.engine_family }}</EngineFamily>
+                <UpdatedDate>{{ dbproxy.updated_date }}</UpdatedDate>
+                <DBProxyName>{{ dbproxy.db_proxy_name }}</DBProxyName>
+                <IdleClientTimeout>{{ dbproxy.idle_client_timeout }}</IdleClientTimeout>
+                <Endpoint>{{ dbproxy.endpoint }}</Endpoint>
+                <CreatedDate>{{ dbproxy.created_date }}</CreatedDate>
+                <RoleArn>{{ dbproxy.role_arn }}</RoleArn>
+                <DebugLogging>{{ dbproxy.debug_logging }}</DebugLogging>
+                <VpcId>{{ dbproxy.vpc_id }}</VpcId>
+                <DBProxyArn>{{ dbproxy.db_proxy_arn }}</DBProxyArn>
                 <VpcSubnetIds>
-                  {% for vpcsubnetid in dbproxy.VpcSubnetIds %}
+                  {% for vpcsubnetid in dbproxy.vpc_subnet_ids %}
                     <member>{{ vpcsubnetid }}</member>
                   {% endfor %}
                 </VpcSubnetIds>
-                <Status>{{ dbproxy.Status }}</Status>
+                <Status>{{ dbproxy.status }}</Status>
         """
         )
         return template.render(dbproxy=self)
@@ -3082,16 +3079,14 @@ class RDSBackend(BaseBackend):
     def describe_db_proxies(
         self,
         db_proxy_name: Optional[str],
-        filters: Optional[
-            List[Dict[str, Any]]
-        ] = None,  # This parameter is not currently supported. https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds/client/describe_db_proxies.html
+        filters: Optional[List[Dict[str, Any]]] = None,
     ) -> List[DBProxy]:
-        # Filters: This parameter is not currently supported, so it is ignored
+        """
+        The filters-argument is not yet supported
+        """
         db_proxies = list(self.db_proxies.values())
-        print("type(): ", type(db_proxies))
         if db_proxy_name and db_proxy_name in self.db_proxies.keys():
             db_proxies = [self.db_proxies[db_proxy_name]]
-            print("type2(): ", type(db_proxies))
         if db_proxy_name and db_proxy_name not in self.db_proxies.keys():
             raise DBProxyNotFoundFault(db_proxy_name)
         return db_proxies

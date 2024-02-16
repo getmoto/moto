@@ -38,7 +38,6 @@ def test_create_db_proxy():
         Tags=[{"Key": "TestKey", "Value": "TestValue"}],
     )
     db_proxy = resp["DBProxy"]
-    print("proxy: ", db_proxy)
     assert db_proxy["DBProxyName"] == "testrdsproxy"
     assert (
         db_proxy["DBProxyArn"]
@@ -195,7 +194,6 @@ def test_create_db_proxy_invalid_subnet():
             Tags=[{"Key": "TestKey", "Value": "TestValue"}],
         )
     err = ex.value.response["Error"]
-    print(err)
     assert err["Code"] == "InvalidSubnet"
 
 
@@ -248,7 +246,6 @@ def test_create_db_proxy_duplicate_name():
             Tags=[{"Key": "TestKey", "Value": "TestValue"}],
         )
     err = ex.value.response["Error"]
-    print(err)
     assert err["Code"] == "DBProxyAlreadyExistsFault"
     assert (
         err["Message"]
@@ -262,7 +259,6 @@ def test_describe_db_proxies_not_found():
     with pytest.raises(ClientError) as ex:
         rds_client.describe_db_proxies(DBProxyName="testrdsproxydescribe")
     err = ex.value.response["Error"]
-    print(err)
     assert err["Code"] == "DBProxyNotFoundFault"
     assert (
         err["Message"]
