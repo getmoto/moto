@@ -24,6 +24,9 @@ from .exceptions import (
     DBClusterToBeDeletedHasActiveMembers,
     DBInstanceNotFoundError,
     DBParameterGroupNotFoundError,
+    DBProxyAlreadyExistsFault,
+    DBProxyNotFoundFault,
+    DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundError,
@@ -39,6 +42,7 @@ from .exceptions import (
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
     InvalidParameterValue,
+    InvalidSubnet,
     OptionGroupNotFoundFaultError,
     RDSClientError,
     SnapshotQuotaExceededError,
@@ -1573,11 +1577,128 @@ class SubnetGroup(CloudFormationModel):
         backend.delete_subnet_group(self.subnet_name)
 
 
+class DBProxy(BaseModel):
+    def __init__(
+        self,
+        db_proxy_name: str,
+        engine_family: str,
+        auth: List[Dict[str, str]],
+        role_arn: str,
+        vpc_subnet_ids: List[str],
+        region_name: str,
+        account_id: str,
+        vpc_security_group_ids: Optional[List[str]],
+        require_tls: Optional[bool] = False,
+        idle_client_timeout: Optional[int] = 1800,
+        debug_logging: Optional[bool] = False,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ):
+        self.db_proxy_name = db_proxy_name
+        self.engine_family = engine_family
+        if self.engine_family not in ["MYSQL", "POSTGRESQ", "SQLSERVER"]:
+            raise InvalidParameterValue("Provided EngineFamily is not valid.")
+        self.auth = auth
+        self.role_arn = role_arn
+        self.vpc_subnet_ids = vpc_subnet_ids
+        self.vpc_security_group_ids = vpc_security_group_ids
+        self.require_tls = require_tls
+        if idle_client_timeout is None:
+            self.idle_client_timeout = 1800
+        else:
+            if int(idle_client_timeout) < 1:
+                self.idle_client_timeout = 1
+            elif int(idle_client_timeout) > 28800:
+                self.idle_client_timeout = 28800
+            else:
+                self.idle_client_timeout = idle_client_timeout
+        self.debug_logging = debug_logging
+        self.created_date = iso_8601_datetime_with_milliseconds()
+        self.updated_date = iso_8601_datetime_with_milliseconds()
+        if tags is None:
+            self.tags = []
+        else:
+            self.tags = tags
+        self.region_name = region_name
+        self.account_id = account_id
+        self.db_proxy_arn = f"arn:aws:rds:{self.region_name}:{self.account_id}:db-proxy:{self.db_proxy_name}"
+        self.arn = self.db_proxy_arn
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
+        vpcs = []
+        for subnet in subnets:
+            vpcs.append(subnet.vpc_id)
+            if subnet.vpc_id != vpcs[0]:
+                raise InvalidSubnet(subnet_identifier=subnet.id)
+
+        self.vpc_id = ec2_backend.describe_subnets(subnet_ids=[self.vpc_subnet_ids[0]])[
+            0
+        ].vpc_id
+        self.status = "availible"
+        self.url_identifier = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = f"{self.db_proxy_name}.db-proxy-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
+
+    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        new_keys = [tag_set["Key"] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys: List[str]) -> None:
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
+
+    def to_xml(self) -> str:
+        template = Template(
+            """
+                <RequireTLS>{{ dbproxy.require_tls }}</RequireTLS>
+                <VpcSecurityGroupIds>
+                {% if dbproxy.VpcSecurityGroupIds %}
+                  {% for vpcsecuritygroupid in dbproxy.VpcSecurityGroupIds %}
+                    <member>{{ vpcsecuritygroupid }}</member>
+                  {% endfor %}
+                {% endif %}
+                </VpcSecurityGroupIds>
+                <Auth>
+                  {% for auth in dbproxy.auth %}
+                    <member>
+                        <UserName>{{ auth["UserName"] }}</UserName>
+                        <AuthScheme>{{ auth["AuthScheme"] }}</AuthScheme>
+                        <SecretArn>{{ auth["SecretArn"] }}</SecretArn>
+                        <IAMAuth>{{ auth["IAMAuth"] }}</IAMAuth>
+                        <ClientPasswordAuthType>{{ auth["ClientPasswordAuthType"] }}</ClientPasswordAuthType>
+                    </member>
+                  {% endfor %}
+                </Auth>
+                <EngineFamily>{{ dbproxy.engine_family }}</EngineFamily>
+                <UpdatedDate>{{ dbproxy.updated_date }}</UpdatedDate>
+                <DBProxyName>{{ dbproxy.db_proxy_name }}</DBProxyName>
+                <IdleClientTimeout>{{ dbproxy.idle_client_timeout }}</IdleClientTimeout>
+                <Endpoint>{{ dbproxy.endpoint }}</Endpoint>
+                <CreatedDate>{{ dbproxy.created_date }}</CreatedDate>
+                <RoleArn>{{ dbproxy.role_arn }}</RoleArn>
+                <DebugLogging>{{ dbproxy.debug_logging }}</DebugLogging>
+                <VpcId>{{ dbproxy.vpc_id }}</VpcId>
+                <DBProxyArn>{{ dbproxy.db_proxy_arn }}</DBProxyArn>
+                <VpcSubnetIds>
+                  {% for vpcsubnetid in dbproxy.vpc_subnet_ids %}
+                    <member>{{ vpcsubnetid }}</member>
+                  {% endfor %}
+                </VpcSubnetIds>
+                <Status>{{ dbproxy.status }}</Status>
+        """
+        )
+        return template.render(dbproxy=self)
+
+
 class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
-            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp):.*$"
+            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
         self.clusters: Dict[str, Cluster] = OrderedDict()
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
@@ -1592,6 +1713,7 @@ class RDSBackend(BaseBackend):
         self.security_groups: Dict[str, SecurityGroup] = {}
         self.subnet_groups: Dict[str, SubnetGroup] = {}
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
+        self.db_proxies: Dict[str, DBProxy] = OrderedDict()
 
     def reset(self) -> None:
         self.neptune.reset()
@@ -2586,6 +2708,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
+            elif resource_type == "db-proxy":  # DB Proxy
+                if resource_name in self.db_proxies:
+                    return self.db_proxies[resource_name].get_tags()
         else:
             raise RDSClientError(
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
@@ -2628,6 +2753,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     self.subnet_groups[resource_name].remove_tags(tag_keys)
+            elif resource_type == "db-proxy":  # DB Proxy
+                if resource_name in self.db_proxies:
+                    self.db_proxies[resource_name].remove_tags(tag_keys)
         else:
             raise RDSClientError(
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
@@ -2669,6 +2797,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)
+            elif resource_type == "db-proxy":  # DB Proxy
+                if resource_name in self.db_proxies:
+                    return self.db_proxies[resource_name].add_tags(tags)
         else:
             raise RDSClientError(
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
@@ -2909,6 +3040,56 @@ class RDSBackend(BaseBackend):
                 }
             )
         return snapshot.attributes
+
+    def create_db_proxy(
+        self,
+        db_proxy_name: str,
+        engine_family: str,
+        auth: List[Dict[str, str]],
+        role_arn: str,
+        vpc_subnet_ids: List[str],
+        vpc_security_group_ids: Optional[List[str]],
+        require_tls: Optional[bool],
+        idle_client_timeout: Optional[int],
+        debug_logging: Optional[bool],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> DBProxy:
+        self._validate_db_identifier(db_proxy_name)
+        if db_proxy_name in self.db_proxies:
+            raise DBProxyAlreadyExistsFault(db_proxy_name)
+        if len(self.db_proxies) >= int(os.environ.get("MOTO_RDS_PROXY_LIMIT", "100")):
+            raise DBProxyQuotaExceededFault()
+        db_proxy = DBProxy(
+            db_proxy_name,
+            engine_family,
+            auth,
+            role_arn,
+            vpc_subnet_ids,
+            self.region_name,
+            self.account_id,
+            vpc_security_group_ids,
+            require_tls,
+            idle_client_timeout,
+            debug_logging,
+            tags,
+        )
+        self.db_proxies[db_proxy_name] = db_proxy
+        return db_proxy
+
+    def describe_db_proxies(
+        self,
+        db_proxy_name: Optional[str],
+        filters: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[DBProxy]:
+        """
+        The filters-argument is not yet supported
+        """
+        db_proxies = list(self.db_proxies.values())
+        if db_proxy_name and db_proxy_name in self.db_proxies.keys():
+            db_proxies = [self.db_proxies[db_proxy_name]]
+        if db_proxy_name and db_proxy_name not in self.db_proxies.keys():
+            raise DBProxyNotFoundFault(db_proxy_name)
+        return db_proxies
 
 
 class OptionGroup:

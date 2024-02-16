@@ -456,6 +456,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "rds:db": self.rds_backend.databases,
             "rds:snapshot": self.rds_backend.database_snapshots,
             "rds:cluster-snapshot": self.rds_backend.cluster_snapshots,
+            "rds:db-proxy": self.rds_backend.db_proxies,
         }
         for resource_type, resource_source in resource_map.items():
             if (
