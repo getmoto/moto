@@ -1,28 +1,39 @@
-from typing import List, Tuple
+from typing import List
 
 from moto.core.exceptions import JsonRESTError
 
 
-class Route53DomainsValidationException(JsonRESTError):
+class DomainLimitExceededException(JsonRESTError):
     code = 400
 
-    def __init__(self, error_tuples: List[Tuple[str, str, str]]):
-        """Validation errors are concatenated into one exception message.
+    def __init__(self):
+        super().__init__('DomainLimitExceeded', 'The number of domains has exceeded the allowed threshold for the account.')
 
-        error_tuples is a list of tuples.  Each tuple contains:
 
-          - name of invalid parameter,
-          - value of invalid parameter,
-          - string describing the constraints for that parameter.
-        """
-        msg_leader = (
-            f'{len(error_tuples)} '
-            f'validation error{'s' if len(error_tuples) > 1 else ''} detected: '
-        )
-        msgs = []
-        for arg_name, arg_value, constraint in error_tuples:
-            msgs.append(
-                f"Value '{arg_value}' at '{arg_name}' failed to satisfy "
-                f"constraint: Member must {constraint}"
-            )
-        super().__init__('ValidationException', msg_leader + '; '.join(msgs))
+class DuplicateRequestException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super().__init__('DuplicateRequest', 'The request is already in progress for the domain.')
+
+
+class InvalidInputException(JsonRESTError):
+    code = 400
+
+    def __init__(self, error_msgs: List[str]):
+        error_msgs_str = '\n\t'.join(error_msgs)
+        super().__init__('InvalidInput', f'The requested item is not acceptable.\n\t{error_msgs_str}')
+
+
+class OperationLimitExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self):
+        super().__init__('OperationLimitExceeded', 'The top-level domain does not support this operation.')
+
+
+class UnsupportedTLDException(JsonRESTError):
+    code = 400
+
+    def __init__(self, tld: str):
+        super().__init__('UnsupportedTLD', f'Amazon Route53 does not support the top-level domain (TLD) `.{tld}`.')

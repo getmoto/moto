@@ -11,11 +11,11 @@ class Route53DomainsResponse(BaseResponse):
 
     @property
     def route53domains_backend(self) -> Route53DomainsBackend:
-        """Return backend instance specific for this region."""
+        """Return backend instance"""
         return route53domains_backends[self.current_account]['global']
 
-    # TODO: Validate parameters
     def register_domain(self) -> str:
+        """Register a domain"""
         domain_name: str = self._get_param('DomainName')
         duration_in_years: int = self._get_int_param('DurationInYears')
         auto_renew: bool = self._get_bool_param('AutoRenew', if_none=True)
@@ -40,8 +40,25 @@ class Route53DomainsResponse(BaseResponse):
             extra_params=extra_params
         )
 
-        return json.dumps({'OperationId': operation.id_})
+        return json.dumps({'OperationId': operation.id})
 
-    # TODO: Add and handle parameters
+    # TODO: Handle Marker parameter
     def list_operations(self):
-        return json.dumps({'Operations': [operation.model_dump(by_alias=True) for operation in self.route53domains_backend.list_operations()]})
+        submitted_since_timestamp: int | None = self._get_int_param('SubmittedSince')
+        marker: str | None = self._get_param('Marker')
+        max_items: int = self._get_int_param('MaxItems')
+        statuses: List[str] | None = self._get_param('Status')
+        types: List[str] | None = self._get_param('Type')
+        sort_by: str | None = self._get_param('sort_by')
+        sort_order: str | None = self._get_param('SortOrder')
+
+        operations = self.route53domains_backend.list_operations(
+            submitted_since_timestamp=submitted_since_timestamp,
+            max_items=max_items,
+            statuses=statuses,
+            types=types,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+
+        return json.dumps({'Operations': [operation.model_dump(by_alias=True, exclude_none=True) for operation in operations]})

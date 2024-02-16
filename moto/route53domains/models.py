@@ -1,10 +1,14 @@
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List
 
+from pydantic import ValidationError
+
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
-from .validators import Route53Domain, Route53DomainsOperation
+from .exceptions import InvalidInputException
+from .validators import Route53Domain, Route53DomainsOperation, Route53DomainsContactDetail, \
+    validate_operation_statuses, validate_operation_types
 
 
 class Route53DomainsBackend(BaseBackend):
@@ -28,31 +32,33 @@ class Route53DomainsBackend(BaseBackend):
                         private_protect_tech_contact: bool,
                         extra_params: List[Dict]
                         ) -> Route53DomainsOperation:
-
+        """Register a domain"""
         expiration_date = datetime.now(timezone.utc) + timedelta(days=365*duration_in_years)
 
-        domain = Route53Domain.model_validate({
-            'DomainName': domain_name,
-            'AutoRenew': auto_renew,
-            'AdminContact': admin_contact,
-            'RegistrantContact': registrant_contact,
-            'TechContact': tech_contact,
-            'AdminPrivacy': private_protect_admin_contact,
-            'RegistrantPrivacy': private_protect_registrant_contact,
-            'TechPrivacy': private_protect_tech_contact,
-            'ExpirationDate': expiration_date.isoformat(),
-            'StatusList': ['OK'],
-            'ExtraParams': extra_params
-        })
+        try:
 
-        operation = Route53DomainsOperation.model_validate({
-            'DomainName': domain_name,
-            'Status': 'SUCCESSFUL',
-            'Type': 'REGISTER_DOMAIN',
-            'StatusFlag': 'PENDING_ACCEPTANCE'
-        })
+            domain = Route53Domain(domain_name=domain_name,
+                                   auto_renew=auto_renew,
+                                   admin_contact=Route53DomainsContactDetail.model_validate(admin_contact),
+                                   registrant_contact=Route53DomainsContactDetail.model_validate(registrant_contact),
+                                   tech_contact=Route53DomainsContactDetail.model_validate(tech_contact),
+                                   admin_privacy=private_protect_admin_contact,
+                                   registrant_privacy=private_protect_registrant_contact,
+                                   tech_privacy=private_protect_tech_contact,
+                                   expiration_date=expiration_date,
+                                   extra_params=extra_params)
 
-        self.__operations[operation.id_] = operation
+        except ValidationError as e:
+            error_msgs = []
+            for error in e.errors():
+                loc = ':'.join(error['loc'])
+                msg = error['msg']
+                error_msgs.append(f'{loc} - {msg}')
+            raise InvalidInputException(error_msgs)
+
+        operation = Route53DomainsOperation(domain_name=domain_name, status='SUCCESSFUL', type='REGISTER_DOMAIN')
+
+        self.__operations[operation.id] = operation
 
         self.__route53_backend.create_hosted_zone(
             name=domain.domain_name,
@@ -62,9 +68,50 @@ class Route53DomainsBackend(BaseBackend):
         self.__domains[domain_name] = domain
         return operation
 
-    # TODO: Add and handle parameters
-    def list_operations(self) -> List[Route53DomainsOperation]:
-        return list(self.__operations.values())
+    # TODO: Handle marker parameter
+    def list_operations(self,
+                        submitted_since_timestamp: int | None = None,
+                        marker: str | None = None,
+                        max_items: int | None = None,
+                        statuses: List[str] | None = None,
+                        types: List[str] | None = None,
+                        sort_by: str | None = None,
+                        sort_order: str | None = None
+                        ) -> List[Route53DomainsOperation]:
+
+        if statuses:
+            validate_operation_statuses(statuses)
+        if types:
+            validate_operation_types(types)
+
+        submitted_since = datetime.fromtimestamp(submitted_since_timestamp, timezone.utc) if submitted_since_timestamp else None
+        max_items = max_items or 20  # AWS default is 20
+
+        operations_to_return: List[Route53DomainsOperation] = []
+
+        for operation in self.__operations.values():
+            if len(operations_to_return) == max_items:
+                break
+
+            if statuses and operation.status not in statuses:
+                continue
+
+            if types and operation.type not in types:
+                continue
+
+            if submitted_since and operation.submitted_date < submitted_since:
+                continue
+
+            operations_to_return.append(operation)
+
+        if sort_by == 'SubmittedDate':
+            operations_to_return.sort(key=lambda op: op.submitted_date, reverse=sort_order == 'ASC')
+
+        return operations_to_return
+
+    @staticmethod
+    def __sort_by_submitted_date(operation: Route53DomainsOperation):
+        return operation.submitted_date
 
 
 route53domains_backends = BackendDict(

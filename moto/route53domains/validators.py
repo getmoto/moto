@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, get_args
 
 import pydantic.alias_generators
 from pydantic import (BaseModel as PydanticBaseModel,
@@ -12,6 +12,8 @@ from pydantic import (BaseModel as PydanticBaseModel,
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import MotoRandom
+from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.route53domains.exceptions import UnsupportedTLDException, InvalidInputException
 
 DomainOperationStatus = Literal['SUBMITTED', 'IN_PROGRESS', 'ERROR', 'SUCCESSFUL', 'FAILED']
 
@@ -92,14 +94,14 @@ class CommonBaseModelMeta(type(PydanticBaseModel), type(BaseModel)):
 
 
 class Route53DomainsOperation(PydanticBaseModel, BaseModel, metaclass=CommonBaseModelMeta):
-    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal)
+    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal, populate_by_name=True)
 
-    id_: str = Field(alias='OperationId', default_factory=lambda: str(MotoRandom().uuid4()))
+    id: str = Field(alias='OperationId', default_factory=lambda: str(MotoRandom().uuid4()))
     domain_name: str
     status: DomainOperationStatus
-    type_: DomainOperationType = Field(alias='Type')
+    type: DomainOperationType
     message: str | None = None
-    status_flag: DomainOperationStatusFlag
+    status_flag: DomainOperationStatusFlag | None = None
     submitted_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_updated_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -109,7 +111,7 @@ class Route53DomainsOperation(PydanticBaseModel, BaseModel, metaclass=CommonBase
 
 
 class Route53DomainsContactDetail(PydanticBaseModel):
-    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal)
+    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal, populate_by_name=True)
 
     address_line_1: str | None = Field(max_length=255, default=None)
     address_line_2: str | None = Field(max_length=255, default=None)
@@ -134,21 +136,21 @@ class Route53DomainsContactDetail(PydanticBaseModel):
 
 
 class NameServer(PydanticBaseModel):
-    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal)
+    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal, populate_by_name=True)
 
     name: str
-    glue_ips: List[str]
+    glue_ips: List[str] = []
 
 
-class Route53Domain(PydanticBaseModel, BaseModel, metaclass=CommonBaseModelMeta):
-    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal)
+class Route53Domain(PydanticBaseModel, BaseModel, ManagedState, metaclass=CommonBaseModelMeta):
+    model_config = ConfigDict(alias_generator=pydantic.alias_generators.to_pascal, populate_by_name=True)
 
     domain_name: str
     name_servers: List[NameServer] = [
-        NameServer.model_validate({'Name': 'ns-2048.awscdn-64.net', 'GlueIps': []}),
-        NameServer.model_validate({'Name': 'ns-2051.awscdn-67.net', 'GlueIps': []}),
-        NameServer.model_validate({'Name': 'ns-2050.awscdn-66.net', 'GlueIps': []}),
-        NameServer.model_validate({'Name': 'ns-2049.awscdn-65.net', 'GlueIps': []}),
+        NameServer(name='ns-2048.awscdn-64.net'),
+        NameServer(name='ns-2051.awscdn-67.net'),
+        NameServer(name='ns-2050.awscdn-66.net'),
+        NameServer(name='ns-2049.awscdn-65.net'),
     ]
     auto_renew: bool = True
     admin_contact: Route53DomainsContactDetail | None = None
@@ -175,10 +177,10 @@ class Route53Domain(PydanticBaseModel, BaseModel, metaclass=CommonBaseModelMeta)
     def validate_domain_name(cls, v: str):
         tld = v.split('.')[-1]
         if tld not in AWS_SUPPORTED_TLDS:
-            raise ValueError(f'Top level domain {tld} is not supported by AWS')
+            raise UnsupportedTLDException(tld)
 
         if not re.match(AWS_ROUTE53_VALID_DOMAIN_REGEX, v):
-            raise ValueError(f'Invalid domain name {v}')
+            raise ValueError(f'Invalid domain name')
 
         return v
 
@@ -192,3 +194,15 @@ class Route53Domain(PydanticBaseModel, BaseModel, metaclass=CommonBaseModelMeta)
     @field_serializer('creation_date', 'updated_date', 'expiration_date')
     def serialize_datetime(self, dt: datetime, _info):
         return dt.isoformat()
+
+
+def validate_operation_statuses(statuses: List[str]) -> None:
+    for status in statuses:
+        if status not in get_args(DomainOperationStatus):
+            raise InvalidInputException([f'{statuses} is not a valid operation status'])
+
+
+def validate_operation_types(types: List[str]) -> None:
+    for type_ in types:
+        if type_ not in get_args(DomainOperationType):
+            raise InvalidInputException([f'{type_} is not a valid operation type'])
