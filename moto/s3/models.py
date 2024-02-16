@@ -2321,6 +2321,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - SNS
          - SQS
          - EventBridge
+
+        For the following events:
+         - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Put'
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)

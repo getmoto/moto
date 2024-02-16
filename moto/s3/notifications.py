@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Any, Dict, List
 
 from moto.core.utils import unix_time
-from moto.events.utils import _BASE_EVENT_MESSAGE
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -172,6 +171,7 @@ def _send_event_bridge_message(
 ) -> None:
     try:
         from moto.events.models import events_backends
+        from moto.events.utils import _BASE_EVENT_MESSAGE
 
         event = copy.deepcopy(_BASE_EVENT_MESSAGE)
         event["detail-type"] = _detail_type(event_name)
@@ -187,7 +187,7 @@ def _send_event_bridge_message(
                 "key": key.name,
                 "size": key.size,
                 "eTag": key.etag.replace('"', ""),
-                "version-id": "IYV3p45BT0ac8hjHg1houSdS1a.Mro8e",
+                "version-id": key.version_id,
                 "sequencer": "617f08299329d189",
             },
             "request-id": "N4N7GDK58NMKJ12R",
