@@ -2092,12 +2092,19 @@ class S3Response(BaseResponse):
             ("Topic", "sns"),
             ("Queue", "sqs"),
             ("CloudFunction", "lambda"),
+            ("EventBridge", "events"),
         ]
 
         found_notifications = (
             0  # Tripwire -- if this is not ever set, then there were no notifications
         )
         for name, arn_string in notification_fields:
+            # EventBridgeConfiguration is passed as an empty dict.
+            if name == "EventBridge":
+                events_field = f"{name}Configuration"
+                if events_field in parsed_xml["NotificationConfiguration"]:
+                    parsed_xml["NotificationConfiguration"][events_field] = {}
+                    found_notifications += 1
             # 1st verify that the proper notification configuration has been passed in (with an ARN that is close
             # to being correct -- nothing too complex in the ARN logic):
             the_notification = parsed_xml["NotificationConfiguration"].get(

@@ -339,6 +339,7 @@ def test_s3_notification_config_dict():
                 },
             }
         ],
+        "EventBridgeConfiguration": {},
     }
 
     s3_config_query.backends[DEFAULT_ACCOUNT_ID][
@@ -389,6 +390,7 @@ def test_s3_notification_config_dict():
                 "queueARN": "arn:aws:lambda:us-west-2:012345678910:function:mylambda",
                 "type": "LambdaConfiguration",
             },
+            "EventBridgeConfiguration": {},
         }
     }
 
