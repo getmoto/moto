@@ -19,7 +19,20 @@ output_path = os.path.join(script_dir, "..", output_file)
 # Ignore S3bucket_path, as the functionality is covered in the S3 service
 # Ignore neptune, as it shares a URL with RDS
 # Ignore OpenSearch, as it shares a URL with ElasticSearch
-IGNORE_BACKENDS = ["moto_server", "moto_proxy", "apigatewayv2", "awslambda_simple", "batch_simple", "core", "dynamodb_v20111205", "packages", "utilities", "s3bucket_path", "neptune", "opensearch"]
+IGNORE_BACKENDS = [
+    "moto_server",
+    "moto_proxy",
+    "apigatewayv2",
+    "awslambda_simple",
+    "batch_simple",
+    "core",
+    "dynamodb_v20111205",
+    "packages",
+    "utilities",
+    "s3bucket_path",
+    "neptune",
+    "opensearch",
+]
 
 
 def iter_backend_url_patterns():

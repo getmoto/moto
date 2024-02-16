@@ -305,6 +305,7 @@ def test_autoscaling_group_with_elb():
                     "MinSize": 5,
                     "Recurrence": "* * * * *",
                     "StartTime": "2022-07-01T00:00:00Z",
+                    "TimeZone": "Etc/UTC",
                 },
             },
             "my-launch-config": {

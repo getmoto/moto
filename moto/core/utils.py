@@ -390,3 +390,11 @@ def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, int, str]:
 
 def gzip_decompress(body: bytes) -> bytes:
     return decompress(body)
+
+
+def get_partition_from_region(region_name: str) -> str:
+    # Very rough implementation
+    # In an ideal world we check `boto3.Session.get_partition_for_region`, but that is quite computationally heavy
+    if region_name.startswith("cn-"):
+        return "aws-cn"
+    return "aws"

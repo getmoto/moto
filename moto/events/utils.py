@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, List, TypedDict
 
 if TYPE_CHECKING:
-    from typing_extentions import Any, Dict, Required, Union
+    from typing_extensions import Any, Dict, Required, Union
 
 
 # NOTE: Typing is based on the following document https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-event-patterns.html

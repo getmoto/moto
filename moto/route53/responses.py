@@ -81,16 +81,27 @@ class Route53(BaseResponse):
                 vpcregion=vpcregion,
                 delegation_set_id=delegation_set_id,
             )
-            template = Template(CREATE_HOSTED_ZONE_RESPONSE)
+            template = Template(CREATE_HOSTED_ZONE_RESPONSE).render(zone=new_zone)
             headers = {
                 "Location": f"https://route53.amazonaws.com/2013-04-01/hostedzone/{new_zone.id}"
             }
-            return 201, headers, template.render(zone=new_zone)
+            return 201, headers, template
 
         elif request.method == "GET":
-            all_zones = self.backend.list_hosted_zones()
-            template = Template(LIST_HOSTED_ZONES_RESPONSE)
-            return 200, headers, template.render(zones=all_zones)
+            max_size = self.querystring.get("maxitems", [None])[0]
+            if max_size:
+                max_size = int(max_size)
+            marker = self.querystring.get("marker", [None])[0]
+            zone_page, next_marker = self.backend.list_hosted_zones(
+                marker=marker, max_size=max_size
+            )
+            template = Template(LIST_HOSTED_ZONES_RESPONSE).render(
+                zones=zone_page,
+                marker=marker,
+                next_marker=next_marker,
+                max_items=max_size,
+            )
+            return 200, headers, template
 
     def list_hosted_zones_by_name_response(
         self, request: Any, full_url: str, headers: Any
@@ -238,8 +249,8 @@ class Route53(BaseResponse):
         elif method == "GET":
             querystring = parse_qs(self.parsed_url.query)
             template = Template(LIST_RRSET_RESPONSE)
-            start_type = querystring.get("type", [None])[0]  # type: ignore
-            start_name = querystring.get("name", [None])[0]  # type: ignore
+            start_type = querystring.get("type", [None])[0]
+            start_name = querystring.get("name", [None])[0]
             max_items = int(querystring.get("maxitems", ["300"])[0])
 
             if start_type and not start_name:
@@ -704,7 +715,10 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       </HostedZone>
       {% endfor %}
    </HostedZones>
-   <IsTruncated>false</IsTruncated>
+   {% if marker %}<Marker>{{ marker }}</Marker>{% endif %}
+   {%if next_marker %}<NextMarker>{{ next_marker }}</NextMarker>{% endif %}
+   {%if max_items %}<MaxItems>{{ max_items }}</MaxItems>{% endif %}
+   <IsTruncated>{{ 'true' if next_marker else 'false'}}</IsTruncated>
 </ListHostedZonesResponse>"""
 
 LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{ xmlns }}">

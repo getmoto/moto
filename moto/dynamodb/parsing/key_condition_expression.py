@@ -230,4 +230,4 @@ def validate_schema(
         if {"S": ""} in range_values:
             raise KeyIsEmptyStringException(index_range_key)
 
-    return hash_value, range_comparison, range_values  # type: ignore[return-value]
+    return hash_value, range_comparison, range_values

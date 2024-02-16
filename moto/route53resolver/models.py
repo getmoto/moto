@@ -814,7 +814,7 @@ class Route53ResolverBackend(BaseBackend):
 
         return True
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoints(self, filters: Any) -> List[ResolverEndpoint]:
         if not filters:
             filters = []
@@ -828,7 +828,7 @@ class Route53ResolverBackend(BaseBackend):
                 endpoints.append(endpoint)
         return endpoints
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rules(self, filters: Any) -> List[ResolverRule]:
         if not filters:
             filters = []
@@ -842,7 +842,7 @@ class Route53ResolverBackend(BaseBackend):
                 rules.append(rule)
         return rules
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rule_associations(
         self, filters: Any
     ) -> List[ResolverRuleAssociation]:
@@ -872,12 +872,10 @@ class Route53ResolverBackend(BaseBackend):
             f"Resolver endpoint with ID '{resource_arn}' does not exist"
         )
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_tags_for_resource(
-        self, resource_arn: str
-    ) -> Optional[List[Dict[str, str]]]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         self._matched_arn(resource_arn)
-        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
+        return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         self._matched_arn(resource_arn)

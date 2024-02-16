@@ -15,7 +15,11 @@ alternative_service_names = {"lambda": "awslambda"}
 def get_moto_implementation(service_name):
     try:
         backends = get_backend(service_name)
-        backend = backends[0]["us-east-1"] if "us-east-1" in backends[0] else backends[0]["global"]
+        backend = (
+            backends[0]["us-east-1"]
+            if "us-east-1" in backends[0]
+            else backends[0]["global"]
+        )
         return backend, service_name
     except ModuleNotFoundError:
         return None, service_name
@@ -24,9 +28,9 @@ def get_moto_implementation(service_name):
 def get_module_name(o):
     klass = o.__class__
     module = klass.__module__
-    if module == 'builtins':
-        return klass.__qualname__ # avoid outputs like 'builtins.str'
-    return module + '.' + klass.__qualname__
+    if module == "builtins":
+        return klass.__qualname__  # avoid outputs like 'builtins.str'
+    return module + "." + klass.__qualname__
 
 
 def calculate_extended_implementation_coverage():
@@ -161,7 +165,9 @@ def write_implementation_coverage_to_file(coverage):
 
 
 def write_implementation_coverage_to_docs(coverage):
-    implementation_coverage_file = "{}/../docs/docs/services/index.rst".format(script_dir)
+    implementation_coverage_file = "{}/../docs/docs/services/index.rst".format(
+        script_dir
+    )
     # rewrite the implementation coverage file with updated values
     # try deleting the implementation coverage file
     try:
@@ -179,7 +185,9 @@ def write_implementation_coverage_to_docs(coverage):
         not_implemented = coverage.get(service_name)["not_implemented"]
         operations = sorted(list(implemented.keys()) + not_implemented)
 
-        service_coverage_file = "{}/../docs/docs/services/{}.rst".format(script_dir, service_name)
+        service_coverage_file = "{}/../docs/docs/services/{}.rst".format(
+            script_dir, service_name
+        )
         shorthand = service_name.replace(" ", "_")
 
         with open(service_coverage_file, "w+") as file:
@@ -202,7 +210,9 @@ def write_implementation_coverage_to_docs(coverage):
 
             if coverage[service_name]["docs"]:
                 # Only show auto-generated documentation if it exists
-                file.write(".. autoclass:: " + coverage[service_name].get("module_name"))
+                file.write(
+                    ".. autoclass:: " + coverage[service_name].get("module_name")
+                )
                 file.write("\n\n")
 
             file.write("|start-h3| Implemented features for this service |end-h3|\n\n")
@@ -217,7 +227,6 @@ def write_implementation_coverage_to_docs(coverage):
                     file.write("- [ ] {}\n".format(op))
             file.write("\n")
 
-
     with open(implementation_coverage_file, "w+") as file:
         file.write(".. _implemented_services:\n")
         file.write("\n")
@@ -227,7 +236,9 @@ def write_implementation_coverage_to_docs(coverage):
         file.write("Implemented Services\n")
         file.write("====================\n")
         file.write("\n")
-        file.write("Please see a list of all currently supported services. Each service will have a list of the endpoints that are implemented.\n")
+        file.write(
+            "Please see a list of all currently supported services. Each service will have a list of the endpoints that are implemented.\n"
+        )
 
         file.write("\n")
         file.write(".. toctree::\n")

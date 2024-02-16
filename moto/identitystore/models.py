@@ -301,7 +301,7 @@ class IdentityStoreBackend(BaseBackend):
 
         return [m._asdict() for m in identity_store.groups.values()]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(
         self, identity_store_id: str, filters: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:

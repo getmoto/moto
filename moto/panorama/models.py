@@ -46,7 +46,7 @@ class BaseObject(BaseModel):
                 response_object[key[0].upper() + key[1:]] = value
         return response_object
 
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> Dict[str, Any]:
         return self.gen_response_object()
 
 
@@ -251,7 +251,7 @@ class PanoramaBackend(BaseBackend):
             raise ValidationError(f"Device {device_id} not found")
         return device
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_devices(
         self,
         device_aggregated_status_filter: str,

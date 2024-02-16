@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Pattern
+from typing import Any, Dict, List, Optional, Pattern
 
 from dateutil.tz import tzlocal
 
@@ -504,8 +504,8 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.append(state_machine)
             return state_machine
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_state_machines(self) -> Iterable[StateMachine]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_state_machines(self) -> List[StateMachine]:
         return sorted(self.state_machines, key=lambda x: x.creation_date)
 
     def describe_state_machine(self, arn: str) -> StateMachine:
@@ -552,10 +552,10 @@ class StepFunctionBackend(BaseBackend):
         state_machine = self._get_state_machine_for_execution(execution_arn)
         return state_machine.stop_execution(execution_arn)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_executions(
         self, state_machine_arn: str, status_filter: Optional[str] = None
-    ) -> Iterable[Execution]:
+    ) -> List[Execution]:
         """
         The status of every execution is set to 'RUNNING' by default.
         Set the following environment variable if you want to get a FAILED status back:
@@ -569,8 +569,7 @@ class StepFunctionBackend(BaseBackend):
         if status_filter:
             executions = list(filter(lambda e: e.status == status_filter, executions))
 
-        executions = sorted(executions, key=lambda x: x.start_date, reverse=True)
-        return executions
+        return sorted(executions, key=lambda x: x.start_date, reverse=True)
 
     def describe_execution(self, execution_arn: str) -> Execution:
         """
