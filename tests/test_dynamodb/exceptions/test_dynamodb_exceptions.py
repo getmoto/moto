@@ -1242,3 +1242,34 @@ def test_scan_with_missing_value(table_name=None):
         err["Message"]
         == 'ExpressionAttributeValues contains invalid key: Syntax error; key: "loc"'
     )
+
+
+@mock_aws
+def test_too_many_key_schema_attributes():
+    ddb = boto3.resource("dynamodb", "us-east-1")
+    TableName = "my_test_"
+
+    AttributeDefinitions = [
+        {"AttributeName": "UUID", "AttributeType": "S"},
+        {"AttributeName": "ComicBook", "AttributeType": "S"},
+    ]
+
+    KeySchema = [
+        {"AttributeName": "UUID", "KeyType": "HASH"},
+        {"AttributeName": "ComicBook", "KeyType": "RANGE"},
+        {"AttributeName": "Creator", "KeyType": "RANGE"},
+    ]
+
+    ProvisionedThroughput = {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+
+    expected_err = "1 validation error detected: Value '[KeySchemaElement(attributeName=UUID, keyType=HASH), KeySchemaElement(attributeName=ComicBook, keyType=RANGE), KeySchemaElement(attributeName=Creator, keyType=RANGE)]' at 'keySchema' failed to satisfy constraint: Member must have length less than or equal to 2"
+    with pytest.raises(ClientError) as exc:
+        ddb.create_table(
+            TableName=TableName,
+            KeySchema=KeySchema,
+            AttributeDefinitions=AttributeDefinitions,
+            ProvisionedThroughput=ProvisionedThroughput,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == expected_err
