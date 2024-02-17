@@ -1,2 +1,2 @@
-#  Please add requirements to setup.py
+#  Please add requirements to setup.cfg
 -e .[all]
