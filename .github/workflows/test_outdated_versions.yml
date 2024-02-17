@@ -18,6 +18,7 @@ jobs:
         responses-version: ["0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
         werkzeug-version: ["2.0.1", "2.1.1", "2.2.2"]
         openapi-spec-validator-version: ["0.5.0"]
+        cryptography-version: ["39.0.0"]
 
     steps:
     - name: Checkout repository
@@ -40,6 +41,7 @@ jobs:
         pip install werkzeug==${{ matrix.werkzeug-version }}
         pip install openapi-spec-validator==${{ matrix.openapi-spec-validator-version }}
         pip install ${{ matrix.botocore }}
+        pip install cryptography==${{ matrix.cryptography-version }}
 
     - name: Run tests
       run: |
@@ -59,8 +61,6 @@ jobs:
       if: always()
       run: |
         mkdir serverlogs
-        pwd
-        ls -la
         cp server_output.log serverlogs/server_output.log
         docker stop motoserver
     - name: Archive TF logs

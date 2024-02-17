@@ -1058,7 +1058,7 @@ def test_create_route_with_vpc_endpoint():
         VpcEndpointId=vpce_id,
         RouteTableId=route_table.id,
     )
-    rt = ec2_client.describe_route_tables()
+    rt = ec2_client.describe_route_tables(RouteTableIds=[route_table.id])
     new_route = rt["RouteTables"][-1]["Routes"][1]
 
     # Verify

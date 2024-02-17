@@ -149,13 +149,19 @@ class CertificateAuthority(BaseModel):
     def not_valid_after(self) -> Optional[float]:
         if self.certificate is None:
             return None
-        return unix_time(self.certificate.not_valid_after)
+        try:
+            return unix_time(self.certificate.not_valid_after_utc.replace(tzinfo=None))
+        except AttributeError:
+            return unix_time(self.certificate.not_valid_after)
 
     @property
     def not_valid_before(self) -> Optional[float]:
         if self.certificate is None:
             return None
-        return unix_time(self.certificate.not_valid_before)
+        try:
+            return unix_time(self.certificate.not_valid_before_utc.replace(tzinfo=None))
+        except AttributeError:
+            return unix_time(self.certificate.not_valid_before)
 
     def import_certificate_authority_certificate(
         self, certificate: bytes, certificate_chain: Optional[bytes]

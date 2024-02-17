@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 
 from ..markers import requires_docker
+from .test_lambda import LooseVersion, boto3_version
 from .utilities import (
     get_lambda_using_environment_port,
     get_lambda_using_network_mode,
@@ -383,6 +384,8 @@ def test_invoke_lambda_with_proxy():
 @mock_aws
 @requires_docker
 def test_invoke_lambda_with_entrypoint():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("ImageConfig parameter not available in older versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     conn.create_function(
