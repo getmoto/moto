@@ -100,8 +100,12 @@ class DynamoType(object):
         if self.type != other.type:
             raise TypeError("Different types of operandi is not allowed.")
         if self.is_number():
-            self_value = decimal.Decimal(self.value) if "." in self.value else int(self.value)
-            other_value = decimal.Decimal(other.value) if "." in other.value else int(other.value)
+            self_value = (
+                decimal.Decimal(self.value) if "." in self.value else int(self.value)
+            )
+            other_value = (
+                decimal.Decimal(other.value) if "." in other.value else int(other.value)
+            )
             return DynamoType({DDBType.NUMBER: f"{self_value + other_value}"})
         else:
             raise IncorrectDataType()
