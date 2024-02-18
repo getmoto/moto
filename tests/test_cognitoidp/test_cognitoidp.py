@@ -13,13 +13,17 @@ import boto3
 import pytest
 import requests
 from botocore.exceptions import ClientError, ParamValidationError
-from jose import jws, jwt
+from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
-from moto import mock_aws, settings
+from moto import cognitoidp, mock_aws, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
+from moto.utilities.utils import load_resource
+
+private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
+PUBLIC_KEY = jwk.RSAKey.import_key(private_key)
 
 
 @mock_aws
@@ -1543,7 +1547,8 @@ def test_group_in_access_token():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["AccessToken"])
+    payload = jwt.decode(result["AuthenticationResult"]["AccessToken"], PUBLIC_KEY)
+    claims = payload.claims
     assert claims["cognito:groups"] == [group_name]
 
 
@@ -1604,7 +1609,8 @@ def test_other_attributes_in_id_token():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["IdToken"])
+    payload = jwt.decode(result["AuthenticationResult"]["IdToken"], PUBLIC_KEY)
+    claims = payload.claims
     assert claims["cognito:groups"] == [group_name]
     assert claims["custom:myattr"] == "some val"
 
@@ -2957,7 +2963,7 @@ def test_token_legitimacy():
 
     path = "../../moto/cognitoidp/resources/jwks-public.json"
     with open(os.path.join(os.path.dirname(__file__), path)) as f:
-        json_web_key = json.loads(f.read())["keys"][0]
+        json_web_key = jwk.RSAKey.import_key(json.loads(f.read())["keys"][0])
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
         outputs = authentication_flow(conn, auth_flow)
@@ -2968,14 +2974,14 @@ def test_token_legitimacy():
         issuer = (
             f"https://cognito-idp.us-west-2.amazonaws.com/{outputs['user_pool_id']}"
         )
-        id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
+        id_claims = jwt.decode(id_token, json_web_key, ["RS256"]).claims
         assert id_claims["iss"] == issuer
         assert id_claims["aud"] == client_id
         assert id_claims["token_use"] == "id"
         assert id_claims["cognito:username"] == username
         for k, v in outputs["additional_fields"].items():
             assert id_claims[k] == v
-        access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
+        access_claims = jwt.decode(access_token, json_web_key, ["RS256"]).claims
         assert access_claims["iss"] == issuer
         assert access_claims["client_id"] == client_id
         assert access_claims["token_use"] == "access"
@@ -4938,8 +4944,10 @@ if not settings.TEST_SERVER_MODE:
 
 def verify_kid_header(token):
     """Verifies the kid-header is corresponds with the public key"""
-    headers = jwt.get_unverified_headers(token)
-    kid = headers["kid"]
+    if isinstance(token, str):
+        token = token.encode("ascii")
+    sig = jws.extract_compact(token)
+    kid = sig.headers()["kid"]
 
     key_index = -1
     keys = fetch_public_keys()
