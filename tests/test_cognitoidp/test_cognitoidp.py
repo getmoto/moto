@@ -16,22 +16,14 @@ from botocore.exceptions import ClientError, ParamValidationError
 from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
-from moto import mock_aws, settings
+from moto import cognitoidp, mock_aws, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
+from moto.utilities.utils import load_resource
 
-# Taken from jwks-public.json
-PUBLIC_KEY = jwk.RSAKey.import_key(
-    {
-        "alg": "RS256",
-        "e": "AQAB",
-        "kid": "dummy",
-        "kty": "RSA",
-        "n": "j1pT3xKbswmMySvCefmiD3mfDaRFpZ9Y3Jl4fF0hMaCRVAt_e0yR7BeueDfqmj_NhVSO0WB5ao5e8V-9RFQOtK8SrqKl3i01-CyWYPICwybaGKhbJJR0S_6cZ8n5kscF1MjpIlsJcCzm-yKgTc3Mxk6KtrLoNgRvMwGLeHUXPkhS9YHfDKRe864iMFOK4df69brIYEICG2VLduh0hXYa0i-J3drwm7vxNdX7pVpCDu34qJtYoWq6CXt3Tzfi3YfWp8cFjGNbaDa3WnCd2IXpp0TFsFS-cEsw5rJjSl5OllJGeZKBtLeyVTy9PYwnk7MW43WSYeYstbk9NluX4H8Iuw",
-        "use": "sig",
-    }
-)
+private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
+PUBLIC_KEY = jwk.RSAKey.import_key(private_key)
 
 
 @mock_aws

@@ -712,17 +712,20 @@ def _convert_rfc4716(data: bytes) -> bytes:
 def public_key_parse(
     key_material: Union[str, bytes]
 ) -> Union[RSAPublicKey, Ed25519PublicKey]:
-    if isinstance(key_material, str):
-        key_material = key_material.encode("ascii")
-    key_material = base64.b64decode(key_material)
+    try:
+        if isinstance(key_material, str):
+            key_material = key_material.encode("ascii")
+        key_material = base64.b64decode(key_material)
 
-    if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
-        # cryptography doesn't parse RFC4716 key format, so we have to convert it first
-        key_material = _convert_rfc4716(key_material)
+        if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
+            # cryptography doesn't parse RFC4716 key format, so we have to convert it first
+            key_material = _convert_rfc4716(key_material)
 
-    public_key = serialization.load_ssh_public_key(key_material)
+        public_key = serialization.load_ssh_public_key(key_material)
 
-    if not isinstance(public_key, (RSAPublicKey, Ed25519PublicKey)):
+        if not isinstance(public_key, (RSAPublicKey, Ed25519PublicKey)):
+            raise ValueError("bad key")
+    except UnicodeDecodeError:
         raise ValueError("bad key")
 
     return public_key

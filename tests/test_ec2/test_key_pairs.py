@@ -27,9 +27,46 @@ A3t8mL7r91aM5q6QOQm219lctFM8O7HRJnDgmhGpnjRwE1LyKktWTbgFZ4SNWU2X\
 qusUO07jKuSxzPumXBeU+JEtx0J1tqZwJlpGt2R+0qN7nKnPl2+hx \
 moto@github.com"""
 
-RSA_PUBLIC_KEY_RFC4716 = b"""\
+RSA_PUBLIC_KEY_RFC4716_1 = b"""\
+---- BEGIN SSH2 PUBLIC KEY ----
+AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H6cZANO
+Q+P1o/W4BdtcAL3sor4iGi7SOeJgo8kweyMQrhrt6HaKGgromRiz37LQx4YIAcBi4Zd023
+mO/V7Rc2Chh18mWgLSmA6ng+j37ip6452zxtv0jHAz9pJolbKBpJzbZlPN45ZCTk9ck0fS
+VHRl6VRSSPQcpqi65XpRf+35zNOCGCc1mAOOTmw59Q2a6A3t8mL7r91aM5q6QOQm219lct
+FM8O7HRJnDgmhGpnjRwE1LyKktWTbgFZ4SNWU2XqusUO07jKuSxzPumXBeU+JEtx0J1tqZ
+wJlpGt2R+0qN7nKnPl2+hx
+---- END SSH2 PUBLIC KEY ----
+"""
+
+RSA_PUBLIC_KEY_RFC4716_2 = b"""\
 ---- BEGIN SSH2 PUBLIC KEY ----
 cOmmENt: moto@github.com
+AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H6cZANO
+Q+P1o/W4BdtcAL3sor4iGi7SOeJgo8kweyMQrhrt6HaKGgromRiz37LQx4YIAcBi4Zd023
+mO/V7Rc2Chh18mWgLSmA6ng+j37ip6452zxtv0jHAz9pJolbKBpJzbZlPN45ZCTk9ck0fS
+VHRl6VRSSPQcpqi65XpRf+35zNOCGCc1mAOOTmw59Q2a6A3t8mL7r91aM5q6QOQm219lct
+FM8O7HRJnDgmhGpnjRwE1LyKktWTbgFZ4SNWU2XqusUO07jKuSxzPumXBeU+JEtx0J1tqZ
+wJlpGt2R+0qN7nKnPl2+hx
+---- END SSH2 PUBLIC KEY ----
+"""
+
+RSA_PUBLIC_KEY_RFC4716_3 = b"""\
+---- BEGIN SSH2 PUBLIC KEY ----
+Comment: "1024-bit RSA, converted from OpenSSH by me@example.com"
+x-command: /home/me/bin/lock-in-guest.sh
+AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H6cZANO
+Q+P1o/W4BdtcAL3sor4iGi7SOeJgo8kweyMQrhrt6HaKGgromRiz37LQx4YIAcBi4Zd023
+mO/V7Rc2Chh18mWgLSmA6ng+j37ip6452zxtv0jHAz9pJolbKBpJzbZlPN45ZCTk9ck0fS
+VHRl6VRSSPQcpqi65XpRf+35zNOCGCc1mAOOTmw59Q2a6A3t8mL7r91aM5q6QOQm219lct
+FM8O7HRJnDgmhGpnjRwE1LyKktWTbgFZ4SNWU2XqusUO07jKuSxzPumXBeU+JEtx0J1tqZ
+wJlpGt2R+0qN7nKnPl2+hx
+---- END SSH2 PUBLIC KEY ----
+"""
+
+RSA_PUBLIC_KEY_RFC4716_4 = b"""\
+---- BEGIN SSH2 PUBLIC KEY ----
+Comment: This is my public key for use on \
+servers which I don't like.
 AAAAB3NzaC1yc2EAAAADAQABAAABAQDusXfgTE4eBP50NglSzCSEGnIL6+cr6m3H6cZANO
 Q+P1o/W4BdtcAL3sor4iGi7SOeJgo8kweyMQrhrt6HaKGgromRiz37LQx4YIAcBi4Zd023
 mO/V7Rc2Chh18mWgLSmA6ng+j37ip6452zxtv0jHAz9pJolbKBpJzbZlPN45ZCTk9ck0fS
@@ -158,10 +195,20 @@ def test_key_pairs_delete_exist_boto3():
     "public_key,fingerprint",
     [
         (RSA_PUBLIC_KEY_OPENSSH, RSA_PUBLIC_KEY_FINGERPRINT),
-        (RSA_PUBLIC_KEY_RFC4716, RSA_PUBLIC_KEY_FINGERPRINT),
+        (RSA_PUBLIC_KEY_RFC4716_1, RSA_PUBLIC_KEY_FINGERPRINT),
+        (RSA_PUBLIC_KEY_RFC4716_2, RSA_PUBLIC_KEY_FINGERPRINT),
+        (RSA_PUBLIC_KEY_RFC4716_3, RSA_PUBLIC_KEY_FINGERPRINT),
+        (RSA_PUBLIC_KEY_RFC4716_4, RSA_PUBLIC_KEY_FINGERPRINT),
         (ED25519_PUBLIC_KEY_OPENSSH, ED25519_PUBLIC_KEY_FINGERPRINT),
     ],
-    ids=["rsa-openssh", "rsa-rfc4716", "ed25519"],
+    ids=[
+        "rsa-openssh",
+        "rsa-rfc4716-1",
+        "rsa-rfc4716-2",
+        "rsa-rfc4716-3",
+        "rsa-rfc4716-4",
+        "ed25519",
+    ],
 )
 def test_key_pairs_import_boto3(public_key, fingerprint):
     client = boto3.client("ec2", "us-west-1")
@@ -187,6 +234,18 @@ def test_key_pairs_import_boto3(public_key, fingerprint):
     all_kps = client.describe_key_pairs()["KeyPairs"]
     all_names = [kp["KeyName"] for kp in all_kps]
     assert kp1["KeyName"] in all_names
+
+
+@mock_aws
+def test_key_pairs_import_invalid_key():
+    client = boto3.client("ec2", "us-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.import_key_pair(
+            KeyName="sth", PublicKeyMaterial="---- BEGIN SSH2 PUBLIC KEY ----\nsth"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidKeyPair.Format"
 
 
 @mock_aws
