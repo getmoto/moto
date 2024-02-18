@@ -23713,6 +23713,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -23945,6 +23954,15 @@
                 "Value": "ecs",
                 "endpoint": {
                   "Value": "ecs.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "efs": {
+                "Value": "efs",
+                "endpoint": {
+                  "Value": "elasticfilesystem.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32552,6 +32570,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -44716,6 +44743,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudtrail-data": {
+                "Value": "cloudtrail-data",
+                "endpoint": {
+                  "Value": "cloudtrail-data.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudwatch": {
                 "Value": "cloudwatch",
                 "endpoint": {
@@ -48786,6 +48822,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -50098,7 +50143,10 @@
                 }
               },
               "codewhisperer": {
-                "Value": "codewhisperer"
+                "Value": "codewhisperer",
+                "endpoint": {
+                  "Value": "codewhisperer.us-east-1.amazonaws.com"
+                }
               },
               "cognito-identity": {
                 "Value": "cognito-identity",
@@ -51889,6 +51937,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54556,6 +54613,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62545,6 +62611,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
