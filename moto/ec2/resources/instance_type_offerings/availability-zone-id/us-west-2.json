@@ -1908,6 +1908,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "usw2-az1"
  },
