@@ -36,7 +36,7 @@ rds
 - [X] create_db_instance
 - [X] create_db_instance_read_replica
 - [X] create_db_parameter_group
-- [ ] create_db_proxy
+- [X] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
 - [ ] create_db_shard_group
@@ -86,7 +86,11 @@ rds
 - [ ] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
-- [ ] describe_db_proxies
+- [X] describe_db_proxies
+  
+        The filters-argument is not yet supported
+        
+
 - [ ] describe_db_proxy_endpoints
 - [ ] describe_db_proxy_target_groups
 - [ ] describe_db_proxy_targets

@@ -33,6 +33,7 @@ firehose
         are not currently processed/implemented.
         
 
+- [ ] get_kinesis_stream
 - [X] list_delivery_streams
   Return list of delivery streams in alphabetic order of names.
 
@@ -54,4 +55,5 @@ firehose
   Removes tags from specified delivery stream.
 
 - [X] update_destination
+- [ ] verify_resources_exist_for_tagris
 

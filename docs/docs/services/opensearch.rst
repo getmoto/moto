@@ -21,6 +21,7 @@ opensearch
 - [X] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
+- [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
 - [X] create_domain
 - [ ] create_outbound_connection
