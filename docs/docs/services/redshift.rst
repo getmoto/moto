@@ -113,6 +113,7 @@ redshift
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] get_resource_policy
+- [ ] list_recommendations
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
 - [X] modify_cluster

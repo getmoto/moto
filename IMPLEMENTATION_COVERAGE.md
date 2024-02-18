@@ -364,7 +364,7 @@
 
 ## appsync
 <details>
-<summary>24% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] associate_api
 - [ ] associate_merged_graphql_api
@@ -398,6 +398,7 @@
 - [ ] get_domain_name
 - [ ] get_function
 - [X] get_graphql_api
+- [ ] get_graphql_api_environment_variables
 - [ ] get_introspection_schema
 - [ ] get_resolver
 - [X] get_schema_creation_status
@@ -414,6 +415,7 @@
 - [X] list_tags_for_resource
 - [ ] list_types
 - [ ] list_types_by_association
+- [ ] put_graphql_api_environment_variables
 - [ ] start_data_source_introspection
 - [X] start_schema_creation
 - [ ] start_schema_merge
@@ -506,14 +508,14 @@
 
 ## autoscaling
 <details>
-<summary>56% implemented</summary>
+<summary>60% implemented</summary>
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
 - [X] attach_load_balancers
 - [ ] attach_traffic_sources
-- [ ] batch_delete_scheduled_action
-- [ ] batch_put_scheduled_update_group_action
+- [X] batch_delete_scheduled_action
+- [X] batch_put_scheduled_update_group_action
 - [ ] cancel_instance_refresh
 - [ ] complete_lifecycle_action
 - [X] create_auto_scaling_group
@@ -3109,7 +3111,7 @@
 
 ## emr
 <details>
-<summary>40% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -3160,6 +3162,7 @@
 - [X] run_job_flow
 - [ ] set_keep_job_flow_alive_when_no_steps
 - [X] set_termination_protection
+- [ ] set_unhealthy_node_replacement
 - [X] set_visible_to_all_users
 - [ ] start_notebook_execution
 - [ ] stop_notebook_execution
@@ -3217,12 +3220,13 @@
 
 ## es
 <details>
-<summary>8% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] accept_inbound_cross_cluster_search_connection
 - [ ] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
+- [ ] cancel_domain_config_change
 - [ ] cancel_elasticsearch_service_software_update
 - [X] create_elasticsearch_domain
 - [ ] create_outbound_cross_cluster_search_connection
@@ -3335,11 +3339,12 @@
 
 ## firehose
 <details>
-<summary>100% implemented</summary>
+<summary>85% implemented</summary>
 
 - [X] create_delivery_stream
 - [X] delete_delivery_stream
 - [X] describe_delivery_stream
+- [ ] get_kinesis_stream
 - [X] list_delivery_streams
 - [X] list_tags_for_delivery_stream
 - [X] put_record
@@ -3349,6 +3354,7 @@
 - [X] tag_delivery_stream
 - [X] untag_delivery_stream
 - [X] update_destination
+- [ ] verify_resources_exist_for_tagris
 </details>
 
 ## forecast
@@ -5114,13 +5120,14 @@
 
 ## opensearch
 <details>
-<summary>16% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] accept_inbound_connection
 - [ ] add_data_source
 - [X] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
+- [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
 - [X] create_domain
 - [ ] create_outbound_connection
@@ -5796,7 +5803,7 @@
 
 ## rds
 <details>
-<summary>37% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5820,7 +5827,7 @@
 - [X] create_db_instance
 - [X] create_db_instance_read_replica
 - [X] create_db_parameter_group
-- [ ] create_db_proxy
+- [X] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
 - [ ] create_db_shard_group
@@ -5870,7 +5877,7 @@
 - [ ] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
-- [ ] describe_db_proxies
+- [X] describe_db_proxies
 - [ ] describe_db_proxy_endpoints
 - [ ] describe_db_proxy_target_groups
 - [ ] describe_db_proxy_targets
@@ -6076,6 +6083,7 @@
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] get_resource_policy
+- [ ] list_recommendations
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
 - [X] modify_cluster
@@ -6953,6 +6961,7 @@
 - [ ] update_app_image_config
 - [ ] update_artifact
 - [ ] update_cluster
+- [ ] update_cluster_software
 - [ ] update_code_repository
 - [ ] update_context
 - [ ] update_device_fleet
@@ -7855,6 +7864,7 @@
 - [ ] create_regex_pattern_set
 - [ ] create_rule_group
 - [X] create_web_acl
+- [ ] delete_api_key
 - [ ] delete_firewall_manager_rule_groups
 - [ ] delete_ip_set
 - [ ] delete_logging_configuration
@@ -7922,6 +7932,7 @@
 - apprunner
 - appstream
 - arc-zonal-shift
+- artifact
 - auditmanager
 - autoscaling-plans
 - b2bi
