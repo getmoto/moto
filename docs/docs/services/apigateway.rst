@@ -151,5 +151,13 @@ apigateway
 - [X] update_stage
 - [ ] update_usage
 - [X] update_usage_plan
+  
+        The following PatchOperations are currently supported:
+        add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        remove : Nothing yet
+        copy   : Nothing yet
+        
+
 - [ ] update_vpc_link
 
