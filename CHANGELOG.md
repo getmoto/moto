@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.2
 -----
-Docker Digest for 5.0.2: <autopopulateddigest>
+Docker Digest for 5.0.2: _sha256:89cc6c764d714bf76e592a61f0c06fd142f672085e1dd3a53eb734aaeb4e14e2_
 
     General:
         * Removed the `python-jose` and `sshpubkeys` dependencies in favor of `joserfc`. This removes a transitive dependency on `ecdsa`, which contains a open security vulnerability
