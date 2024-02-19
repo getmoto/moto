@@ -1,6 +1,6 @@
 import base64
 import copy
-import decimal
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
@@ -100,13 +100,14 @@ class DynamoType(object):
         if self.type != other.type:
             raise TypeError("Different types of operandi is not allowed.")
         if self.is_number():
-            self_value = (
-                decimal.Decimal(self.value) if "." in self.value else int(self.value)
+            self_value: Union[Decimal, int] = (
+                Decimal(self.value) if "." in self.value else int(self.value)
             )
-            other_value = (
-                decimal.Decimal(other.value) if "." in other.value else int(other.value)
+            other_value: Union[Decimal, int] = (
+                Decimal(other.value) if "." in other.value else int(other.value)
             )
-            return DynamoType({DDBType.NUMBER: f"{self_value + other_value}"})
+            total = self_value + other_value
+            return DynamoType({DDBType.NUMBER: f"{total}"})
         else:
             raise IncorrectDataType()
 
@@ -389,12 +390,7 @@ class Item(BaseModel):
                 if set(update_action["Value"].keys()) == set(["N"]):
                     existing = self.attrs.get(attribute_name, DynamoType({"N": "0"}))
                     self.attrs[attribute_name] = DynamoType(
-                        {
-                            "N": str(
-                                decimal.Decimal(existing.value)
-                                + decimal.Decimal(new_value)
-                            )
-                        }
+                        {"N": str(Decimal(existing.value) + Decimal(new_value))}
                     )
                 elif set(update_action["Value"].keys()) == set(["SS"]):
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
