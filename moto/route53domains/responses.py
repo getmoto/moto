@@ -61,4 +61,4 @@ class Route53DomainsResponse(BaseResponse):
             sort_order=sort_order
         )
 
-        return json.dumps({'Operations': [operation.model_dump(by_alias=True, exclude_none=True) for operation in operations]})
+        return json.dumps({'Operations': [operation.to_serializable_dict() for operation in operations]})

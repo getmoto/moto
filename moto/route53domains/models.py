@@ -1,14 +1,12 @@
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List
 
-from pydantic import ValidationError
-
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 from .exceptions import InvalidInputException
-from .validators import Route53Domain, Route53DomainsOperation, Route53DomainsContactDetail, \
-    validate_operation_statuses, validate_operation_types
+from .validators import Route53Domain, Route53DomainsOperation, Route53DomainsContactDetail, ValidationException, \
+    DOMAIN_OPERATION_STATUSES, DOMAIN_OPERATION_TYPES
 
 
 class Route53DomainsBackend(BaseBackend):
@@ -33,30 +31,27 @@ class Route53DomainsBackend(BaseBackend):
                         extra_params: List[Dict]
                         ) -> Route53DomainsOperation:
         """Register a domain"""
-        expiration_date = datetime.now(timezone.utc) + timedelta(days=365*duration_in_years)
+        expiration_date = datetime.now(timezone.utc) + timedelta(days=365 * duration_in_years)
 
         try:
 
-            domain = Route53Domain(domain_name=domain_name,
-                                   auto_renew=auto_renew,
-                                   admin_contact=Route53DomainsContactDetail.model_validate(admin_contact),
-                                   registrant_contact=Route53DomainsContactDetail.model_validate(registrant_contact),
-                                   tech_contact=Route53DomainsContactDetail.model_validate(tech_contact),
-                                   admin_privacy=private_protect_admin_contact,
-                                   registrant_privacy=private_protect_registrant_contact,
-                                   tech_privacy=private_protect_tech_contact,
-                                   expiration_date=expiration_date,
-                                   extra_params=extra_params)
+            domain = Route53Domain.validate(domain_name=domain_name,
+                                            auto_renew=auto_renew,
+                                            admin_contact=Route53DomainsContactDetail.validate_dict(admin_contact),
+                                            registrant_contact=Route53DomainsContactDetail.validate_dict(registrant_contact),
+                                            tech_contact=Route53DomainsContactDetail.validate_dict(tech_contact),
+                                            admin_privacy=private_protect_admin_contact,
+                                            registrant_privacy=private_protect_registrant_contact,
+                                            tech_privacy=private_protect_tech_contact,
+                                            expiration_date=expiration_date,
+                                            extra_params=extra_params)
 
-        except ValidationError as e:
-            error_msgs = []
-            for error in e.errors():
-                loc = ':'.join(error['loc'])
-                msg = error['msg']
-                error_msgs.append(f'{loc} - {msg}')
-            raise InvalidInputException(error_msgs)
+        except ValidationException as e:
+            raise InvalidInputException(e.errors)
 
-        operation = Route53DomainsOperation(domain_name=domain_name, status='SUCCESSFUL', type='REGISTER_DOMAIN')
+        operation = Route53DomainsOperation.validate(domain_name=domain_name,
+                                                     status='SUCCESSFUL',
+                                                     type_='REGISTER_DOMAIN')
 
         self.__operations[operation.id] = operation
 
@@ -79,12 +74,20 @@ class Route53DomainsBackend(BaseBackend):
                         sort_order: str | None = None
                         ) -> List[Route53DomainsOperation]:
 
-        if statuses:
-            validate_operation_statuses(statuses)
-        if types:
-            validate_operation_types(types)
+        errors = []
+        statuses = statuses or []
+        types = types or []
 
-        submitted_since = datetime.fromtimestamp(submitted_since_timestamp, timezone.utc) if submitted_since_timestamp else None
+        if any(status not in DOMAIN_OPERATION_STATUSES for status in statuses):
+            errors.append('Status is invalid')
+        if any(type_ not in DOMAIN_OPERATION_TYPES for type_ in types):
+            errors.append('Type is invalid')
+
+        if errors:
+            raise InvalidInputException(errors)
+
+        submitted_since = datetime.fromtimestamp(submitted_since_timestamp,
+                                                 timezone.utc) if submitted_since_timestamp else None
         max_items = max_items or 20  # AWS default is 20
 
         operations_to_return: List[Route53DomainsOperation] = []
