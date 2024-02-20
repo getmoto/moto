@@ -308,7 +308,7 @@ class SQSResponse(BaseResponse):
     @jsonify_error
     def send_message(self) -> Union[str, TYPE_RESPONSE]:
         message = self._get_param("MessageBody")
-        delay_seconds = int(self._get_param("DelaySeconds", 0))
+        delay_seconds = self._get_param("DelaySeconds")
         message_group_id = self._get_param("MessageGroupId")
         message_dedupe_id = self._get_param("MessageDeduplicationId")
 

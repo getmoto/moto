@@ -845,7 +845,7 @@ class SQSBackend(BaseBackend):
 
         self._validate_message(queue, message_body, deduplication_id, group_id)
 
-        if delay_seconds:
+        if delay_seconds is not None:
             delay_seconds = int(delay_seconds)
         else:
             delay_seconds = queue.delay_seconds  # type: ignore
