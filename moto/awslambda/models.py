@@ -1815,7 +1815,9 @@ class LambdaBackend(BaseBackend):
     Implementation of the AWS Lambda endpoint.
     Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
 
-    It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer.
+    .. warning:: When invoking a function using the decorators, the created Docker container cannot reach Moto (or it's in-memory state). Any AWS SDK-requests within your Lambda will try to connect to AWS instead.
+
+    It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer in a Docker container.
 
     When running the MotoProxy, calls to other AWS services are automatically proxied.
 
@@ -1876,15 +1878,13 @@ class LambdaBackend(BaseBackend):
 
         MOTO_LAMBDA_DATA_DIR=/tmp/data
 
-    .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
-
     _-_-_-_
 
     If you want to mock the Lambda-containers invocation without starting a Docker-container, use the simple decorator:
 
     .. sourcecode:: python
 
-        @mock_lambda_simple
+        @mock_aws(config={"lambda": {"use_docker": False}})
 
     """
 

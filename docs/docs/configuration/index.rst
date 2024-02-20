@@ -49,6 +49,9 @@ That is why Moto resets the `boto3-Session`, to make sure that it is recreated w
 
 If all of your tests use Moto, and you never want to reach out to AWS, you can choose to _not_ reset the `boto3-session`. New boto3-clients that are created will reuse the `boto3-Session` (with fake credentials), making Moto much more performant.
 
+Other configuration options
+---------------------------
+
 .. toctree::
   :maxdepth: 1
 
