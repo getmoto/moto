@@ -2259,6 +2259,7 @@ class S3Response(BaseResponse):
                 multipart=multipart,
                 encryption=multipart.sse_encryption,
                 kms_key_id=multipart.kms_key_id,
+                request_method=request.method,
             )
             key.set_metadata(multipart.metadata)
 

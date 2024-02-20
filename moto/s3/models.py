@@ -2048,6 +2048,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
         checksum_value: Optional[str] = None,
+        request_method: Optional[str] = "PUT",
     ) -> FakeKey:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
@@ -2096,9 +2097,18 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
+        # Send event notification
+        if request_method == "POST":
+            notify_event_name = (
+                notifications.S3NotificationEvent.OBJECT_CREATED_POST_EVENT
+            )
+        else:  # PUT request
+            notify_event_name = (
+                notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT
+            )
         notifications.send_event(
             self.account_id,
-            notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT,
+            notify_event_name,
             bucket,
             new_key,
         )
