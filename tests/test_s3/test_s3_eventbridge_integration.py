@@ -1,10 +1,11 @@
 import json
 from io import BytesIO
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_s3.test_s3_multipart import reduced_min_part_size
 
@@ -14,6 +15,9 @@ REDUCED_PART_SIZE = 256
 
 @mock_aws
 def test_put_object_notification_ObjectCreated_PUT():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
+
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     events_client = boto3.client("events", region_name=REGION_NAME)
@@ -65,6 +69,9 @@ def test_put_object_notification_ObjectCreated_PUT():
 @mock_aws
 @reduced_min_part_size
 def test_put_object_notification_ObjectCreated_POST():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
+
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     events_client = boto3.client("events", region_name=REGION_NAME)
