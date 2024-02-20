@@ -239,6 +239,26 @@ def test_create_distribution_with_origins():
 
 
 @mock_aws
+@pytest.mark.parametrize("nr_of_headers", [1, 2])
+def test_create_distribution_with_custom_headers(nr_of_headers):
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    headers = [
+        {"HeaderName": f"X-Custom-Header{i}", "HeaderValue": f"v{i}"}
+        for i in range(nr_of_headers)
+    ]
+    config["Origins"]["Items"][0]["CustomHeaders"] = {
+        "Quantity": nr_of_headers,
+        "Items": headers,
+    }
+
+    dist = client.create_distribution(DistributionConfig=config)["Distribution"]
+
+    origin = dist["DistributionConfig"]["Origins"]["Items"][0]
+    assert origin["CustomHeaders"] == {"Quantity": nr_of_headers, "Items": headers}
+
+
+@mock_aws
 @pytest.mark.parametrize("compress", [True, False])
 @pytest.mark.parametrize("qs", [True, False])
 @pytest.mark.parametrize("smooth", [True, False])

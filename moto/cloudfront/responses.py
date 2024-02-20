@@ -212,8 +212,10 @@ DIST_CONFIG_TEMPLATE = """
               <Quantity>{{ origin.custom_headers|length }}</Quantity>
               <Items>
                 {% for header  in origin.custom_headers %}
-                  <HeaderName>{{ header.header_name }}</HeaderName>
-                  <HeaderValue>{{ header.header_value }}</HeaderValue>
+                  <OriginCustomHeader>
+                  <HeaderName>{{ header['HeaderName'] }}</HeaderName>
+                  <HeaderValue>{{ header['HeaderValue'] }}</HeaderValue>
+                  </OriginCustomHeader>
                 {% endfor %}
               </Items>
             </CustomHeaders>
