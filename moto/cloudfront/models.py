@@ -113,7 +113,6 @@ class Origin:
         self.id = origin["Id"]
         self.domain_name = origin["DomainName"]
         self.origin_path = origin.get("OriginPath") or ""
-        self.custom_headers: List[Any] = []
         self.s3_access_identity = ""
         self.custom_origin = None
         self.origin_shield = origin.get("OriginShield")
@@ -128,6 +127,14 @@ class Origin:
 
         if "CustomOriginConfig" in origin:
             self.custom_origin = CustomOriginConfig(origin["CustomOriginConfig"])
+
+        custom_headers = origin.get("CustomHeaders") or {}
+        custom_headers = custom_headers.get("Items") or {}
+        custom_headers = custom_headers.get("OriginCustomHeader") or []
+        if isinstance(custom_headers, dict):
+            # Happens if user only sends a single header
+            custom_headers = [custom_headers]
+        self.custom_headers = custom_headers
 
 
 class GeoRestrictions:
