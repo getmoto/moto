@@ -4487,7 +4487,6 @@ def test_admin_initiate_auth_when_sms_mfa_enabled():
     assert result["ChallengeName"] == "SMS_MFA"
     assert result["Session"] != ""
 
-    # Respond to challenge with TOTP
     result = conn.admin_respond_to_auth_challenge(
         UserPoolId=user_pool_id,
         ClientId=client_id,
