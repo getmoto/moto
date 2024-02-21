@@ -70,8 +70,6 @@ def test_describe_autoscaling_groups_no_filter():
     create_asgs(client, subnet)
 
     response = client.describe_auto_scaling_groups()
-    group = response["AutoScalingGroups"][0]
-    tags = group["Tags"]
 
     assert len(response["AutoScalingGroups"]) == 2
     assert response["AutoScalingGroups"][0]["AutoScalingGroupName"] == "test_asg1"
