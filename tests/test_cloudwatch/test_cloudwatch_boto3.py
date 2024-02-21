@@ -2,6 +2,7 @@ import copy
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from operator import itemgetter
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -10,7 +11,7 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -25,6 +26,43 @@ def test_put_metric_data_no_dimensions():
 
     metrics = conn.list_metrics()["Metrics"]
     assert {"Namespace": "tester", "MetricName": "metric", "Dimensions": []} in metrics
+
+
+@mock_aws
+def test_put_a_ton_of_metric_data():
+    """
+    A sufficiently large call with metric data triggers request compression
+    Moto should decompress the request if this is the case, and the request should succeed
+    """
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can't test large requests in ServerMode")
+    cloudwatch = boto3.client("cloudwatch", "us-east-1")
+
+    metrics = []
+    metric_dimensions = [{"Name": "Environment", "Value": "env1"}]
+    metric_args = {"Unit": "Seconds", "MetricName": "TestCWMetrics"}
+
+    for type, licences in {
+        k: v
+        for k, v in {
+            "userTypes": [{"id": f"UserType{x}"} for x in range(0, 50)]
+        }.items()
+        if k in ["userTypes", "appBundles", "apps", "extensions", "portalCapabilities"]
+    }.items():
+        for licence in licences:
+            metrics.append(
+                {
+                    **metric_args,
+                    "Dimensions": [
+                        *metric_dimensions,
+                        {"Name": "Type", "Value": f"{type}/{licence['id']}"},
+                    ],
+                    "Value": 1,
+                }
+            )
+
+    cloudwatch.put_metric_data(Namespace="acme", MetricData=metrics)
+    # We don't really need any assertions - we just need to know that the call succeeds
 
 
 @mock_aws
