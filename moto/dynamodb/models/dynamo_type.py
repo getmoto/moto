@@ -324,6 +324,12 @@ class Item(BaseModel):
                     for key, value in attribute.value.items()
                 }
                 attributes[attribute_key] = {attribute.type: attr_value}
+            elif isinstance(attribute.value, list):
+                attr_value = [
+                    value.to_regular_json() if isinstance(value, DynamoType) else value
+                    for value in attribute.value
+                ]
+                attributes[attribute_key] = {attribute.type: attr_value}
             else:
                 attributes[attribute_key] = {attribute.type: attribute.value}
 
