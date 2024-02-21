@@ -228,7 +228,10 @@ class AutoScalingResponse(BaseResponse):
     def describe_auto_scaling_groups(self) -> str:
         names = self._get_multi_param("AutoScalingGroupNames.member")
         token = self._get_param("NextToken")
-        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(names)
+        filters = self._get_params().get("Filters", [])
+        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(
+            names, filters=filters
+        )
         all_names = [group.name for group in all_groups]
         if token:
             start = all_names.index(token) + 1
