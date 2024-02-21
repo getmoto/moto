@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -421,3 +422,153 @@ def test_condition_expression_with_reserved_keyword_as_attr_name():
 
     item = table.get_item(Key={"id": "key-0"})["Item"]
     assert item == {"id": "key-0", "first": {}}
+
+
+@mock_aws
+def test_condition_check_failure_exception_is_raised_when_values_are_returned_for_an_item_with_a_top_level_list():
+    # This explicitly tests for a failure in handling JSONification of DynamoType
+    # when lists are at the top level of an item.
+    # This exception should not be raised:
+    # TypeError: Object of type DynamoType is not JSON serializable
+
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb_client.create_table(
+        TableName="example_table",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    record = {
+        "id": {"S": "example_id"},
+        "some_list": {"L": [{"M": {"hello": {"S": "h"}}}]},
+    }
+    dynamodb_client.put_item(
+        TableName="example_table",
+        Item=record,
+    )
+
+    with pytest.raises(ClientError) as error:
+        dynamodb_client.update_item(
+            TableName="example_table",
+            Key={"id": {"S": "example_id"}},
+            UpdateExpression="set some_list=list_append(some_list, :w)",
+            ExpressionAttributeValues={
+                ":w": {"L": [{"M": {"world": {"S": "w"}}}]},
+                ":id": {"S": "incorrect id"},
+            },
+            ConditionExpression="id = :id",
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+        )
+
+    assert error.type.__name__ == "ConditionalCheckFailedException"
+    assert error.value.response["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert error.value.response["Item"] == {
+        "id": {"S": "example_id"},
+        "some_list": {"L": [{"M": {"hello": {"S": "h"}}}]},
+    }
+
+
+@mock_aws
+def test_condition_check_failure_exception_is_raised_when_values_are_returned_for_an_item_with_a_top_level_string_set():
+    # This explicitly tests for a failure in handling JSONification of DynamoType
+    # when string sets are at the top level of an item.
+    # These exception should not be raised:
+    # TypeError: Object of type DynamoType is not JSON serializable
+    # AttributeError: 'str' object has no attribute 'to_regular_json'
+
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb_client.create_table(
+        TableName="example_table",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    record = {
+        "id": {"S": "example_id"},
+        "some_list": {"SS": ["hello"]},
+    }
+    dynamodb_client.put_item(
+        TableName="example_table",
+        Item=record,
+    )
+
+    with pytest.raises(ClientError) as error:
+        dynamodb_client.update_item(
+            TableName="example_table",
+            Key={"id": {"S": "example_id"}},
+            UpdateExpression="set some_list=list_append(some_list, :w)",
+            ExpressionAttributeValues={
+                ":w": {"SS": ["world"]},
+                ":id": {"S": "incorrect id"},
+            },
+            ConditionExpression="id = :id",
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+        )
+
+    assert error.type.__name__ == "ConditionalCheckFailedException"
+    assert error.value.response["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert error.value.response["Item"] == {
+        "id": {"S": "example_id"},
+        "some_list": {"SS": ["hello"]},
+    }
+
+
+@mock_aws
+def test_condition_check_failure_exception_is_raised_when_values_are_returned_for_an_item_with_a_list_in_a_map():
+    # This explicitly tests for a failure in handling JSONification of DynamoType
+    # when lists are inside a map
+
+    dynamodb_client = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb_client.create_table(
+        TableName="example_table",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    record = {
+        "id": {"S": "example_id"},
+        "some_list_in_a_map": {
+            "M": {"some_list": {"L": [{"M": {"hello": {"S": "h"}}}]}}
+        },
+    }
+    dynamodb_client.put_item(
+        TableName="example_table",
+        Item=record,
+    )
+
+    with pytest.raises(ClientError) as error:
+        dynamodb_client.update_item(
+            TableName="example_table",
+            Key={"id": {"S": "example_id"}},
+            UpdateExpression="set some_list_in_a_map.some_list=list_append(some_list_in_a_map.some_list, :w)",
+            ExpressionAttributeValues={
+                ":w": {"L": [{"M": {"world": {"S": "w"}}}]},
+                ":id": {"S": "incorrect id"},
+            },
+            ConditionExpression="id = :id",
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+        )
+
+    assert error.type.__name__ == "ConditionalCheckFailedException"
+    assert error.value.response["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert error.value.response["Item"] == {
+        "id": {"S": "example_id"},
+        "some_list_in_a_map": {
+            "M": {"some_list": {"L": [{"M": {"hello": {"S": "h"}}}]}}
+        },
+    }
