@@ -12,17 +12,21 @@ def test_describe_autoscaling_groups_filter_by_tag_key():
     client = boto3.client("autoscaling", region_name="us-east-1")
     create_asgs(client, subnet)
 
-    response = client.describe_auto_scaling_groups(Filters=[{"Name": "tag-key", "Values": ["test_key1"]}])
+    response = client.describe_auto_scaling_groups(
+        Filters=[{"Name": "tag-key", "Values": ["test_key1"]}]
+    )
     group = response["AutoScalingGroups"][0]
     tags = group["Tags"]
 
     assert len(response["AutoScalingGroups"]) == 1
     assert response["AutoScalingGroups"][0]["AutoScalingGroupName"] == "test_asg1"
-    assert {'Key': 'test_key1',
-            'PropagateAtLaunch': False,
-            'ResourceId': 'test_asg1',
-            'ResourceType': 'auto-scaling-group',
-            'Value': 'test_value1'} in tags
+    assert {
+        "Key": "test_key1",
+        "PropagateAtLaunch": False,
+        "ResourceId": "test_asg1",
+        "ResourceType": "auto-scaling-group",
+        "Value": "test_value1",
+    } in tags
 
 
 @mock_aws
@@ -31,17 +35,21 @@ def test_describe_autoscaling_groups_filter_by_tag_value():
     client = boto3.client("autoscaling", region_name="us-east-1")
     create_asgs(client, subnet)
 
-    response = client.describe_auto_scaling_groups(Filters=[{"Name": "tag-value", "Values": ["test_value1"]}])
+    response = client.describe_auto_scaling_groups(
+        Filters=[{"Name": "tag-value", "Values": ["test_value1"]}]
+    )
     group = response["AutoScalingGroups"][0]
     tags = group["Tags"]
 
     assert len(response["AutoScalingGroups"]) == 1
     assert response["AutoScalingGroups"][0]["AutoScalingGroupName"] == "test_asg1"
-    assert {'Key': 'test_key1',
-            'PropagateAtLaunch': False,
-            'ResourceId': 'test_asg1',
-            'ResourceType': 'auto-scaling-group',
-            'Value': 'test_value1'} in tags
+    assert {
+        "Key": "test_key1",
+        "PropagateAtLaunch": False,
+        "ResourceId": "test_asg1",
+        "ResourceType": "auto-scaling-group",
+        "Value": "test_value1",
+    } in tags
 
 
 @mock_aws
@@ -50,17 +58,21 @@ def test_describe_autoscaling_groups_filter_by_tag_key_value():
     client = boto3.client("autoscaling", region_name="us-east-1")
     create_asgs(client, subnet)
 
-    response = client.describe_auto_scaling_groups(Filters=[{"Name": "tag:test_key1", "Values": ["test_value1"]}])
+    response = client.describe_auto_scaling_groups(
+        Filters=[{"Name": "tag:test_key1", "Values": ["test_value1"]}]
+    )
     group = response["AutoScalingGroups"][0]
     tags = group["Tags"]
 
     assert len(response["AutoScalingGroups"]) == 1
     assert response["AutoScalingGroups"][0]["AutoScalingGroupName"] == "test_asg1"
-    assert {'Key': 'test_key1',
-            'PropagateAtLaunch': False,
-            'ResourceId': 'test_asg1',
-            'ResourceType': 'auto-scaling-group',
-            'Value': 'test_value1'} in tags
+    assert {
+        "Key": "test_key1",
+        "PropagateAtLaunch": False,
+        "ResourceId": "test_asg1",
+        "ResourceType": "auto-scaling-group",
+        "Value": "test_value1",
+    } in tags
 
 
 @mock_aws
@@ -102,4 +114,3 @@ def create_asgs(client, subnet):
         DesiredCapacity=5,
         VPCZoneIdentifier=subnet,
     )
-
