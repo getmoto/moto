@@ -1466,6 +1466,16 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if user.sms_mfa_enabled and user.preferred_mfa_setting == "SMS_MFA":
+                session = str(random.uuid4())
+                self.sessions[session] = user_pool
+
+                return {
+                    "ChallengeName": "SMS_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
             return self._log_user_in(user_pool, client, username)
         elif auth_flow in (AuthFlow.REFRESH_TOKEN, AuthFlow.REFRESH_TOKEN_AUTH):
             refresh_token: str = auth_parameters.get("REFRESH_TOKEN")  # type: ignore[assignment]
@@ -1578,13 +1588,13 @@ class CognitoIdpBackend(BaseBackend):
 
             del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
-        elif challenge_name == "SOFTWARE_TOKEN_MFA":
+        elif challenge_name == "SOFTWARE_TOKEN_MFA" or challenge_name == "SMS_MFA":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
             self.admin_get_user(user_pool.id, username)
 
-            software_token_mfa_code = challenge_responses.get("SOFTWARE_TOKEN_MFA_CODE")
-            if not software_token_mfa_code:
-                raise ResourceNotFoundError(software_token_mfa_code)
+            mfa_code = challenge_responses.get(f"{challenge_name}_CODE")
+            if not mfa_code:
+                raise ResourceNotFoundError(mfa_code)
 
             if client.generate_secret:
                 secret_hash = challenge_responses.get("SECRET_HASH")
