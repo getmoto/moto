@@ -1193,7 +1193,7 @@ class AutoScalingBackend(BaseBackend):
         self, names: List[str], filters: Optional[List[Dict[str, str]]] = None
     ) -> List[FakeAutoScalingGroup]:
 
-        groups = self.autoscaling_groups.values()
+        groups = list(self.autoscaling_groups.values())
 
         if filters:
             for f in filters:
@@ -1223,7 +1223,7 @@ class AutoScalingBackend(BaseBackend):
         if names:
             groups = [group for group in groups if group.name in names]
 
-        return list(groups)
+        return groups
 
     def delete_auto_scaling_group(self, group_name: str) -> None:
         self.set_desired_capacity(group_name, 0)
