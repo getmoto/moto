@@ -4455,6 +4455,56 @@ def test_admin_initiate_auth_when_token_totp_enabled():
 
 
 @mock_aws
+def test_admin_initiate_auth_when_sms_mfa_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    client_id = result["client_id"]
+    password = result["password"]
+
+    # Set MFA SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 1
+    assert result["PreferredMfaSetting"] == "SMS_MFA"
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "PASSWORD": password,
+        },
+    )
+
+    assert result["ChallengeName"] == "SMS_MFA"
+    assert result["Session"] != ""
+
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        ChallengeName="SMS_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SMS_MFA_CODE": "123456",
+            "USERNAME": username,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
+@mock_aws
 def test_admin_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
