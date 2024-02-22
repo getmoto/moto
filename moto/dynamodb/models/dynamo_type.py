@@ -316,20 +316,20 @@ class Item(BaseModel):
         return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
 
     def to_json(self) -> Dict[str, Any]:
-        attributes = {}
+        attributes: Dict[str, Any] = {}
         for attribute_key, attribute in self.attrs.items():
             if isinstance(attribute.value, dict):
-                attr_value = {
+                attr_dict_value = {
                     key: value.to_regular_json()
                     for key, value in attribute.value.items()
                 }
-                attributes[attribute_key] = {attribute.type: attr_value}
+                attributes[attribute_key] = {attribute.type: attr_dict_value}
             elif isinstance(attribute.value, list):
-                attr_value = [
+                attr_list_value = [
                     value.to_regular_json() if isinstance(value, DynamoType) else value
                     for value in attribute.value
                 ]
-                attributes[attribute_key] = {attribute.type: attr_value}
+                attributes[attribute_key] = {attribute.type: attr_list_value}
             else:
                 attributes[attribute_key] = {attribute.type: attribute.value}
 
