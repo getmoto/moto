@@ -1190,13 +1190,40 @@ class AutoScalingBackend(BaseBackend):
         return group
 
     def describe_auto_scaling_groups(
-        self, names: List[str]
+        self, names: List[str], filters: Optional[List[Dict[str, str]]] = None
     ) -> List[FakeAutoScalingGroup]:
-        groups = self.autoscaling_groups.values()
+
+        groups = list(self.autoscaling_groups.values())
+
+        if filters:
+            for f in filters:
+                if f["Name"] == "tag-key":
+                    groups = [
+                        group
+                        for group in groups
+                        if any(tag["Key"] in f["Values"] for tag in group.tags)
+                    ]
+                elif f["Name"] == "tag-value":
+                    groups = [
+                        group
+                        for group in groups
+                        if any(tag["Value"] in f["Values"] for tag in group.tags)
+                    ]
+                elif f["Name"].startswith("tag:"):
+                    tag_key = f["Name"][4:]
+                    groups = [
+                        group
+                        for group in groups
+                        if any(
+                            tag["Key"] == tag_key and tag["Value"] in f["Values"]
+                            for tag in group.tags
+                        )
+                    ]
+
         if names:
-            return [group for group in groups if group.name in names]
-        else:
-            return list(groups)
+            groups = [group for group in groups if group.name in names]
+
+        return groups
 
     def delete_auto_scaling_group(self, group_name: str) -> None:
         self.set_desired_capacity(group_name, 0)
