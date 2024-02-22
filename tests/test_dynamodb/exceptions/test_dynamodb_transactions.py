@@ -47,6 +47,55 @@ def test_multiple_transactions_on_same_item():
 
 
 @mock_aws
+def test_transact_write_items__put_and_delete_on_same_item():
+    schema = {
+        "KeySchema": [
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "TableName": "test-table",
+                        "Item": {
+                            "pk": {"S": "test-pk"},
+                            "sk": {"S": "test-sk"},
+                            "field": {"S": "test-field"},
+                        },
+                    }
+                },
+                {
+                    "Delete": {
+                        "TableName": "test-table",
+                        "Key": {
+                            "pk": {"S": "test-pk"},
+                            "sk": {"S": "test-sk"},
+                        },
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Transaction request cannot include multiple operations on one item"
+    )
+
+
+@mock_aws
 def test_transact_write_items__too_many_transactions():
     schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],

@@ -3856,24 +3856,27 @@ def test_transact_write_items_conditioncheck_passes():
     dynamodb.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    # Insert an item without email address
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
-    # Put an email address, after verifying it doesn't exist yet
+    # Insert an item with email address
+    dynamodb.put_item(
+        TableName="test-table",
+        Item={"id": {"S": "foo"}, "email_address": {"S": "foo@moto.com"}},
+    )
+    # Put a new item, after verifying the exising item also has email address
     dynamodb.transact_write_items(
         TransactItems=[
             {
                 "ConditionCheck": {
                     "Key": {"id": {"S": "foo"}},
                     "TableName": "test-table",
-                    "ConditionExpression": "attribute_not_exists(#e)",
+                    "ConditionExpression": "attribute_exists(#e)",
                     "ExpressionAttributeNames": {"#e": "email_address"},
                 }
             },
             {
                 "Put": {
                     "Item": {
-                        "id": {"S": "foo"},
-                        "email_address": {"S": "test@moto.com"},
+                        "id": {"S": "bar"},
+                        "email_address": {"S": "bar@moto.com"},
                     },
                     "TableName": "test-table",
                 }
@@ -3882,8 +3885,9 @@ def test_transact_write_items_conditioncheck_passes():
     )
     # Assert all are present
     items = dynamodb.scan(TableName="test-table")["Items"]
-    assert len(items) == 1
-    assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
+    assert len(items) == 2
+    assert items[0] == {"email_address": {"S": "foo@moto.com"}, "id": {"S": "foo"}}
+    assert items[1] == {"email_address": {"S": "bar@moto.com"}, "id": {"S": "bar"}}
 
 
 @mock_aws
@@ -3896,12 +3900,12 @@ def test_transact_write_items_conditioncheck_fails():
     dynamodb.create_table(
         TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
     )
-    # Insert an item with email address
+    # Insert an item without email address
     dynamodb.put_item(
         TableName="test-table",
-        Item={"id": {"S": "foo"}, "email_address": {"S": "test@moto.com"}},
+        Item={"id": {"S": "foo"}},
     )
-    # Try to put an email address, but verify whether it exists
+    # Try putting a new item, after verifying the exising item also has email address
     # ConditionCheck should fail
     with pytest.raises(ClientError) as ex:
         dynamodb.transact_write_items(
@@ -3910,15 +3914,15 @@ def test_transact_write_items_conditioncheck_fails():
                     "ConditionCheck": {
                         "Key": {"id": {"S": "foo"}},
                         "TableName": "test-table",
-                        "ConditionExpression": "attribute_not_exists(#e)",
+                        "ConditionExpression": "attribute_exists(#e)",
                         "ExpressionAttributeNames": {"#e": "email_address"},
                     }
                 },
                 {
                     "Put": {
                         "Item": {
-                            "id": {"S": "foo"},
-                            "email_address": {"S": "update@moto.com"},
+                            "id": {"S": "bar"},
+                            "email_address": {"S": "bar@moto.com"},
                         },
                         "TableName": "test-table",
                     }
@@ -3929,10 +3933,10 @@ def test_transact_write_items_conditioncheck_fails():
     assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
-    # Assert the original email address is still present
+    # Assert the original item is still present
     items = dynamodb.scan(TableName="test-table")["Items"]
     assert len(items) == 1
-    assert items[0] == {"email_address": {"S": "test@moto.com"}, "id": {"S": "foo"}}
+    assert items[0] == {"id": {"S": "foo"}}
 
 
 @mock_aws
