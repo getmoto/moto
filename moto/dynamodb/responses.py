@@ -964,12 +964,14 @@ class DynamoHandler(BaseResponse):
                 if len(changed) != len(original):
                     return changed
                 else:
-                    return [
+                    any_element_has_changed = any(
                         self._build_updated_new_attributes(
                             original[index], changed[index]
                         )
+                        != original[index]
                         for index in range(len(changed))
-                    ]
+                    )
+                    return changed if any_element_has_changed else original
             else:
                 return changed
 
