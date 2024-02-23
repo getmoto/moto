@@ -33,8 +33,6 @@ from moto.awslambda import models as lambda_models  # noqa  # pylint: disable=al
 from moto.batch import models as batch_models  # noqa  # pylint: disable=all
 from moto.cloudformation.custom_model import CustomModel
 from moto.cloudwatch import models as cw_models  # noqa  # pylint: disable=all
-
-# End ugly list of imports
 from moto.core.common_models import CloudFormationModel
 from moto.datapipeline import models as data_models  # noqa  # pylint: disable=all
 from moto.dynamodb import models as ddb_models  # noqa  # pylint: disable=all
@@ -45,6 +43,7 @@ from moto.ecs import models as ecs_models  # noqa  # pylint: disable=all
 from moto.efs import models as efs_models  # noqa  # pylint: disable=all
 from moto.elb import models as elb_models  # noqa  # pylint: disable=all
 from moto.elbv2 import models as elbv2_models  # noqa  # pylint: disable=all
+from moto.emr import models as emr_models  # noqa  # pylint: disable=all
 from moto.events import models as events_models  # noqa  # pylint: disable=all
 from moto.iam import models as iam_models  # noqa  # pylint: disable=all
 from moto.kinesis import models as kinesis_models  # noqa  # pylint: disable=all
@@ -62,6 +61,7 @@ from moto.ssm import models as ssm_models  # noqa  # pylint: disable=all
 from moto.ssm import ssm_backends
 from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
 
+# End ugly list of imports
 from .exceptions import (
     ExportNotFound,
     MissingParameterError,

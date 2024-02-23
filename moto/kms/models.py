@@ -233,11 +233,11 @@ class Key(CloudFormationModel):
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
             key_spec="SYMMETRIC_DEFAULT",
-            description=properties["Description"],
+            description=properties.get("Description"),
             tags=properties.get("Tags", []),
         )
-        key.key_rotation_status = properties["EnableKeyRotation"]
-        key.enabled = properties["Enabled"]
+        key.key_rotation_status = properties.get("EnableKeyRotation", False)
+        key.enabled = properties.get("Enabled", True)
 
         return key
 
