@@ -735,7 +735,7 @@
 
 ## ce
 <details>
-<summary>18% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] create_anomaly_monitor
 - [ ] create_anomaly_subscription
@@ -747,7 +747,7 @@
 - [ ] get_anomalies
 - [ ] get_anomaly_monitors
 - [ ] get_anomaly_subscriptions
-- [ ] get_cost_and_usage
+- [X] get_cost_and_usage
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
 - [ ] get_cost_forecast
