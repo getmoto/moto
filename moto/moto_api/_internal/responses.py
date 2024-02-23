@@ -168,6 +168,23 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_ce_cost_usage_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        request_body_size = int(headers["Content-Length"])
+        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+        body = json.loads(body)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+
+        for result in body.get("results", []):
+            moto_api_backend.set_ce_cost_usage(result=result, account_id=account_id)
+        return 201, {}, ""
+
     def set_sagemaker_result(
         self,
         request: Any,

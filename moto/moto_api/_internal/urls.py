@@ -13,6 +13,7 @@ url_paths = {
     "{0}/moto-api/reset-auth": response_instance.reset_auth_response,
     "{0}/moto-api/seed": response_instance.seed,
     "{0}/moto-api/static/athena/query-results": response_instance.set_athena_result,
+    "{0}/moto-api/static/ce/cost-and-usage-results": response_instance.set_ce_cost_usage_result,
     "{0}/moto-api/static/inspector2/findings-results": response_instance.set_inspector2_findings_result,
     "{0}/moto-api/static/sagemaker/endpoint-results": response_instance.set_sagemaker_result,
     "{0}/moto-api/static/rds-data/statement-results": response_instance.set_rds_data_result,

@@ -42,6 +42,12 @@ class MotoAPIBackend(BaseBackend):
         results = QueryResults(rows=rows, column_info=column_info)
         backend.query_results_queue.append(results)
 
+    def set_ce_cost_usage(self, result: Dict[str, Any], account_id: str) -> None:
+        from moto.ce.models import ce_backends
+
+        backend = ce_backends[account_id]["global"]
+        backend.cost_usage_results_queue.append(result)
+
     def set_sagemaker_result(
         self,
         body: str,
