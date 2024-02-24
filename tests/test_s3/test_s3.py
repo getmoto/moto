@@ -6,6 +6,7 @@ import uuid
 import zlib
 from gzip import GzipFile
 from io import BytesIO
+from time import sleep
 from unittest import SkipTest
 from urllib.parse import parse_qs, urlparse
 
@@ -1716,9 +1717,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     bucket = resource.Bucket(name)
     versions = bucket.object_versions
 
-    client.put_bucket_versioning(
-        Bucket=name, VersioningConfiguration={"Status": "Enabled"}
-    )
+    enable_versioning(name, client)
 
     client.put_object(Bucket=name, Key="test1", Body=b"test1")
 
@@ -3311,3 +3310,14 @@ def test_checksum_response(algorithm):
 def add_proxy_details(kwargs):
     kwargs["proxies"] = {"https": "http://localhost:5005"}
     kwargs["verify"] = moto_proxy.__file__.replace("__init__.py", "ca.crt")
+
+
+def enable_versioning(bucket_name, s3_client):
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    # Versioning is not active immediately, so wait until we have confirmation the change has gone through
+    resp = {}
+    while resp.get("Status") != "Enabled":
+        sleep(0.1)
+        resp = s3_client.get_bucket_versioning(Bucket=bucket_name)
