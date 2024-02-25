@@ -277,6 +277,23 @@ class MotoAPIResponse(BaseResponse):
         resp = {"http_urls": list(urls), "https_hosts": list(hosts)}
         return 201, res_headers, json.dumps(resp).encode("utf-8")
 
+    def config(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        res_headers = {"Content-Type": "application/json"}
+
+        if request.method == "POST":
+            config = self._get_body(headers, request)
+            moto_api_backend.set_config(config)
+
+        config = moto_api_backend.get_config()
+        return 201, res_headers, json.dumps(config).encode("utf-8")
+
     def _get_body(self, headers: Any, request: Any) -> Any:
         if isinstance(request, AWSPreparedRequest):
             return json.loads(request.body)  # type: ignore[arg-type]

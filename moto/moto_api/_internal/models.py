@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.config import default_user_config
 from moto.core.model_instances import reset_model_data
 
 
@@ -115,6 +116,18 @@ class MotoAPIBackend(BaseBackend):
     def delete_proxy_passthroughs(self) -> None:
         self.proxy_urls_to_passthrough.clear()
         self.proxy_hosts_to_passthrough.clear()
+
+    def get_config(self) -> Dict[str, Any]:
+        return {
+            "batch": default_user_config["batch"],
+            "lambda": default_user_config["lambda"],
+        }
+
+    def set_config(self, config: Dict[str, Any]) -> None:
+        if "batch" in config:
+            default_user_config["batch"] = config["batch"]
+        if "lambda" in config:
+            default_user_config["lambda"] = config["lambda"]
 
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)
