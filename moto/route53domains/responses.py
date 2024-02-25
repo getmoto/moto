@@ -12,20 +12,26 @@ class Route53DomainsResponse(BaseResponse):
     @property
     def route53domains_backend(self) -> Route53DomainsBackend:
         """Return backend instance"""
-        return route53domains_backends[self.current_account]['global']
+        return route53domains_backends[self.current_account]["global"]
 
     def register_domain(self) -> str:
         """Register a domain"""
-        domain_name: str = self._get_param('DomainName')
-        duration_in_years: int = self._get_int_param('DurationInYears')
-        auto_renew: bool = self._get_bool_param('AutoRenew', if_none=True)
-        admin_contact: Dict = self._get_param('AdminContact')
-        registrant_contact: Dict = self._get_param('RegistrantContact')
-        tech_contact: Dict = self._get_param('TechContact')
-        privacy_protection_admin_contact: bool = self._get_bool_param('PrivacyProtectAdminContact', if_none=True)
-        privacy_protection_registrant_contact: bool = self._get_bool_param('PrivacyProtectRegistrantContact', if_none=True)
-        privacy_protection_tech_contact: bool = self._get_bool_param('PrivacyProtectTechContact', if_none=True)
-        extra_params: List[Dict] = self._get_param('ExtraParams', if_none=[])
+        domain_name: str = self._get_param("DomainName")
+        duration_in_years: int = self._get_int_param("DurationInYears")
+        auto_renew: bool = self._get_bool_param("AutoRenew", if_none=True)
+        admin_contact: Dict = self._get_param("AdminContact")
+        registrant_contact: Dict = self._get_param("RegistrantContact")
+        tech_contact: Dict = self._get_param("TechContact")
+        privacy_protection_admin_contact: bool = self._get_bool_param(
+            "PrivacyProtectAdminContact", if_none=True
+        )
+        privacy_protection_registrant_contact: bool = self._get_bool_param(
+            "PrivacyProtectRegistrantContact", if_none=True
+        )
+        privacy_protection_tech_contact: bool = self._get_bool_param(
+            "PrivacyProtectTechContact", if_none=True
+        )
+        extra_params: List[Dict] = self._get_param("ExtraParams", if_none=[])
 
         operation = self.route53domains_backend.register_domain(
             domain_name=domain_name,
@@ -37,20 +43,19 @@ class Route53DomainsResponse(BaseResponse):
             private_protect_admin_contact=privacy_protection_admin_contact,
             private_protect_registrant_contact=privacy_protection_registrant_contact,
             private_protect_tech_contact=privacy_protection_tech_contact,
-            extra_params=extra_params
+            extra_params=extra_params,
         )
 
-        return json.dumps({'OperationId': operation.id})
+        return json.dumps({"OperationId": operation.id})
 
     # TODO: Handle Marker parameter
     def list_operations(self):
-        submitted_since_timestamp: int | None = self._get_int_param('SubmittedSince')
-        marker: str | None = self._get_param('Marker')
-        max_items: int = self._get_int_param('MaxItems')
-        statuses: List[str] | None = self._get_param('Status')
-        types: List[str] | None = self._get_param('Type')
-        sort_by: str | None = self._get_param('sort_by')
-        sort_order: str | None = self._get_param('SortOrder')
+        submitted_since_timestamp: int | None = self._get_int_param("SubmittedSince")
+        max_items: int = self._get_int_param("MaxItems")
+        statuses: List[str] | None = self._get_param("Status")
+        types: List[str] | None = self._get_param("Type")
+        sort_by: str | None = self._get_param("sort_by")
+        sort_order: str | None = self._get_param("SortOrder")
 
         operations = self.route53domains_backend.list_operations(
             submitted_since_timestamp=submitted_since_timestamp,
@@ -58,7 +63,13 @@ class Route53DomainsResponse(BaseResponse):
             statuses=statuses,
             types=types,
             sort_by=sort_by,
-            sort_order=sort_order
+            sort_order=sort_order,
         )
 
-        return json.dumps({'Operations': [operation.to_serializable_dict() for operation in operations]})
+        return json.dumps(
+            {
+                "Operations": [
+                    operation.to_serializable_dict() for operation in operations
+                ]
+            }
+        )
