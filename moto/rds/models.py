@@ -1782,14 +1782,18 @@ class RDSBackend(BaseBackend):
 
     def create_db_snapshot(
         self,
-        db_instance_identifier: str,
+        db_instance: Union[str, Database],
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> DatabaseSnapshot:
-        database = self.databases.get(db_instance_identifier)
-        if not database:
-            raise DBInstanceNotFoundError(db_instance_identifier)
+        if isinstance(db_instance, str):
+            database = self.databases.get(db_instance)
+            if not database:
+                raise DBInstanceNotFoundError(db_instance)
+        else:
+            database = db_instance
+
         if db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.database_snapshots) >= int(
@@ -1821,7 +1825,7 @@ class RDSBackend(BaseBackend):
         else:
             tags = self._merge_tags(source_snapshot.tags, tags)
         return self.create_db_snapshot(
-            db_instance_identifier=source_snapshot.database.db_instance_identifier,  # type: ignore
+            db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,
             tags=tags,
         )
