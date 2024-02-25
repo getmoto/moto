@@ -12,7 +12,7 @@ from .comparisons import get_comparison_func
 class DynamoJsonEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Optional[str]:  # type: ignore[return]
         if hasattr(o, "to_json"):
-            return o.to_dict()
+            return o.to_json()
 
 
 def dynamo_json_dump(dynamo_object: Any) -> str:
