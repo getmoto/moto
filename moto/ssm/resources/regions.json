@@ -35241,6 +35241,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -49495,9 +49504,6 @@
               "Value": "US-VA"
             },
             "local-zones": {
-              "use1-atl1-az1": {
-                "Value": "use1-atl1-az1"
-              },
               "use1-bos1-az1": {
                 "Value": "use1-bos1-az1"
               },
