@@ -1039,8 +1039,9 @@ def test_create_db_snapshots_with_tags():
     ]
 
 
+@pytest.mark.parametrize("delete_db_instance", [True, False])
 @mock_aws
-def test_copy_db_snapshots():
+def test_copy_db_snapshots(delete_db_instance: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
     conn.create_db_instance(
@@ -1058,6 +1059,10 @@ def test_copy_db_snapshots():
     conn.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     ).get("DBSnapshot")
+
+    if delete_db_instance:
+        # Delete the original instance, but the copy snapshot operation should still succeed.
+        conn.delete_db_instance(DBInstanceIdentifier="db-primary-1")
 
     target_snapshot = conn.copy_db_snapshot(
         SourceDBSnapshotIdentifier="snapshot-1", TargetDBSnapshotIdentifier="snapshot-2"
