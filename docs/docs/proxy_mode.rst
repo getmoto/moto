@@ -119,11 +119,31 @@ Terraform Configuration
     }
 
 
-Drawbacks
-------------
+URL Passthroughs
+----------------
 
-Configuring a proxy means that all requests are intercepted, but the MotoProxy can only handle requests to AWS.
+If some URL's should not be intercepted, you can configure the MotoProxy to pass them through.
 
-If your test includes a call to `https://www.thirdpartyservice.com`, that will also be intercepted by `MotoProxy` - and subsequently throw an error because it doesn't know how to handle non-AWS requests.
+To do so, make the following HTTP request:
+
+.. code-block::
+
+    config_url = "http://motoapi.amazonaws.com/moto-api/proxy/passthrough"
+    proxies = {"http": "http://localhost:5005", "https": "http://localhost:5005"}
+
+    http_url = "http://some_website.com/path"
+    https_host = "google.com"
+    config = {"http_urls": [http_url], "https_hosts": [https_host]}
+
+    requests.post(config_url, json=config, proxies=proxies)
+
+Note the difference between `http_url` and `https_hosts`. You can configure a full URL to intercept **if and only if** it is a HTTP (unsecured) url.
+
+If you want to passthrough a request to a HTTPS endpoint, you have to specify the HTTPS host. Say you want to make a request to `https://companywebsite.com/mydata`, the `https_host` would have to be set to `companywebsite.com`.
+
+All HTTPS requests to this domain will be intercepted.
+
+Alternative Passthrough
+-----------------------
 
 If your test setup supports the `NO_PROXY` environment variable, you could exclude `www.thirdpartyservice.com` from being proxied by setting `NO_PROXY=www.thirdpartyservice.com`. `NO_PROXY` accepts a comma separated list of domains, e.g. `NO_PROXY=.thirdpartyservice.com,api.anotherservice.com`.
