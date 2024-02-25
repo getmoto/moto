@@ -827,7 +827,11 @@ class SNSBackend(BaseBackend):
                             "Invalid parameter: Filter policy scope MessageAttributes does not support nested filter policy"
                         )
                 elif isinstance(_value, list):
-                    _rules.append(_value)
+                    if key == "$or":
+                        for val in _value:
+                            _rules.extend(aggregate_rules(val, depth=depth + 1))
+                    else:
+                        _rules.append(_value)
                     combinations = combinations * len(_value) * depth
                 else:
                     raise SNSInvalidParameter(
@@ -864,7 +868,7 @@ class SNSBackend(BaseBackend):
                 if isinstance(rule, dict):
                     keyword = list(rule.keys())[0]
                     attributes = list(rule.values())[0]
-                    if keyword == "anything-but":
+                    if keyword in ["anything-but", "equals-ignore-case"]:
                         continue
                     elif keyword == "exists":
                         if not isinstance(attributes, bool):
@@ -938,7 +942,7 @@ class SNSBackend(BaseBackend):
                             )
 
                         continue
-                    elif keyword == "prefix":
+                    elif keyword in ["prefix", "suffix"]:
                         continue
                     else:
                         raise SNSInvalidParameter(
