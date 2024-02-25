@@ -8680,10 +8680,6 @@
   "Location": "use1-az4"
  },
  {
-  "InstanceType": "trn1.32xlarge",
-  "Location": "use1-az4"
- },
- {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "use1-az4"
  },

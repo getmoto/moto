@@ -8424,10 +8424,6 @@
   "Location": "us-east-1c"
  },
  {
-  "InstanceType": "trn1.32xlarge",
-  "Location": "us-east-1c"
- },
- {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "us-east-1c"
  },
