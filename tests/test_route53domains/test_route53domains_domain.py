@@ -58,6 +58,7 @@ def register_domain_parameters() -> Dict:
 
 @pytest.fixture(scope='function')
 def invalid_register_domain_parameters(register_domain_parameters: Dict) -> Dict:
+    register_domain_parameters['DomainName'] = 'a'
     register_domain_parameters['DurationInYears'] = 500
     return register_domain_parameters
 

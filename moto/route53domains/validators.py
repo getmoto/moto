@@ -72,8 +72,7 @@ AWS_SUPPORTED_TLDS = ('ac', 'academy', 'accountants', 'actor', 'adult', 'agency'
                       'uno', 'vacations', 'vegas', 'ventures', 'vg', 'viajes', 'video', 'villas', 'vision', 'voyage',
                       'watch', 'website', 'wedding', 'wiki', 'wine', 'works', 'world', 'wtf', 'xyz', 'zone')
 
-AWS_TLDS_REGEX_CAPTURE_GROUP = f'({'|'.join(AWS_SUPPORTED_TLDS)})'
-AWS_ROUTE53_VALID_DOMAIN_REGEX = rf'^([a-z0-9\.-])+\.{AWS_TLDS_REGEX_CAPTURE_GROUP}$'
+AWS_ROUTE53_VALID_DOMAIN_REGEX = r'(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]'
 PHONE_NUMBER_REGEX = r'\+\d*\.\d{10}$'
 
 
@@ -459,17 +458,13 @@ class Route53Domain(BaseModel):
 
     @staticmethod
     def __validate_domain_name(domain_name: str, errors: List[str]):
-        tld = domain_name.split('.')[-1]
-        if not tld:
-            errors.append('Invalid domain name')
-            return
-
-        if tld not in AWS_SUPPORTED_TLDS:
-            errors.append(f'TLD {tld} is not supported in AWS')
-            return
-
         if not re.match(AWS_ROUTE53_VALID_DOMAIN_REGEX, domain_name):
             errors.append('Invalid domain name')
+            return
+
+        tld = domain_name.split('.')[-1]
+        if tld not in AWS_SUPPORTED_TLDS:
+            errors.append(f'TLD {tld} is not supported in AWS')
             return
 
     def to_serializable_dict(self):
