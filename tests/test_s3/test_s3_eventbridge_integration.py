@@ -1,9 +1,12 @@
+import base64
+import hashlib
 import json
 from io import BytesIO
 from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
+import requests
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -15,9 +18,6 @@ REDUCED_PART_SIZE = 256
 
 @mock_aws
 def test_put_object_notification_ObjectCreated_PUT():
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
-
     s3_res = boto3.resource("s3", region_name=REGION_NAME)
     s3_client = boto3.client("s3", region_name=REGION_NAME)
     events_client = boto3.client("events", region_name=REGION_NAME)
@@ -97,42 +97,51 @@ def test_put_object_notification_ObjectCreated_POST():
     bucket_name = str(uuid4())
     s3_res.create_bucket(Bucket=bucket_name)
 
-    # Put Notification
+    # Put bucket notification event bridge
     s3_client.put_bucket_notification_configuration(
         Bucket=bucket_name,
         NotificationConfiguration={"EventBridgeConfiguration": {}},
     )
 
-    # Create multipart upload request (an object is uploaded via POST request).
-    key_name = "the-key"
-    part1 = b"0" * REDUCED_PART_SIZE
-    part2 = b"1"
-    multipart = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key_name)
-    up1 = s3_client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=4,
-        Bucket=bucket_name,
-        Key=key_name,
-        UploadId=multipart["UploadId"],
-    )
-    up2 = s3_client.upload_part(
-        Body=BytesIO(part2),
-        PartNumber=2,
-        Bucket=bucket_name,
-        Key=key_name,
-        UploadId=multipart["UploadId"],
+    ###
+    # multipart upload POST request (this request is processed in S3Response.__key_response_post)
+    ###
+    content = b"Hello, this is a sample content for the multipart upload."
+    content_md5_hash = base64.b64encode(hashlib.md5(content).digest()).decode("utf-8")
+    object_key = "test-key"
+    url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
+
+    # Create multipart upload reqeusts
+    res = requests.post(
+        url,
+        headers={"Content-MD5": content_md5_hash},
+        auth=(ACCOUNT_ID, "test-key"),
+        params={"uploads": ""},
     )
 
-    s3_client.complete_multipart_upload(
-        Bucket=bucket_name,
-        Key=key_name,
-        MultipartUpload={
-            "Parts": [
-                {"ETag": up1["ETag"], "PartNumber": 4},
-                {"ETag": up2["ETag"], "PartNumber": 2},
-            ]
-        },
-        UploadId=multipart["UploadId"],
+    # upload the parts
+    upload_id = res.text.split("<UploadId>")[1].split("</UploadId>")[0]
+    part_number = 1
+    res = requests.put(
+        url,
+        data=content,
+        headers={"Content-MD5": content_md5_hash},
+        auth=(ACCOUNT_ID, "test-key"),
+        params={"partNumber": part_number, "uploadId": upload_id},
+    )
+
+    # complete multi-part upload (PutObject event send to the logs)
+    etag = res.headers["Etag"]
+    _ = requests.post(
+        url,
+        data=(
+            "<CompleteMultipartUpload "
+            'xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
+            f"<Part><ETag>{etag}</ETag><PartNumber>1</PartNumber></Part>"
+            "</CompleteMultipartUpload>"
+        ),
+        auth=(ACCOUNT_ID, "test-key"),
+        params={"uploadId": upload_id},
     )
 
     events = sorted(
@@ -140,11 +149,27 @@ def test_put_object_notification_ObjectCreated_POST():
         key=lambda item: item["eventId"],
     )
     assert len(events) == 1
-    event_message = json.loads(events[0]["message"])
-    assert event_message["detail-type"] == "Object Created"
-    assert event_message["source"] == "aws.s3"
-    assert event_message["account"] == ACCOUNT_ID
-    assert event_message["region"] == REGION_NAME
-    assert event_message["detail"]["bucket"]["name"] == bucket_name
-    # NOTE: We cannot know if an object is created via PUT or POST request from EventBridge message.
-    assert event_message["detail"]["reason"] == "ObjectCreated"
+
+    ###
+    # multipart/formdata POST request (this request is processed in S3Response._bucket_response_post)
+    ###
+    url = f"https://{bucket_name}.s3.amazonaws.com/"
+
+    res = requests.post(
+        url, data={"key": object_key}, files={"file": ("tmp.txt", BytesIO(content))}
+    )
+
+    events = sorted(
+        logs_client.filter_log_events(logGroupName=log_group_name)["events"],
+        key=lambda item: item["eventId"],
+    )
+    assert len(events) == 2
+
+    for event in events:
+        event_message = json.loads(event["message"])
+        assert event_message["detail-type"] == "Object Created"
+        assert event_message["source"] == "aws.s3"
+        assert event_message["account"] == ACCOUNT_ID
+        assert event_message["region"] == REGION_NAME
+        assert event_message["detail"]["bucket"]["name"] == bucket_name
+        assert event_message["detail"]["reason"] == "ObjectCreated"
