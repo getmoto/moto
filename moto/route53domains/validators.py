@@ -655,7 +655,7 @@ class Route53DomainsOperation(BaseModel):
             status_flag,
         )
 
-    def to_serializable_dict(self) -> Dict:
+    def to_json(self) -> Dict:
         d = {
             "OperationId": self.id,
             "DomainName": self.domain_name,
@@ -810,7 +810,7 @@ class Route53DomainsContactDetail(BaseModel):
         if value and len(value) > max_len:
             errors.append(f"Length of {field_name} is more than {max_len}")
 
-    def to_serializable_dict(self) -> Dict:
+    def to_json(self) -> Dict:
         d = {
             "FirstName": self.first_name,
             "LastName": self.last_name,
@@ -865,7 +865,7 @@ class NameServer:
         glue_ips = d.get("GlueIPs")
         return cls.validate(name, glue_ips)
 
-    def to_serializable_dict(self) -> Dict:
+    def to_json(self) -> Dict:
         return {"Name": self.name, "GlueIps": self.glue_ips}
 
 
@@ -1014,16 +1014,16 @@ class Route53Domain(BaseModel):
             errors.append(f"TLD {tld} is not supported in AWS")
             return
 
-    def to_serializable_dict(self):
+    def to_json(self):
         return {
             "DomainName": self.domain_name,
             "NameServers": [
-                name_server.to_serializable_dict() for name_server in self.name_servers
+                name_server.to_json() for name_server in self.name_servers
             ],
             "AutoRenew": self.auto_renew,
-            "AdminContact": self.admin_contact.to_serializable_dict(),
-            "RegistrantContact": self.registrant_contact.to_serializable_dict(),
-            "TechContact": self.tech_contact.to_serializable_dict(),
+            "AdminContact": self.admin_contact.to_json(),
+            "RegistrantContact": self.registrant_contact.to_json(),
+            "TechContact": self.tech_contact.to_json(),
             "AdminPrivacy": self.admin_privacy,
             "RegistrantPrivacy": self.registrant_privacy,
             "TechPrivacy": self.tech_privacy,
@@ -1040,5 +1040,5 @@ class Route53Domain(BaseModel):
             "DnsSec": "",
             "StatusList": self.status_list,
             "DnsSecKeys": self.dns_sec_keys,
-            "BillingContact": self.admin_contact.to_serializable_dict(),
+            "BillingContact": self.admin_contact.to_json(),
         }

@@ -69,7 +69,7 @@ class Route53DomainsResponse(BaseResponse):
         return json.dumps(
             {
                 "Operations": [
-                    operation.to_serializable_dict() for operation in operations
+                    operation.to_json() for operation in operations
                 ]
             }
         )

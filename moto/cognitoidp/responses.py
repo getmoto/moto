@@ -75,7 +75,7 @@ class CognitoIdpResponse(BaseResponse):
             max_results=max_results, next_token=next_token
         )
         response: Dict[str, Any] = {
-            "UserPools": [user_pool.to_json for user_pool in user_pools]
+            "UserPools": [user_pool.to_json()for user_pool in user_pools]
         }
         if next_token:
             response["NextToken"] = str(next_token)
@@ -151,7 +151,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         response: Dict[str, Any] = {
             "UserPoolClients": [
-                user_pool_client.to_json for user_pool_client in user_pool_clients
+                user_pool_client.to_json()for user_pool_client in user_pool_clients
             ]
         }
         if next_token:
@@ -200,7 +200,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         response: Dict[str, Any] = {
             "Providers": [
-                identity_provider.to_json for identity_provider in identity_providers
+                identity_provider.to_json()for identity_provider in identity_providers
             ]
         }
         if next_token:
@@ -258,7 +258,7 @@ class CognitoIdpResponse(BaseResponse):
         groups, token = self.backend.list_groups(
             user_pool_id, limit=limit, next_token=token
         )
-        response = {"Groups": [group.to_json for group in groups]}
+        response = {"Groups": [group.to_json()for group in groups]}
         if token:
             response["NextToken"] = token
         return json.dumps(response)
@@ -299,7 +299,7 @@ class CognitoIdpResponse(BaseResponse):
         users, token = self.backend.list_users_in_group(
             user_pool_id, group_name, limit=limit, next_token=token
         )
-        response = {"Users": [user.to_dict(extended=True) for user in users]}
+        response = {"Users": [user.to_json(extended=True) for user in users]}
         if token:
             response["NextToken"] = token
         return json.dumps(response)
@@ -412,7 +412,7 @@ class CognitoIdpResponse(BaseResponse):
             ]
         response: Dict[str, Any] = {
             "Users": [
-                user.to_dict(extended=True, attributes_to_get=attributes_to_get)
+                user.to_json(extended=True, attributes_to_get=attributes_to_get)
                 for user in users
             ]
         }
@@ -570,7 +570,7 @@ class CognitoIdpResponse(BaseResponse):
         )
         response: Dict[str, Any] = {
             "ResourceServers": [
-                resource_server.to_json for resource_server in resource_servers
+                resource_server.to_json()for resource_server in resource_servers
             ]
         }
         if next_token:
