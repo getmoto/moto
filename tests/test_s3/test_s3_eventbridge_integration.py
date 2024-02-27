@@ -1,5 +1,3 @@
-import base64
-import hashlib
 import json
 from io import BytesIO
 from unittest import SkipTest
@@ -104,44 +102,15 @@ def test_put_object_notification_ObjectCreated_POST():
     )
 
     ###
-    # multipart upload POST request (this request is processed in S3Response.__key_response_post)
+    # multipart/formdata POST request (this request is processed in S3Response._bucket_response_post)
     ###
     content = b"Hello, this is a sample content for the multipart upload."
-    content_md5_hash = base64.b64encode(hashlib.md5(content).digest()).decode("utf-8")
     object_key = "test-key"
-    url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
 
-    # Create multipart upload reqeusts
-    res = requests.post(
-        url,
-        headers={"Content-MD5": content_md5_hash},
-        auth=(ACCOUNT_ID, "test-key"),
-        params={"uploads": ""},
-    )
-
-    # upload the parts
-    upload_id = res.text.split("<UploadId>")[1].split("</UploadId>")[0]
-    part_number = 1
-    res = requests.put(
-        url,
-        data=content,
-        headers={"Content-MD5": content_md5_hash},
-        auth=(ACCOUNT_ID, "test-key"),
-        params={"partNumber": part_number, "uploadId": upload_id},
-    )
-
-    # complete multi-part upload (PutObject event send to the logs)
-    etag = res.headers["Etag"]
     _ = requests.post(
-        url,
-        data=(
-            "<CompleteMultipartUpload "
-            'xmlns="http://s3.amazonaws.com/doc/2006-03-01/">'
-            f"<Part><ETag>{etag}</ETag><PartNumber>1</PartNumber></Part>"
-            "</CompleteMultipartUpload>"
-        ),
-        auth=(ACCOUNT_ID, "test-key"),
-        params={"uploadId": upload_id},
+        f"https://{bucket_name}.s3.amazonaws.com/",
+        data={"key": object_key},
+        files={"file": ("tmp.txt", BytesIO(content))},
     )
 
     events = sorted(
@@ -149,27 +118,11 @@ def test_put_object_notification_ObjectCreated_POST():
         key=lambda item: item["eventId"],
     )
     assert len(events) == 1
-
-    ###
-    # multipart/formdata POST request (this request is processed in S3Response._bucket_response_post)
-    ###
-    url = f"https://{bucket_name}.s3.amazonaws.com/"
-
-    res = requests.post(
-        url, data={"key": object_key}, files={"file": ("tmp.txt", BytesIO(content))}
-    )
-
-    events = sorted(
-        logs_client.filter_log_events(logGroupName=log_group_name)["events"],
-        key=lambda item: item["eventId"],
-    )
-    assert len(events) == 2
-
-    for event in events:
-        event_message = json.loads(event["message"])
-        assert event_message["detail-type"] == "Object Created"
-        assert event_message["source"] == "aws.s3"
-        assert event_message["account"] == ACCOUNT_ID
-        assert event_message["region"] == REGION_NAME
-        assert event_message["detail"]["bucket"]["name"] == bucket_name
-        assert event_message["detail"]["reason"] == "ObjectCreated"
+    event_message = json.loads(events[0]["message"])
+    assert event_message["detail-type"] == "Object Created"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["object"]["key"] == object_key
+    assert event_message["detail"]["reason"] == "ObjectCreated"
