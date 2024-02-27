@@ -5,6 +5,7 @@ from typing import Dict, List
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import MotoRandom
+from moto.route53domains.exceptions import UnsupportedTLDException
 
 DOMAIN_OPERATION_STATUSES = (
     "SUBMITTED",
@@ -597,10 +598,10 @@ AWS_SUPPORTED_TLDS = (
     "zone",
 )
 
-AWS_ROUTE53_VALID_DOMAIN_REGEX = (
+VALID_DOMAIN_REGEX = re.compile(
     r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
 )
-PHONE_NUMBER_REGEX = r"\+\d*\.\d{10}$"
+PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d{10}$")
 
 
 class ValidationException(Exception):
@@ -747,7 +748,7 @@ class Route53DomainsContactDetail(BaseModel):
         if country_code and country_code not in DOMAIN_CONTACT_DETAIL_COUNTRY_CODES:
             errors.append(f"CountryCode {country_code} is invalid")
 
-        if phone_number and not re.match(PHONE_NUMBER_REGEX, phone_number):
+        if phone_number and not PHONE_NUMBER_REGEX.match(phone_number):
             errors.append("PhoneNumber is in an invalid format")
 
         if errors:
@@ -941,9 +942,9 @@ class Route53Domain(BaseModel):
         dns_sec_keys: List[Dict] | None = None,
         extra_params: List[Dict] | None = None,
     ):
-        errors = []
+        input_errors = []
 
-        cls.__validate_domain_name(domain_name, errors)
+        cls.__validate_domain_name(domain_name, input_errors)
 
         name_servers = name_servers or []
         try:
@@ -956,7 +957,7 @@ class Route53Domain(BaseModel):
                 NameServer.validate(name="ns-2049.awscdn-65.net"),
             ]
         except ValidationException as e:
-            errors += e.errors
+            input_errors += e.errors
 
         creation_date = datetime.now(timezone.utc)
         updated_date = datetime.now(timezone.utc)
@@ -973,10 +974,10 @@ class Route53Domain(BaseModel):
         if time_until_expiration < timedelta(
             days=365
         ) or time_until_expiration > timedelta(days=365 * 10):
-            errors.append("ExpirationDate must by between 1 and 10 years from now")
+            input_errors.append("ExpirationDate must by between 1 and 10 years from now")
 
-        if errors:
-            raise ValidationException(errors)
+        if input_errors:
+            raise ValidationException(input_errors)
 
         return cls(
             domain_name=domain_name,
@@ -1004,15 +1005,14 @@ class Route53Domain(BaseModel):
         )
 
     @staticmethod
-    def __validate_domain_name(domain_name: str, errors: List[str]):
-        if not re.match(AWS_ROUTE53_VALID_DOMAIN_REGEX, domain_name):
-            errors.append("Invalid domain name")
+    def __validate_domain_name(domain_name: str, input_errors: List[str]):
+        if not VALID_DOMAIN_REGEX.match(domain_name):
+            input_errors.append("Invalid domain name")
             return
 
         tld = domain_name.split(".")[-1]
         if tld not in AWS_SUPPORTED_TLDS:
-            errors.append(f"TLD {tld} is not supported in AWS")
-            return
+            raise UnsupportedTLDException(tld)
 
     def to_json(self):
         return {

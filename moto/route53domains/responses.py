@@ -48,28 +48,32 @@ class Route53DomainsResponse(BaseResponse):
 
         return json.dumps({"OperationId": operation.id})
 
-    # TODO: Handle Marker parameter
     def list_operations(self):
         submitted_since_timestamp: int | None = self._get_int_param("SubmittedSince")
         max_items: int = self._get_int_param("MaxItems")
         statuses: List[str] | None = self._get_param("Status")
+        marker: str | None = self._get_param("Marker")
         types: List[str] | None = self._get_param("Type")
         sort_by: str | None = self._get_param("sort_by")
         sort_order: str | None = self._get_param("SortOrder")
 
-        operations = self.route53domains_backend.list_operations(
+        operations, marker = self.route53domains_backend.list_operations(
             submitted_since_timestamp=submitted_since_timestamp,
             max_items=max_items,
+            marker=marker,
             statuses=statuses,
             types=types,
             sort_by=sort_by,
             sort_order=sort_order,
         )
 
-        return json.dumps(
-            {
-                "Operations": [
-                    operation.to_json() for operation in operations
-                ]
-            }
-        )
+        res = {
+            "Operations": [
+                operation.to_json() for operation in operations
+            ],
+        }
+
+        if marker:
+            res["NextPageMarker"] = marker
+
+        return json.dumps(res)

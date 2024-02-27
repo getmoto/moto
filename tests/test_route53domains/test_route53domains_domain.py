@@ -105,8 +105,11 @@ def test_route53domains_register_domain_fails_on_invalid_input(
 ):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         route53domains_client.register_domain(**invalid_register_domain_parameters)
+
+    err = exc.value.response['Error']
+    assert err['Code'] == 'InvalidInput'
 
     res = route53_client.list_hosted_zones()
     assert len(res["HostedZones"]) == 0
@@ -120,8 +123,11 @@ def test_route53domains_register_domain_fails_on_invalid_tld(
     route53_client = boto3.client("route53", region_name="global")
 
     register_domain_parameters["DomainName"] = "test.non-existing-tld"
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         route53domains_client.register_domain(**register_domain_parameters)
+
+    err = exc.value.response['Error']
+    assert err['Code'] == 'UnsupportedTLD'
 
     res = route53_client.list_hosted_zones()
     assert len(res["HostedZones"]) == 0
@@ -165,10 +171,42 @@ def test_route53domains_list_operations(register_domain_parameters: Dict):
 @mock_aws
 def test_list_operations_invalid_input():
     route53domains_client = boto3.client("route53domains", region_name="global")
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         _ = route53domains_client.list_operations(Type=["INVALID_TYPE"])["Operations"]
 
-    with pytest.raises(ClientError):
+    err = exc.value.response['Error']
+    assert err['Code'] == 'InvalidInput'
+
+    with pytest.raises(ClientError) as exc:
         _ = route53domains_client.list_operations(Status=["INVALID_STATUS"])[
             "Operations"
         ]
+    err = exc.value.response['Error']
+    assert err['Code'] == 'InvalidInput'
+
+
+@mock_aws
+def test_list_operations_marker(register_domain_parameters):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    domain_params = register_domain_parameters.copy()
+    route53domains_client.register_domain(**domain_params)
+    domain_params['DomainName'] = 'seconddomain.com'
+    route53domains_client.register_domain(**domain_params)
+    domain_params['DomainName'] = 'thirddomain.com'
+    route53domains_client.register_domain(**domain_params)
+    operations_res = route53domains_client.list_operations()
+    assert len(operations_res['Operations']) == 3
+    operations_res = route53domains_client.list_operations(Marker='0', MaxItems=1)
+    assert len(operations_res['Operations']) == 1
+    operations_res = route53domains_client.list_operations(Marker=operations_res['NextPageMarker'])
+    assert len(operations_res['Operations']) == 2
+
+
+@mock_aws
+def test_duplicate_domain_registration(register_domain_parameters):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**register_domain_parameters)
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.register_domain(**register_domain_parameters)
+    err = exc.value.response['Error']
+    assert err['Code'] == 'DuplicateRequest'

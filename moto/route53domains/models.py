@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 
-from .exceptions import InvalidInputException
+from .exceptions import InvalidInputException, DuplicateRequestException
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
     DOMAIN_OPERATION_TYPES,
@@ -39,6 +39,9 @@ class Route53DomainsBackend(BaseBackend):
         extra_params: List[Dict],
     ) -> Route53DomainsOperation:
         """Register a domain"""
+        if domain_name in self.__domains:
+            raise DuplicateRequestException()
+
         expiration_date = datetime.now(timezone.utc) + timedelta(
             days=365 * duration_in_years
         )
@@ -76,7 +79,6 @@ class Route53DomainsBackend(BaseBackend):
         self.__domains[domain_name] = domain
         return operation
 
-    # TODO: Handle marker parameter
     def list_operations(
         self,
         submitted_since_timestamp: int | None = None,
@@ -86,11 +88,12 @@ class Route53DomainsBackend(BaseBackend):
         types: List[str] | None = None,
         sort_by: str | None = None,
         sort_order: str | None = None,
-    ) -> List[Route53DomainsOperation]:
+    ) -> Tuple[List[Route53DomainsOperation], str | None]:
 
         errors = []
         statuses = statuses or []
         types = types or []
+        max_items = max_items or 20  # AWS default is 20
 
         if any(status not in DOMAIN_OPERATION_STATUSES for status in statuses):
             errors.append("Status is invalid")
@@ -105,7 +108,6 @@ class Route53DomainsBackend(BaseBackend):
             if submitted_since_timestamp
             else None
         )
-        max_items = max_items or 20  # AWS default is 20
 
         operations_to_return: List[Route53DomainsOperation] = []
 
@@ -129,7 +131,13 @@ class Route53DomainsBackend(BaseBackend):
                 key=lambda op: op.submitted_date, reverse=sort_order == "ASC"
             )
 
-        return operations_to_return
+        start_idx = 0 if marker is None else int(marker)
+        marker = (
+            None
+            if len(operations_to_return) < start_idx + max_items
+            else str(start_idx + max_items)
+        )
+        return operations_to_return[start_idx: start_idx + max_items], marker
 
     @staticmethod
     def __sort_by_submitted_date(operation: Route53DomainsOperation):
