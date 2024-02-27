@@ -141,7 +141,6 @@ ACTION_MAP = {
             "restore": "RestoreObject",
             "uploadId": "PutObject",
             "select": "SelectObject",
-            "DEFAULT": "PutObject",
         },
     },
     "CONTROL": {
