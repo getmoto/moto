@@ -974,7 +974,9 @@ class Route53Domain(BaseModel):
         if time_until_expiration < timedelta(
             days=365
         ) or time_until_expiration > timedelta(days=365 * 10):
-            input_errors.append("ExpirationDate must by between 1 and 10 years from now")
+            input_errors.append(
+                "ExpirationDate must by between 1 and 10 years from now"
+            )
 
         if input_errors:
             raise ValidationException(input_errors)
@@ -1017,9 +1019,7 @@ class Route53Domain(BaseModel):
     def to_json(self):
         return {
             "DomainName": self.domain_name,
-            "NameServers": [
-                name_server.to_json() for name_server in self.name_servers
-            ],
+            "NameServers": [name_server.to_json() for name_server in self.name_servers],
             "AutoRenew": self.auto_renew,
             "AdminContact": self.admin_contact.to_json(),
             "RegistrantContact": self.registrant_contact.to_json(),

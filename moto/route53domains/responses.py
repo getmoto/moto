@@ -68,9 +68,7 @@ class Route53DomainsResponse(BaseResponse):
         )
 
         res = {
-            "Operations": [
-                operation.to_json() for operation in operations
-            ],
+            "Operations": [operation.to_json() for operation in operations],
         }
 
         if marker:

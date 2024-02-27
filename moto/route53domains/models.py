@@ -5,7 +5,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 
-from .exceptions import InvalidInputException, DuplicateRequestException
+from .exceptions import DuplicateRequestException, InvalidInputException
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
     DOMAIN_OPERATION_TYPES,
@@ -137,7 +137,7 @@ class Route53DomainsBackend(BaseBackend):
             if len(operations_to_return) < start_idx + max_items
             else str(start_idx + max_items)
         )
-        return operations_to_return[start_idx: start_idx + max_items], marker
+        return operations_to_return[start_idx : start_idx + max_items], marker
 
     @staticmethod
     def __sort_by_submitted_date(operation: Route53DomainsOperation):
