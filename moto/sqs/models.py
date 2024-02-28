@@ -815,7 +815,7 @@ class SQSBackend(BaseBackend):
                 )
                 raise InvalidParameterValue(msg)
 
-            if delay_seconds > 0:  # type: ignore[operator]
+            if delay_seconds > 0:
                 raise InvalidParameterValue(
                     f"Value {delay_seconds} for parameter DelaySeconds is invalid. Reason: "
                     "The request include parameter that is not valid for this queue type."
