@@ -5,6 +5,7 @@ from functools import wraps
 from unittest import SkipTest, TestCase
 
 import boto3
+import requests
 
 from moto import mock_aws, settings
 from moto.dynamodb.models import DynamoDBBackend
@@ -310,6 +311,16 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
                 )
                 self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff")
                 self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff2")
+
+    @verify_zero_warnings
+    def test_upload_using_form(self):
+        with mock_aws():
+            self.s3_client.create_bucket(Bucket="foo")
+            requests.post(
+                "https://foo.s3.amazonaws.com/",
+                data={"key": "test-key"},
+                files={"file": ("tmp.txt", b"test content")},
+            )
 
 
 def test_verify_key_can_be_copied_after_disposing():
