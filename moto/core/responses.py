@@ -333,7 +333,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     self.body = k
         if hasattr(request, "files") and request.files:
             for _, value in request.files.items():
-                self.body = value.stream
+                self.body = value.stream.read()
+                value.stream.close()
             if querystring.get("key"):
                 filename = os.path.basename(request.files["file"].filename)
                 querystring["key"] = [
