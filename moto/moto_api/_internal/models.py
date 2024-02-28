@@ -128,6 +128,8 @@ class MotoAPIBackend(BaseBackend):
             default_user_config["batch"] = config["batch"]
         if "lambda" in config:
             default_user_config["lambda"] = config["lambda"]
+        if "stepfunctions" in config:
+            default_user_config["stepfunctions"] = config["stepfunctions"]
 
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)

@@ -7731,7 +7731,7 @@
 
 ## stepfunctions
 <details>
-<summary>36% implemented</summary>
+<summary>55% implemented</summary>
 
 - [ ] create_activity
 - [X] create_state_machine
@@ -7742,31 +7742,31 @@
 - [ ] delete_state_machine_version
 - [ ] describe_activity
 - [X] describe_execution
-- [ ] describe_map_run
+- [X] describe_map_run
 - [X] describe_state_machine
 - [ ] describe_state_machine_alias
-- [ ] describe_state_machine_for_execution
+- [X] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [X] get_execution_history
 - [ ] list_activities
 - [X] list_executions
-- [ ] list_map_runs
+- [X] list_map_runs
 - [ ] list_state_machine_aliases
 - [ ] list_state_machine_versions
 - [X] list_state_machines
 - [X] list_tags_for_resource
 - [ ] publish_state_machine_version
 - [ ] redrive_execution
-- [ ] send_task_failure
-- [ ] send_task_heartbeat
-- [ ] send_task_success
+- [X] send_task_failure
+- [X] send_task_heartbeat
+- [X] send_task_success
 - [X] start_execution
 - [ ] start_sync_execution
 - [X] stop_execution
 - [X] tag_resource
 - [ ] test_state
 - [X] untag_resource
-- [ ] update_map_run
+- [X] update_map_run
 - [X] update_state_machine
 - [ ] update_state_machine_alias
 </details>

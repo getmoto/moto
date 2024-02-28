@@ -1,3 +1,6 @@
+ignore:
+  - "moto/stepfunctions/parser/asl/antlr"
+
 codecov:
   notify:
     # Leave a GitHub comment after all builds have passed
