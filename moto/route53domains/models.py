@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 
-from .exceptions import DuplicateRequestException, InvalidInputException, DomainLimitExceededException
+from .exceptions import (
+    DomainLimitExceededException,
+    DuplicateRequestException,
+    InvalidInputException,
+)
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
     DOMAIN_OPERATION_TYPES,
@@ -18,6 +22,7 @@ from .validators import (
 
 class Route53DomainsBackend(BaseBackend):
     """Implementation of Route53Domains APIs."""
+
     DEFAULT_MAX_DOMAINS_COUNT = 20
 
     def __init__(self, region_name: str, account_id: str):
