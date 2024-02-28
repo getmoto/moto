@@ -205,7 +205,7 @@ def test_list_operations_marker(register_domain_parameters):
 
 
 @mock_aws
-def test_duplicate_domain_registration(register_domain_parameters):
+def test_duplicate_requests(register_domain_parameters):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**register_domain_parameters)
     with pytest.raises(ClientError) as exc:
