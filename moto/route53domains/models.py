@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
@@ -90,14 +90,14 @@ class Route53DomainsBackend(BaseBackend):
 
     def list_operations(
         self,
-        submitted_since_timestamp: int | None = None,
-        marker: str | None = None,
-        max_items: int | None = None,
-        statuses: List[str] | None = None,
-        types: List[str] | None = None,
-        sort_by: str | None = None,
-        sort_order: str | None = None,
-    ) -> Tuple[List[Route53DomainsOperation], str | None]:
+        submitted_since_timestamp: Optional[int] = None,
+        marker: Optional[str] = None,
+        max_items: Optional[int] = None,
+        statuses: Optional[List[str]] = None,
+        types: Optional[List[str]] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = None,
+    ) -> Tuple[List[Route53DomainsOperation], Optional[str]]:
 
         errors = []
         statuses = statuses or []

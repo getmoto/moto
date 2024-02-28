@@ -1,10 +1,10 @@
 import re
 from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from moto.core.common_models import BaseModel
-from moto.moto_api._internal import MotoRandom
+from moto.moto_api._internal import mock_random
 from moto.route53domains.exceptions import UnsupportedTLDException
 
 DOMAIN_OPERATION_STATUSES = (
@@ -601,7 +601,7 @@ AWS_SUPPORTED_TLDS = (
 VALID_DOMAIN_REGEX = re.compile(
     r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]"
 )
-PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d{10}$")
+PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d+$")
 
 
 class ValidationException(Exception):
@@ -619,8 +619,8 @@ class Route53DomainsOperation(BaseModel):
         type_: str,
         submitted_date: datetime,
         last_updated_date: datetime,
-        message: str | None = None,
-        status_flag: str | None = None,
+        message: Optional[str] = None,
+        status_flag: Optional[str] = None,
     ):
         self.id = id_
         self.domain_name = domain_name
@@ -637,11 +637,11 @@ class Route53DomainsOperation(BaseModel):
         domain_name: str,
         status: str,
         type_: str,
-        message: str | None = None,
-        status_flag: str | None = None,
+        message: Optional[str] = None,
+        status_flag: Optional[str] = None,
     ):
 
-        id_ = str(MotoRandom().uuid4())
+        id_ = str(mock_random.uuid4())
         submitted_date = datetime.now(timezone.utc)
         last_updated_date = datetime.now(timezone.utc)
 
@@ -675,20 +675,20 @@ class Route53DomainsOperation(BaseModel):
 class Route53DomainsContactDetail(BaseModel):
     def __init__(
         self,
-        address_line_1: str | None,
-        address_line_2: str | None,
-        city: str | None,
-        contact_type: str | None,
-        country_code: str | None,
-        email: str | None,
-        extra_params: List[Dict] | None,
-        fax: str | None,
-        first_name: str | None,
-        last_name: str | None,
-        organization_name: str | None,
-        phone_number: str | None,
-        state: str | None,
-        zip_code: str | None,
+        address_line_1: Optional[str] = None,
+        address_line_2: Optional[str] = None,
+        city: Optional[str] = None,
+        contact_type: Optional[str] = None,
+        country_code: Optional[str] = None,
+        email: Optional[str] = None,
+        extra_params: Optional[List[Dict]] = None,
+        fax: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        organization_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        state: Optional[str] = None,
+        zip_code: Optional[str] = None,
     ):
         super().__init__()
         self.address_line_1 = address_line_1
@@ -709,20 +709,20 @@ class Route53DomainsContactDetail(BaseModel):
     @classmethod
     def validate(
         cls,
-        address_line_1: str | None,
-        address_line_2: str | None,
-        city: str | None,
-        contact_type: str | None,
-        country_code: str | None,
-        email: str | None,
-        extra_params: List[Dict] | None,
-        fax: str | None,
-        first_name: str | None,
-        last_name: str | None,
-        organization_name: str | None,
-        phone_number: str | None,
-        state: str | None,
-        zip_code: str | None,
+        address_line_1: Optional[str] = None,
+        address_line_2: Optional[str] = None,
+        city: Optional[str] = None,
+        contact_type: Optional[str] = None,
+        country_code: Optional[str] = None,
+        email: Optional[str] = None,
+        extra_params: Optional[List[Dict]] = None,
+        fax: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        organization_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        state: Optional[str] = None,
+        zip_code: Optional[str] = None,
     ):
         errors = []
 
@@ -842,7 +842,7 @@ class NameServer:
         self.glue_ips = glue_ips
 
     @classmethod
-    def validate(cls, name: str, glue_ips: List[str] | None = None):
+    def validate(cls, name: str, glue_ips: Optional[List[str]] = None):
         glue_ips = glue_ips or []
         errors = []
 
@@ -926,21 +926,21 @@ class Route53Domain(BaseModel):
         admin_contact: Route53DomainsContactDetail,
         registrant_contact: Route53DomainsContactDetail,
         tech_contact: Route53DomainsContactDetail,
-        name_servers: List[Dict] | None = None,
+        name_servers: Optional[List[Dict]] = None,
         auto_renew: bool = True,
         admin_privacy: bool = True,
         registrant_privacy: bool = True,
         tech_privacy: bool = True,
-        registrar_name: str | None = None,
-        whois_server: str | None = None,
-        registrar_url: str | None = None,
-        abuse_contact_email: str | None = None,
-        abuse_contact_phone: str | None = None,
-        registry_domain_id: str | None = None,
-        expiration_date: datetime | None = None,
-        reseller: str | None = None,
-        dns_sec_keys: List[Dict] | None = None,
-        extra_params: List[Dict] | None = None,
+        registrar_name: Optional[str] = None,
+        whois_server: Optional[str] = None,
+        registrar_url: Optional[str] = None,
+        abuse_contact_email: Optional[str] = None,
+        abuse_contact_phone: Optional[str] = None,
+        registry_domain_id: Optional[str] = None,
+        expiration_date: Optional[datetime] = None,
+        reseller: Optional[str] = None,
+        dns_sec_keys: Optional[List[Dict]] = None,
+        extra_params: Optional[List[Dict]] = None,
     ):
         input_errors = []
 
