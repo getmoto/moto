@@ -5,7 +5,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 
-from .exceptions import DuplicateRequestException, InvalidInputException
+from .exceptions import DuplicateRequestException, InvalidInputException, DomainLimitExceededException
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
     DOMAIN_OPERATION_TYPES,
@@ -18,6 +18,7 @@ from .validators import (
 
 class Route53DomainsBackend(BaseBackend):
     """Implementation of Route53Domains APIs."""
+    DEFAULT_MAX_DOMAINS_COUNT = 20
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -39,6 +40,10 @@ class Route53DomainsBackend(BaseBackend):
         extra_params: List[Dict],
     ) -> Route53DomainsOperation:
         """Register a domain"""
+
+        if len(self.__domains) == self.DEFAULT_MAX_DOMAINS_COUNT:
+            raise DomainLimitExceededException()
+
         requested_operation = Route53DomainsOperation.validate(
             domain_name=domain_name, status="SUCCESSFUL", type_="REGISTER_DOMAIN"
         )

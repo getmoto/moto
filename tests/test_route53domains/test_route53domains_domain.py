@@ -206,3 +206,19 @@ def test_duplicate_requests(register_domain_parameters):
         route53domains_client.register_domain(**register_domain_parameters)
     err = exc.value.response["Error"]
     assert err["Code"] == "DuplicateRequest"
+
+
+@mock_aws
+def test_domain_limit(register_domain_parameters):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    params = register_domain_parameters.copy()
+    for i in range(20):
+        params["DomainName"] = f"domain-{i}.com"
+        route53domains_client.register_domain(**params)
+
+    params["DomainName"] = f"domain-20.com"
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.register_domain(**params)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DomainLimitExceeded"
