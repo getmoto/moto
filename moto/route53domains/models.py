@@ -4,7 +4,8 @@ from typing import Dict, List, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
-from .exceptions import InvalidInputException, DuplicateRequestException
+
+from .exceptions import DuplicateRequestException, InvalidInputException
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
     DOMAIN_OPERATION_TYPES,
@@ -25,17 +26,17 @@ class Route53DomainsBackend(BaseBackend):
         self.__operations: Dict[str, Route53DomainsOperation] = {}
 
     def register_domain(
-            self,
-            domain_name: str,
-            duration_in_years: int,
-            auto_renew: bool,
-            admin_contact: Dict,
-            registrant_contact: Dict,
-            tech_contact: Dict,
-            private_protect_admin_contact: bool,
-            private_protect_registrant_contact: bool,
-            private_protect_tech_contact: bool,
-            extra_params: List[Dict],
+        self,
+        domain_name: str,
+        duration_in_years: int,
+        auto_renew: bool,
+        admin_contact: Dict,
+        registrant_contact: Dict,
+        tech_contact: Dict,
+        private_protect_admin_contact: bool,
+        private_protect_registrant_contact: bool,
+        private_protect_tech_contact: bool,
+        extra_params: List[Dict],
     ) -> Route53DomainsOperation:
         """Register a domain"""
         requested_operation = Route53DomainsOperation.validate(
@@ -77,21 +78,25 @@ class Route53DomainsBackend(BaseBackend):
         self.__domains[domain_name] = domain
         return requested_operation
 
-    def __validate_duplicate_requests(self, requested_operation: Route53DomainsOperation):
+    def __validate_duplicate_requests(
+        self, requested_operation: Route53DomainsOperation
+    ):
         for operation in self.__operations.values():
-            if operation.domain_name == requested_operation.domain_name \
-                    and operation.type == requested_operation.type:
+            if (
+                operation.domain_name == requested_operation.domain_name
+                and operation.type == requested_operation.type
+            ):
                 raise DuplicateRequestException()
 
     def list_operations(
-            self,
-            submitted_since_timestamp: int | None = None,
-            marker: str | None = None,
-            max_items: int | None = None,
-            statuses: List[str] | None = None,
-            types: List[str] | None = None,
-            sort_by: str | None = None,
-            sort_order: str | None = None,
+        self,
+        submitted_since_timestamp: int | None = None,
+        marker: str | None = None,
+        max_items: int | None = None,
+        statuses: List[str] | None = None,
+        types: List[str] | None = None,
+        sort_by: str | None = None,
+        sort_order: str | None = None,
     ) -> Tuple[List[Route53DomainsOperation], str | None]:
 
         errors = []
@@ -141,7 +146,7 @@ class Route53DomainsBackend(BaseBackend):
             if len(operations_to_return) < start_idx + max_items
             else str(start_idx + max_items)
         )
-        return operations_to_return[start_idx: start_idx + max_items], marker
+        return operations_to_return[start_idx : start_idx + max_items], marker
 
     @staticmethod
     def __sort_by_submitted_date(operation: Route53DomainsOperation):
