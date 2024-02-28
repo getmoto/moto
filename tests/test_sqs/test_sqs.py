@@ -3314,3 +3314,28 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
         "The queue should either have ContentBasedDeduplication enabled "
         "or MessageDeduplicationId provided explicitly"
     )
+
+
+@mock_aws
+def test_send_message_parameter_validation():
+    client = boto3.client("sqs", region_name="us-east-1")
+    client.create_queue(
+        QueueName="test.fifo",
+        Attributes={"FifoQueue": "true"},
+    )
+
+    with pytest.raises(ClientError) as err:
+        client.send_message(
+            QueueUrl="test.fifo",
+            MessageBody="{'m':'val'}",
+            DelaySeconds=5,
+            MessageGroupId="test",
+            MessageDeduplicationId=str(uuid4()),
+        )
+
+    ex = err.value
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert ex.response["Error"]["Message"] == (
+        "Value 5 for parameter DelaySeconds is invalid. Reason: "
+        "The request include parameter that is not valid for this queue type."
+    )
