@@ -75,9 +75,8 @@ def test_route53domains_register_domain(register_domain_parameters: Dict):
         if operation["OperationId"] == operation_id:
             return
 
-    assert (
-        False
-    ), "Could not find expected operation id returned from `register_domain` in operation list"
+    assert operation_id in [operation["OperationId"] for operation in operations], \
+        "Could not find expected operation id returned from `register_domain` in operation list"
 
 
 @mock_aws
@@ -90,13 +89,8 @@ def test_route53domains_register_domain_creates_hosted_zone(
     route53domains_client.register_domain(**register_domain_parameters)
 
     res = route53_client.list_hosted_zones()
-    for zone in res["HostedZones"]:
-        if zone["Name"] == "domain.com":
-            return
-
-    assert (
-        False
-    ), "`register_domain` did not create a new hosted zone with the same name"
+    assert "domain.com" in [zone["Name"] for zone in res["HostedZones"]], \
+        "`register_domain` did not create a new hosted zone with the same name"
 
 
 @mock_aws
