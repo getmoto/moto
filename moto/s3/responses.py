@@ -1116,7 +1116,9 @@ class S3Response(BaseResponse):
         else:
             status_code = 204
 
-        new_key = self.backend.put_object(bucket_name, key, f)
+        new_key = self.backend.put_object(
+            bucket_name, key, f, request_method=request.method
+        )
 
         if self.querystring.get("acl"):
             acl = get_canned_acl(self.querystring["acl"][0])
