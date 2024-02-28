@@ -926,7 +926,7 @@ class SQSBackend(BaseBackend):
             self._validate_message(
                 queue,
                 entry["MessageBody"],
-                entry.get("DelaySeconds"),
+                int(entry.get("DelaySeconds") or 0),
                 entry.get("MessageDeduplicationId"),
                 entry.get("MessageGroupId"),
             )

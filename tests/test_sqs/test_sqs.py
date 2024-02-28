@@ -45,6 +45,7 @@ TEST_POLICY = """
 MOCK_DEDUPLICATION_TIME_IN_SECONDS = 5
 REGION = "us-east-1"
 
+
 @mock_aws
 def test_create_fifo_queue_fail():
     sqs = boto3.client("sqs", region_name=REGION)
@@ -135,9 +136,7 @@ def test_create_fifo_queue():
     assert attributes["FifoThroughputLimit"] == "perQueue"
     assert attributes["MaximumMessageSize"] == "262144"
     assert attributes["MessageRetentionPeriod"] == "345600"
-    assert attributes["QueueArn"] == (
-        f"arn:aws:sqs:{region_name}:{ACCOUNT_ID}:{queue_name}"
-    )
+    assert attributes["QueueArn"] == (f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{queue_name}")
     assert attributes["ReceiveMessageWaitTimeSeconds"] == "0"
     assert attributes["VisibilityTimeout"] == "30"
 
@@ -2852,7 +2851,7 @@ def test_send_message_to_fifo_without_message_group_id():
 
 @mock_aws
 def test_send_messages_to_fifo_without_message_group_id():
-    sqs = boto3.resource("sqs", region_name="eu-west-3")
+    sqs = boto3.resource("sqs", region_name=REGION)
     queue = sqs.create_queue(
         QueueName=f"{str(uuid4())[0:6]}.fifo",
         Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
@@ -3146,9 +3145,7 @@ def test_message_has_windows_return():
 @mock_aws
 def test_message_delay_is_more_than_15_minutes():
     client = boto3.client("sqs", region_name=REGION)
-    response = client.create_queue(
-        QueueName=f"{str(uuid4())[0:6]}.fifo", Attributes={"FifoQueue": "true"}
-    )
+    response = client.create_queue(QueueName=str(uuid4())[0:6])
     queue_url = response["QueueUrl"]
 
     response = client.send_message_batch(
@@ -3164,7 +3161,6 @@ def test_message_delay_is_more_than_15_minutes():
                         "DataType": "String",
                     }
                 },
-                "MessageGroupId": "message_group_id_1",
                 "MessageDeduplicationId": "message_deduplication_id_1",
             },
             {
@@ -3174,7 +3170,6 @@ def test_message_delay_is_more_than_15_minutes():
                 "MessageAttributes": {
                     "attribute_name_2": {"StringValue": "123", "DataType": "Number"}
                 },
-                "MessageGroupId": "message_group_id_2",
                 "MessageDeduplicationId": "message_deduplication_id_2",
             },
         ],
@@ -3197,9 +3192,6 @@ def test_message_delay_is_more_than_15_minutes():
     assert response["Messages"][0]["Body"] == "body_1"
     assert response["Messages"][0]["MessageAttributes"] == (
         {"attribute_name_1": {"StringValue": "attribute_value_1", "DataType": "String"}}
-    )
-    assert (
-        response["Messages"][0]["Attributes"]["MessageGroupId"] == "message_group_id_1"
     )
     assert response["Messages"][0]["Attributes"]["MessageDeduplicationId"] == (
         "message_deduplication_id_1"
@@ -3326,7 +3318,7 @@ def test_send_message_parameter_validation():
     with pytest.raises(ClientError) as err:
         client.send_message(
             QueueUrl="test.fifo",
-            MessageBody="{'m':'val'}",
+            MessageBody="test",
             DelaySeconds=5,
             MessageGroupId="test",
             MessageDeduplicationId=str(uuid4()),
