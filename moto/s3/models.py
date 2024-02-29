@@ -2048,7 +2048,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
         checksum_value: Optional[str] = None,
+        # arguments to handle notification
         request_method: Optional[str] = "PUT",
+        disable_notification: Optional[bool] = False,
     ) -> FakeKey:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
@@ -2097,21 +2099,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
-        # Send event notification
-        if request_method == "POST":
-            notify_event_name = (
-                notifications.S3NotificationEvent.OBJECT_CREATED_POST_EVENT
+        if not disable_notification:
+            # Send event notification
+            if request_method == "POST":
+                notify_event_name = (
+                    notifications.S3NotificationEvent.OBJECT_CREATED_POST_EVENT
+                )
+            else:  # PUT request
+                notify_event_name = (
+                    notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT
+                )
+            notifications.send_event(
+                self.account_id,
+                notify_event_name,
+                bucket,
+                new_key,
             )
-        else:  # PUT request
-            notify_event_name = (
-                notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT
-            )
-        notifications.send_event(
-            self.account_id,
-            notify_event_name,
-            bucket,
-            new_key,
-        )
 
         return new_key
 
@@ -2706,6 +2709,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            disable_notification=True,  # avoid sending PutObject events here
         )
         self.tagger.copy_tags(src_key.arn, new_key.arn)
         if mdirective != "REPLACE":
