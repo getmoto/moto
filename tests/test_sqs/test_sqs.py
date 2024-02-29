@@ -3308,22 +3308,39 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
 
 
 @mock_aws
-def test_send_message_parameter_validation():
+@pytest.mark.parametrize(
+    "queue_config", [{"FifoQueue": "true"}, {"FifoQueue": "true", "DelaySeconds": "10"}]
+)
+def test_send_message_delay_seconds_validation(queue_config):
+    # Setup
     client = boto3.client("sqs", region_name=REGION)
+    q = "test.fifo"
     client.create_queue(
-        QueueName="test.fifo",
-        Attributes={"FifoQueue": "true"},
+        QueueName=q,
+        Attributes=queue_config,
     )
 
+    # Execute
     with pytest.raises(ClientError) as err:
         client.send_message(
-            QueueUrl="test.fifo",
+            QueueUrl=q,
             MessageBody="test",
             DelaySeconds=5,
             MessageGroupId="test",
             MessageDeduplicationId=str(uuid4()),
         )
 
+    # this should succeed regardless of DelaySeconds configuration on the q
+    # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html#API_SendMessage_RequestSyntax
+    client.send_message(
+        QueueUrl=q,
+        MessageBody="test",
+        DelaySeconds=0,
+        MessageGroupId="test",
+        MessageDeduplicationId=str(uuid4()),
+    )
+
+    # Verify
     ex = err.value
     assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
