@@ -45,7 +45,7 @@ ecr
 - [X] get_lifecycle_policy
 - [ ] get_lifecycle_policy_preview
 - [X] get_registry_policy
-- [ ] get_registry_scanning_configuration
+- [X] get_registry_scanning_configuration
 - [X] get_repository_policy
 - [ ] initiate_layer_upload
 - [X] list_images

@@ -324,11 +324,24 @@ class ECRResponse(BaseResponse):
             )
         )
 
+    def get_registry_scanning_configuration(self) -> str:
+        registry_scanning_config = (
+            self.ecr_backend.get_registry_scanning_configuration()
+        )
+        return json.dumps(
+            {
+                "registryId": self.current_account,
+                "scanningConfiguration": registry_scanning_config,
+            }
+        )
+
     def put_registry_scanning_configuration(self) -> str:
         scan_type = self._get_param("scanType")
         rules = self._get_param("rules")
-        self.ecr_backend.put_registry_scanning_configuration(rules)
-        return json.dumps({"scanType": scan_type, "rules": rules})
+        self.ecr_backend.put_registry_scanning_configuration(scan_type, rules)
+        return json.dumps(
+            {"registryScanningConfiguration": {"scanType": scan_type, "rules": rules}}
+        )
 
     def describe_registry(self) -> str:
         return json.dumps(self.ecr_backend.describe_registry())

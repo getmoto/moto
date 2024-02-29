@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+import threading
 from collections import namedtuple
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -390,6 +391,11 @@ class ECRBackend(BaseBackend):
         self.registry_policy: Optional[str] = None
         self.replication_config: Dict[str, Any] = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
+        self.registry_scanning_configuration: Dict[str, Any] = {
+            "scanType": "BASIC",
+            "rules": [],
+        }
+        self.registry_scanning_configuration_update_lock = threading.RLock()
         self.tagger = TaggingService(tag_name="tags")
 
     @staticmethod
@@ -494,6 +500,19 @@ class ECRBackend(BaseBackend):
         )
         self.repositories[repository_name] = repository
         self.tagger.tag_resource(repository.arn, tags)
+
+        # check if any of the registry scanning policies applies to the repository
+        with self.registry_scanning_configuration_update_lock:
+            for rule in self.registry_scanning_configuration["rules"]:
+                for repo_filter in rule["repositoryFilters"]:
+                    if self._match_repository_filter(
+                        repo_filter["filter"], repository_name
+                    ):
+                        repository.scanning_config["scanFrequency"] = rule[
+                            "scanFrequency"
+                        ]
+                        # AWS testing seems to indicate that this is always overwritten
+                        repository.scanning_config["appliedScanFilters"] = [repo_filter]
 
         return repository
 
@@ -1117,16 +1136,41 @@ class ECRBackend(BaseBackend):
 
         return {"replicationConfiguration": replication_config}
 
-    def put_registry_scanning_configuration(self, rules: List[Dict[str, Any]]) -> None:
-        for rule in rules:
-            for repo_filter in rule["repositoryFilters"]:
-                for repo in self.repositories.values():
-                    if repo_filter["filter"] == repo.name or re.match(
-                        repo_filter["filter"], repo.name
-                    ):
-                        repo.scanning_config["scanFrequency"] = rule["scanFrequency"]
-                        # AWS testing seems to indicate that this is always overwritten
-                        repo.scanning_config["appliedScanFilters"] = [repo_filter]
+    def _match_repository_filter(self, filter: str, repository_name: str) -> bool:
+        filter_regex = filter.replace("*", ".*")
+        return filter in repository_name or bool(
+            re.match(filter_regex, repository_name)
+        )
+
+    def get_registry_scanning_configuration(self) -> Dict[str, Any]:
+        return self.registry_scanning_configuration
+
+    def put_registry_scanning_configuration(
+        self, scan_type: str, rules: List[Dict[str, Any]]
+    ) -> None:
+        # locking here to avoid simultaneous updates which leads to inconsistent state
+        with self.registry_scanning_configuration_update_lock:
+            self.registry_scanning_configuration = {
+                "scanType": scan_type,
+                "rules": rules,
+            }
+
+            # reset all rules first
+            for repo in self.repositories.values():
+                repo.scanning_config["scanFrequency"] = "MANUAL"
+                repo.scanning_config["appliedScanFilters"] = []
+
+            for rule in rules:
+                for repo_filter in rule["repositoryFilters"]:
+                    for repo in self.repositories.values():
+                        if self._match_repository_filter(
+                            repo_filter["filter"], repo.name
+                        ):
+                            repo.scanning_config["scanFrequency"] = rule[
+                                "scanFrequency"
+                            ]
+                            # AWS testing seems to indicate that this is always overwritten
+                            repo.scanning_config["appliedScanFilters"] = [repo_filter]
 
     def describe_registry(self) -> Dict[str, Any]:
         return {
