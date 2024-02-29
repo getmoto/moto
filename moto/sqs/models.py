@@ -792,6 +792,7 @@ class SQSBackend(BaseBackend):
         self,
         queue: Queue,
         message_body: str,
+        delay_seconds: int,
         deduplication_id: Optional[str] = None,
         group_id: Optional[str] = None,
     ) -> None:
@@ -813,6 +814,12 @@ class SQSBackend(BaseBackend):
                     "MessageDeduplicationId provided explicitly"
                 )
                 raise InvalidParameterValue(msg)
+
+            if delay_seconds > 0:
+                raise InvalidParameterValue(
+                    f"Value {delay_seconds} for parameter DelaySeconds is invalid. Reason: "
+                    "The request include parameter that is not valid for this queue type."
+                )
 
         if len(message_body) > queue.maximum_message_size:  # type: ignore
             msg = f"One or more parameters are invalid. Reason: Message must be shorter than {queue.maximum_message_size} bytes."  # type: ignore
@@ -843,12 +850,14 @@ class SQSBackend(BaseBackend):
     ) -> Message:
         queue = self.get_queue(queue_name)
 
-        self._validate_message(queue, message_body, deduplication_id, group_id)
-
         if delay_seconds is not None:
             delay_seconds = int(delay_seconds)
         else:
             delay_seconds = queue.delay_seconds  # type: ignore
+
+        self._validate_message(
+            queue, message_body, delay_seconds, deduplication_id, group_id
+        )
 
         message_id = str(random.uuid4())
         message = Message(message_id, message_body, system_attributes)
@@ -917,6 +926,7 @@ class SQSBackend(BaseBackend):
             self._validate_message(
                 queue,
                 entry["MessageBody"],
+                int(entry.get("DelaySeconds") or 0),
                 entry.get("MessageDeduplicationId"),
                 entry.get("MessageGroupId"),
             )
