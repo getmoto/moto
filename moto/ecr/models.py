@@ -391,7 +391,10 @@ class ECRBackend(BaseBackend):
         self.registry_policy: Optional[str] = None
         self.replication_config: Dict[str, Any] = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
-        self.registry_scanning_configuration = {"scanType": "BASIC", "rules": []}
+        self.registry_scanning_configuration: Dict[str, Any] = {
+            "scanType": "BASIC",
+            "rules": [],
+        }
         self.registry_scanning_configuration_update_lock = threading.RLock()
         self.tagger = TaggingService(tag_name="tags")
 
@@ -499,14 +502,17 @@ class ECRBackend(BaseBackend):
         self.tagger.tag_resource(repository.arn, tags)
 
         # check if any of the registry scanning policies applies to the repository
-        for rule in self.registry_scanning_configuration["rules"]:
-            for repo_filter in rule["repositoryFilters"]:
-                if self._match_repository_filter(
-                    repo_filter["filter"], repository_name
-                ):
-                    repository.scanning_config["scanFrequency"] = rule["scanFrequency"]
-                    # AWS testing seems to indicate that this is always overwritten
-                    repository.scanning_config["appliedScanFilters"] = [repo_filter]
+        with self.registry_scanning_configuration_update_lock:
+            for rule in self.registry_scanning_configuration["rules"]:
+                for repo_filter in rule["repositoryFilters"]:
+                    if self._match_repository_filter(
+                        repo_filter["filter"], repository_name
+                    ):
+                        repository.scanning_config["scanFrequency"] = rule[
+                            "scanFrequency"
+                        ]
+                        # AWS testing seems to indicate that this is always overwritten
+                        repository.scanning_config["appliedScanFilters"] = [repo_filter]
 
         return repository
 
@@ -1130,9 +1136,11 @@ class ECRBackend(BaseBackend):
 
         return {"replicationConfiguration": replication_config}
 
-    def _match_repository_filter(self, filter: str, repository_name: str):
+    def _match_repository_filter(self, filter: str, repository_name: str) -> bool:
         filter_regex = filter.replace("*", ".*")
-        return filter in repository_name or re.match(filter_regex, repository_name)
+        return filter in repository_name or bool(
+            re.match(filter_regex, repository_name)
+        )
 
     def get_registry_scanning_configuration(self) -> Dict[str, Any]:
         return self.registry_scanning_configuration
