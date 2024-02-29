@@ -3347,3 +3347,6 @@ def test_send_message_delay_seconds_validation(queue_config):
         "Value 5 for parameter DelaySeconds is invalid. Reason: "
         "The request include parameter that is not valid for this queue type."
     )
+
+    # clean up for servertests
+    client.delete_queue(QueueUrl=q)
