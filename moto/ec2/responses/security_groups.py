@@ -86,6 +86,12 @@ class SecurityGroups(EC2BaseResponse):
                 d = d[subkey]
             d[key_splitted[-1]] = value
 
+        tags = {}
+        qs_tags = querytree.get("TagSpecification", {})
+        if qs_tags and 1 in qs_tags and 'Tag' in qs_tags[1]:
+            for tag_item in qs_tags[1]['Tag'].items():
+                tags[tag_item[1]['Key'][0]] = tag_item[1]['Value'][0]
+
         if "IpPermissions" not in querytree:
             # Handle single rule syntax
             (
@@ -103,9 +109,11 @@ class SecurityGroups(EC2BaseResponse):
                 from_port,
                 to_port,
                 ip_ranges,
+                tags,
                 source_groups,
                 prefix_list_ids,
                 security_rule_ids,
+
             )
 
         ip_permissions = querytree.get("IpPermissions") or {}
@@ -127,6 +135,7 @@ class SecurityGroups(EC2BaseResponse):
                 from_port,
                 to_port,
                 ip_ranges,
+                tags,
                 source_groups,
                 prefix_list_ids,
                 security_rule_ids,
@@ -470,6 +479,14 @@ AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressRes
             {% if rule.to_port is not none %}
             <toPort>{{ rule.to_port }}</toPort>
             {% endif %}
+            <tagSet>
+                {% for tag in rule.get_tags() %}
+                    <item>
+                      <key>{{ tag.key }}</key>
+                      <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+            </tagSet> 
         </item>
     {% endfor %}
     {% for item in rule.prefix_list_ids %}
@@ -550,6 +567,14 @@ AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE = """<AuthorizeSecurityGroupEgressRespo
             {% if rule.to_port is not none %}
             <toPort>{{ rule.to_port }}</toPort>
             {% endif %}
+            <tagSet>
+                {% for tag in rule.get_tags() %}
+                    <item>
+                      <key>{{ tag.key }}</key>
+                      <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+            </tagSet> 
         </item>
     {% endfor %}
     {% for item in rule.prefix_list_ids %}

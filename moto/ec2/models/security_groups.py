@@ -18,6 +18,7 @@ from ..exceptions import (
     RulesPerSecurityGroupLimitExceededError,
 )
 from ..utils import (
+    convert_tag_spec,
     is_tag_filter,
     is_valid_cidr,
     is_valid_ipv6_cidr,
@@ -39,6 +40,7 @@ class SecurityRule(TaggedEC2Resource):
         source_groups: List[Dict[str, Any]],
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         is_egress: bool = True,
+        tags: dict = {}
     ):
         self.ec2_backend = ec2_backend
         self.id = random_security_group_rule_id()
@@ -73,6 +75,7 @@ class SecurityRule(TaggedEC2Resource):
             else None
         )
         self.ip_protocol = proto if proto else self.ip_protocol
+        self.add_tags(tags)
 
     @property
     def owner_id(self) -> str:
@@ -657,6 +660,7 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: List[Any],
+        tags: [list],
         source_groups: Optional[List[Dict[str, str]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
@@ -701,6 +705,7 @@ class SecurityGroupBackend:
             _source_groups,
             prefix_list_ids,
             is_egress=False,
+            tags=tags
         )
 
         if security_rule in group.ingress_rules:
@@ -738,6 +743,7 @@ class SecurityGroupBackend:
                 break
         else:
             group.add_ingress_rule(security_rule)
+
         return security_rule, group
 
     def revoke_security_group_ingress(
