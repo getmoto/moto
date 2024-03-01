@@ -743,7 +743,7 @@ class Role(CloudFormationModel):
 
         for role in backend.roles.values():
             if role.name == resource_name:
-                for arn in role.policies.keys():
+                for arn in list(role.policies.keys()):
                     role.delete_policy(arn)
         backend.delete_role(resource_name)
 
