@@ -660,7 +660,7 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: List[Any],
-        tags: [list],
+        sgrule_tags: Dict[str, str],
         source_groups: Optional[List[Dict[str, str]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
@@ -705,7 +705,7 @@ class SecurityGroupBackend:
             _source_groups,
             prefix_list_ids,
             is_egress=False,
-            tags=tags
+            tags=sgrule_tags
         )
 
         if security_rule in group.ingress_rules:

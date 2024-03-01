@@ -86,11 +86,14 @@ class SecurityGroups(EC2BaseResponse):
                 d = d[subkey]
             d[key_splitted[-1]] = value
 
-        tags = {}
+        sg_rule_tags = {}
         qs_tags = querytree.get("TagSpecification", {})
         if qs_tags and 1 in qs_tags and 'Tag' in qs_tags[1]:
+            temp_tags = {}
             for tag_item in qs_tags[1]['Tag'].items():
-                tags[tag_item[1]['Key'][0]] = tag_item[1]['Value'][0]
+                temp_tags[tag_item[1]['Key'][0]] = tag_item[1]['Value'][0]
+            if qs_tags[1]['ResourceType'][0] == 'security-group-rule':
+                sg_rule_tags = temp_tags
 
         if "IpPermissions" not in querytree:
             # Handle single rule syntax
@@ -109,7 +112,7 @@ class SecurityGroups(EC2BaseResponse):
                 from_port,
                 to_port,
                 ip_ranges,
-                tags,
+                sg_rule_tags,
                 source_groups,
                 prefix_list_ids,
                 security_rule_ids,
@@ -135,7 +138,7 @@ class SecurityGroups(EC2BaseResponse):
                 from_port,
                 to_port,
                 ip_ranges,
-                tags,
+                sg_rule_tags,
                 source_groups,
                 prefix_list_ids,
                 security_rule_ids,
