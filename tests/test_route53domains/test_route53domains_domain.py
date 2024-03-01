@@ -112,7 +112,7 @@ def test_route53domains_register_domain_fails_on_invalid_input(
 
 
 @mock_aws
-def test_route53domains_register_domain_fails_on_invalid_tld( domain_parameters: Dict):
+def test_route53domains_register_domain_fails_on_invalid_tld(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
 
@@ -222,3 +222,28 @@ def test_domain_limit(domain_parameters: Dict):
 
     err = exc.value.response["Error"]
     assert err["Code"] == "DomainLimitExceeded"
+
+
+@mock_aws
+def test_get_domain_detail(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    res = route53domains_client.get_domain_detail(DomainName=domain_parameters["DomainName"])
+    assert res["DomainName"] == domain_parameters["DomainName"]
+
+
+@mock_aws
+def test_get_invalid_domain_detail(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.get_domain_detail(DomainName="not-a-domain")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.get_domain_detail(DomainName="test.non-existing-tld")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "UnsupportedTLD"

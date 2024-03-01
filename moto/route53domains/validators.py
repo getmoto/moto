@@ -829,11 +829,7 @@ class Route53DomainsContactDetail(BaseModel):
             "ExtraParams": self.extra_params,
         }
 
-        for key in d:
-            if d[key] is None:
-                del d[key]
-
-        return d
+        return {key: value for key, value in d.items() if value is not None}
 
 
 class NameServer:
@@ -944,7 +940,7 @@ class Route53Domain(BaseModel):
     ):
         input_errors = []
 
-        cls.__validate_domain_name(domain_name, input_errors)
+        cls.validate_domain_name(domain_name, input_errors)
 
         name_servers = name_servers or []
         try:
@@ -1007,7 +1003,7 @@ class Route53Domain(BaseModel):
         )
 
     @staticmethod
-    def __validate_domain_name(domain_name: str, input_errors: List[str]):
+    def validate_domain_name(domain_name: str, input_errors: List[str]):
         if not VALID_DOMAIN_REGEX.match(domain_name):
             input_errors.append("Invalid domain name")
             return

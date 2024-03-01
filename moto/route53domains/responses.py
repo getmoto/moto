@@ -48,6 +48,12 @@ class Route53DomainsResponse(BaseResponse):
 
         return json.dumps({"OperationId": operation.id})
 
+    def get_domain_detail(self) -> str:
+        """Get detailed information about a specified domain"""
+        domain_name: Optional[str] = self._get_param("DomainName")
+
+        return json.dumps(self.route53domains_backend.get_domain(domain_name=domain_name).to_json())
+
     def list_operations(self):
         submitted_since_timestamp: Optional[int] = self._get_int_param("SubmittedSince")
         max_items: Optional[int] = self._get_int_param("MaxItems")

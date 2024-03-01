@@ -98,6 +98,17 @@ class Route53DomainsBackend(BaseBackend):
             ):
                 raise DuplicateRequestException()
 
+    def get_domain(self, domain_name: str) -> Route53Domain:
+        input_errors: List[str] = []
+        Route53Domain.validate_domain_name(domain_name, input_errors)
+        if input_errors:
+            raise InvalidInputException(input_errors)
+
+        if domain_name not in self.__domains:
+            raise InvalidInputException(["Domain is not associated with this account"])
+
+        return self.__domains[domain_name]
+
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,
@@ -156,7 +167,7 @@ class Route53DomainsBackend(BaseBackend):
             if len(operations_to_return) < start_idx + max_items
             else str(start_idx + max_items)
         )
-        return operations_to_return[start_idx : start_idx + max_items], marker
+        return operations_to_return[start_idx: start_idx + max_items], marker
 
     @staticmethod
     def __sort_by_submitted_date(operation: Route53DomainsOperation):
