@@ -63,6 +63,14 @@ def generate_invalid_domain_parameters(domain_parameters: Dict) -> Dict:
     return domain_parameters
 
 
+@pytest.fixture(name="with_domain")
+def register_domain(domain_parameters: Dict):
+    with mock_aws():
+        route53domains_client = boto3.client("route53domains", region_name="global")
+        route53domains_client.register_domain(**domain_parameters)
+        yield
+
+
 @mock_aws
 def test_route53domains_register_domain(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
@@ -81,9 +89,7 @@ def test_route53domains_register_domain(domain_parameters: Dict):
 
 
 @mock_aws
-def test_route53domains_register_domain_creates_hosted_zone(
-    domain_parameters: Dict,
-):
+def test_route53domains_register_domain_creates_hosted_zone(domain_parameters: Dict,):
     """Test good register domain API calls."""
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
@@ -116,9 +122,10 @@ def test_route53domains_register_domain_fails_on_invalid_tld(domain_parameters: 
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
 
-    domain_parameters["DomainName"] = "test.non-existing-tld"
+    params = domain_parameters.copy()
+    params["DomainName"] = "test.non-existing-tld"
     with pytest.raises(ClientError) as exc:
-        route53domains_client.register_domain(**domain_parameters)
+        route53domains_client.register_domain(**params)
 
     err = exc.value.response["Error"]
     assert err["Code"] == "UnsupportedTLD"
@@ -128,10 +135,8 @@ def test_route53domains_register_domain_fails_on_invalid_tld(domain_parameters: 
 
 
 @mock_aws
-def test_route53domains_list_operations(domain_parameters: Dict):
+def test_route53domains_list_operations(with_domain):
     route53domains_client = boto3.client("route53domains", region_name="global")
-    route53domains_client.register_domain(**domain_parameters)
-
     operations = route53domains_client.list_operations()["Operations"]
     assert len(operations) == 1
 
@@ -199,9 +204,8 @@ def test_list_operations_marker(domain_parameters: Dict):
 
 
 @mock_aws
-def test_duplicate_requests(domain_parameters: Dict):
+def test_duplicate_requests(with_domain, domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
-    route53domains_client.register_domain(**domain_parameters)
     with pytest.raises(ClientError) as exc:
         route53domains_client.register_domain(**domain_parameters)
     err = exc.value.response["Error"]
@@ -225,17 +229,15 @@ def test_domain_limit(domain_parameters: Dict):
 
 
 @mock_aws
-def test_get_domain_detail(domain_parameters: Dict):
+def test_get_domain_detail(with_domain, domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
-    route53domains_client.register_domain(**domain_parameters)
     res = route53domains_client.get_domain_detail(DomainName=domain_parameters["DomainName"])
     assert res["DomainName"] == domain_parameters["DomainName"]
 
 
 @mock_aws
-def test_get_invalid_domain_detail(domain_parameters: Dict):
+def test_get_invalid_domain_detail(with_domain):
     route53domains_client = boto3.client("route53domains", region_name="global")
-    route53domains_client.register_domain(**domain_parameters)
     with pytest.raises(ClientError) as exc:
         route53domains_client.get_domain_detail(DomainName="not-a-domain")
 
