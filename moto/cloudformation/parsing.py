@@ -835,8 +835,15 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             for key, value in self._resource_json_map.items()
             if not value.get("DeletionPolicy") == "Retain"
         )
-        tries = 1
-        while remaining_resources and tries < 5:
+        # Keep track of how many resources we deleted before
+        # (set to current + 1 to pretend the number of resources is already going down)
+        previous_remaining_resources = len(remaining_resources) + 1
+        # Delete while we have resources, and while the number of remaining resources is going down
+        while (
+            remaining_resources
+            and len(remaining_resources) < previous_remaining_resources
+        ):
+            previous_remaining_resources = len(remaining_resources)
             for resource in remaining_resources.copy():
                 parsed_resource = self._parsed_resources.get(resource)
                 try:
@@ -858,8 +865,8 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                     last_exception = e
                 else:
                     remaining_resources.remove(resource)
-            tries += 1
-        if tries == 5:
+
+        if remaining_resources:
             raise last_exception
 
     def _delete_resource(

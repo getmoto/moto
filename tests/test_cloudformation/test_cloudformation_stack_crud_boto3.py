@@ -1724,6 +1724,49 @@ def test_delete_stack():
 
 
 @mock_aws
+@pytest.mark.parametrize("nr_of_resources", [1, 3, 5])
+def test_delete_stack_with_nested_resources(nr_of_resources):
+    """
+    Resources can be dependent on eachother
+    Verify that we'll keep deleting resources from a stack until there are none left
+    """
+    nested_template = {"Resources": {}}
+    for idx in range(nr_of_resources):
+        role_refs = []
+        for idy in range(nr_of_resources):
+            role = {
+                "Type": "AWS::IAM::Role",
+                "Properties": {
+                    "AssumeRolePolicyDocument": {
+                        "Statement": [
+                            {
+                                "Action": ["sts:AssumeRole"],
+                                "Effect": "Allow",
+                                "Principal": {"Service": ["ec2.amazonaws.com"]},
+                            }
+                        ]
+                    }
+                },
+            }
+            nested_template["Resources"].update({f"role{idx}_{idy}": role})
+            role_refs.append({"Ref": f"role{idx}_{idy}"})
+
+        instance_profile = {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {"Path": "/", "Roles": role_refs},
+        }
+        nested_template["Resources"].update({f"ip{idx}": instance_profile})
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=json.dumps(nested_template))
+    cf.delete_stack(StackName=TEST_STACK_NAME)
+
+    iam = boto3.client("iam", REGION_NAME)
+    assert not iam.list_roles()["Roles"]
+    assert not iam.list_instance_profiles()["InstanceProfiles"]
+
+
+@mock_aws
 @pytest.mark.skipif(
     settings.TEST_SERVER_MODE,
     reason="Can't patch model delete attributes in server mode.",
