@@ -679,8 +679,8 @@ class Route53DomainsOperation(BaseModel):
             "Status": self.status,
             "StatusFlag": self.status_flag,
             "DomainName": self.domain_name,
-            "LastUpdatedDate": self.last_updated_date.isoformat(),
-            "SubmittedDate": self.submitted_date.isoformat(),
+            "LastUpdatedDate": self.last_updated_date.timestamp(),
+            "SubmittedDate": self.submitted_date.timestamp(),
             "Type": self.type,
         }
 
@@ -1061,9 +1061,9 @@ class Route53Domain(BaseModel):
             "AbuseContactEmail": self.abuse_contact_email,
             "AbuseContactPhone": self.abuse_contact_phone,
             "RegistryDomainId": "",
-            "CreationDate": self.creation_date.isoformat(),
-            "UpdateDate": self.updated_date.isoformat(),
-            "ExpirationDate": self.expiration_date.isoformat(),
+            "CreationDate": self.creation_date.timestamp(),
+            "UpdateDate": self.updated_date.timestamp(),
+            "ExpirationDate": self.expiration_date.timestamp(),
             "Reseller": self.reseller,
             "DnsSec": "",
             "StatusList": self.status_list,
