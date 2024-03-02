@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict
+from typing import Dict, List
 
 import boto3
 import pytest
@@ -63,14 +63,6 @@ def generate_invalid_domain_parameters(domain_parameters: Dict) -> Dict:
     return domain_parameters
 
 
-@pytest.fixture(name="with_domain")
-def register_domain(domain_parameters: Dict):
-    with mock_aws():
-        route53domains_client = boto3.client("route53domains", region_name="global")
-        route53domains_client.register_domain(**domain_parameters)
-        yield
-
-
 @mock_aws
 def test_route53domains_register_domain(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
@@ -89,7 +81,9 @@ def test_route53domains_register_domain(domain_parameters: Dict):
 
 
 @mock_aws
-def test_route53domains_register_domain_creates_hosted_zone(domain_parameters: Dict,):
+def test_route53domains_register_domain_creates_hosted_zone(
+    domain_parameters: Dict,
+):
     """Test good register domain API calls."""
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
@@ -135,8 +129,9 @@ def test_route53domains_register_domain_fails_on_invalid_tld(domain_parameters: 
 
 
 @mock_aws
-def test_route53domains_list_operations(with_domain):
+def test_route53domains_list_operations(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
     operations = route53domains_client.list_operations()["Operations"]
     assert len(operations) == 1
 
@@ -204,8 +199,9 @@ def test_list_operations_marker(domain_parameters: Dict):
 
 
 @mock_aws
-def test_duplicate_requests(with_domain, domain_parameters: Dict):
+def test_duplicate_requests(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
     with pytest.raises(ClientError) as exc:
         route53domains_client.register_domain(**domain_parameters)
     err = exc.value.response["Error"]
@@ -229,15 +225,20 @@ def test_domain_limit(domain_parameters: Dict):
 
 
 @mock_aws
-def test_get_domain_detail(with_domain, domain_parameters: Dict):
+def test_get_domain_detail(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
-    res = route53domains_client.get_domain_detail(DomainName=domain_parameters["DomainName"])
+    route53domains_client.register_domain(**domain_parameters)
+    res = route53domains_client.get_domain_detail(
+        DomainName=domain_parameters["DomainName"]
+    )
     assert res["DomainName"] == domain_parameters["DomainName"]
 
 
 @mock_aws
-def test_get_invalid_domain_detail(with_domain):
+def test_get_invalid_domain_detail(domain_parameters):
     route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+
     with pytest.raises(ClientError) as exc:
         route53domains_client.get_domain_detail(DomainName="not-a-domain")
 
@@ -249,3 +250,165 @@ def test_get_invalid_domain_detail(with_domain):
 
     err = exc.value.response["Error"]
     assert err["Code"] == "UnsupportedTLD"
+
+
+@mock_aws
+def test_list_domains(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    res = route53domains_client.list_domains()
+
+    assert len(res["Domains"]) == 1
+    params = domain_parameters.copy()
+    params["DomainName"] = "new-domain.com"
+    route53domains_client.register_domain(**params)
+    res = route53domains_client.list_domains()
+    assert len(res["Domains"]) == 2
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "filters,expected_domains_len",
+    [
+        (
+            [
+                {
+                    "Name": "DomainName",
+                    "Operator": "BEGINS_WITH",
+                    "Values": ["some-non-registered-domain.com"],
+                }
+            ],
+            0,  # expected_domains_len
+        ),
+        (
+            [
+                {
+                    "Name": "DomainName",
+                    "Operator": "BEGINS_WITH",
+                    "Values": ["domain.com"],
+                }
+            ],
+            1,  # expected_domains_len
+        ),
+        (
+            [
+                {
+                    "Name": "Expiry",
+                    "Operator": "GE",
+                    "Values": [
+                        str(
+                            datetime.fromisocalendar(
+                                year=2012, week=20, day=3
+                            ).timestamp()
+                        )
+                    ],
+                }
+            ],
+            1,  # expected_domains_len
+        ),
+        (
+            [
+                {
+                    "Name": "Expiry",
+                    "Operator": "GE",
+                    "Values": [
+                        str(
+                            datetime.fromisocalendar(
+                                year=2050, week=20, day=3
+                            ).timestamp()
+                        )
+                    ],
+                }
+            ],
+            0,  # expected_domains_len
+        ),
+    ],
+)
+def test_list_domains_filters(
+    domain_parameters: Dict, filters: List[Dict], expected_domains_len: int
+):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    res = route53domains_client.list_domains(FilterConditions=filters)
+    assert len(res["Domains"]) == expected_domains_len
+
+
+@mock_aws
+def test_list_domains_sort_condition(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    params = domain_parameters.copy()
+    params["DomainName"] = "adomain.com"
+    route53domains_client.register_domain(**params)
+    params["DomainName"] = "bdomain.com"
+    route53domains_client.register_domain(**params)
+    sort = {"Name": "DomainName", "SortOrder": "DES"}
+    res = route53domains_client.list_domains(SortCondition=sort)
+    domains = res["Domains"]
+    assert domains[0]["DomainName"] == "bdomain.com"
+    assert domains[1]["DomainName"] == "adomain.com"
+
+    sort = {"Name": "Expiry", "SortOrder": "ASC"}
+    res = route53domains_client.list_domains(SortCondition=sort)
+    domains = res["Domains"]
+    assert domains[0]["DomainName"] == "adomain.com"
+    assert domains[1]["DomainName"] == "bdomain.com"
+
+
+@mock_aws
+def test_list_domains_invalid_filter(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    filters = [
+        {
+            "Name": "InvalidField",
+            "Operator": "InvalidOperator",
+            "Values": ["value-1", "value-2"],  # multiple values isn't supported
+        }
+    ]
+
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.list_domains(FilterConditions=filters)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+def test_list_domains_invalid_sort_condition(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    sort = {
+        "Name": "InvalidField",
+        "SortOrder": "InvalidOrder",
+    }
+
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.list_domains(SortCondition=sort)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+def test_list_domains_sort_condition_not_the_same_as_filter_condition(
+    domain_parameters: Dict,
+):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    sort = {
+        "Name": "Expiry",
+        "SortOrder": "ASC",
+    }
+    filters = [
+        {
+            "Name": "DomainName",
+            "Operator": "BEGINS_WITH",
+            "Values": ["domain.com"],
+        }
+    ]
+
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.list_domains(FilterConditions=filters, SortCondition=sort)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"

@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from ipaddress import ip_address
 from typing import Dict, List, Optional
 
@@ -604,6 +605,22 @@ VALID_DOMAIN_REGEX = re.compile(
 PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d+$")
 
 
+class DomainFilterField(str, Enum):
+    domain_name = "DomainName"
+    expiry = "Expiry"
+
+
+class DomainSortOrder(str, Enum):
+    ascending = "ASC"
+    descending = "DES"
+
+
+class DomainFilterOperator(str, Enum):
+    le = "LE"
+    ge = "GE"
+    begins_with = "BEGINS_WITH"
+
+
 class ValidationException(Exception):
     def __init__(self, errors: List[str]):
         super().__init__("\n\t".join(errors))
@@ -857,9 +874,9 @@ class NameServer:
         return cls(name, glue_ips)
 
     @classmethod
-    def validate_dict(cls, d: Dict):
-        name = d.get("Name")
-        glue_ips = d.get("GlueIPs")
+    def validate_dict(cls, data: Dict):
+        name = data.get("Name")
+        glue_ips = data.get("GlueIPs")
         return cls.validate(name, glue_ips)
 
     def to_json(self) -> Dict:
@@ -1038,3 +1055,112 @@ class Route53Domain(BaseModel):
             "DnsSecKeys": self.dns_sec_keys,
             "BillingContact": self.admin_contact.to_json(),
         }
+
+
+class DomainsFilter:
+    def __init__(
+        self, name: DomainFilterField, operator: DomainFilterOperator, values: List[str]
+    ):
+        self.name: DomainFilterField = name
+        self.operator: DomainFilterOperator = operator
+        self.values = values
+
+    def filter(self, domain: Route53Domain) -> bool:
+        if self.name == DomainFilterField.domain_name:
+            return self.__filter_by_domain_name(domain)
+        return self.__filter_by_expiry_date(domain)
+
+    def __filter_by_domain_name(self, domain: Route53Domain) -> bool:
+        if any([domain.domain_name.startswith(value) for value in self.values]):
+            return True
+
+    def __filter_by_expiry_date(self, domain: Route53Domain) -> bool:
+        return (
+            any(
+                [
+                    value
+                    for value in self.values
+                    if domain.expiration_date
+                    >= datetime.fromtimestamp(float(value), tz=timezone.utc)
+                ]
+            )
+            if self.operator == DomainFilterOperator.ge
+            else any(
+                [
+                    value
+                    for value in self.values
+                    if domain.expiration_date
+                    <= datetime.fromtimestamp(float(value), tz=timezone.utc)
+                ]
+            )
+        )
+
+    @classmethod
+    def validate(cls, name: str, operator: str, values: List[str]):
+        input_errors = []
+        if name not in DomainFilterField:
+            input_errors.append(f"Cannot filter by field {name}")
+
+        if operator not in DomainFilterOperator:
+            input_errors.append(f"Invalid filter operator {operator}")
+
+        if len(values) != 1:
+            input_errors.append("Multiple filter values are not currently supported")
+
+        if (
+            name == DomainFilterField.domain_name
+            and operator != DomainFilterOperator.begins_with
+        ):
+            input_errors.append(
+                f"Operator {operator} cannot be used with the DomainName filter"
+            )
+
+        if name == DomainFilterField.expiry and operator not in (
+            DomainFilterOperator.ge,
+            DomainFilterOperator.le,
+        ):
+            input_errors.append(
+                f"Operator {operator} cannot be used with the Expiry filter"
+            )
+
+        if input_errors:
+            raise ValidationException(input_errors)
+
+        return cls(
+            name=DomainFilterField(name),
+            operator=DomainFilterOperator(operator),
+            values=values,
+        )
+
+    @classmethod
+    def validate_dict(cls, data: Dict):
+        name: Optional[str] = data.get("Name")
+        operator: Optional[str] = data.get("Operator")
+        values: Optional[List[str]] = data.get("Values")
+        return cls.validate(name=name, operator=operator, values=values)
+
+
+class DomainsSortCondition:
+    def __init__(self, name: DomainFilterField, sort_order: DomainSortOrder):
+        self.name: DomainFilterField = name
+        self.sort_order: DomainSortOrder = sort_order
+
+    @classmethod
+    def validate(cls, name: str, sort_order: str):
+        input_errors = []
+        if name not in DomainFilterField:
+            input_errors.append(f"Cannot sort by field {name}")
+
+        if sort_order not in DomainSortOrder:
+            input_errors.append(f"Invalid sort order {sort_order}")
+
+        if input_errors:
+            raise ValidationException(input_errors)
+
+        return cls(name=DomainFilterField(name), sort_order=DomainSortOrder(sort_order))
+
+    @classmethod
+    def validate_dict(cls, data: Dict):
+        name: Optional[str] = data.get("Name")
+        sort_order: Optional[str] = data.get("SortOrder")
+        return cls.validate(name=name, sort_order=sort_order)

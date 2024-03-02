@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 
 from moto.core.responses import BaseResponse
 from moto.route53domains.models import Route53DomainsBackend, route53domains_backends
+from moto.route53domains.validators import Route53Domain
 
 
 class Route53DomainsResponse(BaseResponse):
@@ -52,9 +53,42 @@ class Route53DomainsResponse(BaseResponse):
         """Get detailed information about a specified domain"""
         domain_name: Optional[str] = self._get_param("DomainName")
 
-        return json.dumps(self.route53domains_backend.get_domain(domain_name=domain_name).to_json())
+        return json.dumps(
+            self.route53domains_backend.get_domain(domain_name=domain_name).to_json()
+        )
+
+    def list_domains(self) -> str:
+        """Get all the domain names registered"""
+        filter_conditions: Optional[Dict] = self._get_param("FilterConditions")
+        sort_condition: Optional[Dict] = self._get_param("SortCondition")
+        marker: Optional[str] = self._get_param("Marker")
+        max_items: Optional[int] = self._get_param("MaxItems")
+        domains, marker = self.route53domains_backend.list_domains(
+            filter_conditions=filter_conditions,
+            sort_condition=sort_condition,
+            marker=marker,
+            max_items=max_items,
+        )
+        res = {
+            "Domains": list(map(self.__map_domains_to_info, domains)),
+        }
+
+        if marker:
+            res["NextPageMarker"] = marker
+
+        return json.dumps(res)
+
+    @staticmethod
+    def __map_domains_to_info(domain: Route53Domain) -> Dict:
+        return {
+            "DomainName": domain.domain_name,
+            "AutoRenew": domain.auto_renew,
+            "Expiry": domain.expiration_date.timestamp(),
+            "TransferLock": True,
+        }
 
     def list_operations(self):
+        """Get information about all the operations that return an operation ID"""
         submitted_since_timestamp: Optional[int] = self._get_int_param("SubmittedSince")
         max_items: Optional[int] = self._get_int_param("MaxItems")
         statuses: Optional[List[str]] = self._get_param("Status")

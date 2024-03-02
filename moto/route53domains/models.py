@@ -13,6 +13,10 @@ from .exceptions import (
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
     DOMAIN_OPERATION_TYPES,
+    DomainFilterField,
+    DomainsFilter,
+    DomainSortOrder,
+    DomainsSortCondition,
     Route53Domain,
     Route53DomainsContactDetail,
     Route53DomainsOperation,
@@ -24,6 +28,7 @@ class Route53DomainsBackend(BaseBackend):
     """Implementation of Route53Domains APIs."""
 
     DEFAULT_MAX_DOMAINS_COUNT = 20
+    DEFAULT_MAX_ITEMS = 20
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -109,6 +114,71 @@ class Route53DomainsBackend(BaseBackend):
 
         return self.__domains[domain_name]
 
+    def list_domains(
+        self,
+        filter_conditions: Optional[List[Dict]] = None,
+        sort_condition: Optional[Dict] = None,
+        marker: Optional[str] = None,
+        max_items: Optional[int] = None,
+    ) -> Tuple[List[Route53Domain], Optional[str]]:
+        try:
+            filters: List[DomainsFilter] = (
+                [DomainsFilter.validate_dict(f) for f in filter_conditions]
+                if filter_conditions
+                else []
+            )
+            sort: Optional[DomainsSortCondition] = (
+                DomainsSortCondition.validate_dict(sort_condition)
+                if sort_condition
+                else None
+            )
+        except ValidationException as e:
+            raise InvalidInputException(e.errors)
+
+        filter_fields = [f.name for f in filters]
+        if sort and filter_fields and sort.name not in filter_fields:
+            raise InvalidInputException(
+                ["Sort condition must be the same as the filter condition"]
+            )
+
+        domains_to_return = []
+        max_items = max_items or self.DEFAULT_MAX_ITEMS
+
+        for domain in self.__domains.values():
+            if len(domains_to_return) == max_items:
+                break
+
+            if all([f.filter(domain) for f in filters]):
+                domains_to_return.append(domain)
+
+        if sort:
+            if sort.name == DomainFilterField.domain_name:
+                domains_to_return.sort(
+                    key=lambda d: d.domain_name,
+                    reverse=(sort.sort_order == DomainSortOrder.descending),
+                )
+            else:
+                domains_to_return.sort(
+                    key=lambda d: d.expiration_date,
+                    reverse=(sort.sort_order == DomainSortOrder.descending),
+                )
+
+        start_idx = 0 if marker is None else int(marker)
+        marker = (
+            None
+            if len(domains_to_return) < start_idx + max_items
+            else str(start_idx + max_items)
+        )
+        return domains_to_return[start_idx : start_idx + max_items], marker
+
+    @staticmethod
+    def __sort_domain_by_domain_name(domain: Route53Domain):
+        return domain.domain_name
+
+    @staticmethod
+    def __sort_domains_by_expiry_date(domain: Route53Domain):
+        return domain.expiration_date
+
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,
@@ -123,7 +193,7 @@ class Route53DomainsBackend(BaseBackend):
         errors = []
         statuses = statuses or []
         types = types or []
-        max_items = max_items or 20  # AWS default is 20
+        max_items = max_items or self.DEFAULT_MAX_ITEMS
 
         if any(status not in DOMAIN_OPERATION_STATUSES for status in statuses):
             errors.append("Status is invalid")
@@ -167,7 +237,7 @@ class Route53DomainsBackend(BaseBackend):
             if len(operations_to_return) < start_idx + max_items
             else str(start_idx + max_items)
         )
-        return operations_to_return[start_idx: start_idx + max_items], marker
+        return operations_to_return[start_idx : start_idx + max_items], marker
 
     @staticmethod
     def __sort_by_submitted_date(operation: Route53DomainsOperation):
