@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 
 from moto.core.responses import BaseResponse
 from moto.route53domains.models import Route53DomainsBackend, route53domains_backends
-from moto.route53domains.validators import Route53Domain
+from moto.route53domains.validators import Route53Domain, Route53DomainsOperation
 
 
 class Route53DomainsResponse(BaseResponse):
@@ -93,7 +93,7 @@ class Route53DomainsResponse(BaseResponse):
             "TransferLock": True,
         }
 
-    def list_operations(self):
+    def list_operations(self) -> str:
         """Get information about all the operations that return an operation ID"""
         submitted_since_timestamp: Optional[int] = self._get_int_param("SubmittedSince")
         max_items: Optional[int] = self._get_int_param("MaxItems")
@@ -121,3 +121,11 @@ class Route53DomainsResponse(BaseResponse):
             res["NextPageMarker"] = marker
 
         return json.dumps(res)
+
+    def get_operation_detail(self) -> str:
+        operation_id: str = self._get_param("OperationId")
+        operation: Route53DomainsOperation = self.route53domains_backend.get_operation(
+            operation_id
+        )
+
+        return json.dumps(operation.to_json())

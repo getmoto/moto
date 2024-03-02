@@ -676,9 +676,10 @@ class Route53DomainsOperation(BaseModel):
     def to_json(self) -> Dict:
         d = {
             "OperationId": self.id,
+            "Status": self.status,
+            "StatusFlag": self.status_flag,
             "DomainName": self.domain_name,
             "LastUpdatedDate": self.last_updated_date.isoformat(),
-            "StatusFlag": self.status_flag,
             "SubmittedDate": self.submitted_date.isoformat(),
             "Type": self.type,
         }

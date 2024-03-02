@@ -201,6 +201,31 @@ def test_list_operations_marker(domain_parameters: Dict):
 
 
 @mock_aws
+def test_get_operation_detail(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    res = route53domains_client.register_domain(**domain_parameters)
+    expected_operation_id = res["OperationId"]
+    operation = route53domains_client.get_operation_detail(
+        OperationId=expected_operation_id
+    )
+    assert operation["OperationId"] == expected_operation_id
+    assert operation["Status"] == "SUCCESSFUL"
+    assert operation["Type"] == "REGISTER_DOMAIN"
+
+
+@mock_aws
+def test_get_nonexistent_operation_detail(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.get_operation_detail(
+            OperationId="non-exiting-operation-id"
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
 def test_duplicate_requests(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)

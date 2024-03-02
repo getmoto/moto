@@ -259,6 +259,14 @@ class Route53DomainsBackend(BaseBackend):
         )
         return operations_to_return[start_idx : start_idx + max_items], marker
 
+    def get_operation(self, operation_id: str) -> Route53DomainsOperation:
+        if operation_id not in self.__operations:
+            raise InvalidInputException(
+                [f"Operation with id {operation_id} doesn't exist"]
+            )
+
+        return self.__operations[operation_id]
+
     @staticmethod
     def __sort_by_submitted_date(operation: Route53DomainsOperation):
         return operation.submitted_date
