@@ -57,7 +57,7 @@ class Route53DomainsResponse(BaseResponse):
 
     def get_domain_detail(self) -> str:
         """Get detailed information about a specified domain"""
-        domain_name: Optional[str] = self._get_param("DomainName")
+        domain_name: str = self._get_param("DomainName")
 
         return json.dumps(
             self.route53domains_backend.get_domain(domain_name=domain_name).to_json()
@@ -129,3 +129,15 @@ class Route53DomainsResponse(BaseResponse):
         )
 
         return json.dumps(operation.to_json())
+
+    def update_domain_nameservers(self) -> str:
+        domain_name: str = self._get_param("DomainName")
+        nameservers: List[Dict] = self._get_param("Nameservers")
+
+        operation: Route53DomainsOperation = (
+            self.route53domains_backend.update_domain_nameservers(
+                domain_name=domain_name, nameservers=nameservers
+            )
+        )
+
+        return json.dumps({"OperationId": operation.id})

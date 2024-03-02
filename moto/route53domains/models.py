@@ -17,6 +17,7 @@ from .validators import (
     DomainsFilter,
     DomainSortOrder,
     DomainsSortCondition,
+    NameServer,
     Route53Domain,
     Route53DomainsContactDetail,
     Route53DomainsOperation,
@@ -58,7 +59,7 @@ class Route53DomainsBackend(BaseBackend):
             domain_name=domain_name, status="SUCCESSFUL", type_="REGISTER_DOMAIN"
         )
 
-        self.__validate_duplicate_requests(requested_operation)
+        self.__validate_duplicate_operations(requested_operation)
 
         expiration_date = datetime.now(timezone.utc) + timedelta(
             days=365 * duration_in_years
@@ -96,7 +97,7 @@ class Route53DomainsBackend(BaseBackend):
         requested_operation = Route53DomainsOperation.validate(
             domain_name=domain_name, status="SUCCESSFUL", type_="DELETE_DOMAIN"
         )
-        self.__validate_duplicate_requests(requested_operation)
+        self.__validate_duplicate_operations(requested_operation)
 
         input_errors: List[str] = []
         Route53Domain.validate_domain_name(domain_name, input_errors)
@@ -113,7 +114,7 @@ class Route53DomainsBackend(BaseBackend):
         del self.__domains[domain_name]
         return requested_operation
 
-    def __validate_duplicate_requests(
+    def __validate_duplicate_operations(
         self, requested_operation: Route53DomainsOperation
     ):
         for operation in self.__operations.values():
@@ -191,14 +192,6 @@ class Route53DomainsBackend(BaseBackend):
         )
         return domains_to_return[start_idx : start_idx + max_items], marker
 
-    @staticmethod
-    def __sort_domain_by_domain_name(domain: Route53Domain):
-        return domain.domain_name
-
-    @staticmethod
-    def __sort_domains_by_expiry_date(domain: Route53Domain):
-        return domain.expiration_date
-
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,
@@ -267,9 +260,45 @@ class Route53DomainsBackend(BaseBackend):
 
         return self.__operations[operation_id]
 
-    @staticmethod
-    def __sort_by_submitted_date(operation: Route53DomainsOperation):
-        return operation.submitted_date
+    def update_domain_nameservers(
+        self, domain_name: str, nameservers: List[Dict]
+    ) -> Route53DomainsOperation:
+        input_errors = []
+        Route53Domain.validate_domain_name(domain_name, input_errors)
+        if len(nameservers) < 1:
+            input_errors.append("Must supply nameservers")
+
+        servers: List[NameServer] = []
+        try:
+            servers = [NameServer.validate_dict(obj) for obj in nameservers]
+        except ValidationException as e:
+            input_errors += e.errors
+
+        for server in servers:
+            if domain_name in server.name and not server.glue_ips:
+                input_errors.append(
+                    f"Must supply glue IPs for name server {server.name} because it is a subdomain of "
+                    f"the domain"
+                )
+
+        if input_errors:
+            raise InvalidInputException(input_errors)
+
+        if domain_name not in self.__domains:
+            raise InvalidInputException(
+                [f"Domain {domain_name} is not registered to the current AWS account"]
+            )
+
+        requested_operation = Route53DomainsOperation.validate(
+            domain_name=domain_name, status="SUCCESSFUL", type_="UPDATE_NAMESERVER"
+        )
+        self.__validate_duplicate_operations(requested_operation)
+
+        domain = self.__domains[domain_name]
+        domain.name_servers = servers
+        self.__operations[requested_operation.id] = requested_operation
+
+        return requested_operation
 
 
 route53domains_backends = BackendDict(

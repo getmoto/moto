@@ -466,3 +466,116 @@ def test_delete_invalid_domain(domain_parameters: Dict):
 
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "nameservers",
+    [
+        [{"Name": "1-nameserver.net"}, {"Name": "2-nameserver.net"}],
+        [
+            {"Name": "3-nameserver.net", "GlueIps": ["1.1.1.2"]},
+            {"Name": "4-nameserver.net", "GlueIps": ["1.1.1.1"]},
+        ],
+    ],
+)
+def test_update_domain_nameservers(domain_parameters: Dict, nameservers: List[Dict]):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    operation_id = route53domains_client.update_domain_nameservers(
+        DomainName=domain_parameters["DomainName"], Nameservers=nameservers
+    )["OperationId"]
+    domain = route53domains_client.get_domain_detail(
+        DomainName=domain_parameters["DomainName"]
+    )
+    assert domain["Nameservers"] == nameservers
+    operation = route53domains_client.get_operation_detail(OperationId=operation_id)
+    assert operation["Type"] == "UPDATE_NAMESERVER"
+    assert operation["Status"] == "SUCCESSFUL"
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "nameservers",
+    [
+        [{"Name": "1-nameserver.net", "GlueIps": ["1.1.1.1", "1.1.1.2"]}],
+        [
+            {
+                "Name": "1-nameserver.net",
+                "GlueIps": [
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                ],
+            }
+        ],
+        [
+            {
+                "Name": "1-nameserver.net",
+                "GlueIps": [
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                    "1.1.1.1",
+                ],
+            }
+        ],
+        [
+            {
+                "Name": "1-nameserver.net",
+                "GlueIps": [
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                    "1.1.1.1",
+                    "1.1.1.2",
+                ],
+            }
+        ],
+        [
+            {
+                "Name": "1-nameserver.net",
+                "GlueIps": [
+                    "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+                    "1.1.1.1",
+                    "not-an-ip-address",
+                ],
+            }
+        ],
+    ],
+)
+def test_update_domain_nameservers_with_multiple_glue_ips(
+    domain_parameters: Dict, nameservers: List[Dict]
+):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.update_domain_nameservers(
+            DomainName=domain_parameters["DomainName"], Nameservers=nameservers
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+def test_update_domain_nameservers_requires_glue_ips(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    domain_name = domain_parameters["DomainName"]
+    nameservers = [{"Name": f"subdomain.{domain_name}"}]
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.update_domain_nameservers(
+            DomainName=domain_parameters["DomainName"], Nameservers=nameservers
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+def test_update_domain_nameservers_for_nonexistent_domain():
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    nameservers = [{"Name": "1-nameserver.net"}, {"Name": "2-nameserver.net"}]
+
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.update_domain_nameservers(
+            DomainName="non-existent-domain.com", Nameservers=nameservers
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"

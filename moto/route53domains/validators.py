@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from ipaddress import ip_address
+from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Dict, List, Optional
 
 from moto.core.common_models import BaseModel
@@ -860,14 +860,25 @@ class NameServer:
         glue_ips = glue_ips or []
         errors = []
 
-        if not name:
-            errors.append(f"{name} is not a valid DNS nameserver")
+        if not VALID_DOMAIN_REGEX.match(name):
+            errors.append(f"{name} is not a valid host name")
 
+        num_ipv4_addresses = 0
+        num_ipv6_addresses = 0
         for ip in glue_ips:
             try:
-                ip_address(ip)
+                address = ip_address(ip)
+                if isinstance(address, IPv4Address):
+                    num_ipv4_addresses += 1
+                elif isinstance(address, IPv6Address):
+                    num_ipv6_addresses += 1
             except ValueError:
                 errors.append(f"{ip} is not a valid IP address")
+
+        if num_ipv4_addresses > 1:
+            errors.append("GlueIps list must include only 1 IPv4 address")
+        if num_ipv6_addresses > 1:
+            errors.append("GlueIps list must include only 1 IPv6 address")
 
         if errors:
             raise ValidationException(errors)
@@ -877,11 +888,14 @@ class NameServer:
     @classmethod
     def validate_dict(cls, data: Dict):
         name = data.get("Name")
-        glue_ips = data.get("GlueIPs")
+        glue_ips = data.get("GlueIps")
         return cls.validate(name, glue_ips)
 
     def to_json(self) -> Dict:
-        return {"Name": self.name, "GlueIps": self.glue_ips}
+        d = {"Name": self.name}
+        if self.glue_ips:
+            d["GlueIps"] = self.glue_ips
+        return d
 
 
 class Route53Domain(BaseModel):
@@ -1033,7 +1047,7 @@ class Route53Domain(BaseModel):
     def to_json(self):
         return {
             "DomainName": self.domain_name,
-            "NameServers": [name_server.to_json() for name_server in self.name_servers],
+            "Nameservers": [name_server.to_json() for name_server in self.name_servers],
             "AutoRenew": self.auto_renew,
             "AdminContact": self.admin_contact.to_json(),
             "RegistrantContact": self.registrant_contact.to_json(),
