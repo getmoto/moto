@@ -49,6 +49,12 @@ class Route53DomainsResponse(BaseResponse):
 
         return json.dumps({"OperationId": operation.id})
 
+    def delete_domain(self) -> str:
+        domain_name: str = self._get_param("DomainName")
+        operation = self.route53domains_backend.delete_domain(domain_name)
+
+        return json.dumps({"OperationId": operation.id})
+
     def get_domain_detail(self) -> str:
         """Get detailed information about a specified domain"""
         domain_name: Optional[str] = self._get_param("DomainName")
@@ -94,7 +100,7 @@ class Route53DomainsResponse(BaseResponse):
         statuses: Optional[List[str]] = self._get_param("Status")
         marker: Optional[str] = self._get_param("Marker")
         types: Optional[List[str]] = self._get_param("Type")
-        sort_by: Optional[str] = self._get_param("sort_by")
+        sort_by: Optional[str] = self._get_param("SortBy")
         sort_order: Optional[str] = self._get_param("SortOrder")
 
         operations, marker = self.route53domains_backend.list_operations(

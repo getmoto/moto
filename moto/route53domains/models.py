@@ -83,7 +83,6 @@ class Route53DomainsBackend(BaseBackend):
 
         except ValidationException as e:
             raise InvalidInputException(e.errors)
-
         self.__operations[requested_operation.id] = requested_operation
 
         self.__route53_backend.create_hosted_zone(
@@ -91,6 +90,27 @@ class Route53DomainsBackend(BaseBackend):
         )
 
         self.__domains[domain_name] = domain
+        return requested_operation
+
+    def delete_domain(self, domain_name: str) -> Route53DomainsOperation:
+        requested_operation = Route53DomainsOperation.validate(
+            domain_name=domain_name, status="SUCCESSFUL", type_="DELETE_DOMAIN"
+        )
+        self.__validate_duplicate_requests(requested_operation)
+
+        input_errors: List[str] = []
+        Route53Domain.validate_domain_name(domain_name, input_errors)
+
+        if input_errors:
+            raise InvalidInputException(input_errors)
+
+        if domain_name not in self.__domains:
+            raise InvalidInputException(
+                [f"Domain {domain_name} isn't registered in the current account"]
+            )
+
+        self.__operations[requested_operation.id] = requested_operation
+        del self.__domains[domain_name]
         return requested_operation
 
     def __validate_duplicate_requests(

@@ -64,13 +64,15 @@ def generate_invalid_domain_parameters(domain_parameters: Dict) -> Dict:
 
 
 @mock_aws
-def test_route53domains_register_domain(domain_parameters: Dict):
+def test_register_domain(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     res = route53domains_client.register_domain(**domain_parameters)
 
     operation_id = res["OperationId"]
 
-    operations = route53domains_client.list_operations()["Operations"]
+    operations = route53domains_client.list_operations(Type=["REGISTER_DOMAIN"])[
+        "Operations"
+    ]
     for operation in operations:
         if operation["OperationId"] == operation_id:
             return
@@ -81,7 +83,7 @@ def test_route53domains_register_domain(domain_parameters: Dict):
 
 
 @mock_aws
-def test_route53domains_register_domain_creates_hosted_zone(
+def test_register_domain_creates_hosted_zone(
     domain_parameters: Dict,
 ):
     """Test good register domain API calls."""
@@ -96,7 +98,7 @@ def test_route53domains_register_domain_creates_hosted_zone(
 
 
 @mock_aws
-def test_route53domains_register_domain_fails_on_invalid_input(
+def test_register_domain_fails_on_invalid_input(
     invalid_domain_parameters: Dict,
 ):
     route53domains_client = boto3.client("route53domains", region_name="global")
@@ -112,7 +114,7 @@ def test_route53domains_register_domain_fails_on_invalid_input(
 
 
 @mock_aws
-def test_route53domains_register_domain_fails_on_invalid_tld(domain_parameters: Dict):
+def test_register_domain_fails_on_invalid_tld(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53_client = boto3.client("route53", region_name="global")
 
@@ -129,7 +131,7 @@ def test_route53domains_register_domain_fails_on_invalid_tld(domain_parameters: 
 
 
 @mock_aws
-def test_route53domains_list_operations(domain_parameters: Dict):
+def test_list_operations(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     route53domains_client.register_domain(**domain_parameters)
     operations = route53domains_client.list_operations()["Operations"]
@@ -409,6 +411,33 @@ def test_list_domains_sort_condition_not_the_same_as_filter_condition(
 
     with pytest.raises(ClientError) as exc:
         route53domains_client.list_domains(FilterConditions=filters, SortCondition=sort)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+
+
+@mock_aws
+def test_delete_domain(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    route53domains_client.register_domain(**domain_parameters)
+    domains = route53domains_client.list_domains()["Domains"]
+    assert len(domains) == 1
+    route53domains_client.delete_domain(DomainName=domain_parameters["DomainName"])
+    domains = route53domains_client.list_domains()["Domains"]
+    assert len(domains) == 0
+    operations = route53domains_client.list_operations(Type=["DELETE_DOMAIN"])[
+        "Operations"
+    ]
+    assert len(operations) == 1
+
+
+@mock_aws
+def test_delete_invalid_domain(domain_parameters: Dict):
+    route53domains_client = boto3.client("route53domains", region_name="global")
+    domains = route53domains_client.list_domains()["Domains"]
+    assert len(domains) == 0
+    with pytest.raises(ClientError) as exc:
+        route53domains_client.delete_domain(DomainName=domain_parameters["DomainName"])
 
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidInput"
