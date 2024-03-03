@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
+from moto.utilities.paginator import paginate
 
 from .exceptions import (
     DomainLimitExceededException,
@@ -29,7 +30,20 @@ class Route53DomainsBackend(BaseBackend):
     """Implementation of Route53Domains APIs."""
 
     DEFAULT_MAX_DOMAINS_COUNT = 20
-    DEFAULT_MAX_ITEMS = 20
+    PAGINATION_MODEL = {
+        "list_domains": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 20,
+            "unique_attribute": "domain_name",
+        },
+        "list_operations": {
+            "input_token": "marker",
+            "limit_key": "max_items",
+            "limit_default": 20,
+            "unique_attribute": "id",
+        },
+    }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -135,13 +149,12 @@ class Route53DomainsBackend(BaseBackend):
 
         return self.__domains[domain_name]
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_domains(
         self,
         filter_conditions: Optional[List[Dict[str, Any]]] = None,
         sort_condition: Optional[Dict[str, Any]] = None,
-        marker: Optional[str] = None,
-        max_items: Optional[int] = None,
-    ) -> Tuple[List[Route53Domain], Optional[str]]:
+    ) -> List[Route53Domain]:
         try:
             filters: List[DomainsFilter] = (
                 [DomainsFilter.validate_dict(f) for f in filter_conditions]
@@ -163,50 +176,38 @@ class Route53DomainsBackend(BaseBackend):
             )
 
         domains_to_return: List[Route53Domain] = []
-        max_items = max_items or self.DEFAULT_MAX_ITEMS
 
         for domain in self.__domains.values():
-            if len(domains_to_return) == max_items:
-                break
-
             if all([f.filter(domain) for f in filters]):
                 domains_to_return.append(domain)
 
         if sort:
-            if sort.name == DomainFilterField.domain_name:
+            if sort.name == DomainFilterField.DOMAIN_NAME:
                 domains_to_return.sort(
                     key=lambda d: d.domain_name,
-                    reverse=(sort.sort_order == DomainSortOrder.descending),
+                    reverse=(sort.sort_order == DomainSortOrder.DESCENDING),
                 )
             else:
                 domains_to_return.sort(
                     key=lambda d: d.expiration_date,
-                    reverse=(sort.sort_order == DomainSortOrder.descending),
+                    reverse=(sort.sort_order == DomainSortOrder.DESCENDING),
                 )
 
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None
-            if len(domains_to_return) < start_idx + max_items
-            else str(start_idx + max_items)
-        )
-        return domains_to_return[start_idx : start_idx + max_items], marker
+        return domains_to_return
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,
-        marker: Optional[str] = None,
-        max_items: Optional[int] = None,
         statuses: Optional[List[str]] = None,
         types: Optional[List[str]] = None,
         sort_by: Optional[str] = None,
         sort_order: Optional[str] = None,
-    ) -> Tuple[List[Route53DomainsOperation], Optional[str]]:
+    ) -> List[Route53DomainsOperation]:
 
-        errors = []
+        errors: List[str] = []
         statuses = statuses or []
         types = types or []
-        max_items = max_items or self.DEFAULT_MAX_ITEMS
 
         if any(status not in DOMAIN_OPERATION_STATUSES for status in statuses):
             errors.append("Status is invalid")
@@ -225,9 +226,6 @@ class Route53DomainsBackend(BaseBackend):
         operations_to_return: List[Route53DomainsOperation] = []
 
         for operation in self.__operations.values():
-            if len(operations_to_return) == max_items:
-                break
-
             if statuses and operation.status not in statuses:
                 continue
 
@@ -241,16 +239,11 @@ class Route53DomainsBackend(BaseBackend):
 
         if sort_by == "SubmittedDate":
             operations_to_return.sort(
-                key=lambda op: op.submitted_date, reverse=sort_order == "ASC"
+                key=lambda op: op.submitted_date,
+                reverse=sort_order == DomainSortOrder.ASCENDING,
             )
 
-        start_idx = 0 if marker is None else int(marker)
-        marker = (
-            None
-            if len(operations_to_return) < start_idx + max_items
-            else str(start_idx + max_items)
-        )
-        return operations_to_return[start_idx : start_idx + max_items], marker
+        return operations_to_return
 
     def get_operation(self, operation_id: str) -> Route53DomainsOperation:
         if operation_id not in self.__operations:

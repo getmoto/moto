@@ -606,19 +606,19 @@ PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d+$")
 
 
 class DomainFilterField(str, Enum):
-    domain_name = "DomainName"
-    expiry = "Expiry"
+    DOMAIN_NAME = "DomainName"
+    EXPIRY = "Expiry"
 
 
 class DomainSortOrder(str, Enum):
-    ascending = "ASC"
-    descending = "DES"
+    ASCENDING = "ASC"
+    DESCENDING = "DES"
 
 
 class DomainFilterOperator(str, Enum):
-    le = "LE"
-    ge = "GE"
-    begins_with = "BEGINS_WITH"
+    LE = "LE"
+    GE = "GE"
+    BEGINS_WITH = "BEGINS_WITH"
 
 
 class ValidationException(Exception):
@@ -1081,7 +1081,7 @@ class DomainsFilter:
         self.values = values
 
     def filter(self, domain: Route53Domain) -> bool:
-        if self.name == DomainFilterField.domain_name:
+        if self.name == DomainFilterField.DOMAIN_NAME:
             return self.__filter_by_domain_name(domain)
         return self.__filter_by_expiry_date(domain)
 
@@ -1098,7 +1098,7 @@ class DomainsFilter:
                     >= datetime.fromtimestamp(float(value), tz=timezone.utc)
                 ]
             )
-            if self.operator == DomainFilterOperator.ge
+            if self.operator == DomainFilterOperator.GE
             else any(
                 [
                     value
@@ -1123,16 +1123,16 @@ class DomainsFilter:
             input_errors.append("Multiple filter values are not currently supported")
 
         if (
-            name == DomainFilterField.domain_name
-            and operator != DomainFilterOperator.begins_with
+            name == DomainFilterField.DOMAIN_NAME
+            and operator != DomainFilterOperator.BEGINS_WITH
         ):
             input_errors.append(
                 f"Operator {operator} cannot be used with the DomainName filter"
             )
 
-        if name == DomainFilterField.expiry and operator not in (
-            DomainFilterOperator.ge,
-            DomainFilterOperator.le,
+        if name == DomainFilterField.EXPIRY and operator not in (
+            DomainFilterOperator.GE,
+            DomainFilterOperator.LE,
         ):
             input_errors.append(
                 f"Operator {operator} cannot be used with the Expiry filter"

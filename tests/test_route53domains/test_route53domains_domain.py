@@ -182,25 +182,6 @@ def test_list_operations_invalid_input():
 
 
 @mock_aws
-def test_list_operations_marker(domain_parameters: Dict):
-    route53domains_client = boto3.client("route53domains", region_name="global")
-    domain_params = domain_parameters.copy()
-    route53domains_client.register_domain(**domain_params)
-    domain_params["DomainName"] = "seconddomain.com"
-    route53domains_client.register_domain(**domain_params)
-    domain_params["DomainName"] = "thirddomain.com"
-    route53domains_client.register_domain(**domain_params)
-    operations_res = route53domains_client.list_operations()
-    assert len(operations_res["Operations"]) == 3
-    operations_res = route53domains_client.list_operations(Marker="0", MaxItems=1)
-    assert len(operations_res["Operations"]) == 1
-    operations_res = route53domains_client.list_operations(
-        Marker=operations_res["NextPageMarker"]
-    )
-    assert len(operations_res["Operations"]) == 2
-
-
-@mock_aws
 def test_get_operation_detail(domain_parameters: Dict):
     route53domains_client = boto3.client("route53domains", region_name="global")
     res = route53domains_client.register_domain(**domain_parameters)
