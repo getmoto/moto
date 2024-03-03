@@ -5070,6 +5070,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -17758,6 +17767,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "monitron": {
                 "Value": "monitron"
               },
@@ -24052,6 +24070,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -24206,6 +24233,15 @@
                 "Value": "resourcegroupstaggingapi",
                 "endpoint": {
                   "Value": "tagging.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rolesanywhere": {
+                "Value": "rolesanywhere",
+                "endpoint": {
+                  "Value": "rolesanywhere.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25389,6 +25425,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "oam": {
@@ -26752,6 +26797,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "oam": {
@@ -28975,7 +29029,13 @@
                 }
               },
               "migrationhubstrategy": {
-                "Value": "migrationhubstrategy"
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mq": {
                 "Value": "mq",
@@ -37786,6 +37846,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "monitron": {
                 "Value": "monitron"
               },
@@ -40401,6 +40470,15 @@
                 "Value": "migrationhuborchestrator",
                 "endpoint": {
                   "Value": "migrationhub-orchestrator.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51567,6 +51645,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mobile": {
                 "Value": "mobile",
                 "endpoint": {
@@ -62263,7 +62350,13 @@
                 }
               },
               "migrationhubstrategy": {
-                "Value": "migrationhubstrategy"
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mobile": {
                 "Value": "mobile",
