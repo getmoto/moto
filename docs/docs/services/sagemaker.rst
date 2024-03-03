@@ -306,6 +306,7 @@ sagemaker
 - [ ] update_app_image_config
 - [ ] update_artifact
 - [ ] update_cluster
+- [ ] update_cluster_software
 - [ ] update_code_repository
 - [ ] update_context
 - [ ] update_device_fleet

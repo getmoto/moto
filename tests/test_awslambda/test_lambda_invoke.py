@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 
 from ..markers import requires_docker
+from .test_lambda import LooseVersion, boto3_version
 from .utilities import (
     get_lambda_using_environment_port,
     get_lambda_using_network_mode,
@@ -377,3 +378,43 @@ def test_invoke_lambda_with_proxy():
 
     expected_payload = {"id": vol.id, "state": vol.state, "size": vol.size}
     assert json.loads(payload) == expected_payload
+
+
+@pytest.mark.network
+@mock_aws
+@requires_docker
+def test_invoke_lambda_with_entrypoint():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("ImageConfig parameter not available in older versions")
+    conn = boto3.client("lambda", _lambda_region)
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1()},
+        ImageConfig={
+            "EntryPoint": [
+                "/var/rapid/init",
+                "--bootstrap",
+                "/var/runtime/bootstrap",
+                "--enable-msg-logs",
+            ],
+        },
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    in_data = {"hello": "world"}
+    result = conn.invoke(
+        FunctionName=function_name,
+        InvocationType="RequestResponse",
+        Payload=json.dumps(in_data),
+    )
+    assert result["StatusCode"] == 200
+    payload = result["Payload"].read().decode("utf-8")
+
+    assert json.loads(payload) == in_data

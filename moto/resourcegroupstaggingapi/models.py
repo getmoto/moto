@@ -19,6 +19,7 @@ from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
+from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.utilities.tagging_service import TaggingService
 
@@ -96,6 +97,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def acm_backend(self) -> AWSCertificateManagerBackend:
         return acm_backends[self.account_id][self.region_name]
+
+    @property
+    def sns_backend(self) -> SNSBackend:
+        return sns_backends[self.account_id][self.region_name]
 
     @property
     def sqs_backend(self) -> SQSBackend:
@@ -340,6 +345,24 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+        # ELB (Classic Load Balancers)
+        if (
+            not resource_type_filters
+            or "elb" in resource_type_filters
+            or "elb:loadbalancer" in resource_type_filters
+        ):
+            for elb in self.elb_backend.load_balancers.values():
+                tags = format_tags(elb.tags)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {
+                    "ResourceARN": f"arn:aws:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}",
+                    "Tags": tags,
+                }
+
         # TODO add these to the keys and values functions / combine functions
         # ELB, resource type elasticloadbalancing:loadbalancer
         if (
@@ -347,14 +370,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "elasticloadbalancing" in resource_type_filters
             or "elasticloadbalancing:loadbalancer" in resource_type_filters
         ):
-            for elb in self.elbv2_backend.load_balancers.values():
+            for elbv2 in self.elbv2_backend.load_balancers.values():
                 tags = self.elbv2_backend.tagging_service.list_tags_for_resource(
-                    elb.arn
+                    elbv2.arn
                 )["Tags"]
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
                     continue
 
-                yield {"ResourceARN": f"{elb.arn}", "Tags": tags}
+                yield {"ResourceARN": f"{elbv2.arn}", "Tags": tags}
 
         # ELB Target Group, resource type elasticloadbalancing:targetgroup
         if (
@@ -433,6 +456,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "rds:db": self.rds_backend.databases,
             "rds:snapshot": self.rds_backend.database_snapshots,
             "rds:cluster-snapshot": self.rds_backend.cluster_snapshots,
+            "rds:db-proxy": self.rds_backend.db_proxies,
         }
         for resource_type, resource_source in resource_map.items():
             if (
@@ -473,6 +497,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
+
+        # SNS
+        if not resource_type_filters or "sns" in resource_type_filters:
+
+            for topic in self.sns_backend.topics.values():
+                tags = format_tags(topic._tags)
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+                yield {"ResourceARN": f"{topic.arn}", "Tags": tags}
 
         # VPC
         if (

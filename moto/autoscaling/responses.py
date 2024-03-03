@@ -118,9 +118,22 @@ class AutoScalingResponse(BaseResponse):
             start_time=self._get_param("StartTime"),
             end_time=self._get_param("EndTime"),
             recurrence=self._get_param("Recurrence"),
+            timezone=self._get_param("TimeZone"),
         )
         template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
         return template.render()
+
+    def batch_put_scheduled_update_group_action(self) -> str:
+        failed_actions = (
+            self.autoscaling_backend.batch_put_scheduled_update_group_action(
+                name=self._get_param("AutoScalingGroupName"),
+                actions=self._get_multi_param("ScheduledUpdateGroupActions.member"),
+            )
+        )
+        template = self.response_template(
+            BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE
+        )
+        return template.render(failed_actions=failed_actions)
 
     def describe_scheduled_actions(self) -> str:
         scheduled_actions = self.autoscaling_backend.describe_scheduled_actions(
@@ -139,6 +152,16 @@ class AutoScalingResponse(BaseResponse):
         )
         template = self.response_template(DELETE_SCHEDULED_ACTION_TEMPLATE)
         return template.render()
+
+    def batch_delete_scheduled_action(self) -> str:
+        auto_scaling_group_name = self._get_param("AutoScalingGroupName")
+        scheduled_action_names = self._get_multi_param("ScheduledActionNames.member")
+        failed_actions = self.autoscaling_backend.batch_delete_scheduled_action(
+            auto_scaling_group_name=auto_scaling_group_name,
+            scheduled_action_names=scheduled_action_names,
+        )
+        template = self.response_template(BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE)
+        return template.render(failed_actions=failed_actions)
 
     def describe_scaling_activities(self) -> str:
         template = self.response_template(DESCRIBE_SCALING_ACTIVITIES_TEMPLATE)
@@ -205,7 +228,10 @@ class AutoScalingResponse(BaseResponse):
     def describe_auto_scaling_groups(self) -> str:
         names = self._get_multi_param("AutoScalingGroupNames.member")
         token = self._get_param("NextToken")
-        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(names)
+        filters = self._get_params().get("Filters", [])
+        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(
+            names, filters=filters
+        )
         all_names = [group.name for group in all_groups]
         if token:
             start = all_names.index(token) + 1
@@ -631,13 +657,35 @@ PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionRe
 </ResponseMetadata>
 </PutScheduledUpdateGroupActionResponse>"""
 
+
+BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<BatchPutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <BatchPutScheduledUpdateGroupActionResult>
+    <FailedScheduledUpdateGroupActions>
+      {% for failed_action in failed_actions %}
+      <member>
+        <ScheduledActionName>{{ failed_action.scheduled_action_name }}</ScheduledActionName>
+        {% if failed_action.error_code %}
+        <ErrorCode>{{ failed_action.error_code }}</ErrorCode>
+        {% endif %}
+        {% if failed_action.error_message %}
+        <ErrorMessage>{{ failed_action.error_message }}</ErrorMessage>
+        {% endif %}
+      </member>
+      {% endfor %}
+    </FailedScheduledUpdateGroupActions>
+  </BatchPutScheduledUpdateGroupActionResult>
+  <ResponseMetadata>
+    <RequestId></RequestId>
+  </ResponseMetadata>
+</BatchPutScheduledUpdateGroupActionResponse>"""
+
 DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeScheduledActionsResult>
     <ScheduledUpdateGroupActions>
       {% for scheduled_action in scheduled_actions %}
       <member>
         <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
-        <ScheduledActionName> {{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
+        <ScheduledActionName>{{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
         {% if scheduled_action.start_time %}
         <StartTime>{{ scheduled_action.start_time }}</StartTime>
         {% endif %}
@@ -647,9 +695,18 @@ DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://
         {% if scheduled_action.recurrence %}
         <Recurrence>{{ scheduled_action.recurrence }}</Recurrence>
         {% endif %}
+        {% if scheduled_action.min_size is not none %}
         <MinSize>{{ scheduled_action.min_size }}</MinSize>
+        {% endif %}
+        {% if scheduled_action.max_size is not none %}
         <MaxSize>{{ scheduled_action.max_size }}</MaxSize>
+        {% endif %}
+        {% if scheduled_action.desired_capacity is not none %}
         <DesiredCapacity>{{ scheduled_action.desired_capacity }}</DesiredCapacity>
+        {% endif %}
+        {% if scheduled_action.timezone %}
+        <TimeZone>{{ scheduled_action.timezone }}</TimeZone>
+        {% endif %}
       </member>
       {% endfor %}
     </ScheduledUpdateGroupActions>
@@ -662,6 +719,27 @@ DELETE_SCHEDULED_ACTION_TEMPLATE = """<DeleteScheduledActionResponse xmlns="http
     <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteScheduledActionResponse>"""
+
+BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE = """<BatchDeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <BatchDeleteScheduledActionResult>
+    <FailedScheduledActions>
+      {% for failed_action in failed_actions %}
+      <member>
+        <ScheduledActionName>{{ failed_action.scheduled_action_name }}</ScheduledActionName>
+        {% if failed_action.error_code %}
+        <ErrorCode>{{ failed_action.error_code }}</ErrorCode>
+        {% endif %}
+        {% if failed_action.error_message %}
+        <ErrorMessage>{{ failed_action.error_message }}</ErrorMessage>
+        {% endif %}
+      </member>
+      {% endfor %}
+    </FailedScheduledActions>
+  </BatchDeleteScheduledActionResult>
+  <ResponseMetadata>
+    <RequestId></RequestId>
+  </ResponseMetadata>
+</BatchDeleteScheduledActionResponse>"""
 
 ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancerTargetGroupsResult>

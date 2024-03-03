@@ -44,9 +44,8 @@ def filter_tasks(tasks: Iterable[Any], filters: List[Dict[str, Any]]) -> Any:
         if not filter_function:
             continue
 
-        # https://github.com/python/mypy/issues/12682
         matching_tasks = filter(
-            lambda task: filter_function(task, f["Values"]), matching_tasks  # type: ignore[arg-type]
+            lambda task: filter_function(task, f["Values"]), matching_tasks
         )
 
     return matching_tasks

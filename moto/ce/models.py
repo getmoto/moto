@@ -20,7 +20,7 @@ def first_day() -> str:
         .replace(minute=0)
         .replace(second=0)
     )
-    return iso_8601_datetime_without_milliseconds(as_date)  # type: ignore[return-value]
+    return iso_8601_datetime_without_milliseconds(as_date)
 
 
 class CostCategoryDefinition(BaseModel):
@@ -74,6 +74,8 @@ class CostExplorerBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.cost_categories: Dict[str, CostCategoryDefinition] = dict()
+        self.cost_usage_results_queue: List[Dict[str, Any]] = []
+        self.cost_usage_results: Dict[str, Dict[str, Any]] = {}
         self.tagger = TaggingService()
 
     def create_cost_category_definition(
@@ -153,6 +155,57 @@ class CostExplorerBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def get_cost_and_usage(self, body: str) -> Dict[str, Any]:
+        """
+        There is no validation yet on any of the input parameters.
+
+        Cost or usage is not tracked by Moto, so this call will return nothing by default.
+
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `get_cost_and_usage` will take the first result from that queue, and assign it to the provided parameters. Subsequent requests using the same parameters will return the same result. Other requests using different parameters will take the next result from the queue, or return an empty result if the queue is empty.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/ce/cost-and-usage-results`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            result = {
+                "results": [
+                    {
+                        "ResultsByTime": [
+                            {
+                                "TimePeriod": {"Start": "2024-01-01", "End": "2024-01-02"},
+                                "Total": {
+                                    "BlendedCost": {"Amount": "0.0101516483", "Unit": "USD"}
+                                },
+                                "Groups": [],
+                                "Estimated": False
+                            }
+                        ],
+                        "DimensionValueAttributes": [{"Value": "v", "Attributes": {"a": "b"}}]
+                    },
+                    {
+                        ...
+                    },
+                ]
+            }
+            resp = requests.post(
+                "http://motoapi.amazonaws.com:5000/moto-api/static/ce/cost-and-usage-results",
+                json=expected_results,
+            )
+            assert resp.status_code == 201
+
+            ce = boto3.client("ce", region_name="us-east-1")
+            resp = ce.get_cost_and_usage(...)
+        """
+        default_result: Dict[str, Any] = {
+            "ResultsByTime": [],
+            "DimensionValueAttributes": [],
+        }
+        if body not in self.cost_usage_results and self.cost_usage_results_queue:
+            self.cost_usage_results[body] = self.cost_usage_results_queue.pop(0)
+        return self.cost_usage_results.get(body, default_result)
 
 
 ce_backends = BackendDict(

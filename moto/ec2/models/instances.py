@@ -406,8 +406,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     spec.instance_type == self.instance_type
                     and spec.subnet_id == self.subnet_id
                 ):
+                    fleet.fulfilled_capacity -= spec.weighted_capacity
                     break
-            fleet.fulfilled_capacity -= spec.weighted_capacity
             fleet.spot_requests = [
                 req for req in fleet.spot_requests if req.instance != self
             ]

@@ -1001,6 +1001,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                             "host.docker.internal": "host-gateway"
                         }
 
+                    # Change entry point if requested
+                    if self.image_config.entry_point:
+                        run_kwargs["entrypoint"] = self.image_config.entry_point
+
                     # The requested image can be found in one of a few repos:
                     # - User-provided repo
                     # - mlupin/docker-lambda (the repo with up-to-date AWSLambda images
@@ -1811,7 +1815,9 @@ class LambdaBackend(BaseBackend):
     Implementation of the AWS Lambda endpoint.
     Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
 
-    It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer.
+    .. warning:: When invoking a function using the decorators, the created Docker container cannot reach Moto (or it's in-memory state). Any AWS SDK-requests within your Lambda will try to connect to AWS instead.
+
+    It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer in a Docker container.
 
     When running the MotoProxy, calls to other AWS services are automatically proxied.
 
@@ -1872,15 +1878,13 @@ class LambdaBackend(BaseBackend):
 
         MOTO_LAMBDA_DATA_DIR=/tmp/data
 
-    .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
-
     _-_-_-_
 
     If you want to mock the Lambda-containers invocation without starting a Docker-container, use the simple decorator:
 
     .. sourcecode:: python
 
-        @mock_lambda_simple
+        @mock_aws(config={"lambda": {"use_docker": False}})
 
     """
 
@@ -2153,7 +2157,7 @@ class LambdaBackend(BaseBackend):
     def send_sqs_batch(self, function_arn: str, messages: Any, queue_arn: str) -> bool:
         success = True
         for message in messages:
-            result = self._send_sqs_message(function_arn, message, queue_arn)  # type: ignore[arg-type]
+            result = self._send_sqs_message(function_arn, message, queue_arn)
             if not result:
                 success = False
         return success
@@ -2335,13 +2339,13 @@ class LambdaBackend(BaseBackend):
         self, function_name: str, qualifier: str, raw: str
     ) -> Dict[str, Any]:
         fn = self.get_function(function_name, qualifier)
-        return fn.policy.add_statement(raw, qualifier)  # type: ignore[union-attr]
+        return fn.policy.add_statement(raw, qualifier)
 
     def remove_permission(
         self, function_name: str, sid: str, revision: str = ""
     ) -> None:
         fn = self.get_function(function_name)
-        fn.policy.del_statement(sid, revision)  # type: ignore[union-attr]
+        fn.policy.del_statement(sid, revision)
 
     def get_code_signing_config(self, function_name: str) -> Dict[str, Any]:
         fn = self.get_function(function_name)
@@ -2351,7 +2355,7 @@ class LambdaBackend(BaseBackend):
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name, qualifier
         )
-        return fn.policy.wire_format()  # type: ignore[union-attr]
+        return fn.policy.wire_format()
 
     def update_function_code(
         self, function_name: str, qualifier: str, body: Dict[str, Any]

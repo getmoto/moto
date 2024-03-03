@@ -321,11 +321,11 @@ class FakeScheduledAction(CloudFormationModel):
         max_size: Optional[int],
         min_size: Optional[int],
         scheduled_action_name: str,
-        start_time: str,
-        end_time: str,
-        recurrence: str,
+        start_time: Optional[str],
+        end_time: Optional[str],
+        recurrence: Optional[str],
+        timezone: Optional[str],
     ):
-
         self.name = name
         self.desired_capacity = desired_capacity
         self.max_size = max_size
@@ -334,6 +334,7 @@ class FakeScheduledAction(CloudFormationModel):
         self.end_time = end_time
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
+        self.timezone = timezone
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -353,7 +354,6 @@ class FakeScheduledAction(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeScheduledAction":
-
         properties = cloudformation_json["Properties"]
 
         backend = autoscaling_backends[account_id][region_name]
@@ -373,8 +373,22 @@ class FakeScheduledAction(CloudFormationModel):
             start_time=properties.get("StartTime"),
             end_time=properties.get("EndTime"),
             recurrence=properties.get("Recurrence"),
+            timezone=properties.get("TimeZone"),
         )
         return scheduled_action
+
+
+class FailedScheduledUpdateGroupActionRequest:
+    def __init__(
+        self,
+        *,
+        scheduled_action_name: str,
+        error_code: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> None:
+        self.scheduled_action_name = scheduled_action_name
+        self.error_code = error_code
+        self.error_message = error_message
 
 
 def set_string_propagate_at_launch_booleans_on_tags(
@@ -953,9 +967,10 @@ class AutoScalingBackend(BaseBackend):
         max_size: Union[None, str, int],
         min_size: Union[None, str, int],
         scheduled_action_name: str,
-        start_time: str,
-        end_time: str,
-        recurrence: str,
+        start_time: Optional[str],
+        end_time: Optional[str],
+        recurrence: Optional[str],
+        timezone: Optional[str],
     ) -> FakeScheduledAction:
         max_size = make_int(max_size)
         min_size = make_int(min_size)
@@ -970,10 +985,38 @@ class AutoScalingBackend(BaseBackend):
             start_time=start_time,
             end_time=end_time,
             recurrence=recurrence,
+            timezone=timezone,
         )
 
         self.scheduled_actions[scheduled_action_name] = scheduled_action
         return scheduled_action
+
+    def batch_put_scheduled_update_group_action(
+        self, name: str, actions: List[Dict[str, Any]]
+    ) -> List[FailedScheduledUpdateGroupActionRequest]:
+        result = []
+        for action in actions:
+            try:
+                self.put_scheduled_update_group_action(
+                    name=name,
+                    desired_capacity=action.get("DesiredCapacity"),
+                    max_size=action.get("MaxSize"),
+                    min_size=action.get("MinSize"),
+                    scheduled_action_name=action["ScheduledActionName"],
+                    start_time=action.get("StartTime"),
+                    end_time=action.get("EndTime"),
+                    recurrence=action.get("Recurrence"),
+                    timezone=action.get("TimeZone"),
+                )
+            except AutoscalingClientError as err:
+                result.append(
+                    FailedScheduledUpdateGroupActionRequest(
+                        scheduled_action_name=action["ScheduledActionName"],
+                        error_code=err.error_type,
+                        error_message=err.message,
+                    )
+                )
+        return result
 
     def describe_scheduled_actions(
         self,
@@ -1002,6 +1045,27 @@ class AutoScalingBackend(BaseBackend):
         )
         if scheduled_action:
             self.scheduled_actions.pop(scheduled_action_name, None)
+        else:
+            raise ValidationError("Scheduled action name not found")
+
+    def batch_delete_scheduled_action(
+        self, auto_scaling_group_name: str, scheduled_action_names: List[str]
+    ) -> List[FailedScheduledUpdateGroupActionRequest]:
+        result = []
+        for scheduled_action_name in scheduled_action_names:
+            try:
+                self.delete_scheduled_action(
+                    auto_scaling_group_name, scheduled_action_name
+                )
+            except AutoscalingClientError as err:
+                result.append(
+                    FailedScheduledUpdateGroupActionRequest(
+                        scheduled_action_name=scheduled_action_name,
+                        error_code=err.error_type,
+                        error_message=err.message,
+                    )
+                )
+        return result
 
     def create_auto_scaling_group(
         self,
@@ -1126,13 +1190,40 @@ class AutoScalingBackend(BaseBackend):
         return group
 
     def describe_auto_scaling_groups(
-        self, names: List[str]
+        self, names: List[str], filters: Optional[List[Dict[str, str]]] = None
     ) -> List[FakeAutoScalingGroup]:
-        groups = self.autoscaling_groups.values()
+
+        groups = list(self.autoscaling_groups.values())
+
+        if filters:
+            for f in filters:
+                if f["Name"] == "tag-key":
+                    groups = [
+                        group
+                        for group in groups
+                        if any(tag["Key"] in f["Values"] for tag in group.tags)
+                    ]
+                elif f["Name"] == "tag-value":
+                    groups = [
+                        group
+                        for group in groups
+                        if any(tag["Value"] in f["Values"] for tag in group.tags)
+                    ]
+                elif f["Name"].startswith("tag:"):
+                    tag_key = f["Name"][4:]
+                    groups = [
+                        group
+                        for group in groups
+                        if any(
+                            tag["Key"] == tag_key and tag["Value"] in f["Values"]
+                            for tag in group.tags
+                        )
+                    ]
+
         if names:
-            return [group for group in groups if group.name in names]
-        else:
-            return list(groups)
+            groups = [group for group in groups if group.name in names]
+
+        return groups
 
     def delete_auto_scaling_group(self, group_name: str) -> None:
         self.set_desired_capacity(group_name, 0)

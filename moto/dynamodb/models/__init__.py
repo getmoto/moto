@@ -579,7 +579,11 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Put"]
                     attrs = item["Item"]
                     table_name = item["TableName"]
-                    check_unicity(table_name, item)
+                    table = self.get_table(table_name)
+                    key = {table.hash_key_attr: attrs[table.hash_key_attr]}
+                    if table.range_key_attr is not None:
+                        key[table.range_key_attr] = attrs[table.range_key_attr]
+                    check_unicity(table_name, key)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None

@@ -1273,9 +1273,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -2908,9 +2905,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -5076,6 +5070,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -5456,9 +5459,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -7893,9 +7893,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -9566,9 +9563,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -11730,9 +11724,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -13131,9 +13122,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -15487,9 +15475,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -17782,6 +17767,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "monitron": {
                 "Value": "monitron"
               },
@@ -18174,9 +18168,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -19787,9 +19778,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53resolver": {
                 "Value": "route53resolver",
                 "endpoint": {
@@ -21062,9 +21050,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -23173,9 +23158,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -23749,6 +23731,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -23986,6 +23977,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "efs": {
+                "Value": "efs",
+                "endpoint": {
+                  "Value": "elasticfilesystem.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eks": {
                 "Value": "eks",
                 "endpoint": {
@@ -24065,6 +24065,15 @@
                 "Value": "firehose",
                 "endpoint": {
                   "Value": "firehose.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24229,6 +24238,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rolesanywhere": {
+                "Value": "rolesanywhere",
+                "endpoint": {
+                  "Value": "rolesanywhere.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "route53": {
                 "Value": "route53",
                 "endpoint": {
@@ -24237,9 +24255,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -25169,6 +25184,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -25403,6 +25427,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -25549,9 +25582,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -26565,6 +26595,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iot": {
                 "Value": "iot",
                 "endpoint": {
@@ -26760,6 +26799,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -26897,9 +26945,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -28984,7 +29029,13 @@
                 }
               },
               "migrationhubstrategy": {
-                "Value": "migrationhubstrategy"
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mq": {
                 "Value": "mq",
@@ -29402,9 +29453,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -30899,9 +30947,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -32590,6 +32635,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -32757,9 +32811,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -34433,9 +34484,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -35253,6 +35301,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -35684,9 +35741,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -37792,6 +37846,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "monitron": {
                 "Value": "monitron"
               },
@@ -38205,9 +38268,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -40415,6 +40475,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -40735,9 +40804,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -42788,9 +42854,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
@@ -44208,9 +44271,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
-              },
               "route53resolver": {
                 "Value": "route53resolver",
                 "endpoint": {
@@ -44765,6 +44825,15 @@
                 "Value": "cloudtrail",
                 "endpoint": {
                   "Value": "cloudtrail.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudtrail-data": {
+                "Value": "cloudtrail-data",
+                "endpoint": {
+                  "Value": "cloudtrail-data.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45540,9 +45609,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -47113,9 +47179,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -48846,6 +48909,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -49013,9 +49085,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -49513,9 +49582,6 @@
               "Value": "US-VA"
             },
             "local-zones": {
-              "use1-atl1-az1": {
-                "Value": "use1-atl1-az1"
-              },
               "use1-bos1-az1": {
                 "Value": "use1-bos1-az1"
               },
@@ -50158,6 +50224,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "codewhisperer": {
+                "Value": "codewhisperer",
+                "endpoint": {
+                  "Value": "codewhisperer.us-east-1.amazonaws.com"
                 }
               },
               "cognito-identity": {
@@ -51573,6 +51645,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "migrationhubstrategy": {
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mobile": {
                 "Value": "mobile",
                 "endpoint": {
@@ -51954,6 +52035,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -52028,9 +52118,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -54624,6 +54711,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -54698,9 +54794,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -55738,6 +55831,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -56280,9 +56382,6 @@
               },
               "rosa": {
                 "Value": "rosa"
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -57224,6 +57323,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -57886,9 +57994,6 @@
               },
               "rosa": {
                 "Value": "rosa"
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -59840,9 +59945,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -62248,7 +62350,13 @@
                 }
               },
               "migrationhubstrategy": {
-                "Value": "migrationhubstrategy"
+                "Value": "migrationhubstrategy",
+                "endpoint": {
+                  "Value": "migrationhub-strategy.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mobile": {
                 "Value": "mobile",
@@ -62607,6 +62715,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -62687,9 +62804,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "route53-application-recovery-controller": {
-                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",

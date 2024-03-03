@@ -106,9 +106,9 @@ s3
          - AWSLambda
          - SNS
          - SQS
+         - EventBridge
 
         For the following events:
-
          - 's3:ObjectCreated:Copy'
          - 's3:ObjectCreated:Put'
         
@@ -147,6 +147,8 @@ s3
          - FieldDelimiters are ignored
         
 
+- [X] upload_file
+- [X] upload_fileobj
 - [X] upload_part
 - [X] upload_part_copy
 - [ ] write_get_object_response

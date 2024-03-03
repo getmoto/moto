@@ -1,6 +1,6 @@
 import base64
 import copy
-import decimal
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
@@ -100,9 +100,14 @@ class DynamoType(object):
         if self.type != other.type:
             raise TypeError("Different types of operandi is not allowed.")
         if self.is_number():
-            self_value = float(self.value) if "." in self.value else int(self.value)
-            other_value = float(other.value) if "." in other.value else int(other.value)
-            return DynamoType({DDBType.NUMBER: f"{self_value + other_value}"})
+            self_value: Union[Decimal, int] = (
+                Decimal(self.value) if "." in self.value else int(self.value)
+            )
+            other_value: Union[Decimal, int] = (
+                Decimal(other.value) if "." in other.value else int(other.value)
+            )
+            total = self_value + other_value
+            return DynamoType({DDBType.NUMBER: f"{total}"})
         else:
             raise IncorrectDataType()
 
@@ -311,14 +316,20 @@ class Item(BaseModel):
         return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
 
     def to_json(self) -> Dict[str, Any]:
-        attributes = {}
+        attributes: Dict[str, Any] = {}
         for attribute_key, attribute in self.attrs.items():
             if isinstance(attribute.value, dict):
-                attr_value = {
+                attr_dict_value = {
                     key: value.to_regular_json()
                     for key, value in attribute.value.items()
                 }
-                attributes[attribute_key] = {attribute.type: attr_value}
+                attributes[attribute_key] = {attribute.type: attr_dict_value}
+            elif isinstance(attribute.value, list):
+                attr_list_value = [
+                    value.to_regular_json() if isinstance(value, DynamoType) else value
+                    for value in attribute.value
+                ]
+                attributes[attribute_key] = {attribute.type: attr_list_value}
             else:
                 attributes[attribute_key] = {attribute.type: attribute.value}
 
@@ -385,12 +396,7 @@ class Item(BaseModel):
                 if set(update_action["Value"].keys()) == set(["N"]):
                     existing = self.attrs.get(attribute_name, DynamoType({"N": "0"}))
                     self.attrs[attribute_name] = DynamoType(
-                        {
-                            "N": str(
-                                decimal.Decimal(existing.value)
-                                + decimal.Decimal(new_value)
-                            )
-                        }
+                        {"N": str(Decimal(existing.value) + Decimal(new_value))}
                     )
                 elif set(update_action["Value"].keys()) == set(["SS"]):
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))

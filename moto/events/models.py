@@ -171,7 +171,7 @@ class Rule(CloudFormationModel):
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])  # type: ignore[arg-type]
         )
 
         log_stream_name = str(random.uuid4())
@@ -191,7 +191,7 @@ class Rule(CloudFormationModel):
             archive_name
         )
         if archive.uuid == archive_uuid:  # type: ignore[union-attr]
-            archive.events.append(event)  # type: ignore[arg-type,union-attr]
+            archive.events.append(event)  # type: ignore[union-attr]
 
     def _find_api_destination(self, resource_id: str) -> "Destination":
         backend: "EventsBackend" = events_backends[self.account_id][self.region_name]
@@ -205,7 +205,7 @@ class Rule(CloudFormationModel):
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])  # type: ignore[arg-type]
         )
 
         if group_id:
@@ -1183,7 +1183,7 @@ class EventsBackend(BaseBackend):
 
         return False
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(
         self, target_arn: str, event_bus_arn: Optional[str]
     ) -> List[Rule]:
@@ -1198,7 +1198,7 @@ class EventsBackend(BaseBackend):
 
         return matching_rules
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(
         self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None
     ) -> List[Rule]:

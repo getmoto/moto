@@ -343,7 +343,7 @@ class S3Response(BaseResponse):
                 f"Method {method} has not been implemented in the S3 backend yet"
             )
 
-    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _get_querystring(self, request: Any, full_url: str) -> Dict[str, Any]:
         # Flask's Request has the querystring already parsed
         # In ServerMode, we can use this, instead of manually parsing this
         if hasattr(request, "args"):
@@ -1116,10 +1116,12 @@ class S3Response(BaseResponse):
         else:
             status_code = 204
 
-        new_key = self.backend.put_object(bucket_name, key, f)
+        new_key = self.backend.put_object(
+            bucket_name, key, f, request_method=request.method
+        )
 
         if self.querystring.get("acl"):
-            acl = get_canned_acl(self.querystring["acl"][0])  # type: ignore
+            acl = get_canned_acl(self.querystring["acl"][0])
             new_key.set_acl(acl)
 
         # Metadata
@@ -1490,7 +1492,7 @@ class S3Response(BaseResponse):
                     unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
                 )
                 src_version_id = parse_qs(copy_source_parsed.query).get(
-                    "versionId", [None]  # type: ignore
+                    "versionId", [None]
                 )[0]
                 src_range = request.headers.get("x-amz-copy-source-range", "").split(
                     "bytes="
@@ -1642,7 +1644,7 @@ class S3Response(BaseResponse):
                 unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
             )
             src_version_id = parse_qs(copy_source_parsed.query).get(
-                "versionId", [None]  # type: ignore
+                "versionId", [None]
             )[0]
 
             key_to_copy = self.backend.get_object(
@@ -2092,12 +2094,19 @@ class S3Response(BaseResponse):
             ("Topic", "sns"),
             ("Queue", "sqs"),
             ("CloudFunction", "lambda"),
+            ("EventBridge", "events"),
         ]
 
         found_notifications = (
             0  # Tripwire -- if this is not ever set, then there were no notifications
         )
         for name, arn_string in notification_fields:
+            # EventBridgeConfiguration is passed as an empty dict.
+            if name == "EventBridge":
+                events_field = f"{name}Configuration"
+                if events_field in parsed_xml["NotificationConfiguration"]:
+                    parsed_xml["NotificationConfiguration"][events_field] = {}
+                    found_notifications += 1
             # 1st verify that the proper notification configuration has been passed in (with an ARN that is close
             # to being correct -- nothing too complex in the ARN logic):
             the_notification = parsed_xml["NotificationConfiguration"].get(

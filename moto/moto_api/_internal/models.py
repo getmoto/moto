@@ -1,11 +1,17 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.config import default_user_config
 from moto.core.model_instances import reset_model_data
 
 
 class MotoAPIBackend(BaseBackend):
+    def __init__(self, region_name: str, account_id: str):
+        super().__init__(region_name, account_id)
+        self.proxy_urls_to_passthrough: Set[str] = set()
+        self.proxy_hosts_to_passthrough: Set[str] = set()
+
     def reset(self) -> None:
         region_name = self.region_name
         account_id = self.account_id
@@ -41,6 +47,12 @@ class MotoAPIBackend(BaseBackend):
         backend = athena_backends[account_id][region]
         results = QueryResults(rows=rows, column_info=column_info)
         backend.query_results_queue.append(results)
+
+    def set_ce_cost_usage(self, result: Dict[str, Any], account_id: str) -> None:
+        from moto.ce.models import ce_backends
+
+        backend = ce_backends[account_id]["global"]
+        backend.cost_usage_results_queue.append(result)
 
     def set_sagemaker_result(
         self,
@@ -89,6 +101,33 @@ class MotoAPIBackend(BaseBackend):
 
         backend = inspector2_backends[account_id][region]
         backend.findings_queue.append(results)
+
+    def get_proxy_passthrough(self) -> Tuple[Set[str], Set[str]]:
+        return self.proxy_urls_to_passthrough, self.proxy_hosts_to_passthrough
+
+    def set_proxy_passthrough(
+        self, http_urls: List[str], https_hosts: List[str]
+    ) -> None:
+        for url in http_urls:
+            self.proxy_urls_to_passthrough.add(url)
+        for host in https_hosts:
+            self.proxy_hosts_to_passthrough.add(host)
+
+    def delete_proxy_passthroughs(self) -> None:
+        self.proxy_urls_to_passthrough.clear()
+        self.proxy_hosts_to_passthrough.clear()
+
+    def get_config(self) -> Dict[str, Any]:
+        return {
+            "batch": default_user_config["batch"],
+            "lambda": default_user_config["lambda"],
+        }
+
+    def set_config(self, config: Dict[str, Any]) -> None:
+        if "batch" in config:
+            default_user_config["batch"] = config["batch"]
+        if "lambda" in config:
+            default_user_config["lambda"] = config["lambda"]
 
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)

@@ -520,7 +520,9 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
         tags = self._get_multi_param("Tags.member")
-        user, user_tags = self.backend.create_user(user_name, path, tags)
+        user, user_tags = self.backend.create_user(
+            self.region, user_name=user_name, path=path, tags=tags
+        )
         template = self.response_template(USER_TEMPLATE)
         return template.render(action="Create", user=user, tags=user_tags["Tags"])
 
@@ -530,7 +532,9 @@ class IamResponse(BaseResponse):
             access_key_id = self.get_access_key()
             user = self.backend.get_user_from_access_key_id(access_key_id)
             if user is None:
-                user = User(self.current_account, "default_user")
+                user = User(
+                    self.current_account, region_name=self.region, name="default_user"
+                )
         else:
             user = self.backend.get_user(user_name)
         tags = self.backend.tagger.list_tags_for_resource(user.arn).get("Tags", [])

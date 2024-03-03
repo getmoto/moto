@@ -669,31 +669,66 @@ def generate_instance_identity_document(instance: Any) -> Dict[str, Any]:
     return document
 
 
+def _convert_rfc4716(data: bytes) -> bytes:
+    """Convert an RFC 4716 public key to OpenSSH authorized_keys format"""
+
+    # Normalize line endings and join continuation lines
+    data_normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    data_joined = data_normalized.replace(b"\\\n", b"")
+    lines = data_joined.splitlines()
+
+    # Trim header and footer
+    if lines[0] != b"---- BEGIN SSH2 PUBLIC KEY ----":
+        raise ValueError("Invalid RFC4716 header line")
+    if lines[-1] != b"---- END SSH2 PUBLIC KEY ----":
+        raise ValueError("Invalid RFC4716 footer line")
+    lines = lines[1:-1]
+
+    # Leading lines containing a colon are headers
+    headers = {}
+    num_header_lines = 0
+    for line in lines:
+        if b":" not in line:
+            break
+        num_header_lines += 1
+        header_name, header_value = line.split(b": ")
+        headers[header_name.lower()] = header_value
+
+    # Remaining lines are key data
+    data_lines = lines[num_header_lines:]
+    b64_key = b"".join(data_lines)
+
+    # Extract the algo name from the binary packet
+    packet = base64.b64decode(b64_key)
+    alg_len = int.from_bytes(packet[:4], "big")
+    alg = packet[4 : 4 + alg_len]
+
+    result_parts = [alg, b64_key]
+    if b"comment" in headers:
+        result_parts.append(headers[b"comment"])
+    return b" ".join(result_parts)
+
+
 def public_key_parse(
     key_material: Union[str, bytes]
 ) -> Union[RSAPublicKey, Ed25519PublicKey]:
-    # These imports take ~.5s; let's keep them local
-    import sshpubkeys.exceptions
-    from sshpubkeys.keys import SSHKey
-
     try:
-        if not isinstance(key_material, bytes):
+        if isinstance(key_material, str):
             key_material = key_material.encode("ascii")
+        key_material = base64.b64decode(key_material)
 
-        decoded_key = base64.b64decode(key_material)
-        public_key = SSHKey(decoded_key.decode("ascii"))
-    except (sshpubkeys.exceptions.InvalidKeyException, UnicodeDecodeError):
+        if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
+            # cryptography doesn't parse RFC4716 key format, so we have to convert it first
+            key_material = _convert_rfc4716(key_material)
+
+        public_key = serialization.load_ssh_public_key(key_material)
+
+        if not isinstance(public_key, (RSAPublicKey, Ed25519PublicKey)):
+            raise ValueError("bad key")
+    except UnicodeDecodeError:
         raise ValueError("bad key")
 
-    if public_key.rsa:
-        return public_key.rsa
-
-    # `cryptography` currently does not support RSA RFC4716/SSH2 format, otherwise we could get rid of `sshpubkeys` and
-    # simply use `load_ssh_public_key()`
-    if public_key.key_type == b"ssh-ed25519":
-        return serialization.load_ssh_public_key(decoded_key)  # type: ignore[return-value]
-
-    raise ValueError("bad key")
+    return public_key
 
 
 def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:

@@ -6,6 +6,7 @@ import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.utils.AttributeMap;
 
@@ -26,6 +27,14 @@ public class DependencyFactory {
      */
     public static S3Client s3Client() {
         return S3Client.builder()
+                .region(Region.US_EAST_1)
+                .httpClientBuilder(ApacheHttpClient.builder())
+                .endpointOverride(MOTO_URI)
+                .build();
+    }
+
+    public static SesClient sesClient() {
+        return SesClient.builder()
                 .region(Region.US_EAST_1)
                 .httpClientBuilder(ApacheHttpClient.builder())
                 .endpointOverride(MOTO_URI)

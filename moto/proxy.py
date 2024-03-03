@@ -88,8 +88,8 @@ def main(argv: Any = None) -> None:
 
     sa = httpd.socket.getsockname()
 
-    print("Call `moto_proxy -h` for example invocations")
-    print(f"Serving HTTP Proxy on {sa[0]}:{sa[1]} ...")  # noqa
+    print("Call `moto_proxy -h` for example invocations")  # noqa: T201
+    print(f"Serving HTTP Proxy on {sa[0]}:{sa[1]} ...")  # noqa: T201
     httpd.serve_forever()
 
 

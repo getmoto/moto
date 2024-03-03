@@ -1,6 +1,35 @@
 Moto Changelog
 ==============
 
+5.0.2
+-----
+Docker Digest for 5.0.2: _sha256:89cc6c764d714bf76e592a61f0c06fd142f672085e1dd3a53eb734aaeb4e14e2_
+
+    General:
+        * Removed the `python-jose` and `sshpubkeys` dependencies in favor of `joserfc`. This removes a transitive dependency on `ecdsa`, which contains a open security vulnerability
+
+    New Methods:
+        * Autoscaling:
+            * batch_put_scheduled_update_group_action()
+            * batch_delete_scheduled_action()
+
+        * RDS:
+            * create_db_proxy()
+            * describe_db_proxies()
+
+    Miscellaneous:
+        * AWSLambda: The ImageConfig.EntryPoint of a function is now used when invoking it in a Docker container
+        * CognitoIDP now allows public actions even if IAM auth is enabled
+        * DynamoDB: create_table() now validates the number of KeySchema-items
+        * EC2: modify_image_attributes() now supports all LaunchPermissions
+        * ECS: register_task_definition() now has improved validation around `memory`-parameters
+        * Glue: create_database() now supports the `tags`-parameter
+        * IAM: assume_user()/create_user()/get_caller_identity() now return the correct partition for China (aws-cn) when called from a Chinese region
+        * ResourceGroupsTagging: get_resources() now supports ELB resources
+        * Route53: list_hosted_zones() now supports pagination
+        * S3: put_bucket_notification_configuration() now supports EventBridge-notifications
+        * SES now returns errors in the correct format
+
 5.0.1
 -----
 Docker Digest for 5.0.1: _sha256:b6004b2e112c0ba870b2103049548abecec476edeac7a724ed9c71249358e821_

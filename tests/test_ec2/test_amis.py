@@ -426,6 +426,9 @@ def test_ami_filters():
     ]
     imageB = boto3.resource("ec2", region_name="us-east-1").Image(imageB_id)
     imageB.modify_attribute(LaunchPermission={"Add": [{"Group": "all"}]})
+    assert imageB.describe_attribute(Attribute="launchPermission")[
+        "LaunchPermissions"
+    ] == [{"Group": "all"}]
 
     amis_by_architecture = ec2.describe_images(
         Filters=[{"Name": "architecture", "Values": ["x86_64"]}]
@@ -479,7 +482,6 @@ def test_ami_filters():
         Filters=[{"Name": "is-public", "Values": ["false"]}]
     )["Images"]
     assert imageA.id in [ami["ImageId"] for ami in amis_by_nonpublic]
-    assert len(amis_by_nonpublic) >= 2, "Should have at least 2 non-public images"
 
 
 @mock_aws
@@ -682,6 +684,53 @@ def test_ami_attribute_user_permissions():
 
     # Remove is idempotent
     image.modify_attribute(**REMOVE_USERS_ARGS)
+
+
+@mock_aws
+def test_ami_attribute_organizations():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = reservation["Instances"][0]["InstanceId"]
+    image_id = ec2.create_image(InstanceId=instance_id, Name="test-ami-A")["ImageId"]
+    image = boto3.resource("ec2", "us-east-1").Image(image_id)
+    arn = "someOrganizationArn"
+    image.modify_attribute(
+        Attribute="launchPermission",
+        OperationType="add",
+        OrganizationArns=[arn],
+    )
+    image.modify_attribute(
+        Attribute="launchPermission",
+        OperationType="add",
+        OrganizationalUnitArns=["ou1"],
+    )
+
+    ec2.modify_image_attribute(
+        Attribute="launchPermission",
+        ImageId=image_id,
+        LaunchPermission={
+            "Add": [
+                {"UserId": "111122223333"},
+                {"UserId": "555566667777"},
+                {"Group": "all"},
+                {"OrganizationArn": "orgarn"},
+                {"OrganizationalUnitArn": "ou2"},
+            ]
+        },
+    )
+
+    launch_permissions = image.describe_attribute(Attribute="launchPermission")[
+        "LaunchPermissions"
+    ]
+    assert launch_permissions == [
+        {"OrganizationArn": "someOrganizationArn"},
+        {"OrganizationalUnitArn": "ou1"},
+        {"UserId": "111122223333"},
+        {"UserId": "555566667777"},
+        {"Group": "all"},
+        {"OrganizationArn": "orgarn"},
+        {"OrganizationalUnitArn": "ou2"},
+    ]
 
 
 @mock_aws

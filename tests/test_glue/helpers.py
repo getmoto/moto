@@ -19,13 +19,17 @@ def create_database_input(database_name):
     return database_input
 
 
-def create_database(client, database_name, database_input=None, catalog_id=None):
+def create_database(
+    client, database_name, database_input=None, catalog_id=None, tags=None
+):
     if database_input is None:
         database_input = create_database_input(database_name)
 
     database_kwargs = {"DatabaseInput": database_input}
     if catalog_id is not None:
         database_kwargs["CatalogId"] = catalog_id
+    if tags is not None:
+        database_kwargs["Tags"] = tags
     return client.create_database(**database_kwargs)
 
 

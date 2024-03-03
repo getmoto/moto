@@ -883,6 +883,7 @@ class NotificationConfiguration(BaseModel):
         topic: Optional[List[Dict[str, Any]]] = None,
         queue: Optional[List[Dict[str, Any]]] = None,
         cloud_function: Optional[List[Dict[str, Any]]] = None,
+        event_bridge: Optional[Dict[str, Any]] = None,
     ):
         self.topic = (
             [
@@ -923,6 +924,7 @@ class NotificationConfiguration(BaseModel):
             if cloud_function
             else []
         )
+        self.event_bridge = event_bridge
 
     def to_config_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {"configurations": {}}
@@ -945,6 +947,8 @@ class NotificationConfiguration(BaseModel):
             cf_config["type"] = "LambdaConfiguration"
             data["configurations"][cloud_function.id] = cf_config
 
+        if self.event_bridge is not None:
+            data["configurations"]["EventBridgeConfiguration"] = self.event_bridge
         return data
 
 
@@ -1325,6 +1329,7 @@ class FakeBucket(CloudFormationModel):
             topic=notification_config.get("TopicConfiguration"),
             queue=notification_config.get("QueueConfiguration"),
             cloud_function=notification_config.get("CloudFunctionConfiguration"),
+            event_bridge=notification_config.get("EventBridgeConfiguration"),
         )
 
         # Validate that the region is correct:
@@ -2043,6 +2048,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
         checksum_value: Optional[str] = None,
+        # arguments to handle notification
+        request_method: Optional[str] = "PUT",
+        disable_notification: Optional[bool] = False,
     ) -> FakeKey:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
@@ -2091,12 +2099,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
-        notifications.send_event(
-            self.account_id,
-            notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT,
-            bucket,
-            new_key,
-        )
+        if not disable_notification:
+            # Send event notification
+            if request_method == "POST":
+                notify_event_name = (
+                    notifications.S3NotificationEvent.OBJECT_CREATED_POST_EVENT
+                )
+            else:  # PUT request
+                notify_event_name = (
+                    notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT
+                )
+            notifications.send_event(
+                self.account_id,
+                notify_event_name,
+                bucket,
+                new_key,
+            )
 
         return new_key
 
@@ -2315,9 +2333,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - AWSLambda
          - SNS
          - SQS
+         - EventBridge
 
         For the following events:
-
          - 's3:ObjectCreated:Copy'
          - 's3:ObjectCreated:Put'
         """
@@ -2691,6 +2709,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            disable_notification=True,  # avoid sending PutObject events here
         )
         self.tagger.copy_tags(src_key.arn, new_key.arn)
         if mdirective != "REPLACE":

@@ -157,8 +157,6 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(
             destination=destination,
         )
     err = exc.value.response["Error"]
-    if err["Code"] != "InvalidParameterException":
-        print(err)
     assert err["Code"] == "InvalidParameterException"
     assert (
         err["Message"]

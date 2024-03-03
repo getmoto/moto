@@ -143,6 +143,16 @@ class _TemplateEnvironmentMixin(object):
 class ActionAuthenticatorMixin(object):
     request_count: ClassVar[int] = 0
 
+    PUBLIC_OPERATIONS = [
+        "AWSCognitoIdentityService.GetId",
+        "AWSCognitoIdentityService.GetOpenIdToken",
+        "AWSCognitoIdentityProviderService.ConfirmSignUp",
+        "AWSCognitoIdentityProviderService.GetUser",
+        "AWSCognitoIdentityProviderService.ForgotPassword",
+        "AWSCognitoIdentityProviderService.InitiateAuth",
+        "AWSCognitoIdentityProviderService.SignUp",
+    ]
+
     def _authenticate_and_authorize_action(
         self, iam_request_cls: type, resource: str = "*"
     ) -> None:
@@ -150,6 +160,11 @@ class ActionAuthenticatorMixin(object):
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
+            if (
+                self.headers.get("X-Amz-Target")  # type: ignore[attr-defined]
+                in ActionAuthenticatorMixin.PUBLIC_OPERATIONS
+            ):
+                return
             parsed_url = urlparse(self.uri)  # type: ignore[attr-defined]
             path = parsed_url.path
             if parsed_url.query:
@@ -318,7 +333,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     self.body = k
         if hasattr(request, "files") and request.files:
             for _, value in request.files.items():
-                self.body = value.stream
+                self.body = value.stream.read()
+                value.stream.close()
             if querystring.get("key"):
                 filename = os.path.basename(request.files["file"].filename)
                 querystring["key"] = [
@@ -327,8 +343,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if hasattr(self.body, "read"):
             self.body = self.body.read()
-
-        raw_body = self.body
 
         # https://github.com/getmoto/moto/issues/6692
         # Content coming from SDK's can be GZipped for performance reasons
@@ -364,7 +378,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                         OrderedDict(
                             (key, [value])
                             for key, value in parse_qsl(
-                                raw_body, keep_blank_values=True
+                                self.body, keep_blank_values=True
                             )
                         )
                     )

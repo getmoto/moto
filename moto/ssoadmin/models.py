@@ -337,7 +337,7 @@ class SSOAdminBackend(BaseBackend):
             message=f"Could not find PermissionSet with id {ps_id}"
         )
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:
         permission_sets = []
         for permission_set in self.permission_sets:
@@ -399,7 +399,7 @@ class SSOAdminBackend(BaseBackend):
         permissionset.managed_policies.append(managed_policy)
         permissionset.total_managed_policies_attached += 1
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_managed_policies_in_permission_set(
         self,
         instance_arn: str,
@@ -467,7 +467,7 @@ class SSOAdminBackend(BaseBackend):
         permissionset.customer_managed_policies.append(customer_managed_policy)
         permissionset.total_managed_policies_attached += 1
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_customer_managed_policy_references_in_permission_set(
         self, instance_arn: str, permission_set_arn: str
     ) -> List[CustomerManagedPolicy]:

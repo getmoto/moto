@@ -13,12 +13,17 @@ import boto3
 import pytest
 import requests
 from botocore.exceptions import ClientError, ParamValidationError
-from jose import jws, jwt
+from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
-from moto import mock_aws, settings
+from moto import cognitoidp, mock_aws, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import set_initial_no_auth_action_count
+from moto.utilities.utils import load_resource
+
+private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
+PUBLIC_KEY = jwk.RSAKey.import_key(private_key)
 
 
 @mock_aws
@@ -1542,7 +1547,8 @@ def test_group_in_access_token():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["AccessToken"])
+    payload = jwt.decode(result["AuthenticationResult"]["AccessToken"], PUBLIC_KEY)
+    claims = payload.claims
     assert claims["cognito:groups"] == [group_name]
 
 
@@ -1603,7 +1609,8 @@ def test_other_attributes_in_id_token():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["IdToken"])
+    payload = jwt.decode(result["AuthenticationResult"]["IdToken"], PUBLIC_KEY)
+    claims = payload.claims
     assert claims["cognito:groups"] == [group_name]
     assert claims["custom:myattr"] == "some val"
 
@@ -2357,6 +2364,7 @@ def test_get_user():
 
 
 @mock_aws
+@set_initial_no_auth_action_count(0)
 def test_get_user_unknown_accesstoken():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -2955,7 +2963,7 @@ def test_token_legitimacy():
 
     path = "../../moto/cognitoidp/resources/jwks-public.json"
     with open(os.path.join(os.path.dirname(__file__), path)) as f:
-        json_web_key = json.loads(f.read())["keys"][0]
+        json_web_key = jwk.RSAKey.import_key(json.loads(f.read())["keys"][0])
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
         outputs = authentication_flow(conn, auth_flow)
@@ -2966,14 +2974,14 @@ def test_token_legitimacy():
         issuer = (
             f"https://cognito-idp.us-west-2.amazonaws.com/{outputs['user_pool_id']}"
         )
-        id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
+        id_claims = jwt.decode(id_token, json_web_key, ["RS256"]).claims
         assert id_claims["iss"] == issuer
         assert id_claims["aud"] == client_id
         assert id_claims["token_use"] == "id"
         assert id_claims["cognito:username"] == username
         for k, v in outputs["additional_fields"].items():
             assert id_claims[k] == v
-        access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
+        access_claims = jwt.decode(access_token, json_web_key, ["RS256"]).claims
         assert access_claims["iss"] == issuer
         assert access_claims["client_id"] == client_id
         assert access_claims["token_use"] == "access"
@@ -3047,6 +3055,7 @@ def test_change_password__using_custom_user_agent_header():
 
 
 @mock_aws
+@set_initial_no_auth_action_count(2)
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -3913,14 +3922,21 @@ def test_confirm_sign_up():
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
+    _signup_and_confirm(client_id, conn, password, username)
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert result["UserStatus"] == "CONFIRMED"
+
+
+@set_initial_no_auth_action_count(0)
+def _signup_and_confirm(client_id, conn, password, username):
+    # Also verify Authentication works for these actions
+    # There are no IAM policies, but they should be public - accessible by anyone
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
     conn.confirm_sign_up(
         ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
-
-    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    assert result["UserStatus"] == "CONFIRMED"
 
 
 @mock_aws
@@ -4439,6 +4455,56 @@ def test_admin_initiate_auth_when_token_totp_enabled():
 
 
 @mock_aws
+def test_admin_initiate_auth_when_sms_mfa_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    client_id = result["client_id"]
+    password = result["password"]
+
+    # Set MFA SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 1
+    assert result["PreferredMfaSetting"] == "SMS_MFA"
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "PASSWORD": password,
+        },
+    )
+
+    assert result["ChallengeName"] == "SMS_MFA"
+    assert result["Session"] != ""
+
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        ChallengeName="SMS_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SMS_MFA_CODE": "123456",
+            "USERNAME": username,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
+@mock_aws
 def test_admin_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4857,6 +4923,21 @@ def test_login_denied_if_account_disabled():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
+@mock_aws
+# Also validate that we don't need IAM policies, as this operation should be publicly accessible
+@set_initial_no_auth_action_count(0)
+def test_initiate_auth_with_invalid_user_pool():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.initiate_auth(
+            ClientId="unknown",
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": "user", "PASSWORD": "pass"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
 # which isnt mocked in ServerMode
 if not settings.TEST_SERVER_MODE:
@@ -4913,8 +4994,10 @@ if not settings.TEST_SERVER_MODE:
 
 def verify_kid_header(token):
     """Verifies the kid-header is corresponds with the public key"""
-    headers = jwt.get_unverified_headers(token)
-    kid = headers["kid"]
+    if isinstance(token, str):
+        token = token.encode("ascii")
+    sig = jws.extract_compact(token)
+    kid = sig.headers()["kid"]
 
     key_index = -1
     keys = fetch_public_keys()

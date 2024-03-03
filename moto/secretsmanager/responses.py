@@ -120,11 +120,13 @@ class SecretsManagerResponse(BaseResponse):
         rotation_lambda_arn = self._get_param("RotationLambdaARN")
         rotation_rules = self._get_param("RotationRules")
         secret_id = self._get_param("SecretId")
+        rotate_immediately = self._get_bool_param("RotateImmediately", True)
         return self.backend.rotate_secret(
             secret_id=secret_id,
             client_request_token=client_request_token,
             rotation_lambda_arn=rotation_lambda_arn,
             rotation_rules=rotation_rules,
+            rotate_immediately=rotate_immediately,
         )
 
     def put_secret_value(self) -> str:

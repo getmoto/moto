@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from dateutil.parser import parse as dtparse
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.common_models import BaseModel
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.emr.exceptions import (
     InvalidRequestException,
     ResourceNotFoundException,
@@ -151,7 +151,7 @@ class FakeStep(BaseModel):
         self.start_datetime = datetime.now(timezone.utc)
 
 
-class FakeCluster(BaseModel):
+class FakeCluster(CloudFormationModel):
     def __init__(
         self,
         emr_backend: "ElasticMapReduceBackend",
@@ -383,6 +383,71 @@ class FakeCluster(BaseModel):
 
     def set_visibility(self, visibility: str) -> None:
         self.visible_to_all_users = visibility
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.id
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::EMR::Cluster"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in ["Id"]
+
+    def get_cfn_attribute(self, attribute_name: str) -> str:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Id":
+            return self.id
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeCluster":
+
+        properties = cloudformation_json["Properties"]
+
+        instance_attrs = properties.get("Instances", {})
+        instance_attrs["ec2_subnet_id"] = instance_attrs.get("Ec2SubnetId")
+        instance_attrs["emr_managed_master_security_group"] = instance_attrs.get(
+            "EmrManagedMasterSecurityGroup"
+        )
+        instance_attrs["emr_managed_slave_security_group"] = instance_attrs.get(
+            "EmrManagedSlaveSecurityGroup"
+        )
+        instance_attrs["service_access_security_group"] = instance_attrs.get(
+            "ServiceAccessSecurityGroup"
+        )
+        instance_attrs["additional_master_security_groups"] = instance_attrs.get(
+            "AdditionalMasterSecurityGroups", []
+        )
+        instance_attrs["additional_slave_security_groups"] = instance_attrs.get(
+            "AdditionalSlaveSecurityGroups", []
+        )
+
+        emr_backend: ElasticMapReduceBackend = emr_backends[account_id][region_name]
+        cluster = emr_backend.run_job_flow(
+            name=properties["Name"],
+            log_uri=properties.get("LogUri"),
+            job_flow_role=properties["JobFlowRole"],
+            service_role=properties["ServiceRole"],
+            steps=[],
+            instance_attrs=instance_attrs,
+            kerberos_attributes=properties.get("KerberosAttributes", {}),
+            release_label=properties.get("ReleaseLabel"),
+            custom_ami_id=properties.get("CustomAmiId"),
+        )
+        tags = {item["Key"]: item["Value"] for item in properties.get("Tags", [])}
+        cluster.add_tags(tags)
+        return cluster
 
 
 class FakeSecurityConfiguration(BaseModel):

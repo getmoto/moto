@@ -4,10 +4,15 @@ import requests
 import os
 
 import moto
+from moto.backends import get_backend, list_of_moto_modules
+
 
 # Populate CloudFormationModel.__subclasses__()
-moto.mock_all()
-
+for service_name in list_of_moto_modules():
+    try:
+        get_backend(service_name)
+    except AttributeError:
+        pass
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -59,7 +64,9 @@ class CloudFormationChecklist:
 
     @property
     def moto_model(self):
-        for subclass in moto.core.common_models.CloudFormationModel.__subclasses__():
+        from moto.core.common_models import CloudFormationModel
+
+        for subclass in CloudFormationModel.__subclasses__():
             subclass_service = subclass.__module__.split(".")[1]
             subclass_model = subclass.__name__
 
