@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
@@ -42,13 +42,13 @@ class Route53DomainsBackend(BaseBackend):
         domain_name: str,
         duration_in_years: int,
         auto_renew: bool,
-        admin_contact: Dict,
-        registrant_contact: Dict,
-        tech_contact: Dict,
+        admin_contact: Dict[str, Any],
+        registrant_contact: Dict[str, Any],
+        tech_contact: Dict[str, Any],
         private_protect_admin_contact: bool,
         private_protect_registrant_contact: bool,
         private_protect_tech_contact: bool,
-        extra_params: List[Dict],
+        extra_params: List[Dict[str, Any]],
     ) -> Route53DomainsOperation:
         """Register a domain"""
 
@@ -116,7 +116,7 @@ class Route53DomainsBackend(BaseBackend):
 
     def __validate_duplicate_operations(
         self, requested_operation: Route53DomainsOperation
-    ):
+    ) -> None:
         for operation in self.__operations.values():
             if (
                 operation.domain_name == requested_operation.domain_name
@@ -137,8 +137,8 @@ class Route53DomainsBackend(BaseBackend):
 
     def list_domains(
         self,
-        filter_conditions: Optional[List[Dict]] = None,
-        sort_condition: Optional[Dict] = None,
+        filter_conditions: Optional[List[Dict[str, Any]]] = None,
+        sort_condition: Optional[Dict[str, Any]] = None,
         marker: Optional[str] = None,
         max_items: Optional[int] = None,
     ) -> Tuple[List[Route53Domain], Optional[str]]:
@@ -162,7 +162,7 @@ class Route53DomainsBackend(BaseBackend):
                 ["Sort condition must be the same as the filter condition"]
             )
 
-        domains_to_return = []
+        domains_to_return: List[Route53Domain] = []
         max_items = max_items or self.DEFAULT_MAX_ITEMS
 
         for domain in self.__domains.values():
@@ -261,9 +261,9 @@ class Route53DomainsBackend(BaseBackend):
         return self.__operations[operation_id]
 
     def update_domain_nameservers(
-        self, domain_name: str, nameservers: List[Dict]
+        self, domain_name: str, nameservers: List[Dict[str, Any]]
     ) -> Route53DomainsOperation:
-        input_errors = []
+        input_errors: List[str] = []
         Route53Domain.validate_domain_name(domain_name, input_errors)
         if len(nameservers) < 1:
             input_errors.append("Must supply nameservers")
@@ -295,7 +295,7 @@ class Route53DomainsBackend(BaseBackend):
         self.__validate_duplicate_operations(requested_operation)
 
         domain = self.__domains[domain_name]
-        domain.name_servers = servers
+        domain.nameservers = servers
         self.__operations[requested_operation.id] = requested_operation
 
         return requested_operation

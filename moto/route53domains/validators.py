@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -649,7 +649,7 @@ class Route53DomainsOperation(BaseModel):
         self.status_flag = status_flag
 
     @classmethod
-    def validate(
+    def validate(  # type: ignore[misc,no-untyped-def]
         cls,
         domain_name: str,
         status: str,
@@ -673,7 +673,7 @@ class Route53DomainsOperation(BaseModel):
             status_flag,
         )
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> Dict[str, Any]:
         d = {
             "OperationId": self.id,
             "Status": self.status,
@@ -699,7 +699,7 @@ class Route53DomainsContactDetail(BaseModel):
         contact_type: Optional[str] = None,
         country_code: Optional[str] = None,
         email: Optional[str] = None,
-        extra_params: Optional[List[Dict]] = None,
+        extra_params: Optional[List[Dict[str, Any]]] = None,
         fax: Optional[str] = None,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
@@ -725,7 +725,7 @@ class Route53DomainsContactDetail(BaseModel):
         self.zip_code = zip_code
 
     @classmethod
-    def validate(
+    def validate(  # type: ignore[misc, no-untyped-def]
         cls,
         address_line_1: Optional[str] = None,
         address_line_2: Optional[str] = None,
@@ -733,7 +733,7 @@ class Route53DomainsContactDetail(BaseModel):
         contact_type: Optional[str] = None,
         country_code: Optional[str] = None,
         email: Optional[str] = None,
-        extra_params: Optional[List[Dict]] = None,
+        extra_params: Optional[List[Dict[str, Any]]] = None,
         fax: Optional[str] = None,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
@@ -742,35 +742,35 @@ class Route53DomainsContactDetail(BaseModel):
         state: Optional[str] = None,
         zip_code: Optional[str] = None,
     ):
-        errors = []
+        input_errors: List[str] = []
 
-        cls.__validate_str_len(address_line_1, "AddressLine1", 255, errors)
-        cls.__validate_str_len(address_line_2, "AddressLine2", 255, errors)
-        cls.__validate_str_len(city, "City", 255, errors)
-        cls.__validate_str_len(email, "Email", 255, errors)
-        cls.__validate_str_len(fax, "Fax", 255, errors)
-        cls.__validate_str_len(first_name, "FirstName", 255, errors)
-        cls.__validate_str_len(last_name, "LastName", 255, errors)
-        cls.__validate_str_len(state, "State", 255, errors)
-        cls.__validate_str_len(zip_code, "ZipCode", 255, errors)
+        cls.__validate_str_len(address_line_1, "AddressLine1", 255, input_errors)
+        cls.__validate_str_len(address_line_2, "AddressLine2", 255, input_errors)
+        cls.__validate_str_len(city, "City", 255, input_errors)
+        cls.__validate_str_len(email, "Email", 255, input_errors)
+        cls.__validate_str_len(fax, "Fax", 255, input_errors)
+        cls.__validate_str_len(first_name, "FirstName", 255, input_errors)
+        cls.__validate_str_len(last_name, "LastName", 255, input_errors)
+        cls.__validate_str_len(state, "State", 255, input_errors)
+        cls.__validate_str_len(zip_code, "ZipCode", 255, input_errors)
 
         if contact_type:
             if contact_type not in DOMAIN_CONTACT_DETAIL_CONTACT_TYPES:
-                errors.append(f"Invalid contact type {contact_type}")
+                input_errors.append(f"Invalid contact type {contact_type}")
             else:
                 if contact_type != "PERSON" and not organization_name:
-                    errors.append(
+                    input_errors.append(
                         "Must supply OrganizationName when ContactType is not PERSON"
                     )
 
         if country_code and country_code not in DOMAIN_CONTACT_DETAIL_COUNTRY_CODES:
-            errors.append(f"CountryCode {country_code} is invalid")
+            input_errors.append(f"CountryCode {country_code} is invalid")
 
         if phone_number and not PHONE_NUMBER_REGEX.match(phone_number):
-            errors.append("PhoneNumber is in an invalid format")
+            input_errors.append("PhoneNumber is in an invalid format")
 
-        if errors:
-            raise ValidationException(errors)
+        if input_errors:
+            raise ValidationException(input_errors)
 
         return cls(
             address_line_1,
@@ -790,21 +790,21 @@ class Route53DomainsContactDetail(BaseModel):
         )
 
     @classmethod
-    def validate_dict(cls, d: Dict):
-        address_line_1: str = d.get("AddressLine1")
-        address_line_2: str = d.get("AddressLine2")
-        city: str = d.get("City")
-        contact_type: str = d.get("ContactType")
-        country_code: str = d.get("CountryCode")
-        email: str = d.get("Email")
-        extra_params: List[Dict] = d.get("ExtraParams")
-        fax: str = d.get("Fax")
-        first_name: str = d.get("FirstName")
-        last_name: str = d.get("LastName")
-        organization_name: str = d.get("OrganizationName")
-        phone_number: str = d.get("PhoneNumber")
-        state: str = d.get("State")
-        zip_code: str = d.get("ZipCode")
+    def validate_dict(cls, d: Dict[str, Any]):  # type: ignore[misc, no-untyped-def]
+        address_line_1 = d.get("AddressLine1")
+        address_line_2 = d.get("AddressLine2")
+        city = d.get("City")
+        contact_type = d.get("ContactType")
+        country_code = d.get("CountryCode")
+        email = d.get("Email")
+        extra_params = d.get("ExtraParams")
+        fax = d.get("Fax")
+        first_name = d.get("FirstName")
+        last_name = d.get("LastName")
+        organization_name = d.get("OrganizationName")
+        phone_number = d.get("PhoneNumber")
+        state = d.get("State")
+        zip_code = d.get("ZipCode")
         return cls.validate(
             address_line_1=address_line_1,
             address_line_2=address_line_2,
@@ -824,12 +824,12 @@ class Route53DomainsContactDetail(BaseModel):
 
     @staticmethod
     def __validate_str_len(
-        value: str, field_name: str, max_len: int, errors: List[str]
-    ):
+        value: Optional[str], field_name: str, max_len: int, errors: List[str]
+    ) -> None:
         if value and len(value) > max_len:
             errors.append(f"Length of {field_name} is more than {max_len}")
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> Dict[str, Any]:
         d = {
             "FirstName": self.first_name,
             "LastName": self.last_name,
@@ -856,12 +856,12 @@ class NameServer:
         self.glue_ips = glue_ips
 
     @classmethod
-    def validate(cls, name: str, glue_ips: Optional[List[str]] = None):
+    def validate(cls, name: str, glue_ips: Optional[List[str]] = None):  # type: ignore[misc,no-untyped-def]
         glue_ips = glue_ips or []
-        errors = []
+        input_errors: List[str] = []
 
         if not VALID_DOMAIN_REGEX.match(name):
-            errors.append(f"{name} is not a valid host name")
+            input_errors.append(f"{name} is not a valid host name")
 
         num_ipv4_addresses = 0
         num_ipv6_addresses = 0
@@ -873,26 +873,26 @@ class NameServer:
                 elif isinstance(address, IPv6Address):
                     num_ipv6_addresses += 1
             except ValueError:
-                errors.append(f"{ip} is not a valid IP address")
+                input_errors.append(f"{ip} is not a valid IP address")
 
         if num_ipv4_addresses > 1:
-            errors.append("GlueIps list must include only 1 IPv4 address")
+            input_errors.append("GlueIps list must include only 1 IPv4 address")
         if num_ipv6_addresses > 1:
-            errors.append("GlueIps list must include only 1 IPv6 address")
+            input_errors.append("GlueIps list must include only 1 IPv6 address")
 
-        if errors:
-            raise ValidationException(errors)
+        if input_errors:
+            raise ValidationException(input_errors)
 
         return cls(name, glue_ips)
 
     @classmethod
-    def validate_dict(cls, data: Dict):
+    def validate_dict(cls, data: Dict[str, Any]):  # type: ignore[misc,no-untyped-def]
         name = data.get("Name")
         glue_ips = data.get("GlueIps")
-        return cls.validate(name, glue_ips)
+        return cls.validate(name, glue_ips)  # type: ignore[arg-type]
 
-    def to_json(self) -> Dict:
-        d = {"Name": self.name}
+    def to_json(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"Name": self.name}
         if self.glue_ips:
             d["GlueIps"] = self.glue_ips
         return d
@@ -902,7 +902,7 @@ class Route53Domain(BaseModel):
     def __init__(
         self,
         domain_name: str,
-        name_servers: List[NameServer],
+        nameservers: List[NameServer],
         auto_renew: bool,
         admin_contact: Route53DomainsContactDetail,
         registrant_contact: Route53DomainsContactDetail,
@@ -921,11 +921,11 @@ class Route53Domain(BaseModel):
         expiration_date: datetime,
         reseller: str,
         status_list: List[str],
-        dns_sec_keys: List[Dict],
-        extra_params: List[Dict],
+        dns_sec_keys: List[Dict[str, Any]],
+        extra_params: List[Dict[str, Any]],
     ):
         self.domain_name = domain_name
-        self.name_servers = name_servers
+        self.nameservers = nameservers
         self.auto_renew = auto_renew
         self.admin_contact = admin_contact
         self.registrant_contact = registrant_contact
@@ -948,13 +948,13 @@ class Route53Domain(BaseModel):
         self.extra_params = extra_params
 
     @classmethod
-    def validate(
+    def validate(  # type: ignore[misc,no-untyped-def]
         cls,
         domain_name: str,
         admin_contact: Route53DomainsContactDetail,
         registrant_contact: Route53DomainsContactDetail,
         tech_contact: Route53DomainsContactDetail,
-        name_servers: Optional[List[Dict]] = None,
+        nameservers: Optional[List[Dict[str, Any]]] = None,  # type: ignore[type-arg]
         auto_renew: bool = True,
         admin_privacy: bool = True,
         registrant_privacy: bool = True,
@@ -967,17 +967,17 @@ class Route53Domain(BaseModel):
         registry_domain_id: Optional[str] = None,
         expiration_date: Optional[datetime] = None,
         reseller: Optional[str] = None,
-        dns_sec_keys: Optional[List[Dict]] = None,
-        extra_params: Optional[List[Dict]] = None,
+        dns_sec_keys: Optional[List[Dict[str, Any]]] = None,
+        extra_params: Optional[List[Dict[str, Any]]] = None,
     ):
-        input_errors = []
+        input_errors: List[str] = []
 
         cls.validate_domain_name(domain_name, input_errors)
 
-        name_servers = name_servers or []
+        nameservers = nameservers or []
         try:
-            name_servers = [
-                NameServer.validate_dict(name_server) for name_server in name_servers
+            nameservers = [
+                NameServer.validate_dict(nameserver) for nameserver in nameservers
             ] or [
                 NameServer.validate(name="ns-2048.awscdn-64.net"),
                 NameServer.validate(name="ns-2051.awscdn-67.net"),
@@ -1011,8 +1011,8 @@ class Route53Domain(BaseModel):
 
         return cls(
             domain_name=domain_name,
-            name_servers=name_servers,
-            auto_renew=auto_renew,
+            nameservers=nameservers,  # type: ignore[arg-type]
+            auto_renew=auto_renew,  # type: ignore[arg-type]
             admin_contact=admin_contact,
             registrant_contact=registrant_contact,
             tech_contact=tech_contact,
@@ -1022,20 +1022,20 @@ class Route53Domain(BaseModel):
             registrar_name=registrar_name,
             whois_server=whois_server,
             registrar_url=registrar_url,
-            abuse_contact_email=abuse_contact_email,
-            abuse_contact_phone=abuse_contact_phone,
-            registry_domain_id=registry_domain_id,
-            creation_date=creation_date,
+            abuse_contact_email=abuse_contact_email,  # type: ignore[arg-type]
+            abuse_contact_phone=abuse_contact_phone,  # type: ignore[arg-type]
+            registry_domain_id=registry_domain_id,  # type: ignore[arg-type]
+            creation_date=creation_date,  # type: ignore[arg-type]
             updated_date=updated_date,
             expiration_date=expiration_date,
-            reseller=reseller,
-            status_list=status_list,
-            dns_sec_keys=dns_sec_keys,
-            extra_params=extra_params,
+            reseller=reseller,  # type: ignore[arg-type]
+            status_list=status_list,  # type: ignore[arg-type]
+            dns_sec_keys=dns_sec_keys,  # type: ignore[arg-type]
+            extra_params=extra_params,  # type: ignore[arg-type]
         )
 
     @staticmethod
-    def validate_domain_name(domain_name: str, input_errors: List[str]):
+    def validate_domain_name(domain_name: str, input_errors: List[str]) -> None:
         if not VALID_DOMAIN_REGEX.match(domain_name):
             input_errors.append("Invalid domain name")
             return
@@ -1044,10 +1044,10 @@ class Route53Domain(BaseModel):
         if tld not in AWS_SUPPORTED_TLDS:
             raise UnsupportedTLDException(tld)
 
-    def to_json(self):
+    def to_json(self) -> Dict[str, Any]:
         return {
             "DomainName": self.domain_name,
-            "Nameservers": [name_server.to_json() for name_server in self.name_servers],
+            "Nameservers": [nameserver.to_json() for nameserver in self.nameservers],
             "AutoRenew": self.auto_renew,
             "AdminContact": self.admin_contact.to_json(),
             "RegistrantContact": self.registrant_contact.to_json(),
@@ -1086,8 +1086,7 @@ class DomainsFilter:
         return self.__filter_by_expiry_date(domain)
 
     def __filter_by_domain_name(self, domain: Route53Domain) -> bool:
-        if any([domain.domain_name.startswith(value) for value in self.values]):
-            return True
+        return any([domain.domain_name.startswith(value) for value in self.values])
 
     def __filter_by_expiry_date(self, domain: Route53Domain) -> bool:
         return (
@@ -1111,8 +1110,9 @@ class DomainsFilter:
         )
 
     @classmethod
-    def validate(cls, name: str, operator: str, values: List[str]):
-        input_errors = []
+    def validate(cls, name: str, operator: str, values: List[str]):  # type: ignore[misc, no-untyped-def]
+        input_errors: List[str] = []
+
         if name not in DomainFilterField:
             input_errors.append(f"Cannot filter by field {name}")
 
@@ -1148,11 +1148,11 @@ class DomainsFilter:
         )
 
     @classmethod
-    def validate_dict(cls, data: Dict):
-        name: Optional[str] = data.get("Name")
-        operator: Optional[str] = data.get("Operator")
-        values: Optional[List[str]] = data.get("Values")
-        return cls.validate(name=name, operator=operator, values=values)
+    def validate_dict(cls, data: Dict[str, Any]):  # type: ignore[misc,no-untyped-def]
+        name = data.get("Name")
+        operator = data.get("Operator")
+        values = data.get("Values")
+        return cls.validate(name=name, operator=operator, values=values)  # type: ignore[arg-type]
 
 
 class DomainsSortCondition:
@@ -1161,7 +1161,7 @@ class DomainsSortCondition:
         self.sort_order: DomainSortOrder = sort_order
 
     @classmethod
-    def validate(cls, name: str, sort_order: str):
+    def validate(cls, name: str, sort_order: str):  # type: ignore[misc,no-untyped-def]
         input_errors = []
         if name not in DomainFilterField:
             input_errors.append(f"Cannot sort by field {name}")
@@ -1175,7 +1175,7 @@ class DomainsSortCondition:
         return cls(name=DomainFilterField(name), sort_order=DomainSortOrder(sort_order))
 
     @classmethod
-    def validate_dict(cls, data: Dict):
-        name: Optional[str] = data.get("Name")
-        sort_order: Optional[str] = data.get("SortOrder")
-        return cls.validate(name=name, sort_order=sort_order)
+    def validate_dict(cls, data: Dict[str, Any]):  # type: ignore[misc,no-untyped-def]
+        name = data.get("Name")
+        sort_order = data.get("SortOrder")
+        return cls.validate(name=name, sort_order=sort_order)  # type: ignore[arg-type]

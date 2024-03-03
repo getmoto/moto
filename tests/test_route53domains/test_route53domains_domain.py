@@ -214,7 +214,7 @@ def test_get_operation_detail(domain_parameters: Dict):
 
 
 @mock_aws
-def test_get_nonexistent_operation_detail(domain_parameters: Dict):
+def test_get_nonexistent_operation_detail():
     route53domains_client = boto3.client("route53domains", region_name="global")
     with pytest.raises(ClientError) as exc:
         route53domains_client.get_operation_detail(

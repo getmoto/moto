@@ -6,7 +6,7 @@ from moto.core.exceptions import JsonRESTError
 class DomainLimitExceededException(JsonRESTError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "DomainLimitExceeded",
             "The number of registered domains has exceeded the allowed threshold for this account. If you want to "
@@ -17,7 +17,7 @@ class DomainLimitExceededException(JsonRESTError):
 class DuplicateRequestException(JsonRESTError):
     code = 400
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "DuplicateRequest", "The request is already in progress for the domain."
         )
