@@ -205,17 +205,17 @@ class Route53DomainsBackend(BaseBackend):
         sort_order: Optional[str] = None,
     ) -> List[Route53DomainsOperation]:
 
-        errors: List[str] = []
+        input_errors: List[str] = []
         statuses = statuses or []
         types = types or []
 
         if any(status not in DOMAIN_OPERATION_STATUSES for status in statuses):
-            errors.append("Status is invalid")
+            input_errors.append("Status is invalid")
         if any(type_ not in DOMAIN_OPERATION_TYPES for type_ in types):
-            errors.append("Type is invalid")
+            input_errors.append("Type is invalid")
 
-        if errors:
-            raise InvalidInputException(errors)
+        if input_errors:
+            raise InvalidInputException(input_errors)
 
         submitted_since = (
             datetime.fromtimestamp(submitted_since_timestamp, timezone.utc)

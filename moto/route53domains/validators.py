@@ -824,10 +824,10 @@ class Route53DomainsContactDetail(BaseModel):
 
     @staticmethod
     def __validate_str_len(
-        value: Optional[str], field_name: str, max_len: int, errors: List[str]
+        value: Optional[str], field_name: str, max_len: int, input_errors: List[str]
     ) -> None:
         if value and len(value) > max_len:
-            errors.append(f"Length of {field_name} is more than {max_len}")
+            input_errors.append(f"Length of {field_name} is more than {max_len}")
 
     def to_json(self) -> Dict[str, Any]:
         d = {
