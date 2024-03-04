@@ -1231,7 +1231,7 @@ def test_update_security_group_rule_descriptions_ingress():
             "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "first desc"}],
         }
     ]
-    resp = client.authorize_security_group_ingress(GroupId=sg_id, IpPermissions=ip_permissions,    TagSpecifications=[{
+    client.authorize_security_group_ingress(GroupId=sg_id, IpPermissions=ip_permissions,    TagSpecifications=[{
         'ResourceType': 'security-group-rule',
         'Tags': [
             {
@@ -1245,7 +1245,7 @@ def test_update_security_group_rule_descriptions_ingress():
         ]
 
     }])
-    client.describe_security_group_rules(Filters=[{'Name': 'tag:Partner', 'Values': ['test']}])
+    resp = client.describe_security_group_rules(Filters=[{'Name': 'tag:Partner', 'Values': ['test']}])
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]

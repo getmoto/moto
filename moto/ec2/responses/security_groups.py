@@ -267,7 +267,6 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
 <DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>{{ request_id }}</requestId>
   <securityGroupRuleSet>
-
         {% for rule in rules %}
             <item>
                 {% if rule.from_port is not none %}
@@ -294,7 +293,6 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
                 </tagSet> 
             </item>
         {% endfor %}
-
   </securityGroupRuleSet>
 </DescribeSecurityGroupRulesResponse>"""
 

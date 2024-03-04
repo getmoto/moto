@@ -129,19 +129,19 @@ class SecurityRule(TaggedEC2Resource):
                 setattr(new, k, copy.deepcopy(v, memodict))
         return new
 
-    def response_object(self) -> Dict:
-        return {
-           "SecurityGroupRuleId": self.id,
-           "GroupId": self.group_id,
-           "GroupOwnerId": self.owner_id,
-           "IsEgress": self.is_egress,
-           "IpProtocol": self.ip_protocol,
-           "FromPort": self.from_port,
-           "ToPort": self.to_port,
-           "CidrIpv4": self.ip_ranges,
-           "Description": self.description,
-           "Tags": self.get_tags()
-          }
+    # def response_object(self) -> Dict:
+    #     return {
+    #        "SecurityGroupRuleId": self.id,
+    #        "GroupId": self.group_id,
+    #        "GroupOwnerId": self.owner_id,
+    #        "IsEgress": self.is_egress,
+    #        "IpProtocol": self.ip_protocol,
+    #        "FromPort": self.from_port,
+    #        "ToPort": self.to_port,
+    #        "CidrIpv4": self.ip_ranges,
+    #        "Description": self.description,
+    #        "Tags": self.get_tags()
+    #       }
 
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
@@ -594,7 +594,7 @@ class SecurityGroupBackend:
 
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> Dict[str, List[SecurityRule]]:
+    ) -> List[SecurityRule]:
         results = []
 
         if group_ids:
