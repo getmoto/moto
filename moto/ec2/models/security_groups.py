@@ -579,9 +579,19 @@ class SecurityGroupBackend:
         return matches
 
     def describe_security_group_rules(
-        self, group_ids: Optional[List[str]] = None, filters: Any = None
+        self, group_ids: Optional[List[str]] = None, sg_rule_ids: list = [], filters: Any = None
     ) -> List[SecurityRule]:
         results = []
+
+        if sg_rule_ids:
+            # go thru all the rules in the backend to find a match
+            for sg_rule_id in sg_rule_ids:
+                for sg in self.sg_old_ingress_ruls:
+                    for rule in self.sg_old_ingress_ruls[sg]:
+                        if rule.id == sg_rule_id:
+                            results.append(rule)
+
+            return results
 
         if group_ids:
             all_sgs = self.describe_security_groups(group_ids=group_ids)
