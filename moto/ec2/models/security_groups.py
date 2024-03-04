@@ -607,10 +607,10 @@ class SecurityGroupBackend:
 
         for group in all_sgs:
             for ingress in group.ingress_rules:
-                if ingress.matches_filter(filters):
+                if ingress.match_tags(filters):
                     results.append(ingress)
             for egress in group.egress_rules:
-                if egress.matches_filter(filters):
+                if egress.match_tags(filters):
                     results.append(egress)
 
         return results
@@ -851,6 +851,7 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: List[Any],
+        sgrule_tags: Dict[str, str] = {},
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
@@ -898,6 +899,7 @@ class SecurityGroupBackend:
             ip_ranges,
             _source_groups,
             prefix_list_ids,
+            tags=sgrule_tags,
         )
 
         if security_rule in group.egress_rules:
