@@ -260,16 +260,22 @@ def test_update_distribution_applies_changes():
     dist_id = dist["Distribution"]["Id"]
 
     # Assert that default 'Enabled' value is false
-    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"]['DistributionConfig']
-    assert not actual_dist_config['Enabled']
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert not actual_dist_config["Enabled"]
 
     # Update 'Enabled' value to true
     get_config_response = client.get_distribution_config(Id=dist_id)
-    actual_dist_config = get_config_response['DistributionConfig']
-    etag = get_config_response['ETag']
-    actual_dist_config['Enabled'] = True
-    client.update_distribution(DistributionConfig=actual_dist_config, Id=dist_id, IfMatch=etag)
+    actual_dist_config = get_config_response["DistributionConfig"]
+    etag = get_config_response["ETag"]
+    actual_dist_config["Enabled"] = True
+    client.update_distribution(
+        DistributionConfig=actual_dist_config, Id=dist_id, IfMatch=etag
+    )
 
     # Assert that 'Enabled' value is true
-    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"]['DistributionConfig']
-    assert actual_dist_config['Enabled']
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert actual_dist_config["Enabled"]
