@@ -605,17 +605,17 @@ VALID_DOMAIN_REGEX = re.compile(
 PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d+$")
 
 
-class DomainFilterField(str, Enum):
+class DomainFilterField(Enum):
     DOMAIN_NAME = "DomainName"
     EXPIRY = "Expiry"
 
 
-class DomainSortOrder(str, Enum):
+class DomainSortOrder(Enum):
     ASCENDING = "ASC"
     DESCENDING = "DES"
 
 
-class DomainFilterOperator(str, Enum):
+class DomainFilterOperator(Enum):
     LE = "LE"
     GE = "GE"
     BEGINS_WITH = "BEGINS_WITH"
@@ -1113,10 +1113,10 @@ class DomainsFilter:
     def validate(cls, name: str, operator: str, values: List[str]):  # type: ignore[misc, no-untyped-def]
         input_errors: List[str] = []
 
-        if name not in DomainFilterField:
+        if name not in {field.value for field in DomainFilterField}:
             input_errors.append(f"Cannot filter by field {name}")
 
-        if operator not in DomainFilterOperator:
+        if operator not in {op.value for op in DomainFilterOperator}:
             input_errors.append(f"Invalid filter operator {operator}")
 
         if len(values) != 1:
@@ -1162,11 +1162,11 @@ class DomainsSortCondition:
 
     @classmethod
     def validate(cls, name: str, sort_order: str):  # type: ignore[misc,no-untyped-def]
-        input_errors = []
-        if name not in DomainFilterField:
+        input_errors: List[str] = []
+        if name not in {field.value for field in DomainFilterField}:
             input_errors.append(f"Cannot sort by field {name}")
 
-        if sort_order not in DomainSortOrder:
+        if sort_order not in {order.value for order in DomainSortOrder}:
             input_errors.append(f"Invalid sort order {sort_order}")
 
         if input_errors:
