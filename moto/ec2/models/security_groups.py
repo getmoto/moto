@@ -18,7 +18,6 @@ from ..exceptions import (
     RulesPerSecurityGroupLimitExceededError,
 )
 from ..utils import (
-    convert_tag_spec,
     is_tag_filter,
     is_valid_cidr,
     is_valid_ipv6_cidr,
@@ -34,13 +33,15 @@ class SecurityRule(TaggedEC2Resource):
         self,
         ec2_backend: Any,
         ip_protocol: str,
+        group_id: str,
         from_port: Optional[str],
         to_port: Optional[str],
         ip_ranges: Optional[List[Any]],
         source_groups: List[Dict[str, Any]],
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         is_egress: bool = True,
-        tags: dict = {}
+        tags: dict = {},
+        description: str = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_security_group_rule_id()
@@ -50,6 +51,8 @@ class SecurityRule(TaggedEC2Resource):
         self.prefix_list_ids = prefix_list_ids or []
         self.from_port = self.to_port = None
         self.is_egress = is_egress
+        self.description = description
+        self.group_id = group_id
 
         if self.ip_protocol and self.ip_protocol != "-1":
             self.from_port = int(from_port)  # type: ignore[arg-type]
@@ -126,6 +129,20 @@ class SecurityRule(TaggedEC2Resource):
                 setattr(new, k, copy.deepcopy(v, memodict))
         return new
 
+    def response_object(self) -> Dict:
+        return {
+           "SecurityGroupRuleId": self.id,
+           "GroupId": self.group_id,
+           "GroupOwnerId": self.owner_id,
+           "IsEgress": self.is_egress,
+           "IpProtocol": self.ip_protocol,
+           "FromPort": self.from_port,
+           "ToPort": self.to_port,
+           "CidrIpv4": self.ip_ranges,
+           "Description": self.description,
+           "Tags": self.get_tags()
+          }
+
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def __init__(
@@ -159,6 +176,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
                     SecurityRule(
                         self.ec2_backend,
                         "-1",
+                        self.id,
                         None,
                         None,
                         [{"CidrIp": "0.0.0.0/0"}],
@@ -170,6 +188,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
                     SecurityRule(
                         self.ec2_backend,
                         "-1",
+                        self.id,
                         None,
                         None,
                         [{"CidrIpv6": "::/0"}],
@@ -576,20 +595,30 @@ class SecurityGroupBackend:
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
     ) -> Dict[str, List[SecurityRule]]:
-        matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
-        if not matches:
-            raise InvalidSecurityGroupNotFoundError(
-                "No security groups found matching the filters provided."
-            )
-        rules = {}
-        for group in matches:
-            group_rules = []
-            group_rules.extend(group.ingress_rules)
-            group_rules.extend(group.egress_rules)
-            if group_rules:
-                rules[group.group_id] = group_rules
+        results = []
 
-        return rules
+        if group_ids:
+            all_sgs = self.describe_security_groups(group_ids=group_ids)
+            for group in all_sgs:
+                results.extend(group.ingress_rules)
+                results.extend(group.egress_rules)
+
+            return results
+
+        all_sgs = self.describe_security_groups()
+        # if not matches:
+        #     raise InvalidSecurityGroupNotFoundError(
+        #         "No security groups found matching the filters provided."
+        #     )
+        for group in all_sgs:
+            for ingress in group.ingress_rules:
+                if ingress.match_tags(filters):
+                    results.append(ingress)
+            for egress in group.egress_rules:
+                if egress.match_tags(filters):
+                    results.append(egress)
+
+        return results
 
     def _delete_security_group(self, vpc_id: Optional[str], group_id: str) -> None:
         vpc_id = vpc_id or self.default_vpc.id  # type: ignore[attr-defined]
@@ -699,6 +728,7 @@ class SecurityGroupBackend:
         security_rule = SecurityRule(
             self,
             ip_protocol,
+            group.group_id,
             from_port,
             to_port,
             ip_ranges,
@@ -771,6 +801,7 @@ class SecurityGroupBackend:
         security_rule = SecurityRule(
             self,
             ip_protocol,
+            group.group_id,
             from_port,
             to_port,
             ip_ranges,
@@ -866,6 +897,7 @@ class SecurityGroupBackend:
         security_rule = SecurityRule(
             self,
             ip_protocol,
+            group.group_id,
             from_port,
             to_port,
             ip_ranges,
@@ -950,6 +982,7 @@ class SecurityGroupBackend:
         security_rule = SecurityRule(
             self,
             ip_protocol,
+            group.group_id,
             from_port,
             to_port,
             ip_ranges,
@@ -1036,6 +1069,7 @@ class SecurityGroupBackend:
         security_rule = SecurityRule(
             self,
             ip_protocol,
+            group.group_id,
             from_port,
             to_port,
             ip_ranges,
@@ -1091,6 +1125,7 @@ class SecurityGroupBackend:
         security_rule = SecurityRule(
             self,
             ip_protocol,
+            group.group_id,
             from_port,
             to_port,
             ip_ranges,

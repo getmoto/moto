@@ -1245,7 +1245,7 @@ def test_update_security_group_rule_descriptions_ingress():
         ]
 
     }])
-
+    client.describe_security_group_rules(Filters=[{'Name': 'tag:Partner', 'Values': ['test']}])
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]
