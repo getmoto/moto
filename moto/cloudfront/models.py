@@ -354,20 +354,7 @@ class CloudFrontBackend(BaseBackend):
             raise NoSuchDistribution
         dist = self.distributions[_id]
 
-        if dist_config.get("Aliases", {}).get("Items") is not None:
-            aliases = dist_config["Aliases"]["Items"]["CNAME"]
-            dist.distribution_config.aliases = aliases
-        origin = dist_config["Origins"]["Items"]["Origin"]
-        dist.distribution_config.config = dist_config
-        dist.distribution_config.origins = (
-            [Origin(o) for o in origin]
-            if isinstance(origin, list)
-            else [Origin(origin)]
-        )
-        if dist_config.get("DefaultRootObject") is not None:
-            dist.distribution_config.default_root_object = dist_config[
-                "DefaultRootObject"
-            ]
+        dist.distribution_config = DistributionConfig(dist_config)
         self.distributions[_id] = dist
         dist.advance()
         return dist, dist.location, dist.etag
