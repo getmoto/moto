@@ -579,7 +579,10 @@ class SecurityGroupBackend:
         return matches
 
     def describe_security_group_rules(
-        self, group_ids: Optional[List[str]] = None, sg_rule_ids: list = [], filters: Any = None
+        self,
+        group_ids: Optional[List[str]] = None,
+        sg_rule_ids: list = [],
+        filters: Any = None,
     ) -> List[SecurityRule]:
         results = []
 
@@ -601,8 +604,10 @@ class SecurityGroupBackend:
 
             return results
 
-        if filters and 'group-id' in filters:
-            matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
+        if filters and "group-id" in filters:
+            matches = self.describe_security_groups(
+                group_ids=group_ids, filters=filters
+            )
             if not matches:
                 raise InvalidSecurityGroupNotFoundError(
                     "No security groups found matching the filters provided."

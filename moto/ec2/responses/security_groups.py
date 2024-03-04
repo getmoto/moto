@@ -107,7 +107,7 @@ class SecurityGroups(EC2BaseResponse):
             ) = parse_sg_attributes_from_dict(querytree)
 
             yield {
-                "group_name_or_id" :group_name_or_id,
+                "group_name_or_id": group_name_or_id,
                 "ip_protocol": ip_protocol,
                 "from_port": from_port,
                 "to_port": to_port,
@@ -132,7 +132,7 @@ class SecurityGroups(EC2BaseResponse):
             ) = parse_sg_attributes_from_dict(ip_permission)
 
             yield {
-                "group_name_or_id" :group_name_or_id,
+                "group_name_or_id": group_name_or_id,
                 "ip_protocol": ip_protocol,
                 "from_port": from_port,
                 "to_port": to_port,
@@ -214,7 +214,9 @@ class SecurityGroups(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        rules = self.ec2_backend.describe_security_group_rules(group_id, sg_rule_ids, filters)
+        rules = self.ec2_backend.describe_security_group_rules(
+            group_id, sg_rule_ids, filters
+        )
         template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
         return template.render(rules=rules)
 
@@ -223,7 +225,7 @@ class SecurityGroups(EC2BaseResponse):
 
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
-            del args['sgrule_tags']
+            del args["sgrule_tags"]
             self.ec2_backend.revoke_security_group_egress(**args)
         return REVOKE_SECURITY_GROUP_EGRESS_RESPONSE
 
@@ -232,14 +234,14 @@ class SecurityGroups(EC2BaseResponse):
 
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
-            del args['sgrule_tags']
+            del args["sgrule_tags"]
             self.ec2_backend.revoke_security_group_ingress(**args)
         return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
 
     def update_security_group_rule_descriptions_ingress(self) -> str:
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
-            del args['sgrule_tags']
+            del args["sgrule_tags"]
             group = self.ec2_backend.update_security_group_rule_descriptions_ingress(
                 **args
             )
@@ -249,7 +251,7 @@ class SecurityGroups(EC2BaseResponse):
     def update_security_group_rule_descriptions_egress(self) -> str:
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
-            del args['sgrule_tags']
+            del args["sgrule_tags"]
             group = self.ec2_backend.update_security_group_rule_descriptions_egress(
                 **args
             )
