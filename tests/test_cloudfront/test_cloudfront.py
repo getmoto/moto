@@ -248,3 +248,34 @@ def test_update_default_root_object():
 
     dist_config = client.get_distribution_config(Id=dist_id)
     assert dist_config["DistributionConfig"]["DefaultRootObject"] == "index.html"
+
+
+@mock_aws
+def test_update_distribution_applies_changes():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+    dist = client.create_distribution(DistributionConfig=config)
+    dist_id = dist["Distribution"]["Id"]
+
+    # Assert that default 'Enabled' value is false
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert not actual_dist_config["Enabled"]
+
+    # Update 'Enabled' value to true
+    get_config_response = client.get_distribution_config(Id=dist_id)
+    actual_dist_config = get_config_response["DistributionConfig"]
+    etag = get_config_response["ETag"]
+    actual_dist_config["Enabled"] = True
+    client.update_distribution(
+        DistributionConfig=actual_dist_config, Id=dist_id, IfMatch=etag
+    )
+
+    # Assert that 'Enabled' value is true
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert actual_dist_config["Enabled"]
