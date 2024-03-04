@@ -13,6 +13,8 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2 import ec2_backends
 
+REGION = "us-east-1"
+
 
 @mock_aws
 def test_create_and_describe_security_group():
@@ -570,7 +572,7 @@ def test_authorize_all_protocols_with_no_port_specification():
 
 
 @mock_aws
-def test_security_group_rule_tagging():
+def test_security_group_rule_filtering_group_id():
     ec2 = boto3.resource("ec2", "us-east-1")
     client = boto3.client("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -596,6 +598,51 @@ def test_security_group_rule_tagging():
     assert "Tags" in response["SecurityGroupRules"][0]
     assert response["SecurityGroupRules"][0]["Tags"][0]["Key"] == tag_name
     assert response["SecurityGroupRules"][0]["Tags"][0]["Value"] == tag_val
+
+
+@mock_aws
+def test_security_group_rule_filtering_tags():
+    # Setup
+    ec2 = boto3.resource("ec2", REGION)
+    client = boto3.client("ec2", REGION)
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    tags = [
+        {"Key": "Automation", "Value": "Lambda"},
+        {"Key": "Partner", "Value": "test"},
+    ]
+
+    sg_name = str(uuid4())
+    sg = client.create_security_group(
+        Description="Test SG",
+        GroupName=sg_name,
+        VpcId=vpc.id,
+    )
+
+    # Execute
+    response1 = client.authorize_security_group_ingress(
+        GroupId=sg["GroupId"],
+        IpPermissions=[
+            {
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 80,
+                "IpRanges": [
+                    {"CidrIp": "1.2.3.4/32", "Description": "Test description"}
+                ],
+            }
+        ],
+        TagSpecifications=[{"ResourceType": "security-group-rule", "Tags": tags}],
+    )
+
+    response2 = client.describe_security_group_rules(
+        Filters=[{"Name": "tag:Partner", "Values": ["test"]}]
+    )
+
+    # Verify
+    assert response1["SecurityGroupRules"][0]["Tags"] == tags
+    assert "Tags" in response2["SecurityGroupRules"][0]
+    assert response2["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response2["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
 
 
 @mock_aws
@@ -1231,21 +1278,13 @@ def test_update_security_group_rule_descriptions_ingress():
             "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "first desc"}],
         }
     ]
-    resp = client.authorize_security_group_ingress(GroupId=sg_id, IpPermissions=ip_permissions,    TagSpecifications=[{
-        'ResourceType': 'security-group-rule',
-        'Tags': [
-            {
-                'Key': 'Automation',
-                'Value': 'Lambda'
-            },
-            {
-                'Key': 'Partner',
-                'Value': 'test'
-            },
-        ]
-
-    }])
-    resp = client.describe_security_group_rules(Filters=[{'Name': 'tag:Partner', 'Values': ['test']}])
+    client.authorize_security_group_ingress(
+        GroupId=sg_id,
+        IpPermissions=ip_permissions,
+    )
+    client.describe_security_group_rules(
+        Filters=[{"Name": "tag:Partner", "Values": ["test"]}]
+    )
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]
