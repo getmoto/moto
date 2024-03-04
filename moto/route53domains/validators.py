@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -605,20 +605,28 @@ VALID_DOMAIN_REGEX = re.compile(
 PHONE_NUMBER_REGEX = re.compile(r"\+\d*\.\d+$")
 
 
-class DomainFilterField(Enum):
+class DomainFilterField(str, Enum):
     DOMAIN_NAME = "DomainName"
     EXPIRY = "Expiry"
 
 
-class DomainSortOrder(Enum):
+class DomainSortOrder(str, Enum):
     ASCENDING = "ASC"
     DESCENDING = "DES"
 
 
-class DomainFilterOperator(Enum):
+class DomainFilterOperator(str, Enum):
     LE = "LE"
     GE = "GE"
     BEGINS_WITH = "BEGINS_WITH"
+
+
+def is_valid_enum(value: Any, enum_cls: Type[Enum]) -> bool:
+    try:
+        enum_cls(value)
+        return True
+    except ValueError:
+        return False
 
 
 class ValidationException(Exception):
@@ -1113,10 +1121,10 @@ class DomainsFilter:
     def validate(cls, name: str, operator: str, values: List[str]):  # type: ignore[misc, no-untyped-def]
         input_errors: List[str] = []
 
-        if name not in {field.value for field in DomainFilterField}:
+        if not is_valid_enum(name, DomainFilterField):
             input_errors.append(f"Cannot filter by field {name}")
 
-        if operator not in {op.value for op in DomainFilterOperator}:
+        if not is_valid_enum(operator, DomainFilterOperator):
             input_errors.append(f"Invalid filter operator {operator}")
 
         if len(values) != 1:
@@ -1163,10 +1171,10 @@ class DomainsSortCondition:
     @classmethod
     def validate(cls, name: str, sort_order: str):  # type: ignore[misc,no-untyped-def]
         input_errors: List[str] = []
-        if name not in {field.value for field in DomainFilterField}:
+        if not is_valid_enum(name, DomainFilterField):
             input_errors.append(f"Cannot sort by field {name}")
 
-        if sort_order not in {order.value for order in DomainSortOrder}:
+        if not is_valid_enum(sort_order, DomainSortOrder):
             input_errors.append(f"Invalid sort order {sort_order}")
 
         if input_errors:
