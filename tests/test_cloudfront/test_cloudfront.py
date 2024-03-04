@@ -251,7 +251,7 @@ def test_update_default_root_object():
 
 
 @mock_aws
-def test_update_distribution():
+def test_update_distribution_applies_changes():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
     # Create standard distribution
