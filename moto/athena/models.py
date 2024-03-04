@@ -86,7 +86,9 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
 
 
 class Execution(BaseModel):
-    def __init__(self, query: str, context: str, config: str, workgroup: WorkGroup):
+    def __init__(
+        self, query: str, context: str, config: Dict[str, Any], workgroup: WorkGroup
+    ):
         self.id = str(mock_random.uuid4())
         self.query = query
         self.context = context
@@ -94,6 +96,11 @@ class Execution(BaseModel):
         self.workgroup = workgroup
         self.start_time = time.time()
         self.status = "SUCCEEDED"
+
+        if "OutputLocation" in self.config:
+            if not self.config["OutputLocation"].endswith("/"):
+                self.config["OutputLocation"] += "/"
+            self.config["OutputLocation"] += f"{self.id}.csv"
 
 
 class QueryResults(BaseModel):
@@ -213,7 +220,7 @@ class AthenaBackend(BaseBackend):
         }
 
     def start_query_execution(
-        self, query: str, context: str, config: str, workgroup: WorkGroup
+        self, query: str, context: str, config: Dict[str, Any], workgroup: WorkGroup
     ) -> str:
         execution = Execution(
             query=query, context=context, config=config, workgroup=workgroup

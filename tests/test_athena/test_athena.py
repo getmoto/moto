@@ -123,11 +123,13 @@ def test_start_query_validate_workgroup():
 
 
 @mock_aws
-def test_get_query_execution():
+@pytest.mark.parametrize(
+    "location", ["s3://bucket-name/prefix/", "s3://bucket-name/prefix_wo_slash"]
+)
+def test_get_query_execution(location):
     client = boto3.client("athena", region_name="us-east-1")
 
     query = "SELECT stuff"
-    location = "s3://bucket-name/prefix/"
     database = "database"
     # Start Query
     exex_id = client.start_query_execution(
@@ -141,7 +143,11 @@ def test_get_query_execution():
     assert details["QueryExecutionId"] == exex_id
     assert details["Query"] == query
     assert details["StatementType"] == "DML"
-    assert details["ResultConfiguration"]["OutputLocation"] == location
+    result_config = details["ResultConfiguration"]
+    if location.endswith("/"):
+        assert result_config["OutputLocation"] == f"{location}{exex_id}.csv"
+    else:
+        assert result_config["OutputLocation"] == f"{location}/{exex_id}.csv"
     assert details["QueryExecutionContext"]["Database"] == database
     assert details["Status"]["State"] == "SUCCEEDED"
     assert details["Statistics"] == {
