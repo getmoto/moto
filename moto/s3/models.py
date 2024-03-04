@@ -2645,6 +2645,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
                     if not bucket.keys.getlist(key_name):
                         bucket.keys.pop(key_name)
+            notify_event_name = (
+                notifications.S3NotificationEvent.OBJECT_REMOVED_DELETE_EVENT
+            )
+            notifications.send_event(
+                self.account_id, notify_event_name, bucket, key=key_name
+            )
             return True, response_meta
         except KeyError:
             return False, None
