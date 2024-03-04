@@ -591,17 +591,26 @@ class SecurityGroupBackend:
 
             return results
 
+        if filters and 'group-id' in filters:
+            matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
+            if not matches:
+                raise InvalidSecurityGroupNotFoundError(
+                    "No security groups found matching the filters provided."
+                )
+            for group in matches:
+                results.extend(group.ingress_rules)
+                results.extend(group.egress_rules)
+
+            return results
+
         all_sgs = self.describe_security_groups()
-        # if not matches:
-        #     raise InvalidSecurityGroupNotFoundError(
-        #         "No security groups found matching the filters provided."
-        #     )
+
         for group in all_sgs:
             for ingress in group.ingress_rules:
-                if ingress.match_tags(filters):
+                if ingress.matches_filter(filters):
                     results.append(ingress)
             for egress in group.egress_rules:
-                if egress.match_tags(filters):
+                if egress.matches_filter(filters):
                     results.append(egress)
 
         return results
