@@ -2599,6 +2599,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
 
         response_meta = {}
+        key = self.get_object(bucket_name, key_name)
 
         try:
             if not bucket.is_versioned:
@@ -2648,9 +2649,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             notify_event_name = (
                 notifications.S3NotificationEvent.OBJECT_REMOVED_DELETE_EVENT
             )
-            notifications.send_event(
-                self.account_id, notify_event_name, bucket, key=key_name
-            )
+            notifications.send_event(self.account_id, notify_event_name, bucket, key)
             return True, response_meta
         except KeyError:
             return False, None

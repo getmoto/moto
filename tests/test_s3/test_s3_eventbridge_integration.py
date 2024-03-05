@@ -164,4 +164,4 @@ def test_delete_object_notification():
     assert event_message["account"] == ACCOUNT_ID
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
-    assert event_message["detail"]["reason"] == "ObjectDeleted"
+    assert event_message["detail"]["reason"] == "ObjectRemoved"
