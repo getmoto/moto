@@ -621,13 +621,17 @@ class SecurityGroupBackend:
         all_sgs = self.describe_security_groups()
 
         for group in all_sgs:
-            for ingress in group.ingress_rules:
-                if ingress.match_tags(filters):
-                    results.append(ingress)
-            for egress in group.egress_rules:
-                if egress.match_tags(filters):
-                    results.append(egress)
+            results.extend(self._match_sg_rules(group.ingress_rules, filters))
+            results.extend(self._match_sg_rules(group.egress_rules, filters))
 
+        return results
+
+    @staticmethod
+    def _match_sg_rules(rules_list: List[SecurityRule], filters: Any) -> List[SecurityRule]:  # type: ignore[misc]
+        results = []
+        for rule in rules_list:
+            if rule.match_tags(filters):
+                results.append(rule)
         return results
 
     def _delete_security_group(self, vpc_id: Optional[str], group_id: str) -> None:
