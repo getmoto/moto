@@ -40,8 +40,8 @@ class SecurityRule(TaggedEC2Resource):
         source_groups: List[Dict[str, Any]],
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         is_egress: bool = True,
-        tags: dict = {},
-        description: str = None,
+        tags: Dict[str, str] = {},
+        description: str = "",
     ):
         self.ec2_backend = ec2_backend
         self.id = random_security_group_rule_id()
@@ -581,7 +581,7 @@ class SecurityGroupBackend:
     def describe_security_group_rules(
         self,
         group_ids: Optional[List[str]] = None,
-        sg_rule_ids: list = [],
+        sg_rule_ids: List[str] = [],
         filters: Any = None,
     ) -> List[SecurityRule]:
         results = []
