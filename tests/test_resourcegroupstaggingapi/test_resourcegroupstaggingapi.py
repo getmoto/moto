@@ -759,6 +759,32 @@ def test_get_resources_sns():
         "Tags"
     ]
 
+@mock_aws
+def test_get_resources_ssm():
+    import json
+    import pkgutil
+    import yaml
+
+    template_file = pkgutil.get_data(__name__, "test_templates/good.yaml")
+    json_doc = yaml.safe_load(template_file)
+
+    ssm = boto3.client("ssm", region_name="us-east-1")
+    ssm.create_document(
+        Content=json.dumps(json_doc),
+        Name="TestDocument",
+        DocumentType="Command",
+        DocumentFormat="JSON",
+        Tags=[{"Key": 'testing', "Value": "testingValue"}],
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm"])
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": 'testing', "Value": "testingValue"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
 
 @mock_aws
 def test_tag_resources_for_unknown_service():

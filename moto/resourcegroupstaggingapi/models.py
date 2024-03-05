@@ -21,6 +21,7 @@ from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
+from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
 from moto.utilities.tagging_service import TaggingService
 
 # Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
@@ -101,6 +102,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sns_backend(self) -> SNSBackend:
         return sns_backends[self.account_id][self.region_name]
+    
+    @property
+    def ssm_backend(self) -> SimpleSystemManagerBackend:
+        return ssm_backends[self.account_id][self.region_name]
 
     @property
     def sqs_backend(self) -> SQSBackend:
@@ -500,7 +505,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:
-
             for topic in self.sns_backend.topics.values():
                 tags = format_tags(topic._tags)
                 if not tags or not tag_filter(
@@ -508,6 +512,23 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {"ResourceARN": f"{topic.arn}", "Tags": tags}
+
+        
+        # SSM 
+        if not resource_type_filters or "ssm" in resource_type_filters:
+            for document in self.ssm_backend._documents.values():
+                doc_name = document.describe()["Name"]
+                tags = self.ssm_backend._get_documents_tags(doc_name)
+                if not tags or not tag_filter(
+                    tags
+                ): # Skip if no tags, or invalid filter
+                    continue
+                # pytest.set_trace()
+                yield {
+                    "ResourceARN": f"arn:aws:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
+                    "Tags": tags,
+                }
+
 
         # VPC
         if (

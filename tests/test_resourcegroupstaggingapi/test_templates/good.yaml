@@ -1,0 +1,47 @@
+schemaVersion: "2.2"
+description: "Sample Yaml"
+parameters:
+  Parameter1:
+    type: "Integer"
+    default: 3
+    description: "Command Duration."
+    allowedValues: [1,2,3,4]
+  Parameter2:
+    type: "String"
+    default: "def"
+    description:
+    allowedValues: ["abc", "def", "ghi"]
+    allowedPattern: r"^[a-zA-Z0-9_\-.]{3,128}$"
+  Parameter3:
+    type: "Boolean"
+    default: false
+    description: "A boolean"
+    allowedValues: [True, False]
+  Parameter4:
+    type: "StringList"
+    default: ["abc", "def"]
+    description: "A string list"
+  Parameter5:
+    type: "StringMap"
+    default:
+      NotificationType: Command
+      NotificationEvents:
+      - Failed
+      NotificationArn: "$dependency.topicArn"
+    description:
+  Parameter6:
+    type: "MapList"
+    default:
+    - DeviceName: "/dev/sda1"
+      Ebs:
+        VolumeSize: '50'
+    - DeviceName: "/dev/sdm"
+      Ebs:
+        VolumeSize: '100'
+    description:
+mainSteps:
+  - action: "aws:runShellScript"
+    name: "sampleCommand"
+    inputs:
+      runCommand:
+        - "echo hi"
