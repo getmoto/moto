@@ -41,3 +41,10 @@ class TaggedEC2Resource(BaseModel):
             return value
 
         raise FilterNotImplementedError(filter_name, method_name)
+
+    def match_tags(self, filters: Dict[str, str]) -> bool:
+        for tag_name in filters.keys():
+            tag_value = self.get_filter_value(tag_name)
+            if tag_value == filters[tag_name][0]:
+                return True
+        return False
