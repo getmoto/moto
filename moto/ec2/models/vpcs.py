@@ -263,6 +263,22 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
         return "AWS::EC2::VPC"
 
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "CidrBlock":
+            return self.cidr_block
+        elif attribute_name == "CidrBlockAssociations":
+            return self.cidr_block_association_set
+        elif attribute_name == "DefaultSecurityGroup":
+            sec_group = self.ec2_backend.get_security_group_from_name(
+                "default", vpc_id=self.id
+            )
+            return sec_group.id
+        elif attribute_name == "VpcId":
+            return self.id
+        raise UnformattedGetAttTemplateException()
+
     @classmethod
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,

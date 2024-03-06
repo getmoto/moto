@@ -10,7 +10,7 @@ from copy import deepcopy
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import camelcase_to_underscores, underscores_to_camelcase
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
@@ -43,7 +43,7 @@ def _lookup_az_id(account_id: str, az_name: str) -> Optional[str]:
     return None
 
 
-class AccessPoint(BaseModel):
+class AccessPoint(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
@@ -83,6 +83,38 @@ class AccessPoint(BaseModel):
             "OwnerId": self.account_id,
             "LifeCycleState": "available",
         }
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::EFS::AccessPoint"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "AccessPoint":
+        props = cloudformation_json["Properties"]
+        file_system_id = props["FileSystemId"]
+        posix_user = props.get("PosixUser", {})
+        root_directory = props.get("RootDirectory", {})
+        tags = props.get("AccessPointTags", [])
+
+        backend: EFSBackend = efs_backends[account_id][region_name]
+        return backend.create_access_point(
+            resource_name,
+            file_system_id=file_system_id,
+            posix_user=posix_user,
+            root_directory=root_directory,
+            tags=tags,
+        )
+
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend: EFSBackend = efs_backends[account_id][region_name]
+        backend.delete_access_point(self.access_point_id)
 
 
 class FileSystem(CloudFormationModel):
@@ -223,40 +255,36 @@ class FileSystem(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FileSystem":
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-filesystem.html
-        props = deepcopy(cloudformation_json["Properties"])
-        props = {camelcase_to_underscores(k): v for k, v in props.items()}
-        if "file_system_tags" in props:
-            props["tags"] = props.pop("file_system_tags")
-        if "backup_policy" in props:
-            if "status" not in props["backup_policy"]:
-                raise ValueError("BackupPolicy must be of type BackupPolicy.")
-            status = props.pop("backup_policy")["status"]
-            if status not in ["ENABLED", "DISABLED"]:
-                raise ValueError(f'Invalid status: "{status}".')
-            props["backup"] = status == "ENABLED"
-        if "bypass_policy_lockout_safety_check" in props:
-            raise ValueError(
-                "BypassPolicyLockoutSafetyCheck not currently "
-                "supported by AWS Cloudformation."
+        props = cloudformation_json["Properties"]
+        performance_mode = props.get("PerformanceMode", "generalPurpose")
+        encrypted = props.get("Encrypted", False)
+        kms_key_id = props.get("KmsKeyId")
+        throughput_mode = props.get("ThroughputMode", "bursting")
+        provisioned_throughput_in_mibps = props.get("ProvisionedThroughputInMibps", 0)
+        availability_zone_name = props.get("AvailabilityZoneName")
+        backup = props.get("BackupPolicy", {}).get("Status") == "ENABLED"
+        tags = props.get("FileSystemTags", [])
+
+        lifecycle_policies = props.get("LifecyclePolicies", [])
+
+        backend: EFSBackend = efs_backends[account_id][region_name]
+        fs = backend.create_file_system(
+            resource_name,
+            performance_mode=performance_mode,
+            encrypted=encrypted,
+            kms_key_id=kms_key_id,
+            throughput_mode=throughput_mode,
+            provisioned_throughput_in_mibps=provisioned_throughput_in_mibps,
+            availability_zone_name=availability_zone_name,
+            backup=backup,
+            tags=tags,
+        )
+
+        if lifecycle_policies:
+            backend.put_lifecycle_configuration(
+                file_system_id=fs.file_system_id, policies=lifecycle_policies
             )
-
-        return efs_backends[account_id][region_name].create_file_system(
-            resource_name, **props
-        )
-
-    @classmethod
-    def update_from_cloudformation_json(  # type: ignore[misc]
-        cls,
-        original_resource: Any,
-        new_resource_name: str,
-        cloudformation_json: Any,
-        account_id: str,
-        region_name: str,
-    ) -> None:
-        raise NotImplementedError(
-            "Update of EFS File System via cloudformation is not yet implemented."
-        )
+        return fs
 
     @classmethod
     def delete_from_cloudformation_json(  # type: ignore[misc]
@@ -357,7 +385,6 @@ class MountTarget(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "MountTarget":
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-efs-mounttarget.html
         props = deepcopy(cloudformation_json["Properties"])
         props = {camelcase_to_underscores(k): v for k, v in props.items()}
         return efs_backends[account_id][region_name].create_mount_target(**props)
