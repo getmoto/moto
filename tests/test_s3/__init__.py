@@ -51,22 +51,24 @@ def s3_aws_verified(func):
         finally:
             ### CLEANUP ###
 
-            versions = client.list_object_versions(Bucket=bucket_name).get(
-                "Versions", []
-            )
-            for key in versions:
-                client.delete_object(
-                    Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId")
-                )
-            delete_markers = client.list_object_versions(Bucket=bucket_name).get(
-                "DeleteMarkers", []
-            )
-            for key in delete_markers:
-                client.delete_object(
-                    Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId")
-                )
+            empty_bucket(client, bucket_name)
             client.delete_bucket(Bucket=bucket_name)
 
         return resp
 
     return pagination_wrapper
+
+
+def empty_bucket(client, bucket_name):
+    versions = client.list_object_versions(Bucket=bucket_name).get("Versions", [])
+    for key in versions:
+        client.delete_object(
+            Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId")
+        )
+    delete_markers = client.list_object_versions(Bucket=bucket_name).get(
+        "DeleteMarkers", []
+    )
+    for key in delete_markers:
+        client.delete_object(
+            Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId")
+        )
