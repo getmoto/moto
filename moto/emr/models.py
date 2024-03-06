@@ -449,12 +449,63 @@ class FakeCluster(CloudFormationModel):
         cluster.add_tags(tags)
         return cluster
 
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        emr_backend: ElasticMapReduceBackend = emr_backends[account_id][region_name]
 
-class FakeSecurityConfiguration(BaseModel):
+        emr_backend.terminate_job_flows([resource_name])
+
+
+class FakeSecurityConfiguration(CloudFormationModel):
     def __init__(self, name: str, security_configuration: str):
         self.name = name
         self.security_configuration = security_configuration
         self.creation_date_time = datetime.now(timezone.utc)
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.name
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::EMR::SecurityConfiguration"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeSecurityConfiguration":
+        emr_backend: ElasticMapReduceBackend = emr_backends[account_id][region_name]
+
+        properties = cloudformation_json["Properties"]
+        return emr_backend.create_security_configuration(
+            name=properties.get("Name") or resource_name,
+            security_configuration=properties.get("SecurityConfiguration", {}),
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        emr_backend: ElasticMapReduceBackend = emr_backends[account_id][region_name]
+
+        properties = cloudformation_json["Properties"]
+        name = properties.get("Name") or resource_name
+        emr_backend.delete_security_configuration(name)
 
 
 class ElasticMapReduceBackend(BaseBackend):

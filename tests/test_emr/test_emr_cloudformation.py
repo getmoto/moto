@@ -1,6 +1,8 @@
 import json
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
@@ -496,6 +498,7 @@ template_with_kerberos_attrs = {
         "securityConfiguration": {
             "Type": "AWS::EMR::SecurityConfiguration",
             "Properties": {
+                "Name": "mysecconfig",
                 "SecurityConfiguration": {
                     "AuthenticationConfiguration": {
                         "KerberosConfiguration": {
@@ -511,7 +514,7 @@ template_with_kerberos_attrs = {
                             },
                         }
                     }
-                }
+                },
             },
         },
         "emrRole": {
@@ -618,3 +621,14 @@ def test_create_cluster_with_kerberos_attrs():
         "KdcAdminPassword": "adminp2ss",
         "CrossRealmTrustPrincipalPassword": "p2ss",
     }
+
+    # Verify everything can be deleted
+    cf.delete_stack(StackName="teststack")
+
+    cl = emr.describe_cluster(ClusterId=cluster_id)["Cluster"]
+    assert cl["Status"]["State"] == "TERMINATED"
+
+    with pytest.raises(ClientError) as exc:
+        emr.describe_security_configuration(Name="mysecconfig")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
