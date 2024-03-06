@@ -5880,3 +5880,80 @@ def test_invalid_projection_expressions():
         ClientError, match="ProjectionExpression: Attribute name contains white space"
     ):
         client.scan(TableName=table_name, ProjectionExpression="not_a_keyword, na me")
+
+
+@mock_aws
+def test_update_item_with_global_secondary_index():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_hash_key_s", "AttributeType": "S"},
+            {"AttributeName": "gsi_hash_key_b", "AttributeType": "B"},
+            {"AttributeName": "gsi_hash_key_n", "AttributeType": "N"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi_s",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key_s", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            },
+            {
+                "IndexName": "test_gsi_b",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key_b", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            },
+            {
+                "IndexName": "test_gsi_n",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key_n", "KeyType": "HASH"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            },
+        ],
+    )
+    table = dynamodb.Table("test")
+
+    table.put_item(
+        Item={"id": "test1"},
+    )
+
+    for key_name, values in {
+        "gsi_hash_key_s": [None, 0, b"binary"],
+        "gsi_hash_key_b": [None, "", 0],
+        "gsi_hash_key_n": [None, "", b"binary"],
+    }.items():
+        for v in values:
+            with pytest.raises(ClientError) as ex:
+                table.update_item(
+                    Key={"id": "test1"},
+                    UpdateExpression=f"SET {key_name} = :gsi_hash_key",
+                    ExpressionAttributeValues={":gsi_hash_key": v, ":abc": ""},
+                )
+            err = ex.value.response["Error"]
+            assert err["Code"] == "ValidationException"
+            assert (
+                "One or more parameter values were invalid: Type mismatch"
+                in err["Message"]
+            )

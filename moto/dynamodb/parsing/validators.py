@@ -16,6 +16,7 @@ from moto.dynamodb.exceptions import (
     MockValidationException,
     ProvidedKeyDoesNotExist,
     UpdateHashRangeKeyException,
+    InvalidAttributeTypeError,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import Table
@@ -379,6 +380,39 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
         return node
 
 
+class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(self, key_attributes: List[str], key_attributes_type: Dict[str, str]):
+        self.key_attributes = key_attributes
+        self.key_attributes_type = key_attributes_type
+
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpressionSetAction],
+        Callable[[UpdateExpressionSetAction], UpdateExpressionSetAction],
+    ]:
+        return {UpdateExpressionSetAction: self.check_for_type_mismatch}
+
+    def check_for_type_mismatch(
+        self, node: UpdateExpressionSetAction
+    ) -> UpdateExpressionSetAction:
+        """A node representing a SET action. Check that type matches with the definition"""
+        assert isinstance(node, UpdateExpressionSetAction)
+        assert len(node.children) == 2
+        key = node.children[0].children[0].children[0]
+        val_node = node.children[1].children[0]
+        if key in self.key_attributes:
+            for dct in self.key_attributes_type:
+                if (
+                    dct["AttributeName"] == key
+                    and dct["AttributeType"] != val_node.type
+                ):
+                    raise InvalidAttributeTypeError(
+                        key, dct["AttributeType"], val_node.type
+                    )
+        return node
+
+
 class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
     def __init__(
         self,
@@ -464,6 +498,7 @@ class UpdateExpressionValidator(Validator):
             UpdateExpressionFunctionEvaluator(),
             NoneExistingPathChecker(),
             ExecuteOperations(),
+            TypeMismatchValidator(self.table.attribute_keys, self.table.attr),
             EmptyStringKeyValueValidator(self.table.attribute_keys),
         ]
         return processors
