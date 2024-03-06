@@ -803,6 +803,8 @@ class SecurityGroupBackend:
         vpc_id: Optional[str] = None,
     ) -> None:
         group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
 
         if security_rule_ids:
             group.ingress_rules = [
@@ -972,6 +974,8 @@ class SecurityGroupBackend:
         vpc_id: Optional[str] = None,
     ) -> None:
         group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
 
         if security_rule_ids:
             group.egress_rules = [
