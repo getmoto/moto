@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -8,6 +9,8 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from tests.test_iam import iam_aws_verified
+from tests.test_iam.test_iam import MOCK_STS_EC2_POLICY_DOCUMENT
 
 TEMPLATE_MINIMAL_ROLE = """
 AWSTemplateFormatVersion: 2010-09-09
@@ -1609,3 +1612,46 @@ def test_iam_roles():
         if resource["ResourceType"] == "AWS::IAM::Role"
     ]
     assert {r["PhysicalResourceId"] for r in role_resources} == set(role_names)
+
+
+template_with_instance_profile = """
+Parameters:
+    InputRole:
+        Type: String
+        Default: "test-emr-role"
+
+Resources:
+    emrEc2InstanceProfile:
+        Type: 'AWS::IAM::InstanceProfile'
+        Properties:
+            Path: /
+            Roles:
+              - !Ref InputRole
+"""
+
+
+@iam_aws_verified
+def test_delete_instance_profile_with_existing_role():
+    region = "us-east-1"
+    iam = boto3.client("iam", region_name=region)
+    iam_role_name = f"moto_{str(uuid4())[0:6]}"
+    iam.create_role(
+        RoleName=iam_role_name, AssumeRolePolicyDocument=MOCK_STS_EC2_POLICY_DOCUMENT
+    )
+
+    try:
+        cf = boto3.client("cloudformation", region_name=region)
+        cf.create_stack(
+            StackName="teststack",
+            TemplateBody=template_with_instance_profile,
+            Parameters=[{"ParameterKey": "InputRole", "ParameterValue": iam_role_name}],
+            Capabilities=["CAPABILITY_NAMED_IAM"],
+        )
+
+        # Just verify that we can delete the InstanceProfile
+        cf.delete_stack(StackName="teststack")
+
+        # The role still exists at this point
+        iam.get_role(RoleName=iam_role_name)
+    finally:
+        iam.delete_role(RoleName=iam_role_name)

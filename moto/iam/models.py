@@ -957,7 +957,9 @@ class InstanceProfile(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        iam_backends[account_id]["global"].delete_instance_profile(resource_name)
+        iam_backends[account_id]["global"].delete_instance_profile(
+            resource_name, ignore_attached_roles=True
+        )
 
     def delete_role(self, role_name: str) -> None:
         self.roles = [role for role in self.roles if role.name != role_name]
@@ -2370,9 +2372,11 @@ class IAMBackend(BaseBackend):
         self.instance_profiles[name] = instance_profile
         return instance_profile
 
-    def delete_instance_profile(self, name: str) -> None:
+    def delete_instance_profile(
+        self, name: str, ignore_attached_roles: bool = False
+    ) -> None:
         instance_profile = self.get_instance_profile(name)
-        if len(instance_profile.roles) > 0:
+        if len(instance_profile.roles) > 0 and not ignore_attached_roles:
             raise IAMConflictException(
                 code="DeleteConflict",
                 message="Cannot delete entity, must remove roles from instance profile first.",
