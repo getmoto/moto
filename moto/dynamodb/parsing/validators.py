@@ -382,7 +382,7 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
 
 
 class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
-    def __init__(self, key_attributes_type: Dict[str, str]):
+    def __init__(self, key_attributes_type: List[Dict[str, str]]):
         self.key_attributes_type = key_attributes_type
 
     def _processing_map(
