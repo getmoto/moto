@@ -2245,37 +2245,13 @@ class S3Response(BaseResponse):
         if query.get("uploadId"):
             multipart_id = query["uploadId"][0]
 
-            multipart, value, etag, checksum = self.backend.complete_multipart_upload(
+            key = self.backend.complete_multipart_upload(
                 bucket_name, multipart_id, self._complete_multipart_body(body)
             )
-            if value is None:
+            if key is None:
                 return 400, {}, ""
 
             headers: Dict[str, Any] = {}
-            key = self.backend.put_object(
-                bucket_name,
-                multipart.key_name,
-                value,
-                storage=multipart.storage,
-                etag=etag,
-                multipart=multipart,
-                encryption=multipart.sse_encryption,
-                kms_key_id=multipart.kms_key_id,
-            )
-            key.set_metadata(multipart.metadata)
-
-            if checksum:
-                key.checksum_algorithm = multipart.metadata.get(
-                    "x-amz-checksum-algorithm"
-                )
-                key.checksum_value = checksum
-
-            self.backend.put_object_tagging(key, multipart.tags)
-            self.backend.put_object_acl(
-                bucket_name=bucket_name,
-                key_name=key.name,
-                acl=multipart.acl,
-            )
 
             template = self.response_template(S3_MULTIPART_COMPLETE_RESPONSE)
             if key.version_id:
@@ -2299,12 +2275,12 @@ class S3Response(BaseResponse):
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
             key = self.backend.get_object(bucket_name, key_name)  # type: ignore
-            if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
-                raise InvalidObjectState(storage_class=key.storage_class)
+            if key.storage_class not in ARCHIVE_STORAGE_CLASSES:  # type: ignore
+                raise InvalidObjectState(storage_class=key.storage_class)  # type: ignore
             r = 202
-            if key.expiry_date is not None:
+            if key.expiry_date is not None:  # type: ignore
                 r = 200
-            key.restore(int(days))
+            key.restore(int(days))  # type: ignore
             return r, {}, ""
         elif "select" in query:
             request = xmltodict.parse(body)["SelectObjectContentRequest"]
