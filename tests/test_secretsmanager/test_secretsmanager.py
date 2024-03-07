@@ -14,6 +14,8 @@ from freezegun import freeze_time
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
+from . import secretsmanager_aws_verified
+
 DEFAULT_SECRET_NAME = "test-secret7"
 
 
@@ -1733,3 +1735,84 @@ def test_update_secret_with_client_request_token():
         assert pve.value.response["Error"]["Message"] == (
             "ClientRequestToken must be 32-64 characters long."
         )
+
+
+@secretsmanager_aws_verified
+@pytest.mark.aws_verified
+def test_update_secret_version_stage_manually(secret_arn=None):
+    sm_client = boto3.client("secretsmanager", "us-east-1")
+    current_version = sm_client.put_secret_value(
+        SecretId=secret_arn,
+        SecretString="previous_secret",
+        VersionStages=["AWSCURRENT"],
+    )["VersionId"]
+
+    initial_secret = sm_client.get_secret_value(
+        SecretId=secret_arn, VersionStage="AWSCURRENT"
+    )
+    assert initial_secret["VersionStages"] == ["AWSCURRENT"]
+    assert initial_secret["SecretString"] == "previous_secret"
+
+    token = str(uuid4())
+    sm_client.put_secret_value(
+        SecretId=secret_arn,
+        ClientRequestToken=token,
+        SecretString="new_secret",
+        VersionStages=["AWSPENDING"],
+    )
+
+    pending_secret = sm_client.get_secret_value(
+        SecretId=secret_arn, VersionStage="AWSPENDING"
+    )
+    assert pending_secret["VersionStages"] == ["AWSPENDING"]
+    assert pending_secret["SecretString"] == "new_secret"
+
+    sm_client.update_secret_version_stage(
+        SecretId=secret_arn,
+        VersionStage="AWSCURRENT",
+        MoveToVersionId=token,
+        RemoveFromVersionId=current_version,
+    )
+
+    current_secret = sm_client.get_secret_value(
+        SecretId=secret_arn, VersionStage="AWSCURRENT"
+    )
+    assert list(sorted(current_secret["VersionStages"])) == ["AWSCURRENT", "AWSPENDING"]
+    assert current_secret["SecretString"] == "new_secret"
+
+    previous_secret = sm_client.get_secret_value(
+        SecretId=secret_arn, VersionStage="AWSPREVIOUS"
+    )
+    assert previous_secret["VersionStages"] == ["AWSPREVIOUS"]
+    assert previous_secret["SecretString"] == "previous_secret"
+
+
+@secretsmanager_aws_verified
+@pytest.mark.aws_verified
+def test_update_secret_version_stage_dont_specify_current_stage(secret_arn=None):
+    sm_client = boto3.client("secretsmanager", "us-east-1")
+    current_version = sm_client.put_secret_value(
+        SecretId=secret_arn,
+        SecretString="previous_secret",
+        VersionStages=["AWSCURRENT"],
+    )["VersionId"]
+
+    token = str(uuid4())
+    sm_client.put_secret_value(
+        SecretId=secret_arn,
+        ClientRequestToken=token,
+        SecretString="new_secret",
+        VersionStages=["AWSPENDING"],
+    )
+
+    # Without specifying version that currently has stage AWSCURRENT
+    with pytest.raises(ClientError) as exc:
+        sm_client.update_secret_version_stage(
+            SecretId=secret_arn, VersionStage="AWSCURRENT", MoveToVersionId=token
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == f"The parameter RemoveFromVersionId can't be empty. Staging label AWSCURRENT is currently attached to version {current_version}, so you must explicitly reference that version in RemoveFromVersionId."
+    )
