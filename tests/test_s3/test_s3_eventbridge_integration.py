@@ -9,10 +9,15 @@ import requests
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.settings import S3_UPLOAD_PART_MIN_SIZE
 from tests.test_s3.test_s3_multipart import reduced_min_part_size
 
 REGION_NAME = "us-east-1"
-REDUCED_PART_SIZE = 256
+
+if settings.TEST_DECORATOR_MODE:
+    REDUCED_PART_SIZE = 256
+else:
+    REDUCED_PART_SIZE = S3_UPLOAD_PART_MIN_SIZE
 
 
 def _seteup_bucket_notification_eventbridge(
@@ -192,3 +197,26 @@ def test_complete_multipart_upload_notification():
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["object"]["key"] == object_key
     assert event_message["detail"]["reason"] == "ObjectCreated"
+
+
+@mock_aws
+def test_delete_object_notification():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+    # Put Object
+    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+
+    # Delete Object
+    s3_client.delete_object(Bucket=bucket_name, Key="keyname")
+
+    events = _get_send_events()
+    assert len(events) == 2
+    event_message = json.loads(events[1]["message"])
+    assert event_message["detail-type"] == "Object Deleted"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["reason"] == "ObjectRemoved"
