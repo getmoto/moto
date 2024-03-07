@@ -1,6 +1,7 @@
 """
 See docstring class Validator below for more details on validation
 """
+
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Type, Union
@@ -12,6 +13,7 @@ from moto.dynamodb.exceptions import (
     ExpressionAttributeNameNotDefined,
     ExpressionAttributeValueNotDefined,
     IncorrectOperandType,
+    InvalidAttributeTypeError,
     InvalidUpdateExpressionInvalidDocumentPath,
     MockValidationException,
     ProvidedKeyDoesNotExist,
@@ -379,6 +381,34 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
         return node
 
 
+class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(self, key_attributes_type: List[Dict[str, str]]):
+        self.key_attributes_type = key_attributes_type
+
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpressionSetAction],
+        Callable[[UpdateExpressionSetAction], UpdateExpressionSetAction],
+    ]:
+        return {UpdateExpressionSetAction: self.check_for_type_mismatch}
+
+    def check_for_type_mismatch(
+        self, node: UpdateExpressionSetAction
+    ) -> UpdateExpressionSetAction:
+        """A node representing a SET action. Check that type matches with the definition"""
+        assert isinstance(node, UpdateExpressionSetAction)
+        assert len(node.children) == 2
+        key = node.children[0].children[0].children[0]
+        val_node = node.children[1].children[0]
+        for dct in self.key_attributes_type:
+            if dct["AttributeName"] == key and dct["AttributeType"] != val_node.type:
+                raise InvalidAttributeTypeError(
+                    key, dct["AttributeType"], val_node.type
+                )
+        return node
+
+
 class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
     def __init__(
         self,
@@ -464,6 +494,7 @@ class UpdateExpressionValidator(Validator):
             UpdateExpressionFunctionEvaluator(),
             NoneExistingPathChecker(),
             ExecuteOperations(),
+            TypeMismatchValidator(self.table.attr),
             EmptyStringKeyValueValidator(self.table.attribute_keys),
         ]
         return processors
