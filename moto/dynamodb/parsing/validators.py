@@ -1,6 +1,7 @@
 """
 See docstring class Validator below for more details on validation
 """
+
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Type, Union
@@ -12,11 +13,11 @@ from moto.dynamodb.exceptions import (
     ExpressionAttributeNameNotDefined,
     ExpressionAttributeValueNotDefined,
     IncorrectOperandType,
+    InvalidAttributeTypeError,
     InvalidUpdateExpressionInvalidDocumentPath,
     MockValidationException,
     ProvidedKeyDoesNotExist,
     UpdateHashRangeKeyException,
-    InvalidAttributeTypeError,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import Table
@@ -381,8 +382,7 @@ class EmptyStringKeyValueValidator(DepthFirstTraverser):  # type: ignore[misc]
 
 
 class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
-    def __init__(self, key_attributes: List[str], key_attributes_type: Dict[str, str]):
-        self.key_attributes = key_attributes
+    def __init__(self, key_attributes_type: Dict[str, str]):
         self.key_attributes_type = key_attributes_type
 
     def _processing_map(
@@ -401,15 +401,11 @@ class TypeMismatchValidator(DepthFirstTraverser):  # type: ignore[misc]
         assert len(node.children) == 2
         key = node.children[0].children[0].children[0]
         val_node = node.children[1].children[0]
-        if key in self.key_attributes:
-            for dct in self.key_attributes_type:
-                if (
-                    dct["AttributeName"] == key
-                    and dct["AttributeType"] != val_node.type
-                ):
-                    raise InvalidAttributeTypeError(
-                        key, dct["AttributeType"], val_node.type
-                    )
+        for dct in self.key_attributes_type:
+            if dct["AttributeName"] == key and dct["AttributeType"] != val_node.type:
+                raise InvalidAttributeTypeError(
+                    key, dct["AttributeType"], val_node.type
+                )
         return node
 
 
@@ -498,7 +494,7 @@ class UpdateExpressionValidator(Validator):
             UpdateExpressionFunctionEvaluator(),
             NoneExistingPathChecker(),
             ExecuteOperations(),
-            TypeMismatchValidator(self.table.attribute_keys, self.table.attr),
+            TypeMismatchValidator(self.table.attr),
             EmptyStringKeyValueValidator(self.table.attribute_keys),
         ]
         return processors
