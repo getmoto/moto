@@ -142,3 +142,53 @@ def test_copy_object_notification():
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["object"]["key"] == object_key
     assert event_message["detail"]["reason"] == "ObjectCreated"
+
+
+@mock_aws
+@reduced_min_part_size
+def test_complete_multipart_upload_notification():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+    object_key = "testkey"
+
+    part1 = b"0" * REDUCED_PART_SIZE
+    part2 = b"1"
+    multipart = s3_client.create_multipart_upload(Bucket=bucket_name, Key=object_key)
+    up1 = s3_client.upload_part(
+        Body=BytesIO(part1),
+        PartNumber=1,
+        Bucket=bucket_name,
+        Key=object_key,
+        UploadId=multipart["UploadId"],
+    )
+    up2 = s3_client.upload_part(
+        Body=BytesIO(part2),
+        PartNumber=2,
+        Bucket=bucket_name,
+        Key=object_key,
+        UploadId=multipart["UploadId"],
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=object_key,
+        MultipartUpload={
+            "Parts": [
+                {"ETag": up1["ETag"], "PartNumber": 1},
+                {"ETag": up2["ETag"], "PartNumber": 2},
+            ]
+        },
+        UploadId=multipart["UploadId"],
+    )
+
+    events = _get_send_events()
+    assert len(events) == 1
+    event_message = json.loads(events[-1]["message"])
+    assert event_message["detail-type"] == "Object Created"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["object"]["key"] == object_key
+    assert event_message["detail"]["reason"] == "ObjectCreated"

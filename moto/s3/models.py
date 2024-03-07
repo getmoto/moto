@@ -2429,6 +2429,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         value, etag, checksum = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
+
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD_EVENT,
+            bucket,
+            bucket.keys.get(multipart.key_name),
+        )
         return multipart, value, etag, checksum
 
     def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
