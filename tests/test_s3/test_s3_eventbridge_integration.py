@@ -188,7 +188,7 @@ def test_complete_multipart_upload_notification():
     )
 
     events = _get_send_events()
-    assert len(events) == 2()  # [PutObject event, CompleteMultipartUpload event]
+    assert len(events) == 2  # [PutObject event, CompleteMultipartUpload event]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
