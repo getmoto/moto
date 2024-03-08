@@ -28,3 +28,6 @@ def test_tagging():
     arn = logs_client.describe_log_groups()["logGroups"][0]["arn"]
     tags = logs_client.list_tags_for_resource(resourceArn=arn)["tags"]
     assert tags == {"foo": "bar"}
+
+    cf_client.delete_stack(StackName="test_stack")
+    assert logs_client.describe_log_groups()["logGroups"] == []
