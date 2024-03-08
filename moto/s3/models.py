@@ -2423,12 +2423,38 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def complete_multipart_upload(
         self, bucket_name: str, multipart_id: str, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[FakeMultipart, bytes, str, Optional[str]]:
+    ) -> Optional[FakeKey]:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
         value, etag, checksum = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
+
+        if value is None:
+            return None
+
+        key = self.put_object(
+            bucket_name,
+            multipart.key_name,
+            value,
+            storage=multipart.storage,
+            etag=etag,
+            multipart=multipart,
+            encryption=multipart.sse_encryption,
+            kms_key_id=multipart.kms_key_id,
+        )
+        key.set_metadata(multipart.metadata)
+
+        if checksum:
+            key.checksum_algorithm = multipart.metadata.get("x-amz-checksum-algorithm")
+            key.checksum_value = checksum
+
+        self.put_object_tagging(key, multipart.tags)
+        self.put_object_acl(
+            bucket_name=bucket_name,
+            key_name=key.name,
+            acl=multipart.acl,
+        )
 
         notifications.send_event(
             self.account_id,
@@ -2436,7 +2462,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket,
             bucket.keys.get(multipart.key_name),
         )
-        return multipart, value, etag, checksum
+        return key
 
     def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
         bucket = self.get_bucket(bucket_name)
