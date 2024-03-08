@@ -420,11 +420,13 @@ class LogGroup(CloudFormationModel):
             resource_name, tags, **properties
         )
 
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend = logs_backends[account_id][region_name]
+        backend.delete_log_group(self.name)
+
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
-        return attr in [
-            "Arn",
-        ]
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name: str) -> str:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
