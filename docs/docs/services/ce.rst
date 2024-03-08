@@ -38,6 +38,7 @@ ce
 - [ ] get_anomalies
 - [ ] get_anomaly_monitors
 - [ ] get_anomaly_subscriptions
+- [ ] get_approximate_usage_records
 - [X] get_cost_and_usage
   
         There is no validation yet on any of the input parameters.

@@ -2336,8 +2336,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - EventBridge
 
         For the following events:
+         - 's3:ObjectCreated:CompleteMultipartUpload'
          - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
+         - 's3:ObjectDeleted'
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -2850,6 +2853,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             )
             for x in query_result
         ]
+
+    def upload_file(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
+
+    def upload_fileobj(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
 
 
 class S3BackendDict(BackendDict[S3Backend]):

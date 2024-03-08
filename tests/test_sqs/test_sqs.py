@@ -23,6 +23,8 @@ from moto.sqs.models import (
 )
 from moto.utilities.distutils_version import LooseVersion
 
+from . import sqs_aws_verified
+
 TEST_POLICY = """
 {
   "Version":"2012-10-17",
@@ -3307,18 +3309,16 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
     )
 
 
-@mock_aws
+@sqs_aws_verified
+@pytest.mark.aws_verified
 @pytest.mark.parametrize(
     "queue_config", [{"FifoQueue": "true"}, {"FifoQueue": "true", "DelaySeconds": "10"}]
 )
 def test_send_message_delay_seconds_validation(queue_config):
     # Setup
     client = boto3.client("sqs", region_name=REGION)
-    q = "test.fifo"
-    client.create_queue(
-        QueueName=q,
-        Attributes=queue_config,
-    )
+    q = f"moto_{str(uuid4())[0:6]}.fifo"
+    client.create_queue(QueueName=q, Attributes=queue_config)
 
     # Execute
     with pytest.raises(ClientError) as err:
@@ -3330,6 +3330,14 @@ def test_send_message_delay_seconds_validation(queue_config):
             MessageDeduplicationId=str(uuid4()),
         )
 
+    # Verify
+    ex = err.value
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert ex.response["Error"]["Message"] == (
+        "Value 5 for parameter DelaySeconds is invalid. Reason: "
+        "The request include parameter that is not valid for this queue type."
+    )
+
     # this should succeed regardless of DelaySeconds configuration on the q
     # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html#API_SendMessage_RequestSyntax
     client.send_message(
@@ -3340,12 +3348,11 @@ def test_send_message_delay_seconds_validation(queue_config):
         MessageDeduplicationId=str(uuid4()),
     )
 
-    # Verify
-    ex = err.value
-    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
-    assert ex.response["Error"]["Message"] == (
-        "Value 5 for parameter DelaySeconds is invalid. Reason: "
-        "The request include parameter that is not valid for this queue type."
+    client.send_message(
+        QueueUrl=q,
+        MessageBody="test",
+        MessageGroupId="test",
+        MessageDeduplicationId=str(uuid4()),
     )
 
     # clean up for servertests

@@ -1,6 +1,54 @@
 Moto Changelog
 ==============
 
+5.0.3
+-----
+Docker Digest for 5.0.3: <autopopulateddigest>
+
+    General:
+        * New configuration options for:
+          - Passing URL's through the proxy
+          - Configuring DOcker-less services in ServerMode
+          See http://docs.getmoto.org/en/latest/docs/configuration/index.html
+
+    New Services:
+        * Route53Domains:
+            * delete_domain()
+            * list_domains()
+            * list_operations()
+            * register_domain()
+            * update_domain_nameservers()
+
+    New Methods:
+        * CostExplorer:
+            * get_cost_and_usage()
+
+        * ECR:
+            * get_registry_scanning_configuration()
+
+    Miscellaneous:
+        * ApiGateway: update_usage_plan() now supports adding apiStages
+        * Athena: get_query_execution() now returns exact OutputLocation file
+        * Autoscaling: describe_auto_scaling_groups() now supports the filters-argument
+        * CloudFront: create_distribution() now supports CustomHeaders
+        * CloudFront: update_distribution() now handles updates to DistributionConfig correctly
+        * CloudFormation - Now supports creation and deletion of AWS::EMR::Cluster
+        * CloudFormation - Now supports creation and deletion of AWS::EMR::SecurityConfiguration
+        * CloudFormation - Now supports creation and deletion of AWS::EFS::AccessPoint
+        * CloudFormation - Now supports creation and deletion of AWS::EFS::FileSystem
+        * CloudFormation - Now supports creation and deletion of AWS::EMR::InstanceGroupConfig
+        * CloudFormation - Now supports deletion of AWS::Logs::LogGroup
+        * CloudFormation: delete_stack() now handles resource dependencies better
+        * CloudWatch: put_metric_data() now supports large (compressed) requests
+        * CognitoIDP: admin_initiate_auth() and respond_to_auth_challenge() now support SMS_MFA
+        * DynamoDB: transact_write_items() now raises ValidationException when putting and deleting the same item
+        * EC2: authorize_security_group_egress/_ingress now support the TagSpecifications-argument
+        * EC2: describe_security_group_rules() now supports Tag-filters
+        * S3: EventBridge notifications are now supported for ObjectCreated:POST/COPY/MULTIPART_UPLOAD and ObjectDeleted
+        * SNS: subscribe() now adds support the `$or`, `equals-ignore-case` and `suffix` features in a FilterPolicy 
+        * SQS: send_message() should respect DelaySeconds of 0
+
+
 5.0.2
 -----
 Docker Digest for 5.0.2: _sha256:89cc6c764d714bf76e592a61f0c06fd142f672085e1dd3a53eb734aaeb4e14e2_

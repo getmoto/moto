@@ -1645,6 +1645,7 @@ Resources:
 """
 
 
+@pytest.mark.aws_verified
 @iam_aws_verified
 def test_delete_instance_profile_with_existing_role():
     region = "us-east-1"
