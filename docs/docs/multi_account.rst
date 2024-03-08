@@ -26,11 +26,11 @@ Here is an example of what this looks like in practice:
     os.environ["MOTO_ACCOUNT_ID"] = "111111111111"
     client.create_bucket(Bucket="bucket-in-account-2")
 
-    assert [b["Name"] for b in client2.list_buckets()["Buckets"]] == ["bucket-in-account-2"]
+    assert [b["Name"] for b in client.list_buckets()["Buckets"]] == ["bucket-in-account-2"]
 
     # Now revert to the default account, by removing the environment variable
     del os.environ["MOTO_ACCOUNT_ID"]
-    assert [b["Name"] for b in client2.list_buckets()["Buckets"]] == ["bucket-default-account"]
+    assert [b["Name"] for b in client.list_buckets()["Buckets"]] == ["bucket-default-account"]
 
 
 
