@@ -53,7 +53,7 @@ class FakeInstance(BaseModel):
         self.instance_fleet_id = instance_fleet_id
 
 
-class FakeInstanceGroup(BaseModel):
+class FakeInstanceGroup(CloudFormationModel):
     def __init__(
         self,
         cluster_id: str,
@@ -82,7 +82,7 @@ class FakeInstanceGroup(BaseModel):
         self.name = name
         self.num_instances = instance_count
         self.role = instance_role
-        self.type = instance_type
+        self.instance_type = instance_type
         self.ebs_configuration = ebs_configuration
         self.auto_scaling_policy = auto_scaling_policy
         self.creation_datetime = datetime.now(timezone.utc)
@@ -121,6 +121,45 @@ class FakeInstanceGroup(BaseModel):
                             and dimension["value"] == "${emr.clusterId}"
                         ):
                             dimension["value"] = self.cluster_id
+
+    @property
+    def physical_resource_id(self) -> str:
+        return self.id
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::EMR::InstanceGroupConfig"
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeInstanceGroup":
+
+        properties = cloudformation_json["Properties"]
+        job_flow_id = properties["JobFlowId"]
+        ebs_config = properties.get("EbsConfiguration")
+        if ebs_config:
+            ebs_config = CamelToUnderscoresWalker.parse_dict(ebs_config)
+        props = {
+            "instance_count": properties.get("InstanceCount"),
+            "instance_role": properties.get("InstanceRole"),
+            "instance_type": properties.get("InstanceType"),
+            "market": properties.get("Market"),
+            "bid_price": properties.get("BidPrice"),
+            "name": properties.get("Name"),
+            "auto_scaling_policy": properties.get("AutoScalingPolicy"),
+            "ebs_configuration": ebs_config,
+        }
+
+        emr_backend: ElasticMapReduceBackend = emr_backends[account_id][region_name]
+        return emr_backend.add_instance_groups(
+            cluster_id=job_flow_id, instance_groups=[props]
+        )[0]
 
 
 class FakeStep(BaseModel):
@@ -292,11 +331,15 @@ class FakeCluster(CloudFormationModel):
 
     @property
     def master_instance_type(self) -> str:
-        return self.emr_backend.instance_groups[self.master_instance_group_id].type  # type: ignore
+        return self.emr_backend.instance_groups[
+            self.master_instance_group_id  # type: ignore
+        ].instance_type
 
     @property
     def slave_instance_type(self) -> str:
-        return self.emr_backend.instance_groups[self.core_instance_group_id].type  # type: ignore
+        return self.emr_backend.instance_groups[
+            self.core_instance_group_id  # type: ignore
+        ].instance_type
 
     @property
     def instance_count(self) -> int:

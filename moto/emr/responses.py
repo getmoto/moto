@@ -758,7 +758,7 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
               <InstanceRequestCount>{{ instance_group.num_instances }}</InstanceRequestCount>
               <InstanceRole>{{ instance_group.role }}</InstanceRole>
               <InstanceRunningCount>{{ instance_group.num_instances }}</InstanceRunningCount>
-              <InstanceType>{{ instance_group.type }}</InstanceType>
+              <InstanceType>{{ instance_group.instance_type }}</InstanceType>
               <LastStateChangeReason/>
               <Market>{{ instance_group.market }}</Market>
               <Name>{{ instance_group.name }}</Name>
@@ -1084,7 +1084,7 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
         {% endif %}
         <Id>{{ instance_group.id }}</Id>
         <InstanceGroupType>{{ instance_group.role }}</InstanceGroupType>
-        <InstanceType>{{ instance_group.type }}</InstanceType>
+        <InstanceType>{{ instance_group.instance_type }}</InstanceType>
         <Market>{{ instance_group.market }}</Market>
         <Name>{{ instance_group.name }}</Name>
         <RequestedInstanceCount>{{ instance_group.num_instances }}</RequestedInstanceCount>
