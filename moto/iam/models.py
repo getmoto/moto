@@ -838,13 +838,15 @@ class Role(CloudFormationModel):
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
-        return attr in ["Arn"]
+        return attr in ["Arn", "RoleId"]
 
     def get_cfn_attribute(self, attribute_name: str) -> str:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
             return self.arn
+        if attribute_name == "RoleId":
+            return self.id
         raise UnformattedGetAttTemplateException()
 
     def get_tags(self) -> List[Dict[str, str]]:

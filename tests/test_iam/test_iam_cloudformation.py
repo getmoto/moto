@@ -27,6 +27,13 @@ Resources:
               - ec2.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+Outputs:
+  RootRole:
+    Value: !Ref RootRole
+  RoleARN:
+    Value: {"Fn::GetAtt": ["RootRole", "Arn"]}
+  RoleID:
+    Value: {"Fn::GetAtt": ["RootRole", "RoleId"]}
 """
 
 
@@ -1417,8 +1424,16 @@ def test_iam_cloudformation_create_role():
     role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
     assert role["LogicalResourceId"] == "RootRole"
 
+    outputs = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]["Outputs"]
+    outputs = {o["OutputKey"]: o["OutputValue"] for o in outputs}
+
     iam_client = boto3.client("iam", region_name="us-east-1")
-    assert len(iam_client.list_roles()["Roles"]) == 1
+    roles = iam_client.list_roles()["Roles"]
+    assert len(roles) == 1
+
+    assert roles[0]["RoleName"] == [v for k, v in outputs.items() if k == "RootRole"][0]
+    assert roles[0]["Arn"] == [v for k, v in outputs.items() if k == "RoleARN"][0]
+    assert roles[0]["RoleId"] == [v for k, v in outputs.items() if k == "RoleID"][0]
 
     cf_client.delete_stack(StackName=stack_name)
 
