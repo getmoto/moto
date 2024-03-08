@@ -159,7 +159,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             boundary = self.headers["Content-Type"].split("boundary=")[-1]
             req_body, form_data = get_body_from_form_data(req_body, boundary)  # type: ignore
             for key, val in form_data.items():
-                self.headers[key] = [val]
+                self.headers[key] = [val]  # type: ignore[assignment]
         else:
             form_data = {}
 
