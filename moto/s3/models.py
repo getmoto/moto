@@ -2455,6 +2455,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             key_name=key.name,
             acl=multipart.acl,
         )
+
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD_EVENT,
+            bucket,
+            bucket.keys.get(multipart.key_name),
+        )
         return key
 
     def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
