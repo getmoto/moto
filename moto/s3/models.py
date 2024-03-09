@@ -2783,6 +2783,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             new_key,
         )
 
+        if src_key.storage_class != new_key.storage_class:
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.LIFECYCLE_TRANSITION_EVENT,
+                bucket,
+                new_key,
+            )
+
+        # Send notifications if object storage class is changed.
+
     def put_bucket_acl(self, bucket_name: str, acl: Optional[FakeAcl]) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.set_acl(acl)
