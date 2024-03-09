@@ -850,14 +850,14 @@ class SQSBackend(BaseBackend):
     ) -> Message:
         queue = self.get_queue(queue_name)
 
+        self._validate_message(
+            queue, message_body, int(delay_seconds or 0), deduplication_id, group_id
+        )
+
         if delay_seconds is not None:
             delay_seconds = int(delay_seconds)
         else:
             delay_seconds = queue.delay_seconds  # type: ignore
-
-        self._validate_message(
-            queue, message_body, delay_seconds, deduplication_id, group_id
-        )
 
         message_id = str(random.uuid4())
         message = Message(message_id, message_body, system_attributes)

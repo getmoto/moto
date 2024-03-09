@@ -109,8 +109,11 @@ s3
          - EventBridge
 
         For the following events:
+         - 's3:ObjectCreated:CompleteMultipartUpload'
          - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
+         - 's3:ObjectDeleted'
         
 
 - [X] put_bucket_ownership_controls

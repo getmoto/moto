@@ -47,6 +47,9 @@ def calculate_extended_implementation_coverage():
         operation_names = [
             xform_name(op) for op in real_client.meta.service_model.operation_names
         ]
+        # Not part of the spec - but very much part of S3
+        if service_name == "s3":
+            operation_names.extend(["upload_file", "upload_fileobj"])
 
         for op in operation_names:
             if moto_client and op in dir(moto_client):
@@ -76,6 +79,9 @@ def calculate_implementation_coverage():
         operation_names = [
             xform_name(op) for op in real_client.meta.service_model.operation_names
         ]
+        # Not part of the spec - but very much part of S3
+        if service_name == "s3":
+            operation_names.extend(["upload_file", "upload_fileobj"])
         for op in operation_names:
             if moto_client and op in dir(moto_client):
                 implemented.append(op)

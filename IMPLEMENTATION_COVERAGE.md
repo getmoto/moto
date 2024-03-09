@@ -735,7 +735,7 @@
 
 ## ce
 <details>
-<summary>21% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] create_anomaly_monitor
 - [ ] create_anomaly_subscription
@@ -747,6 +747,7 @@
 - [ ] get_anomalies
 - [ ] get_anomaly_monitors
 - [ ] get_anomaly_subscriptions
+- [ ] get_approximate_usage_records
 - [X] get_cost_and_usage
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
@@ -2659,7 +2660,7 @@
 
 ## ecr
 <details>
-<summary>65% implemented</summary>
+<summary>67% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -3339,12 +3340,11 @@
 
 ## firehose
 <details>
-<summary>85% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_delivery_stream
 - [X] delete_delivery_stream
 - [X] describe_delivery_stream
-- [ ] get_kinesis_stream
 - [X] list_delivery_streams
 - [X] list_tags_for_delivery_stream
 - [X] put_record
@@ -3354,7 +3354,6 @@
 - [X] tag_delivery_stream
 - [X] untag_delivery_stream
 - [X] update_destination
-- [ ] verify_resources_exist_for_tagris
 </details>
 
 ## forecast
@@ -4922,6 +4921,7 @@
 - [ ] purchase_offering
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer
+- [ ] restart_channel_pipelines
 - [X] start_channel
 - [ ] start_input_device
 - [ ] start_input_device_maintenance_window
@@ -6393,6 +6393,46 @@
 - [ ] update_traffic_policy_instance
 </details>
 
+## route53domains
+<details>
+<summary>14% implemented</summary>
+
+- [ ] accept_domain_transfer_from_another_aws_account
+- [ ] associate_delegation_signer_to_domain
+- [ ] cancel_domain_transfer_to_another_aws_account
+- [ ] check_domain_availability
+- [ ] check_domain_transferability
+- [X] delete_domain
+- [ ] delete_tags_for_domain
+- [ ] disable_domain_auto_renew
+- [ ] disable_domain_transfer_lock
+- [ ] disassociate_delegation_signer_from_domain
+- [ ] enable_domain_auto_renew
+- [ ] enable_domain_transfer_lock
+- [ ] get_contact_reachability_status
+- [ ] get_domain_detail
+- [ ] get_domain_suggestions
+- [ ] get_operation_detail
+- [X] list_domains
+- [X] list_operations
+- [ ] list_prices
+- [ ] list_tags_for_domain
+- [ ] push_domain
+- [X] register_domain
+- [ ] reject_domain_transfer_from_another_aws_account
+- [ ] renew_domain
+- [ ] resend_contact_reachability_email
+- [ ] resend_operation_authorization
+- [ ] retrieve_domain_auth_code
+- [ ] transfer_domain
+- [ ] transfer_domain_to_another_aws_account
+- [ ] update_domain_contact
+- [ ] update_domain_contact_privacy
+- [X] update_domain_nameservers
+- [ ] update_tags_for_domain
+- [ ] view_billing
+</details>
+
 ## route53resolver
 <details>
 <summary>27% implemented</summary>
@@ -6469,7 +6509,7 @@
 
 ## s3
 <details>
-<summary>66% implemented</summary>
+<summary>67% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -6567,6 +6607,8 @@
 - [X] put_public_access_block
 - [ ] restore_object
 - [X] select_object_content
+- [X] upload_file
+- [X] upload_fileobj
 - [X] upload_part
 - [X] upload_part_copy
 - [ ] write_get_object_response
@@ -7945,6 +7987,7 @@
 - bedrock-runtime
 - billingconductor
 - braket
+- chatbot
 - chime
 - chime-sdk-identity
 - chime-sdk-media-pipelines
@@ -8122,7 +8165,6 @@
 - route53-recovery-cluster
 - route53-recovery-control-config
 - route53-recovery-readiness
-- route53domains
 - rum
 - s3outposts
 - sagemaker-a2i-runtime
