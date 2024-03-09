@@ -731,6 +731,8 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         scan_index_forward = self.body.get("ScanIndexForward")
+        consistent_read = self.body.get("ConsistentRead", False)
+
         items, scanned_count, last_evaluated_key = self.dynamodb_backend.query(
             name,
             hash_key,
@@ -741,6 +743,7 @@ class DynamoHandler(BaseResponse):
             scan_index_forward,
             projection_expressions,
             index_name=index_name,
+            consistent_read=consistent_read,
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
             filter_expression=filter_expression,
@@ -801,6 +804,7 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
+        consistent_read = self.body.get("ConsistentRead", False)
 
         projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
@@ -816,6 +820,7 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_names,
                 expression_attribute_values,
                 index_name,
+                consistent_read,
                 projection_expressions,
             )
         except ValueError as err:

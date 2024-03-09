@@ -812,7 +812,6 @@ def test_boto3_query_gsi_range_comparison():
     # And reverse order of hash + range key
     results = table.query(
         KeyConditionExpression=Key("created").gt(1) & Key("username").eq("johndoe"),
-        ConsistentRead=True,
         IndexName="TestGSI",
     )
     assert results["Count"] == 2
@@ -1202,6 +1201,11 @@ def test_scan_by_index():
     assert res["ScannedCount"] == 1
 
     res = dynamodb.scan(TableName="test", IndexName="test_lsi")
+    assert res["Count"] == 2
+    assert res["ScannedCount"] == 2
+    assert len(res["Items"]) == 2
+
+    res = dynamodb.scan(TableName="test", IndexName="test_lsi", ConsistentRead=True)
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2

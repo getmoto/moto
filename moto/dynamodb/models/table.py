@@ -653,6 +653,7 @@ class Table(CloudFormationModel):
         scan_index_forward: bool,
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         filter_expression: Any = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
@@ -668,6 +669,12 @@ class Table(CloudFormationModel):
                 )
 
             index = indexes_by_name[index_name]
+
+            if index in self.global_indexes and consistent_read:
+                raise MockValidationException(
+                    "Consistent reads are not supported on global secondary indexes"
+                )
+
             try:
                 index_hash_key = [
                     key for key in index.schema if key["KeyType"] == "HASH"
@@ -715,9 +722,11 @@ class Table(CloudFormationModel):
                     return float(x.value) if x.type == "N" else x.value
 
                 possible_results.sort(
-                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
-                    if item.attrs.get(index_range_key["AttributeName"])
-                    else None
+                    key=lambda item: (
+                        conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
+                        if item.attrs.get(index_range_key["AttributeName"])
+                        else None
+                    )
                 )
         else:
             possible_results.sort(key=lambda item: item.range_key)  # type: ignore
@@ -834,6 +843,7 @@ class Table(CloudFormationModel):
         exclusive_start_key: Dict[str, Any],
         filter_expression: Any = None,
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         projection_expression: Optional[List[List[str]]] = None,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results: List[Item] = []
@@ -841,7 +851,13 @@ class Table(CloudFormationModel):
         scanned_count = 0
 
         if index_name:
-            self.get_index(index_name, error_if_not=True)
+            index = self.get_index(index_name, error_if_not=True)
+
+            if index in self.global_indexes and consistent_read:
+                raise MockValidationException(
+                    "Consistent reads are not supported on global secondary indexes"
+                )
+
             items = self.has_idx_items(index_name)
         else:
             items = self.all_items()
