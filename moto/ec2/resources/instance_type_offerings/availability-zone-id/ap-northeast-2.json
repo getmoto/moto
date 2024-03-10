@@ -4968,6 +4968,10 @@
   "Location": "apne2-az3"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "apne2-az3"
+ },
+ {
   "InstanceType": "u-24tb1.112xlarge",
   "Location": "apne2-az3"
  },
