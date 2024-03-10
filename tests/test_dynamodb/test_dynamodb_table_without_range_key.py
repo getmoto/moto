@@ -579,6 +579,10 @@ def test_scan_by_index():
     assert res["Count"] == 3
     assert len(res["Items"]) == 3
 
+    res = dynamodb.scan(TableName="test", ConsistentRead=True)
+    assert res["Count"] == 3
+    assert len(res["Items"]) == 3
+
     res = dynamodb.scan(TableName="test", IndexName="test_gsi")
     assert res["Count"] == 2
     assert len(res["Items"]) == 2
