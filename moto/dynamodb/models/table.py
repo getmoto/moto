@@ -722,7 +722,7 @@ class Table(CloudFormationModel):
                     return float(x.value) if x.type == "N" else x.value
 
                 possible_results.sort(
-                    key=lambda item: (
+                    key=lambda item: (  # type: ignore
                         conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
                         if item.attrs.get(index_range_key["AttributeName"])
                         else None
