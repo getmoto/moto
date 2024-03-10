@@ -1531,15 +1531,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -3168,15 +3159,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.ap-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5796,15 +5778,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -8199,15 +8172,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -9820,15 +9784,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.ap-northeast-3.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12042,15 +11997,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -12814,6 +12760,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identitystore": {
+                "Value": "identitystore",
+                "endpoint": {
+                  "Value": "identitystore.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "imagebuilder": {
                 "Value": "imagebuilder",
                 "endpoint": {
@@ -13298,15 +13253,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.ap-south-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15806,15 +15752,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18514,15 +18451,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -20018,15 +19946,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -21231,15 +21150,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -22255,7 +22165,7 @@
                   "Value": "iot.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "fsx": {
@@ -23467,15 +23377,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -24079,6 +23980,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "guardduty": {
+                "Value": "guardduty",
+                "endpoint": {
+                  "Value": "guardduty.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -24110,6 +24020,15 @@
                 "Value": "kms",
                 "endpoint": {
                   "Value": "kms.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24404,15 +24323,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.ca-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29799,15 +29709,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -31141,15 +31042,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.eu-central-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33136,15 +33028,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -34742,15 +34625,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -35301,6 +35175,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-containers": {
+                "Value": "emr-containers",
+                "endpoint": {
+                  "Value": "emr-containers.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "emr-serverless": {
                 "Value": "emr-serverless",
                 "endpoint": {
@@ -35425,6 +35308,15 @@
                 "Value": "iam",
                 "endpoint": {
                   "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "identitystore": {
+                "Value": "identitystore",
+                "endpoint": {
+                  "Value": "identitystore.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35935,15 +35827,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.eu-south-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41123,15 +41006,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -43163,15 +43037,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -44472,15 +44337,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -44879,6 +44735,24 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45803,15 +45677,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.me-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47436,15 +47301,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.me-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49404,15 +49260,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -50829,7 +50676,7 @@
                   "Value": "iot.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "fsx": {
@@ -53781,7 +53628,7 @@
                   "Value": "iot.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "fsx": {
@@ -55129,15 +54976,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56582,15 +56420,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.us-gov-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59184,7 +59013,7 @@
                   "Value": "iot.us-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "fsx": {
@@ -60262,15 +60091,6 @@
                 "Value": "sts",
                 "endpoint": {
                   "Value": "sts.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -61605,7 +61425,7 @@
                   "Value": "iot.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "fsx": {
