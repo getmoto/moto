@@ -560,6 +560,10 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "apne1-az1"
  },
@@ -1700,6 +1704,10 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "apne1-az1"
  },
@@ -2437,6 +2445,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "apne1-az1"
  },
  {
@@ -3289,6 +3301,10 @@
  },
  {
   "InstanceType": "c7gd.medium",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "c7gd.metal",
   "Location": "apne1-az2"
  },
  {
@@ -4288,6 +4304,10 @@
   "Location": "apne1-az2"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "apne1-az2"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "apne1-az2"
  },
@@ -4945,6 +4965,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "apne1-az2"
  },
  {
@@ -5781,6 +5805,10 @@
  },
  {
   "InstanceType": "c7gd.medium",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7gd.metal",
   "Location": "apne1-az4"
  },
  {
@@ -6916,6 +6944,10 @@
   "Location": "apne1-az4"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "apne1-az4"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "apne1-az4"
  },
@@ -7693,6 +7725,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "apne1-az4"
  },
  {
