@@ -670,7 +670,7 @@ class Table(CloudFormationModel):
 
             index = indexes_by_name[index_name]
 
-            if index in self.global_indexes and consistent_read:
+            if consistent_read and index in self.global_indexes:
                 raise MockValidationException(
                     "Consistent reads are not supported on global secondary indexes"
                 )
@@ -853,7 +853,7 @@ class Table(CloudFormationModel):
         if index_name:
             index = self.get_index(index_name, error_if_not=True)
 
-            if index in self.global_indexes and consistent_read:
+            if consistent_read and index in self.global_indexes:
                 raise MockValidationException(
                     "Consistent reads are not supported on global secondary indexes"
                 )
