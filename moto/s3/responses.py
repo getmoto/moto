@@ -2274,14 +2274,11 @@ class S3Response(BaseResponse):
         elif "restore" in query:
             es = minidom.parseString(body).getElementsByTagName("Days")
             days = es[0].childNodes[0].wholeText
-            key = self.backend.get_object(bucket_name, key_name)  # type: ignore
-            if key.storage_class not in ARCHIVE_STORAGE_CLASSES:  # type: ignore
-                raise InvalidObjectState(storage_class=key.storage_class)  # type: ignore
-            r = 202
-            if key.expiry_date is not None:  # type: ignore
-                r = 200
-            key.restore(int(days))  # type: ignore
-            return r, {}, ""
+            previously_restored = self.backend.restore_object(
+                bucket_name, key_name, days
+            )
+            status_code = 200 if previously_restored else 202
+            return status_code, {}, ""
         elif "select" in query:
             request = xmltodict.parse(body)["SelectObjectContentRequest"]
             select_query = request["Expression"]
