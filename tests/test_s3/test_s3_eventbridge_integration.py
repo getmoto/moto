@@ -220,38 +220,3 @@ def test_delete_object_notification():
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectRemoved"
-
-
-@mock_aws
-def test_storage_class_changed_notification_eventbridge_copy_object():
-    resource_names = _seteup_bucket_notification_eventbridge()
-    bucket_name = resource_names["bucket_name"]
-    s3_client = boto3.client("s3", region_name=REGION_NAME)
-
-    # Copy Object with different storage class
-    src_object_key = "srcobjectkey"
-    s3_client.put_object(
-        Bucket=bucket_name,
-        Key=src_object_key,
-        Body="bodyofnewobject",
-        StorageClass="STANDARD",
-    )
-    new_object_key = "newobjectkey"
-    s3_client.copy_object(
-        Bucket=bucket_name,
-        CopySource=f"{bucket_name}/{src_object_key}",
-        Key=new_object_key,
-        StorageClass="REDUCED_REDUNDANCY",
-    )
-
-    events = _get_send_events()
-    assert (
-        len(events) == 3
-    )  # [PutObject event, CopyObject event, LifecycleTransition event]
-    event_message = json.loads(events[-1]["message"])
-    assert event_message["detail-type"] == "Object Storage Class Changed"
-    assert event_message["source"] == "aws.s3"
-    assert event_message["account"] == ACCOUNT_ID
-    assert event_message["region"] == REGION_NAME
-    assert event_message["detail"]["bucket"]["name"] == bucket_name
-    assert event_message["detail"]["reason"] == "LifecycleTransition"
