@@ -318,6 +318,7 @@ class DynamoDBBackend(BaseBackend):
         scan_index_forward: bool,
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         expr_names: Optional[Dict[str, str]] = None,
         expr_values: Optional[Dict[str, Dict[str, str]]] = None,
         filter_expression: Optional[str] = None,
@@ -341,6 +342,7 @@ class DynamoDBBackend(BaseBackend):
             scan_index_forward,
             projection_expressions,
             index_name,
+            consistent_read,
             filter_expression_op,
             **filter_kwargs,
         )
@@ -355,6 +357,7 @@ class DynamoDBBackend(BaseBackend):
         expr_names: Dict[str, Any],
         expr_values: Dict[str, Any],
         index_name: str,
+        consistent_read: bool,
         projection_expression: Optional[List[List[str]]],
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         table = self.get_table(table_name)
@@ -374,6 +377,7 @@ class DynamoDBBackend(BaseBackend):
             exclusive_start_key,
             filter_expression_op,
             index_name,
+            consistent_read,
             projection_expression,
         )
 

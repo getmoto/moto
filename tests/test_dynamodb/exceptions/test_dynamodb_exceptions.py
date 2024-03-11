@@ -1273,3 +1273,90 @@ def test_too_many_key_schema_attributes():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert err["Message"] == expected_err
+
+
+@mock_aws
+def test_cannot_query_gsi_with_consistent_read():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_hash_key", "AttributeType": "S"},
+            {"AttributeName": "gsi_range_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key", "KeyType": "HASH"},
+                    {"AttributeName": "gsi_range_key", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.query(
+            TableName="test",
+            IndexName="test_gsi",
+            KeyConditionExpression="gsi_hash_key = :gsi_hash_key and gsi_range_key = :gsi_range_key",
+            ExpressionAttributeValues={
+                ":gsi_hash_key": {"S": "key1"},
+                ":gsi_range_key": {"S": "range1"},
+            },
+            ConsistentRead=True,
+        )
+
+    assert exc.value.response["Error"] == {
+        "Code": "ValidationException",
+        "Message": "Consistent reads are not supported on global secondary indexes",
+    }
+
+
+@mock_aws
+def test_cannot_scan_gsi_with_consistent_read():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_hash_key", "AttributeType": "S"},
+            {"AttributeName": "gsi_range_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key", "KeyType": "HASH"},
+                    {"AttributeName": "gsi_range_key", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.scan(
+            TableName="test",
+            IndexName="test_gsi",
+            ConsistentRead=True,
+        )
+
+    assert exc.value.response["Error"] == {
+        "Code": "ValidationException",
+        "Message": "Consistent reads are not supported on global secondary indexes",
+    }
