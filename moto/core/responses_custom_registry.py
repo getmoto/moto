@@ -45,11 +45,15 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         match_failed_reasons = []
 
         # Handle non-standard AWS endpoint hostnames from ISO regions or custom S3 endpoints.
-        url_with_standard_aws_domain = urlunparse(
-            get_equivalent_url_in_aws_domain(request.url)
-        )
-        request_with_standard_aws_domain = request.copy()
-        request_with_standard_aws_domain.prepare_url(url_with_standard_aws_domain, {})
+        parsed_url, url_was_modified = get_equivalent_url_in_aws_domain(request.url)
+        if url_was_modified:
+            url_with_standard_aws_domain = urlunparse(parsed_url)
+            request_with_standard_aws_domain = request.copy()
+            request_with_standard_aws_domain.prepare_url(
+                url_with_standard_aws_domain, {}
+            )
+        else:
+            request_with_standard_aws_domain = request
 
         for response in all_possibles:
             match_result, reason = response.matches(request_with_standard_aws_domain)

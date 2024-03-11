@@ -401,13 +401,16 @@ def get_partition_from_region(region_name: str) -> str:
     return "aws"
 
 
-def get_equivalent_url_in_aws_domain(url: str) -> ParseResult:
+def get_equivalent_url_in_aws_domain(url: str) -> tuple[ParseResult, bool]:
     """Parses a URL and converts non-standard AWS endpoint hostnames (from ISO
     regions or custom S3 endpoints) to the equivalent standard AWS domain.
+
+    Returns a tuple: (parsed URL, was URL modified).
     """
 
     parsed = urlparse(url)
-    host = parsed.netloc
+    original_host = parsed.netloc
+    host = original_host
 
     # https://github.com/getmoto/moto/pull/6412
     # Support ISO regions
@@ -428,11 +431,15 @@ def get_equivalent_url_in_aws_domain(url: str) -> ParseResult:
         if host == custom_endpoint or host == custom_endpoint.split("://")[-1]:
             host = "s3.amazonaws.com"
 
-    return ParseResult(
-        scheme=parsed.scheme,
-        netloc=host,
-        path=parsed.path,
-        params=parsed.params,
-        query=parsed.query,
-        fragment=parsed.fragment,
-    )
+    if host == original_host:
+        return (parsed, False)
+    else:
+        result = ParseResult(
+            scheme=parsed.scheme,
+            netloc=host,
+            path=parsed.path,
+            params=parsed.params,
+            query=parsed.query,
+            fragment=parsed.fragment,
+        )
+        return (result, True)

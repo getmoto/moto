@@ -44,7 +44,7 @@ class BotocoreStubber:
     def process_request(self, request: Any) -> Optional[TYPE_RESPONSE]:
         # Handle non-standard AWS endpoint hostnames from ISO regions or custom
         # S3 endpoints.
-        parsed_url = get_equivalent_url_in_aws_domain(request.url)
+        parsed_url, _ = get_equivalent_url_in_aws_domain(request.url)
         # Remove the querystring from the URL, as we'll never match on that
         clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
