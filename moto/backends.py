@@ -104,6 +104,7 @@ if TYPE_CHECKING:
     from moto.redshift.models import RedshiftBackend
     from moto.redshiftdata.models import RedshiftDataAPIServiceBackend
     from moto.rekognition.models import RekognitionBackend
+    from moto.resiliencehub.models import ResilienceHubBackend
     from moto.resourcegroups.models import ResourceGroupsBackend
     from moto.resourcegroupstaggingapi.models import ResourceGroupsTaggingAPIBackend
     from moto.robomaker.models import RoboMakerBackend
@@ -262,6 +263,7 @@ SERVICE_NAMES = Union[
     "Literal['redshift']",
     "Literal['redshift-data']",
     "Literal['rekognition']",
+    "Literal['resiliencehub']",
     "Literal['resource-groups']",
     "Literal['resourcegroupstaggingapi']",
     "Literal['robomaker']",
@@ -497,6 +499,8 @@ def get_backend(name: "Literal['redshift']") -> "BackendDict[RedshiftBackend]": 
 def get_backend(name: "Literal['redshift-data']") -> "BackendDict[RedshiftDataAPIServiceBackend]": ...
 @overload
 def get_backend(name: "Literal['rekognition']") -> "BackendDict[RekognitionBackend]": ...
+@overload
+def get_backend(name: "Literal['resiliencehub']") -> "BackendDict[ResilienceHubBackend]": ...
 @overload
 def get_backend(name: "Literal['resource-groups']") -> "BackendDict[ResourceGroupsBackend]": ...
 @overload
