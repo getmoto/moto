@@ -1698,11 +1698,7 @@ def test_update_usage_plan():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    payload = {
-        "name": "TEST-PLAN-2",
-        "description": "Description",
-        "tags": {"tag_key": "tag_value"},
-    }
+    payload = {"name": "TEST-PLAN-2", "description": "Description"}
     response = client.create_usage_plan(**payload)
     usage_plan_id = response["id"]
 
@@ -1740,6 +1736,21 @@ def test_update_usage_plan():
     assert response["name"] == "new-name"
     assert response["description"] == "new-description"
     assert response["productCode"] == "new-productionCode"
+
+    remove = client.update_usage_plan(
+        usagePlanId=usage_plan_id,
+        patchOperations=[
+            {"op": "remove", "path": "/apiStages", "value": "foo:bar"},
+            {"op": "remove", "path": "/productCode"},
+            {"op": "remove", "path": "/quota"},
+            {"op": "remove", "path": "/throttle"},
+        ],
+    )
+    assert remove["apiStages"] == []
+    assert "productCode" not in remove
+    assert remove["description"] == "new-description"
+    assert "quota" not in remove
+    assert "throttle" not in remove
 
 
 @mock_aws
