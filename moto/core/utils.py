@@ -401,7 +401,7 @@ def get_partition_from_region(region_name: str) -> str:
     return "aws"
 
 
-def get_equivalent_url_in_aws_domain(url: str) -> tuple[ParseResult, bool]:
+def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
     """Parses a URL and converts non-standard AWS endpoint hostnames (from ISO
     regions or custom S3 endpoints) to the equivalent standard AWS domain.
 
