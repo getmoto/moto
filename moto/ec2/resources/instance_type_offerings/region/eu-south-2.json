@@ -260,6 +260,10 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "eu-south-2"
  },
@@ -676,6 +680,10 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "eu-south-2"
  },
@@ -961,6 +969,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "eu-south-2"
  },
  {

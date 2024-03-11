@@ -42,6 +42,7 @@ from moto.s3.exceptions import (
     InvalidBucketName,
     InvalidNotificationDestination,
     InvalidNotificationEvent,
+    InvalidObjectState,
     InvalidPart,
     InvalidPublicAccessBlockConfiguration,
     InvalidRequest,
@@ -197,6 +198,25 @@ class FakeKey(BaseModel, ManagedState):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
+    @property
+    def status(self) -> Optional[str]:
+        previous = self._status
+        new_status = super().status
+        if previous != "RESTORED" and new_status == "RESTORED":
+            s3_backend = s3_backends[self.account_id]["global"]
+            bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.OBJECT_RESTORE_COMPLETED_EVENT,
+                bucket,
+                key=self,
+            )
+        return new_status
+
+    @status.setter
+    def status(self, value: str) -> None:
+        self._status = value
+
     def set_metadata(self, metadata: Any, replace: bool = False) -> None:
         if replace:
             self._metadata = {}  # type: ignore
@@ -210,6 +230,14 @@ class FakeKey(BaseModel, ManagedState):
 
     def restore(self, days: int) -> None:
         self._expiry = utcnow() + datetime.timedelta(days)
+        s3_backend = s3_backends[self.account_id]["global"]
+        bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_RESTORE_POST_EVENT,
+            bucket,
+            key=self,
+        )
 
     @property
     def etag(self) -> str:
@@ -2337,8 +2365,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - EventBridge
 
         For the following events:
+         - 's3:ObjectCreated:CompleteMultipartUpload'
          - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
+         - 's3:ObjectDeleted'
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -2851,6 +2882,26 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             )
             for x in query_result
         ]
+
+    def restore_object(self, bucket_name: str, key_name: str, days: str) -> bool:
+        key = self.get_object(bucket_name, key_name)
+        if not key:
+            raise MissingKey
+        if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
+            raise InvalidObjectState(storage_class=key.storage_class)
+        had_expiry_date = key.expiry_date is not None
+        key.restore(int(days))
+        return had_expiry_date
+
+    def upload_file(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
+
+    def upload_fileobj(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
 
 
 class S3BackendDict(BackendDict[S3Backend]):

@@ -148,6 +148,46 @@
   "Location": "aps2-az1"
  },
  {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "aps2-az1"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
+  "Location": "aps2-az1"
+ },
+ {
   "InstanceType": "c7g.12xlarge",
   "Location": "aps2-az1"
  },
@@ -984,6 +1024,46 @@
   "Location": "aps2-az2"
  },
  {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "aps2-az2"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
+  "Location": "aps2-az2"
+ },
+ {
   "InstanceType": "c7g.12xlarge",
   "Location": "aps2-az2"
  },
@@ -1813,6 +1893,46 @@
  },
  {
   "InstanceType": "c6i.xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "aps2-az3"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
   "Location": "aps2-az3"
  },
  {

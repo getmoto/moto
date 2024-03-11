@@ -1,5 +1,6 @@
 import ipaddress
 import json
+import threading
 import weakref
 from collections import defaultdict
 from operator import itemgetter
@@ -82,6 +83,7 @@ IMPLEMENTED_ENDPOINT_SERVICES = [
 ]
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
 DEFAULT_VPC_ENDPOINT_SERVICES: List[Dict[str, str]] = []
+ENDPOINT_SERVICE_COLLECTION_LOCK = threading.Lock()
 
 
 class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
@@ -773,35 +775,37 @@ class VPCBackend:
         account_id: str, region: str
     ) -> List[Dict[str, str]]:
         """Return list of default services using list of backends."""
-        if DEFAULT_VPC_ENDPOINT_SERVICES:
+        with ENDPOINT_SERVICE_COLLECTION_LOCK:
+
+            if DEFAULT_VPC_ENDPOINT_SERVICES:
+                return DEFAULT_VPC_ENDPOINT_SERVICES
+
+            zones = [
+                zone.name
+                for zones in RegionsAndZonesBackend.zones.values()
+                for zone in zones
+                if zone.name.startswith(region)
+            ]
+
+            from moto import backends  # pylint: disable=import-outside-toplevel
+
+            for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
+                _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
+                account_backend = _backends[account_id]
+                if region in account_backend:
+                    service = account_backend[region].default_vpc_endpoint_service(
+                        region, zones
+                    )
+                    if service:
+                        DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
+
+                if "global" in account_backend:
+                    service = account_backend["global"].default_vpc_endpoint_service(
+                        region, zones
+                    )
+                    if service:
+                        DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
             return DEFAULT_VPC_ENDPOINT_SERVICES
-
-        zones = [
-            zone.name
-            for zones in RegionsAndZonesBackend.zones.values()
-            for zone in zones
-            if zone.name.startswith(region)
-        ]
-
-        from moto import backends  # pylint: disable=import-outside-toplevel
-
-        for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
-            _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
-            account_backend = _backends[account_id]
-            if region in account_backend:
-                service = account_backend[region].default_vpc_endpoint_service(
-                    region, zones
-                )
-                if service:
-                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
-
-            if "global" in account_backend:
-                service = account_backend["global"].default_vpc_endpoint_service(
-                    region, zones
-                )
-                if service:
-                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
-        return DEFAULT_VPC_ENDPOINT_SERVICES
 
     @staticmethod
     def _matches_service_by_tags(service: Dict[str, Any], filter_item: Dict[str, Any]) -> bool:  # type: ignore[misc]

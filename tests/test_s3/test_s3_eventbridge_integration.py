@@ -220,3 +220,33 @@ def test_delete_object_notification():
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectRemoved"
+
+
+@mock_aws
+def test_restore_key_notifications():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+
+    s3_resource = boto3.resource("s3", region_name=REGION_NAME)
+
+    bucket = s3_resource.Bucket(bucket_name)
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
+    key.restore_object(RestoreRequest={"Days": 1})
+
+    events = _get_send_events()
+    event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
+    assert event_names == ["ObjectCreated", "ObjectRestore"]
+
+    # Finish the Object Restoration - restore Completes immediately by default
+    key.load()
+
+    events = _get_send_events()
+    event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
+    assert event_names == ["ObjectCreated", "ObjectRestore", "ObjectRestore"]
+
+    # Sanity check - loading the Key does not mean the Restore-event is fired every time
+    key.load()
+
+    events = _get_send_events()
+    event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
+    assert event_names == ["ObjectCreated", "ObjectRestore", "ObjectRestore"]

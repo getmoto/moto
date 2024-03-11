@@ -592,6 +592,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "us-west-2a"
  },
@@ -1792,6 +1796,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "us-west-2a"
  },
@@ -2585,6 +2593,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "us-west-2a"
  },
  {
@@ -3573,6 +3585,10 @@
  },
  {
   "InstanceType": "c7gd.medium",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "c7gd.metal",
   "Location": "us-west-2b"
  },
  {
@@ -4756,6 +4772,10 @@
   "Location": "us-west-2b"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "us-west-2b"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "us-west-2b"
  },
@@ -5537,6 +5557,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "us-west-2b"
  },
  {
@@ -6477,6 +6501,10 @@
  },
  {
   "InstanceType": "c7gd.medium",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "c7gd.metal",
   "Location": "us-west-2c"
  },
  {
@@ -7676,6 +7704,10 @@
   "Location": "us-west-2c"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "us-west-2c"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "us-west-2c"
  },
@@ -8465,6 +8497,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "us-west-2c"
  },
  {
@@ -9368,6 +9404,10 @@
   "Location": "us-west-2d"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "us-west-2d"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "us-west-2d"
  },
@@ -10104,6 +10144,10 @@
   "Location": "us-west-2d"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "us-west-2d"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "us-west-2d"
  },
@@ -10653,6 +10697,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "us-west-2d"
  },
  {

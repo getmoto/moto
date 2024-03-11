@@ -735,7 +735,7 @@
 
 ## ce
 <details>
-<summary>21% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] create_anomaly_monitor
 - [ ] create_anomaly_subscription
@@ -747,6 +747,7 @@
 - [ ] get_anomalies
 - [ ] get_anomaly_monitors
 - [ ] get_anomaly_subscriptions
+- [ ] get_approximate_usage_records
 - [X] get_cost_and_usage
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
@@ -2659,7 +2660,7 @@
 
 ## ecr
 <details>
-<summary>65% implemented</summary>
+<summary>67% implemented</summary>
 
 - [ ] batch_check_layer_availability
 - [X] batch_delete_image
@@ -3339,12 +3340,11 @@
 
 ## firehose
 <details>
-<summary>85% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_delivery_stream
 - [X] delete_delivery_stream
 - [X] describe_delivery_stream
-- [ ] get_kinesis_stream
 - [X] list_delivery_streams
 - [X] list_tags_for_delivery_stream
 - [X] put_record
@@ -3354,7 +3354,6 @@
 - [X] tag_delivery_stream
 - [X] untag_delivery_stream
 - [X] update_destination
-- [ ] verify_resources_exist_for_tagris
 </details>
 
 ## forecast
@@ -4922,6 +4921,7 @@
 - [ ] purchase_offering
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer
+- [ ] restart_channel_pipelines
 - [X] start_channel
 - [ ] start_input_device
 - [ ] start_input_device_maintenance_window
@@ -6216,6 +6216,66 @@
 - [ ] update_stream_processor
 </details>
 
+## resiliencehub
+<details>
+<summary>18% implemented</summary>
+
+- [ ] add_draft_app_version_resource_mappings
+- [ ] batch_update_recommendation_status
+- [X] create_app
+- [ ] create_app_version_app_component
+- [ ] create_app_version_resource
+- [ ] create_recommendation_template
+- [X] create_resiliency_policy
+- [ ] delete_app
+- [ ] delete_app_assessment
+- [ ] delete_app_input_source
+- [ ] delete_app_version_app_component
+- [ ] delete_app_version_resource
+- [ ] delete_recommendation_template
+- [ ] delete_resiliency_policy
+- [X] describe_app
+- [ ] describe_app_assessment
+- [ ] describe_app_version
+- [ ] describe_app_version_app_component
+- [ ] describe_app_version_resource
+- [ ] describe_app_version_resources_resolution_status
+- [ ] describe_app_version_template
+- [ ] describe_draft_app_version_resources_import_status
+- [X] describe_resiliency_policy
+- [ ] import_resources_to_draft_app_version
+- [ ] list_alarm_recommendations
+- [ ] list_app_assessment_compliance_drifts
+- [X] list_app_assessments
+- [ ] list_app_component_compliances
+- [ ] list_app_component_recommendations
+- [ ] list_app_input_sources
+- [ ] list_app_version_app_components
+- [ ] list_app_version_resource_mappings
+- [ ] list_app_version_resources
+- [ ] list_app_versions
+- [X] list_apps
+- [ ] list_recommendation_templates
+- [X] list_resiliency_policies
+- [ ] list_sop_recommendations
+- [ ] list_suggested_resiliency_policies
+- [X] list_tags_for_resource
+- [ ] list_test_recommendations
+- [ ] list_unsupported_app_version_resources
+- [ ] publish_app_version
+- [ ] put_draft_app_version_template
+- [ ] remove_draft_app_version_resource_mappings
+- [ ] resolve_app_version_resources
+- [ ] start_app_assessment
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_app
+- [ ] update_app_version
+- [ ] update_app_version_app_component
+- [ ] update_app_version_resource
+- [ ] update_resiliency_policy
+</details>
+
 ## resource-groups
 <details>
 <summary>61% implemented</summary>
@@ -6393,6 +6453,46 @@
 - [ ] update_traffic_policy_instance
 </details>
 
+## route53domains
+<details>
+<summary>14% implemented</summary>
+
+- [ ] accept_domain_transfer_from_another_aws_account
+- [ ] associate_delegation_signer_to_domain
+- [ ] cancel_domain_transfer_to_another_aws_account
+- [ ] check_domain_availability
+- [ ] check_domain_transferability
+- [X] delete_domain
+- [ ] delete_tags_for_domain
+- [ ] disable_domain_auto_renew
+- [ ] disable_domain_transfer_lock
+- [ ] disassociate_delegation_signer_from_domain
+- [ ] enable_domain_auto_renew
+- [ ] enable_domain_transfer_lock
+- [ ] get_contact_reachability_status
+- [ ] get_domain_detail
+- [ ] get_domain_suggestions
+- [ ] get_operation_detail
+- [X] list_domains
+- [X] list_operations
+- [ ] list_prices
+- [ ] list_tags_for_domain
+- [ ] push_domain
+- [X] register_domain
+- [ ] reject_domain_transfer_from_another_aws_account
+- [ ] renew_domain
+- [ ] resend_contact_reachability_email
+- [ ] resend_operation_authorization
+- [ ] retrieve_domain_auth_code
+- [ ] transfer_domain
+- [ ] transfer_domain_to_another_aws_account
+- [ ] update_domain_contact
+- [ ] update_domain_contact_privacy
+- [X] update_domain_nameservers
+- [ ] update_tags_for_domain
+- [ ] view_billing
+</details>
+
 ## route53resolver
 <details>
 <summary>27% implemented</summary>
@@ -6469,7 +6569,7 @@
 
 ## s3
 <details>
-<summary>66% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -6565,8 +6665,10 @@
 - [X] put_object_retention
 - [X] put_object_tagging
 - [X] put_public_access_block
-- [ ] restore_object
+- [X] restore_object
 - [X] select_object_content
+- [X] upload_file
+- [X] upload_fileobj
 - [X] upload_part
 - [X] upload_part_copy
 - [ ] write_get_object_response
@@ -7945,6 +8047,7 @@
 - bedrock-runtime
 - billingconductor
 - braket
+- chatbot
 - chime
 - chime-sdk-identity
 - chime-sdk-media-pipelines
@@ -8116,13 +8219,11 @@
 - rbin
 - redshift-serverless
 - repostspace
-- resiliencehub
 - resource-explorer-2
 - rolesanywhere
 - route53-recovery-cluster
 - route53-recovery-control-config
 - route53-recovery-readiness
-- route53domains
 - rum
 - s3outposts
 - sagemaker-a2i-runtime

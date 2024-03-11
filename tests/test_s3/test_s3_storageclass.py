@@ -203,9 +203,10 @@ def test_s3_copy_object_for_glacier_storage_class_restored():
     )
 
     s3_client.create_bucket(Bucket="Bucket2")
-    s3_client.restore_object(
+    resp = s3_client.restore_object(
         Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123}
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     s3_client.copy_object(
         CopySource={"Bucket": "Bucket", "Key": "First_Object"},
@@ -241,9 +242,10 @@ def test_s3_copy_object_for_deep_archive_storage_class_restored():
     assert err["StorageClass"] == "DEEP_ARCHIVE"
 
     s3_client.create_bucket(Bucket="Bucket2")
-    s3_client.restore_object(
+    resp = s3_client.restore_object(
         Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123}
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
     s3_client.get_object(Bucket="Bucket", Key="First_Object")
 
     s3_client.copy_object(

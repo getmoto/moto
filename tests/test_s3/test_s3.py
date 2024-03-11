@@ -544,7 +544,8 @@ def test_restore_key():
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
     assert key.restore is None
-    key.restore_object(RestoreRequest={"Days": 1})
+    resp = key.restore_object(RestoreRequest={"Days": 1})
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
     if settings.TEST_SERVER_MODE:
         assert 'ongoing-request="false"' in key.restore
     elif settings.TEST_DECORATOR_MODE:
@@ -552,7 +553,8 @@ def test_restore_key():
             'ongoing-request="false", expiry-date="Mon, 02 Jan 2012 12:00:00 GMT"'
         )
 
-    key.restore_object(RestoreRequest={"Days": 2})
+    resp = key.restore_object(RestoreRequest={"Days": 2})
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if settings.TEST_SERVER_MODE:
         assert 'ongoing-request="false"' in key.restore
@@ -592,6 +594,19 @@ def test_restore_key_transition():
     assert 'ongoing-request="false"' in key.restore
 
     state_manager.unset_transition(model_name="s3::keyrestore")
+
+
+@mock_aws
+def test_restore_unknown_key():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="mybucket")
+
+    with pytest.raises(ClientError) as exc:
+        client.restore_object(
+            Bucket="mybucket", Key="unknown", RestoreRequest={"Days": 1}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchKey"
 
 
 @mock_aws

@@ -131,6 +131,7 @@ backend_url_patterns = [
     ("redshift", re.compile("https?://redshift\\.(.+)\\.amazonaws\\.com")),
     ("redshiftdata", re.compile("https?://redshift-data\\.(.+)\\.amazonaws\\.com")),
     ("rekognition", re.compile("https?://rekognition\\.(.+)\\.amazonaws\\.com")),
+    ("resiliencehub", re.compile("https?://resiliencehub\\.(.+)\\.amazonaws\\.com")),
     (
         "resourcegroups",
         re.compile("https?://resource-groups(-fips)?\\.(.+)\\.amazonaws.com"),
@@ -138,13 +139,10 @@ backend_url_patterns = [
     ("resourcegroupstaggingapi", re.compile("https?://tagging\\.(.+)\\.amazonaws.com")),
     ("robomaker", re.compile("https?://robomaker\\.(.+)\\.amazonaws\\.com")),
     ("route53", re.compile("https?://route53(\\..+)?\\.amazonaws.com")),
+    ("route53domains", re.compile("https?://route53domains\\.(.+)\\.amazonaws\\.com")),
     (
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
-    ),
-    (
-        "route53domains",
-        re.compile("https?://route53domains\\.(.+)\\.amazonaws\\.com"),
     ),
     ("s3", re.compile("https?://s3(?!-control)(.*)\\.amazonaws.com")),
     (

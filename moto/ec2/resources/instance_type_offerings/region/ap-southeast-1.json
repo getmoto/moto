@@ -568,6 +568,10 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "ap-southeast-1"
  },
@@ -1604,6 +1608,10 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "ap-southeast-1"
  },
@@ -2329,6 +2337,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "ap-southeast-1"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "ap-southeast-1"
  },
  {

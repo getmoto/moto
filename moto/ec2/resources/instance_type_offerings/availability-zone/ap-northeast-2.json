@@ -4968,6 +4968,10 @@
   "Location": "ap-northeast-2c"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "ap-northeast-2c"
+ },
+ {
   "InstanceType": "u-24tb1.112xlarge",
   "Location": "ap-northeast-2c"
  },

@@ -812,7 +812,6 @@ def test_boto3_query_gsi_range_comparison():
     # And reverse order of hash + range key
     results = table.query(
         KeyConditionExpression=Key("created").gt(1) & Key("username").eq("johndoe"),
-        ConsistentRead=True,
         IndexName="TestGSI",
     )
     assert results["Count"] == 2
@@ -1097,6 +1096,76 @@ def test_query_pagination():
 
 
 @mock_aws
+def test_query_by_local_secondary_index():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = dynamodb.create_table(
+        TableName="test",
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+            {"AttributeName": "range_key", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "range_key", "AttributeType": "S"},
+            {"AttributeName": "lsi_range_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        LocalSecondaryIndexes=[
+            {
+                "IndexName": "test_lsi",
+                "KeySchema": [
+                    {"AttributeName": "id", "KeyType": "HASH"},
+                    {"AttributeName": "lsi_range_key", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+    )
+
+    table.put_item(
+        Item={
+            "id": "1",
+            "range_key": "1",
+            "col1": "val1",
+            "lsi_range_key": "1",
+        },
+    )
+
+    table.put_item(
+        Item={
+            "id": "1",
+            "range_key": "2",
+            "col1": "val2",
+            "lsi_range_key": "2",
+        },
+    )
+
+    table.put_item(
+        Item={"id": "3", "range_key": "1", "col1": "val3"},
+    )
+
+    res = table.query(
+        KeyConditionExpression=Key("id").eq("1") & Key("lsi_range_key").eq("1"),
+        IndexName="test_lsi",
+    )
+    assert res["Count"] == 1
+    assert res["Items"] == [
+        {"id": "1", "range_key": "1", "col1": "val1", "lsi_range_key": "1"}
+    ]
+
+    res = table.query(
+        KeyConditionExpression=Key("id").eq("1") & Key("lsi_range_key").eq("2"),
+        IndexName="test_lsi",
+        ConsistentRead=True,
+    )
+    assert res["Count"] == 1
+    assert res["Items"] == [
+        {"id": "1", "range_key": "2", "col1": "val2", "lsi_range_key": "2"}
+    ]
+
+
+@mock_aws
 def test_scan_by_index():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -1202,6 +1271,11 @@ def test_scan_by_index():
     assert res["ScannedCount"] == 1
 
     res = dynamodb.scan(TableName="test", IndexName="test_lsi")
+    assert res["Count"] == 2
+    assert res["ScannedCount"] == 2
+    assert len(res["Items"]) == 2
+
+    res = dynamodb.scan(TableName="test", IndexName="test_lsi", ConsistentRead=True)
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
