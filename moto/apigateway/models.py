@@ -859,32 +859,37 @@ class UsagePlan(BaseModel):
         self.tags = tags
 
     def to_json(self) -> Dict[str, Any]:
-        return {
+        resp = {
             "id": self.id,
             "name": self.name,
             "description": self.description,
             "apiStages": self.api_stages,
-            "throttle": self.throttle,
-            "quota": self.quota,
             "productCode": self.product_code,
             "tags": self.tags,
         }
+        if self.throttle:
+            resp["throttle"] = self.throttle
+        if self.quota:
+            resp["quota"] = self.quota
+        return resp
 
     def apply_patch_operations(self, patch_operations: List[Dict[str, Any]]) -> None:
         for op in patch_operations:
             path = op["path"]
-            value = op["value"]
             if op["op"] == "add":
+                value = op["value"]
                 if path == "/apiStages":
                     self.api_stages.append(
                         {"apiId": value.split(":")[0], "stage": value.split(":")[1]}
                     )
             if op["op"] == "replace":
+                value = op["value"]
                 if "/name" in path:
                     self.name = value
                 if "/description" in path:
                     self.description = value
             if op["op"] in ["add", "replace"]:
+                value = op["value"]
                 if "/productCode" in path:
                     self.product_code = value
                 if "/quota/limit" in path:
@@ -897,6 +902,18 @@ class UsagePlan(BaseModel):
                     self.throttle["rateLimit"] = int(value)
                 if "/throttle/burstLimit" in path:
                     self.throttle["burstLimit"] = int(value)
+            if op["op"] == "remove":
+                if path == "/apiStages":
+                    value = op["value"]
+                    self.api_stages.remove(
+                        {"apiId": value.split(":")[0], "stage": value.split(":")[1]}
+                    )
+                if path == "/productCode":
+                    self.product_code = None
+                if path == "/quota":
+                    self.quota.clear()
+                if path == "/throttle":
+                    self.throttle.clear()
 
 
 class RequestValidator(BaseModel):
@@ -2115,7 +2132,7 @@ class APIGatewayBackend(BaseBackend):
         The following PatchOperations are currently supported:
         add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
         replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
-        remove : Nothing yet
+        remove : Everything except /apiStages/{apidId:stageName}/throttle/ and children
         copy   : Nothing yet
         """
         if usage_plan_id not in self.usage_plans:
