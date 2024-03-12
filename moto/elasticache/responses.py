@@ -317,12 +317,6 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
   <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
   <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
   <ARN>{{ cache_cluster.arn }}</ARN>
-  # <Tags>
-  # {% for tagset in cache_cluster.tags %}
-  #   <SecurityGroupId>{{ security_group_id }}</SecurityGroupId>
-  #   <Status>active</Status>
-  #   {% endfor %}
-  # </Tags>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
   <LogDeliveryConfigurations>
   {% for log_delivery_configuration in cache_cluster.log_delivery_configurations %}
@@ -558,7 +552,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
   </DeleteCacheClusterResult>
 </DeleteCacheClusterResponse>"""
 
-LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
   <ListTagsForResourceResult>
     <TagList>
     {%- for tag in tags -%}
