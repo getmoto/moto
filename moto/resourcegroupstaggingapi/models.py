@@ -545,6 +545,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+        if (
+            not resource_type_filters
+            or "dynamodb" in resource_type_filters
+            or "dynamodb:table" in resource_type_filters
+        ):
+            for table in self.dynamodb_backend.tables.values():
+                tags = format_tags(table.tags)
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": table.arn,
+                    "Tags": tags,
+                }
+
     def _get_tag_keys_generator(self) -> Iterator[str]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
