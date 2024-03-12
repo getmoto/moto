@@ -6,6 +6,7 @@ import json
 import os
 import random
 import re
+import time
 import uuid
 from unittest import SkipTest, mock
 
@@ -2344,6 +2345,65 @@ def test_admin_get_missing_user_with_username_attributes():
     err = exc.value.response["Error"]
     assert err["Code"] == "UserNotFoundException"
     assert err["Message"] == "User does not exist."
+
+
+@mock_aws
+def test_new_user_contains_same_created_and_updated_dates():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+
+    resp = conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    new_user = resp["User"]
+
+    assert new_user["UserCreateDate"] == new_user["UserLastModifiedDate"]
+
+
+@mock_aws
+def test_update_user_attributes_also_changes_last_modified_date():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    time.sleep(1)  # Wait enough to account for a different in the time format
+    conn.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+123456789"}],
+    )
+
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert user["UserCreateDate"] < user["UserLastModifiedDate"]
+
+
+@mock_aws
+def test_delete_user_attributes_also_changes_last_modified_date():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+123456789"}],
+    )
+
+    time.sleep(1)  # Wait enough to account for a different in the time format
+    conn.admin_delete_user_attributes(
+        UserPoolId=user_pool_id, Username=username, UserAttributeNames=["phone_number"]
+    )
+
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert user["UserCreateDate"] < user["UserLastModifiedDate"]
 
 
 @mock_aws
