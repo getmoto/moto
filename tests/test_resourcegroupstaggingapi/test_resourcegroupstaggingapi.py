@@ -762,10 +762,12 @@ def test_get_resources_sns():
 @mock_aws
 def test_get_resources_ssm():
     import json
-    import pkgutil
+
     import yaml
 
-    template_file = pkgutil.get_data(__name__, "test_templates/good.yaml")
+    from tests.test_ssm.test_ssm_docs import _get_yaml_template
+
+    template_file = _get_yaml_template()
     json_doc = yaml.safe_load(template_file)
 
     ssm = boto3.client("ssm", region_name="us-east-1")

@@ -523,7 +523,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     tags
                 ): # Skip if no tags, or invalid filter
                     continue
-                # pytest.set_trace()
                 yield {
                     "ResourceARN": f"arn:aws:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
                     "Tags": tags,

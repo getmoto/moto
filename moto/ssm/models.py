@@ -1287,7 +1287,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._documents[ssm_document.name] = documents
 
         if tags:
-            # pytest.set_trace()
             document_tags = {t["Key"]: t["Value"] for t in tags}
             self.add_tags_to_resource("Document", name, document_tags)
 
