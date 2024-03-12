@@ -9,9 +9,9 @@ from ..moto_api._internal import mock_random
 from .exceptions import (
     CacheClusterAlreadyExists,
     CacheClusterNotFound,
+    InvalidARNFault,
     UserAlreadyExists,
     UserNotFound,
-    InvalidARNFault,
 )
 
 
