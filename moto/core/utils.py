@@ -3,10 +3,11 @@ import inspect
 import re
 from gzip import decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
 
+from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
 from .versions import PYTHON_311
 
@@ -398,3 +399,47 @@ def get_partition_from_region(region_name: str) -> str:
     if region_name.startswith("cn-"):
         return "aws-cn"
     return "aws"
+
+
+def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
+    """Parses a URL and converts non-standard AWS endpoint hostnames (from ISO
+    regions or custom S3 endpoints) to the equivalent standard AWS domain.
+
+    Returns a tuple: (parsed URL, was URL modified).
+    """
+
+    parsed = urlparse(url)
+    original_host = parsed.netloc
+    host = original_host
+
+    # https://github.com/getmoto/moto/pull/6412
+    # Support ISO regions
+    iso_region_domains = [
+        "amazonaws.com.cn",
+        "c2s.ic.gov",
+        "sc2s.sgov.gov",
+        "cloud.adc-e.uk",
+        "csp.hci.ic.gov",
+    ]
+    for domain in iso_region_domains:
+        if host.endswith(domain):
+            host = host.replace(domain, "amazonaws.com")
+
+    # https://github.com/getmoto/moto/issues/2993
+    # Support S3-compatible tools (Ceph, Digital Ocean, etc)
+    for custom_endpoint in get_s3_custom_endpoints():
+        if host == custom_endpoint or host == custom_endpoint.split("://")[-1]:
+            host = "s3.amazonaws.com"
+
+    if host == original_host:
+        return (parsed, False)
+    else:
+        result = ParseResult(
+            scheme=parsed.scheme,
+            netloc=host,
+            path=parsed.path,
+            params=parsed.params,
+            query=parsed.query,
+            fragment=parsed.fragment,
+        )
+        return (result, True)

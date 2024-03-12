@@ -64,7 +64,7 @@ jobs:
         git tag ${{ env.VERSION }}
         git push origin ${{ env.VERSION }}
     - name: Create GitHub release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: ${{ env.VERSION }}
         tag_name: ${{ env.VERSION }}
