@@ -46,7 +46,6 @@ class Task(BaseModel):
 
 
 class TaskExecution(BaseModel):
-
     # For simplicity, task_execution can never fail
     # Some documentation refers to this list:
     # 'Status': 'QUEUED'|'LAUNCHING'|'PREPARING'|'TRANSFERRING'|'VERIFYING'|'SUCCESS'|'ERROR'

@@ -366,7 +366,7 @@ class Stream(CloudFormationModel):
                 [s for s in shard_list[0:-1:2]], [s for s in shard_list[1::2]]
             )
 
-            for (shard, adjacent) in adjacent_shards:
+            for shard, adjacent in adjacent_shards:
                 self.merge_shards(shard.shard_id, adjacent.shard_id)
                 required_shard_merges -= 1
                 if required_shard_merges == 0:

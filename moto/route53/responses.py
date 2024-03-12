@@ -449,7 +449,10 @@ class Route53(BaseResponse):
 
             # The paginator picks up named arguments, returns tuple.
             # pylint: disable=unbalanced-tuple-unpacking
-            (all_configs, next_token,) = self.backend.list_query_logging_configs(
+            (
+                all_configs,
+                next_token,
+            ) = self.backend.list_query_logging_configs(
                 hosted_zone_id=hosted_zone_id,
                 next_token=next_token,
                 max_results=max_results,

@@ -371,7 +371,6 @@ class Execution:
 
 
 class StepFunctionBackend(BaseBackend):
-
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/stepfunctions.html#SFN.Client.create_state_machine
     # A name must not contain:
     # whitespace

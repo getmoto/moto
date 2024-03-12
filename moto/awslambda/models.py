@@ -1271,7 +1271,6 @@ class EventSourceMapping(CloudFormationModel):
         return event_source_arn.split(":")[2].lower()
 
     def _validate_event_source(self, event_source_arn: str) -> bool:
-
         valid_services = ("dynamodb", "kinesis", "sqs")
         service = self._get_service_source_from_arn(event_source_arn)
         return service in valid_services

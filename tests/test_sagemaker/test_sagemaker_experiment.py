@@ -30,7 +30,6 @@ def test_create_experiment(sagemaker_client):
 
 
 def test_list_experiments(sagemaker_client):
-
     experiment_names = [f"some-experiment-name-{i}" for i in range(10)]
 
     for experiment_name in experiment_names:

@@ -170,7 +170,6 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
 
 @mock_aws
 def test_create_add_additional_roles_to_instance_profile_error():
-
     # Setup
     iam = boto3.client("iam", region_name="us-east-1")
     name = "test_profile"

@@ -64,7 +64,6 @@ class VPNConnectionBackend:
         return vpn_connection
 
     def delete_vpn_connection(self, vpn_connection_id: str) -> VPNConnection:
-
         if vpn_connection_id in self.vpn_connections:
             self.vpn_connections[vpn_connection_id].state = "deleted"
         else:

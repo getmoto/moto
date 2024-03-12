@@ -161,7 +161,6 @@ class QueryLoggingConfigAlreadyExists(Route53ClientError):
 
 
 class InvalidChangeBatch(Route53ClientError):
-
     code = 400
 
     def __init__(self) -> None:

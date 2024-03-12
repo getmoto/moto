@@ -40,7 +40,6 @@ class OpsworkInstance(BaseModel):
         associate_public_ip: Optional[str] = None,
         security_group_ids: Optional[List[str]] = None,
     ):
-
         self.ec2_backend = ec2_backend
 
         self.instance_profile_arn = instance_profile_arn
@@ -320,7 +319,6 @@ class Stack(BaseModel):
         default_root_device_type: str = "instance-store",
         agent_version: str = "LATEST",
     ):
-
         self.name = name
         self.region = region
         self.service_role_arn = service_role_arn

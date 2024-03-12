@@ -231,7 +231,6 @@ class TransitGatewayAttachmentBackend:
         options: Optional[Dict[str, str]] = None,
         remove_subnet_ids: Optional[List[str]] = None,
     ) -> TransitGatewayAttachment:
-
         tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
         if remove_subnet_ids:
             tgw_attachment.subnet_ids = [  # type: ignore[attr-defined]

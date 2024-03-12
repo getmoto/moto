@@ -19,7 +19,6 @@ class LambdaSimpleBackend(LambdaBackend):
         headers: Any,
         response_headers: Any,
     ) -> Optional[Union[str, bytes]]:
-
         if body:
             return str.encode(body)
         return b"Simple Lambda happy path OK"

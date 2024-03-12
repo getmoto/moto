@@ -161,7 +161,10 @@ class IdentityStoreResponse(BaseResponse):
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         filters = self._get_param("Filters")
-        (groups, next_token,) = self.identitystore_backend.list_groups(
+        (
+            groups,
+            next_token,
+        ) = self.identitystore_backend.list_groups(
             identity_store_id=identity_store_id,
             max_results=max_results,
             next_token=next_token,
@@ -198,7 +201,10 @@ class IdentityStoreResponse(BaseResponse):
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         filters = self._get_param("Filters")
-        (users, next_token,) = self.identitystore_backend.list_users(
+        (
+            users,
+            next_token,
+        ) = self.identitystore_backend.list_users(
             identity_store_id=identity_store_id,
             max_results=max_results,
             next_token=next_token,

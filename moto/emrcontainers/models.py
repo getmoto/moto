@@ -274,7 +274,6 @@ class EMRContainersBackend(BaseBackend):
         configuration_overrides: Dict[str, Any],
         tags: Dict[str, str],
     ) -> FakeJob:
-
         if virtual_cluster_id not in self.virtual_clusters.keys():
             raise ResourceNotFoundException(
                 f"Virtual cluster {virtual_cluster_id} doesn't exist."
@@ -304,7 +303,6 @@ class EMRContainersBackend(BaseBackend):
         return job
 
     def cancel_job_run(self, job_id: str, virtual_cluster_id: str) -> FakeJob:
-
         if not re.match(r"[a-z,A-Z,0-9]{19}", job_id):
             raise ValidationException("Invalid job run short id")
 

@@ -50,7 +50,6 @@ def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]  #
 @mock.patch.dict(os.environ, {"MOTO_CALL_RESET_API": "false"})
 @pytest.mark.parametrize("mock_class", [mock_aws, ServerModeMockAWS, ProxyModeMockAWS])
 def test_context_decorator_exposes_bare_essentials(mock_class: Any) -> None:  # type: ignore
-
     # Verify we're only exposing the necessary methods
     with mock_class() as m:
         exposed_attributes = [a for a in m.__dict__.keys() if not a.startswith("_")]

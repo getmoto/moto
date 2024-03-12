@@ -657,7 +657,6 @@ class Table(CloudFormationModel):
         filter_expression: Any = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()

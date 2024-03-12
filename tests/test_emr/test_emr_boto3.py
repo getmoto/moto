@@ -1091,7 +1091,6 @@ def test_tags():
 
 @mock_aws
 def test_security_configurations():
-
     client = boto3.client("emr", region_name="us-east-1")
 
     security_configuration_name = "MySecurityConfiguration"

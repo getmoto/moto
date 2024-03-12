@@ -183,7 +183,6 @@ class LogStream(BaseModel):
         self.upload_sequence_token += 1
 
         for subscription_filter in self.log_group.subscription_filters.values():
-
             service = subscription_filter.destination_arn.split(":")[2]
             formatted_log_events = [
                 {
@@ -208,7 +207,6 @@ class LogStream(BaseModel):
         filter_name: str,
         log_events: List[Dict[str, Any]],
     ) -> None:
-
         if service == "lambda":
             from moto.awslambda.utils import get_backend
 
@@ -1210,7 +1208,6 @@ class LogsBackend(BaseBackend):
         end_time: int,
         query_string: str,
     ) -> str:
-
         for log_group_name in log_group_names:
             if log_group_name not in self.groups:
                 raise ResourceNotFoundException()

@@ -11,7 +11,6 @@ class ThreadedMotoServer:
     def __init__(
         self, ip_address: str = "0.0.0.0", port: int = 5000, verbose: bool = True
     ):
-
         self._port = port
 
         self._thread: Optional[Thread] = None

@@ -60,7 +60,6 @@ def test_attach_policy_to_identity(region_name, iot_client, policy):
 
 
 def test_detach_policy(iot_client, policy):
-
     cert = iot_client.create_keys_and_certificate(setAsActive=True)
     cert_arn = cert["certificateArn"]
 

@@ -298,7 +298,6 @@ class ELBResponse(BaseResponse):
         return template.render(instances=instances)
 
     def add_tags(self) -> str:
-
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 load_balancer_name = value[0]

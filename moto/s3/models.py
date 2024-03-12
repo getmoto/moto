@@ -1936,7 +1936,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 and len(requested_versions) + len(delete_markers) + len(common_prefixes)
                 >= max_keys
             ):
-
                 next_key_marker = name
                 if is_common_prefix:
                     # No NextToken when returning common prefixes

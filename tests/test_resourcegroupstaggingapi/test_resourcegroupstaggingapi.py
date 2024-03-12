@@ -9,7 +9,6 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 @mock_aws
 def test_get_resources_cloudformation():
-
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {"test": {"Type": "AWS::S3::Bucket"}},
@@ -134,7 +133,6 @@ def test_get_resources_backup():
 
 @mock_aws
 def test_get_resources_ecs():
-
     # ecs:cluster
     client = boto3.client("ecs", region_name="us-east-1")
     cluster_one = (

@@ -791,7 +791,6 @@ class APIGatewayResponse(BaseResponse):
             return 201, {}, json.dumps(base_path_mapping_resp.to_json())
 
     def base_path_mapping_individual(self, request: Any, full_url: str, headers: Dict[str, str]) -> TYPE_RESPONSE:  # type: ignore[return]
-
         self.setup_class(request, full_url, headers)
 
         url_path_parts = self.path.split("/")

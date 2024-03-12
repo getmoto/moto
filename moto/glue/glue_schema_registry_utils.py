@@ -168,7 +168,6 @@ def validate_registry_id(
                 param_value=registry_name,
             )
         if registry_id.get(REGISTRY_ARN):
-
             raise RegistryNotFoundException(
                 resource="Registry",
                 param_name=REGISTRY_ARN,

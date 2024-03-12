@@ -146,7 +146,6 @@ class EMRServerlessBackend(BaseBackend):
         auto_stop_configuration: str,
         network_configuration: str,
     ) -> FakeApplication:
-
         if application_type not in ["HIVE", "SPARK"]:
             raise ValidationException(f"Unsupported engine {application_type}")
 

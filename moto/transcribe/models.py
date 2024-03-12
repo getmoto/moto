@@ -559,7 +559,6 @@ class TranscribeBackend(BaseBackend):
         specialty: str,
         type_: str,
     ) -> Dict[str, Any]:
-
         if medical_transcription_job_name in self.medical_transcriptions:
             raise ConflictException(
                 message="The requested job name already exists. Use a different job name."

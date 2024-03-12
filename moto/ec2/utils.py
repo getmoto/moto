@@ -544,7 +544,7 @@ def generic_filter(
     filters: Dict[str, Any], objects: List[FILTER_TYPE]
 ) -> List[FILTER_TYPE]:
     if filters:
-        for (_filter, _filter_value) in filters.items():
+        for _filter, _filter_value in filters.items():
             objects = [
                 obj
                 for obj in objects

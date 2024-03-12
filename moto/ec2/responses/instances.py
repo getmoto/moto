@@ -398,7 +398,6 @@ class InstanceResponse(EC2BaseResponse):
 
     @staticmethod
     def _validate_block_device_mapping(device_mapping: Dict[str, Any]) -> None:  # type: ignore[misc]
-
         from botocore import __version__ as botocore_version
 
         if "no_device" in device_mapping:

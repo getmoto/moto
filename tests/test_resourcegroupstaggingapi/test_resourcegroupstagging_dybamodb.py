@@ -24,7 +24,7 @@ class TestDynamoDBTagging(unittest.TestCase):
                 Tags=[{"Key": "test", "Value": f"value-{i}"}] if i else [],
             )
             group = self.resources_tagged if i else self.resources_untagged
-            group.append(table["DBInstanceArn"])
+            group.append(table["TableArn"])
 
     def test_get_resources_dynamodb(self):
         def assert_response(response, expected_count, resource_type=None):
@@ -57,7 +57,7 @@ class TestDynamoDBTagging(unittest.TestCase):
         # THEN
         # we can retrieve the tags using the DynamoDB API
         def get_tags(arn):
-            return self.dynamodb.list_tags_of_resource(ResourceName=arn)["TagList"]
+            return self.dynamodb.list_tags_of_resource(ResourceArn=arn)["TagList"]
 
         for arn in self.resources_tagged:
             assert {"Key": "key1", "Value": "value1"} in get_tags(arn)

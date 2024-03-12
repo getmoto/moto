@@ -49,7 +49,6 @@ def generate_boto3_response(
 
 
 class ElasticMapReduceResponse(BaseResponse):
-
     # EMR end points are inconsistent in the placement of region name
     # in the URL, so parsing it out needs to be handled differently
     emr_region_regex: List[Pattern[str]] = [

@@ -1004,7 +1004,6 @@ class VpcLink(BaseModel):
 
 
 class RestAPI(CloudFormationModel):
-
     PROP_ID = "id"
     PROP_NAME = "name"
     PROP_DESCRIPTION = "description"
@@ -1462,7 +1461,6 @@ class Model(BaseModel):
 
 
 class BasePathMapping(BaseModel):
-
     # operations
     OPERATION_REPLACE = "replace"
     OPERATION_PATH = "path"
@@ -1681,9 +1679,7 @@ class APIGatewayBackend(BaseBackend):
             api.resources = {}
             api.default = api.add_child("/")  # Add default child
 
-        for (path, resource_doc) in sorted(
-            api_doc["paths"].items(), key=lambda x: x[0]
-        ):
+        for path, resource_doc in sorted(api_doc["paths"].items(), key=lambda x: x[0]):
             # We may want to create a path like /store/inventory
             # Ensure that /store exists first, so we can use it as a parent
             ancestors = path.split("/")[
@@ -1715,12 +1711,12 @@ class APIGatewayBackend(BaseBackend):
                 path_part=path[path.rfind("/") + 1 :],
             )
 
-            for (method_type, method_doc) in resource_doc.items():
+            for method_type, method_doc in resource_doc.items():
                 method_type = method_type.upper()
                 if method_doc.get("x-amazon-apigateway-integration") is None:
                     self.put_method(function_id, resource.id, method_type, None)
                     method_responses = method_doc.get("responses", {}).items()
-                    for (response_code, _) in method_responses:
+                    for response_code, _ in method_responses:
                         self.put_method_response(
                             function_id,
                             resource.id,
@@ -2375,7 +2371,6 @@ class APIGatewayBackend(BaseBackend):
     def update_base_path_mapping(
         self, domain_name: str, base_path: str, patch_operations: Any
     ) -> BasePathMapping:
-
         if domain_name not in self.domain_names:
             raise DomainNameNotFound()
 

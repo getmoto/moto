@@ -140,7 +140,6 @@ class VirtualMfaDevice:
 
 
 class Policy(CloudFormationModel):
-
     # Note: This class does not implement the CloudFormation support for AWS::IAM::Policy, as that CF resource
     #  is for creating *inline* policies.  That is done in class InlinePolicy.
 

@@ -166,7 +166,6 @@ class CodeBuildBackend(BaseBackend):
         return self.codebuild_projects[project_name].project_metadata
 
     def list_projects(self) -> List[str]:
-
         projects = []
 
         for project in self.codebuild_projects.keys():
@@ -180,7 +179,6 @@ class CodeBuildBackend(BaseBackend):
         source_version: Optional[str] = None,
         artifact_override: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-
         build_id = f"{project_name}:{mock_random.uuid4()}"
 
         # construct a new build
@@ -269,7 +267,6 @@ class CodeBuildBackend(BaseBackend):
         self.codebuild_projects.pop(project_name, None)
 
     def stop_build(self, build_id: str) -> Optional[Dict[str, Any]]:  # type: ignore[return]
-
         for metadata in self.build_metadata_history.values():
             for build in metadata:
                 if build["id"] == build_id:

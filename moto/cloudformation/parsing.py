@@ -735,7 +735,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         return all_resources_ready
 
     def build_resource_diff(self, other_template: Dict[str, Any]) -> Dict[str, Any]:
-
         old = self._resource_json_map
         new = other_template["Resources"]
 
@@ -750,7 +749,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def build_change_set_actions(
         self, template: Dict[str, Any]
     ) -> Dict[str, Dict[str, Dict[str, str]]]:
-
         resource_names_by_action = self.build_resource_diff(template)
 
         resources_by_action: Dict[str, Dict[str, Dict[str, str]]] = {
@@ -782,7 +780,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def update(
         self, template: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None
     ) -> None:
-
         resource_names_by_action = self.build_resource_diff(template)
 
         for logical_name in resource_names_by_action["Remove"]:
@@ -800,7 +797,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         self._resource_json_map = template["Resources"]
 
         for logical_name in resource_names_by_action["Add"]:
-
             # call __getitem__ to initialize the resource
             # TODO: usage of indexer to initalize the resource is questionable
             _ = self[logical_name]
@@ -851,7 +847,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                         not isinstance(parsed_resource, str)
                         and parsed_resource is not None
                     ):
-
                         resource_json = self._resource_json_map[
                             parsed_resource.logical_resource_id
                         ]

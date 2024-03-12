@@ -1192,7 +1192,6 @@ class AutoScalingBackend(BaseBackend):
     def describe_auto_scaling_groups(
         self, names: List[str], filters: Optional[List[Dict[str, str]]] = None
     ) -> List[FakeAutoScalingGroup]:
-
         groups = list(self.autoscaling_groups.values())
 
         if filters:

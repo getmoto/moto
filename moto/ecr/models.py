@@ -757,7 +757,6 @@ class ECRBackend(BaseBackend):
                     continue
 
             for num, image in enumerate(repository.images):
-
                 # Search by matching both digest and tag
                 if "imageDigest" in image_id and "imageTag" in image_id:
                     if (

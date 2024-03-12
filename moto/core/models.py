@@ -406,7 +406,6 @@ class ServerModeMockAWS(MockAWS):
 
 
 class ProxyModeMockAWS(MockAWS):
-
     _RESET_IN_PROGRESS = False
 
     def __init__(self, *args: Any, **kwargs: Any):

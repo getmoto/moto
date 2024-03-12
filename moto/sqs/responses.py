@@ -54,7 +54,6 @@ def jsonify_error(
 
 
 class SQSResponse(BaseResponse):
-
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
     def __init__(self) -> None:

@@ -6,7 +6,6 @@ from moto import mock_aws
 
 @mock_aws
 def test_run_medical_transcription_job_minimal_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -74,7 +73,6 @@ def test_run_medical_transcription_job_minimal_params():
 
 @mock_aws
 def test_run_medical_transcription_job_all_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -176,7 +174,6 @@ def test_run_medical_transcription_job_all_params():
 
 @mock_aws
 def test_run_transcription_job_all_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -288,7 +285,6 @@ def test_run_transcription_job_all_params():
 
 @mock_aws
 def test_run_transcription_job_minimal_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -358,7 +354,6 @@ def test_run_transcription_job_minimal_params():
 
 @mock_aws
 def test_run_transcription_job_s3output_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -438,7 +433,6 @@ def test_run_transcription_job_s3output_params():
 
 @mock_aws
 def test_run_transcription_job_identify_languages_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -528,7 +522,6 @@ def test_get_nonexistent_transcription_job():
 
 @mock_aws
 def test_run_medical_transcription_job_with_existing_job_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -550,7 +543,6 @@ def test_run_medical_transcription_job_with_existing_job_name():
 
 @mock_aws
 def test_run_transcription_job_with_existing_job_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -569,7 +561,6 @@ def test_run_transcription_job_with_existing_job_name():
 
 @mock_aws
 def test_run_medical_transcription_job_nonexistent_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -589,7 +580,6 @@ def test_run_medical_transcription_job_nonexistent_vocabulary():
 
 @mock_aws
 def test_run_transcription_job_nonexistent_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -607,7 +597,6 @@ def test_run_transcription_job_nonexistent_vocabulary():
 
 @mock_aws
 def test_list_medical_transcription_jobs():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -699,7 +688,6 @@ def test_list_medical_transcription_jobs():
 
 @mock_aws
 def test_list_transcription_jobs():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -783,7 +771,6 @@ def test_list_transcription_jobs():
 
 @mock_aws
 def test_create_medical_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -818,7 +805,6 @@ def test_create_medical_vocabulary():
 
 @mock_aws
 def test_create_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -873,7 +859,6 @@ def test_create_vocabulary():
 
 @mock_aws
 def test_list_vocabularies():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -956,7 +941,6 @@ def test_list_vocabularies():
 
 @mock_aws
 def test_list_medical_vocabularies():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -1060,7 +1044,6 @@ def test_get_nonexistent_vocabulary():
 
 @mock_aws
 def test_create_medical_vocabulary_with_existing_vocabulary_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -1079,7 +1062,6 @@ def test_create_medical_vocabulary_with_existing_vocabulary_name():
 
 @mock_aws
 def test_create_vocabulary_with_existing_vocabulary_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -1098,7 +1080,6 @@ def test_create_vocabulary_with_existing_vocabulary_name():
 
 @mock_aws
 def test_create_vocabulary_with_bad_request():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 

@@ -1171,7 +1171,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         pid_mode: Optional[str] = None,
         ephemeral_storage: Optional[Dict[str, int]] = None,
     ) -> TaskDefinition:
-
         if requires_compatibilities and "FARGATE" in requires_compatibilities:
             # TODO need more validation for Fargate
             if pid_mode and pid_mode != "task":

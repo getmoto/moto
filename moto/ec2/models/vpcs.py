@@ -87,7 +87,6 @@ ENDPOINT_SERVICE_COLLECTION_LOCK = threading.Lock()
 
 
 class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
-
     DEFAULT_POLICY = {
         "Version": "2008-10-17",
         "Statement": [
@@ -223,7 +222,6 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         amazon_provided_ipv6_cidr_block: bool = False,
         ipv6_cidr_block_network_border_group: Optional[str] = None,
     ):
-
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
@@ -670,7 +668,6 @@ class VPCBackend:
         tags: Optional[Dict[str, str]] = None,
         private_dns_enabled: Optional[str] = None,
     ) -> VPCEndPoint:
-
         vpc_endpoint_id = random_vpc_ep_id()
 
         # validates if vpc is present or not.
@@ -678,7 +675,6 @@ class VPCBackend:
         destination_prefix_list_id = None
 
         if endpoint_type and endpoint_type.lower() == "interface":
-
             network_interface_ids = []
             for subnet_id in subnet_ids or []:
                 self.get_subnet(subnet_id)  # type: ignore[attr-defined]
@@ -776,7 +772,6 @@ class VPCBackend:
     ) -> List[Dict[str, str]]:
         """Return list of default services using list of backends."""
         with ENDPOINT_SERVICE_COLLECTION_LOCK:
-
             if DEFAULT_VPC_ENDPOINT_SERVICES:
                 return DEFAULT_VPC_ENDPOINT_SERVICES
 
