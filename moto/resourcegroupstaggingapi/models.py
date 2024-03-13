@@ -851,7 +851,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only Logs and RDS resources are currently supported
+        Only DynamoDB, Logs and RDS resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
