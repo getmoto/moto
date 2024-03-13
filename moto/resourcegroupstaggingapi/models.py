@@ -554,11 +554,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "dynamodb:table" in resource_type_filters
         ):
             for table in self.dynamodb_backend.tables.values():
-                tags = format_tag_keys(table.tags)
+                tags = table.tags
+
                 if not tags or not tag_filter(tags):
                     continue
                 yield {
-                    "ResourceARN": table.arn,
+                    "ResourceARN": table.table_arn,
                     "Tags": tags,
                 }
 
@@ -865,6 +866,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             if arn.startswith("arn:aws:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
+            if arn.startswith("arn:aws:dynamodb"):
+                self.dynamodb_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}

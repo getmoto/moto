@@ -38,13 +38,13 @@ class TestDynamoDBTagging(unittest.TestCase):
                     assert f":{resource_type}:" in arn
 
         resp = self.rtapi.get_resources(ResourceTypeFilters=["dynamodb"])
-        assert_response(resp, 4)
+        assert_response(resp, 2)
         resp = self.rtapi.get_resources(ResourceTypeFilters=["dynamodb:table"])
-        assert_response(resp, 2, resource_type="db")
+        assert_response(resp, 2)
         resp = self.rtapi.get_resources(
             TagFilters=[{"Key": "test", "Values": ["value-1"]}]
         )
-        assert_response(resp, 2)
+        assert_response(resp, 1)
 
     def test_tag_resources_dynamodb(self):
         # WHEN
@@ -57,7 +57,7 @@ class TestDynamoDBTagging(unittest.TestCase):
         # THEN
         # we can retrieve the tags using the DynamoDB API
         def get_tags(arn):
-            return self.dynamodb.list_tags_of_resource(ResourceArn=arn)["TagList"]
+            return self.dynamodb.list_tags_of_resource(ResourceArn=arn)["Tags"]
 
         for arn in self.resources_tagged:
             assert {"Key": "key1", "Value": "value1"} in get_tags(arn)
