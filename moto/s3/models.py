@@ -37,6 +37,7 @@ from moto.s3.exceptions import (
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
     CrossLocationLoggingProhibitted,
+    DaysMustNotProvidedForSelectRequest,
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
@@ -2882,10 +2883,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             for x in query_result
         ]
 
-    def restore_object(self, bucket_name: str, key_name: str, days: str) -> bool:
+    def restore_object(
+        self, bucket_name: str, key_name: str, days: Optional[str], type: Optional[str]
+    ) -> bool:
         key = self.get_object(bucket_name, key_name)
         if not key:
             raise MissingKey
+
+        if days and type:
+            raise DaysMustNotProvidedForSelectRequest()
+
         if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
             raise InvalidObjectState(storage_class=key.storage_class)
         had_expiry_date = key.expiry_date is not None

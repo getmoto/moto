@@ -584,3 +584,13 @@ class HeadOnDeleteMarker(Exception):
 
     def __init__(self, marker: "FakeDeleteMarker"):
         self.marker = marker
+
+
+class DaysMustNotProvidedForSelectRequest(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "DaysMustNotProvidedForSelectRequest",
+            "`Days` must not be provided for select requests",
+        )
