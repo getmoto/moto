@@ -5,6 +5,7 @@ from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
+from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
 from moto.elb.models import ELBBackend, elb_backends
@@ -110,6 +111,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def backup_backend(self) -> BackupBackend:
         return backup_backends[self.account_id][self.region_name]
 
+    @property
+    def dynamodb_backend(self) -> DynamoDBBackend:
+        return dynamodb_backends[self.account_id][self.region_name]
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -198,7 +203,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
-
             try:
                 from moto.cloudformation import cloudformation_backends
 
@@ -500,7 +504,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:
-
             for topic in self.sns_backend.topics.values():
                 tags = format_tags(topic._tags)
                 if not tags or not tag_filter(
@@ -542,6 +545,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {
                     "ResourceARN": f.function_arn,
+                    "Tags": tags,
+                }
+
+        if (
+            not resource_type_filters
+            or "dynamodb" in resource_type_filters
+            or "dynamodb:table" in resource_type_filters
+        ):
+            for table in self.dynamodb_backend.tables.values():
+                tags = table.tags
+
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": table.table_arn,
                     "Tags": tags,
                 }
 
@@ -738,7 +756,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def get_tag_keys(
         self, pagination_token: Optional[str] = None
     ) -> Tuple[Optional[str], List[str]]:
-
         if pagination_token:
             if pagination_token not in self._pages:
                 raise RESTError(
@@ -786,7 +803,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def get_tag_values(
         self, pagination_token: Optional[str], key: str
     ) -> Tuple[Optional[str], List[str]]:
-
         if pagination_token:
             if pagination_token not in self._pages:
                 raise RESTError(
@@ -835,7 +851,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only Logs and RDS resources are currently supported
+        Only DynamoDB, Logs and RDS resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -850,6 +866,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             if arn.startswith("arn:aws:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
+            if arn.startswith("arn:aws:dynamodb"):
+                self.dynamodb_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}
