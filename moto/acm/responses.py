@@ -57,7 +57,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        cert_bundle = self.acm_backend.get_certificate(arn)
+        cert_bundle = self.acm_backend.describe_certificate(arn)
 
         return json.dumps(cert_bundle.describe())
 
@@ -120,7 +120,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                     "The certificate chain is not PEM-encoded or is not valid."
                 )
 
-        arn = self.acm_backend.import_cert(
+        arn = self.acm_backend.import_certificate(
             certificate, private_key, chain=chain, arn=current_arn, tags=tags
         )
 
@@ -129,7 +129,7 @@ class AWSCertificateManagerResponse(BaseResponse):
     def list_certificates(self) -> str:
         certs = []
         statuses = self._get_param("CertificateStatuses")
-        for cert_bundle in self.acm_backend.get_certificates_list(statuses):
+        for cert_bundle in self.acm_backend.list_certificates(statuses):
             certs.append(cert_bundle.describe()["Certificate"])
 
         result = {"CertificateSummaryList": certs}

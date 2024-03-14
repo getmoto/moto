@@ -1,16 +1,16 @@
 
 ## acm
 <details>
-<summary>40% implemented</summary>
+<summary>60% implemented</summary>
 
 - [X] add_tags_to_certificate
 - [X] delete_certificate
-- [ ] describe_certificate
+- [X] describe_certificate
 - [X] export_certificate
 - [ ] get_account_configuration
 - [X] get_certificate
-- [ ] import_certificate
-- [ ] list_certificates
+- [X] import_certificate
+- [X] list_certificates
 - [ ] list_tags_for_certificate
 - [ ] put_account_configuration
 - [X] remove_tags_from_certificate
