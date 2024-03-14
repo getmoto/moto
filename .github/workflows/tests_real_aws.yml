@@ -42,4 +42,4 @@ jobs:
       env:
         MOTO_TEST_ALLOW_AWS_REQUEST: ${{ true }}
       run: |
-        pytest -sv tests/test_dynamodb/ tests/test_ec2/ tests/test_iam/ tests/test_lakeformation/ tests/test_logs/ tests/test_sqs/ tests/test_ses/ tests/test_s3* tests/test_sns/ -m aws_verified
+        pytest -sv tests/test_cloudformation/ tests/test_dynamodb/ tests/test_ec2/ tests/test_iam/ tests/test_lakeformation/ tests/test_logs/ tests/test_sqs/ tests/test_ses/ tests/test_s3* tests/test_sns/ -m aws_verified
