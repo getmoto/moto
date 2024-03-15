@@ -833,7 +833,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         </SuspendedProcesses>
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
-        <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
+        <CreatedTime>{{ group.created_time }}</CreatedTime>
         {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
         {% elif group.mixed_instance_policy %}

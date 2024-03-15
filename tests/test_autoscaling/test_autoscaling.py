@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import uuid4
 
 import boto3
@@ -1325,3 +1326,27 @@ def test_create_template_with_block_device():
     # Our Ebs-volume
     assert volumes[1]["VolumeType"] == "gp3"
     assert volumes[1]["Size"] == 20
+
+
+@mock_aws
+def test_sets_created_time():
+    mocked_networking = setup_networking()
+    conn = boto3.client("autoscaling", region_name="us-east-1")
+    conn.create_launch_configuration(
+        LaunchConfigurationName="TestLC",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+
+    conn.create_auto_scaling_group(
+        AutoScalingGroupName="TestGroup1",
+        MinSize=1,
+        MaxSize=2,
+        LaunchConfigurationName="TestLC",
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+
+    asgs = conn.describe_auto_scaling_groups()["AutoScalingGroups"]
+    old_created_time = "2013-05-06T17:47:15.107Z"
+    assert len(asgs) == 1
+    assert asgs[0]["CreatedTime"] != datetime.fromisoformat(old_created_time)
