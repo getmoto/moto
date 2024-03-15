@@ -2885,23 +2885,23 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
     def restore_object(
-        self, bucket_name: str, key_name: str, days: Optional[int], type: Optional[str]
+        self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]
     ) -> bool:
         key = self.get_object(bucket_name, key_name)
         if not key:
             raise MissingKey
 
-        if days is None and type is None:
+        if days is None and type_ is None:
             raise DaysMustProvidedExceptForSelectRequest()
 
-        if days and type:
+        if days and type_:
             raise DaysMustNotProvidedForSelectRequest()
 
         if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
             raise InvalidObjectState(storage_class=key.storage_class)
         had_expiry_date = key.expiry_date is not None
         if days:
-            key.restore(days)
+            key.restore(int(days))
         return had_expiry_date
 
     def upload_file(self) -> None:
