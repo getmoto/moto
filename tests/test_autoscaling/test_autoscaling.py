@@ -1347,6 +1347,7 @@ def test_sets_created_time():
     )
 
     asgs = conn.describe_auto_scaling_groups()["AutoScalingGroups"]
-    old_created_time = "2013-05-06T17:47:15.107Z"
     assert len(asgs) == 1
-    assert asgs[0]["CreatedTime"] != datetime.fromisoformat(old_created_time)
+    assert asgs[0]["CreatedTime"] != datetime.strptime(
+        "2013-05-06T17:47:15.107Z", "%Y-%m-%dT%H:%M:%S.%f%z"
+    )
