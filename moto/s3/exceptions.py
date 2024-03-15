@@ -594,3 +594,13 @@ class DaysMustNotProvidedForSelectRequest(S3ClientError):
             "DaysMustNotProvidedForSelectRequest",
             "`Days` must not be provided for select requests",
         )
+
+
+class DaysMustProvidedExceptForSelectRequest(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "DaysMustProvidedExceptForSelectRequest",
+            "`Days` must be provided except for select requests",
+        )

@@ -638,7 +638,14 @@ def test_restore_object_invalid_request_params():
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
 
-    # Days must not be provided for select requests
+    # `Days` must be provided except for select requests
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(RestoreRequest={})
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DaysMustProvidedExceptForSelectRequest"
+    assert err["Message"] == "`Days` must be provided except for select requests"
+
+    # `Days` must not be provided for select requests
     with pytest.raises(ClientError) as exc:
         key.restore_object(RestoreRequest={"Days": 1, "Type": "SELECT"})
     err = exc.value.response["Error"]

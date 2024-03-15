@@ -38,6 +38,7 @@ from moto.s3.exceptions import (
     CopyObjectMustChangeSomething,
     CrossLocationLoggingProhibitted,
     DaysMustNotProvidedForSelectRequest,
+    DaysMustProvidedExceptForSelectRequest,
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
@@ -2884,11 +2885,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
     def restore_object(
-        self, bucket_name: str, key_name: str, days: Optional[str], type: Optional[str]
+        self, bucket_name: str, key_name: str, days: Optional[int], type: Optional[str]
     ) -> bool:
         key = self.get_object(bucket_name, key_name)
         if not key:
             raise MissingKey
+
+        if days is None and type is None:
+            raise DaysMustProvidedExceptForSelectRequest()
 
         if days and type:
             raise DaysMustNotProvidedForSelectRequest()
@@ -2896,7 +2900,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
             raise InvalidObjectState(storage_class=key.storage_class)
         had_expiry_date = key.expiry_date is not None
-        key.restore(int(days))
+        if days:
+            key.restore(days)
         return had_expiry_date
 
     def upload_file(self) -> None:
