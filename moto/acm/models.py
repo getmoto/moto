@@ -454,7 +454,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             "expires": utcnow() + datetime.timedelta(hours=1),
         }
 
-    def import_cert(
+    def import_certificate(
         self,
         certificate: bytes,
         private_key: bytes,
@@ -492,13 +492,7 @@ class AWSCertificateManagerBackend(BaseBackend):
 
         return bundle.arn
 
-    def get_certificates_list(self, statuses: List[str]) -> Iterable[CertBundle]:
-        """
-        Get list of certificates
-
-        :return: List of certificates
-        :rtype: list of CertBundle
-        """
+    def list_certificates(self, statuses: List[str]) -> Iterable[CertBundle]:
         for arn in self._certificates.keys():
             cert = self.get_certificate(arn)
             if not statuses or cert.status in statuses:
@@ -511,6 +505,9 @@ class AWSCertificateManagerBackend(BaseBackend):
         cert_bundle = self._certificates[arn]
         cert_bundle.check()
         return cert_bundle
+
+    def describe_certificate(self, arn: str) -> CertBundle:
+        return self.get_certificate(arn)
 
     def delete_certificate(self, arn: str) -> None:
         if arn not in self._certificates:
