@@ -22,6 +22,7 @@ If you are using the decorators, some options are configurable within the decora
             "reset_boto3_session": True,
         },
         "iam": {"load_aws_managed_policies": False},
+        "stepfunctions": {"execute_state_machine": True},
     })
 
 

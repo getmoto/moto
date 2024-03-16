@@ -69,6 +69,7 @@ jobs:
         pip install -r requirements-dev.txt
     - name: Lint
       run:
+        mkdir .mypy_cache
         make lint
 
   javatest:

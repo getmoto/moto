@@ -1,0 +1,36 @@
+{
+  "Comment": "AWS_SDK_DYNAMODB_PUT_DELETE_ITEM",
+  "StartAt": "PutItem1",
+  "States": {
+    "PutItem1": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:putItem",
+      "Parameters": {
+        "TableName.$": "$.TableName",
+        "Item.$": "$.Item1"
+      },
+      "ResultPath": "$.putItemOutput1",
+      "Next": "PutItem2"
+    },
+    "PutItem2": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:putItem",
+      "Parameters": {
+        "TableName.$": "$.TableName",
+        "Item.$": "$.Item2"
+      },
+      "ResultPath": "$.putItemOutput2",
+      "Next": "DeleteItem"
+    },
+    "DeleteItem": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:deleteItem",
+      "ResultPath": "$.deleteItemOutput",
+      "Parameters": {
+        "TableName.$": "$.TableName",
+        "Key.$": "$.Key"
+      },
+      "End": true
+    }
+  }
+}
