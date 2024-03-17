@@ -82,3 +82,14 @@ class CacheClusterNotFound(ElastiCacheException):
             "CacheClusterNotFound",
             message=f"Cache cluster {cache_cluster_id} not found.",
         )
+
+
+class InvalidARNFault(ElastiCacheException):
+
+    code = 400
+
+    def __init__(self, arn: str):
+        super().__init__(
+            "InvalidARNFault",
+            message=f"ARN {arn} is invalid.",
+        )

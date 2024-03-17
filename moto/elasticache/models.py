@@ -1,3 +1,4 @@
+from re import compile as re_compile
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -8,6 +9,7 @@ from ..moto_api._internal import mock_random
 from .exceptions import (
     CacheClusterAlreadyExists,
     CacheClusterNotFound,
+    InvalidARNFault,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -78,7 +80,6 @@ class CacheCluster(BaseModel):
     ):
         if tags is None:
             tags = []
-
         self.cache_cluster_id = cache_cluster_id
         self.az_mode = az_mode
         self.preferred_availability_zone = preferred_availability_zone
@@ -121,8 +122,13 @@ class CacheCluster(BaseModel):
         self.cache_cluster_create_time = utcnow()
         self.auth_token_last_modified_date = utcnow()
         self.cache_cluster_status = "available"
-        self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}"
+        self.arn = (
+            f"arn:aws:elasticache:{region_name}:{account_id}:cluster:{cache_cluster_id}"
+        )
         self.cache_node_id = str(mock_random.uuid4())
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
 
 
 class ElastiCacheBackend(BaseBackend):
@@ -130,6 +136,9 @@ class ElastiCacheBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.arn_regex = re_compile(
+            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot):.*$"
+        )
         self.users = dict()
         self.users["default"] = User(
             account_id=self.account_id,
@@ -330,6 +339,20 @@ class ElastiCacheBackend(BaseBackend):
                 cache_cluster.cache_cluster_status = "deleting"
                 return cache_cluster
         raise CacheClusterNotFound(cache_cluster_id)
+
+    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+        if self.arn_regex.match(arn):
+            arn_breakdown = arn.split(":")
+            resource_type = arn_breakdown[len(arn_breakdown) - 2]
+            resource_name = arn_breakdown[len(arn_breakdown) - 1]
+            if resource_type == "cluster":
+                if resource_name in self.cache_clusters:
+                    return self.cache_clusters[resource_name].get_tags()
+            else:
+                return []
+        else:
+            raise InvalidARNFault(arn)
+        return []
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")
