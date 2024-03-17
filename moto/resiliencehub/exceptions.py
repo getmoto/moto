@@ -12,6 +12,11 @@ class AppNotFound(ResourceNotFound):
         super().__init__(f"App not found for appArn {arn}")
 
 
+class AppVersionNotFound(ResourceNotFound):
+    def __init__(self) -> None:
+        super().__init__("App Version not found")
+
+
 class ResiliencyPolicyNotFound(ResourceNotFound):
     def __init__(self, arn: str):
         super().__init__(f"ResiliencyPolicy {arn} not found")

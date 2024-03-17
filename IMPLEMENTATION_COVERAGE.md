@@ -6218,13 +6218,13 @@
 
 ## resiliencehub
 <details>
-<summary>18% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] add_draft_app_version_resource_mappings
 - [ ] batch_update_recommendation_status
 - [X] create_app
-- [ ] create_app_version_app_component
-- [ ] create_app_version_resource
+- [X] create_app_version_app_component
+- [X] create_app_version_resource
 - [ ] create_recommendation_template
 - [X] create_resiliency_policy
 - [ ] delete_app
@@ -6243,17 +6243,17 @@
 - [ ] describe_app_version_template
 - [ ] describe_draft_app_version_resources_import_status
 - [X] describe_resiliency_policy
-- [ ] import_resources_to_draft_app_version
+- [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
 - [X] list_app_assessments
 - [ ] list_app_component_compliances
 - [ ] list_app_component_recommendations
 - [ ] list_app_input_sources
-- [ ] list_app_version_app_components
+- [X] list_app_version_app_components
 - [ ] list_app_version_resource_mappings
-- [ ] list_app_version_resources
-- [ ] list_app_versions
+- [X] list_app_version_resources
+- [X] list_app_versions
 - [X] list_apps
 - [ ] list_recommendation_templates
 - [X] list_resiliency_policies
@@ -6262,7 +6262,7 @@
 - [X] list_tags_for_resource
 - [ ] list_test_recommendations
 - [ ] list_unsupported_app_version_resources
-- [ ] publish_app_version
+- [X] publish_app_version
 - [ ] put_draft_app_version_template
 - [ ] remove_draft_app_version_resource_mappings
 - [ ] resolve_app_version_resources
