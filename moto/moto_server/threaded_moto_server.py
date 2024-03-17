@@ -18,10 +18,6 @@ class ThreadedMotoServer:
         self._server_ready_event = Event()
         self._verbose = verbose
 
-    @property
-    def _server_ready(self) -> bool:
-        return self._server_ready_event.is_set()
-
     def _server_entry(self) -> None:
         app = DomainDispatcherApplication(create_backend_app)
 
