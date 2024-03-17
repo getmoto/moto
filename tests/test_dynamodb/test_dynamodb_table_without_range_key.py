@@ -8,6 +8,8 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
+from . import dynamodb_aws_verified
+
 
 @mock_aws
 def test_create_table():
@@ -512,29 +514,26 @@ def test_update_settype_item_with_conditions():
     assert returned_item["Item"]["foo"] == set(["baz"])
 
 
-@mock_aws
-def test_scan_pagination():
-    table = _create_user_table()
-
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_scan_pagination(table_name=None):
+    table = boto3.resource("dynamodb", "us-east-1").Table(table_name)
     expected_usernames = [f"user{i}" for i in range(10)]
     for u in expected_usernames:
-        table.put_item(Item={"username": u})
+        table.put_item(Item={"pk": u})
 
     page1 = table.scan(Limit=6)
     assert page1["Count"] == 6
     assert len(page1["Items"]) == 6
-    page1_results = set([r["username"] for r in page1["Items"]])
-    assert page1_results == {"user0", "user3", "user1", "user2", "user5", "user4"}
+    page1_results = [r["pk"] for r in page1["Items"]]
 
     page2 = table.scan(Limit=6, ExclusiveStartKey=page1["LastEvaluatedKey"])
     assert page2["Count"] == 4
     assert len(page2["Items"]) == 4
     assert "LastEvaluatedKey" not in page2
-    page2_results = set([r["username"] for r in page2["Items"]])
-    assert page2_results == {"user6", "user7", "user8", "user9"}
+    page2_results = [r["pk"] for r in page2["Items"]]
 
-    results = page1["Items"] + page2["Items"]
-    usernames = set([r["username"] for r in results])
+    usernames = set(page1_results + page2_results)
     assert usernames == set(expected_usernames)
 
 

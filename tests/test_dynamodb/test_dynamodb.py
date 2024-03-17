@@ -1,3 +1,4 @@
+import copy
 import re
 import uuid
 from datetime import datetime
@@ -5957,3 +5958,125 @@ def test_update_item_with_global_secondary_index():
                 "One or more parameter values were invalid: Type mismatch"
                 in err["Message"]
             )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_query_with_unknown_last_evaluated_key(table_name=None):
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    for i in range(10):
+        client.put_item(
+            TableName=table_name,
+            Item={
+                "pk": {"S": "hash_value"},
+                "sk": {"S": f"range_value{i}"},
+            },
+        )
+
+    p1 = client.query(
+        TableName=table_name,
+        KeyConditionExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+    )
+    assert p1["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value0"}}]
+
+    # Using the Exact ExclusiveStartKey provided
+    p2 = client.query(
+        TableName=table_name,
+        KeyConditionExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+        ExclusiveStartKey=p1["LastEvaluatedKey"],
+    )
+    assert p2["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value1"}}]
+
+    # We can change ExclusiveStartKey
+    # It doesn't need to match - it just needs to be >= page1, but < page1
+    different_key = copy.copy(p1["LastEvaluatedKey"])
+    different_key["sk"]["S"] = different_key["sk"]["S"] + "0"
+    p3 = client.query(
+        TableName=table_name,
+        KeyConditionExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+        ExclusiveStartKey=different_key,
+    )
+    assert p3["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value1"}}]
+
+    # Sanity check - increasing the sk to something much greater will result in a different outcome
+    different_key["sk"]["S"] = "range_value500"
+    p4 = client.query(
+        TableName=table_name,
+        KeyConditionExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+        ExclusiveStartKey=different_key,
+    )
+    assert p4["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value6"}}]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_scan_with_unknown_last_evaluated_key(table_name=None):
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    for i in range(10):
+        client.put_item(
+            TableName=table_name,
+            Item={
+                "pk": {"S": "hash_value"},
+                "sk": {"S": f"range_value{i}"},
+            },
+        )
+
+    p1 = client.scan(
+        TableName=table_name,
+        FilterExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+    )
+    assert p1["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value0"}}]
+
+    # Using the Exact ExclusiveStartKey provided
+    p2 = client.scan(
+        TableName=table_name,
+        FilterExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+        ExclusiveStartKey=p1["LastEvaluatedKey"],
+    )
+    assert p2["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value1"}}]
+
+    # We can change ExclusiveStartKey
+    # It doesn't need to match - it just needs to be >= page1, but < page1
+    different_key = copy.copy(p1["LastEvaluatedKey"])
+    different_key["sk"]["S"] = different_key["sk"]["S"] + "0"
+    p3 = client.scan(
+        TableName=table_name,
+        FilterExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+        ExclusiveStartKey=different_key,
+    )
+    assert p3["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value1"}}]
+
+    # Sanity check - increasing the sk to something much greater will result in a different outcome
+    different_key["sk"]["S"] = "range_value500"
+    p4 = client.scan(
+        TableName=table_name,
+        FilterExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "pk"},
+        ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        Limit=1,
+        ExclusiveStartKey=different_key,
+    )
+    assert p4["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value6"}}]
