@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
 import yaml
-import pytest
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
