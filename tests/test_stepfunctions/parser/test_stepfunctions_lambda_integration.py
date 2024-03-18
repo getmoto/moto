@@ -14,6 +14,7 @@ from tests.test_awslambda.utilities import (
     get_test_zip_file1,
 )
 
+from ...markers import requires_docker
 from . import base_url, sfn_allow_lambda_invoke, sfn_role_policy
 
 lambda_state_machine = {
@@ -131,6 +132,8 @@ def aws_verified(func):
 
 @aws_verified
 @pytest.mark.aws_verified
+@pytest.mark.network
+@requires_docker
 def test_state_machine_calling_lambda_fn(fn_name=None, fn_arn=None, sleep_time=0):
     definition = lambda_state_machine.copy()
     definition["States"]["Open Case"]["Resource"] = fn_arn
@@ -202,6 +205,8 @@ def test_state_machine_calling_lambda_fn(fn_name=None, fn_arn=None, sleep_time=0
 
 @aws_verified
 @pytest.mark.aws_verified
+@pytest.mark.network
+@requires_docker
 def test_state_machine_calling_failing_lambda_fn(
     fn_name=None, fn_arn=None, sleep_time=0
 ):
