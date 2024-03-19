@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.utilities.paginator import paginate
 
 from ..moto_api._internal import mock_random
 from .exceptions import (
@@ -11,7 +12,7 @@ from .exceptions import (
     UserAlreadyExists,
     UserNotFound,
 )
-
+from .utils import PAGINATION_MODEL
 
 class User(BaseModel):
     def __init__(
@@ -302,7 +303,8 @@ class ElastiCacheBackend(BaseBackend):
         )
         self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
-
+    
+    @paginate(PAGINATION_MODEL)
     def describe_cache_clusters(
         self,
         cache_cluster_id: str,
@@ -321,7 +323,7 @@ class ElastiCacheBackend(BaseBackend):
                 raise CacheClusterNotFound(cache_cluster_id)
         cache_clusters = list(self.cache_clusters.values())[:max_records]
 
-        return marker, cache_clusters
+        return cache_clusters
 
     def delete_cache_cluster(self, cache_cluster_id: str) -> CacheCluster:
         if cache_cluster_id:

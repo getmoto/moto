@@ -336,9 +336,9 @@ def test_describe_specific_cache_clusters():
         Engine=cache_cluster_engine,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
-
+    breakpoint()
     resp = client.describe_cache_clusters(CacheClusterId=cache_cluster_id)
-
+    breakpoint()
     cache_clusters = resp["CacheClusters"]
 
     for cache_cluster in cache_clusters:
