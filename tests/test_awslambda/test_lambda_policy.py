@@ -230,9 +230,13 @@ def test_remove_function_permission(key):
 
     remove = conn.remove_permission(FunctionName=name_or_arn, StatementId="1")
     assert remove["ResponseMetadata"]["HTTPStatusCode"] == 204
-    policy = conn.get_policy(FunctionName=name_or_arn)["Policy"]
-    policy = json.loads(policy)
-    assert policy["Statement"] == []
+
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(FunctionName=name_or_arn)["Policy"]
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
@@ -275,9 +279,12 @@ def test_remove_function_permission__with_qualifier(key):
         FunctionName=name_or_arn, StatementId="1", Qualifier="2"
     )
     assert remove["ResponseMetadata"]["HTTPStatusCode"] == 204
-    policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]
-    policy = json.loads(policy)
-    assert policy["Statement"] == []
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(FunctionName=name_or_arn, Qualifier="2")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."
 
 
 @mock_aws
@@ -292,3 +299,31 @@ def test_get_unknown_policy():
         err["Message"]
         == "Function not found: arn:aws:lambda:us-west-2:123456789012:function:unknown"
     )
+
+
+@mock_aws
+def test_policy_error_if_blank_resource_policy():
+    # Setup
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(FunctionName=function_name)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."
