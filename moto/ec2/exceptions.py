@@ -197,6 +197,14 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
         )
 
 
+class InvalidGroupIdMalformedError(EC2ClientError):
+    def __init__(self, group_id: Any):
+        super().__init__(
+            "InvalidGroupId.Malformed",
+            f"The security group ID 'foobar' is malformed",
+        )
+
+
 class InvalidPermissionNotFoundError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
@@ -436,6 +444,12 @@ class InvalidParameterValueError(EC2ClientError):
             f"Value {parameter_value} is invalid for parameter.",
         )
 
+class InvalidParameterValueFilterError(EC2ClientError):
+    def __init__(self, parameter_value: str):
+        super().__init__(
+            "InvalidParameterValue",
+            f"The filter '{parameter_value}' is invalid",
+        )
 
 class InvalidParameterValueErrorPeeringAttachment(EC2ClientError):
     def __init__(self, operation: str, transit_gateway_attachment_id: str):

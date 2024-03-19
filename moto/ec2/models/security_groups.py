@@ -1,6 +1,7 @@
 import copy
 import itertools
 import json
+import re
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,7 +16,8 @@ from ..exceptions import (
     InvalidSecurityGroupNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
-    RulesPerSecurityGroupLimitExceededError,
+    RulesPerSecurityGroupLimitExceededError, InvalidGroupIdMalformedError, InvalidParameterValueError,
+    InvalidParameterValueFilterError,
 )
 from ..utils import (
     is_tag_filter,
@@ -566,18 +568,24 @@ class SecurityGroupBackend:
                 unknown_names = set(groupnames) - set(matches)  # type: ignore[arg-type]
                 raise InvalidSecurityGroupNotFoundError(unknown_names)
         if filters:
-            matches = [grp for grp in matches if grp.matches_filters(filters)]
 
+            matches = [grp for grp in matches if grp.matches_filters(filters)]
         return matches
 
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
     ) -> Dict[str, List[SecurityRule]]:
+
+        # filters validation
+        group_id_regex = r"sg-[a-f0-9]{8,17}"
+        for filter in filters:
+            if filter not in ["security-group-rule-id", "group-id", "tag"]:
+                raise InvalidParameterValueFilterError(filter)
+
+            if filter == "group-id" and not re.match(group_id_regex, filters[filter][0]):
+                raise InvalidGroupIdMalformedError(filters[filter][0])
+
         matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
-        if not matches:
-            raise InvalidSecurityGroupNotFoundError(
-                "No security groups found matching the filters provided."
-            )
         rules = {}
         for group in matches:
             group_rules = []
