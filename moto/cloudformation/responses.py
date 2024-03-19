@@ -818,6 +818,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
           <member>
             <OutputKey>{{ output.key }}</OutputKey>
             <OutputValue>{{ output.value }}</OutputValue>
+            <Description>{{ output.description }}</Description>
           </member>
         {% endfor %}
         </Outputs>
