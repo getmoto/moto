@@ -192,5 +192,6 @@ backend_url_patterns = [
     ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
+    ("workspaces", re.compile("https?://workspaces\\.(.+)\\.amazonaws\\.com")),
     ("xray", re.compile("https?://xray\\.(.+)\\.amazonaws.com")),
 ]
