@@ -83,6 +83,7 @@ class CacheClusterNotFound(ElastiCacheException):
             message=f"Cache cluster {cache_cluster_id} not found.",
         )
 
+
 class InvalidPaginationToken(ElastiCacheException):
     """Bad NextToken specified when listing query logging configs."""
 

@@ -2,7 +2,7 @@ from moto.core.responses import BaseResponse
 
 from .exceptions import PasswordRequired, PasswordTooShort
 from .models import ElastiCacheBackend, elasticache_backends
-from ..moto_api._internal import mock_random
+
 
 class ElastiCacheResponse(BaseResponse):
     """Handler for ElastiCache requests and responses."""
@@ -133,10 +133,7 @@ class ElastiCacheResponse(BaseResponse):
             marker=marker,
             max_records=max_records,
         )
-        test1, test2 = cache_clusters
-        breakpoint()
         template = self.response_template(DESCRIBE_CACHE_CLUSTERS_TEMPLATE)
-        breakpoint()
         return template.render(marker=marker, cache_clusters=cache_clusters)
 
     def delete_cache_cluster(self) -> str:

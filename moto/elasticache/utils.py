@@ -1,5 +1,3 @@
-from .exceptions import InvalidPaginationToken
-
 PAGINATION_MODEL = {
     "describe_cache_clusters": {
         "input_token": "marker",
