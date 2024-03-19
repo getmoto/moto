@@ -10,14 +10,15 @@ from moto.core.utils import aws_api_matches
 
 from ..exceptions import (
     InvalidCIDRSubnetError,
+    InvalidGroupIdMalformedError,
+    InvalidParameterValueFilterError,
     InvalidPermissionDuplicateError,
     InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
-    RulesPerSecurityGroupLimitExceededError, InvalidGroupIdMalformedError, InvalidParameterValueError,
-    InvalidParameterValueFilterError,
+    RulesPerSecurityGroupLimitExceededError,
 )
 from ..utils import (
     is_tag_filter,
@@ -578,12 +579,14 @@ class SecurityGroupBackend:
 
         # filters validation
         group_id_regex = r"sg-[a-f0-9]{8,17}"
-        for filter in filters:
-            if filter not in ["security-group-rule-id", "group-id", "tag"]:
-                raise InvalidParameterValueFilterError(filter)
+        for filter_name in filters:
+            if filter_name not in ["security-group-rule-id", "group-id", "tag"]:
+                raise InvalidParameterValueFilterError(filter_name)
 
-            if filter == "group-id" and not re.match(group_id_regex, filters[filter][0]):
-                raise InvalidGroupIdMalformedError(filters[filter][0])
+            if filter_name == "group-id" and not re.match(
+                group_id_regex, filters[filter_name][0]
+            ):
+                raise InvalidGroupIdMalformedError(filters[filter_name][0])
 
         matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
         rules = {}

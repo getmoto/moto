@@ -1896,8 +1896,7 @@ def test_security_group_rules_filter():
     group_name = "test"
 
     response = ec2.create_security_group(
-        Description="Inventing a security group",
-        GroupName=group_name
+        Description="Inventing a security group", GroupName=group_name
     )
     group_id = response["GroupId"]
 
@@ -1908,58 +1907,36 @@ def test_security_group_rules_filter():
                 "IpProtocol": "tcp",
                 "FromPort": 1234,
                 "ToPort": 1234,
-                "IpRanges": [
-                    {
-                        "CidrIp": "12.34.56.78/32",
-                        "Description": "fakeip"
-                    }
-                ]
+                "IpRanges": [{"CidrIp": "12.34.56.78/32", "Description": "fakeip"}],
             }
-        ]
+        ],
     )
 
     response = ec2.describe_security_group_rules(
-        Filters=[
-            {
-                "Name": "group-id",
-                "Values": [group_id]
-            }
-        ]
+        Filters=[{"Name": "group-id", "Values": [group_id]}]
     )
 
     assert len(response["SecurityGroupRules"]) == 2
 
     response = ec2.describe_security_group_rules(
-            Filters=[
-                {
-                    "Name": "group-id",
-                    "Values": ["sg-12345678"]
-                }
-            ]
-        )
+        Filters=[{"Name": "group-id", "Values": ["sg-12345678"]}]
+    )
 
     assert len(response["SecurityGroupRules"]) == 0
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_security_group_rules(
-            Filters=[
-                {
-                    "Name": "group-id",
-                    "Values": ["foobar"]
-                }
-            ]
+            Filters=[{"Name": "group-id", "Values": ["foobar"]}]
         )
     assert ex.value.response["Error"]["Code"] == "InvalidGroupId.Malformed"
-    assert ex.value.response["Error"]["Message"] == "The security group ID 'foobar' is malformed"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The security group ID 'foobar' is malformed"
+    )
 
     with pytest.raises(ClientError) as ex:
         ec2.describe_security_group_rules(
-            Filters=[
-                {
-                    "Name": "group-name",
-                    "Values": [group_name]
-                }
-            ]
+            Filters=[{"Name": "group-name", "Values": [group_name]}]
         )
     assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.value.response["Error"]["Message"] == "The filter 'group-name' is invalid"
