@@ -76,6 +76,10 @@ class SecurityRule(TaggedEC2Resource):
             else None
         )
         self.ip_protocol = proto if proto else self.ip_protocol
+        self.filters = {
+            "group-id": self.filter_group_id,
+            "security-group-rule-id": self.filter_group_rule_id,
+        }
 
     @property
     def owner_id(self) -> str:
@@ -125,6 +129,33 @@ class SecurityRule(TaggedEC2Resource):
             else:
                 setattr(new, k, copy.deepcopy(v, memodict))
         return new
+
+    def matches_filter(self, key: str, filter_value: Any) -> Any:
+        if is_tag_filter(key):
+            tag_value = self.get_filter_value(key)
+            if isinstance(filter_value, list):
+                return tag_filter_matches(self, key, filter_value)
+            return tag_value in filter_value
+        else:
+            return self.filters[key](filter_value)
+
+    def matches_filters(self, filters: Any) -> bool:
+        for key, value in filters.items():
+            if not self.matches_filter(key, value):
+                return False
+        return True
+
+    def filter_group_id(self, values: List[Any]) -> bool:
+        for value in values:
+            if aws_api_matches(value, self.__dict__.get("group_id")):
+                return True
+        return False
+
+    def filter_group_rule_id(self, values: List[Any]) -> bool:
+        for value in values:
+            if aws_api_matches(value, self.id):
+                return True
+        return False
 
 
 class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
@@ -569,17 +600,16 @@ class SecurityGroupBackend:
                 unknown_names = set(groupnames) - set(matches)  # type: ignore[arg-type]
                 raise InvalidSecurityGroupNotFoundError(unknown_names)
         if filters:
-
             matches = [grp for grp in matches if grp.matches_filters(filters)]
         return matches
 
     def describe_security_group_rules(
         self, group_ids: Optional[List[str]] = None, filters: Any = None
     ) -> Dict[str, List[SecurityRule]]:
-
         # filters validation
         group_id_regex = r"sg-[a-f0-9]{8,17}"
         for filter_name in filters:
+            filter_name = filter_name.split(":")[0]
             if filter_name not in ["security-group-rule-id", "group-id", "tag"]:
                 raise InvalidParameterValueFilterError(filter_name)
 
@@ -588,16 +618,23 @@ class SecurityGroupBackend:
             ):
                 raise InvalidGroupIdMalformedError(filters[filter_name][0])
 
-        matches = self.describe_security_groups(group_ids=group_ids, filters=filters)
-        rules = {}
-        for group in matches:
-            group_rules = []
-            group_rules.extend(group.ingress_rules)
-            group_rules.extend(group.egress_rules)
-            if group_rules:
-                rules[group.group_id] = group_rules
+        all_groups = list(
+            itertools.chain(*[x.copy().values() for x in self.groups.copy().values()])
+        )
+        result = {}
+        for sg in all_groups:
+            if not group_ids or sg.group_id in group_ids:
+                filtered_rules = []
 
-        return rules
+                for rule in [*sg.egress_rules, *sg.ingress_rules]:
+                    rule.group_id = sg.id
+                    if rule.matches_filters(filters):
+                        filtered_rules.append(rule)
+
+                if filtered_rules:
+                    result[sg.id] = filtered_rules
+
+        return result
 
     def _delete_security_group(self, vpc_id: Optional[str], group_id: str) -> None:
         vpc_id = vpc_id or self.default_vpc.id  # type: ignore[attr-defined]

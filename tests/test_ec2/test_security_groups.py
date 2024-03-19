@@ -1900,7 +1900,7 @@ def test_security_group_rules_filter():
     )
     group_id = response["GroupId"]
 
-    ec2.authorize_security_group_ingress(
+    rule_id = ec2.authorize_security_group_ingress(
         GroupId=group_id,
         IpPermissions=[
             {
@@ -1910,7 +1910,7 @@ def test_security_group_rules_filter():
                 "IpRanges": [{"CidrIp": "12.34.56.78/32", "Description": "fakeip"}],
             }
         ],
-    )
+    )["SecurityGroupRules"][0]["SecurityGroupRuleId"]
 
     response = ec2.describe_security_group_rules(
         Filters=[{"Name": "group-id", "Values": [group_id]}]
@@ -1940,3 +1940,13 @@ def test_security_group_rules_filter():
         )
     assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.value.response["Error"]["Message"] == "The filter 'group-name' is invalid"
+
+    ec2.create_tags(Resources=[rule_id], Tags=[{"Key": "Name", "Value": "test"}])
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "tag:Name", "Values": ["test"]}]
+    )
+    assert len(response["SecurityGroupRules"]) == 1
+
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "security-group-rule-id", "Values": [rule_id]}]
+    )
