@@ -463,7 +463,7 @@ INSTANCE_TEMPLATE = """<item>
           <privateDnsName>{{ instance.private_dns }}</privateDnsName>
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <dnsName>{{ instance.public_dns }}</dnsName>
-          <reason/>
+          <reason>{{ instance._reason }}</reason>
           {% if instance.key_name is not none %}
              <keyName>{{ instance.key_name }}</keyName>
           {% endif %}
