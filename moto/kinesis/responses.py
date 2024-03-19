@@ -56,7 +56,10 @@ class KinesisResponse(BaseResponse):
             {
                 "HasMoreStreams": has_more_streams,
                 "StreamNames": streams_resp,
-                "StreamSummaries": [stream.to_json_summary() for stream in streams],
+                "StreamSummaries": [
+                    stream.to_json_summary()["StreamDescriptionSummary"]
+                    for stream in streams
+                ],
             }
         )
 

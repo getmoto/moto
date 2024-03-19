@@ -149,12 +149,12 @@ def test_list_streams_stream_discription():
     for i, stream in enumerate(resp["StreamSummaries"]):
         stream_name = f"stream{i}"
         assert stream["StreamName"] == stream_name
-        assert stream["OpenShardCount"] == i + 1
         assert (
             stream["StreamARN"]
             == f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/{stream_name}"
         )
         assert stream["StreamStatus"] == "ACTIVE"
+        assert stream.get("StreamCreationTimestamp")
 
 
 @mock_aws
