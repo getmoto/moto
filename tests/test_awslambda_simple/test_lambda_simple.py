@@ -48,12 +48,12 @@ def test_run_function_no_log():
 
 @mock_aws(config={"lambda": {"use_docker": False}})
 def test_set_lambda_simple_query_results():
+    # Setup
     base_url = (
         settings.test_server_mode_endpoint()
         if settings.TEST_SERVER_MODE
         else "http://motoapi.amazonaws.com"
     )
-
     results = {"results": ["test", "test 2"], "region": LAMBDA_REGION}
     resp = requests.post(
         f"{base_url}/moto-api/static/lambda-simple/response",
@@ -61,20 +61,19 @@ def test_set_lambda_simple_query_results():
     )
     assert resp.status_code == 201
 
-    client = boto3.client("lambda", region_name=LAMBDA_REGION)
+    client = setup_lambda()
 
+    # Execute & Verify
     resp = client.invoke(
         FunctionName=FUNCTION_NAME,
         LogType="Tail",
     )
-
     assert resp["Payload"].read().decode() == results["results"][0]
 
     resp = client.invoke(
         FunctionName=FUNCTION_NAME,
         LogType="Tail",
     )
-
     assert resp["Payload"].read().decode() == results["results"][1]
 
     resp = client.invoke(

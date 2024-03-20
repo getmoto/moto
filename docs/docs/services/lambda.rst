@@ -69,7 +69,27 @@ lambda
 - [X] invoke
   
         Invoking a Function with PackageType=Image is not yet supported.
-        
+
+        Invoking a Funcation against Lambda without docker now supports customised responses, the default being an empty string.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `invoke` will take the first result from that queue.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/lambda-simple/response`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            expected_results = {"results": ["test", "test 2"], "region": "us-east-1"}
+            resp = requests.post(
+                    "http://motoapi.amazonaws.com:5000/moto-api/static/lambda-simple/response",
+                    json=expected_results,
+                )
+
+            assert resp.status_code == 201
+
+            client = boto3.client("lambda", region_name="us-east-1")
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test"
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test2"
 
 - [ ] invoke_async
 - [ ] invoke_with_response_stream
