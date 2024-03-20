@@ -29,7 +29,7 @@ def test_run_function():
 
     # Verify
     assert result["StatusCode"] == 200
-    assert result["Payload"].read().decode("utf-8") == ""
+    assert result["Payload"].read().decode("utf-8") == "Simple Lambda happy path OK"
 
 
 @mock_aws(config={"lambda": {"use_docker": False}})
@@ -43,7 +43,7 @@ def test_run_function_no_log():
 
     # Verify
     assert result["StatusCode"] == 200
-    assert result["Payload"].read().decode("utf-8") == ""
+    assert result["Payload"].read().decode("utf-8") == "Simple Lambda happy path OK"
 
 
 @mock_aws(config={"lambda": {"use_docker": False}})
@@ -80,7 +80,7 @@ def test_set_lambda_simple_query_results():
         FunctionName=FUNCTION_NAME,
         LogType="Tail",
     )
-    assert resp["Payload"].read().decode() == ""
+    assert resp["Payload"].read().decode() == "Simple Lambda happy path OK"
 
 
 def setup_lambda():
