@@ -128,6 +128,7 @@ class ElastiCacheResponse(BaseResponse):
         cache_cluster_id = self._get_param("CacheClusterId")
         max_records = self._get_int_param("MaxRecords")
         marker = self._get_param("Marker")
+
         cache_clusters, marker = self.elasticache_backend.describe_cache_clusters(
             cache_cluster_id=cache_cluster_id,
             marker=marker,

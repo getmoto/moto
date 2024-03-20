@@ -312,8 +312,6 @@ class ElastiCacheBackend(BaseBackend):
         max_records: int,
         marker: str,
     ) -> List[CacheCluster]:
-        if marker is None:
-            marker = str(mock_random.uuid4())
         if max_records is None:
             max_records = 100
         if cache_cluster_id:
