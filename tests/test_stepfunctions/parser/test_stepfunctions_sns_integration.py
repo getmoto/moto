@@ -33,4 +33,6 @@ def test_state_machine_calling_sns_publish():
         _, msg, _, _, _ = notification
         assert msg == "my msg"
 
-    verify_execution_result(_verify_result, expected_status, tmpl_name, exec_input=json.dumps(exec_input))
+    verify_execution_result(
+        _verify_result, expected_status, tmpl_name, exec_input=json.dumps(exec_input)
+    )

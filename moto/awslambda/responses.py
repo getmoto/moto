@@ -255,7 +255,7 @@ class LambdaResponse(BaseResponse):
         payload = self.backend.invoke(
             function_name, qualifier, self.body, self.headers, response_headers
         )
-        if payload:
+        if payload is not None:
             if request.headers.get("X-Amz-Invocation-Type") != "Event":
                 if sys.getsizeof(payload) > 6000000:
                     response_headers["Content-Length"] = "142"
