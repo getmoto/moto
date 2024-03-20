@@ -160,7 +160,7 @@ def test_route53resolver_create_resolver_rule():  # pylint: disable=too-many-loc
     assert rule["TargetIps"][0]["Port"] == target_ips[0]["Port"]
     assert rule["ResolverEndpointId"] == endpoint_id
     assert rule["OwnerId"] == ACCOUNT_ID
-    assert rule["ShareStatus"] == "SHARED_WITH_ME"
+    assert rule["ShareStatus"] == "NOT_SHARED"
 
     time_format = "%Y-%m-%dT%H:%M:%S.%f+00:00"
     now = datetime.now(timezone.utc).replace(tzinfo=None)
