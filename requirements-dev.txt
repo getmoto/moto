@@ -1,7 +1,7 @@
 -e .[all,server]
 -r requirements-tests.txt
 
-black==22.3.0
+black==24.3.0
 click
 inflection
 lxml
