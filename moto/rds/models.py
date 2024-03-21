@@ -1736,17 +1736,6 @@ class RDSBackend(BaseBackend):
             ]
         return self._db_cluster_options
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "rds"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "rds-data"
-        )
-
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
         database_id = db_kwargs["db_instance_identifier"]
         self._validate_db_identifier(database_id)

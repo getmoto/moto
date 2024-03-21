@@ -556,15 +556,6 @@ class ElasticMapReduceBackend(BaseBackend):
         self.instance_groups: Dict[str, FakeInstanceGroup] = {}
         self.security_configurations: Dict[str, FakeSecurityConfiguration] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticmapreduce"
-        )
-
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
         """

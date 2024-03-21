@@ -442,15 +442,6 @@ class CloudWatchBackend(BaseBackend):
         self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
         self.tagger = TaggingService()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "monitoring"
-        )
-
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly

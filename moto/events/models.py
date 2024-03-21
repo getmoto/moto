@@ -1026,15 +1026,6 @@ class EventsBackend(BaseBackend):
         self.partner_event_sources: Dict[str, PartnerEventSource] = {}
         self.approved_parent_event_bus_names: List[str] = []
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "events"
-        )
-
     def _add_default_event_bus(self) -> None:
         self.event_buses["default"] = EventBus(
             self.account_id, self.region_name, "default"

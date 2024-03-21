@@ -1188,17 +1188,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint services."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ssm"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ssmmessages"
-        )
-
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
     ) -> Dict[str, Any]:

@@ -1893,15 +1893,6 @@ class LambdaBackend(BaseBackend):
         self._event_source_mappings: Dict[str, EventSourceMapping] = {}
         self._layers = LayerStorage()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "lambda"
-        )
-
     def create_alias(
         self,
         name: str,

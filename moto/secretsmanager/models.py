@@ -361,15 +361,6 @@ class SecretsManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.secrets = SecretsStore()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint services."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "secretsmanager"
-        )
-
     def _is_valid_identifier(self, identifier: str) -> bool:
         return identifier in self.secrets
 

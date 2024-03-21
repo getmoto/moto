@@ -18,15 +18,6 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.replication_tasks: Dict[str, "FakeReplicationTask"] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "dms"
-        )
-
     def create_replication_task(
         self,
         replication_task_identifier: str,

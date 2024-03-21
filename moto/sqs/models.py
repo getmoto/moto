@@ -679,15 +679,6 @@ class SQSBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.queues: Dict[str, Queue] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "sqs"
-        )
-
     def create_queue(
         self, name: str, tags: Optional[Dict[str, str]] = None, **kwargs: Any
     ) -> Queue:
