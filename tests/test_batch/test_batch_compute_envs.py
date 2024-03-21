@@ -374,9 +374,11 @@ def test_create_ec2_managed_compute_environment__without_required_params():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, subnet_id, _, iam_arn = _setup(ec2_client, iam_client)
 
+    env_name = "ec2-env"
+
     with pytest.raises(ClientError) as exc:
         batch_client.create_compute_environment(
-            computeEnvironmentName="ec2-env",
+            computeEnvironmentName=env_name,
             type="MANAGED",
             state="ENABLED",
             computeResources={"type": "EC2", "maxvCpus": 1, "subnets": [subnet_id]},
@@ -391,7 +393,7 @@ def test_create_ec2_managed_compute_environment__without_required_params():
 
     with pytest.raises(ClientError) as exc:
         batch_client.create_compute_environment(
-            computeEnvironmentName="ec2-env",
+            computeEnvironmentName=env_name,
             type="MANAGED",
             state="ENABLED",
             computeResources={
@@ -406,5 +408,18 @@ def test_create_ec2_managed_compute_environment__without_required_params():
     assert err["Code"] == "ClientException"
     assert (
         "Error executing request, Exception : Resource minvCpus is required."
+        in err["Message"]
+    )
+
+    with pytest.raises(ClientError) as exc:
+        batch_client.create_compute_environment(
+            computeEnvironmentName=env_name,
+            type="UNMANGED",
+            state="ENABLED",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClientException"
+    assert (
+        "Error executing request, Exception : ServiceRole is required.,"
         in err["Message"]
     )

@@ -1219,6 +1219,12 @@ class BatchBackend(BaseBackend):
                 f"A compute environment already exists with the name {compute_environment_name}"
             )
 
+        if not service_role:
+            raise ClientException(
+                f"Error executing request, Exception : ServiceRole is required.,"
+                f" RequestId: {mock_random.uuid4()}"
+            )
+
         # Look for IAM role
         try:
             self.iam_backend.get_role_by_arn(service_role)
