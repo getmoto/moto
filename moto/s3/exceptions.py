@@ -604,3 +604,23 @@ class DaysMustProvidedExceptForSelectRequest(S3ClientError):
             "DaysMustProvidedExceptForSelectRequest",
             "`Days` must be provided except for select requests",
         )
+
+
+class InvalidRestoreRequestType(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidRestoreRequestType",
+            "Invalid type for restore request. It must be `SELECT`",
+        )
+
+
+class MissingRequiredParametersForSelectRequest(S3ClientError):
+    code = 400
+
+    def __init__(self, parameter_name: str) -> None:
+        super().__init__(
+            "MissingRequiredParametersForSelectRequest",
+            f'Missing required parameter in RestoreRequest: "{parameter_name}" for select request',
+        )

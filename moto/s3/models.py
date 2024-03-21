@@ -48,12 +48,14 @@ from moto.s3.exceptions import (
     InvalidPart,
     InvalidPublicAccessBlockConfiguration,
     InvalidRequest,
+    InvalidRestoreRequestType,
     InvalidStorageClass,
     InvalidTagError,
     InvalidTargetBucketForLogging,
     MalformedXML,
     MissingBucket,
     MissingKey,
+    MissingRequiredParametersForSelectRequest,
     NoSuchPublicAccessBlockConfiguration,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
@@ -2885,8 +2887,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
     def restore_object(
-        self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]
-    ) -> bool:
+        self,
+        bucket_name: str,
+        key_name: str,
+        days: Optional[str],
+        type_: Optional[str],
+        select_parameters: Optional[Dict[str, Any]],
+        output_location: Optional[Dict[str, Any]],
+    ) -> Union[bool | List[bytes]]:
         key = self.get_object(bucket_name, key_name)
         if not key:
             raise MissingKey
@@ -2897,8 +2905,72 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if days and type_:
             raise DaysMustNotProvidedForSelectRequest()
 
+        if type_ and type_ != "SELECT":
+            raise InvalidRestoreRequestType()
+
+        if type_ and select_parameters is None:
+            raise MissingRequiredParametersForSelectRequest("SelectParameters")
+
+        if type_ and output_location is None:
+            raise MissingRequiredParametersForSelectRequest("OutputLocation")
+
         if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
             raise InvalidObjectState(storage_class=key.storage_class)
+
+        # select request
+        if type_:
+            restored_key = copy.deepcopy(key)
+            output_location_s3 = output_location["S3"]
+
+            # TODO: 'Encryption', 'CannedACL', 'AccessControlList', 'Tagging' and 'UserMetadata' are need to be supported for OutputLocation.S3 configuration.
+            # set bucket name
+            _bucket_name = output_location_s3.get("BucketName")
+            if _bucket_name is not None:
+                # check if bucket is exists here.
+                bucket = self.get_bucket(_bucket_name)
+            else:
+                bucket = self.bucket(key.bucket_name)
+            restored_key.bucket_name = bucket.name
+
+            # set key name
+            _key_name = output_location_s3.get("Prefix")
+            if _key_name is not None:
+                restored_key.name = _key_name
+                key_name = _key_name
+            else:
+                key_name = key.name
+
+            # set storage class
+            _storage = output_location_s3.get("StorageClass")
+            if _storage is not None:
+                restored_key.set_storage_class(_storage)
+
+            # set value
+            contents = self.select_object_content(
+                key.bucket_name,
+                key.name,
+                select_parameters["Expression"],
+                select_parameters["InputSerialization"],
+            )
+
+            # serialize selected object
+            # TODO: Delimiter extraction is also defined in `serialize_select` method in `moto/s3/select_object_content.py`. This part might be extracted into a common method.
+            delimiter = (
+                (select_parameters["OutputSerialization"].get("JSON") or {}).get(
+                    "RecordDelimiter"
+                )
+                or "\n"
+            ).encode("utf-8")
+            payload_bytes = b""
+            for data in contents:
+                payload_bytes += data + delimiter
+            restored_key.value = payload_bytes
+
+            # save object to bucket
+            bucket.keys.setlist(key_name, restored_key)
+            return True
+
+        # restore object request
         had_expiry_date = key.expiry_date is not None
         if days:
             key.restore(int(days))

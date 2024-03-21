@@ -596,6 +596,55 @@ def test_restore_key_transition():
     state_manager.unset_transition(model_name="s3::keyrestore")
 
 
+@freeze_time("2012-01-01 12:00:00")
+@mock_aws
+def test_restore_key_with_select():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    state_manager.set_transition(
+        model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
+    )
+
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "foobar"
+    bucket = s3_resource.Bucket(bucket_name)
+    bucket.create()
+
+    key = bucket.put_object(
+        Key="the-key", Body=json.dumps({"a1": "b1", "a2": "b2"}), StorageClass="GLACIER"
+    )
+    assert key.restore is None
+
+    # restore successfully completed
+    restored_key_name = "restored.json"
+    key.restore_object(
+        RestoreRequest={
+            "Type": "SELECT",
+            "SelectParameters": {
+                "Expression": "SELECT COUNT(*) as cnt FROM S3Object",
+                "ExpressionType": "SQL",
+                "InputSerialization": {"JSON": {"Type": "DOCUMENT"}},
+                "OutputSerialization": {"JSON": {"RecordDelimiter": ","}},
+            },
+            "OutputLocation": {
+                "S3": {
+                    "BucketName": bucket_name,
+                    "Prefix": restored_key_name,
+                    "StorageClass": "STANDARD",
+                }
+            },
+        }
+    )
+    resp = boto3.client("s3", region_name=DEFAULT_REGION_NAME).get_object(
+        Bucket=bucket_name, Key=restored_key_name
+    )
+    assert resp["ContentLength"] == 9
+    assert resp["Body"].read() == b'{"_1":1},'
+
+    state_manager.unset_transition(model_name="s3::keyrestore")
+
+
 @mock_aws
 def test_restore_unknown_key():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -633,7 +682,8 @@ def test_restore_object_invalid_request_params():
         raise SkipTest("Can't set transition directly in ServerMode")
 
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
+    bucket_name = "foobar"
+    bucket = s3_resource.Bucket(bucket_name)
     bucket.create()
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
@@ -651,6 +701,85 @@ def test_restore_object_invalid_request_params():
     err = exc.value.response["Error"]
     assert err["Code"] == "DaysMustNotProvidedForSelectRequest"
     assert err["Message"] == "`Days` must not be provided for select requests"
+
+    # Invalid type for restore request. It must be `SELECT`.
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(RestoreRequest={"Type": "INVALID_TYPE"})
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRestoreRequestType"
+    assert err["Message"] == "Invalid type for restore request. It must be `SELECT`"
+
+    # `SelectParameters` must be provided for select requests.
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(RestoreRequest={"Type": "SELECT"})
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingRequiredParametersForSelectRequest"
+    assert (
+        err["Message"]
+        == 'Missing required parameter in RestoreRequest: "SelectParameters" for select request'
+    )
+
+    # `OutputLocation` must be provided for select requests.
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(
+            RestoreRequest={
+                "Type": "SELECT",
+                "SelectParameters": {
+                    "Expression": "SELECT * FROM S3Object",
+                    "ExpressionType": "SQL",
+                    "InputSerialization": {"JSON": {"Type": "DOCUMENT"}},
+                    "OutputSerialization": {"JSON": {"RecordDelimiter": ","}},
+                },
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingRequiredParametersForSelectRequest"
+    assert (
+        err["Message"]
+        == 'Missing required parameter in RestoreRequest: "OutputLocation" for select request'
+    )
+
+    # raise error when supecified bucket does not exists.
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(
+            RestoreRequest={
+                "Type": "SELECT",
+                "SelectParameters": {
+                    "Expression": "SELECT COUNT(*) as cnt FROM S3Object",
+                    "ExpressionType": "SQL",
+                    "InputSerialization": {"JSON": {"Type": "DOCUMENT"}},
+                    "OutputSerialization": {"JSON": {"RecordDelimiter": ","}},
+                },
+                "OutputLocation": {
+                    "S3": {"BucketName": "other-bucket", "Prefix": "test"}
+                },
+            }
+        )
+    err = exc.value.response["Error"]
+    err["Code"] == "NoSuchBucket"
+
+    # raise error when specified storage class is invalid
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(
+            RestoreRequest={
+                "Type": "SELECT",
+                "SelectParameters": {
+                    "Expression": "SELECT COUNT(*) as cnt FROM S3Object",
+                    "ExpressionType": "SQL",
+                    "InputSerialization": {"JSON": {"Type": "DOCUMENT"}},
+                    "OutputSerialization": {"JSON": {"RecordDelimiter": ","}},
+                },
+                "OutputLocation": {
+                    "S3": {
+                        "BucketName": bucket_name,
+                        "Prefix": "test.json",
+                        "StorageClass": "INVALID_CLASS",
+                    }
+                },
+            }
+        )
+    err = exc.value.response["Error"]
+    err["Code"] == "InvalidStorageClass"
 
 
 @mock_aws
