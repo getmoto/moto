@@ -15,7 +15,7 @@ from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import InvalidS3ObjectAclInCrlConfiguration, ResourceNotFoundException
 
 
 class CertificateAuthority(BaseModel):
@@ -131,13 +131,16 @@ class CertificateAuthority(BaseModel):
         if revocation_configuration is not None:
             self.revocation_configuration = revocation_configuration
             if "CrlConfiguration" in self.revocation_configuration:
-                if (
-                    "S3ObjectAcl"
-                    not in self.revocation_configuration["CrlConfiguration"]
-                ):
+                acl = self.revocation_configuration["CrlConfiguration"].get(
+                    "S3ObjectAcl", None
+                )
+                if acl is None:
                     self.revocation_configuration["CrlConfiguration"][
                         "S3ObjectAcl"
                     ] = "PUBLIC_READ"
+                else:
+                    if acl not in ["PUBLIC_READ", "BUCKET_OWNER_FULL_CONTROL"]:
+                        raise InvalidS3ObjectAclInCrlConfiguration(acl)
 
     @property
     def certificate_bytes(self) -> bytes:
