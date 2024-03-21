@@ -536,7 +536,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-
         # Workspaces
         if not resource_type_filters or "workspaces" in resource_type_filters:
             for ws in self.workspaces_backend.workspaces.values():

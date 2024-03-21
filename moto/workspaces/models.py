@@ -1,4 +1,5 @@
 """WorkSpacesBackend class with methods for supported APIs."""
+
 import re
 from collections.abc import Mapping
 from typing import Any, Dict, List, Optional, Tuple
@@ -88,7 +89,7 @@ class Workspace(BaseModel):
 
     def filter_empty_values(self, d: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(d, Mapping):
-            return dict((k, self.filter_empty_values(v)) for k, v, in d.items() if v)
+            return dict((k, self.filter_empty_values(v)) for k, v in d.items() if v)
         else:
             return d
 
@@ -455,9 +456,9 @@ class WorkSpacesBackend(BaseBackend):
             tenancy=tenancy,
             tags=tags,
         )
-        self.workspace_directories[
-            workspace_directory.directory_id
-        ] = workspace_directory
+        self.workspace_directories[workspace_directory.directory_id] = (
+            workspace_directory
+        )
 
     def describe_workspace_directories(
         self, directory_ids: Optional[List[str]] = None
@@ -479,7 +480,6 @@ class WorkSpacesBackend(BaseBackend):
     def modify_workspace_creation_properties(
         self, resource_id: str, workspace_creation_properties: Dict[str, Any]
     ) -> None:
-
         # Raise Exception if Directory doesnot exist.
         if resource_id not in self.workspace_directories:
             raise ValidationException("The request is invalid.")
@@ -530,7 +530,6 @@ class WorkSpacesBackend(BaseBackend):
     def create_workspace_image(
         self, name: str, description: str, workspace_id: str, tags: List[Dict[str, str]]
     ) -> Dict[str, Any]:
-
         # Check if workspace exists.
         if workspace_id not in self.workspaces:
             raise ResourceNotFoundException(
