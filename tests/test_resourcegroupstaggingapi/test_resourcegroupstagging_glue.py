@@ -8,7 +8,7 @@ from moto.core import DEFAULT_ACCOUNT_ID
 
 @mock_aws
 def test_glue_jobs():
-    glue = boto3.client("glue", region_name="us-west-1")
+    glue = boto3.client("glue", region_name="us-west-2")
     tag_key = str(uuid4())[0:6]
     tag_val = str(uuid4())[0:6]
     job_name = glue.create_job(
@@ -17,9 +17,9 @@ def test_glue_jobs():
         Command={"Name": "test_command"},
         Tags={tag_key: tag_val},
     )["Name"]
-    job_arn = f"arn:aws:glue:us-west-1:{DEFAULT_ACCOUNT_ID}:job/{job_name}"
+    job_arn = f"arn:aws:glue:us-west-2:{DEFAULT_ACCOUNT_ID}:job/{job_name}"
 
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
     resources = rtapi.get_resources(ResourceTypeFilters=["glue"])[
         "ResourceTagMappingList"
     ]
