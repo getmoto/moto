@@ -297,7 +297,7 @@ def test_create_cluster_throws_exception_when_cluster_exists(ClusterBuilder):
     with pytest.raises(ClientError) as raised_exception:
         client.create_cluster(
             name=generated_test_data.existing_cluster_name,
-            **dict(ClusterInputs.REQUIRED)
+            **dict(ClusterInputs.REQUIRED),
         )
     count_clusters_after_test = len(client.list_clusters()[ResponseAttributes.CLUSTERS])
 
@@ -522,7 +522,7 @@ def test_create_nodegroup_throws_exception_when_cluster_not_found():
         client.create_nodegroup(
             clusterName=non_existent_cluster_name,
             nodegroupName=mock_random.get_random_string(),
-            **dict(NodegroupInputs.REQUIRED)
+            **dict(NodegroupInputs.REQUIRED),
         )
 
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
@@ -543,7 +543,7 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
         client.create_nodegroup(
             clusterName=generated_test_data.cluster_name,
             nodegroupName=generated_test_data.existing_nodegroup_name,
-            **dict(NodegroupInputs.REQUIRED)
+            **dict(NodegroupInputs.REQUIRED),
         )
     count_nodegroups_after_test = len(
         client.list_nodegroups(clusterName=generated_test_data.cluster_name)[
@@ -570,7 +570,7 @@ def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuil
             client.create_nodegroup(
                 clusterName=generated_test_data.cluster_name,
                 nodegroupName=mock_random.get_random_string(),
-                **dict(NodegroupInputs.REQUIRED)
+                **dict(NodegroupInputs.REQUIRED),
             )
     count_nodegroups_after_test = len(
         client.list_nodegroups(clusterName=generated_test_data.cluster_name)[
@@ -972,7 +972,7 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_found():
         client.create_fargate_profile(
             clusterName=non_existent_cluster_name,
             fargateProfileName=mock_random.get_random_string(),
-            **dict(FargateProfileInputs.REQUIRED)
+            **dict(FargateProfileInputs.REQUIRED),
         )
 
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
@@ -990,7 +990,7 @@ def test_create_fargate_profile_throws_exception_when_fargate_profile_already_ex
         client.create_fargate_profile(
             clusterName=generated_test_data.cluster_name,
             fargateProfileName=generated_test_data.existing_fargate_profile_name,
-            **dict(FargateProfileInputs.REQUIRED)
+            **dict(FargateProfileInputs.REQUIRED),
         )
     count_profiles_after_test = len(
         client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
@@ -1019,7 +1019,7 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_active(
             client.create_fargate_profile(
                 clusterName=generated_test_data.cluster_name,
                 fargateProfileName=mock_random.get_random_string(),
-                **dict(FargateProfileInputs.REQUIRED)
+                **dict(FargateProfileInputs.REQUIRED),
             )
     count_fargate_profiles_after_test = len(
         client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[

@@ -61,9 +61,9 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self.reserved_ips = [
             next(self._subnet_ip_generator) for _ in range(0, 3)
         ]  # Reserved by AWS
-        self._unused_ips: Set[
-            str
-        ] = set()  # if instance is destroyed hold IP here for reuse
+        self._unused_ips: Set[str] = (
+            set()
+        )  # if instance is destroyed hold IP here for reuse
         self._subnet_ips: Dict[str, "Instance"] = {}
         self.state = "available"
 
@@ -321,7 +321,6 @@ class SubnetBackend:
         availability_zone_id: Optional[str] = None,
         tags: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> Subnet:
-
         subnet_id = random_subnet_id()
         # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
         vpc = self.get_vpc(vpc_id)  # type: ignore[attr-defined]

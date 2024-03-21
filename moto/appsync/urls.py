@@ -1,4 +1,5 @@
 """appsync base URL and path."""
+
 from .responses import AppSyncResponse
 
 url_bases = [

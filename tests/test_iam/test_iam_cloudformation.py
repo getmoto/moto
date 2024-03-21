@@ -85,9 +85,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: {0}
-""".strip().format(
-        user_name
-    )
+""".strip().format(user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -127,9 +125,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       Path: {0}
-""".strip().format(
-        path
-    )
+""".strip().format(path)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -166,9 +162,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: {0}
-""".strip().format(
-        new_user_name
-    )
+""".strip().format(new_user_name)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -253,9 +247,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: {}
-""".strip().format(
-        user_name
-    )
+""".strip().format(user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -316,9 +308,7 @@ Outputs:
     Value: !Ref TheUser
   UserArn:
     Value: !GetAtt TheUser.Arn
-""".strip().format(
-        user_name
-    )
+""".strip().format(user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
     stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
@@ -404,9 +394,7 @@ Resources:
         - Effect: Allow
           Action: s3:*
           Resource: '*'
-""".strip().format(
-        desc, name
-    )
+""".strip().format(desc, name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -451,9 +439,7 @@ Resources:
           Resource: '*'
       Groups:
         - {1}
-""".strip().format(
-        desc, group_name
-    )
+""".strip().format(desc, group_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -499,9 +485,7 @@ Resources:
           Resource: '*'
       Users:
         - {1}
-""".strip().format(
-        desc, user_name
-    )
+""".strip().format(desc, user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -547,9 +531,7 @@ Resources:
           Resource: '*'
       Roles:
         - {1}
-""".strip().format(
-        desc, role_name
-    )
+""".strip().format(desc, role_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -600,9 +582,7 @@ Resources:
           Resource: {1}
       Users:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, user_name
-    )
+""".strip().format(policy_name, bucket_arn, user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -650,9 +630,7 @@ Resources:
           Resource: {1}
       Users:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, user_name_1
-    )
+""".strip().format(policy_name, bucket_arn, user_name_1)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -683,9 +661,7 @@ Resources:
           Resource: {1}
       Users:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, user_name_2
-    )
+""".strip().format(policy_name, bucket_arn, user_name_2)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -734,9 +710,7 @@ Resources:
           Resource: {0}
       Users:
         - {1}
-""".strip().format(
-        bucket_arn, user_name
-    )
+""".strip().format(bucket_arn, user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -786,9 +760,7 @@ Resources:
           Resource: {1}
       Roles:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, role_name
-    )
+""".strip().format(policy_name, bucket_arn, role_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -836,9 +808,7 @@ Resources:
           Resource: {1}
       Roles:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, role_name_1
-    )
+""".strip().format(policy_name, bucket_arn, role_name_1)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -869,9 +839,7 @@ Resources:
           Resource: {1}
       Roles:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, role_name_2
-    )
+""".strip().format(policy_name, bucket_arn, role_name_2)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -920,9 +888,7 @@ Resources:
           Resource: {0}
       Roles:
         - {1}
-""".strip().format(
-        bucket_arn, role_name
-    )
+""".strip().format(bucket_arn, role_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -973,9 +939,7 @@ Resources:
           Resource: {1}
       Groups:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, group_name
-    )
+""".strip().format(policy_name, bucket_arn, group_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1023,9 +987,7 @@ Resources:
           Resource: {1}
       Groups:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, group_name_1
-    )
+""".strip().format(policy_name, bucket_arn, group_name_1)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1056,9 +1018,7 @@ Resources:
           Resource: {1}
       Groups:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, group_name_2
-    )
+""".strip().format(policy_name, bucket_arn, group_name_2)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1108,9 +1068,7 @@ Resources:
           Resource: {0}
       Groups:
         - {1}
-""".strip().format(
-        bucket_arn, group_name
-    )
+""".strip().format(bucket_arn, group_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1396,9 +1354,7 @@ Resources:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName: {0}
-""".strip().format(
-        other_user_name
-    )
+""".strip().format(other_user_name)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 

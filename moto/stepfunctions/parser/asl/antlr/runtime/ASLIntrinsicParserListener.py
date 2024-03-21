@@ -6,9 +6,9 @@ if "." in __name__:
 else:
     from ASLIntrinsicParser import ASLIntrinsicParser
 
+
 # This class defines a complete listener for a parse tree produced by ASLIntrinsicParser.
 class ASLIntrinsicParserListener(ParseTreeListener):
-
     # Enter a parse tree produced by ASLIntrinsicParser#func_decl.
     def enterFunc_decl(self, ctx: ASLIntrinsicParser.Func_declContext):
         pass

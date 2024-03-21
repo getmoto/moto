@@ -64,7 +64,6 @@ class AuthFlow(str, enum.Enum):
 
 
 class CognitoIdpUserPoolAttribute(BaseModel):
-
     STANDARD_SCHEMA = {
         "sub": {
             "AttributeDataType": "String",
@@ -385,7 +384,6 @@ DEFAULT_USER_POOL_CONFIG: Dict[str, Any] = {
 
 
 class CognitoIdpUserPool(BaseModel):
-
     MAX_ID_LENGTH = 55
 
     def __init__(
@@ -426,10 +424,10 @@ class CognitoIdpUserPool(BaseModel):
                 standard_attribute_name,
                 standard_attribute_schema,
             ) in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA.items():
-                self.schema_attributes[
-                    standard_attribute_name
-                ] = CognitoIdpUserPoolAttribute(
-                    standard_attribute_name, False, standard_attribute_schema
+                self.schema_attributes[standard_attribute_name] = (
+                    CognitoIdpUserPoolAttribute(
+                        standard_attribute_name, False, standard_attribute_schema
+                    )
                 )
 
         self.clients: Dict[str, CognitoIdpUserPoolClient] = OrderedDict()

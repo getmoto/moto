@@ -482,9 +482,9 @@ class CognitoIdpResponse(BaseResponse):
         confirmation_code, response = cognitoidp_backends[account][
             region
         ].forgot_password(client_id, username)
-        self.response_headers[
-            "x-moto-forgot-password-confirmation-code"
-        ] = confirmation_code  # type: ignore[assignment]
+        self.response_headers["x-moto-forgot-password-confirmation-code"] = (
+            confirmation_code  # type: ignore[assignment]
+        )
         return json.dumps(response)
 
     # This endpoint receives no authorization header, so if moto-server is listening

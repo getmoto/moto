@@ -393,7 +393,7 @@ class FailedScheduledUpdateGroupActionRequest:
 
 
 def set_string_propagate_at_launch_booleans_on_tags(
-    tags: List[Dict[str, Any]]
+    tags: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     bool_to_string = {True: "true", False: "false"}
     for tag in tags:
@@ -883,7 +883,9 @@ class AutoScalingBackend(BaseBackend):
         self.elbv2_backend: ELBv2Backend = elbv2_backends[self.account_id][region_name]
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "autoscaling"
@@ -1195,7 +1197,6 @@ class AutoScalingBackend(BaseBackend):
     def describe_auto_scaling_groups(
         self, names: List[str], filters: Optional[List[Dict[str, str]]] = None
     ) -> List[FakeAutoScalingGroup]:
-
         groups = list(self.autoscaling_groups.values())
 
         if filters:

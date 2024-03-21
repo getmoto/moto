@@ -80,7 +80,6 @@ class Route53DomainsBackend(BaseBackend):
         )
 
         try:
-
             domain = Route53Domain.validate(
                 domain_name=domain_name,
                 auto_renew=auto_renew,
@@ -204,7 +203,6 @@ class Route53DomainsBackend(BaseBackend):
         sort_by: Optional[str] = None,
         sort_order: Optional[str] = None,
     ) -> List[Route53DomainsOperation]:
-
         input_errors: List[str] = []
         statuses = statuses or []
         types = types or []

@@ -64,7 +64,7 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "NatGateway":
         from ..models import ec2_backends
 

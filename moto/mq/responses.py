@@ -1,4 +1,5 @@
 """Handles incoming mq requests, invokes methods, returns responses."""
+
 import json
 from urllib.parse import unquote
 

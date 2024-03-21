@@ -1,4 +1,5 @@
 """Handles incoming route53resolver requests/responses."""
+
 import json
 
 from moto.core.exceptions import InvalidToken

@@ -3,8 +3,7 @@ import abc
 from moto.stepfunctions.parser.asl.component.common.flow.next import Next
 
 
-class ContinueWith(abc.ABC):
-    ...
+class ContinueWith(abc.ABC): ...
 
 
 class ContinueWithEnd(ContinueWith):

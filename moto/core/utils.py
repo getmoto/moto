@@ -281,7 +281,7 @@ def tags_from_query_string(
 
 
 def tags_from_cloudformation_tags_list(
-    tags_list: List[Dict[str, str]]
+    tags_list: List[Dict[str, str]],
 ) -> Dict[str, str]:
     """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
     tags = {}

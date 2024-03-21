@@ -300,7 +300,6 @@ class DataBrewBackend(BaseBackend):
         dataset_path_options: Dict[str, Any],
         tags: Dict[str, str],
     ) -> "FakeDataset":
-
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
 
@@ -621,7 +620,6 @@ class BaseModelABCMeta(ABCMeta, type(BaseModel)):  # type: ignore[misc]
 
 
 class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
-
     ENCRYPTION_MODES = ("SSE-S3", "SSE-KMS")
     LOG_SUBSCRIPTION_VALUES = ("ENABLE", "DISABLE")
 

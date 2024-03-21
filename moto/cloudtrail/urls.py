@@ -1,4 +1,5 @@
 """cloudtrail base URL and path."""
+
 from .responses import CloudTrailResponse
 
 response = CloudTrailResponse()

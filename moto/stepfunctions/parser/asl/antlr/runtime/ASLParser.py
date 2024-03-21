@@ -6752,7 +6752,6 @@ def serializedATN():
 
 
 class ASLParser(Parser):
-
     grammarFileName = "ASLParser.g4"
 
     atn = ATNDeserializer().deserialize(serializedATN())
@@ -7394,7 +7393,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def program_decl(self):
-
         localctx = ASLParser.Program_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 0, self.RULE_program_decl)
         self._la = 0  # Token type
@@ -7468,7 +7466,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def top_layer_stmt(self):
-
         localctx = ASLParser.Top_layer_stmtContext(self, self._ctx, self.state)
         self.enterRule(localctx, 2, self.RULE_top_layer_stmt)
         try:
@@ -7547,7 +7544,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def startat_decl(self):
-
         localctx = ASLParser.Startat_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 4, self.RULE_startat_decl)
         try:
@@ -7602,7 +7598,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def comment_decl(self):
-
         localctx = ASLParser.Comment_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 6, self.RULE_comment_decl)
         try:
@@ -7657,7 +7652,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def version_decl(self):
-
         localctx = ASLParser.Version_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 8, self.RULE_version_decl)
         try:
@@ -7803,7 +7797,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def state_stmt(self):
-
         localctx = ASLParser.State_stmtContext(self, self._ctx, self.state)
         self.enterRule(localctx, 10, self.RULE_state_stmt)
         try:
@@ -8032,7 +8025,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def states_decl(self):
-
         localctx = ASLParser.States_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 12, self.RULE_states_decl)
         self._la = 0  # Token type
@@ -8098,7 +8090,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def state_name(self):
-
         localctx = ASLParser.State_nameContext(self, self._ctx, self.state)
         self.enterRule(localctx, 14, self.RULE_state_name)
         try:
@@ -8149,7 +8140,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def state_decl(self):
-
         localctx = ASLParser.State_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 16, self.RULE_state_decl)
         try:
@@ -8213,7 +8203,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def state_decl_body(self):
-
         localctx = ASLParser.State_decl_bodyContext(self, self._ctx, self.state)
         self.enterRule(localctx, 18, self.RULE_state_decl_body)
         self._la = 0  # Token type
@@ -8281,7 +8270,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def type_decl(self):
-
         localctx = ASLParser.Type_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 20, self.RULE_type_decl)
         try:
@@ -8336,7 +8324,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def next_decl(self):
-
         localctx = ASLParser.Next_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 22, self.RULE_next_decl)
         try:
@@ -8391,7 +8378,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def resource_decl(self):
-
         localctx = ASLParser.Resource_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 24, self.RULE_resource_decl)
         try:
@@ -8449,7 +8435,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def input_path_decl(self):
-
         localctx = ASLParser.Input_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 26, self.RULE_input_path_decl)
         try:
@@ -8637,7 +8622,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def result_decl(self):
-
         localctx = ASLParser.Result_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 28, self.RULE_result_decl)
         try:
@@ -8695,7 +8679,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def result_path_decl(self):
-
         localctx = ASLParser.Result_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 30, self.RULE_result_path_decl)
         try:
@@ -8886,7 +8869,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def output_path_decl(self):
-
         localctx = ASLParser.Output_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 32, self.RULE_output_path_decl)
         try:
@@ -9077,7 +9059,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def end_decl(self):
-
         localctx = ASLParser.End_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 34, self.RULE_end_decl)
         self._la = 0  # Token type
@@ -9138,7 +9119,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def default_decl(self):
-
         localctx = ASLParser.Default_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 36, self.RULE_default_decl)
         try:
@@ -9193,7 +9173,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def error_decl(self):
-
         localctx = ASLParser.Error_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 38, self.RULE_error_decl)
         try:
@@ -9248,7 +9227,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def cause_decl(self):
-
         localctx = ASLParser.Cause_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 40, self.RULE_cause_decl)
         try:
@@ -9303,7 +9281,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def seconds_decl(self):
-
         localctx = ASLParser.Seconds_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 42, self.RULE_seconds_decl)
         try:
@@ -9358,7 +9335,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def seconds_path_decl(self):
-
         localctx = ASLParser.Seconds_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 44, self.RULE_seconds_path_decl)
         try:
@@ -9413,7 +9389,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def timestamp_decl(self):
-
         localctx = ASLParser.Timestamp_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 46, self.RULE_timestamp_decl)
         try:
@@ -9468,7 +9443,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def timestamp_path_decl(self):
-
         localctx = ASLParser.Timestamp_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 48, self.RULE_timestamp_path_decl)
         try:
@@ -9523,7 +9497,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def items_path_decl(self):
-
         localctx = ASLParser.Items_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 50, self.RULE_items_path_decl)
         try:
@@ -9578,7 +9551,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def max_concurrency_decl(self):
-
         localctx = ASLParser.Max_concurrency_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 52, self.RULE_max_concurrency_decl)
         try:
@@ -9633,7 +9605,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def parameters_decl(self):
-
         localctx = ASLParser.Parameters_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 54, self.RULE_parameters_decl)
         try:
@@ -9688,7 +9659,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def timeout_seconds_decl(self):
-
         localctx = ASLParser.Timeout_seconds_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 56, self.RULE_timeout_seconds_decl)
         try:
@@ -9743,7 +9713,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def timeout_seconds_path_decl(self):
-
         localctx = ASLParser.Timeout_seconds_path_declContext(
             self, self._ctx, self.state
         )
@@ -9800,7 +9769,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def heartbeat_seconds_decl(self):
-
         localctx = ASLParser.Heartbeat_seconds_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 60, self.RULE_heartbeat_seconds_decl)
         try:
@@ -9855,7 +9823,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def heartbeat_seconds_path_decl(self):
-
         localctx = ASLParser.Heartbeat_seconds_path_declContext(
             self, self._ctx, self.state
         )
@@ -9921,7 +9888,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def payload_tmpl_decl(self):
-
         localctx = ASLParser.Payload_tmpl_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 64, self.RULE_payload_tmpl_decl)
         self._la = 0  # Token type
@@ -10103,7 +10069,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def payload_binding(self):
-
         localctx = ASLParser.Payload_bindingContext(self, self._ctx, self.state)
         self.enterRule(localctx, 66, self.RULE_payload_binding)
         try:
@@ -10196,7 +10161,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def intrinsic_func(self):
-
         localctx = ASLParser.Intrinsic_funcContext(self, self._ctx, self.state)
         self.enterRule(localctx, 68, self.RULE_intrinsic_func)
         try:
@@ -10256,7 +10220,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def payload_arr_decl(self):
-
         localctx = ASLParser.Payload_arr_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 70, self.RULE_payload_arr_decl)
         self._la = 0  # Token type
@@ -10341,7 +10304,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def payload_value_decl(self):
-
         localctx = ASLParser.Payload_value_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 72, self.RULE_payload_value_decl)
         try:
@@ -10519,7 +10481,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def payload_value_lit(self):
-
         localctx = ASLParser.Payload_value_litContext(self, self._ctx, self.state)
         self.enterRule(localctx, 74, self.RULE_payload_value_lit)
         self._la = 0  # Token type
@@ -10730,7 +10691,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def result_selector_decl(self):
-
         localctx = ASLParser.Result_selector_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 76, self.RULE_result_selector_decl)
         try:
@@ -10800,7 +10760,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def state_type(self):
-
         localctx = ASLParser.State_typeContext(self, self._ctx, self.state)
         self.enterRule(localctx, 78, self.RULE_state_type)
         self._la = 0  # Token type
@@ -10808,7 +10767,7 @@ class ASLParser(Parser):
             self.enterOuterAlt(localctx, 1)
             self.state = 426
             _la = self._input.LA(1)
-            if not ((((_la) & ~0x3F) == 0 and ((1 << _la) & 16711680) != 0)):
+            if not (((_la) & ~0x3F) == 0 and ((1 << _la) & 16711680) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -10872,7 +10831,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def choices_decl(self):
-
         localctx = ASLParser.Choices_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 80, self.RULE_choices_decl)
         self._la = 0  # Token type
@@ -11010,7 +10968,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def choice_rule(self):
-
         localctx = ASLParser.Choice_ruleContext(self, self._ctx, self.state)
         self.enterRule(localctx, 82, self.RULE_choice_rule)
         self._la = 0  # Token type
@@ -11114,7 +11071,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def comparison_variable_stmt(self):
-
         localctx = ASLParser.Comparison_variable_stmtContext(
             self, self._ctx, self.state
         )
@@ -11222,7 +11178,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def comparison_composite_stmt(self):
-
         localctx = ASLParser.Comparison_composite_stmtContext(
             self, self._ctx, self.state
         )
@@ -11303,7 +11258,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def comparison_composite(self):
-
         localctx = ASLParser.Comparison_compositeContext(self, self._ctx, self.state)
         self.enterRule(localctx, 88, self.RULE_comparison_composite)
         self._la = 0  # Token type
@@ -11387,7 +11341,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def variable_decl(self):
-
         localctx = ASLParser.Variable_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 90, self.RULE_variable_decl)
         try:
@@ -11442,7 +11395,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def comparison_func(self):
-
         localctx = ASLParser.Comparison_funcContext(self, self._ctx, self.state)
         self.enterRule(localctx, 92, self.RULE_comparison_func)
         try:
@@ -11512,7 +11464,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def branches_decl(self):
-
         localctx = ASLParser.Branches_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 94, self.RULE_branches_decl)
         self._la = 0  # Token type
@@ -11599,7 +11550,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def item_processor_decl(self):
-
         localctx = ASLParser.Item_processor_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 96, self.RULE_item_processor_decl)
         self._la = 0  # Token type
@@ -11674,7 +11624,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def item_processor_item(self):
-
         localctx = ASLParser.Item_processor_itemContext(self, self._ctx, self.state)
         self.enterRule(localctx, 98, self.RULE_item_processor_item)
         try:
@@ -11767,7 +11716,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def processor_config_decl(self):
-
         localctx = ASLParser.Processor_config_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 100, self.RULE_processor_config_decl)
         self._la = 0  # Token type
@@ -11836,7 +11784,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def processor_config_field(self):
-
         localctx = ASLParser.Processor_config_fieldContext(self, self._ctx, self.state)
         self.enterRule(localctx, 102, self.RULE_processor_config_field)
         try:
@@ -11900,7 +11847,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def mode_decl(self):
-
         localctx = ASLParser.Mode_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 104, self.RULE_mode_decl)
         try:
@@ -11952,7 +11898,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def mode_type(self):
-
         localctx = ASLParser.Mode_typeContext(self, self._ctx, self.state)
         self.enterRule(localctx, 106, self.RULE_mode_type)
         self._la = 0  # Token type
@@ -12009,7 +11954,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def execution_decl(self):
-
         localctx = ASLParser.Execution_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 108, self.RULE_execution_decl)
         try:
@@ -12058,7 +12002,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def execution_type(self):
-
         localctx = ASLParser.Execution_typeContext(self, self._ctx, self.state)
         self.enterRule(localctx, 110, self.RULE_execution_type)
         try:
@@ -12124,7 +12067,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def iterator_decl(self):
-
         localctx = ASLParser.Iterator_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 112, self.RULE_iterator_decl)
         self._la = 0  # Token type
@@ -12196,7 +12138,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def iterator_decl_item(self):
-
         localctx = ASLParser.Iterator_decl_itemContext(self, self._ctx, self.state)
         self.enterRule(localctx, 114, self.RULE_iterator_decl_item)
         try:
@@ -12265,7 +12206,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def item_selector_decl(self):
-
         localctx = ASLParser.Item_selector_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 116, self.RULE_item_selector_decl)
         try:
@@ -12335,7 +12275,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def item_reader_decl(self):
-
         localctx = ASLParser.Item_reader_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 118, self.RULE_item_reader_decl)
         self._la = 0  # Token type
@@ -12407,7 +12346,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def items_reader_field(self):
-
         localctx = ASLParser.Items_reader_fieldContext(self, self._ctx, self.state)
         self.enterRule(localctx, 120, self.RULE_items_reader_field)
         try:
@@ -12491,7 +12429,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def reader_config_decl(self):
-
         localctx = ASLParser.Reader_config_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 122, self.RULE_reader_config_decl)
         self._la = 0  # Token type
@@ -12571,7 +12508,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def reader_config_field(self):
-
         localctx = ASLParser.Reader_config_fieldContext(self, self._ctx, self.state)
         self.enterRule(localctx, 124, self.RULE_reader_config_field)
         try:
@@ -12650,7 +12586,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def input_type_decl(self):
-
         localctx = ASLParser.Input_type_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 126, self.RULE_input_type_decl)
         try:
@@ -12705,7 +12640,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def csv_header_location_decl(self):
-
         localctx = ASLParser.Csv_header_location_declContext(
             self, self._ctx, self.state
         )
@@ -12777,7 +12711,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def csv_headers_decl(self):
-
         localctx = ASLParser.Csv_headers_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 130, self.RULE_csv_headers_decl)
         self._la = 0  # Token type
@@ -12849,7 +12782,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def max_items_decl(self):
-
         localctx = ASLParser.Max_items_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 132, self.RULE_max_items_decl)
         try:
@@ -12904,7 +12836,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def max_items_path_decl(self):
-
         localctx = ASLParser.Max_items_path_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 134, self.RULE_max_items_path_decl)
         try:
@@ -12974,7 +12905,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def retry_decl(self):
-
         localctx = ASLParser.Retry_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 136, self.RULE_retry_decl)
         self._la = 0  # Token type
@@ -13059,7 +12989,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def retrier_decl(self):
-
         localctx = ASLParser.Retrier_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 138, self.RULE_retrier_decl)
         self._la = 0  # Token type
@@ -13130,7 +13059,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def retrier_stmt(self):
-
         localctx = ASLParser.Retrier_stmtContext(self, self._ctx, self.state)
         self.enterRule(localctx, 140, self.RULE_retrier_stmt)
         try:
@@ -13219,7 +13147,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def error_equals_decl(self):
-
         localctx = ASLParser.Error_equals_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 142, self.RULE_error_equals_decl)
         self._la = 0  # Token type
@@ -13291,7 +13218,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def interval_seconds_decl(self):
-
         localctx = ASLParser.Interval_seconds_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 144, self.RULE_interval_seconds_decl)
         try:
@@ -13346,7 +13272,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def max_attempts_decl(self):
-
         localctx = ASLParser.Max_attempts_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 146, self.RULE_max_attempts_decl)
         try:
@@ -13404,7 +13329,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def backoff_rate_decl(self):
-
         localctx = ASLParser.Backoff_rate_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 148, self.RULE_backoff_rate_decl)
         self._la = 0  # Token type
@@ -13480,7 +13404,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def catch_decl(self):
-
         localctx = ASLParser.Catch_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 150, self.RULE_catch_decl)
         self._la = 0  # Token type
@@ -13565,7 +13488,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def catcher_decl(self):
-
         localctx = ASLParser.Catcher_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 152, self.RULE_catcher_decl)
         self._la = 0  # Token type
@@ -13633,7 +13555,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def catcher_stmt(self):
-
         localctx = ASLParser.Catcher_stmtContext(self, self._ctx, self.state)
         self.enterRule(localctx, 154, self.RULE_catcher_stmt)
         try:
@@ -13810,7 +13731,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def comparison_op(self):
-
         localctx = ASLParser.Comparison_opContext(self, self._ctx, self.state)
         self.enterRule(localctx, 156, self.RULE_comparison_op)
         self._la = 0  # Token type
@@ -13819,10 +13739,7 @@ class ASLParser(Parser):
             self.state = 735
             _la = self._input.LA(1)
             if not (
-                (
-                    (((_la - 29)) & ~0x3F) == 0
-                    and ((1 << (_la - 29)) & 2199022731007) != 0
-                )
+                ((_la - 29) & ~0x3F) == 0 and ((1 << (_la - 29)) & 2199022731007) != 0
             ):
                 self._errHandler.recoverInline(self)
             else:
@@ -13872,7 +13789,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def choice_operator(self):
-
         localctx = ASLParser.Choice_operatorContext(self, self._ctx, self.state)
         self.enterRule(localctx, 158, self.RULE_choice_operator)
         self._la = 0  # Token type
@@ -13880,7 +13796,7 @@ class ASLParser(Parser):
             self.enterOuterAlt(localctx, 1)
             self.state = 737
             _la = self._input.LA(1)
-            if not ((((_la) & ~0x3F) == 0 and ((1 << _la) & 281612684099584) != 0)):
+            if not (((_la) & ~0x3F) == 0 and ((1 << _la) & 281612684099584) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -13964,7 +13880,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def states_error_name(self):
-
         localctx = ASLParser.States_error_nameContext(self, self._ctx, self.state)
         self.enterRule(localctx, 160, self.RULE_states_error_name)
         self._la = 0  # Token type
@@ -13972,9 +13887,7 @@ class ASLParser(Parser):
             self.enterOuterAlt(localctx, 1)
             self.state = 739
             _la = self._input.LA(1)
-            if not (
-                ((((_la - 113)) & ~0x3F) == 0 and ((1 << (_la - 113)) & 16383) != 0)
-            ):
+            if not (((_la - 113) & ~0x3F) == 0 and ((1 << (_la - 113)) & 16383) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -14020,7 +13933,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def error_name(self):
-
         localctx = ASLParser.Error_nameContext(self, self._ctx, self.state)
         self.enterRule(localctx, 162, self.RULE_error_name)
         try:
@@ -14092,7 +14004,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_obj_decl(self):
-
         localctx = ASLParser.Json_obj_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 164, self.RULE_json_obj_decl)
         self._la = 0  # Token type
@@ -14174,7 +14085,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_binding(self):
-
         localctx = ASLParser.Json_bindingContext(self, self._ctx, self.state)
         self.enterRule(localctx, 166, self.RULE_json_binding)
         try:
@@ -14238,7 +14148,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_arr_decl(self):
-
         localctx = ASLParser.Json_arr_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 168, self.RULE_json_arr_decl)
         self._la = 0  # Token type
@@ -14338,7 +14247,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_value_decl(self):
-
         localctx = ASLParser.Json_value_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 170, self.RULE_json_value_decl)
         try:
@@ -14796,7 +14704,6 @@ class ASLParser(Parser):
                 return visitor.visitChildren(self)
 
     def keyword_or_string(self):
-
         localctx = ASLParser.Keyword_or_stringContext(self, self._ctx, self.state)
         self.enterRule(localctx, 172, self.RULE_keyword_or_string)
         self._la = 0  # Token type
@@ -14805,9 +14712,9 @@ class ASLParser(Parser):
             self.state = 790
             _la = self._input.LA(1)
             if not (
-                ((((_la - 10)) & ~0x3F) == 0 and ((1 << (_la - 10)) & -17) != 0)
+                (((_la - 10) & ~0x3F) == 0 and ((1 << (_la - 10)) & -17) != 0)
                 or (
-                    (((_la - 74)) & ~0x3F) == 0
+                    ((_la - 74) & ~0x3F) == 0
                     and ((1 << (_la - 74)) & 144115188075855871) != 0
                 )
             ):

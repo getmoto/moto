@@ -25,7 +25,6 @@ def test_state_machine_calling_sqs_with_heartbeat():
     tmpl_name = "services/sqs_heartbeat"
 
     def _verify_result(client, execution, execution_arn):
-
         resp = sqs.receive_message(QueueUrl=queue_url)
         if "Messages" in resp:
             task_token = json.loads(resp["Messages"][0]["Body"])["TaskToken"]
@@ -57,7 +56,6 @@ def test_state_machine_calling_sqs_with_task_success():
     tmpl_name = "services/sqs_heartbeat"
 
     def _verify_result(client, execution, execution_arn):
-
         resp = sqs.receive_message(QueueUrl=queue_url)
         if "Messages" in resp:
             task_token = json.loads(resp["Messages"][0]["Body"])["TaskToken"]

@@ -102,9 +102,9 @@ def test_update_archive():
     cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     template_update = copy.deepcopy(json.loads(template))
-    template_update["Resources"]["Archive"]["Properties"][
-        "Description"
-    ] = "test archive"
+    template_update["Resources"]["Archive"]["Properties"]["Description"] = (
+        "test archive"
+    )
 
     # when
     cfn_client.update_stack(

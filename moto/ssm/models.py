@@ -374,7 +374,7 @@ MAX_TIMEOUT_SECONDS = 3600
 
 
 def generate_ssm_doc_param_list(
-    parameters: Dict[str, Any]
+    parameters: Dict[str, Any],
 ) -> Optional[List[Dict[str, Any]]]:
     if not parameters:
         return None
@@ -1178,9 +1178,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._parameters = ParameterDict(account_id, region_name)
 
-        self._resource_tags: DefaultDict[
-            str, DefaultDict[str, Dict[str, str]]
-        ] = defaultdict(lambda: defaultdict(dict))
+        self._resource_tags: DefaultDict[str, DefaultDict[str, Dict[str, str]]] = (
+            defaultdict(lambda: defaultdict(dict))
+        )
         self._commands: List[Command] = []
         self._errors: List[str] = []
         self._documents: Dict[str, Documents] = {}

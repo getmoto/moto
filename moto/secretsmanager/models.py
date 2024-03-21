@@ -488,7 +488,6 @@ class SecretsManagerBackend(BaseBackend):
         kms_key_id: Optional[str] = None,
         description: Optional[str] = None,
     ) -> str:
-
         # error if secret does not exist
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
@@ -562,7 +561,6 @@ class SecretsManagerBackend(BaseBackend):
         replica_regions: Optional[List[Dict[str, str]]] = None,
         force_overwrite: bool = False,
     ) -> Tuple[FakeSecret, bool]:
-
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
 
@@ -624,7 +622,6 @@ class SecretsManagerBackend(BaseBackend):
         client_request_token: str,
         version_stages: List[str],
     ) -> str:
-
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
         else:
@@ -883,7 +880,6 @@ class SecretsManagerBackend(BaseBackend):
         recovery_window_in_days: int,
         force_delete_without_recovery: bool,
     ) -> Tuple[str, str, float]:
-
         if recovery_window_in_days is not None and (
             recovery_window_in_days < 7 or recovery_window_in_days > 30
         ):
@@ -938,7 +934,6 @@ class SecretsManagerBackend(BaseBackend):
             return arn, name, self._unix_time_secs(deletion_date)
 
     def restore_secret(self, secret_id: str) -> Tuple[str, str]:
-
         if not self._is_valid_identifier(secret_id):
             raise SecretNotFoundException()
 
@@ -950,7 +945,6 @@ class SecretsManagerBackend(BaseBackend):
         return secret.arn, secret.name
 
     def tag_resource(self, secret_id: str, tags: List[Dict[str, str]]) -> None:
-
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
@@ -973,7 +967,6 @@ class SecretsManagerBackend(BaseBackend):
             old_tags.append(tag)
 
     def untag_resource(self, secret_id: str, tag_keys: List[str]) -> None:
-
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 

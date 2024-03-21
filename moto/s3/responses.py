@@ -469,17 +469,17 @@ class S3Response(BaseResponse):
                     if cors_matches_origin(origin, cors_rule.allowed_origins):
                         response_headers["Access-Control-Allow-Origin"] = origin
                         if cors_rule.allowed_methods is not None:
-                            response_headers[
-                                "Access-Control-Allow-Methods"
-                            ] = _to_string(cors_rule.allowed_methods)
+                            response_headers["Access-Control-Allow-Methods"] = (
+                                _to_string(cors_rule.allowed_methods)
+                            )
                         if cors_rule.allowed_headers is not None:
-                            response_headers[
-                                "Access-Control-Allow-Headers"
-                            ] = _to_string(cors_rule.allowed_headers)
+                            response_headers["Access-Control-Allow-Headers"] = (
+                                _to_string(cors_rule.allowed_headers)
+                            )
                         if cors_rule.exposed_headers is not None:
-                            response_headers[
-                                "Access-Control-Expose-Headers"
-                            ] = _to_string(cors_rule.exposed_headers)
+                            response_headers["Access-Control-Expose-Headers"] = (
+                                _to_string(cors_rule.exposed_headers)
+                            )
                         if cors_rule.max_age_seconds is not None:
                             response_headers["Access-Control-Max-Age"] = _to_string(
                                 cors_rule.max_age_seconds
@@ -1388,7 +1388,9 @@ class S3Response(BaseResponse):
             )
             next_part_number_marker = parts[-1].name if parts else 0
             is_truncated = len(parts) != 0 and self.backend.is_truncated(
-                bucket_name, upload_id, next_part_number_marker  # type: ignore
+                bucket_name,
+                upload_id,
+                next_part_number_marker,  # type: ignore
             )
 
             template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
@@ -1653,10 +1655,12 @@ class S3Response(BaseResponse):
 
             if key_to_copy is not None:
                 if key_to_copy.storage_class in ARCHIVE_STORAGE_CLASSES:
-                    if key_to_copy.response_dict.get(
-                        "x-amz-restore"
-                    ) is None or 'ongoing-request="true"' in key_to_copy.response_dict.get(  # type: ignore
-                        "x-amz-restore"
+                    if (
+                        key_to_copy.response_dict.get("x-amz-restore") is None
+                        or 'ongoing-request="true"'
+                        in key_to_copy.response_dict.get(  # type: ignore
+                            "x-amz-restore"
+                        )
                     ):
                         raise ObjectNotInActiveTierError(key_to_copy)
 
@@ -1694,9 +1698,9 @@ class S3Response(BaseResponse):
                 tagging = self._tagging_from_headers(request.headers)
                 self.backend.put_object_tagging(new_key, tagging)
             if key_to_copy.version_id != "null":
-                response_headers[
-                    "x-amz-copy-source-version-id"
-                ] = key_to_copy.version_id
+                response_headers["x-amz-copy-source-version-id"] = (
+                    key_to_copy.version_id
+                )
 
             # checksum stuff, do we need to compute hash of the copied object
             checksum_algorithm = request.headers.get("x-amz-checksum-algorithm")
@@ -2076,9 +2080,9 @@ class S3Response(BaseResponse):
                     permissions,
                 )
 
-            parsed_xml["BucketLoggingStatus"]["LoggingEnabled"][
-                "TargetGrants"
-            ] = target_grants
+            parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]["TargetGrants"] = (
+                target_grants
+            )
 
         return parsed_xml["BucketLoggingStatus"]["LoggingEnabled"]
 
@@ -2232,9 +2236,9 @@ class S3Response(BaseResponse):
             if encryption:
                 response_headers["x-amz-server-side-encryption"] = encryption
             if kms_key_id:
-                response_headers[
-                    "x-amz-server-side-encryption-aws-kms-key-id"
-                ] = kms_key_id
+                response_headers["x-amz-server-side-encryption-aws-kms-key-id"] = (
+                    kms_key_id
+                )
 
             template = self.response_template(S3_MULTIPART_INITIATE_RESPONSE)
             response = template.render(

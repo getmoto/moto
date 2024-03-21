@@ -14,7 +14,6 @@ def random_password(
     include_space: bool,
     require_each_included_type: bool,
 ) -> str:
-
     password = ""
     required_characters = ""
 

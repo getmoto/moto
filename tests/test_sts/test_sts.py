@@ -199,9 +199,7 @@ def test_assume_role_with_saml():
       </AuthnContext>
     </AuthnStatement>
   </Assertion>
-</samlp:Response>""".replace(
-        "\n", ""
-    )
+</samlp:Response>""".replace("\n", "")
 
     assume_role_response = client.assume_role_with_saml(
         RoleArn=role_input,
@@ -297,9 +295,7 @@ def test_assume_role_with_saml_should_not_rely_on_attribute_order():
       </AuthnContext>
     </AuthnStatement>
   </Assertion>
-</samlp:Response>""".replace(
-        "\n", ""
-    )
+</samlp:Response>""".replace("\n", "")
 
     assume_role_response = client.assume_role_with_saml(
         RoleArn=role_input,
@@ -383,9 +379,7 @@ def test_assume_role_with_saml_should_respect_xml_namespaces():
       </saml:AuthnContext>
     </saml:AuthnStatement>
   </saml:Assertion>
-</samlp:Response>""".replace(
-        "\n", ""
-    )
+</samlp:Response>""".replace("\n", "")
 
     assume_role_response = client.assume_role_with_saml(
         RoleArn=role_input,
@@ -480,9 +474,7 @@ def test_assume_role_with_saml_when_xml_tag_contains_xmlns_attributes():
       </saml:AuthnContext>
     </saml:AuthnStatement>
   </saml:Assertion>
-</samlp:Response>""".replace(
-        "\n", ""
-    )
+</samlp:Response>""".replace("\n", "")
 
     assume_role_response = client.assume_role_with_saml(
         RoleArn=role_input,
@@ -568,9 +560,7 @@ def test_assume_role_with_saml_when_saml_attribute_not_provided():
       </AuthnContext>
     </AuthnStatement>
   </Assertion>
-</samlp:Response>""".replace(
-        "\n", ""
-    )
+</samlp:Response>""".replace("\n", "")
 
     assume_role_response = client.assume_role_with_saml(
         RoleArn=role_input,

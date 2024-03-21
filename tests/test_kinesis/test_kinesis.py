@@ -142,7 +142,7 @@ def test_list_streams_stream_discription():
     conn = boto3.client("kinesis", region_name="us-west-2")
 
     for i in range(3):
-        conn.create_stream(StreamName=f"stream{i}", ShardCount=i+1)
+        conn.create_stream(StreamName=f"stream{i}", ShardCount=i + 1)
 
     resp = conn.list_streams()
     assert len(resp["StreamSummaries"]) == 3

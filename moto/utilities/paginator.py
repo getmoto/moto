@@ -21,13 +21,12 @@ T = TypeVar("T")
 class GenericFunction(Protocol):
     def __call__(
         self, func: "Callable[P1, List[T]]"
-    ) -> "Callable[P2, Tuple[List[T], Optional[str]]]":
-        ...
+    ) -> "Callable[P2, Tuple[List[T], Optional[str]]]": ...
 
 
 def paginate(pagination_model: Dict[str, Any]) -> GenericFunction:
     def pagination_decorator(
-        func: Callable[..., List[T]]
+        func: Callable[..., List[T]],
     ) -> Callable[..., Tuple[List[T], Optional[str]]]:
         @wraps(func)
         def pagination_wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore

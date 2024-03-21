@@ -74,7 +74,9 @@ class RESTError(HTTPException):
             self.content_type = "application/xml"
 
     def get_headers(
-        self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
+        self,
+        *args: Any,
+        **kwargs: Any,  # pylint: disable=unused-argument
     ) -> List[Tuple[str, str]]:
         return [
             ("X-Amzn-ErrorType", self.relative_error_type or "UnknownError"),
@@ -86,7 +88,9 @@ class RESTError(HTTPException):
         return self.error_type
 
     def get_body(
-        self, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
+        self,
+        *args: Any,
+        **kwargs: Any,  # pylint: disable=unused-argument
     ) -> str:
         return self.description
 

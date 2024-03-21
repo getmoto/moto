@@ -87,7 +87,6 @@ class InvalidParameterValueError(RedshiftClientError):
 
 
 class ResourceNotFoundFaultError(RedshiftClientError):
-
     code = 404
 
     def __init__(

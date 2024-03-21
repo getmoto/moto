@@ -3679,7 +3679,6 @@ def test_create_resource_server_with_no_scopes():
 
 @mock_aws
 def test_describe_resource_server():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3736,7 +3735,6 @@ def test_describe_resource_server():
 
 @mock_aws
 def test_list_resource_servers_empty_set():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3762,7 +3760,6 @@ def test_list_resource_servers_empty_set():
 
 @mock_aws
 def test_list_resource_servers_single_page():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3818,7 +3815,6 @@ def test_list_resource_servers_single_page():
 
 @mock_aws
 def test_list_resource_servers_multi_page():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())

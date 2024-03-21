@@ -87,7 +87,6 @@ ENDPOINT_SERVICE_COLLECTION_LOCK = threading.Lock()
 
 
 class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
-
     DEFAULT_POLICY = {
         "Version": "2008-10-17",
         "Statement": [
@@ -223,7 +222,6 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         amazon_provided_ipv6_cidr_block: bool = False,
         ipv6_cidr_block_network_border_group: Optional[str] = None,
     ):
-
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
@@ -402,9 +400,9 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         )
         if amazon_provided_ipv6_cidr_block:
             association_set["ipv6_pool"] = "Amazon"
-            association_set[
-                "ipv6_cidr_block_network_border_group"
-            ] = ipv6_cidr_block_network_border_group
+            association_set["ipv6_cidr_block_network_border_group"] = (
+                ipv6_cidr_block_network_border_group
+            )
         self.cidr_block_association_set[association_id] = association_set
         return association_set
 
@@ -670,7 +668,6 @@ class VPCBackend:
         tags: Optional[Dict[str, str]] = None,
         private_dns_enabled: Optional[str] = None,
     ) -> VPCEndPoint:
-
         vpc_endpoint_id = random_vpc_ep_id()
 
         # validates if vpc is present or not.
@@ -678,7 +675,6 @@ class VPCBackend:
         destination_prefix_list_id = None
 
         if endpoint_type and endpoint_type.lower() == "interface":
-
             network_interface_ids = []
             for subnet_id in subnet_ids or []:
                 self.get_subnet(subnet_id)  # type: ignore[attr-defined]
@@ -776,7 +772,6 @@ class VPCBackend:
     ) -> List[Dict[str, str]]:
         """Return list of default services using list of backends."""
         with ENDPOINT_SERVICE_COLLECTION_LOCK:
-
             if DEFAULT_VPC_ENDPOINT_SERVICES:
                 return DEFAULT_VPC_ENDPOINT_SERVICES
 
@@ -808,7 +803,9 @@ class VPCBackend:
             return DEFAULT_VPC_ENDPOINT_SERVICES
 
     @staticmethod
-    def _matches_service_by_tags(service: Dict[str, Any], filter_item: Dict[str, Any]) -> bool:  # type: ignore[misc]
+    def _matches_service_by_tags(
+        service: Dict[str, Any], filter_item: Dict[str, Any]
+    ) -> bool:  # type: ignore[misc]
         """Return True if service tags are not filtered by their tags.
 
         Note that the API specifies a key of "Values" for a filter, but
@@ -840,7 +837,11 @@ class VPCBackend:
         return matched
 
     @staticmethod
-    def _filter_endpoint_services(service_names_filters: List[str], filters: List[Dict[str, Any]], services: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def _filter_endpoint_services(
+        service_names_filters: List[str],
+        filters: List[Dict[str, Any]],
+        services: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """Return filtered list of VPC endpoint services."""
         if not service_names_filters and not filters:
             return services
@@ -913,7 +914,8 @@ class VPCBackend:
         The DryRun parameter is ignored.
         """
         default_services = self._collect_default_endpoint_services(
-            self.account_id, region  # type: ignore[attr-defined]
+            self.account_id,
+            region,  # type: ignore[attr-defined]
         )
         custom_services = [x.to_dict() for x in self.configurations.values()]  # type: ignore
         all_services = default_services + custom_services

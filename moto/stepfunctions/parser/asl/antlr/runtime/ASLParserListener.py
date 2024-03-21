@@ -6,9 +6,9 @@ if "." in __name__:
 else:
     from ASLParser import ASLParser
 
+
 # This class defines a complete listener for a parse tree produced by ASLParser.
 class ASLParserListener(ParseTreeListener):
-
     # Enter a parse tree produced by ASLParser#program_decl.
     def enterProgram_decl(self, ctx: ASLParser.Program_declContext):
         pass

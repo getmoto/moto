@@ -383,30 +383,29 @@ class FakeGroupVersion(BaseModel):
         self.subscription_definition_version_arn = subscription_definition_version_arn
 
     def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
-
         definition = {}
         if self.core_definition_version_arn:
             definition["CoreDefinitionVersionArn"] = self.core_definition_version_arn
 
         if self.device_definition_version_arn:
-            definition[
-                "DeviceDefinitionVersionArn"
-            ] = self.device_definition_version_arn
+            definition["DeviceDefinitionVersionArn"] = (
+                self.device_definition_version_arn
+            )
 
         if self.function_definition_version_arn:
-            definition[
-                "FunctionDefinitionVersionArn"
-            ] = self.function_definition_version_arn
+            definition["FunctionDefinitionVersionArn"] = (
+                self.function_definition_version_arn
+            )
 
         if self.resource_definition_version_arn:
-            definition[
-                "ResourceDefinitionVersionArn"
-            ] = self.resource_definition_version_arn
+            definition["ResourceDefinitionVersionArn"] = (
+                self.resource_definition_version_arn
+            )
 
         if self.subscription_definition_version_arn:
-            definition[
-                "SubscriptionDefinitionVersionArn"
-            ] = self.subscription_definition_version_arn
+            definition["SubscriptionDefinitionVersionArn"] = (
+                self.subscription_definition_version_arn
+            )
 
         obj: Dict[str, Any] = {
             "Arn": self.arn,
@@ -461,7 +460,6 @@ class FakeAssociatedRole(BaseModel):
         self.associated_at = utcnow()
 
     def to_dict(self, include_detail: bool = False) -> Dict[str, Any]:
-
         obj = {"AssociatedAt": iso_8601_datetime_with_milliseconds(self.associated_at)}
         if include_detail:
             obj["RoleArn"] = self.role_arn
@@ -510,9 +508,9 @@ class GreengrassBackend(BaseBackend):
         self.resource_definition_versions: Dict[
             str, Dict[str, FakeResourceDefinitionVersion]
         ] = OrderedDict()
-        self.subscription_definitions: Dict[
-            str, FakeSubscriptionDefinition
-        ] = OrderedDict()
+        self.subscription_definitions: Dict[str, FakeSubscriptionDefinition] = (
+            OrderedDict()
+        )
         self.subscription_definition_versions: Dict[
             str, Dict[str, FakeSubscriptionDefinitionVersion]
         ] = OrderedDict()
@@ -521,7 +519,6 @@ class GreengrassBackend(BaseBackend):
     def create_core_definition(
         self, name: str, initial_version: Dict[str, Any]
     ) -> FakeCoreDefinition:
-
         core_definition = FakeCoreDefinition(self.account_id, self.region_name, name)
         self.core_definitions[core_definition.id] = core_definition
         self.create_core_definition_version(
@@ -533,7 +530,6 @@ class GreengrassBackend(BaseBackend):
         return self.core_definitions.values()
 
     def get_core_definition(self, core_definition_id: str) -> FakeCoreDefinition:
-
         if core_definition_id not in self.core_definitions:
             raise IdNotFoundException("That Core List Definition does not exist")
         return self.core_definitions[core_definition_id]
@@ -545,7 +541,6 @@ class GreengrassBackend(BaseBackend):
         del self.core_definition_versions[core_definition_id]
 
     def update_core_definition(self, core_definition_id: str, name: str) -> None:
-
         if name == "":
             raise InvalidContainerDefinitionException(
                 "Input does not contain any attributes to be updated"
@@ -557,7 +552,6 @@ class GreengrassBackend(BaseBackend):
     def create_core_definition_version(
         self, core_definition_id: str, cores: List[Dict[str, Any]]
     ) -> FakeCoreDefinitionVersion:
-
         definition = {"Cores": cores}
         core_def_ver = FakeCoreDefinitionVersion(
             self.account_id, self.region_name, core_definition_id, definition
@@ -576,7 +570,6 @@ class GreengrassBackend(BaseBackend):
     def list_core_definition_versions(
         self, core_definition_id: str
     ) -> Iterable[FakeCoreDefinitionVersion]:
-
         if core_definition_id not in self.core_definitions:
             raise IdNotFoundException("That cores definition does not exist.")
         return self.core_definition_versions[core_definition_id].values()
@@ -584,7 +577,6 @@ class GreengrassBackend(BaseBackend):
     def get_core_definition_version(
         self, core_definition_id: str, core_definition_version_id: str
     ) -> FakeCoreDefinitionVersion:
-
         if core_definition_id not in self.core_definitions:
             raise IdNotFoundException("That cores definition does not exist.")
 
@@ -619,7 +611,6 @@ class GreengrassBackend(BaseBackend):
     def create_device_definition_version(
         self, device_definition_id: str, devices: List[Dict[str, Any]]
     ) -> FakeDeviceDefinitionVersion:
-
         if device_definition_id not in self.device_definitions:
             raise IdNotFoundException("That devices definition does not exist.")
 
@@ -643,13 +634,11 @@ class GreengrassBackend(BaseBackend):
     def list_device_definition_versions(
         self, device_definition_id: str
     ) -> Iterable[FakeDeviceDefinitionVersion]:
-
         if device_definition_id not in self.device_definitions:
             raise IdNotFoundException("That devices definition does not exist.")
         return self.device_definition_versions[device_definition_id].values()
 
     def get_device_definition(self, device_definition_id: str) -> FakeDeviceDefinition:
-
         if device_definition_id not in self.device_definitions:
             raise IdNotFoundException("That Device List Definition does not exist.")
         return self.device_definitions[device_definition_id]
@@ -661,7 +650,6 @@ class GreengrassBackend(BaseBackend):
         del self.device_definition_versions[device_definition_id]
 
     def update_device_definition(self, device_definition_id: str, name: str) -> None:
-
         if name == "":
             raise InvalidContainerDefinitionException(
                 "Input does not contain any attributes to be updated"
@@ -673,7 +661,6 @@ class GreengrassBackend(BaseBackend):
     def get_device_definition_version(
         self, device_definition_id: str, device_definition_version_id: str
     ) -> FakeDeviceDefinitionVersion:
-
         if device_definition_id not in self.device_definitions:
             raise IdNotFoundException("That devices definition does not exist.")
 
@@ -692,7 +679,6 @@ class GreengrassBackend(BaseBackend):
     def create_resource_definition(
         self, name: str, initial_version: Dict[str, Any]
     ) -> FakeResourceDefinition:
-
         resources = initial_version.get("Resources", [])
         GreengrassBackend._validate_resources(resources)
 
@@ -712,7 +698,6 @@ class GreengrassBackend(BaseBackend):
     def get_resource_definition(
         self, resource_definition_id: str
     ) -> FakeResourceDefinition:
-
         if resource_definition_id not in self.resource_definitions:
             raise IdNotFoundException("That Resource List Definition does not exist.")
         return self.resource_definitions[resource_definition_id]
@@ -726,7 +711,6 @@ class GreengrassBackend(BaseBackend):
     def update_resource_definition(
         self, resource_definition_id: str, name: str
     ) -> None:
-
         if name == "":
             raise InvalidInputException("Invalid resource name.")
         if resource_definition_id not in self.resource_definitions:
@@ -736,7 +720,6 @@ class GreengrassBackend(BaseBackend):
     def create_resource_definition_version(
         self, resource_definition_id: str, resources: List[Dict[str, Any]]
     ) -> FakeResourceDefinitionVersion:
-
         if resource_definition_id not in self.resource_definitions:
             raise IdNotFoundException("That resource definition does not exist.")
 
@@ -750,9 +733,9 @@ class GreengrassBackend(BaseBackend):
             resource_def_ver.resource_definition_id, {}
         )
         resources_ver[resource_def_ver.version] = resource_def_ver
-        self.resource_definition_versions[
-            resource_def_ver.resource_definition_id
-        ] = resources_ver
+        self.resource_definition_versions[resource_def_ver.resource_definition_id] = (
+            resources_ver
+        )
 
         self.resource_definitions[
             resource_definition_id
@@ -767,7 +750,6 @@ class GreengrassBackend(BaseBackend):
     def list_resource_definition_versions(
         self, resource_definition_id: str
     ) -> Iterable[FakeResourceDefinitionVersion]:
-
         if resource_definition_id not in self.resource_definition_versions:
             raise IdNotFoundException("That resources definition does not exist.")
 
@@ -776,7 +758,6 @@ class GreengrassBackend(BaseBackend):
     def get_resource_definition_version(
         self, resource_definition_id: str, resource_definition_version_id: str
     ) -> FakeResourceDefinitionVersion:
-
         if resource_definition_id not in self.resource_definition_versions:
             raise IdNotFoundException("That resources definition does not exist.")
 
@@ -839,7 +820,6 @@ class GreengrassBackend(BaseBackend):
     def get_function_definition(
         self, function_definition_id: str
     ) -> FakeFunctionDefinition:
-
         if function_definition_id not in self.function_definitions:
             raise IdNotFoundException("That Lambda List Definition does not exist.")
         return self.function_definitions[function_definition_id]
@@ -853,7 +833,6 @@ class GreengrassBackend(BaseBackend):
     def update_function_definition(
         self, function_definition_id: str, name: str
     ) -> None:
-
         if name == "":
             raise InvalidContainerDefinitionException(
                 "Input does not contain any attributes to be updated"
@@ -868,7 +847,6 @@ class GreengrassBackend(BaseBackend):
         functions: List[Dict[str, Any]],
         default_config: Dict[str, Any],
     ) -> FakeFunctionDefinitionVersion:
-
         if function_definition_id not in self.function_definitions:
             raise IdNotFoundException("That lambdas does not exist.")
 
@@ -903,7 +881,6 @@ class GreengrassBackend(BaseBackend):
     def get_function_definition_version(
         self, function_definition_id: str, function_definition_version_id: str
     ) -> FakeFunctionDefinitionVersion:
-
         if function_definition_id not in self.function_definition_versions:
             raise IdNotFoundException("That lambdas definition does not exist.")
 
@@ -921,7 +898,6 @@ class GreengrassBackend(BaseBackend):
 
     @staticmethod
     def _is_valid_subscription_target_or_source(target_or_source: str) -> bool:
-
         if target_or_source in ["cloud", "GGShadowService"]:
             return True
 
@@ -940,8 +916,9 @@ class GreengrassBackend(BaseBackend):
         return False
 
     @staticmethod
-    def _validate_subscription_target_or_source(subscriptions: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
-
+    def _validate_subscription_target_or_source(
+        subscriptions: List[Dict[str, Any]],
+    ) -> None:  # type: ignore[misc]
         target_errors: List[str] = []
         source_errors: List[str] = []
 
@@ -977,7 +954,6 @@ class GreengrassBackend(BaseBackend):
     def create_subscription_definition(
         self, name: str, initial_version: Dict[str, Any]
     ) -> FakeSubscriptionDefinition:
-
         GreengrassBackend._validate_subscription_target_or_source(
             initial_version["Subscriptions"]
         )
@@ -1002,7 +978,6 @@ class GreengrassBackend(BaseBackend):
     def get_subscription_definition(
         self, subscription_definition_id: str
     ) -> FakeSubscriptionDefinition:
-
         if subscription_definition_id not in self.subscription_definitions:
             raise IdNotFoundException(
                 "That Subscription List Definition does not exist."
@@ -1018,7 +993,6 @@ class GreengrassBackend(BaseBackend):
     def update_subscription_definition(
         self, subscription_definition_id: str, name: str
     ) -> None:
-
         if name == "":
             raise InvalidContainerDefinitionException(
                 "Input does not contain any attributes to be updated"
@@ -1030,7 +1004,6 @@ class GreengrassBackend(BaseBackend):
     def create_subscription_definition_version(
         self, subscription_definition_id: str, subscriptions: List[Dict[str, Any]]
     ) -> FakeSubscriptionDefinitionVersion:
-
         GreengrassBackend._validate_subscription_target_or_source(subscriptions)
 
         if subscription_definition_id not in self.subscription_definitions:
@@ -1058,7 +1031,6 @@ class GreengrassBackend(BaseBackend):
     def get_subscription_definition_version(
         self, subscription_definition_id: str, subscription_definition_version_id: str
     ) -> FakeSubscriptionDefinitionVersion:
-
         if subscription_definition_id not in self.subscription_definitions:
             raise IdNotFoundException("That subscriptions definition does not exist.")
 
@@ -1118,7 +1090,6 @@ class GreengrassBackend(BaseBackend):
         del self.group_versions[group_id]
 
     def update_group(self, group_id: str, name: str) -> None:
-
         if name == "":
             raise InvalidContainerDefinitionException(
                 "Input does not contain any attributes to be updated"
@@ -1136,7 +1107,6 @@ class GreengrassBackend(BaseBackend):
         resource_definition_version_arn: Optional[str],
         subscription_definition_version_arn: Optional[str],
     ) -> FakeGroupVersion:
-
         if group_id not in self.groups:
             raise IdNotFoundException("That group does not exist.")
 
@@ -1176,7 +1146,6 @@ class GreengrassBackend(BaseBackend):
         def _is_valid_def_ver_arn(
             definition_version_arn: Optional[str], kind: str = "cores"
         ) -> bool:
-
             if definition_version_arn is None:
                 return True
 
@@ -1253,7 +1222,6 @@ class GreengrassBackend(BaseBackend):
     def get_group_version(
         self, group_id: str, group_version_id: str
     ) -> FakeGroupVersion:
-
         if group_id not in self.group_versions:
             raise IdNotFoundException("That group definition does not exist.")
 
@@ -1271,7 +1239,6 @@ class GreengrassBackend(BaseBackend):
         deployment_type: str,
         deployment_id: Optional[str] = None,
     ) -> FakeDeployment:
-
         deployment_types = (
             "NewDeployment",
             "Redeployment",
@@ -1304,7 +1271,6 @@ class GreengrassBackend(BaseBackend):
             self.group_versions[group_id][group_version_id].core_definition_version_arn
             is None
         ):
-
             err = {
                 "ErrorDetails": [
                     {
@@ -1327,7 +1293,6 @@ class GreengrassBackend(BaseBackend):
         return deployment
 
     def list_deployments(self, group_id: str) -> List[FakeDeployment]:
-
         # ListDeployments API does not check specified group is exists
         return [
             deployment
@@ -1338,7 +1303,6 @@ class GreengrassBackend(BaseBackend):
     def get_deployment_status(
         self, group_id: str, deployment_id: str
     ) -> FakeDeploymentStatus:
-
         if deployment_id not in self.deployments:
             raise InvalidInputException(f"Deployment '{deployment_id}' does not exist.")
 
@@ -1354,7 +1318,6 @@ class GreengrassBackend(BaseBackend):
         )
 
     def reset_deployments(self, group_id: str, force: bool = False) -> FakeDeployment:
-
         if group_id not in self.groups:
             raise ResourceNotFoundException("That Group Definition does not exist.")
 
@@ -1380,7 +1343,6 @@ class GreengrassBackend(BaseBackend):
     def associate_role_to_group(
         self, group_id: str, role_arn: str
     ) -> FakeAssociatedRole:
-
         # I don't know why, AssociateRoleToGroup does not check specified group is exists
         # So, this API allows any group id such as "a"
 
@@ -1389,7 +1351,6 @@ class GreengrassBackend(BaseBackend):
         return associated_role
 
     def get_associated_role(self, group_id: str) -> FakeAssociatedRole:
-
         if group_id not in self.group_role_associations:
             raise GreengrassClientError(
                 "404", "You need to attach an IAM role to this deployment group."

@@ -189,9 +189,9 @@ class AppConfigBackend(BaseBackend):
             _type=_type,
         )
         self.tag_resource(config_profile.arn, tags)
-        self.get_application(application_id).config_profiles[
-            config_profile.id
-        ] = config_profile
+        self.get_application(application_id).config_profiles[config_profile.id] = (
+            config_profile
+        )
         return config_profile
 
     def delete_configuration_profile(self, app_id: str, config_profile_id: str) -> None:

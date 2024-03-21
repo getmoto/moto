@@ -1,4 +1,5 @@
 """apigatewayv2 base URL and path."""
+
 from .responses import ApiGatewayV2Response
 
 url_bases = [

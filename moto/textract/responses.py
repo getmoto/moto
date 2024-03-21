@@ -1,4 +1,5 @@
 """Handles incoming textract requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.responses import BaseResponse

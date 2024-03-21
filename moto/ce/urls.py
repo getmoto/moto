@@ -1,4 +1,5 @@
 """ce base URL and path."""
+
 from .responses import CostExplorerResponse
 
 url_bases = [

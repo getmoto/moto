@@ -1,4 +1,5 @@
 """Exceptions raised by the Route53 service."""
+
 from typing import Any, Optional
 
 from moto.core.exceptions import RESTError
@@ -161,7 +162,6 @@ class QueryLoggingConfigAlreadyExists(Route53ClientError):
 
 
 class InvalidChangeBatch(Route53ClientError):
-
     code = 400
 
     def __init__(self) -> None:

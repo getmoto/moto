@@ -61,9 +61,9 @@ def test_update_repository():
     cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     template_update = copy.deepcopy(json.loads(template))
-    template_update["Resources"]["Repo"]["Properties"][
-        "ImageTagMutability"
-    ] = "IMMUTABLE"
+    template_update["Resources"]["Repo"]["Properties"]["ImageTagMutability"] = (
+        "IMMUTABLE"
+    )
 
     # when
     cfn_client.update_stack(

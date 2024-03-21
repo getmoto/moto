@@ -385,7 +385,6 @@ def test_create_fleet_using_launch_template_config__overrides():
 @ec2_aws_verified
 def test_delete_fleet():
     with launch_template_context() as ctxt:
-
         fleet_res = ctxt.ec2.create_fleet(
             LaunchTemplateConfigs=[
                 {

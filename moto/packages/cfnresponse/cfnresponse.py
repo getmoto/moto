@@ -58,5 +58,4 @@ def send(
         print("Status code:", response.status)  # noqa: T201
 
     except Exception as e:
-
         print("send(..) failed executing http.request(..):", e)  # noqa: T201

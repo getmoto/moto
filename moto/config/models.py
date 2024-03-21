@@ -1,4 +1,5 @@
 """Implementation of the AWS Config Service APIs."""
+
 import json
 import re
 import time
@@ -487,7 +488,6 @@ class OrganizationConformancePack(ConfigEmptyDictable):
 
 
 class Scope(ConfigEmptyDictable):
-
     """Defines resources that can trigger an evaluation for the rule.
 
     Per boto3 documentation, Scope can be one of:
@@ -536,7 +536,6 @@ class Scope(ConfigEmptyDictable):
 
 
 class SourceDetail(ConfigEmptyDictable):
-
     """Source and type of event triggering AWS Config resource evaluation.
 
     Applies only to customer rules.
@@ -633,7 +632,6 @@ class SourceDetail(ConfigEmptyDictable):
 
 
 class Source(ConfigEmptyDictable):
-
     """Defines rule owner, id and notification for triggering evaluation."""
 
     OWNERS = {"AWS", "CUSTOM_LAMBDA"}
@@ -713,7 +711,6 @@ class Source(ConfigEmptyDictable):
 
 
 class ConfigRule(ConfigEmptyDictable):
-
     """AWS Config Rule to evaluate compliance of resources to configuration.
 
     Can be a managed or custom config rule.  Contains the instantiations of
@@ -921,7 +918,9 @@ class ConfigBackend(BaseBackend):
         self.retention_configuration: Optional[RetentionConfiguration] = None
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
         """List of dicts representing default VPC endpoints for this service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "config"

@@ -77,9 +77,9 @@ def test_register_domain(domain_parameters: Dict):
         if operation["OperationId"] == operation_id:
             return
 
-    assert operation_id in [
-        operation["OperationId"] for operation in operations
-    ], "Could not find expected operation id returned from `register_domain` in operation list"
+    assert (
+        operation_id in [operation["OperationId"] for operation in operations]
+    ), "Could not find expected operation id returned from `register_domain` in operation list"
 
 
 @mock_aws

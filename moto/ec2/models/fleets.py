@@ -28,7 +28,6 @@ class Fleet(TaggedEC2Resource):
         valid_until: str,
         tag_specifications: List[Dict[str, Any]],
     ):
-
         self.ec2_backend = ec2_backend
         self.id = fleet_id
         self.spot_options = spot_options
@@ -269,7 +268,6 @@ class FleetsBackend:
         valid_until: str,
         tag_specifications: List[Dict[str, Any]],
     ) -> Fleet:
-
         fleet_id = random_fleet_id()
         fleet = Fleet(
             self,
@@ -309,7 +307,6 @@ class FleetsBackend:
     def delete_fleets(
         self, fleet_ids: List[str], terminate_instances: bool
     ) -> List[Fleet]:
-
         fleets = []
         for fleet_id in fleet_ids:
             fleet = self.fleets[fleet_id]

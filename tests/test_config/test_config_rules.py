@@ -1,10 +1,11 @@
 """Unit tests specific to the ConfigService ConfigRule APIs.
 
- These APIs include:
-   put_config_rule
-   describe_config_rule
-   delete_config_rule
+These APIs include:
+  put_config_rule
+  describe_config_rule
+  delete_config_rule
 """
+
 import json
 from string import ascii_lowercase
 

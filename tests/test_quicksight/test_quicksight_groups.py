@@ -1,4 +1,5 @@
 """Unit tests for quicksight-supported APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError

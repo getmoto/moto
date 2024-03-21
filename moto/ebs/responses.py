@@ -1,4 +1,5 @@
 """Handles incoming ebs requests, invokes methods, returns responses."""
+
 import json
 from typing import Any
 
@@ -24,14 +25,18 @@ class EBSResponse(BaseResponse):
         if request.method == "POST":
             return self.start_snapshot()
 
-    def snapshot_block(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def snapshot_block(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers, use_raw_body=True)
         if request.method == "PUT":
             return self.put_snapshot_block(full_url, headers)
         if request.method == "GET":
             return self.get_snapshot_block()
 
-    def snapshot_blocks(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def snapshot_blocks(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.list_snapshot_blocks()

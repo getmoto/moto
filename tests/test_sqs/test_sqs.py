@@ -1023,7 +1023,6 @@ def test_change_message_visibility_than_permitted():
         )
 
     with freeze_time("2015-01-01 12:05:00"):
-
         with pytest.raises(ClientError) as err:
             conn.change_message_visibility(
                 QueueUrl=queue.url,
@@ -2923,7 +2922,6 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
 def test_fifo_queue_deduplication_with_id(
     msg_1, msg_2, dedupid_1, dedupid_2, expected_count
 ):
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = str(uuid4())[0:6]
     msg_queue = sqs.create_queue(
@@ -2946,7 +2944,6 @@ def test_fifo_queue_deduplication_with_id(
     "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2)]
 )
 def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = str(uuid4())[0:6]
     msg_queue = sqs.create_queue(
@@ -2983,7 +2980,6 @@ def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
 
 @mock_aws
 def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = str(uuid4())[0:6]
     msg_queue = sqs.create_queue(
@@ -3006,7 +3002,6 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
 
 @mock_aws
 def test_fifo_send_message_when_same_group_id_is_in_dlq():
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = f"{str(uuid4())[0:6]}-dlq.fifo"
     dlq = sqs.create_queue(

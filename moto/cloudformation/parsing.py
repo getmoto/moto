@@ -334,15 +334,17 @@ def parse_resource(
 def parse_resource_and_generate_name(
     logical_id: str, resource_json: Dict[str, Any], resources_map: "ResourceMap"
 ) -> Tuple[Type[CloudFormationModel], Dict[str, Any], str]:
-    resource_tuple: Tuple[
-        Type[CloudFormationModel], Dict[str, Any], str
-    ] = parse_resource(resource_json, resources_map)
+    resource_tuple: Tuple[Type[CloudFormationModel], Dict[str, Any], str] = (
+        parse_resource(resource_json, resources_map)
+    )
     if not resource_tuple:
         return None
     resource_class, resource_json, resource_type = resource_tuple
 
     generated_resource_name = generate_resource_name(
-        resource_type, resources_map["AWS::StackName"], logical_id  # type: ignore[arg-type]
+        resource_type,
+        resources_map["AWS::StackName"],
+        logical_id,  # type: ignore[arg-type]
     )
 
     resource_name_property = resource_name_property_from_type(resource_type)
@@ -373,9 +375,9 @@ def parse_and_create_resource(
         return None
 
     resource_type = resource_json["Type"]
-    resource_tuple: Tuple[
-        Type[CloudFormationModel], Dict[str, Any], str
-    ] = parse_resource_and_generate_name(logical_id, resource_json, resources_map)
+    resource_tuple: Tuple[Type[CloudFormationModel], Dict[str, Any], str] = (
+        parse_resource_and_generate_name(logical_id, resource_json, resources_map)
+    )
     if not resource_tuple:
         return None
     resource_class, resource_json, resource_physical_name = resource_tuple
@@ -399,9 +401,9 @@ def parse_and_update_resource(
     account_id: str,
     region_name: str,
 ) -> Optional[CF_MODEL]:
-    resource_tuple: Optional[
-        Tuple[Type[CloudFormationModel], Dict[str, Any], str]
-    ] = parse_resource_and_generate_name(logical_id, resource_json, resources_map)
+    resource_tuple: Optional[Tuple[Type[CloudFormationModel], Dict[str, Any], str]] = (
+        parse_resource_and_generate_name(logical_id, resource_json, resources_map)
+    )
     if not resource_tuple:
         return None
     resource_class, resource_json, new_resource_name = resource_tuple
@@ -436,7 +438,11 @@ def parse_and_delete_resource(
         )
 
 
-def parse_condition(condition: Union[Dict[str, Any], bool], resources_map: "ResourceMap", condition_map: Dict[str, Any]) -> bool:  # type: ignore[return]
+def parse_condition(
+    condition: Union[Dict[str, Any], bool],
+    resources_map: "ResourceMap",
+    condition_map: Dict[str, Any],
+) -> bool:  # type: ignore[return]
     if isinstance(condition, bool):
         return condition
 
@@ -751,7 +757,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         return all_resources_ready
 
     def build_resource_diff(self, other_template: Dict[str, Any]) -> Dict[str, Any]:
-
         old = self._resource_json_map
         new = other_template["Resources"]
 
@@ -766,7 +771,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def build_change_set_actions(
         self, template: Dict[str, Any]
     ) -> Dict[str, Dict[str, Dict[str, str]]]:
-
         resource_names_by_action = self.build_resource_diff(template)
 
         resources_by_action: Dict[str, Dict[str, Dict[str, str]]] = {
@@ -798,7 +802,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def update(
         self, template: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None
     ) -> None:
-
         resource_names_by_action = self.build_resource_diff(template)
 
         for logical_name in resource_names_by_action["Remove"]:
@@ -816,7 +819,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         self._resource_json_map = template["Resources"]
 
         for logical_name in resource_names_by_action["Add"]:
-
             # call __getitem__ to initialize the resource
             # TODO: usage of indexer to initalize the resource is questionable
             _ = self[logical_name]
@@ -867,7 +869,6 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                         not isinstance(parsed_resource, str)
                         and parsed_resource is not None
                     ):
-
                         resource_json = self._resource_json_map[
                             parsed_resource.logical_resource_id
                         ]

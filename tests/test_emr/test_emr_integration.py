@@ -87,7 +87,6 @@ def test_default_emr_security_groups_get_created_on_first_job_flow():
     settings.TEST_SERVER_MODE, reason="Can't modify backend directly in server mode."
 )
 class TestEmrSecurityGroupManager:
-
     mocks = []
 
     def setup_method(self):

@@ -20,7 +20,6 @@ def skip_in_server_mode():
 
 @mock_aws
 def test_get_secret_value():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
@@ -42,7 +41,6 @@ def test_get_secret_value():
 
 @mock_aws
 def test_get_secret_that_does_not_exist():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
@@ -102,7 +100,6 @@ def test_get_secret_that_has_no_value():
 
 @mock_aws
 def test_create_secret():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
@@ -128,7 +125,6 @@ def test_create_secret():
 
 @mock_aws
 def test_describe_secret():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
@@ -167,7 +163,6 @@ def test_describe_secret():
 
 @mock_aws
 def test_describe_secret_that_does_not_exist():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
@@ -184,7 +179,6 @@ def test_describe_secret_that_does_not_exist():
 
 @mock_aws
 def test_describe_secret_that_does_not_match():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 
@@ -723,7 +717,6 @@ def test_can_list_secret_version_ids():
 
 @mock_aws
 def test_get_resource_policy_secret():
-
     backend = server.create_backend_app("secretsmanager")
     test_client = backend.test_client()
 

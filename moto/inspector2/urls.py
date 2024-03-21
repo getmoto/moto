@@ -1,4 +1,5 @@
 """inspector2 base URL and path."""
+
 from .responses import Inspector2Response
 
 url_bases = [
