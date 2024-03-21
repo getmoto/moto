@@ -1,9 +1,10 @@
 from re import compile as re_compile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.utilities.paginator import paginate
 
 from ..moto_api._internal import mock_random
 from .exceptions import (
@@ -13,6 +14,7 @@ from .exceptions import (
     UserAlreadyExists,
     UserNotFound,
 )
+from .utils import PAGINATION_MODEL
 
 
 class User(BaseModel):
@@ -312,25 +314,24 @@ class ElastiCacheBackend(BaseBackend):
         self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
 
+    @paginate(PAGINATION_MODEL)
     def describe_cache_clusters(
         self,
         cache_cluster_id: str,
         max_records: int,
         marker: str,
-    ) -> Tuple[str, List[CacheCluster]]:
-        if marker is None:
-            marker = str(mock_random.uuid4())
+    ) -> List[CacheCluster]:
         if max_records is None:
             max_records = 100
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
                 cache_cluster = self.cache_clusters[cache_cluster_id]
-                return marker, [cache_cluster]
+                return list([cache_cluster])
             else:
                 raise CacheClusterNotFound(cache_cluster_id)
         cache_clusters = list(self.cache_clusters.values())[:max_records]
 
-        return marker, cache_clusters
+        return cache_clusters
 
     def delete_cache_cluster(self, cache_cluster_id: str) -> CacheCluster:
         if cache_cluster_id:
