@@ -23,9 +23,10 @@ from moto.s3.models import S3Backend, s3_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
+from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.utilities.tagging_service import TaggingService
 
-# Left: EC2 ElastiCache RDS ELB CloudFront WorkSpaces Lambda EMR Glacier Kinesis Redshift Route53
+# Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
 # Inspector Elasticsearch
 
@@ -119,6 +120,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def dynamodb_backend(self) -> DynamoDBBackend:
         return dynamodb_backends[self.account_id][self.region_name]
+
+    @property
+    def workspaces_backend(self) -> WorkSpacesBackend:
+        return workspaces_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -531,6 +536,49 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+
+        # Workspaces
+        if not resource_type_filters or "workspaces" in resource_type_filters:
+            for ws in self.workspaces_backend.workspaces.values():
+                tags = format_tag_keys(ws.tags, ["Key", "Value"])
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {
+                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
+                    "Tags": tags,
+                }
+
+        # Workspace Directories
+        if not resource_type_filters or "workspaces-directory" in resource_type_filters:
+            for wd in self.workspaces_backend.workspace_directories.values():
+                tags = format_tag_keys(wd.tags, ["Key", "Value"])
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {
+                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
+                    "Tags": tags,
+                }
+
+        # Workspace Images
+        if not resource_type_filters or "workspaces-image" in resource_type_filters:
+            for wi in self.workspaces_backend.workspace_images.values():
+                tags = format_tag_keys(wi.tags, ["Key", "Value"])
+                if not tags or not tag_filter(
+                    tags
+                ):  # Skip if no tags, or invalid filter
+                    continue
+
+                yield {
+                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
+                    "Tags": tags,
+                }
+
         # VPC
         if (
             not resource_type_filters
@@ -883,7 +931,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            if arn.startswith("arn:aws:logs:"):
+            elif arn.startswith("arn:aws:workspaces:"):
+                resource_id = arn.split("/")[-1]
+                self.workspaces_backend.create_tags(
+                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            elif arn.startswith("arn:aws:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
             if arn.startswith("arn:aws:dynamodb"):
                 self.dynamodb_backend.tag_resource(
