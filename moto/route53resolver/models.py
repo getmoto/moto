@@ -122,7 +122,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
             f"[Trace id: 1-{mock_random.get_random_hex(8)}-{mock_random.get_random_hex(24)}] "
             f"Successfully created Resolver Rule"
         )
-        self.share_status = "SHARED_WITH_ME"
+        self.share_status = "NOT_SHARED"
         self.creation_time = datetime.now(timezone.utc).isoformat()
         self.modification_time = datetime.now(timezone.utc).isoformat()
 

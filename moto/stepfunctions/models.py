@@ -73,7 +73,7 @@ class StateMachine(CloudFormationModel):
             raise ExecutionDoesNotExist(
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
-        execution.stop()
+        execution.stop(stop_date=datetime.now(), error="", cause="")
         return execution
 
     def _ensure_execution_name_doesnt_exist(self, name: str) -> None:
@@ -265,6 +265,12 @@ class Execution:
             else "FAILED"
         )
         self.stop_date: Optional[str] = None
+        self.account_id = account_id
+        self.region_name = region_name
+        self.output: Optional[str] = None
+        self.output_details: Optional[str] = None
+        self.cause: Optional[str] = None
+        self.error: Optional[str] = None
 
     def get_execution_history(self, roleArn: str) -> List[Dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
@@ -365,12 +371,28 @@ class Execution:
             ]
         return []
 
-    def stop(self) -> None:
+    def stop(self, *args: Any, **kwargs: Any) -> None:
         self.status = "ABORTED"
         self.stop_date = iso_8601_datetime_with_milliseconds()
 
 
 class StepFunctionBackend(BaseBackend):
+    """
+    Configure Moto to explicitly parse and execute the StateMachine:
+
+    .. sourcecode:: python
+
+        @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
+
+    By default, executing a StateMachine does nothing, and calling `describe_state_machine` will return static data.
+
+    Set the following environment variable if you want to get the static data to have a FAILED status:
+
+    .. sourcecode:: bash
+
+        SF_EXECUTION_HISTORY_TYPE=FAILURE
+
+    """
 
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/stepfunctions.html#SFN.Client.create_state_machine
     # A name must not contain:
@@ -484,7 +506,6 @@ class StepFunctionBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.state_machines: List[StateMachine] = []
-        self.executions: List[Execution] = []
         self._account_id = None
 
     def create_state_machine(
@@ -556,14 +577,6 @@ class StepFunctionBackend(BaseBackend):
     def list_executions(
         self, state_machine_arn: str, status_filter: Optional[str] = None
     ) -> List[Execution]:
-        """
-        The status of every execution is set to 'RUNNING' by default.
-        Set the following environment variable if you want to get a FAILED status back:
-
-        .. sourcecode:: bash
-
-            SF_EXECUTION_HISTORY_TYPE=FAILURE
-        """
         executions = self.describe_state_machine(state_machine_arn).executions
 
         if status_filter:
@@ -572,14 +585,6 @@ class StepFunctionBackend(BaseBackend):
         return sorted(executions, key=lambda x: x.start_date, reverse=True)
 
     def describe_execution(self, execution_arn: str) -> Execution:
-        """
-        The status of every execution is set to 'RUNNING' by default.
-        Set the following environment variable if you want to get a FAILED status back:
-
-        .. sourcecode:: bash
-
-            SF_EXECUTION_HISTORY_TYPE=FAILURE
-        """
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
         exctn = next(
@@ -593,14 +598,6 @@ class StepFunctionBackend(BaseBackend):
         return exctn
 
     def get_execution_history(self, execution_arn: str) -> List[Dict[str, Any]]:
-        """
-        A static list of successful events is returned by default.
-        Set the following environment variable if you want to get a static list of events for a failed execution:
-
-        .. sourcecode:: bash
-
-            SF_EXECUTION_HISTORY_TYPE=FAILURE
-        """
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
         execution = next(
@@ -612,6 +609,13 @@ class StepFunctionBackend(BaseBackend):
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
         return execution.get_execution_history(state_machine.roleArn)
+
+    def describe_state_machine_for_execution(self, execution_arn: str) -> StateMachine:
+        for sm in self.state_machines:
+            for exc in sm.executions:
+                if exc.execution_arn == execution_arn:
+                    return sm
+        raise ResourceNotFound(execution_arn)
 
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
         try:
@@ -633,6 +637,30 @@ class StepFunctionBackend(BaseBackend):
             state_machine.remove_tags(tag_keys)
         except StateMachineDoesNotExist:
             raise ResourceNotFound(resource_arn)
+
+    def send_task_failure(self, task_token: str) -> None:
+        pass
+
+    def send_task_heartbeat(self, task_token: str) -> None:
+        pass
+
+    def send_task_success(self, task_token: str, outcome: str) -> None:
+        pass
+
+    def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
+        return {}
+
+    def list_map_runs(self, execution_arn: str) -> Any:
+        return []
+
+    def update_map_run(
+        self,
+        map_run_arn: str,
+        max_concurrency: int,
+        tolerated_failure_count: str,
+        tolerated_failure_percentage: str,
+    ) -> None:
+        pass
 
     def _validate_name(self, name: str) -> None:
         if any(invalid_char in name for invalid_char in self.invalid_chars_for_name):

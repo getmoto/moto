@@ -657,7 +657,7 @@ def test_state_machine_describe_execution_with_no_input():
     #
     assert description["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert description["executionArn"] == execution["executionArn"]
-    assert description["input"] == "{}"
+    assert description["input"] == '"{}"'
     assert re.match("[-0-9a-z]+", description["name"])
     assert description["startDate"] == execution["startDate"]
     assert description["stateMachineArn"] == sm["stateMachineArn"]
@@ -680,7 +680,7 @@ def test_state_machine_describe_execution_with_custom_input():
     #
     assert description["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert description["executionArn"] == execution["executionArn"]
-    assert description["input"] == execution_input
+    assert json.loads(description["input"]) == execution_input
     assert re.match("[-a-z0-9]+", description["name"])
     assert description["startDate"] == execution["startDate"]
     assert description["stateMachineArn"] == sm["stateMachineArn"]

@@ -812,14 +812,17 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
         <NotificationARNs/>
         {% endif %}
         <DisableRollback>false</DisableRollback>
+        {%if stack.stack_outputs %}
         <Outputs>
         {% for output in stack.stack_outputs %}
           <member>
             <OutputKey>{{ output.key }}</OutputKey>
             <OutputValue>{{ output.value }}</OutputValue>
+            {% if output.description %}<Description>{{ output.description }}</Description>{% endif %}
           </member>
         {% endfor %}
         </Outputs>
+        {% endif %}
         <Parameters>
         {% for param_name, param_value in stack.stack_parameters.items() %}
           <member>

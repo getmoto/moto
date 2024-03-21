@@ -45,7 +45,7 @@ from moto.utilities.utils import load_resource_as_bytes
 from .exceptions import (
     ConflictException,
     CrossAccountNotAllowed,
-    FunctionUrlConfigNotFound,
+    GenericResourcNotFound,
     InvalidParameterValueException,
     InvalidRoleFormat,
     UnknownAliasException,
@@ -1216,7 +1216,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def get_url_config(self) -> "FunctionUrlConfig":
         if not self.url_config:
-            raise FunctionUrlConfigNotFound()
+            raise GenericResourcNotFound()
         return self.url_config
 
     def update_url_config(self, config: Dict[str, Any]) -> "FunctionUrlConfig":

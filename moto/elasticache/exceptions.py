@@ -83,15 +83,3 @@ class CacheClusterNotFound(ElastiCacheException):
             message=f"Cache cluster {cache_cluster_id} not found.",
         )
 
-
-class InvalidPaginationToken(ElastiCacheException):
-    """Bad NextToken specified when listing query logging configs."""
-
-    code = 400
-
-    def __init__(self) -> None:
-        message = (
-            "Route 53 can't get the next page of query logging configurations "
-            "because the specified value for NextToken is invalid."
-        )
-        super().__init__("InvalidPaginationToken", message)

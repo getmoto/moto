@@ -16610,7 +16610,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -30851,6 +30851,22 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 4,
+      "Version": 1
+     },
+     "Count": 16,
+     "MemoryInfo": {
+      "SizeInMiB": 8192
+     },
+     "Name": "Inferentia"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 131072
+  },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
@@ -30984,6 +31000,22 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 4,
+      "Version": 1
+     },
+     "Count": 1,
+     "MemoryInfo": {
+      "SizeInMiB": 8192
+     },
+     "Name": "Inferentia"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 8192
+  },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
@@ -31094,6 +31126,22 @@
     }
    ],
    "NetworkPerformance": "25 Gigabit"
+  },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 4,
+      "Version": 1
+     },
+     "Count": 4,
+     "MemoryInfo": {
+      "SizeInMiB": 8192
+     },
+     "Name": "Inferentia"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 32768
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
@@ -31210,6 +31258,22 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 4,
+      "Version": 1
+     },
+     "Count": 1,
+     "MemoryInfo": {
+      "SizeInMiB": 8192
+     },
+     "Name": "Inferentia"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 8192
+  },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
@@ -31319,6 +31383,22 @@
     }
    ],
    "NetworkPerformance": "50 Gigabit"
+  },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 6,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Inferentia2"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 196608
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
@@ -31437,6 +31517,22 @@
     }
    ],
    "NetworkPerformance": "100 Gigabit"
+  },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 12,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Inferentia2"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 393216
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
@@ -31557,6 +31653,22 @@
    ],
    "NetworkPerformance": "Up to 25 Gigabit"
   },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 1,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Inferentia2"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 32768
+  },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
@@ -31672,6 +31784,22 @@
     }
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
+  },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 1,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Inferentia2"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 32768
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
@@ -51210,7 +51338,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -73252,7 +73380,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -78336,6 +78464,22 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 1,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Trainium"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 32768
+  },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
   "PlacementGroupInfo": {
@@ -78491,6 +78635,22 @@
     }
    ],
    "NetworkPerformance": "8x 100 Gigabit"
+  },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 16,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Trainium"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 524288
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
@@ -78733,6 +78893,22 @@
     }
    ],
    "NetworkPerformance": "16x 100 Gigabit"
+  },
+  "NeuronInfo": {
+   "NeuronDevices": [
+    {
+     "CoreInfo": {
+      "Count": 2,
+      "Version": 2
+     },
+     "Count": 16,
+     "MemoryInfo": {
+      "SizeInMiB": 32768
+     },
+     "Name": "Trainium"
+    }
+   ],
+   "TotalNeuronDeviceMemoryInMiB": 524288
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
@@ -79649,6 +79825,19 @@
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "vt1.24xlarge",
+  "MediaAcceleratorInfo": {
+   "Accelerators": [
+    {
+     "Count": 8,
+     "Manufacturer": "Xilinx",
+     "MemoryInfo": {
+      "SizeInMiB": 24576
+     },
+     "Name": "U30"
+    }
+   ],
+   "TotalMediaMemoryInMiB": 196608
+  },
   "MemoryInfo": {
    "SizeInMiB": 196608
   },
@@ -79744,6 +79933,19 @@
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "vt1.3xlarge",
+  "MediaAcceleratorInfo": {
+   "Accelerators": [
+    {
+     "Count": 1,
+     "Manufacturer": "Xilinx",
+     "MemoryInfo": {
+      "SizeInMiB": 24576
+     },
+     "Name": "U30"
+    }
+   ],
+   "TotalMediaMemoryInMiB": 24576
+  },
   "MemoryInfo": {
    "SizeInMiB": 24576
   },
@@ -79834,6 +80036,19 @@
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "vt1.6xlarge",
+  "MediaAcceleratorInfo": {
+   "Accelerators": [
+    {
+     "Count": 2,
+     "Manufacturer": "Xilinx",
+     "MemoryInfo": {
+      "SizeInMiB": 24576
+     },
+     "Name": "U30"
+    }
+   ],
+   "TotalMediaMemoryInMiB": 49152
+  },
   "MemoryInfo": {
    "SizeInMiB": 49152
   },

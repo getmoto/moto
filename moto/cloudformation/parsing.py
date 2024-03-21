@@ -475,6 +475,11 @@ def parse_condition(condition: Union[Dict[str, Any], bool], resources_map: "Reso
 def parse_output(
     output_logical_id: str, output_json: Any, resources_map: "ResourceMap"
 ) -> Optional[Output]:
+    if "Condition" in output_json and not resources_map.lazy_condition_map.get(
+        output_json["Condition"]
+    ):
+        # This Resource is not initialized - impossible to show Output
+        return None
     output_json = clean_json(output_json, resources_map)
     if "Value" not in output_json:
         return None
@@ -684,11 +689,22 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def validate_outputs(self) -> None:
         outputs = self._template.get("Outputs") or {}
         for value in outputs.values():
+            if "Condition" in value:
+                if not self.lazy_condition_map[value["Condition"]]:
+                    # This Output is not shown - no point in validating it
+                    continue
             value = value.get("Value", {})
             if "Fn::GetAtt" in value:
-                resource_type = self._resource_json_map.get(value["Fn::GetAtt"][0])[  # type: ignore[index]
-                    "Type"
-                ]
+                resource_name = value["Fn::GetAtt"][0]
+                resource = self._resource_json_map.get(resource_name)
+                # validate resource will be created
+                if "Condition" in resource:  # type: ignore
+                    if not self.lazy_condition_map[resource["Condition"]]:  # type: ignore[index]
+                        raise ValidationError(
+                            message=f"Unresolved resource dependencies [{resource_name}] in the Outputs block of the template"
+                        )
+                # Validate attribute exists on this Type
+                resource_type = resource["Type"]  # type: ignore[index]
                 attr = value["Fn::GetAtt"][1]
                 resource_class = resource_class_from_type(resource_type)
                 if not resource_class.has_cfn_attr(attr):

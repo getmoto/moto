@@ -869,6 +869,7 @@ class CognitoIdpUser(BaseModel):
         flat_attributes.update(flatten_attrs(new_attributes))
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
+        self.last_modified_date = utcnow()
 
     def delete_attributes(self, attrs_to_delete: List[str]) -> None:
         flat_attributes = flatten_attrs(self.attributes)
@@ -891,6 +892,7 @@ class CognitoIdpUser(BaseModel):
             )
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
+        self.last_modified_date = utcnow()
 
 
 class CognitoResourceServer(BaseModel):

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -7,7 +7,7 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import AppNotFound, ResiliencyPolicyNotFound
+from .exceptions import AppNotFound, AppVersionNotFound, ResiliencyPolicyNotFound
 
 PAGINATION_MODEL = {
     "list_apps": {
@@ -23,6 +23,20 @@ PAGINATION_MODEL = {
         "unique_attribute": "arn",
     },
 }
+
+
+class AppComponent(BaseModel):
+    def __init__(self, _id: str, name: str, _type: str):
+        self.id = _id
+        self.name = name
+        self.type = _type
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "type": self.type,
+        }
 
 
 class App(BaseModel):
@@ -48,6 +62,16 @@ class App(BaseModel):
         self.policy_arn = policy_arn
         self.resilience_score = 0.0
         self.status = "Active"
+        self.app_versions: List[AppVersion] = []
+
+        app_version = AppVersion(app_arn=self.arn, version_name=None, identifier=0)
+        self.app_versions.append(app_version)
+
+    def get_version(self, version_name: str) -> "AppVersion":
+        for v in self.app_versions:
+            if v.app_version == version_name:
+                return v
+        raise AppVersionNotFound
 
     def to_json(self) -> Dict[str, Any]:
         resp = {
@@ -55,6 +79,7 @@ class App(BaseModel):
             "assessmentSchedule": self.assessment_schedule,
             "complianceStatus": self.compliance_status,
             "creationTime": self.creation_time,
+            "driftStatus": "NotChecked",
             "name": self.name,
             "resilienceScore": self.resilience_score,
             "status": self.status,
@@ -68,6 +93,54 @@ class App(BaseModel):
             resp["permissionModel"] = self.permission_model
         if self.policy_arn:
             resp["policyArn"] = self.policy_arn
+        return resp
+
+
+class Resource:
+    def __init__(
+        self,
+        logical_resource_id: Dict[str, Any],
+        physical_resource_id: str,
+        resource_type: str,
+        components: List[AppComponent],
+    ):
+        self.logical_resource_id = logical_resource_id
+        self.physical_resource_id = physical_resource_id
+        self.resource_type = resource_type
+        self.components = components
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "appComponents": [c.to_json() for c in self.components],
+            "resourceType": self.resource_type,
+            "logicalResourceId": self.logical_resource_id,
+            "physicalResourceId": {"identifier": self.physical_resource_id},
+            "resourceName": self.logical_resource_id["identifier"],
+        }
+
+
+class AppVersion(BaseModel):
+    def __init__(self, app_arn: str, version_name: Optional[str], identifier: int):
+        self.app_arn = app_arn
+        self.eks_sources: List[Dict[str, Any]] = []
+        self.source_arns: List[str] = []
+        self.terraform_sources: List[Dict[str, str]] = []
+        self.app_version = "release" if version_name else "draft"
+        self.identifier = identifier
+        self.creation_time = unix_time()
+        self.version_name = version_name
+        self.app_components: List[AppComponent] = []
+        self.status = "Pending"
+        self.resources: List[Resource] = []
+
+    def to_json(self) -> Dict[str, Any]:
+        resp = {
+            "appVersion": self.app_version,
+            "creationTime": self.creation_time,
+            "identifier": self.identifier,
+        }
+        if self.version_name:
+            resp["versionName"] = self.version_name
         return resp
 
 
@@ -207,6 +280,89 @@ class ResilienceHubBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def import_resources_to_draft_app_version(
+        self,
+        app_arn: str,
+        eks_sources: List[Dict[str, Any]],
+        source_arns: List[str],
+        terraform_sources: List[Dict[str, str]],
+    ) -> AppVersion:
+        app = self.describe_app(app_arn)
+        app_version = app.get_version("draft")
+
+        app_version.eks_sources.extend(eks_sources)
+        app_version.source_arns.extend(source_arns)
+        app_version.terraform_sources.extend(terraform_sources)
+
+        # Default AppComponent when importing data
+        # AWS seems to create other components as well, based on the provided sources
+        app_version.app_components.append(
+            AppComponent(
+                _id="appcommon",
+                name="appcommon",
+                _type="AWS::ResilienceHub::AppCommonAppComponent",
+            )
+        )
+        return app_version
+
+    def create_app_version_app_component(
+        self, app_arn: str, name: str, _type: str
+    ) -> AppComponent:
+        app = self.describe_app(app_arn)
+        app_version = app.get_version("draft")
+        component = AppComponent(_id=name, name=name, _type=_type)
+        app_version.app_components.append(component)
+        return component
+
+    def list_app_version_app_components(
+        self, app_arn: str, app_version: str
+    ) -> List[AppComponent]:
+        app = self.describe_app(app_arn)
+        return app.get_version(app_version).app_components
+
+    def create_app_version_resource(
+        self,
+        app_arn: str,
+        app_components: List[str],
+        logical_resource_id: Dict[str, str],
+        physical_resource_id: str,
+        resource_type: str,
+    ) -> Resource:
+        app = self.describe_app(app_arn)
+        app_version = app.get_version("draft")
+
+        components = [c for c in app_version.app_components if c.id in app_components]
+
+        resource = Resource(
+            logical_resource_id=logical_resource_id,
+            physical_resource_id=physical_resource_id,
+            resource_type=resource_type,
+            components=components,
+        )
+        app_version.resources.append(resource)
+        return resource
+
+    def list_app_version_resources(
+        self, app_arn: str, app_version: str
+    ) -> List[Resource]:
+        app = self.describe_app(app_arn)
+        return app.get_version(app_version).resources
+
+    def list_app_versions(self, app_arn: str) -> List[AppVersion]:
+        app = self.describe_app(app_arn)
+        return app.app_versions
+
+    def publish_app_version(self, app_arn: str, version_name: str) -> AppVersion:
+        app = self.describe_app(app_arn)
+        version = AppVersion(
+            app_arn=app_arn, version_name=version_name, identifier=len(app.app_versions)
+        )
+        for old_version in app.app_versions:
+            if old_version.app_version == "release":
+                old_version.app_version = str(old_version.identifier)
+        app.app_versions.append(version)
+        return version
 
 
 resiliencehub_backends = BackendDict(ResilienceHubBackend, "resiliencehub")

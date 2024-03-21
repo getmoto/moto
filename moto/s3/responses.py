@@ -2272,10 +2272,12 @@ class S3Response(BaseResponse):
             )
 
         elif "restore" in query:
-            es = minidom.parseString(body).getElementsByTagName("Days")
-            days = es[0].childNodes[0].wholeText
+            params = xmltodict.parse(body)["RestoreRequest"]
             previously_restored = self.backend.restore_object(
-                bucket_name, key_name, days
+                bucket_name,
+                key_name,
+                params.get("Days", None),
+                params.get("Type", None),
             )
             status_code = 200 if previously_restored else 202
             return status_code, {}, ""

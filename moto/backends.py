@@ -135,6 +135,7 @@ if TYPE_CHECKING:
     from moto.timestreamwrite.models import TimestreamWriteBackend
     from moto.transcribe.models import TranscribeBackend
     from moto.wafv2.models import WAFV2Backend
+    from moto.workspaces.models import WorkSpacesBackend
     from moto.xray.models import XRayBackend
 
 
@@ -295,6 +296,7 @@ SERVICE_NAMES = Union[
     "Literal['timestream-write']",
     "Literal['transcribe']",
     "Literal['wafv2']",
+    "Literal['workspaces']",
     "Literal['xray']",
 ]
 
@@ -563,6 +565,8 @@ def get_backend(name: "Literal['timestream-write']") -> "BackendDict[TimestreamW
 def get_backend(name: "Literal['transcribe']") -> "BackendDict[TranscribeBackend]": ...
 @overload
 def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
+@overload
+def get_backend(name: "Literal['workspaces']") -> "BackendDict[WorkSpacesBackend]": ...
 @overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
 # fmt: on

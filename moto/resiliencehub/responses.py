@@ -157,3 +157,99 @@ class ResilienceHubResponse(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps(dict(tags=tags))
+
+    def import_resources_to_draft_app_version(self) -> str:
+        app_arn = self._get_param("appArn")
+        eks_sources = self._get_param("eksSources")
+        source_arns = self._get_param("sourceArns")
+        terraform_sources = self._get_param("terraformSources")
+
+        app_version = self.resiliencehub_backend.import_resources_to_draft_app_version(
+            app_arn=app_arn,
+            eks_sources=eks_sources,
+            source_arns=source_arns,
+            terraform_sources=terraform_sources,
+        )
+        return json.dumps(
+            {
+                "appArn": app_version.app_arn,
+                "appVersion": app_version.version_name,
+                "eksSources": eks_sources,
+                "sourceArns": source_arns,
+                "status": app_version.status,
+                "terraformSources": terraform_sources,
+            }
+        )
+
+    def list_app_version_app_components(self) -> str:
+        app_arn = self._get_param("appArn")
+        app_version = self._get_param("appVersion")
+        components = self.resiliencehub_backend.list_app_version_app_components(
+            app_arn, app_version
+        )
+        return json.dumps(
+            {
+                "appArn": app_arn,
+                "appVersion": app_version,
+                "appComponents": [c.to_json() for c in components],
+            }
+        )
+
+    def create_app_version_app_component(self) -> str:
+        app_arn = self._get_param("appArn")
+        name = self._get_param("name")
+        _type = self._get_param("type")
+        component = self.resiliencehub_backend.create_app_version_app_component(
+            app_arn=app_arn,
+            name=name,
+            _type=_type,
+        )
+        return json.dumps(
+            {
+                "appArn": app_arn,
+                "appComponent": component.to_json(),
+                "appVersion": "draft",
+            }
+        )
+
+    def create_app_version_resource(self) -> str:
+        app_arn = self._get_param("appArn")
+        app_components = self._get_param("appComponents")
+        logical_resource_id = self._get_param("logicalResourceId")
+        physical_resource_id = self._get_param("physicalResourceId")
+        resource_type = self._get_param("resourceType")
+
+        resource = self.resiliencehub_backend.create_app_version_resource(
+            app_arn=app_arn,
+            app_components=app_components,
+            logical_resource_id=logical_resource_id,
+            physical_resource_id=physical_resource_id,
+            resource_type=resource_type,
+        )
+
+        return json.dumps(
+            {
+                "appArn": app_arn,
+                "appVersion": "draft",
+                "physicalResource": resource.to_json(),
+            }
+        )
+
+    def list_app_version_resources(self) -> str:
+        app_arn = self._get_param("appArn")
+        app_version = self._get_param("appVersion")
+        resources = self.resiliencehub_backend.list_app_version_resources(
+            app_arn, app_version
+        )
+        return json.dumps({"physicalResources": [r.to_json() for r in resources]})
+
+    def list_app_versions(self) -> str:
+        app_arn = self._get_param("appArn")
+        versions = self.resiliencehub_backend.list_app_versions(app_arn)
+        return json.dumps({"appVersions": [v.to_json() for v in versions]})
+
+    def publish_app_version(self) -> str:
+        app_arn = self._get_param("appArn")
+        version_name = self._get_param("versionName")
+        version = self.resiliencehub_backend.publish_app_version(app_arn, version_name)
+        return json.dumps({"appArn": app_arn, **version.to_json()})

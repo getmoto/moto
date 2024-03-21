@@ -420,3 +420,26 @@ def test_delete_unknown_cache_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "CacheClusterNotFound"
     assert err["Message"] == f"Cache cluster {cache_cluster_id_unknown} not found."
+
+
+@mock_aws
+def test_list_tags_cache_cluster():
+    conn = boto3.client("elasticache", region_name="ap-southeast-1")
+    result = conn.list_tags_for_resource(
+        ResourceName="arn:aws:elasticache:us-west-2:1234567890:cluster:foo"
+    )
+    assert result["TagList"] == []
+    test_instance = conn.create_cache_cluster(
+        CacheClusterId="test-cache-cluster",
+        Engine="memcached",
+        NumCacheNodes=2,
+        Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
+        SecurityGroupIds=["sg-1234"],
+    )
+    post_create_result = conn.list_tags_for_resource(
+        ResourceName=test_instance["CacheCluster"]["ARN"],
+    )
+    assert post_create_result["TagList"] == [
+        {"Value": "bar", "Key": "foo"},
+        {"Value": "bar1", "Key": "foo1"},
+    ]

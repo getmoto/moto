@@ -54,6 +54,14 @@ class MotoAPIBackend(BaseBackend):
         backend = ce_backends[account_id]["global"]
         backend.cost_usage_results_queue.append(result)
 
+    def set_lambda_simple_result(
+        self, result: str, account_id: str, region: str
+    ) -> None:
+        from moto.awslambda_simple.models import lambda_simple_backends
+
+        backend = lambda_simple_backends[account_id][region]
+        backend.lambda_simple_results_queue.append(result)
+
     def set_sagemaker_result(
         self,
         body: str,
@@ -128,6 +136,8 @@ class MotoAPIBackend(BaseBackend):
             default_user_config["batch"] = config["batch"]
         if "lambda" in config:
             default_user_config["lambda"] = config["lambda"]
+        if "stepfunctions" in config:
+            default_user_config["stepfunctions"] = config["stepfunctions"]
 
 
 moto_api_backend = MotoAPIBackend(region_name="global", account_id=DEFAULT_ACCOUNT_ID)

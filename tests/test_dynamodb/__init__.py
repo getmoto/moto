@@ -7,7 +7,7 @@ import boto3
 from moto import mock_aws
 
 
-def dynamodb_aws_verified(create_table: bool = True):
+def dynamodb_aws_verified(create_table: bool = True, add_range: bool = False):
     """
     Function that is verified to work against AWS.
     Can be run against AWS at any time by setting:
@@ -46,10 +46,15 @@ def dynamodb_aws_verified(create_table: bool = True):
         def create_table_and_test(table_name):
             client = boto3.client("dynamodb", region_name="us-east-1")
 
+            schema = [{"AttributeName": "pk", "KeyType": "HASH"}]
+            defs = [{"AttributeName": "pk", "AttributeType": "S"}]
+            if add_range:
+                schema.append({"AttributeName": "sk", "KeyType": "RANGE"})
+                defs.append({"AttributeName": "sk", "AttributeType": "S"})
             client.create_table(
                 TableName=table_name,
-                KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-                AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+                KeySchema=schema,
+                AttributeDefinitions=defs,
                 ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 5},
                 Tags=[{"Key": "environment", "Value": "moto_tests"}],
             )

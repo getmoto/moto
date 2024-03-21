@@ -973,6 +973,7 @@ def test_instance_start_and_stop():
 
     instance1.reload()
     assert instance1.state == {"Code": 80, "Name": "stopped"}
+    assert instance1.state_transition_reason.startswith("User initiated")
 
     with pytest.raises(ClientError) as ex:
         client.start_instances(InstanceIds=[instance1.id], DryRun=True)

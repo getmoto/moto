@@ -1,5 +1,6 @@
 import itertools
 from collections import OrderedDict
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -439,6 +440,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         mixed_instance_policy: Optional[Dict[str, Any]],
         capacity_rebalance: bool,
         new_instances_protected_from_scale_in: bool = False,
+        created_time: datetime = datetime.now(),
     ):
         self.autoscaling_backend = autoscaling_backend
         self.ec2_backend = ec2_backend
@@ -483,6 +485,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: List[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
+        self.created_time = created_time
 
     @property
     def tags(self) -> List[Dict[str, str]]:

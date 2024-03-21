@@ -21,6 +21,10 @@ class _iam_config(TypedDict, total=False):
     load_aws_managed_policies: bool
 
 
+class _sfn_config(TypedDict, total=False):
+    execute_state_machine: bool
+
+
 DefaultConfig = TypedDict(
     "DefaultConfig",
     {
@@ -28,6 +32,7 @@ DefaultConfig = TypedDict(
         "core": _core_config,
         "lambda": _docker_config,
         "iam": _iam_config,
+        "stepfunctions": _sfn_config,
     },
     total=False,
 )
@@ -41,6 +46,7 @@ default_user_config: DefaultConfig = {
         "reset_boto3_session": True,
     },
     "iam": {"load_aws_managed_policies": False},
+    "stepfunctions": {"execute_state_machine": False},
 }
 
 

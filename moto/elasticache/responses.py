@@ -67,7 +67,7 @@ class ElastiCacheResponse(BaseResponse):
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
         cache_security_group_names = self._get_param("CacheSecurityGroupNames")
         security_group_ids = self._get_param("SecurityGroupIds")
-        tags = self._get_param("Tags")
+        tags = (self._get_multi_param_dict("Tags") or {}).get("Tag", [])
         snapshot_arns = self._get_param("SnapshotArns")
         snapshot_name = self._get_param("SnapshotName")
         preferred_maintenance_window = self._get_param("PreferredMaintenanceWindow")
@@ -144,6 +144,12 @@ class ElastiCacheResponse(BaseResponse):
         )
         template = self.response_template(DELETE_CACHE_CLUSTER_TEMPLATE)
         return template.render(cache_cluster=cache_cluster)
+
+    def list_tags_for_resource(self) -> str:
+        arn = self._get_param("ResourceName")
+        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
+        tags = self.elasticache_backend.list_tags_for_resource(arn)
+        return template.render(tags=tags)
 
 
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
@@ -546,3 +552,19 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
 </CacheCluster>
   </DeleteCacheClusterResult>
 </DeleteCacheClusterResponse>"""
+
+LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ListTagsForResourceResult>
+    <TagList>
+    {%- for tag in tags -%}
+      <Tag>
+        <Key>{{ tag['Key'] }}</Key>
+        <Value>{{ tag['Value'] }}</Value>
+      </Tag>
+    {%- endfor -%}
+    </TagList>
+  </ListTagsForResourceResult>
+  <ResponseMetadata>
+    <RequestId>8c21ba39-a598-11e4-b688-194eaf8658fa</RequestId>
+  </ResponseMetadata>
+</ListTagsForResourceResponse>"""
