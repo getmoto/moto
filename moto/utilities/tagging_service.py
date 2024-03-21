@@ -1,4 +1,5 @@
 """Tag functionality contained in class TaggingService."""
+
 import re
 from typing import Dict, List, Optional
 
@@ -172,7 +173,7 @@ class TaggingService:
 
     @staticmethod
     def convert_dict_to_tags_input(
-        tags: Optional[Dict[str, str]]
+        tags: Optional[Dict[str, str]],
     ) -> List[Dict[str, str]]:
         """Given a dictionary, return generic boto params for tags"""
         if not tags:

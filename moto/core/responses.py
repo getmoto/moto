@@ -645,7 +645,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_int_param(
-        self, param_name: str, if_none: TYPE_IF_NONE = None  # type: ignore[assignment]
+        self,
+        param_name: str,
+        if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
     ) -> Union[int, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
@@ -653,7 +655,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_bool_param(
-        self, param_name: str, if_none: TYPE_IF_NONE = None  # type: ignore[assignment]
+        self,
+        param_name: str,
+        if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
     ) -> Union[bool, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:

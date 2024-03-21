@@ -5,8 +5,8 @@ import os
 import re
 from moto.backends import list_of_moto_modules
 from pathlib import Path
+import subprocess
 
-import black
 import pprint
 
 output_file = "moto/backend_index.py"
@@ -75,13 +75,8 @@ def main():
         pprint.pprint(index, fd)
         fd.write(os.linesep)
 
-    print("format with black")
-    black.format_file_in_place(
-        Path(output_path),
-        fast=False,
-        mode=black.FileMode(),
-        write_back=black.WriteBack.YES,
-    )
+    print("format with ruff")
+    subprocess.run(["ruff", "format", Path(output_path)])
 
 
 if __name__ == "__main__":

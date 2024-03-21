@@ -42,9 +42,9 @@ def create_table_input(database_name, table_name, columns=None, partition_keys=N
     table_input["Name"] = table_name
     table_input["PartitionKeys"] = partition_keys or []
     table_input["StorageDescriptor"]["Columns"] = columns or []
-    table_input["StorageDescriptor"][
-        "Location"
-    ] = f"s3://my-bucket/{database_name}/{table_name}"
+    table_input["StorageDescriptor"]["Location"] = (
+        f"s3://my-bucket/{database_name}/{table_name}"
+    )
     return table_input
 
 

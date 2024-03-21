@@ -10,7 +10,6 @@ from tests.test_ds.test_ds_simple_ad_directory import create_test_directory
 
 @mock_aws
 def test_get_resources_cloudformation():
-
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {"test": {"Type": "AWS::S3::Bucket"}},
@@ -135,7 +134,6 @@ def test_get_resources_backup():
 
 @mock_aws
 def test_get_resources_ecs():
-
     # ecs:cluster
     client = boto3.client("ecs", region_name="us-east-1")
     cluster_one = (
@@ -882,6 +880,7 @@ def test_get_resources_sns():
         "Tags"
     ]
 
+
 @mock_aws
 def test_get_resources_ssm():
     import json
@@ -899,16 +898,16 @@ def test_get_resources_ssm():
         Name="TestDocument",
         DocumentType="Command",
         DocumentFormat="JSON",
-        Tags=[{"Key": 'testing', "Value": "testingValue"}],
+        Tags=[{"Key": "testing", "Value": "testingValue"}],
     )
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
     resp = rtapi.get_resources(ResourceTypeFilters=["ssm"])
 
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": 'testing', "Value": "testingValue"} in resp["ResourceTagMappingList"][0][
-        "Tags"
-    ]
+    assert {"Key": "testing", "Value": "testingValue"} in resp[
+        "ResourceTagMappingList"
+    ][0]["Tags"]
 
 
 @mock_aws

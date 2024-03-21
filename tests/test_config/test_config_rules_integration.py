@@ -143,9 +143,9 @@ def test_config_rules_source_details_errors():
     )
 
     custom_rule = custom_config_rule()
-    custom_rule["Source"]["SourceDetails"][0][
-        "MessageType"
-    ] = "ConfigurationItemChangeNotification"
+    custom_rule["Source"]["SourceDetails"][0]["MessageType"] = (
+        "ConfigurationItemChangeNotification"
+    )
     with pytest.raises(ClientError) as exc:
         client.put_config_rule(ConfigRule=custom_rule)
     err = exc.value.response["Error"]

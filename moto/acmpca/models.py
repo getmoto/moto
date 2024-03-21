@@ -1,4 +1,5 @@
 """ACMPCABackend class with methods for supported APIs."""
+
 import base64
 import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -135,9 +136,9 @@ class CertificateAuthority(BaseModel):
                     "S3ObjectAcl"
                     not in self.revocation_configuration["CrlConfiguration"]
                 ):
-                    self.revocation_configuration["CrlConfiguration"][
-                        "S3ObjectAcl"
-                    ] = "PUBLIC_READ"
+                    self.revocation_configuration["CrlConfiguration"]["S3ObjectAcl"] = (
+                        "PUBLIC_READ"
+                    )
 
     @property
     def certificate_bytes(self) -> bytes:

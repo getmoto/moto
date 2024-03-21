@@ -383,7 +383,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self._state.name == "running"
 
     def delete(
-        self, account_id: str, region: str  # pylint: disable=unused-argument
+        self,
+        account_id: str,
+        region: str,  # pylint: disable=unused-argument
     ) -> None:
         self.terminate()
 
@@ -666,7 +668,8 @@ class InstanceBackend:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
 
         security_groups = [
-            self.get_security_group_by_name_or_id(name) for name in security_group_names  # type: ignore[attr-defined]
+            self.get_security_group_by_name_or_id(name)
+            for name in security_group_names  # type: ignore[attr-defined]
         ]
 
         for sg_id in kwargs.pop("security_group_ids", []):

@@ -79,7 +79,6 @@ def verify_execution_result(
         if execution["status"] == expected_status:
             result = _verify_result(client, execution, execution_arn)
             if result is not False:
-
                 client.delete_state_machine(stateMachineArn=state_machine_arn)
                 iam.delete_role_policy(
                     RoleName=role_name, PolicyName="allowLambdaInvoke"

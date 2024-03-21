@@ -24,7 +24,7 @@ def generate_boto3_response(
     """
 
     def _boto3_request(
-        method: Callable[["ElasticMapReduceResponse"], str]
+        method: Callable[["ElasticMapReduceResponse"], str],
     ) -> Callable[["ElasticMapReduceResponse"], str]:
         @wraps(method)
         def f(self: "ElasticMapReduceResponse") -> str:
@@ -49,7 +49,6 @@ def generate_boto3_response(
 
 
 class ElasticMapReduceResponse(BaseResponse):
-
     # EMR end points are inconsistent in the placement of region name
     # in the URL, so parsing it out needs to be handled differently
     emr_region_regex: List[Pattern[str]] = [
@@ -366,9 +365,9 @@ class ElasticMapReduceResponse(BaseResponse):
             "KerberosAttributes.CrossRealmTrustPrincipalPassword"
         )
         if cross_realm_principal_password:
-            kerberos_attributes[
-                "CrossRealmTrustPrincipalPassword"
-            ] = cross_realm_principal_password
+            kerberos_attributes["CrossRealmTrustPrincipalPassword"] = (
+                cross_realm_principal_password
+            )
 
         ad_domain_join_user = self._get_param("KerberosAttributes.ADDomainJoinUser")
         if ad_domain_join_user:
@@ -472,9 +471,9 @@ class ElasticMapReduceResponse(BaseResponse):
                     )
                 if vol_type in ebs_configuration:
                     instance_group.pop(vol_type)
-                    ebs_block[volume_specification][
-                        volume_type
-                    ] = ebs_configuration.pop(vol_type)
+                    ebs_block[volume_specification][volume_type] = (
+                        ebs_configuration.pop(vol_type)
+                    )
 
                 per_instance = f"{key}._{volumes_per_instance}"
                 if per_instance in ebs_configuration:

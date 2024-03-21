@@ -329,9 +329,9 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
                 "EstimatedTimeToCompletionInSeconds": 123,
             }
         if self.cluster_snapshot_copy_status is not None:
-            json_response[
-                "ClusterSnapshotCopyStatus"
-            ] = self.cluster_snapshot_copy_status
+            json_response["ClusterSnapshotCopyStatus"] = (
+                self.cluster_snapshot_copy_status
+            )
         return json_response
 
 

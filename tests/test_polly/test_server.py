@@ -1,4 +1,5 @@
 """Test the different server responses."""
+
 import moto.server as server
 from moto import mock_aws
 

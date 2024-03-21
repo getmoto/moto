@@ -78,8 +78,7 @@ class StateMachineInstance:
         return describe_output
 
     @abc.abstractmethod
-    def itemise(self):
-        ...
+    def itemise(self): ...
 
 
 class TagManager:

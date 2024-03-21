@@ -1,4 +1,5 @@
 """apigatewaymanagementapi base URL and path."""
+
 from .responses import ApiGatewayManagementApiResponse
 
 url_bases = [r"https?://execute-api\.(.+)\.amazonaws\.com"]

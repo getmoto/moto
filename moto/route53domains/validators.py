@@ -665,7 +665,6 @@ class Route53DomainsOperation(BaseModel):
         message: Optional[str] = None,
         status_flag: Optional[str] = None,
     ):
-
         id_ = str(mock_random.uuid4())
         submitted_date = datetime.now(timezone.utc)
         last_updated_date = datetime.now(timezone.utc)

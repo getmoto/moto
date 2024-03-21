@@ -75,9 +75,9 @@ class StateTaskService(StateTask, abc.ABC):
         parameters_bind_keys: List[str] = list(parameters.keys())
         for parameter_key in parameters_bind_keys:
             norm_parameter_key = camel_to_snake_case(parameter_key)
-            norm_member_bind: Optional[
-                Tuple[str, Optional[StructureShape]]
-            ] = norm_member_binds.get(norm_parameter_key)
+            norm_member_bind: Optional[Tuple[str, Optional[StructureShape]]] = (
+                norm_member_binds.get(norm_parameter_key)
+            )
             if norm_member_bind is not None:
                 norm_member_bind_key, norm_member_bind_shape = norm_member_bind
                 parameter_value = parameters.pop(parameter_key)
@@ -143,8 +143,7 @@ class StateTaskService(StateTask, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-    ):
-        ...
+    ): ...
 
     def _before_eval_execution(
         self,

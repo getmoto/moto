@@ -1,4 +1,5 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -87,7 +88,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 self.connect_settings["VpcId"]  # type: ignore[index]
             )
             self.eni_ids, self.subnet_ips = self.create_eni(
-                self.security_group_id, self.connect_settings["SubnetIds"]  # type: ignore[index]
+                self.security_group_id,
+                self.connect_settings["SubnetIds"],  # type: ignore[index]
             )
             self.connect_settings["SecurityGroupId"] = self.security_group_id  # type: ignore[index]
             self.connect_settings["ConnectIps"] = self.subnet_ips  # type: ignore[index]
@@ -98,7 +100,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 self.vpc_settings["VpcId"]  # type: ignore[index]
             )
             self.eni_ids, self.subnet_ips = self.create_eni(
-                self.security_group_id, self.vpc_settings["SubnetIds"]  # type: ignore[index]
+                self.security_group_id,
+                self.vpc_settings["SubnetIds"],  # type: ignore[index]
             )
             self.vpc_settings["SecurityGroupId"] = self.security_group_id  # type: ignore[index]
             self.dns_ip_addrs = self.subnet_ips

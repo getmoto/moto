@@ -139,7 +139,6 @@ class FakeInstanceGroup(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeInstanceGroup":
-
         properties = cloudformation_json["Properties"]
         job_flow_id = properties["JobFlowId"]
         ebs_config = properties.get("EbsConfiguration")
@@ -455,7 +454,6 @@ class FakeCluster(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeCluster":
-
         properties = cloudformation_json["Properties"]
 
         instance_attrs = properties.get("Instances", {})

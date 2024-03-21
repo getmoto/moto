@@ -82,9 +82,9 @@ class BranchesDecl(EvalComponent):
         branch_worker_pool.wait()
 
         # Propagate exception if parallel task failed.
-        exit_event_details: Optional[
-            ExecutionFailedEventDetails
-        ] = branch_worker_pool.get_exit_event_details()
+        exit_event_details: Optional[ExecutionFailedEventDetails] = (
+            branch_worker_pool.get_exit_event_details()
+        )
         if exit_event_details is not None:
             for branch_worker in branch_workers:
                 branch_worker.stop(

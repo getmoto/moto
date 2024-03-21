@@ -115,7 +115,6 @@ def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # ty
 
 
 class _VersionedKeyStore(dict):  # type: ignore
-
     """A simplified/modified version of Django's `MultiValueDict` taken from:
     https://github.com/django/django/blob/70576740b0bb5289873f5a9a9a4e1a26b2c330e5/django/utils/datastructures.py#L282
     """

@@ -2,6 +2,7 @@
 This test lives on its own as it requires moto to be imported after
 setting of MOTO_AMIS_PATH env var, as per ec2 models documentation
 """
+
 import importlib
 import json
 import os

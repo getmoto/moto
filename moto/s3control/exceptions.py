@@ -44,5 +44,5 @@ class AccessPointPolicyNotFound(S3ControlError):
         super().__init__(
             "NoSuchAccessPointPolicy",
             "The specified accesspoint policy does not exist",
-            **kwargs
+            **kwargs,
         )

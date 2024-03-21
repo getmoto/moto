@@ -477,7 +477,9 @@ class DynamoDBBackend(BaseBackend):
             validated_ast.normalize()
             try:
                 UpdateExpressionExecutor(
-                    validated_ast, item, expression_attribute_names  # type: ignore[arg-type]
+                    validated_ast,
+                    item,
+                    expression_attribute_names,  # type: ignore[arg-type]
                 ).execute()
             except ItemSizeTooLarge:
                 raise ItemSizeToUpdateTooLarge()

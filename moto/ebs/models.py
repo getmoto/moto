@@ -119,9 +119,9 @@ class EBSBackend(BaseBackend):
         """
         snapshot1 = self.snapshots[first_snapshot_id]
         snapshot2 = self.snapshots[second_snapshot_id]
-        changed_blocks: Dict[
-            str, Tuple[str, Optional[str]]
-        ] = dict()  # {idx: (token1, token2), ..}
+        changed_blocks: Dict[str, Tuple[str, Optional[str]]] = (
+            dict()
+        )  # {idx: (token1, token2), ..}
         for idx in snapshot1.blocks:
             block1 = snapshot1.blocks[idx]
             if idx in snapshot2.blocks:

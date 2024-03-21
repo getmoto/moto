@@ -14,7 +14,9 @@ class StepFunctionResponse(BaseResponse):
 
     @property
     def stepfunction_backend(self) -> StepFunctionBackend:
-        if default_user_config.get("stepfunctions", {}).get("execute_state_machine", False):
+        if default_user_config.get("stepfunctions", {}).get(
+            "execute_state_machine", False
+        ):
             from .parser.models import stepfunctions_parser_backends
 
             return stepfunctions_parser_backends[self.current_account][self.region]

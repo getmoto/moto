@@ -75,8 +75,9 @@ def test_describe_vpc_default_endpoint_services() -> None:
     assert all_names[1] == partial_services["ServiceNames"][1]
     assert all_names[0] == partial_services["ServiceDetails"][0]["ServiceName"]
     assert all_names[1] == partial_services["ServiceDetails"][1]["ServiceName"]
-    assert partial_services["NextToken"] == (
-        all_services["ServiceDetails"][2]["ServiceId"]
+    assert (
+        partial_services["NextToken"]
+        == (all_services["ServiceDetails"][2]["ServiceId"])
     )
 
     # Use the next token to receive another service.

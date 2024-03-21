@@ -102,7 +102,6 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-
         # Do we even have this defined?
         backend = self.backends[account_id]["global"]
         if not backend.public_access_block:

@@ -48,7 +48,13 @@ class RekognitionBackend(BaseBackend):
 
     def compare_faces(
         self,
-    ) -> Tuple[List[Dict[str, Any]], str, str, List[Dict[str, Any]], Dict[str, Any],]:
+    ) -> Tuple[
+        List[Dict[str, Any]],
+        str,
+        str,
+        List[Dict[str, Any]],
+        Dict[str, Any],
+    ]:
         return (
             self._face_matches(),
             "ROTATE_90",

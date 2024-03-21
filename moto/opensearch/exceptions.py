@@ -1,4 +1,5 @@
 """Exceptions raised by the opensearch service."""
+
 from moto.core.exceptions import JsonRESTError
 
 

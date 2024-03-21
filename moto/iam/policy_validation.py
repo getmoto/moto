@@ -222,7 +222,9 @@ class BaseIAMPolicyValidator:
         )
 
     @staticmethod
-    def _validate_string_or_list_of_strings_syntax(statement: Dict[str, Any], key: str) -> None:  # type: ignore[misc]
+    def _validate_string_or_list_of_strings_syntax(
+        statement: Dict[str, Any], key: str
+    ) -> None:  # type: ignore[misc]
         if key in statement:
             assert isinstance(statement[key], (str, list))
             if isinstance(statement[key], list):
@@ -454,7 +456,9 @@ class BaseIAMPolicyValidator:
                     assert resource[2] != ""
 
     @staticmethod
-    def _legacy_parse_condition(condition_key: str, condition_value: Dict[str, Any]) -> None:  # type: ignore[misc]
+    def _legacy_parse_condition(
+        condition_key: str, condition_value: Dict[str, Any]
+    ) -> None:  # type: ignore[misc]
         stripped_condition_key = IAMPolicyDocumentValidator._strip_condition_key(
             condition_key
         )

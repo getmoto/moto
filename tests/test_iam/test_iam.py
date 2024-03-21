@@ -170,7 +170,6 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
 
 @mock_aws
 def test_create_add_additional_roles_to_instance_profile_error():
-
     # Setup
     iam = boto3.client("iam", region_name="us-east-1")
     name = "test_profile"
@@ -3931,10 +3930,13 @@ def test_role_config_client():
 
     # Test non-aggregated pagination
     assert (
-        config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
-        )["resourceIdentifiers"][0]["resourceId"]
-    ) != first_result
+        (
+            config_client.list_discovered_resources(
+                resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
+            )["resourceIdentifiers"][0]["resourceId"]
+        )
+        != first_result
+    )
 
     # Test aggregated query - by `Limit=len(CONFIG_REGIONS)`, we should get a single policy duplicated across all regions
     agg_result = config_client.list_aggregate_discovered_resources(
@@ -4381,10 +4383,13 @@ def test_policy_config_client():
 
     # Test non-aggregated pagination
     assert (
-        config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
-        )["resourceIdentifiers"][0]["resourceId"]
-    ) != first_result
+        (
+            config_client.list_discovered_resources(
+                resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
+            )["resourceIdentifiers"][0]["resourceId"]
+        )
+        != first_result
+    )
 
     # Test aggregated query - by `Limit=len(CONFIG_REGIONS)`, we should get a single policy duplicated across all regions
     agg_result = config_client.list_aggregate_discovered_resources(

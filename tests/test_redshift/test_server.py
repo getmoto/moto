@@ -1,4 +1,5 @@
 """Test the different server responses."""
+
 import json
 import re
 import unittest

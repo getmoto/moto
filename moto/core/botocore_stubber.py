@@ -53,7 +53,6 @@ class BotocoreStubber:
 
         for service, pattern in backend_index.backend_url_patterns:
             if pattern.match(clean_url):
-
                 if passthrough_service(service):
                     return None
 

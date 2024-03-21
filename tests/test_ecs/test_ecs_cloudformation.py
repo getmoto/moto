@@ -36,9 +36,9 @@ def test_update_task_definition_family_through_cloudformation_should_trigger_a_r
     cfn_conn.create_stack(StackName="test_stack", TemplateBody=template1_json)
 
     template2 = deepcopy(template1)
-    template2["Resources"]["testTaskDefinition"]["Properties"][
-        "Family"
-    ] = "testTaskDefinition2"
+    template2["Resources"]["testTaskDefinition"]["Properties"]["Family"] = (
+        "testTaskDefinition2"
+    )
     template2_json = json.dumps(template2)
     cfn_conn.update_stack(StackName="test_stack", TemplateBody=template2_json)
 

@@ -89,7 +89,9 @@ class LambdaResponse(BaseResponse):
         if request.method == "GET":
             return self._list_layers()
 
-    def layers_version(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def layers_version(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         layer_name = unquote(self.path.split("/")[-3])
         layer_version = self.path.split("/")[-1]
@@ -98,7 +100,9 @@ class LambdaResponse(BaseResponse):
         elif request.method == "GET":
             return self._get_layer_version(layer_name, layer_version)
 
-    def layers_versions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def layers_versions(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self._get_layer_versions()
@@ -186,7 +190,9 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
-    def code_signing_config(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def code_signing_config(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self._get_code_signing_config()
@@ -206,7 +212,9 @@ class LambdaResponse(BaseResponse):
         else:
             raise ValueError("Cannot handle request")
 
-    def function_url_config(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def function_url_config(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         http_method = request.method
         self.setup_class(request, full_url, headers)
 
@@ -409,7 +417,9 @@ class LambdaResponse(BaseResponse):
         return 204, {}, ""
 
     @staticmethod
-    def _set_configuration_qualifier(configuration: Dict[str, Any], function_name: str, qualifier: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _set_configuration_qualifier(
+        configuration: Dict[str, Any], function_name: str, qualifier: str
+    ) -> Dict[str, Any]:  # type: ignore[misc]
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
         if function_name.startswith("arn:aws"):
             # Extract from ARN

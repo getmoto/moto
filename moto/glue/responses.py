@@ -31,7 +31,9 @@ class GlueResponse(BaseResponse):
         database_name = database_input.get("Name")  # type: ignore
         if "CatalogId" in self.parameters:
             database_input["CatalogId"] = self.parameters.get("CatalogId")  # type: ignore
-        self.glue_backend.create_database(database_name, database_input, self.parameters.get("Tags"))  # type: ignore[arg-type]
+        self.glue_backend.create_database(
+            database_name, database_input, self.parameters.get("Tags")
+        )  # type: ignore[arg-type]
         return ""
 
     def get_database(self) -> str:
@@ -134,7 +136,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         expression = self.parameters.get("Expression")
         partitions = self.glue_backend.get_partitions(
-            database_name, table_name, expression  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            expression,  # type: ignore[arg-type]
         )
 
         return json.dumps({"Partitions": [p.as_dict() for p in partitions]})
@@ -154,7 +158,9 @@ class GlueResponse(BaseResponse):
         partitions_to_get = self.parameters.get("PartitionsToGet")
 
         partitions = self.glue_backend.batch_get_partition(
-            database_name, table_name, partitions_to_get  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            partitions_to_get,  # type: ignore[arg-type]
         )
 
         return json.dumps({"Partitions": partitions})
@@ -172,7 +178,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         partition_input = self.parameters.get("PartitionInputList")
         errors_output = self.glue_backend.batch_create_partition(
-            database_name, table_name, partition_input  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            partition_input,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -188,7 +196,10 @@ class GlueResponse(BaseResponse):
         part_to_update = self.parameters.get("PartitionValueList")
 
         self.glue_backend.update_partition(
-            database_name, table_name, part_input, part_to_update  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            part_input,
+            part_to_update,  # type: ignore[arg-type]
         )
         return ""
 
@@ -198,7 +209,9 @@ class GlueResponse(BaseResponse):
         entries = self.parameters.get("Entries")
 
         errors_output = self.glue_backend.batch_update_partition(
-            database_name, table_name, entries  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            entries,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -221,7 +234,9 @@ class GlueResponse(BaseResponse):
         parts = self.parameters.get("PartitionsToDelete")
 
         errors_output = self.glue_backend.batch_delete_partition(
-            database_name, table_name, parts  # type: ignore[arg-type]
+            database_name,
+            table_name,
+            parts,  # type: ignore[arg-type]
         )
 
         out = {}

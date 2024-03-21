@@ -50,9 +50,9 @@ class Domain(BaseModel):
         hsh = {"name": self.name, "status": self.status}
         if self.description:
             hsh["description"] = self.description
-        hsh[
-            "arn"
-        ] = f"arn:aws:swf:{self.region_name}:{self.account_id}:/domain/{self.name}"
+        hsh["arn"] = (
+            f"arn:aws:swf:{self.region_name}:{self.account_id}:/domain/{self.name}"
+        )
         return hsh
 
     def to_full_dict(self) -> Dict[str, Any]:
@@ -61,7 +61,9 @@ class Domain(BaseModel):
             "configuration": {"workflowExecutionRetentionPeriodInDays": self.retention},
         }
 
-    def get_type(self, kind: str, name: str, version: str, ignore_empty: bool = False) -> "GenericType":  # type: ignore
+    def get_type(
+        self, kind: str, name: str, version: str, ignore_empty: bool = False
+    ) -> "GenericType":  # type: ignore
         try:
             return self.types[kind][name][version]
         except KeyError:

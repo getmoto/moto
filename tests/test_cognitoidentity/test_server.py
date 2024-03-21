@@ -10,7 +10,6 @@ Test the different server responses
 
 @mock_aws
 def test_create_identity_pool():
-
     backend = server.create_backend_app("cognito-identity")
     test_client = backend.test_client()
 

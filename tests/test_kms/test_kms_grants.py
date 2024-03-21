@@ -120,7 +120,6 @@ def test_list_retirable_grants():
 
 @mock_aws
 def test_revoke_grant():
-
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
 
@@ -156,7 +155,6 @@ def test_revoke_grant_raises_when_grant_does_not_exist():
 
 @mock_aws
 def test_retire_grant_by_token():
-
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
 
@@ -175,7 +173,6 @@ def test_retire_grant_by_token():
 
 @mock_aws
 def test_retire_grant_by_grant_id():
-
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
 

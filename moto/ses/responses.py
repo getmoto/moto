@@ -142,7 +142,10 @@ class EmailResponse(BaseResponse):
             destinations.append({"Destination": destination})
 
         message = self.backend.send_bulk_templated_email(
-            source, template, template_data, destinations  # type: ignore
+            source,
+            template,
+            template_data,
+            destinations,  # type: ignore
         )
         template = self.response_template(SEND_BULK_TEMPLATED_EMAIL_RESPONSE)
         result = template.render(message=message)
@@ -221,9 +224,7 @@ class EmailResponse(BaseResponse):
         configuration_set_name = self._get_param("ConfigurationSetName")
         is_configuration_event_enabled = self.querystring.get(
             "EventDestination.Enabled"
-        )[
-            0
-        ]  # type: ignore
+        )[0]  # type: ignore
         configuration_event_name = self.querystring.get("EventDestination.Name")[0]  # type: ignore
         event_topic_arn = self.querystring.get(  # type: ignore
             "EventDestination.SNSDestination.TopicARN"

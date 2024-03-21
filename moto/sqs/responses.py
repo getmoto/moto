@@ -35,7 +35,7 @@ from .utils import (
 
 
 def jsonify_error(
-    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]
+    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]],
 ) -> Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]:
     """
     The decorator to convert an RESTError to JSON, if necessary
@@ -54,7 +54,6 @@ def jsonify_error(
 
 
 class SQSResponse(BaseResponse):
-
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
     def __init__(self) -> None:
@@ -617,9 +616,9 @@ class SQSResponse(BaseResponse):
                         message.approximate_first_receive_timestamp
                     )
                 if attributes["message_deduplication_id"]:
-                    msg["Attributes"][
-                        "MessageDeduplicationId"
-                    ] = message.deduplication_id
+                    msg["Attributes"]["MessageDeduplicationId"] = (
+                        message.deduplication_id
+                    )
                 if attributes["message_group_id"] and message.group_id is not None:
                     msg["Attributes"]["MessageGroupId"] = message.group_id
                 if message.system_attributes and message.system_attributes.get(

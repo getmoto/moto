@@ -1,4 +1,5 @@
 """Unit tests for rekognition-supported APIs."""
+
 import random
 import string
 

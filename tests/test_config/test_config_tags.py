@@ -1,11 +1,12 @@
 """Unit tests specific to the tag-related ConfigService APIs.
 
- These APIs include:
-   list_tags_for_resource
-   tag_resource
-   untag_resource
+These APIs include:
+  list_tags_for_resource
+  tag_resource
+  untag_resource
 
 """
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError

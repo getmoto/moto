@@ -76,7 +76,9 @@ class LocalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct: Dict[str, Any], table_key_attrs: List[str]) -> "LocalSecondaryIndex":  # type: ignore[misc]
+    def create(
+        dct: Dict[str, Any], table_key_attrs: List[str]
+    ) -> "LocalSecondaryIndex":  # type: ignore[misc]
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -112,7 +114,9 @@ class GlobalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct: Dict[str, Any], table_key_attrs: List[str]) -> "GlobalSecondaryIndex":  # type: ignore[misc]
+    def create(
+        dct: Dict[str, Any], table_key_attrs: List[str]
+    ) -> "GlobalSecondaryIndex":  # type: ignore[misc]
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -443,9 +447,9 @@ class Table(CloudFormationModel):
         }
         if self.latest_stream_label:
             results[base_key]["LatestStreamLabel"] = self.latest_stream_label
-            results[base_key][
-                "LatestStreamArn"
-            ] = f"{self.table_arn}/stream/{self.latest_stream_label}"
+            results[base_key]["LatestStreamArn"] = (
+                f"{self.table_arn}/stream/{self.latest_stream_label}"
+            )
         if self.stream_specification and self.stream_specification["StreamEnabled"]:
             results[base_key]["StreamSpecification"] = self.stream_specification
         if self.sse_specification and self.sse_specification.get("Enabled") is True:
@@ -657,7 +661,6 @@ class Table(CloudFormationModel):
         filter_expression: Any = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()

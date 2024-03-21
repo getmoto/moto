@@ -1,4 +1,5 @@
 """DAXBackend class with methods for supported APIs."""
+
 from typing import Any, Dict, Iterable, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -61,9 +62,9 @@ class DaxEndpoint:
     def to_json(self, full: bool = False) -> Dict[str, Any]:
         dct: Dict[str, Any] = {"Port": self.port}
         if full:
-            dct[
-                "Address"
-            ] = f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
+            dct["Address"] = (
+                f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
+            )
             dct["URL"] = f"dax://{dct['Address']}"
         return dct
 

@@ -80,9 +80,9 @@ class TransitGatewayRouteTableBackend:
             default_association_route_table=default_association_route_table,
             default_propagation_route_table=default_propagation_route_table,
         )
-        self.transit_gateways_route_tables[
-            transit_gateways_route_table.id
-        ] = transit_gateways_route_table
+        self.transit_gateways_route_tables[transit_gateways_route_table.id] = (
+            transit_gateways_route_table
+        )
         return transit_gateways_route_table
 
     def get_all_transit_gateway_route_tables(
@@ -310,9 +310,9 @@ class TransitGatewayRouteTableBackend:
         self.set_attachment_association(  # type: ignore[attr-defined]
             transit_gateway_attachment_id, transit_gateway_route_table_id
         )
-        self.transit_gateway_associations[
-            transit_gateway_attachment_id
-        ] = transit_gateway_association
+        self.transit_gateway_associations[transit_gateway_attachment_id] = (
+            transit_gateway_association
+        )
 
         return transit_gateway_association
 
@@ -331,9 +331,9 @@ class TransitGatewayRouteTableBackend:
         self.set_attachment_propagation(  # type: ignore[attr-defined]
             transit_gateway_attachment_id, transit_gateway_route_table_id
         )
-        self.transit_gateway_propagations[
-            transit_gateway_attachment_id
-        ] = transit_gateway_propagation
+        self.transit_gateway_propagations[transit_gateway_attachment_id] = (
+            transit_gateway_propagation
+        )
 
         return transit_gateway_propagation
 

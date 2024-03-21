@@ -172,7 +172,8 @@ class AmiBackend:
                     latest_amis = cast(
                         List[Dict[str, Any]],
                         load_resource(
-                            __name__, f"../resources/{path}/{self.region_name}.json"  # type: ignore[attr-defined]
+                            __name__,
+                            f"../resources/{path}/{self.region_name}.json",  # type: ignore[attr-defined]
                         ),
                     )
                     for ami in latest_amis:
