@@ -20,6 +20,7 @@ init:
 lint:
 	@echo "Running ruff..."
 	ruff check moto tests
+	ruff format --check moto tests
 	@echo "Running pylint..."
 	pylint -j 0 moto tests
 	@echo "Running MyPy..."
