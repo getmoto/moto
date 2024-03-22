@@ -200,6 +200,60 @@ def test_update_certificate_authority():
     assert ca["Status"] == "DISABLED"
     assert "LastStateChangeAt" in ca
 
+    # test when `RevocationConfiguration` passed to request parameters
+    client.update_certificate_authority(
+        CertificateAuthorityArn=ca_arn,
+        RevocationConfiguration={
+            "CrlConfiguration": {
+                "Enabled": True,
+            }
+        },
+    )
+    ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
+        "CertificateAuthority"
+    ]
+    revocation_crl_conf = ca["RevocationConfiguration"]["CrlConfiguration"]
+    assert revocation_crl_conf["Enabled"]
+    assert (
+        revocation_crl_conf["S3ObjectAcl"] == "PUBLIC_READ"
+    )  # check if default value is applied.
+
+    client.update_certificate_authority(
+        CertificateAuthorityArn=ca_arn,
+        RevocationConfiguration={
+            "CrlConfiguration": {
+                "Enabled": True,
+                "S3ObjectAcl": "BUCKET_OWNER_FULL_CONTROL",
+            }
+        },
+    )
+    ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
+        "CertificateAuthority"
+    ]
+    revocation_crl_conf = ca["RevocationConfiguration"]["CrlConfiguration"]
+    assert (
+        revocation_crl_conf["S3ObjectAcl"] == "BUCKET_OWNER_FULL_CONTROL"
+    )  # check if the passed parameter is applied.
+
+    # test when invald value passed for RevocationConfiguration.CrlConfiguration.S3ObjectAcl
+    invalid_s3object_acl = "INVALID_VALUE"
+    with pytest.raises(ClientError) as exc:
+        client.update_certificate_authority(
+            CertificateAuthorityArn=ca_arn,
+            RevocationConfiguration={
+                "CrlConfiguration": {
+                    "Enabled": True,
+                    "S3ObjectAcl": invalid_s3object_acl,
+                }
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidS3ObjectAclInCrlConfiguration"
+    assert (
+        err["Message"]
+        == f"Invalid value for parameter RevocationConfiguration.CrlConfiguration.S3ObjectAcl, value: {invalid_s3object_acl}, valid values: ['PUBLIC_READ', 'BUCKET_OWNER_FULL_CONTROL']"
+    )
+
 
 @mock_aws
 def test_delete_certificate_authority():
