@@ -2894,7 +2894,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         type_: Optional[str],
         select_parameters: Optional[Dict[str, Any]],
         output_location: Optional[Dict[str, Any]],
-    ) -> Union[bool | List[bytes]]:
+    ) -> bool:
         key = self.get_object(bucket_name, key_name)
         if not key:
             raise MissingKey
