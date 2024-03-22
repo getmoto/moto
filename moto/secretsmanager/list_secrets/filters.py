@@ -33,8 +33,8 @@ def filter_all(secret: "FakeSecret", values: List[str]) -> bool:
 def _matcher(patterns: List[str], strings: List[str]) -> bool:
     for pattern in [p for p in patterns if p.startswith("!")]:
         for string in strings:
-            if _match_pattern(pattern[1:], string):
-                return False
+            if not _match_pattern(pattern[1:], string):
+                return True
 
     for pattern in [p for p in patterns if not p.startswith("!")]:
         for string in strings:
@@ -45,6 +45,6 @@ def _matcher(patterns: List[str], strings: List[str]) -> bool:
 
 def _match_pattern(pattern: str, value: str) -> bool:
     for word in pattern.split(" "):
-        if word not in value:
+        if not value.startswith(word):
             return False
     return True
