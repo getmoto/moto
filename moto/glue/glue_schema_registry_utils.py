@@ -168,7 +168,6 @@ def validate_registry_id(
                 param_value=registry_name,
             )
         if registry_id.get(REGISTRY_ARN):
-
             raise RegistryNotFoundException(
                 resource="Registry",
                 param_name=REGISTRY_ARN,
@@ -364,7 +363,7 @@ def validate_schema_version_number(
 
 
 def validate_schema_version_metadata_pattern_and_length(
-    metadata_key_value: Dict[str, str]
+    metadata_key_value: Dict[str, str],
 ) -> Tuple[str, str]:
     metadata_key = metadata_key_value.get(METADATA_KEY)
     metadata_value = metadata_key_value.get(METADATA_VALUE)
@@ -376,7 +375,7 @@ def validate_schema_version_metadata_pattern_and_length(
 
 
 def validate_number_of_schema_version_metadata_allowed(
-    metadata: Dict[str, Any]
+    metadata: Dict[str, Any],
 ) -> None:
     num_metadata_key_value_pairs = 0
     for m in metadata.values():

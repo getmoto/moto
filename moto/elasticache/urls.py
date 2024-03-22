@@ -1,4 +1,5 @@
 """elasticache base URL and path."""
+
 from .responses import ElastiCacheResponse
 
 url_bases = [

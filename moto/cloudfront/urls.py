@@ -1,4 +1,5 @@
 """cloudfront base URL and path."""
+
 from .responses import CloudFrontResponse
 
 url_bases = [

@@ -22,12 +22,12 @@ class TransitGateways(EC2BaseResponse):
                 default_propagation_route_table=True,
             )
         )
-        transit_gateway.options[
-            "AssociationDefaultRouteTableId"
-        ] = transit_gateway_route_table.id
-        transit_gateway.options[
-            "PropagationDefaultRouteTableId"
-        ] = transit_gateway_route_table.id
+        transit_gateway.options["AssociationDefaultRouteTableId"] = (
+            transit_gateway_route_table.id
+        )
+        transit_gateway.options["PropagationDefaultRouteTableId"] = (
+            transit_gateway_route_table.id
+        )
 
         template = self.response_template(CREATE_TRANSIT_GATEWAY_RESPONSE)
         return template.render(transit_gateway=transit_gateway)

@@ -1271,7 +1271,6 @@ class EventSourceMapping(CloudFormationModel):
         return event_source_arn.split(":")[2].lower()
 
     def _validate_event_source(self, event_source_arn: str) -> bool:
-
         valid_services = ("dynamodb", "kinesis", "sqs")
         service = self._get_service_source_from_arn(event_source_arn)
         return service in valid_services
@@ -1418,9 +1417,9 @@ class LambdaStorage(object):
     def __init__(self, region_name: str, account_id: str):
         # Format 'func_name' {'versions': []}
         self._functions: Dict[str, Any] = {}
-        self._arns: weakref.WeakValueDictionary[
-            str, LambdaFunction
-        ] = weakref.WeakValueDictionary()
+        self._arns: weakref.WeakValueDictionary[str, LambdaFunction] = (
+            weakref.WeakValueDictionary()
+        )
         self.region_name = region_name
         self.account_id = account_id
 
@@ -1758,9 +1757,9 @@ class LambdaStorage(object):
 class LayerStorage(object):
     def __init__(self) -> None:
         self._layers: Dict[str, Layer] = {}
-        self._arns: weakref.WeakValueDictionary[
-            str, LambdaFunction
-        ] = weakref.WeakValueDictionary()
+        self._arns: weakref.WeakValueDictionary[str, LambdaFunction] = (
+            weakref.WeakValueDictionary()
+        )
 
     def _find_layer_by_name_or_arn(self, name_or_arn: str) -> Layer:
         if name_or_arn in self._layers:

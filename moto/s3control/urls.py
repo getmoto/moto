@@ -1,4 +1,5 @@
 """s3control base URL and path."""
+
 from .responses import S3ControlResponse
 
 url_bases = [

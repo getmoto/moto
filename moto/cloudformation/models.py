@@ -117,7 +117,6 @@ class FakeStackSet(BaseModel):
         regions: List[str],
         operation_id: str,
     ) -> Dict[str, Any]:
-
         self.template = template or self.template
         self.description = description if description is not None else self.description
         self.parameters = parameters or self.parameters
@@ -447,7 +446,6 @@ class FakeStack(CloudFormationModel):
         resource_status_reason: Optional[str] = None,
         resource_properties: Optional[str] = None,
     ) -> None:
-
         event = FakeEvent(
             stack_id=self.stack_id,
             stack_name=self.name,

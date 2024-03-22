@@ -1008,9 +1008,9 @@ class FeatureGroup(BaseObject):
             "Catalog": "AwsDataCatalog",
             "Database": "sagemaker_featurestore",
         }
-        offline_store_config["S3StorageConfig"][
-            "ResolvedOutputS3Uri"
-        ] = f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
+        offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
+            f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
+        )
 
         self.offline_store_config = offline_store_config
         self.role_arn = role_arn
@@ -2676,9 +2676,9 @@ class SageMakerModelBackend(BaseBackend):
             client_request_token=client_request_token,
         )
 
-        self.pipelines[pipeline_name].pipeline_executions[
-            pipeline_execution_arn
-        ] = fake_pipeline_execution
+        self.pipelines[pipeline_name].pipeline_executions[pipeline_execution_arn] = (
+            fake_pipeline_execution
+        )
         self.pipelines[
             pipeline_name
         ].last_execution_time = fake_pipeline_execution.start_time
@@ -3521,12 +3521,12 @@ class SageMakerModelBackend(BaseBackend):
             client_token=client_token,
             model_package_type=model_package_type,
         )
-        self.model_package_name_mapping[
-            model_package.model_package_name
-        ] = model_package.model_package_arn
-        self.model_package_name_mapping[
+        self.model_package_name_mapping[model_package.model_package_name] = (
             model_package.model_package_arn
-        ] = model_package.model_package_arn
+        )
+        self.model_package_name_mapping[model_package.model_package_arn] = (
+            model_package.model_package_arn
+        )
         self.model_packages[model_package.model_package_arn] = model_package
         return model_package.model_package_arn
 

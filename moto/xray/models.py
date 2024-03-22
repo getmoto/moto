@@ -54,7 +54,7 @@ class TraceSegment(BaseModel):
         metadata: Any = None,
         annotations: Any = None,
         subsegments: Any = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self.name = name
         self.id = segment_id

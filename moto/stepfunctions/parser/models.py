@@ -84,7 +84,6 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> StateMachine:
-
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
         return super().create_state_machine(
@@ -208,9 +207,9 @@ class StepFunctionsParserBackend(StepFunctionBackend):
 
     def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
         for execution in self._get_executions():
-            map_run_record: Optional[
-                MapRunRecord
-            ] = execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
+            map_run_record: Optional[MapRunRecord] = (
+                execution.exec_worker.env.map_run_record_pool_manager.get(map_run_arn)
+            )
             if map_run_record is not None:
                 return map_run_record.describe()
         raise ResourceNotFound()
@@ -220,9 +219,9 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         Pagination is not yet implemented
         """
         execution = self.describe_execution(execution_arn=execution_arn)
-        map_run_records: List[
-            MapRunRecord
-        ] = execution.exec_worker.env.map_run_record_pool_manager.get_all()
+        map_run_records: List[MapRunRecord] = (
+            execution.exec_worker.env.map_run_record_pool_manager.get_all()
+        )
         return dict(
             mapRuns=[map_run_record.to_json() for map_run_record in map_run_records]
         )

@@ -47,6 +47,6 @@ def _reverse_error_name_lookup() -> Dict[str, StatesErrorNameType]:
     return lookup
 
 
-_REVERSE_NAME_LOOKUP: Final[
-    Dict[str, StatesErrorNameType]
-] = _reverse_error_name_lookup()
+_REVERSE_NAME_LOOKUP: Final[Dict[str, StatesErrorNameType]] = (
+    _reverse_error_name_lookup()
+)

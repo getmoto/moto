@@ -188,7 +188,6 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         instance_interruption_behaviour: Optional[str],
         tag_specifications: Optional[List[Dict[str, Any]]],
     ):
-
         self.ec2_backend = ec2_backend
         self.spot_backend = spot_backend
         self.id = spot_fleet_request_id
@@ -468,7 +467,6 @@ class SpotRequestBackend:
         instance_interruption_behaviour: Optional[str] = None,
         tag_specifications: Optional[List[Dict[str, Any]]] = None,
     ) -> SpotFleetRequest:
-
         spot_fleet_request_id = random_spot_fleet_request_id()
         request = SpotFleetRequest(
             ec2_backend=self,

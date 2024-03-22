@@ -17,7 +17,6 @@ class Plan(BaseModel):
         creator_request_id: str,
         backend: "BackupBackend",
     ):
-
         self.backup_plan_id = str(mock_random.uuid4())
         self.backup_plan_arn = f"arn:aws:backup:{backend.region_name}:{backend.account_id}:backup-plan:{self.backup_plan_id}"
         self.creation_date = unix_time()
@@ -137,7 +136,6 @@ class BackupBackend(BaseBackend):
         backup_plan_tags: Dict[str, str],
         creator_request_id: str,
     ) -> Plan:
-
         if backup_plan["BackupPlanName"] in list(
             p.backup_plan["BackupPlanName"] for p in list(self.plans.values())
         ):
@@ -197,7 +195,6 @@ class BackupBackend(BaseBackend):
         encryption_key_arn: str,
         creator_request_id: str,
     ) -> Vault:
-
         if backup_vault_name in self.vaults:
             raise AlreadyExistsException(
                 msg="Backup vault with the same name already exists"

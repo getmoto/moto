@@ -1,6 +1,7 @@
 """
 This file should only contain constants used for the EKS tests.
 """
+
 import re
 from enum import Enum
 

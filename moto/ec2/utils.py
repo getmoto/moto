@@ -544,7 +544,7 @@ def generic_filter(
     filters: Dict[str, Any], objects: List[FILTER_TYPE]
 ) -> List[FILTER_TYPE]:
     if filters:
-        for (_filter, _filter_value) in filters.items():
+        for _filter, _filter_value in filters.items():
             objects = [
                 obj
                 for obj in objects
@@ -710,7 +710,7 @@ def _convert_rfc4716(data: bytes) -> bytes:
 
 
 def public_key_parse(
-    key_material: Union[str, bytes]
+    key_material: Union[str, bytes],
 ) -> Union[RSAPublicKey, Ed25519PublicKey]:
     try:
         if isinstance(key_material, str):

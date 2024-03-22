@@ -768,9 +768,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 environment = kwargs["environment"]
                 environment["MOTO_HOST"] = settings.moto_server_host()
                 environment["MOTO_PORT"] = settings.moto_server_port()
-                environment[
-                    "MOTO_HTTP_ENDPOINT"
-                ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                environment["MOTO_HTTP_ENDPOINT"] = (
+                    f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                )
 
                 if network_name:
                     kwargs["network"] = network_name
@@ -1217,6 +1217,12 @@ class BatchBackend(BaseBackend):
         if self.get_compute_environment_by_name(compute_environment_name) is not None:
             raise InvalidParameterValueException(
                 f"A compute environment already exists with the name {compute_environment_name}"
+            )
+
+        if not service_role:
+            raise ClientException(
+                f"Error executing request, Exception : ServiceRole is required.,"
+                f" RequestId: {mock_random.uuid4()}"
             )
 
         # Look for IAM role

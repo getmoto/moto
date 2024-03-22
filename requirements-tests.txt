@@ -5,4 +5,3 @@ pytest-order
 pytest-xdist
 freezegun
 pylint
-ruff

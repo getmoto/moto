@@ -406,7 +406,6 @@ class FilterPolicyMatcher:
                 elif keyword == "numeric" and isinstance(value, list):
                     if attributes_based_check:
                         if dict_body.get(field, {}).get("Type", "") == "Number":
-
                             checks = value
                             numeric_ranges = zip(checks[0::2], checks[1::2])
                             if _numeric_match(

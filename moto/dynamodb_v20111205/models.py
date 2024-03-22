@@ -165,7 +165,9 @@ class Table(BaseModel):
     def put_item(self, item_attrs: Dict[str, Any]) -> Item:
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))  # type: ignore[arg-type]
         if self.has_range_key:
-            range_value: Optional[DynamoType] = DynamoType(item_attrs.get(self.range_key_attr))  # type: ignore[arg-type]
+            range_value: Optional[DynamoType] = DynamoType(
+                item_attrs.get(self.range_key_attr)
+            )  # type: ignore[arg-type]
         else:
             range_value = None
 

@@ -138,7 +138,6 @@ class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-
         role = self.backends[account_id]["global"].roles.get(resource_id)
 
         if not role:

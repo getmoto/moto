@@ -1,4 +1,5 @@
 """lakeformation base URL and path."""
+
 from .responses import LakeFormationResponse
 
 url_bases = [

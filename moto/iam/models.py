@@ -140,7 +140,6 @@ class VirtualMfaDevice:
 
 
 class Policy(CloudFormationModel):
-
     # Note: This class does not implement the CloudFormation support for AWS::IAM::Policy, as that CF resource
     #  is for creating *inline* policies.  That is done in class InlinePolicy.
 
@@ -464,7 +463,9 @@ class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
 
     @classmethod
-    def from_data(cls, name: str, account_id: str, data: Dict[str, Any]) -> "AWSManagedPolicy":  # type: ignore[misc]
+    def from_data(
+        cls, name: str, account_id: str, data: Dict[str, Any]
+    ) -> "AWSManagedPolicy":  # type: ignore[misc]
         return cls(
             name,
             account_id=account_id,

@@ -1,4 +1,5 @@
 """ApiGatewayV2Backend class with methods for supported APIs."""
+
 import hashlib
 import string
 from typing import Any, Dict, List, Optional, Union

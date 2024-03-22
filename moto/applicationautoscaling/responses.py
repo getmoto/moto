@@ -218,9 +218,9 @@ def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
     if p.policy_type == "StepScaling":
         response["StepScalingPolicyConfiguration"] = p.step_scaling_policy_configuration
     elif p.policy_type == "TargetTrackingScaling":
-        response[
-            "TargetTrackingScalingPolicyConfiguration"
-        ] = p.target_tracking_scaling_policy_configuration
+        response["TargetTrackingScalingPolicyConfiguration"] = (
+            p.target_tracking_scaling_policy_configuration
+        )
     return response
 
 

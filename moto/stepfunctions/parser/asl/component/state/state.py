@@ -60,12 +60,12 @@ class CommonStateField(EvalComponent, ABC):
         # If omitted, it has the value $ which designates the entire output.
         self.output_path: OutputPath = OutputPath(OutputPath.DEFAULT_PATH)
 
-        self.state_entered_event_type: Final[
-            HistoryEventType
-        ] = state_entered_event_type
-        self.state_exited_event_type: Final[
-            Optional[HistoryEventType]
-        ] = state_exited_event_type
+        self.state_entered_event_type: Final[HistoryEventType] = (
+            state_entered_event_type
+        )
+        self.state_exited_event_type: Final[Optional[HistoryEventType]] = (
+            state_exited_event_type
+        )
 
     def from_state_props(self, state_props: StateProps) -> None:
         self.name = state_props.name
@@ -122,8 +122,7 @@ class CommonStateField(EvalComponent, ABC):
         )
 
     @abc.abstractmethod
-    def _eval_state(self, env: Environment) -> None:
-        ...
+    def _eval_state(self, env: Environment) -> None: ...
 
     def _eval_body(self, env: Environment) -> None:
         env.event_history.add_event(

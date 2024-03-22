@@ -226,7 +226,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "SecurityGroup":
         from ..models import ec2_backends
 
@@ -310,7 +310,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             security_group.delete(account_id, region_name)
 
     def delete(
-        self, account_id: str, region_name: str  # pylint: disable=unused-argument
+        self,
+        account_id: str,
+        region_name: str,  # pylint: disable=unused-argument
     ) -> None:
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
@@ -627,7 +629,9 @@ class SecurityGroupBackend:
         return results
 
     @staticmethod
-    def _match_sg_rules(rules_list: List[SecurityRule], filters: Any) -> List[SecurityRule]:  # type: ignore[misc]
+    def _match_sg_rules(
+        rules_list: List[SecurityRule], filters: Any
+    ) -> List[SecurityRule]:  # type: ignore[misc]
         results = []
         for rule in rules_list:
             if rule.match_tags(filters):
@@ -802,7 +806,9 @@ class SecurityGroupBackend:
         security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> None:
-        group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
+        group: SecurityGroup = self.get_security_group_by_name_or_id(
+            group_name_or_id, vpc_id
+        )  # type: ignore[assignment]
 
         if security_rule_ids:
             group.ingress_rules = [
@@ -971,7 +977,9 @@ class SecurityGroupBackend:
         security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> None:
-        group: SecurityGroup = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)  # type: ignore[assignment]
+        group: SecurityGroup = self.get_security_group_by_name_or_id(
+            group_name_or_id, vpc_id
+        )  # type: ignore[assignment]
 
         if security_rule_ids:
             group.egress_rules = [
@@ -1266,7 +1274,7 @@ class SecurityGroupIngress(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "SecurityGroupIngress":
         from ..models import ec2_backends
 

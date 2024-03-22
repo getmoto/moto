@@ -29,7 +29,10 @@ class DataBrewResponse(BaseResponse):
         tags = self.parameters.get("Tags")
         return json.dumps(
             self.databrew_backend.create_recipe(
-                recipe_name, recipe_description, recipe_steps, tags  # type: ignore[arg-type]
+                recipe_name,
+                recipe_description,
+                recipe_steps,
+                tags,  # type: ignore[arg-type]
             ).as_dict()
         )
 
@@ -98,7 +101,9 @@ class DataBrewResponse(BaseResponse):
         recipe_steps = self.parameters.get("Steps")
 
         self.databrew_backend.update_recipe(
-            recipe_name, recipe_description, recipe_steps  # type: ignore[arg-type]
+            recipe_name,
+            recipe_description,
+            recipe_steps,  # type: ignore[arg-type]
         )
         return json.dumps({"Name": recipe_name})
 
@@ -141,7 +146,10 @@ class DataBrewResponse(BaseResponse):
         tags = self.parameters.get("Tags")
 
         ruleset = self.databrew_backend.update_ruleset(
-            ruleset_name, ruleset_description, ruleset_rules, tags  # type: ignore[arg-type]
+            ruleset_name,
+            ruleset_description,
+            ruleset_rules,
+            tags,  # type: ignore[arg-type]
         )
         return json.dumps(ruleset.as_dict())
 

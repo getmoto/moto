@@ -1,4 +1,5 @@
 """Handles incoming lakeformation requests, invokes methods, returns responses."""
+
 import json
 from typing import Any, Dict
 

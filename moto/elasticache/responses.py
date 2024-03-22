@@ -128,7 +128,8 @@ class ElastiCacheResponse(BaseResponse):
         cache_cluster_id = self._get_param("CacheClusterId")
         max_records = self._get_int_param("MaxRecords")
         marker = self._get_param("Marker")
-        marker, cache_clusters = self.elasticache_backend.describe_cache_clusters(
+
+        cache_clusters, marker = self.elasticache_backend.describe_cache_clusters(
             cache_cluster_id=cache_cluster_id,
             marker=marker,
             max_records=max_records,
@@ -347,7 +348,7 @@ DESCRIBE_CACHE_CLUSTERS_TEMPLATE = """<DescribeCacheClustersResponse xmlns="http
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
   <DescribeCacheClustersResult>
-    <Marker>{{ marker }}</Marker>
+    {% if marker %}<Marker>{{ marker }}</Marker>{% endif %}
     <CacheClusters>
 {% for cache_cluster in cache_clusters %}
       <member>

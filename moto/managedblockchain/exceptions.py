@@ -11,17 +11,13 @@ class ManagedBlockchainClientError(JsonRESTError):
         self.message = message
         self.description = json.dumps({"message": self.message})
 
-    def get_headers(
-        self, *args: Any, **kwargs: Any
-    ) -> List[Tuple[str, str]]:  # pylint: disable=unused-argument
+    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:  # pylint: disable=unused-argument
         return [
             ("Content-Type", "application/json"),
             ("x-amzn-ErrorType", self.error_type),
         ]
 
-    def get_body(
-        self, *args: Any, **kwargs: Any
-    ) -> str:  # pylint: disable=unused-argument
+    def get_body(self, *args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-argument
         return self.description
 
 

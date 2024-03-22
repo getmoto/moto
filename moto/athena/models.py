@@ -36,7 +36,6 @@ class TaggableResourceMixin:
 
 
 class WorkGroup(TaggableResourceMixin, BaseModel):
-
     resource_type = "workgroup"
     state = "ENABLED"
 

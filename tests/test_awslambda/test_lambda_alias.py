@@ -1,4 +1,5 @@
 """Unit tests for lambda-supported APIs."""
+
 from uuid import uuid4
 
 import boto3

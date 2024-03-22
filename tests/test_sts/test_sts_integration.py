@@ -111,9 +111,7 @@ class TestStsAssumeRole(unittest.TestCase):
               </AuthnContext>
             </AuthnStatement>
           </Assertion>
-        </samlp:Response>""".replace(
-            "\n", ""
-        )
+        </samlp:Response>""".replace("\n", "")
 
         assume_role_response = self.sts.assume_role_with_saml(
             RoleArn=role_input,

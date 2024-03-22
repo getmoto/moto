@@ -15,5 +15,5 @@ def test_list_streams():
     assert json_data == {
         "HasMoreStreams": False,
         "StreamNames": [],
-        "StreamSummaries": []
+        "StreamSummaries": [],
     }

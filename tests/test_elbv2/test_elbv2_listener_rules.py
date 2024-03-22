@@ -55,7 +55,6 @@ def setup_listener(conn):
 
 
 def setup_target_group(boto_client):
-
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
 

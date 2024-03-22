@@ -1,4 +1,5 @@
 """appconfig base URL and path."""
+
 from .responses import AppConfigResponse
 
 url_bases = [

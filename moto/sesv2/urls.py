@@ -1,4 +1,5 @@
 """sesv2 base URL and path."""
+
 from .responses import SESV2Response
 
 url_bases = [

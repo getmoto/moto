@@ -37,7 +37,9 @@ class GlacierResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         return self._vault_response(request, full_url, headers)
 
-    def _vault_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def _vault_response(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         vault_name = vault_from_glacier_url(full_url)
 
@@ -101,7 +103,9 @@ class GlacierResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         return self._vault_archive_individual_response(request, full_url, headers)
 
-    def _vault_archive_individual_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def _vault_archive_individual_response(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         vault_name = full_url.split("/")[-3]
         archive_id = full_url.split("/")[-1]
@@ -117,7 +121,9 @@ class GlacierResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         return self._vault_jobs_response(request, full_url, headers)
 
-    def _vault_jobs_response(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def _vault_jobs_response(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[return]
         method = request.method
         if hasattr(request, "body"):
             body = request.body

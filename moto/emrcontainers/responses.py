@@ -1,4 +1,5 @@
 """Handles incoming emrcontainers requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.common_types import TYPE_RESPONSE

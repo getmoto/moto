@@ -1,4 +1,5 @@
 """Route53Backend class with methods for supported APIs."""
+
 import copy
 import itertools
 import re
@@ -284,7 +285,9 @@ class RecordSet(CloudFormationModel):
         return self.name
 
     def delete(
-        self, account_id: str, region: str  # pylint: disable=unused-argument
+        self,
+        account_id: str,
+        region: str,  # pylint: disable=unused-argument
     ) -> None:
         """Not exposed as part of the Route 53 API - used for CloudFormation"""
         backend = route53_backends[account_id]["global"]
@@ -498,7 +501,6 @@ class RecordSetGroup(CloudFormationModel):
 
 
 class QueryLoggingConfig(BaseModel):
-
     """QueryLoggingConfig class; this object isn't part of Cloudformation."""
 
     def __init__(

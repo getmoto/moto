@@ -1,4 +1,5 @@
 """Route53ResolverBackend class with methods for supported APIs."""
+
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -233,9 +234,9 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         """
         subnets: Dict[str, Any] = defaultdict(dict)
         for entry in self.ip_addresses:
-            subnets[entry["SubnetId"]][
-                entry["Ip"]
-            ] = f"rni-{mock_random.get_random_hex(17)}"
+            subnets[entry["SubnetId"]][entry["Ip"]] = (
+                f"rni-{mock_random.get_random_hex(17)}"
+            )
         return subnets
 
     def create_eni(self) -> List[str]:

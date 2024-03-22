@@ -369,9 +369,9 @@ class ServerModeMockAWS(MockAWS):
             if region:
                 if "config" in kwargs:
                     user_agent = kwargs["config"].__dict__.get("user_agent_extra") or ""
-                    kwargs["config"].__dict__[
-                        "user_agent_extra"
-                    ] = f"{user_agent} region/{region}"
+                    kwargs["config"].__dict__["user_agent_extra"] = (
+                        f"{user_agent} region/{region}"
+                    )
                 else:
                     config = Config(user_agent_extra="region/" + region)
                     kwargs["config"] = config
@@ -406,7 +406,6 @@ class ServerModeMockAWS(MockAWS):
 
 
 class ProxyModeMockAWS(MockAWS):
-
     _RESET_IN_PROGRESS = False
 
     def __init__(self, *args: Any, **kwargs: Any):

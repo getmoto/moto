@@ -1,4 +1,5 @@
 """Handles incoming pinpoint requests, invokes methods, returns responses."""
+
 import json
 from typing import Any
 from urllib.parse import unquote
@@ -85,7 +86,8 @@ class PinpointResponse(BaseResponse):
         resource_arn = unquote(self.path).split("/tags/")[-1]
         tag_keys = self.querystring.get("tagKeys")
         self.pinpoint_backend.untag_resource(
-            resource_arn=resource_arn, tag_keys=tag_keys  # type: ignore[arg-type]
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,  # type: ignore[arg-type]
         )
         return 200, {}, "{}"
 

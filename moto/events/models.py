@@ -738,7 +738,8 @@ class Replay(BaseModel):
             for rule in event_bus.rules.values():
                 rule.send_to_targets(
                     dict(
-                        event, **{"id": str(random.uuid4()), "replay-name": self.name}  # type: ignore
+                        event,
+                        **{"id": str(random.uuid4()), "replay-name": self.name},  # type: ignore
                     ),
                 )
 
@@ -1397,7 +1398,9 @@ class EventsBackend(BaseBackend):
             )
 
     @staticmethod
-    def _condition_param_to_stmt_condition(condition: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+    def _condition_param_to_stmt_condition(
+        condition: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
         if condition:
             key = condition["Key"]
             value = condition["Value"]
