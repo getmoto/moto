@@ -766,15 +766,6 @@ class LogsBackend(BaseBackend):
         self.tagger = TaggingService()
         self.export_tasks: Dict[str, ExportTask] = dict()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "logs"
-        )
-
     def create_log_group(
         self, log_group_name: str, tags: Dict[str, str], **kwargs: Any
     ) -> LogGroup:

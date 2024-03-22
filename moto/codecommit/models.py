@@ -40,15 +40,6 @@ class CodeCommitBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.repositories: Dict[str, CodeCommit] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "codecommit"
-        )
-
     def create_repository(
         self, repository_name: str, repository_description: str
     ) -> Dict[str, str]:

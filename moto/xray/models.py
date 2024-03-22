@@ -250,15 +250,6 @@ class XRayBackend(BaseBackend):
         self._telemetry_records: List[TelemetryRecords] = []
         self._segment_collection = SegmentCollection()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "xray"
-        )
-
     def add_telemetry_records(self, src: Any) -> None:
         self._telemetry_records.append(TelemetryRecords.from_json(src))
 

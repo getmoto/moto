@@ -103,15 +103,6 @@ class DataSyncBackend(BaseBackend):
         self.tasks: Dict[str, Task] = OrderedDict()
         self.task_executions: Dict[str, TaskExecution] = OrderedDict()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "datasync"
-        )
-
     def create_location(
         self, location_uri: str, typ: str, metadata: Dict[str, Any]
     ) -> str:

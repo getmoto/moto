@@ -81,15 +81,6 @@ class STSBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.assumed_roles: List[AssumedRole] = []
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "sts"
-        )
-
     def get_session_token(self, duration: int) -> Token:
         return Token(duration=duration)
 

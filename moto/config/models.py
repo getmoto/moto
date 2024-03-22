@@ -917,15 +917,6 @@ class ConfigBackend(BaseBackend):
         self.config_schema: Optional[AWSServiceSpec] = None
         self.retention_configuration: Optional[RetentionConfiguration] = None
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "config"
-        )
-
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:
             self.config_schema = AWSServiceSpec(

@@ -409,15 +409,6 @@ class AWSCertificateManagerBackend(BaseBackend):
         self._certificates: Dict[str, CertBundle] = {}
         self._idempotency_tokens: Dict[str, Any] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "acm-pca"
-        )
-
     def set_certificate_in_use_by(self, arn: str, load_balancer_name: str) -> None:
         if arn not in self._certificates:
             raise CertificateNotFound(arn=arn, account_id=self.account_id)

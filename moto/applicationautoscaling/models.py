@@ -73,15 +73,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self.policies: Dict[str, FakeApplicationAutoscalingPolicy] = {}
         self.scheduled_actions: List[FakeScheduledAction] = list()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "application-autoscaling"
-        )
-
     def describe_scalable_targets(
         self, namespace: str, r_ids: Union[None, List[str]], dimension: Union[None, str]
     ) -> List["FakeScalableTarget"]:

@@ -480,17 +480,6 @@ class TranscribeBackend(BaseBackend):
         self.medical_vocabularies: Dict[str, FakeMedicalVocabulary] = {}
         self.vocabularies: Dict[str, FakeVocabulary] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint services."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "transcribe"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "transcribestreaming"
-        )
-
     def start_transcription_job(
         self,
         transcription_job_name: str,

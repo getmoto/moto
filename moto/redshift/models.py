@@ -595,17 +595,6 @@ class RedshiftBackend(BaseBackend):
         }
         self.snapshot_copy_grants: Dict[str, SnapshotCopyGrant] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift-data", policy_supported=False
-        )
-
     def enable_snapshot_copy(self, **kwargs: Any) -> Cluster:
         cluster_identifier = kwargs["cluster_identifier"]
         cluster = self.clusters[cluster_identifier]

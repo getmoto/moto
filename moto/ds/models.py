@@ -200,15 +200,6 @@ class DirectoryServiceBackend(BaseBackend):
         self.directories: Dict[str, Directory] = {}
         self.tagger = TaggingService()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ds"
-        )
-
     def _verify_subnets(self, region: str, vpc_settings: Dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
 
