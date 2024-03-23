@@ -140,7 +140,8 @@ class BaseBackend:
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]  # pylint: disable=unused-argument
+        service_region: str,
+        zones: List[str],  # pylint: disable=unused-argument
     ) -> List[Dict[str, str]]:
         """Invoke the factory method for any VPC endpoint(s) services."""
         return []
@@ -188,9 +189,9 @@ class BaseBackend:
         # Don't know how private DNS names are different, so for now just
         # one will be added.
         if private_dns_names:
-            endpoint_service[
-                "PrivateDnsName"
-            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsName"] = (
+                f"{service}.{service_region}.amazonaws.com"
+            )
             endpoint_service["PrivateDnsNameVerificationState"] = "verified"
             endpoint_service["PrivateDnsNames"] = [
                 {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}

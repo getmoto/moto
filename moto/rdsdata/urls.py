@@ -1,4 +1,5 @@
 """rdsdata base URL and path."""
+
 from .responses import RDSDataServiceResponse
 
 url_bases = [

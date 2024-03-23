@@ -1,4 +1,5 @@
 """Pagination control model for Route53."""
+
 from .exceptions import InvalidPaginationToken
 
 PAGINATION_MODEL = {

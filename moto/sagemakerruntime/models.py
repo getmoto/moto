@@ -92,9 +92,9 @@ class SageMakerRuntimeBackend(BaseBackend):
         s3_backend = s3_backends[self.account_id]["global"]
         s3_backend.create_bucket(output_bucket, region_name=self.region_name)
         s3_backend.put_object(output_bucket, output_location, value=output)
-        self.async_results[endpoint_name][
-            input_location
-        ] = f"s3://{output_bucket}/{output_location}"
+        self.async_results[endpoint_name][input_location] = (
+            f"s3://{output_bucket}/{output_location}"
+        )
         return self.async_results[endpoint_name][input_location]
 
 

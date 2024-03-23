@@ -288,9 +288,9 @@ class FakeKey(BaseModel, ManagedState):
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
         if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
-            res[
-                "x-amz-server-side-encryption-bucket-key-enabled"
-            ] = self.bucket_key_enabled
+            res["x-amz-server-side-encryption-bucket-key-enabled"] = (
+                self.bucket_key_enabled
+            )
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
@@ -376,11 +376,13 @@ class FakeKey(BaseModel, ManagedState):
             now = utcnow()
             try:
                 until = datetime.datetime.strptime(
-                    self.lock_until, "%Y-%m-%dT%H:%M:%SZ"  # type: ignore
+                    self.lock_until,
+                    "%Y-%m-%dT%H:%M:%SZ",  # type: ignore
                 )
             except ValueError:
                 until = datetime.datetime.strptime(
-                    self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ"  # type: ignore
+                    self.lock_until,
+                    "%Y-%m-%dT%H:%M:%S.%fZ",  # type: ignore
                 )
 
             if until > now:
@@ -478,7 +480,11 @@ class FakeMultipart(BaseModel):
             raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(
-            part_id, value, account_id=self.account_id, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
+            part_id,
+            value,
+            account_id=self.account_id,
+            encryption=self.sse_encryption,
+            kms_key_id=self.kms_key_id,  # type: ignore
         )
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first
@@ -1582,9 +1588,9 @@ class FakeBucket(CloudFormationModel):
         )
 
         if self.notification_configuration:
-            s_config[
-                "BucketNotificationConfiguration"
-            ] = self.notification_configuration.to_config_dict()
+            s_config["BucketNotificationConfiguration"] = (
+                self.notification_configuration.to_config_dict()
+            )
         else:
             s_config["BucketNotificationConfiguration"] = {"configurations": {}}
 
@@ -1940,7 +1946,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 and len(requested_versions) + len(delete_markers) + len(common_prefixes)
                 >= max_keys
             ):
-
                 next_key_marker = name
                 if is_common_prefix:
                     # No NextToken when returning common prefixes

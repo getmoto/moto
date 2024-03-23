@@ -28,7 +28,6 @@ def _validate_document_description(
     expected_default_version,
     expected_format,
 ):
-
     if expected_format == "JSON":
         assert doc_description["Hash"] == (
             hashlib.sha256(json.dumps(json_doc).encode("utf-8")).hexdigest()

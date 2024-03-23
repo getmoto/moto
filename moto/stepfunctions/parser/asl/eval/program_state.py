@@ -4,8 +4,7 @@ from typing import Final, Optional
 from moto.stepfunctions.parser.api import ExecutionFailedEventDetails, Timestamp
 
 
-class ProgramState(abc.ABC):
-    ...
+class ProgramState(abc.ABC): ...
 
 
 class ProgramEnded(ProgramState):

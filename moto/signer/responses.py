@@ -1,4 +1,5 @@
 """Handles incoming signer requests, invokes methods, returns responses."""
+
 import json
 from typing import Any
 from urllib.parse import unquote

@@ -13,13 +13,13 @@ T = TypeVar("T")
 
 
 @overload
-def mock_aws(func: "Callable[P, T]") -> "Callable[P, T]":
-    ...
+def mock_aws(func: "Callable[P, T]") -> "Callable[P, T]": ...
 
 
 @overload
-def mock_aws(func: None = None, config: Optional[DefaultConfig] = None) -> "MockAWS":
-    ...
+def mock_aws(
+    func: None = None, config: Optional[DefaultConfig] = None
+) -> "MockAWS": ...
 
 
 def mock_aws(

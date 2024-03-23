@@ -366,7 +366,7 @@ class Stream(CloudFormationModel):
                 [s for s in shard_list[0:-1:2]], [s for s in shard_list[1::2]]
             )
 
-            for (shard, adjacent) in adjacent_shards:
+            for shard, adjacent in adjacent_shards:
                 self.merge_shards(shard.shard_id, adjacent.shard_id)
                 required_shard_merges -= 1
                 if required_shard_merges == 0:
@@ -683,7 +683,9 @@ class KinesisBackend(BaseBackend):
         )
 
         next_shard_iterator = compose_shard_iterator(
-            stream_name, shard, last_sequence_id  # type: ignore
+            stream_name,
+            shard,
+            last_sequence_id,  # type: ignore
         )
 
         return next_shard_iterator, records, millis_behind_latest
@@ -732,7 +734,9 @@ class KinesisBackend(BaseBackend):
             data = record.get("Data")
 
             sequence_number, shard_id = stream.put_record(
-                partition_key, explicit_hash_key, data  # type: ignore[arg-type]
+                partition_key,
+                explicit_hash_key,
+                data,  # type: ignore[arg-type]
             )
             response["Records"].append(
                 {"SequenceNumber": sequence_number, "ShardId": shard_id}

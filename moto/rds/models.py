@@ -1736,17 +1736,6 @@ class RDSBackend(BaseBackend):
             ]
         return self._db_cluster_options
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "rds"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "rds-data"
-        )
-
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
         database_id = db_kwargs["db_instance_identifier"]
         self._validate_db_identifier(database_id)
@@ -1902,9 +1891,9 @@ class RDSBackend(BaseBackend):
         database = self.describe_db_instances(db_instance_identifier)[0]
         if "new_db_instance_identifier" in db_kwargs:
             del self.databases[db_instance_identifier]
-            db_instance_identifier = db_kwargs[
-                "db_instance_identifier"
-            ] = db_kwargs.pop("new_db_instance_identifier")
+            db_instance_identifier = db_kwargs["db_instance_identifier"] = (
+                db_kwargs.pop("new_db_instance_identifier")
+            )
             self.databases[db_instance_identifier] = database
         preferred_backup_window = db_kwargs.get("preferred_backup_window")
         preferred_maintenance_window = db_kwargs.get("preferred_maintenance_window")
@@ -2615,9 +2604,9 @@ class RDSBackend(BaseBackend):
             raise DBClusterSnapshotNotFoundError(snapshot_id)
 
         if snapshot_type == "snapshot":
-            snapshot: Union[
-                DatabaseSnapshot, ClusterSnapshot
-            ] = self.database_snapshots[snapshot_id]
+            snapshot: Union[DatabaseSnapshot, ClusterSnapshot] = (
+                self.database_snapshots[snapshot_id]
+            )
         else:
             snapshot = self.cluster_snapshots[snapshot_id]
 
@@ -2765,7 +2754,9 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
             )
 
-    def add_tags_to_resource(self, arn: str, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:  # type: ignore[return]
+    def add_tags_to_resource(
+        self, arn: str, tags: List[Dict[str, str]]
+    ) -> List[Dict[str, str]]:  # type: ignore[return]
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
             resource_type = arn_breakdown[-2]
@@ -2822,7 +2813,9 @@ class RDSBackend(BaseBackend):
             raise InvalidParameterCombination(str(e))
 
     @staticmethod
-    def _merge_tags(old_tags: List[Dict[str, Any]], new_tags: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def _merge_tags(
+        old_tags: List[Dict[str, Any]], new_tags: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
         tags_dict = dict()
         tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
         tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
@@ -3146,14 +3139,16 @@ class OptionGroup:
         return template.render(option_group=self)
 
     def remove_options(
-        self, options_to_remove: Any  # pylint: disable=unused-argument
+        self,
+        options_to_remove: Any,  # pylint: disable=unused-argument
     ) -> None:
         # TODO: Check for option in self.options and remove if exists. Raise
         # error otherwise
         return
 
     def add_options(
-        self, options_to_add: Any  # pylint: disable=unused-argument
+        self,
+        options_to_add: Any,  # pylint: disable=unused-argument
     ) -> None:
         # TODO: Validate option and add it to self.options. If invalid raise
         # error

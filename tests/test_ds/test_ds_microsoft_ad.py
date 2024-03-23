@@ -3,6 +3,7 @@
 The logic to check the details of VPCs and Subnets is shared between the
 "create directory" APIs, so it will not be repeated here.
 """
+
 from datetime import datetime, timezone
 
 import boto3

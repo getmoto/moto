@@ -309,7 +309,7 @@ class NetworkInterfaceBackend:
         enis = list(self.enis.values())
 
         if filters:
-            for (_filter, _filter_value) in filters.items():
+            for _filter, _filter_value in filters.items():
                 if _filter == "network-interface-id":
                     _filter = "id"
                     enis = [

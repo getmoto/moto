@@ -1104,7 +1104,6 @@ def serializedATN():
 
 
 class ASLIntrinsicParser(Parser):
-
     grammarFileName = "ASLIntrinsicParser.g4"
 
     atn = ATNDeserializer().deserialize(serializedATN())
@@ -1314,7 +1313,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def func_decl(self):
-
         localctx = ASLIntrinsicParser.Func_declContext(self, self._ctx, self.state)
         self.enterRule(localctx, 0, self.RULE_func_decl)
         try:
@@ -1368,7 +1366,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def states_func_decl(self):
-
         localctx = ASLIntrinsicParser.States_func_declContext(
             self, self._ctx, self.state
         )
@@ -1472,7 +1469,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def state_fun_name(self):
-
         localctx = ASLIntrinsicParser.State_fun_nameContext(self, self._ctx, self.state)
         self.enterRule(localctx, 4, self.RULE_state_fun_name)
         self._la = 0  # Token type
@@ -1480,7 +1476,7 @@ class ASLIntrinsicParser(Parser):
             self.enterOuterAlt(localctx, 1)
             self.state = 33
             _la = self._input.LA(1)
-            if not ((((_la) & ~0x3F) == 0 and ((1 << _la) & 274876858368) != 0)):
+            if not (((_la) & ~0x3F) == 0 and ((1 << _la) & 274876858368) != 0):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1538,7 +1534,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def func_arg_list(self):
-
         localctx = ASLIntrinsicParser.Func_arg_listContext(self, self._ctx, self.state)
         self.enterRule(localctx, 6, self.RULE_func_arg_list)
         self._la = 0  # Token type
@@ -1771,7 +1766,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def func_arg(self):
-
         localctx = ASLIntrinsicParser.Func_argContext(self, self._ctx, self.state)
         self.enterRule(localctx, 8, self.RULE_func_arg)
         self._la = 0  # Token type
@@ -1876,7 +1870,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def context_path(self):
-
         localctx = ASLIntrinsicParser.Context_pathContext(self, self._ctx, self.state)
         self.enterRule(localctx, 10, self.RULE_context_path)
         try:
@@ -1939,7 +1932,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_path(self):
-
         localctx = ASLIntrinsicParser.Json_pathContext(self, self._ctx, self.state)
         self.enterRule(localctx, 12, self.RULE_json_path)
         self._la = 0  # Token type
@@ -2006,7 +1998,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_path_part(self):
-
         localctx = ASLIntrinsicParser.Json_path_partContext(self, self._ctx, self.state)
         self.enterRule(localctx, 14, self.RULE_json_path_part)
         try:
@@ -2063,7 +2054,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_path_iden(self):
-
         localctx = ASLIntrinsicParser.Json_path_idenContext(self, self._ctx, self.state)
         self.enterRule(localctx, 16, self.RULE_json_path_iden)
         try:
@@ -2111,7 +2101,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_path_iden_qual(self):
-
         localctx = ASLIntrinsicParser.Json_path_iden_qualContext(
             self, self._ctx, self.state
         )
@@ -2235,7 +2224,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def json_path_qual(self):
-
         localctx = ASLIntrinsicParser.Json_path_qualContext(self, self._ctx, self.state)
         self.enterRule(localctx, 20, self.RULE_json_path_qual)
         try:
@@ -2476,7 +2464,7 @@ class ASLIntrinsicParser(Parser):
                 if token in [9, 10, 15]:
                     self.state = 96
                     _la = self._input.LA(1)
-                    if not ((((_la) & ~0x3F) == 0 and ((1 << _la) & 34304) != 0)):
+                    if not (((_la) & ~0x3F) == 0 and ((1 << _la) & 34304) != 0):
                         self._errHandler.recoverInline(self)
                     else:
                         self._errHandler.reportMatch(self)
@@ -2599,7 +2587,6 @@ class ASLIntrinsicParser(Parser):
                 return visitor.visitChildren(self)
 
     def identifier(self):
-
         localctx = ASLIntrinsicParser.IdentifierContext(self, self._ctx, self.state)
         self.enterRule(localctx, 24, self.RULE_identifier)
         try:

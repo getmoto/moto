@@ -44,7 +44,9 @@ class FakeShadow(BaseModel):
         )
 
     @classmethod
-    def create_from_previous_version(cls, previous_shadow: Optional["FakeShadow"], payload: Optional[Dict[str, Any]]) -> "FakeShadow":  # type: ignore[misc]
+    def create_from_previous_version(
+        cls, previous_shadow: Optional["FakeShadow"], payload: Optional[Dict[str, Any]]
+    ) -> "FakeShadow":  # type: ignore[misc]
         """
         set None to payload when you want to delete shadow
         """

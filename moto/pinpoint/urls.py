@@ -1,4 +1,5 @@
 """pinpoint base URL and path."""
+
 from .responses import PinpointResponse
 
 url_bases = [

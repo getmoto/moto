@@ -625,12 +625,12 @@ class IoTBackend(BaseBackend):
         self.ca_certificates: Dict[str, FakeCaCertificate] = OrderedDict()
         self.certificates: Dict[str, FakeCertificate] = OrderedDict()
         self.policies: Dict[str, FakePolicy] = OrderedDict()
-        self.principal_policies: Dict[
-            Tuple[str, str], Tuple[str, FakePolicy]
-        ] = OrderedDict()
-        self.principal_things: Dict[
-            Tuple[str, str], Tuple[str, FakeThing]
-        ] = OrderedDict()
+        self.principal_policies: Dict[Tuple[str, str], Tuple[str, FakePolicy]] = (
+            OrderedDict()
+        )
+        self.principal_things: Dict[Tuple[str, str], Tuple[str, FakeThing]] = (
+            OrderedDict()
+        )
         self.rules: Dict[str, FakeRule] = OrderedDict()
         self.endpoint: Optional[FakeEndpoint] = None
         self.domain_configurations: Dict[str, FakeDomainConfiguration] = OrderedDict()
@@ -1459,8 +1459,11 @@ class IoTBackend(BaseBackend):
             attributes = attribute_payload["attributes"]
             if attributes:
                 # might not exist yet, for example when the thing group was created without attributes
-                current_attribute_payload = thing_group.thing_group_properties.setdefault(
-                    "attributePayload", {"attributes": {}}  # type: ignore
+                current_attribute_payload = (
+                    thing_group.thing_group_properties.setdefault(
+                        "attributePayload",
+                        {"attributes": {}},  # type: ignore
+                    )
                 )
                 if not do_merge:
                     current_attribute_payload["attributes"] = attributes  # type: ignore
@@ -1469,9 +1472,9 @@ class IoTBackend(BaseBackend):
         elif attribute_payload is not None and "attributes" not in attribute_payload:
             thing_group.attributes = {}  # type: ignore
         if "thingGroupDescription" in thing_group_properties:
-            thing_group.thing_group_properties[
-                "thingGroupDescription"
-            ] = thing_group_properties["thingGroupDescription"]
+            thing_group.thing_group_properties["thingGroupDescription"] = (
+                thing_group_properties["thingGroupDescription"]
+            )
         thing_group.version = thing_group.version + 1
         return thing_group.version
 

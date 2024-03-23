@@ -1,4 +1,5 @@
 """ivs base URL and path."""
+
 from .responses import IVSResponse
 
 url_bases = [

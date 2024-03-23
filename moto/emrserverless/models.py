@@ -1,4 +1,5 @@
 """EMRServerlessBackend class with methods for supported APIs."""
+
 import inspect
 import re
 from datetime import datetime
@@ -74,8 +75,14 @@ class FakeApplication(BaseModel):
         yield "applicationId", self.id
         yield "name", self.name
         yield "arn", self.arn
-        yield "autoStartConfig", self.auto_start_configuration,
-        yield "autoStopConfig", self.auto_stop_configuration,
+        yield (
+            "autoStartConfig",
+            self.auto_start_configuration,
+        )
+        yield (
+            "autoStopConfig",
+            self.auto_stop_configuration,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -146,7 +153,6 @@ class EMRServerlessBackend(BaseBackend):
         auto_stop_configuration: str,
         network_configuration: str,
     ) -> FakeApplication:
-
         if application_type not in ["HIVE", "SPARK"]:
             raise ValidationException(f"Unsupported engine {application_type}")
 

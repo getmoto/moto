@@ -374,7 +374,7 @@ MAX_TIMEOUT_SECONDS = 3600
 
 
 def generate_ssm_doc_param_list(
-    parameters: Dict[str, Any]
+    parameters: Dict[str, Any],
 ) -> Optional[List[Dict[str, Any]]]:
     if not parameters:
         return None
@@ -1178,26 +1178,15 @@ class SimpleSystemManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._parameters = ParameterDict(account_id, region_name)
 
-        self._resource_tags: DefaultDict[
-            str, DefaultDict[str, Dict[str, str]]
-        ] = defaultdict(lambda: defaultdict(dict))
+        self._resource_tags: DefaultDict[str, DefaultDict[str, Dict[str, str]]] = (
+            defaultdict(lambda: defaultdict(dict))
+        )
         self._commands: List[Command] = []
         self._errors: List[str] = []
         self._documents: Dict[str, Documents] = {}
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint services."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ssm"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ssmmessages"
-        )
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str

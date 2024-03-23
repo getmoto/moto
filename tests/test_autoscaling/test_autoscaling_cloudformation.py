@@ -26,9 +26,7 @@ Resources:
 Outputs:
     LaunchConfigurationName:
         Value: !Ref LaunchConfiguration
-""".strip().format(
-        EXAMPLE_AMI_ID
-    )
+""".strip().format(EXAMPLE_AMI_ID)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
@@ -50,9 +48,7 @@ Resources:
 Outputs:
     LaunchConfigurationName:
         Value: !Ref LaunchConfiguration
-""".strip().format(
-        EXAMPLE_AMI_ID
-    )
+""".strip().format(EXAMPLE_AMI_ID)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]

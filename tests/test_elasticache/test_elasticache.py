@@ -291,28 +291,31 @@ def test_create_duplicate_cache_cluster():
 def test_describe_all_cache_clusters():
     client = boto3.client("elasticache", region_name="us-east-2")
 
-    test_memcached_cache_cluster_exist = False
+    num_clusters = 5
+    match_number = 0
 
-    cache_cluster_id = "test-cache-cluster"
-    cache_cluster_engine = "memcached"
-    cache_cluster_num_cache_nodes = 5
-
-    client.create_cache_cluster(
-        CacheClusterId=cache_cluster_id,
-        Engine=cache_cluster_engine,
-        NumCacheNodes=cache_cluster_num_cache_nodes,
-    )
+    for i in range(num_clusters):
+        client.create_cache_cluster(
+            CacheClusterId=f"test-cache-cluster-{i}",
+            Engine="memcached",
+            NumCacheNodes=5,
+        )
 
     resp = client.describe_cache_clusters()
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     cache_clusters = resp["CacheClusters"]
+    # account for the default cluster created moto/elasticache/models.py line 148
+    del cache_clusters[0]
 
-    for cache_cluster in cache_clusters:
-        if cache_cluster["CacheClusterId"] == cache_cluster_id:
-            test_memcached_cache_cluster_exist = True
+    for i, cache_cluster in enumerate(cache_clusters):
+        if cache_cluster["CacheClusterId"] == f"test-cache-cluster-{i}":
+            match_number = match_number + 1
 
-    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert test_memcached_cache_cluster_exist
+    if match_number == (num_clusters):
+        assert True
+    else:
+        assert False
 
 
 @mock_aws

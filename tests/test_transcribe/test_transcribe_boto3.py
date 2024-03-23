@@ -6,7 +6,6 @@ from moto import mock_aws
 
 @mock_aws
 def test_run_medical_transcription_job_minimal_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -26,8 +25,9 @@ def test_run_medical_transcription_job_minimal_params():
     resp = client.get_medical_transcription_job(MedicalTranscriptionJobName=job_name)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     transcription_job = resp["MedicalTranscriptionJob"]
-    assert transcription_job["MedicalTranscriptionJobName"] == (
-        args["MedicalTranscriptionJobName"]
+    assert (
+        transcription_job["MedicalTranscriptionJobName"]
+        == (args["MedicalTranscriptionJobName"])
     )
     assert transcription_job["TranscriptionJobStatus"] == "QUEUED"
     assert transcription_job["LanguageCode"] == args["LanguageCode"]
@@ -74,7 +74,6 @@ def test_run_medical_transcription_job_minimal_params():
 
 @mock_aws
 def test_run_medical_transcription_job_all_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -116,8 +115,9 @@ def test_run_medical_transcription_job_all_params():
     resp = client.get_medical_transcription_job(MedicalTranscriptionJobName=job_name)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     transcription_job = resp["MedicalTranscriptionJob"]
-    assert transcription_job["MedicalTranscriptionJobName"] == (
-        args["MedicalTranscriptionJobName"]
+    assert (
+        transcription_job["MedicalTranscriptionJobName"]
+        == (args["MedicalTranscriptionJobName"])
     )
     assert transcription_job["TranscriptionJobStatus"] == "QUEUED"
     assert transcription_job["LanguageCode"] == args["LanguageCode"]
@@ -126,23 +126,29 @@ def test_run_medical_transcription_job_all_params():
     assert "StartTime" not in transcription_job
     assert "CompletionTime" not in transcription_job
     assert "Transcript" not in transcription_job
-    assert transcription_job["Settings"]["ShowSpeakerLabels"] == (
-        args["Settings"]["ShowSpeakerLabels"]
+    assert (
+        transcription_job["Settings"]["ShowSpeakerLabels"]
+        == (args["Settings"]["ShowSpeakerLabels"])
     )
-    assert transcription_job["Settings"]["MaxSpeakerLabels"] == (
-        args["Settings"]["MaxSpeakerLabels"]
+    assert (
+        transcription_job["Settings"]["MaxSpeakerLabels"]
+        == (args["Settings"]["MaxSpeakerLabels"])
     )
-    assert transcription_job["Settings"]["ChannelIdentification"] == (
-        args["Settings"]["ChannelIdentification"]
+    assert (
+        transcription_job["Settings"]["ChannelIdentification"]
+        == (args["Settings"]["ChannelIdentification"])
     )
-    assert transcription_job["Settings"]["ShowAlternatives"] == (
-        args["Settings"]["ShowAlternatives"]
+    assert (
+        transcription_job["Settings"]["ShowAlternatives"]
+        == (args["Settings"]["ShowAlternatives"])
     )
-    assert transcription_job["Settings"]["MaxAlternatives"] == (
-        args["Settings"]["MaxAlternatives"]
+    assert (
+        transcription_job["Settings"]["MaxAlternatives"]
+        == (args["Settings"]["MaxAlternatives"])
     )
-    assert transcription_job["Settings"]["VocabularyName"] == (
-        args["Settings"]["VocabularyName"]
+    assert (
+        transcription_job["Settings"]["VocabularyName"]
+        == (args["Settings"]["VocabularyName"])
     )
 
     assert transcription_job["Specialty"] == args["Specialty"]
@@ -176,7 +182,6 @@ def test_run_medical_transcription_job_all_params():
 
 @mock_aws
 def test_run_transcription_job_all_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -230,23 +235,29 @@ def test_run_transcription_job_all_params():
     assert "StartTime" not in transcription_job
     assert "CompletionTime" not in transcription_job
     assert "Transcript" not in transcription_job
-    assert transcription_job["Settings"]["ShowSpeakerLabels"] == (
-        args["Settings"]["ShowSpeakerLabels"]
+    assert (
+        transcription_job["Settings"]["ShowSpeakerLabels"]
+        == (args["Settings"]["ShowSpeakerLabels"])
     )
-    assert transcription_job["Settings"]["MaxSpeakerLabels"] == (
-        args["Settings"]["MaxSpeakerLabels"]
+    assert (
+        transcription_job["Settings"]["MaxSpeakerLabels"]
+        == (args["Settings"]["MaxSpeakerLabels"])
     )
-    assert transcription_job["Settings"]["ChannelIdentification"] == (
-        args["Settings"]["ChannelIdentification"]
+    assert (
+        transcription_job["Settings"]["ChannelIdentification"]
+        == (args["Settings"]["ChannelIdentification"])
     )
-    assert transcription_job["Settings"]["ShowAlternatives"] == (
-        args["Settings"]["ShowAlternatives"]
+    assert (
+        transcription_job["Settings"]["ShowAlternatives"]
+        == (args["Settings"]["ShowAlternatives"])
     )
-    assert transcription_job["Settings"]["MaxAlternatives"] == (
-        args["Settings"]["MaxAlternatives"]
+    assert (
+        transcription_job["Settings"]["MaxAlternatives"]
+        == (args["Settings"]["MaxAlternatives"])
     )
-    assert transcription_job["Settings"]["VocabularyName"] == (
-        args["Settings"]["VocabularyName"]
+    assert (
+        transcription_job["Settings"]["VocabularyName"]
+        == (args["Settings"]["VocabularyName"])
     )
     # IN_PROGRESS
     resp = client.get_transcription_job(TranscriptionJobName=job_name)
@@ -288,7 +299,6 @@ def test_run_transcription_job_all_params():
 
 @mock_aws
 def test_run_transcription_job_minimal_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -358,7 +368,6 @@ def test_run_transcription_job_minimal_params():
 
 @mock_aws
 def test_run_transcription_job_s3output_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -438,7 +447,6 @@ def test_run_transcription_job_s3output_params():
 
 @mock_aws
 def test_run_transcription_job_identify_languages_params():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -528,7 +536,6 @@ def test_get_nonexistent_transcription_job():
 
 @mock_aws
 def test_run_medical_transcription_job_with_existing_job_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -550,7 +557,6 @@ def test_run_medical_transcription_job_with_existing_job_name():
 
 @mock_aws
 def test_run_transcription_job_with_existing_job_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -569,7 +575,6 @@ def test_run_transcription_job_with_existing_job_name():
 
 @mock_aws
 def test_run_medical_transcription_job_nonexistent_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -589,7 +594,6 @@ def test_run_medical_transcription_job_nonexistent_vocabulary():
 
 @mock_aws
 def test_run_transcription_job_nonexistent_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -607,7 +611,6 @@ def test_run_transcription_job_nonexistent_vocabulary():
 
 @mock_aws
 def test_list_medical_transcription_jobs():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -699,7 +702,6 @@ def test_list_medical_transcription_jobs():
 
 @mock_aws
 def test_list_transcription_jobs():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -783,7 +785,6 @@ def test_list_transcription_jobs():
 
 @mock_aws
 def test_create_medical_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -818,7 +819,6 @@ def test_create_medical_vocabulary():
 
 @mock_aws
 def test_create_vocabulary():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -873,7 +873,6 @@ def test_create_vocabulary():
 
 @mock_aws
 def test_list_vocabularies():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -956,7 +955,6 @@ def test_list_vocabularies():
 
 @mock_aws
 def test_list_medical_vocabularies():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -1060,7 +1058,6 @@ def test_get_nonexistent_vocabulary():
 
 @mock_aws
 def test_create_medical_vocabulary_with_existing_vocabulary_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -1079,7 +1076,6 @@ def test_create_medical_vocabulary_with_existing_vocabulary_name():
 
 @mock_aws
 def test_create_vocabulary_with_existing_vocabulary_name():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 
@@ -1098,7 +1094,6 @@ def test_create_vocabulary_with_existing_vocabulary_name():
 
 @mock_aws
 def test_create_vocabulary_with_bad_request():
-
     region_name = "us-east-1"
     client = boto3.client("transcribe", region_name=region_name)
 

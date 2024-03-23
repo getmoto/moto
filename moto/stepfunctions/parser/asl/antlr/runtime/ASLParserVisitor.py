@@ -10,7 +10,6 @@ else:
 
 
 class ASLParserVisitor(ParseTreeVisitor):
-
     # Visit a parse tree produced by ASLParser#program_decl.
     def visitProgram_decl(self, ctx: ASLParser.Program_declContext):
         return self.visitChildren(ctx)

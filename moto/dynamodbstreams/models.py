@@ -60,9 +60,9 @@ class ShardIterator(BaseModel):
                 self.sequence_number,
             )
 
-        self.streams_backend.shard_iterators[
-            new_shard_iterator.arn
-        ] = new_shard_iterator
+        self.streams_backend.shard_iterators[new_shard_iterator.arn] = (
+            new_shard_iterator
+        )
         return {"NextShardIterator": new_shard_iterator.arn, "Records": items}
 
 
@@ -128,7 +128,10 @@ class DynamoDBStreamsBackend(BaseBackend):
         assert table.stream_shard.id == shard_id  # type: ignore[union-attr]
 
         shard_iterator = ShardIterator(
-            self, table.stream_shard, shard_iterator_type, sequence_number  # type: ignore[arg-type]
+            self,
+            table.stream_shard,
+            shard_iterator_type,
+            sequence_number,  # type: ignore[arg-type]
         )
         self.shard_iterators[shard_iterator.arn] = shard_iterator
 

@@ -2,6 +2,7 @@
 SES Feedback messages
 Extracted from https://docs.aws.amazon.com/ses/latest/DeveloperGuide/notification-contents.html
 """
+
 COMMON_MAIL = {
     "notificationType": "Bounce, Complaint, or Delivery.",
     "mail": {

@@ -37,8 +37,7 @@ class CallbackTimeoutError(TimeoutError):
     pass
 
 
-class CallbackConsumerError(abc.ABC):
-    ...
+class CallbackConsumerError(abc.ABC): ...
 
 
 class CallbackConsumerTimeout(CallbackConsumerError):
@@ -150,9 +149,9 @@ class CallbackPoolManager:
         if callback_endpoint is None:
             return False
 
-        consumer_error: Optional[
-            CallbackConsumerError
-        ] = callback_endpoint.consumer_error
+        consumer_error: Optional[CallbackConsumerError] = (
+            callback_endpoint.consumer_error
+        )
         if consumer_error is not None:
             raise CallbackNotifyConsumerError(callback_consumer_error=consumer_error)
 
@@ -164,9 +163,9 @@ class CallbackPoolManager:
         if callback_endpoint is None:
             return False
 
-        consumer_error: Optional[
-            CallbackConsumerError
-        ] = callback_endpoint.consumer_error
+        consumer_error: Optional[CallbackConsumerError] = (
+            callback_endpoint.consumer_error
+        )
         if consumer_error is not None:
             raise CallbackNotifyConsumerError(callback_consumer_error=consumer_error)
 

@@ -1,4 +1,5 @@
 """Route53 base URL and path."""
+
 from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE

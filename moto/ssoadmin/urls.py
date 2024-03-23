@@ -1,4 +1,5 @@
 """ssoadmin base URL and path."""
+
 from .responses import SSOAdminResponse
 
 url_bases = [

@@ -55,7 +55,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "ElasticAddress":
         from ..models import ec2_backends
 

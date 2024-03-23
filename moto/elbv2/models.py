@@ -722,15 +722,6 @@ class ELBv2Backend(BaseBackend):
         self.load_balancers: Dict[str, FakeLoadBalancer] = OrderedDict()
         self.tagging_service = TaggingService()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticloadbalancing"
-        )
-
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
         """
@@ -1229,7 +1220,6 @@ Member must satisfy regular expression pattern: {expression}"
             healthcheck_timeout_seconds is not None
             and healthcheck_interval_seconds is not None
         ):
-
             if healthcheck_interval_seconds < healthcheck_timeout_seconds:
                 message = f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than or equal to the interval '{healthcheck_interval_seconds}'"
                 if protocol in ("HTTP", "HTTPS"):
@@ -1475,7 +1465,6 @@ Member must satisfy regular expression pattern: {expression}"
         target_group_arns: List[str],
         names: Optional[List[str]],
     ) -> Iterable[FakeTargetGroup]:
-
         args = sum(bool(arg) for arg in [load_balancer_arn, target_group_arns, names])
 
         if args > 1:

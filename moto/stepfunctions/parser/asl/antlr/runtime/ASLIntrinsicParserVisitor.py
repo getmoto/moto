@@ -10,7 +10,6 @@ else:
 
 
 class ASLIntrinsicParserVisitor(ParseTreeVisitor):
-
     # Visit a parse tree produced by ASLIntrinsicParser#func_decl.
     def visitFunc_decl(self, ctx: ASLIntrinsicParser.Func_declContext):
         return self.visitChildren(ctx)

@@ -91,7 +91,7 @@ class Pipeline(CloudFormationModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Pipeline":
         datapipeline_backend = datapipeline_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]

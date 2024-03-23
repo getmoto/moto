@@ -46,13 +46,13 @@ To verify all tests pass for a specific service, for example for `s3`, run these
 
 .. code-block:: bash
 
-  ruff moto/s3 tests/test_s3
-  black --check moto/s3 tests/test_s3
+  ruff check moto/s3 tests/test_s3
+  ruff format --check moto/s3 tests/test_s3
   pylint moto/s3 tests/test_s3
   mypy
   pytest -sv tests/test_s3
 
-If black fails, you can run the following command to automatically format the offending files:
+If ruff fails, you can run the following command to automatically format the offending files:
 
 .. code-block:: bash
 
@@ -83,8 +83,8 @@ Then standard development on Moto can proceed, for example:
 
 .. code-block:: bash
 
-  ruff moto/s3 tests/test_s3
-  black --check moto/s3 tests/test_s3
+  ruff check moto/s3 tests/test_s3
+  ruff format --check moto/s3 tests/test_s3
   pylint moto/s3 tests/test_s3
   mypy
   pytest -sv tests/test_s3

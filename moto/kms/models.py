@@ -260,15 +260,6 @@ class KmsBackend(BaseBackend):
         self.key_to_aliases: Dict[str, Set[str]] = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "kms"
-        )
-
     def _generate_default_keys(self, alias_name: str) -> Optional[str]:
         """Creates default kms keys"""
         if alias_name in RESERVED_ALIASES:

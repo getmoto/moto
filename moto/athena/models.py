@@ -36,7 +36,6 @@ class TaggableResourceMixin:
 
 
 class WorkGroup(TaggableResourceMixin, BaseModel):
-
     resource_type = "workgroup"
     state = "ENABLED"
 
@@ -172,15 +171,6 @@ class AthenaBackend(BaseBackend):
         # Initialise with the primary workgroup
         self.create_work_group(
             name="primary", description="", configuration=dict(), tags=[]
-        )
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "athena"
         )
 
     def create_work_group(

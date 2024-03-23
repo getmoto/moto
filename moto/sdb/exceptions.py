@@ -1,4 +1,5 @@
 """Exceptions raised by the sdb service."""
+
 from typing import Any
 
 from moto.core.exceptions import RESTError

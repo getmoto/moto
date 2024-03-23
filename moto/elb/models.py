@@ -554,9 +554,9 @@ class ELBBackend(BaseBackend):
         if connection_draining:
             load_balancer.attributes["connection_draining"] = connection_draining
             if "timeout" not in connection_draining:
-                load_balancer.attributes["connection_draining"][
-                    "timeout"
-                ] = 300  # default
+                load_balancer.attributes["connection_draining"]["timeout"] = (
+                    300  # default
+                )
         if access_log:
             load_balancer.attributes["access_log"] = access_log
 

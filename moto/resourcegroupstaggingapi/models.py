@@ -104,7 +104,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sns_backend(self) -> SNSBackend:
         return sns_backends[self.account_id][self.region_name]
-    
+
     @property
     def ssm_backend(self) -> SimpleSystemManagerBackend:
         return ssm_backends[self.account_id][self.region_name]
@@ -522,21 +522,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{topic.arn}", "Tags": tags}
 
-        
-        # SSM 
+        # SSM
         if not resource_type_filters or "ssm" in resource_type_filters:
             for document in self.ssm_backend._documents.values():
                 doc_name = document.describe()["Name"]
                 tags = self.ssm_backend._get_documents_tags(doc_name)
                 if not tags or not tag_filter(
                     tags
-                ): # Skip if no tags, or invalid filter
+                ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
                     "ResourceARN": f"arn:aws:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
                     "Tags": tags,
                 }
-
 
         # Workspaces
         if not resource_type_filters or "workspaces" in resource_type_filters:

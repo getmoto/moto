@@ -1,4 +1,5 @@
 """ebs base URL and path."""
+
 from .responses import EBSResponse
 
 url_bases = [r"https?://ebs\.(.+)\.amazonaws\.com"]

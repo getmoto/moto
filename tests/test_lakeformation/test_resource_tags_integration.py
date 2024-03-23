@@ -368,9 +368,7 @@ def test_tag_lakeformation_columns(
 
 @pytest.mark.aws_verified
 @lakeformation_aws_verified
-def test_lf_tags(
-    bucket_name=None, db_name=None, table_name=None, column_name=None
-):  # pylint: disable=unused-argument
+def test_lf_tags(bucket_name=None, db_name=None, table_name=None, column_name=None):  # pylint: disable=unused-argument
     client = boto3.client("lakeformation", region_name="eu-west-2")
     sts = boto3.client("sts", "eu-west-2")
     account_id = sts.get_caller_identity()["Account"]

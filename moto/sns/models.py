@@ -409,15 +409,6 @@ class SNSBackend(BaseBackend):
             "+447700900907",
         ]
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "sns"
-        )
-
     def get_sms_attributes(self, filter_list: Set[str]) -> Dict[str, str]:
         if len(filter_list) > 0:
             return {k: v for k, v in self.sms_attributes.items() if k in filter_list}

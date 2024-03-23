@@ -1,4 +1,5 @@
 """Test different server responses."""
+
 import json
 import unittest
 from uuid import UUID

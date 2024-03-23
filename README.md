@@ -8,7 +8,7 @@
 [![PyPI](https://img.shields.io/pypi/v/moto.svg)](https://pypi.org/project/moto/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/moto.svg)](#)
 [![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)](https://pypistats.org/packages/moto)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Financial Contributors](https://opencollective.com/moto/tiers/badge.svg)](https://opencollective.com/moto)
 
 

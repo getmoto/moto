@@ -329,9 +329,9 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
                 "EstimatedTimeToCompletionInSeconds": 123,
             }
         if self.cluster_snapshot_copy_status is not None:
-            json_response[
-                "ClusterSnapshotCopyStatus"
-            ] = self.cluster_snapshot_copy_status
+            json_response["ClusterSnapshotCopyStatus"] = (
+                self.cluster_snapshot_copy_status
+            )
         return json_response
 
 
@@ -594,17 +594,6 @@ class RedshiftBackend(BaseBackend):
             "subnetgroup": self.subnet_groups,  # type: ignore
         }
         self.snapshot_copy_grants: Dict[str, SnapshotCopyGrant] = {}
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift-data", policy_supported=False
-        )
 
     def enable_snapshot_copy(self, **kwargs: Any) -> Cluster:
         cluster_identifier = kwargs["cluster_identifier"]

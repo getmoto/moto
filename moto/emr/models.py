@@ -139,7 +139,6 @@ class FakeInstanceGroup(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeInstanceGroup":
-
         properties = cloudformation_json["Properties"]
         job_flow_id = properties["JobFlowId"]
         ebs_config = properties.get("EbsConfiguration")
@@ -455,7 +454,6 @@ class FakeCluster(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeCluster":
-
         properties = cloudformation_json["Properties"]
 
         instance_attrs = properties.get("Instances", {})
@@ -557,15 +555,6 @@ class ElasticMapReduceBackend(BaseBackend):
         self.clusters: Dict[str, FakeCluster] = {}
         self.instance_groups: Dict[str, FakeInstanceGroup] = {}
         self.security_configurations: Dict[str, FakeSecurityConfiguration] = {}
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticmapreduce"
-        )
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]

@@ -1,4 +1,5 @@
 """Unit tests verifying put-related delivery stream APIs."""
+
 import boto3
 
 from moto import mock_aws

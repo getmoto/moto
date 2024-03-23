@@ -738,7 +738,8 @@ class Replay(BaseModel):
             for rule in event_bus.rules.values():
                 rule.send_to_targets(
                     dict(
-                        event, **{"id": str(random.uuid4()), "replay-name": self.name}  # type: ignore
+                        event,
+                        **{"id": str(random.uuid4()), "replay-name": self.name},  # type: ignore
                     ),
                 )
 
@@ -1024,15 +1025,6 @@ class EventsBackend(BaseBackend):
         self.destinations: Dict[str, Destination] = {}
         self.partner_event_sources: Dict[str, PartnerEventSource] = {}
         self.approved_parent_event_bus_names: List[str] = []
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "events"
-        )
 
     def _add_default_event_bus(self) -> None:
         self.event_buses["default"] = EventBus(
@@ -1397,7 +1389,9 @@ class EventsBackend(BaseBackend):
             )
 
     @staticmethod
-    def _condition_param_to_stmt_condition(condition: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+    def _condition_param_to_stmt_condition(
+        condition: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
         if condition:
             key = condition["Key"]
             value = condition["Value"]

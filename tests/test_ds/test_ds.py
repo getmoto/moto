@@ -3,6 +3,7 @@
 Simple AD directories are used for test data, but the operations are
 common to the other directory types.
 """
+
 from datetime import datetime, timezone
 
 import boto3

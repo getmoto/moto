@@ -1,4 +1,5 @@
 """scheduler base URL and path."""
+
 from .responses import EventBridgeSchedulerResponse
 
 url_bases = [

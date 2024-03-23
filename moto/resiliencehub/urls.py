@@ -1,4 +1,5 @@
 """resiliencehub base URL and path."""
+
 from .responses import ResilienceHubResponse
 
 url_bases = [

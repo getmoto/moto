@@ -905,7 +905,7 @@ def test_change_resource_record_set__delete_should_match_create():
                         "Action": "DELETE",
                         "ResourceRecordSet": {
                             "Name": name,
-                            "Type": "A"
+                            "Type": "A",
                             # Missing TTL and ResourceRecords
                         },
                     }

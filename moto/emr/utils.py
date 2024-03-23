@@ -28,7 +28,7 @@ def random_instance_group_id() -> str:
 
 
 def steps_from_query_string(
-    querystring_dict: List[Dict[str, Any]]
+    querystring_dict: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     steps = []
     for step in querystring_dict:
@@ -455,7 +455,9 @@ class EmrSecurityGroupManager:
                     pass
 
     @staticmethod
-    def _render_rules(rules: Any, managed_groups: Dict[str, Any]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def _render_rules(
+        rules: Any, managed_groups: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
         rendered_rules = copy.deepcopy(rules)
         for rule in rendered_rules:
             rule["group_name_or_id"] = managed_groups[rule["group_name_or_id"]].id

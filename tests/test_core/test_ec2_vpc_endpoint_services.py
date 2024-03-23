@@ -52,6 +52,16 @@ def test_describe_vpc_endpoint_services_bad_args() -> None:
 
 
 @mock_aws
+def test_describe_vpc_endpoint_services_unimplemented_service() -> None:
+    """Verify exceptions are raised for bad arguments."""
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    service_name = "com.amazonaws.us-east-1.bedrock-agent-runtime"
+    resp = ec2.describe_vpc_endpoint_services(ServiceNames=[service_name])
+    assert resp["ServiceNames"] == [service_name]
+
+
+@mock_aws
 def test_describe_vpc_default_endpoint_services() -> None:
     """Test successfull calls as well as the next_token arg."""
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -75,8 +85,9 @@ def test_describe_vpc_default_endpoint_services() -> None:
     assert all_names[1] == partial_services["ServiceNames"][1]
     assert all_names[0] == partial_services["ServiceDetails"][0]["ServiceName"]
     assert all_names[1] == partial_services["ServiceDetails"][1]["ServiceName"]
-    assert partial_services["NextToken"] == (
-        all_services["ServiceDetails"][2]["ServiceId"]
+    assert (
+        partial_services["NextToken"]
+        == (all_services["ServiceDetails"][2]["ServiceId"])
     )
 
     # Use the next token to receive another service.
