@@ -2924,33 +2924,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         # select request
         if type_:
-            restored_key = copy.deepcopy(key)
-            output_location_s3 = output_location["S3"]
-
-            # TODO: 'Encryption', 'CannedACL', 'AccessControlList', 'Tagging' and 'UserMetadata' are need to be supported for OutputLocation.S3 configuration.
-            # set bucket name
-            _bucket_name = output_location_s3.get("BucketName")
-            if _bucket_name is not None:
-                # check if bucket is exists here.
-                bucket = self.get_bucket(_bucket_name)
-            else:
-                bucket = self.bucket(key.bucket_name)
-            restored_key.bucket_name = bucket.name
-
-            # set key name
-            _key_name = output_location_s3.get("Prefix")
-            if _key_name is not None:
-                restored_key.name = _key_name
-                key_name = _key_name
-            else:
-                key_name = key.name
-
-            # set storage class
-            _storage = output_location_s3.get("StorageClass")
-            if _storage is not None:
-                restored_key.set_storage_class(_storage)
-
-            # set value
+            # select object
             contents = self.select_object_content(
                 key.bucket_name,
                 key.name,
@@ -2969,10 +2943,39 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             payload_bytes = b""
             for data in contents:
                 payload_bytes += data + delimiter
-            restored_key.value = payload_bytes
 
-            # save object to bucket
-            bucket.keys.setlist(key_name, restored_key)
+            # TODO: 'Encryption', 'CannedACL', 'AccessControlList', 'Tagging' and 'UserMetadata' are need to be supported for OutputLocation.S3 configuration.
+            output_location_s3 = output_location["S3"]
+            # bucket name
+            _bucket_name = output_location_s3.get("BucketName")
+            if _bucket_name:
+                # check if bucket exists
+                bucket_name = self.get_bucket(_bucket_name).name
+            else:
+                bucket_name = key.buckt_name
+
+            # set key name
+            _key_name = output_location_s3.get("Prefix")
+
+            self.put_object(
+                bucket_name=self.get_bucket(_bucket_name).name
+                if _bucket_name
+                else key.bucket_name,
+                key_name=_key_name if _key_name else key.name,
+                value=payload_bytes,
+                storage=output_location_s3.get("StorageClass"),
+                etag=key.etag,
+                multipart=key.multipart,
+                encryption=key.encryption,
+                kms_key_id=key.kms_key_id,
+                bucket_key_enabled=key.bucket_key_enabled,
+                lock_mode=key.lock_mode,
+                lock_legal_status=key.lock_legal_status,
+                lock_until=key.lock_until,
+                checksum_value=key.checksum_value,
+                # PutObject notification must not sent when object restoration.
+                disable_notification=True,
+            )
             return True
 
         # restore object request
