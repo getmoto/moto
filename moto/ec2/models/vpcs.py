@@ -1044,7 +1044,9 @@ class VPCBackend:
             # Return sensible defaults, for services that do not offer a custom implementation
             for aws_service in AWS_ENDPOINT_SERVICES:
                 if aws_service not in COVERED_ENDPOINT_SERVICES:
-                    service_configs = BaseBackend.default_vpc_endpoint_service_factory(region, zones, aws_service)
+                    service_configs = BaseBackend.default_vpc_endpoint_service_factory(
+                        region, zones, aws_service
+                    )
                     DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service_configs)
 
             return DEFAULT_VPC_ENDPOINT_SERVICES[region]

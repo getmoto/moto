@@ -886,8 +886,6 @@ def test_get_resources_sns():
 
 @mock_aws
 def test_get_resources_ssm():
-    import json
-
     import yaml
 
     from tests.test_ssm.test_ssm_docs import _get_yaml_template

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 

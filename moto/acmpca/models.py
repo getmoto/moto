@@ -136,9 +136,9 @@ class CertificateAuthority(BaseModel):
                     "S3ObjectAcl", None
                 )
                 if acl is None:
-                    self.revocation_configuration["CrlConfiguration"][
-                        "S3ObjectAcl"
-                    ] = "PUBLIC_READ"
+                    self.revocation_configuration["CrlConfiguration"]["S3ObjectAcl"] = (
+                        "PUBLIC_READ"
+                    )
                 else:
                     if acl not in ["PUBLIC_READ", "BUCKET_OWNER_FULL_CONTROL"]:
                         raise InvalidS3ObjectAclInCrlConfiguration(acl)
