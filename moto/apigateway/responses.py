@@ -39,9 +39,9 @@ class APIGatewayResponse(BaseResponse):
                 ).format(api_key_source=api_key_source),
             )
 
-    def __validate_endpoint_configuration(
+    def __validate_endpoint_configuration(  # type: ignore[return]
         self, endpoint_configuration: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         if endpoint_configuration and "types" in endpoint_configuration:
             invalid_types = list(
                 set(endpoint_configuration["types"]) - set(ENDPOINT_CONFIGURATION_TYPES)
@@ -57,9 +57,9 @@ class APIGatewayResponse(BaseResponse):
                     ).format(endpoint_type=invalid_types[0]),
                 )
 
-    def restapis(
+    def restapis(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -105,9 +105,9 @@ class APIGatewayResponse(BaseResponse):
 
             return 200, {}, json.dumps(rest_api.to_dict())
 
-    def __validte_rest_patch_operations(
+    def __validte_rest_patch_operations(  # type: ignore[return]
         self, patch_operations: List[Dict[str, str]]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         for op in patch_operations:
             path = op["path"]
             if "apiKeySource" in path:
@@ -142,9 +142,9 @@ class APIGatewayResponse(BaseResponse):
 
         return 200, {}, json.dumps(rest_api.to_dict())
 
-    def resources(
+    def resources(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
@@ -156,9 +156,9 @@ class APIGatewayResponse(BaseResponse):
                 json.dumps({"item": [resource.to_dict() for resource in resources]}),
             )
 
-    def gateway_response(
+    def gateway_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.put_gateway_response()
@@ -167,16 +167,16 @@ class APIGatewayResponse(BaseResponse):
         elif request.method == "DELETE":
             return self.delete_gateway_response()
 
-    def gateway_responses(
+    def gateway_responses(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.get_gateway_responses()
 
-    def resource_individual(
+    def resource_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
         resource_id = self.path.split("/")[-1]
@@ -268,9 +268,9 @@ class APIGatewayResponse(BaseResponse):
             return 204, {}, json.dumps(method_response.to_json())  # type: ignore[union-attr]
         raise Exception(f'Unexpected HTTP method "{self.method}"')
 
-    def restapis_authorizers(
+    def restapis_authorizers(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         restapi_id = url_path_parts[2]
@@ -320,9 +320,9 @@ class APIGatewayResponse(BaseResponse):
             authorizers = self.backend.get_authorizers(restapi_id)
             return 200, {}, json.dumps({"item": [a.to_json() for a in authorizers]})
 
-    def request_validators(
+    def request_validators(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         restapi_id = url_path_parts[2]
@@ -342,9 +342,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 201, {}, json.dumps(validator.to_dict())
 
-    def request_validator_individual(
+    def request_validator_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         restapi_id = url_path_parts[2]
@@ -363,9 +363,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 200, {}, json.dumps(validator.to_dict())
 
-    def authorizers(
+    def authorizers(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         restapi_id = url_path_parts[2]
@@ -384,9 +384,9 @@ class APIGatewayResponse(BaseResponse):
             self.backend.delete_authorizer(restapi_id, authorizer_id)
             return 202, {}, "{}"
 
-    def restapis_stages(
+    def restapis_stages(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         function_id = url_path_parts[2]
@@ -417,9 +417,9 @@ class APIGatewayResponse(BaseResponse):
             stages = self.backend.get_stages(function_id)
             return 200, {}, json.dumps({"item": [s.to_json() for s in stages]})
 
-    def restapis_stages_tags(
+    def restapis_stages_tags(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         function_id = url_path_parts[4]
@@ -437,9 +437,9 @@ class APIGatewayResponse(BaseResponse):
                     stage.tags.pop(tag, None)  # type: ignore[union-attr]
             return 200, {}, json.dumps({"item": ""})
 
-    def stages(
+    def stages(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         function_id = url_path_parts[2]
@@ -476,9 +476,9 @@ class APIGatewayResponse(BaseResponse):
         }
         return 200, headers, json.dumps(body).encode("utf-8")
 
-    def integrations(
+    def integrations(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         function_id = url_path_parts[2]
@@ -534,9 +534,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 204, {}, json.dumps(integration_response.to_json())
 
-    def integration_responses(
+    def integration_responses(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         function_id = url_path_parts[2]
@@ -574,9 +574,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 204, {}, json.dumps(integration_response.to_json())
 
-    def deployments(
+    def deployments(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
@@ -592,9 +592,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 201, {}, json.dumps(deployment.to_json())
 
-    def individual_deployment(
+    def individual_deployment(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         function_id = url_path_parts[2]
@@ -607,9 +607,9 @@ class APIGatewayResponse(BaseResponse):
             deployment = self.backend.delete_deployment(function_id, deployment_id)
             return 202, {}, json.dumps(deployment.to_json())
 
-    def apikeys(
+    def apikeys(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -649,9 +649,9 @@ class APIGatewayResponse(BaseResponse):
 
         return 200, {}, json.dumps(apikey_resp)
 
-    def usage_plans(
+    def usage_plans(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if self.method == "POST":
             usage_plan_response = self.backend.create_usage_plan(json.loads(self.body))
@@ -665,9 +665,9 @@ class APIGatewayResponse(BaseResponse):
                 json.dumps({"item": [u.to_json() for u in usage_plans_response]}),
             )
 
-    def usage_plan_individual(
+    def usage_plan_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         url_path_parts = self.path.split("/")
@@ -686,9 +686,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 200, {}, json.dumps(usage_plan_response.to_json())
 
-    def usage_plan_keys(
+    def usage_plan_keys(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         url_path_parts = self.path.split("/")
@@ -707,9 +707,9 @@ class APIGatewayResponse(BaseResponse):
                 json.dumps({"item": [u.to_json() for u in usage_plans_response]}),
             )
 
-    def usage_plan_key_individual(
+    def usage_plan_key_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         url_path_parts = self.path.split("/")
@@ -723,9 +723,9 @@ class APIGatewayResponse(BaseResponse):
             self.backend.delete_usage_plan_key(usage_plan_id, key_id)
             return 202, {}, "{}"
 
-    def domain_names(
+    def domain_names(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -780,9 +780,9 @@ class APIGatewayResponse(BaseResponse):
             msg = f'Method "{self.method}" for API GW domain names not implemented'
             return 404, {}, json.dumps({"error": msg})
 
-    def models(
+    def models(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         rest_api_id = self.path.replace("/restapis/", "", 1).split("/")[0]
 
@@ -817,9 +817,9 @@ class APIGatewayResponse(BaseResponse):
             return 200, {}, json.dumps(model_info.to_json())
         return 200, {}, "{}"
 
-    def base_path_mappings(
+    def base_path_mappings(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         url_path_parts = self.path.split("/")
@@ -842,9 +842,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 201, {}, json.dumps(base_path_mapping_resp.to_json())
 
-    def base_path_mapping_individual(
+    def base_path_mapping_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         url_path_parts = self.path.split("/")
@@ -866,9 +866,9 @@ class APIGatewayResponse(BaseResponse):
             )
             return 200, {}, json.dumps(base_path_mapping.to_json())
 
-    def vpc_link(
+    def vpc_link(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         url_path_parts = self.path.split("/")
         vpc_link_id = url_path_parts[-1]
@@ -880,9 +880,9 @@ class APIGatewayResponse(BaseResponse):
             vpc_link = self.backend.get_vpc_link(vpc_link_id=vpc_link_id)
             return 200, {}, json.dumps(vpc_link.to_json())
 
-    def vpc_links(
+    def vpc_links(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":

@@ -257,9 +257,9 @@ class UpdateExpressionFunctionEvaluator(DepthFirstTraverser):  # type: ignore[mi
             raise NotImplementedError(f"Unsupported function for moto {function_name}")
 
     @classmethod
-    def get_list_from_ddb_typed_value(
+    def get_list_from_ddb_typed_value(  # type: ignore[misc]
         cls, node: DDBTypedValue, function_name: str
-    ) -> DynamoType:  # type: ignore[misc]
+    ) -> DynamoType:
         assert isinstance(node, DDBTypedValue)
         dynamo_value = node.get_value()
         assert isinstance(dynamo_value, DynamoType)
@@ -324,9 +324,9 @@ class ExecuteOperations(DepthFirstTraverser):  # type: ignore[misc]
         return dynamo_value
 
     @classmethod
-    def get_sum(
+    def get_sum(  # type: ignore[misc]
         cls, left_operand: DynamoType, right_operand: DynamoType
-    ) -> DDBTypedValue:  # type: ignore[misc]
+    ) -> DDBTypedValue:
         """
         Args:
             left_operand(DynamoType):
@@ -341,9 +341,9 @@ class ExecuteOperations(DepthFirstTraverser):  # type: ignore[misc]
             raise IncorrectOperandType("+", left_operand.type)
 
     @classmethod
-    def get_subtraction(
+    def get_subtraction(  # type: ignore[misc]
         cls, left_operand: DynamoType, right_operand: DynamoType
-    ) -> DDBTypedValue:  # type: ignore[misc]
+    ) -> DDBTypedValue:
         """
         Args:
             left_operand(DynamoType):

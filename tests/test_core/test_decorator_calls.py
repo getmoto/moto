@@ -85,9 +85,9 @@ def test_decorater_wrapped_gets_set() -> None:
     Moto decorator's __wrapped__ should get set to the tests function
     """
     assert (
-        test_decorater_wrapped_gets_set.__wrapped__.__name__
+        test_decorater_wrapped_gets_set.__wrapped__.__name__  # type: ignore
         == "test_decorater_wrapped_gets_set"
-    )  # type: ignore
+    )
 
 
 @mock_aws

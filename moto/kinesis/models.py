@@ -734,8 +734,8 @@ class KinesisBackend(BaseBackend):
             data = record.get("Data")
 
             sequence_number, shard_id = stream.put_record(
-                partition_key,
-                explicit_hash_key,
+                partition_key,  # type: ignore[arg-type]
+                explicit_hash_key,  # type: ignore[arg-type]
                 data,  # type: ignore[arg-type]
             )
             response["Records"].append(

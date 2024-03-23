@@ -403,9 +403,9 @@ class ECRBackend(BaseBackend):
         self.tagger = TaggingService(tag_name="tags")
 
     @staticmethod
-    def default_vpc_endpoint_service(
+    def default_vpc_endpoint_service(  # type: ignore[misc]
         service_region: str, zones: List[str]
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    ) -> List[Dict[str, Any]]:
         """Default VPC endpoint service."""
         docker_endpoint = {
             "AcceptanceRequired": False,

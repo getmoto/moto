@@ -2754,9 +2754,9 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
             )
 
-    def add_tags_to_resource(
+    def add_tags_to_resource(  # type: ignore[return]
         self, arn: str, tags: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:  # type: ignore[return]
+    ) -> List[Dict[str, str]]:
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
             resource_type = arn_breakdown[-2]
@@ -2813,9 +2813,9 @@ class RDSBackend(BaseBackend):
             raise InvalidParameterCombination(str(e))
 
     @staticmethod
-    def _merge_tags(
+    def _merge_tags(  # type: ignore[misc]
         old_tags: List[Dict[str, Any]], new_tags: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    ) -> List[Dict[str, Any]]:
         tags_dict = dict()
         tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
         tags_dict.update({d["Key"]: d["Value"] for d in new_tags})

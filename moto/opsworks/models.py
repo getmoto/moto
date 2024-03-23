@@ -588,9 +588,9 @@ class OpsWorksBackend(BaseBackend):
             raise ResourceNotFoundException(", ".join(unknown_apps))
         return [self.apps[id].to_dict() for id in app_ids]
 
-    def describe_instances(
+    def describe_instances(  # type: ignore[return]
         self, instance_ids: List[str], layer_id: str, stack_id: str
-    ) -> List[Dict[str, Any]]:  # type: ignore[return]
+    ) -> List[Dict[str, Any]]:
         if len(list(filter(None, (instance_ids, layer_id, stack_id)))) != 1:
             raise ValidationException(
                 "Please provide either one or more "

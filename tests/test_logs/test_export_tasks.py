@@ -143,8 +143,8 @@ def test_create_export_task_happy_path(logs, s3, log_group_name, bucket_name):  
 @pytest.mark.aws_verified
 def test_create_export_task_raises_ClientError_when_bucket_not_found(
     logs,
-    log_group_name,  # pylint: disable=redefined-outer-name
-):
+    log_group_name,
+):  # pylint: disable=redefined-outer-name
     destination = "368a7022dea3dd621"
     fromTime = 1611316574
     to = 1642852574
@@ -166,8 +166,8 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(
 @pytest.mark.aws_verified
 def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
     logs,
-    bucket_name,  # pylint: disable=redefined-outer-name
-):
+    bucket_name,
+):  # pylint: disable=redefined-outer-name
     with pytest.raises(logs.exceptions.ResourceNotFoundException) as exc:
         logs.create_export_task(
             logGroupName=f"/aws/nonexisting/{str(uuid4())[0:6]}",

@@ -1207,11 +1207,11 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_definition
 
     @staticmethod
-    def _validate_container_defs(
+    def _validate_container_defs(  # type: ignore[misc]
         memory: Optional[str],
         container_definitions: List[Dict[str, Any]],
         requires_compatibilities: Optional[List[str]],
-    ) -> None:  # type: ignore[misc]
+    ) -> None:
         # The capitalised keys are passed by Cloudformation
         for cd in container_definitions:
             if "name" not in cd and "Name" not in cd:
@@ -1356,9 +1356,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         return tasks
 
     @staticmethod
-    def _calculate_task_resource_requirements(
+    def _calculate_task_resource_requirements(  # type: ignore[misc]
         task_definition: TaskDefinition,
-    ) -> Dict[str, Any]:  # type: ignore[misc]
+    ) -> Dict[str, Any]:
         resource_requirements: Dict[str, Any] = {
             "CPU": 0,
             "MEMORY": 0,
@@ -1400,10 +1400,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         return resource_requirements
 
     @staticmethod
-    def _can_be_placed(
+    def _can_be_placed(  # type: ignore[misc]
         container_instance: ContainerInstance,
         task_resource_requirements: Dict[str, Any],
-    ) -> bool:  # type: ignore[misc]
+    ) -> bool:
         """
 
         :param container_instance: The container instance trying to be placed onto

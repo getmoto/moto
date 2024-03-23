@@ -343,8 +343,8 @@ def parse_resource_and_generate_name(
 
     generated_resource_name = generate_resource_name(
         resource_type,
-        resources_map["AWS::StackName"],
-        logical_id,  # type: ignore[arg-type]
+        resources_map["AWS::StackName"],  # type: ignore[arg-type]
+        logical_id,
     )
 
     resource_name_property = resource_name_property_from_type(resource_type)
@@ -438,11 +438,11 @@ def parse_and_delete_resource(
         )
 
 
-def parse_condition(
+def parse_condition(  # type: ignore[return]
     condition: Union[Dict[str, Any], bool],
     resources_map: "ResourceMap",
     condition_map: Dict[str, Any],
-) -> bool:  # type: ignore[return]
+) -> bool:
     if isinstance(condition, bool):
         return condition
 

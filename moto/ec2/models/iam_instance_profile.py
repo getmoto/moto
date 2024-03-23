@@ -50,9 +50,9 @@ class IamInstanceProfileAssociationBackend:
         iam_association_id = random_iam_instance_profile_association_id()
 
         instance_profile = filter_iam_instance_profiles(
-            self.account_id,
+            self.account_id,  # type: ignore[attr-defined]
             iam_instance_profile_arn,
-            iam_instance_profile_name,  # type: ignore[attr-defined]
+            iam_instance_profile_name,
         )
 
         if instance_id in self.iam_instance_profile_associations.keys():
@@ -127,9 +127,9 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_arn: Optional[str] = None,
     ) -> IamInstanceProfileAssociation:
         instance_profile = filter_iam_instance_profiles(
-            self.account_id,
+            self.account_id,  # type: ignore[attr-defined]
             iam_instance_profile_arn,
-            iam_instance_profile_name,  # type: ignore[attr-defined]
+            iam_instance_profile_name,
         )
 
         iam_instance_profile_association = None

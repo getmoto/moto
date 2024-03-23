@@ -1389,9 +1389,9 @@ class EventsBackend(BaseBackend):
             )
 
     @staticmethod
-    def _condition_param_to_stmt_condition(
+    def _condition_param_to_stmt_condition(  # type: ignore[misc]
         condition: Optional[Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+    ) -> Optional[Dict[str, Any]]:
         if condition:
             key = condition["Key"]
             value = condition["Value"]

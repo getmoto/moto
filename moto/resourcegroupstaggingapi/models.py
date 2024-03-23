@@ -23,8 +23,8 @@ from moto.s3.models import S3Backend, s3_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
-from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.utilities.tagging_service import TaggingService
+from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM

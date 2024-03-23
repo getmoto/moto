@@ -76,9 +76,9 @@ class LocalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(
+    def create(  # type: ignore[misc]
         dct: Dict[str, Any], table_key_attrs: List[str]
-    ) -> "LocalSecondaryIndex":  # type: ignore[misc]
+    ) -> "LocalSecondaryIndex":
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -114,9 +114,9 @@ class GlobalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(
+    def create(  # type: ignore[misc]
         dct: Dict[str, Any], table_key_attrs: List[str]
-    ) -> "GlobalSecondaryIndex":  # type: ignore[misc]
+    ) -> "GlobalSecondaryIndex":
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],

@@ -61,9 +61,9 @@ class Domain(BaseModel):
             "configuration": {"workflowExecutionRetentionPeriodInDays": self.retention},
         }
 
-    def get_type(
+    def get_type(  # type: ignore
         self, kind: str, name: str, version: str, ignore_empty: bool = False
-    ) -> "GenericType":  # type: ignore
+    ) -> "GenericType":
         try:
             return self.types[kind][name][version]
         except KeyError:

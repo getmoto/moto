@@ -19,9 +19,9 @@ class S3ControlResponse(BaseResponse):
     def backend(self) -> S3ControlBackend:
         return s3control_backends[self.current_account]["global"]
 
-    def public_access_block(
+    def public_access_block(  # type: ignore
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         try:
             if request.method == "GET":
@@ -70,9 +70,9 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point(full_url)
 
-    def access_point_policy(
+    def access_point_policy(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point_policy(full_url)
@@ -81,9 +81,9 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point_policy(full_url)
 
-    def access_point_policy_status(
+    def access_point_policy_status(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point(full_url)

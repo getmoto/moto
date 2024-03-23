@@ -629,9 +629,9 @@ class SecurityGroupBackend:
         return results
 
     @staticmethod
-    def _match_sg_rules(
+    def _match_sg_rules(  # type: ignore[misc]
         rules_list: List[SecurityRule], filters: Any
-    ) -> List[SecurityRule]:  # type: ignore[misc]
+    ) -> List[SecurityRule]:
         results = []
         for rule in rules_list:
             if rule.match_tags(filters):

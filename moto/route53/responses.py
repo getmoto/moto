@@ -36,9 +36,9 @@ class Route53(BaseResponse):
     def backend(self) -> Route53Backend:
         return route53_backends[self.current_account]["global"]
 
-    def list_or_create_hostzone_response(
+    def list_or_create_hostzone_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         # Set these here outside the scope of the try/except
@@ -136,9 +136,9 @@ class Route53(BaseResponse):
         template = Template(GET_HOSTED_ZONE_COUNT_RESPONSE)
         return 200, headers, template.render(zone_count=num_zones, xmlns=XMLNS)
 
-    def get_or_delete_hostzone_response(
+    def get_or_delete_hostzone_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         zoneid = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
@@ -158,9 +158,9 @@ class Route53(BaseResponse):
             template = Template(UPDATE_HOSTED_ZONE_COMMENT_RESPONSE)
             return 200, headers, template.render(zone=zone)
 
-    def get_dnssec_response(
+    def get_dnssec_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         # returns static response
         # TODO: implement enable/disable dnssec apis
         self.setup_class(request, full_url, headers)
@@ -212,9 +212,9 @@ class Route53(BaseResponse):
         template = Template(DISASSOCIATE_VPC_RESPONSE)
         return 200, headers, template.render(comment=comment)
 
-    def rrset_response(
+    def rrset_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         method = request.method
@@ -285,9 +285,9 @@ class Route53(BaseResponse):
             )
             return 200, headers, r_template
 
-    def health_check_response1(
+    def health_check_response1(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         method = request.method
@@ -327,9 +327,9 @@ class Route53(BaseResponse):
                 template.render(health_checks=health_checks, xmlns=XMLNS),
             )
 
-    def health_check_response2(
+    def health_check_response2(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         method = request.method
@@ -365,9 +365,9 @@ class Route53(BaseResponse):
             template = Template(UPDATE_HEALTH_CHECK_RESPONSE)
             return 200, headers, template.render(health_check=health_check)
 
-    def health_check_status_response(
+    def health_check_status_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         method = request.method
@@ -402,9 +402,9 @@ class Route53(BaseResponse):
             f"The action for {action} has not been implemented for route 53"
         )
 
-    def list_or_change_tags_for_resource_request(
+    def list_or_change_tags_for_resource_request(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         id_ = self.parsed_url.path.split("/")[-1]
@@ -439,9 +439,9 @@ class Route53(BaseResponse):
             template = Template(GET_CHANGE_RESPONSE)
             return 200, headers, template.render(change_id=change_id, xmlns=XMLNS)
 
-    def list_or_create_query_logging_config_response(
+    def list_or_create_query_logging_config_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if request.method == "POST":
@@ -488,9 +488,9 @@ class Route53(BaseResponse):
                 ),
             )
 
-    def get_or_delete_query_logging_config_response(
+    def get_or_delete_query_logging_config_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         query_logging_config_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
 
@@ -509,9 +509,9 @@ class Route53(BaseResponse):
             self.backend.delete_query_logging_config(query_logging_config_id)
             return 200, headers, ""
 
-    def reusable_delegation_sets(
+    def reusable_delegation_sets(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             delegation_sets = self.backend.list_reusable_delegation_sets()
@@ -541,9 +541,9 @@ class Route53(BaseResponse):
                 template.render(delegation_set=delegation_set),
             )
 
-    def reusable_delegation_set(
+    def reusable_delegation_set(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         ds_id = self.parsed_url.path.rstrip("/").rsplit("/")[-1]
         if request.method == "GET":

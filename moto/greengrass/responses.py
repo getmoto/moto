@@ -16,9 +16,9 @@ class GreengrassResponse(BaseResponse):
     def greengrass_backend(self) -> GreengrassBackend:
         return greengrass_backends[self.current_account][self.region]
 
-    def core_definitions(
+    def core_definitions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -45,9 +45,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 201, {"status": 201}, json.dumps(res.to_dict())
 
-    def core_definition(
+    def core_definition(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -81,9 +81,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def core_definition_versions(
+    def core_definition_versions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -110,9 +110,9 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Versions": [core_def_ver.to_dict() for core_def_ver in res]}),
         )
 
-    def core_definition_version(
+    def core_definition_version(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -127,9 +127,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
-    def device_definitions(
+    def device_definitions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -160,9 +160,9 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def device_definition_versions(
+    def device_definition_versions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -193,9 +193,9 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def device_definition(
+    def device_definition(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -229,9 +229,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def device_definition_version(
+    def device_definition_version(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -246,9 +246,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict(include_detail=True))
 
-    def resource_definitions(
+    def resource_definitions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -273,9 +273,9 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Definitions": [i.to_dict() for i in res]}),
         )
 
-    def resource_definition(
+    def resource_definition(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -309,9 +309,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def resource_definition_versions(
+    def resource_definition_versions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -343,9 +343,9 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def resource_definition_version(
+    def resource_definition_version(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -360,9 +360,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def function_definitions(
+    def function_definitions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -389,9 +389,9 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def function_definition(
+    def function_definition(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -425,9 +425,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def function_definition_versions(
+    def function_definition_versions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -456,9 +456,9 @@ class GreengrassResponse(BaseResponse):
         versions = [i.to_dict() for i in res.values()]
         return 200, {"status": 200}, json.dumps({"Versions": versions})
 
-    def function_definition_version(
+    def function_definition_version(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -473,9 +473,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def subscription_definitions(
+    def subscription_definitions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -507,9 +507,9 @@ class GreengrassResponse(BaseResponse):
             ),
         )
 
-    def subscription_definition(
+    def subscription_definition(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -543,9 +543,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps({})
 
-    def subscription_definition_versions(
+    def subscription_definition_versions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -571,9 +571,9 @@ class GreengrassResponse(BaseResponse):
         versions = [i.to_dict() for i in res.values()]
         return 200, {"status": 200}, json.dumps({"Versions": versions})
 
-    def subscription_definition_version(
+    def subscription_definition_version(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -643,9 +643,9 @@ class GreengrassResponse(BaseResponse):
         self.greengrass_backend.update_group(group_id=group_id, name=name)
         return 200, {"status": 200}, json.dumps({})
 
-    def group_versions(
+    def group_versions(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
@@ -742,9 +742,9 @@ class GreengrassResponse(BaseResponse):
             json.dumps({"Deployments": deployments}),
         )
 
-    def deployment_satus(
+    def deployment_satus(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -760,9 +760,9 @@ class GreengrassResponse(BaseResponse):
         )
         return 200, {"status": 200}, json.dumps(res.to_dict())
 
-    def deployments_reset(
+    def deployments_reset(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":
