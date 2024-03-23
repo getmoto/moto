@@ -413,9 +413,9 @@ class FirehoseBackend(BaseBackend):
         }
 
     @staticmethod
-    def put_http_records(
+    def put_http_records(  # type: ignore[misc]
         http_destination: Dict[str, Any], records: List[Dict[str, bytes]]
-    ) -> List[Dict[str, str]]:  # type: ignore[misc]
+    ) -> List[Dict[str, str]]:
         """Put records to a HTTP destination."""
         # Mostly copied from localstack
         url = http_destination["EndpointConfiguration"]["Url"]

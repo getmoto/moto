@@ -374,13 +374,13 @@ class FakeKey(BaseModel, ManagedState):
             now = utcnow()
             try:
                 until = datetime.datetime.strptime(
-                    self.lock_until,
-                    "%Y-%m-%dT%H:%M:%SZ",  # type: ignore
+                    self.lock_until,  # type: ignore
+                    "%Y-%m-%dT%H:%M:%SZ",
                 )
             except ValueError:
                 until = datetime.datetime.strptime(
-                    self.lock_until,
-                    "%Y-%m-%dT%H:%M:%S.%fZ",  # type: ignore
+                    self.lock_until,  # type: ignore
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
                 )
 
             if until > now:
@@ -478,11 +478,11 @@ class FakeMultipart(BaseModel):
             raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(
-            part_id,
+            part_id,  # type: ignore
             value,
             account_id=self.account_id,
             encryption=self.sse_encryption,
-            kms_key_id=self.kms_key_id,  # type: ignore
+            kms_key_id=self.kms_key_id,
         )
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first

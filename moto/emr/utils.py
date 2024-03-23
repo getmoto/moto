@@ -455,9 +455,9 @@ class EmrSecurityGroupManager:
                     pass
 
     @staticmethod
-    def _render_rules(
+    def _render_rules(  # type: ignore[misc]
         rules: Any, managed_groups: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    ) -> List[Dict[str, Any]]:
         rendered_rules = copy.deepcopy(rules)
         for rule in rendered_rules:
             rule["group_name_or_id"] = managed_groups[rule["group_name_or_id"]].id

@@ -235,8 +235,8 @@ class TransitGatewayAttachmentBackend:
         if remove_subnet_ids:
             tgw_attachment.subnet_ids = [  # type: ignore[attr-defined]
                 id
-                for id in tgw_attachment.subnet_ids
-                if id not in remove_subnet_ids  # type: ignore[attr-defined]
+                for id in tgw_attachment.subnet_ids  # type: ignore[attr-defined]
+                if id not in remove_subnet_ids
             ]
 
         if options:
@@ -359,16 +359,16 @@ class TransitGatewayAttachmentBackend:
         # For cross-account peering, must be accepted by the accepter
         if (
             requester_account_id != accepter_account_id
-            and self.account_id != accepter_account_id
-        ):  # type: ignore[attr-defined]
+            and self.account_id != accepter_account_id  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "accept", transit_gateway_attachment_id
             )
 
         if (
             requester_region_name != accepter_region_name
-            and self.region_name != accepter_region_name
-        ):  # type: ignore[attr-defined]
+            and self.region_name != accepter_region_name  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "accept", transit_gateway_attachment_id
             )
@@ -393,16 +393,16 @@ class TransitGatewayAttachmentBackend:
 
         if (
             requester_account_id != accepter_account_id
-            and self.account_id != accepter_account_id
-        ):  # type: ignore[attr-defined]
+            and self.account_id != accepter_account_id  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "reject", transit_gateway_attachment_id
             )
 
         if (
             requester_region_name != accepter_region_name
-            and self.region_name != accepter_region_name
-        ):  # type: ignore[attr-defined]
+            and self.region_name != accepter_region_name  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "reject", transit_gateway_attachment_id
             )

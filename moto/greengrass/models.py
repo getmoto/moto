@@ -916,9 +916,9 @@ class GreengrassBackend(BaseBackend):
         return False
 
     @staticmethod
-    def _validate_subscription_target_or_source(
+    def _validate_subscription_target_or_source(  # type: ignore[misc]
         subscriptions: List[Dict[str, Any]],
-    ) -> None:  # type: ignore[misc]
+    ) -> None:
         target_errors: List[str] = []
         source_errors: List[str] = []
 

@@ -668,8 +668,8 @@ class InstanceBackend:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
 
         security_groups = [
-            self.get_security_group_by_name_or_id(name)
-            for name in security_group_names  # type: ignore[attr-defined]
+            self.get_security_group_by_name_or_id(name)  # type: ignore[attr-defined]
+            for name in security_group_names
         ]
 
         for sg_id in kwargs.pop("security_group_ids", []):

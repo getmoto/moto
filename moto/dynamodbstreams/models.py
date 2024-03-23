@@ -129,7 +129,7 @@ class DynamoDBStreamsBackend(BaseBackend):
 
         shard_iterator = ShardIterator(
             self,
-            table.stream_shard,
+            table.stream_shard,  # type: ignore[arg-type]
             shard_iterator_type,
             sequence_number,  # type: ignore[arg-type]
         )

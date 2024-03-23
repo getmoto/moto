@@ -63,9 +63,9 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "DELETE":
             return self.delete_cors_configuration()
 
-    def route_request_parameter(
+    def route_request_parameter(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -105,9 +105,9 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_integration()
 
-    def integration_response(
+    def integration_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -117,9 +117,9 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "PATCH":
             return self.update_integration_response()
 
-    def integration_responses(
+    def integration_responses(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "GET":
@@ -145,9 +145,9 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "POST":
             return self.create_route()
 
-    def route_response(
+    def route_response(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "DELETE":
@@ -155,9 +155,9 @@ class ApiGatewayV2Response(BaseResponse):
         if self.method == "GET":
             return self.get_route_response()
 
-    def route_responses(
+    def route_responses(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
         if self.method == "POST":

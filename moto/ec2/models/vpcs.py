@@ -1052,9 +1052,9 @@ class VPCBackend:
             return DEFAULT_VPC_ENDPOINT_SERVICES[region]
 
     @staticmethod
-    def _matches_service_by_tags(
+    def _matches_service_by_tags(  # type: ignore[misc]
         service: Dict[str, Any], filter_item: Dict[str, Any]
-    ) -> bool:  # type: ignore[misc]
+    ) -> bool:
         """Return True if service tags are not filtered by their tags.
 
         Note that the API specifies a key of "Values" for a filter, but
@@ -1086,11 +1086,11 @@ class VPCBackend:
         return matched
 
     @staticmethod
-    def _filter_endpoint_services(
+    def _filter_endpoint_services(  # type: ignore[misc]
         service_names_filters: List[str],
         filters: List[Dict[str, Any]],
         services: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    ) -> List[Dict[str, Any]]:
         """Return filtered list of VPC endpoint services."""
         if not service_names_filters and not filters:
             return services
@@ -1163,8 +1163,8 @@ class VPCBackend:
         The DryRun parameter is ignored.
         """
         default_services = self._collect_default_endpoint_services(
-            self.account_id,
-            region,  # type: ignore[attr-defined]
+            self.account_id,  # type: ignore[attr-defined]
+            region,
         )
         custom_services = [x.to_dict() for x in self.configurations.values()]  # type: ignore
         all_services = default_services + custom_services

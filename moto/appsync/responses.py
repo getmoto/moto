@@ -27,9 +27,9 @@ class AppSyncResponse(BaseResponse):
         if request.method == "GET":
             return self.list_graphql_apis()
 
-    def graph_ql_individual(
+    def graph_ql_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.get_graphql_api()
@@ -45,18 +45,18 @@ class AppSyncResponse(BaseResponse):
         if request.method == "GET":
             return self.list_api_keys()
 
-    def schemacreation(
+    def schemacreation(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.start_schema_creation()
         if request.method == "GET":
             return self.get_schema_creation_status()
 
-    def api_key_individual(
+    def api_key_individual(  # type: ignore[return]
         self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:  # type: ignore[return]
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "DELETE":
             return self.delete_api_key()

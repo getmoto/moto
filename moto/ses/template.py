@@ -46,7 +46,7 @@ class EachBlockProcessor(BlockProcessor):
 
                     _processor = get_processor(self.tokenizer)(
                         self.template,
-                        template_data,
+                        template_data,  # type: ignore
                         self.tokenizer,  # type: ignore
                     )
                     # If we've reached the end, we should stop processing

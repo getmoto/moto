@@ -143,9 +143,9 @@ class EmailResponse(BaseResponse):
 
         message = self.backend.send_bulk_templated_email(
             source,
-            template,
-            template_data,
-            destinations,  # type: ignore
+            template,  # type: ignore
+            template_data,  # type: ignore
+            destinations,
         )
         template = self.response_template(SEND_BULK_TEMPLATED_EMAIL_RESPONSE)
         result = template.render(message=message)

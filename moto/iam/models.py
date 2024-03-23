@@ -463,9 +463,9 @@ class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
 
     @classmethod
-    def from_data(
+    def from_data(  # type: ignore[misc]
         cls, name: str, account_id: str, data: Dict[str, Any]
-    ) -> "AWSManagedPolicy":  # type: ignore[misc]
+    ) -> "AWSManagedPolicy":
         return cls(
             name,
             account_id=account_id,
