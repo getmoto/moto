@@ -376,6 +376,8 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         add_subnets: Optional[List[str]],
         add_route_tables: Optional[List[str]],
         remove_route_tables: Optional[List[str]],
+        add_security_groups: Optional[List[str]],
+        remove_security_groups: Optional[List[str]],
     ) -> None:
         if policy_doc:
             self.policy_document = policy_doc
@@ -388,6 +390,18 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
                 rt_id
                 for rt_id in self.route_table_ids
                 if rt_id not in remove_route_tables
+            ]
+        if add_security_groups:
+            if self.security_group_ids is None:
+                self.security_group_ids = []
+            self.security_group_ids.extend(add_security_groups)
+        if remove_security_groups:
+            if self.security_group_ids is None:
+                self.security_group_ids = []
+            self.security_group_ids = [
+                sg_id
+                for sg_id in self.security_group_ids
+                if sg_id not in remove_security_groups
             ]
 
     def get_filter_value(
@@ -966,9 +980,18 @@ class VPCBackend:
         add_subnets: Optional[List[str]],
         remove_route_tables: Optional[List[str]],
         add_route_tables: Optional[List[str]],
+        add_security_groups: Optional[List[str]],
+        remove_security_groups: Optional[List[str]],
     ) -> None:
         endpoint = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_id])[0]
-        endpoint.modify(policy_doc, add_subnets, add_route_tables, remove_route_tables)
+        endpoint.modify(
+            policy_doc,
+            add_subnets,
+            add_route_tables,
+            remove_route_tables,
+            add_security_groups,
+            remove_security_groups,
+        )
 
     def delete_vpc_endpoints(self, vpce_ids: Optional[List[str]] = None) -> None:
         for vpce_id in vpce_ids or []:

@@ -1170,6 +1170,37 @@ def test_modify_vpc_endpoint():
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
     assert endpoint["PolicyDocument"] == "doc"
 
+    sg_id_1 = ec2.create_security_group(
+        GroupName="sg-1", VpcId=vpc_id, Description="sg-1"
+    )["GroupId"]
+    sg_id_2 = ec2.create_security_group(
+        GroupName="sg-2", VpcId=vpc_id, Description="sg-2"
+    )["GroupId"]
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        AddSecurityGroupIds=[sg_id_1, sg_id_2],
+    )
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    group_ids = endpoint.get("Groups", [])
+    assert any(
+        group.get("GroupId") == sg_id_1 and group.get("GroupName") == "sg-1"
+        for group in group_ids
+    )
+    assert any(
+        group.get("GroupId") == sg_id_2 and group.get("GroupName") == "sg-2"
+        for group in group_ids
+    )
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=vpc_id,
+        RemoveSecurityGroupIds=[sg_id_1],
+    )
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert any(
+        group.get("GroupId") == sg_id_2 and group.get("GroupName") == "sg-2"
+        for group in group_ids
+    )
+
 
 @mock_aws
 def test_delete_vpc_end_points():
