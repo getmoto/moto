@@ -1531,15 +1531,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "support": {
-                "Value": "support",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "swf": {
                 "Value": "swf",
                 "endpoint": {
@@ -9378,6 +9369,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "network-firewall": {
@@ -57878,6 +57878,24 @@
                 "Value": "lex-models",
                 "endpoint": {
                   "Value": "models.lex.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "lex-runtime": {
+                "Value": "lex-runtime",
+                "endpoint": {
+                  "Value": "runtime-v2-lex.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "lexv2-models": {
+                "Value": "lexv2-models",
+                "endpoint": {
+                  "Value": "models-v2-lex.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

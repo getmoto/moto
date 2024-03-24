@@ -36832,6 +36832,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "runtime-v2-lex.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "us-west-2": {
                 "Value": "us-west-2",
                 "endpoint": {
@@ -36934,6 +36943,15 @@
                 "Value": "us-east-1",
                 "endpoint": {
                   "Value": "models-v2-lex.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "models-v2-lex.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42671,6 +42689,15 @@
                 "Value": "ap-northeast-2",
                 "endpoint": {
                   "Value": "rds.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3",
+                "endpoint": {
+                  "Value": "rds.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
@@ -60961,15 +60988,6 @@
               "Value": "https://aws.amazon.com/premiumsupport/"
             },
             "regions": {
-              "af-south-1": {
-                "Value": "af-south-1",
-                "endpoint": {
-                  "Value": "support.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "ap-east-1": {
                 "Value": "ap-east-1",
                 "endpoint": {
