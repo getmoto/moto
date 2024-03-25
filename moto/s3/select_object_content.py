@@ -49,11 +49,8 @@ def _create_end_message() -> bytes:
     return _create_message(content_type=None, event_type=b"End", payload=b"")
 
 
-def serialize_select(data_list: List[bytes], output_details: Dict[str, Any]) -> bytes:
-    delimiter = (
-        (output_details.get("JSON") or {}).get("RecordDelimiter") or "\n"
-    ).encode("utf-8")
+def serialize_select(data_list: List[bytes]) -> bytes:
     response = b""
     for data in data_list:
-        response += _create_data_message(data + delimiter)
+        response += _create_data_message(data)
     return response + _create_stats_message() + _create_end_message()

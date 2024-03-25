@@ -1,7 +1,9 @@
 import base64
+import bz2
 import codecs
 import copy
 import datetime
+import gzip
 import itertools
 import json
 import os
@@ -12,6 +14,7 @@ import threading
 import urllib.parse
 from bisect import insort
 from importlib import reload
+from io import BytesIO
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from moto.cloudwatch.models import MetricDatum
@@ -2858,6 +2861,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         select_query: str,
         input_details: Dict[str, Any],
+        output_details: Dict[str, Any],
     ) -> List[bytes]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
@@ -2870,24 +2874,53 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         """
         self.get_bucket(bucket_name)
         key = self.get_object(bucket_name, key_name)
-        query_input = key.value.decode("utf-8")  # type: ignore
+        if key is None:
+            raise MissingKey(key=key_name)
+        if input_details.get("CompressionType") == "GZIP":
+            with gzip.open(BytesIO(key.value), "rt") as f:
+                query_input = f.read()
+        elif input_details.get("CompressionType") == "BZIP2":
+            query_input = bz2.decompress(key.value).decode("utf-8")
+        else:
+            query_input = key.value.decode("utf-8")
         if "CSV" in input_details:
             # input is in CSV - we need to convert it to JSON before parsing
-            from py_partiql_parser._internal.csv_converter import (  # noqa # pylint: disable=unused-import
-                csv_to_json,
-            )
+            from py_partiql_parser import csv_to_json
 
-            use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
+            use_headers = (input_details.get("CSV") or {}).get(
+                "FileHeaderInfo", ""
+            ) == "USE"
             query_input = csv_to_json(query_input, use_headers)
-        query_result = parse_query(query_input, select_query)
-        from py_partiql_parser import SelectEncoder
+        query_result = parse_query(query_input, select_query)  # type: ignore
 
-        return [
-            json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder).encode(
-                "utf-8"
-            )
-            for x in query_result
-        ]
+        record_delimiter = "\n"
+        if "JSON" in output_details:
+            record_delimiter = (output_details.get("JSON") or {}).get(
+                "RecordDelimiter"
+            ) or "\n"
+        elif "CSV" in output_details:
+            record_delimiter = (output_details.get("CSV") or {}).get(
+                "RecordDelimiter"
+            ) or "\n"
+
+        if "CSV" in output_details:
+            field_delim = (output_details.get("CSV") or {}).get("FieldDelimiter") or ","
+
+            from py_partiql_parser import json_to_csv
+
+            query_result = json_to_csv(query_result, field_delim, record_delimiter)
+            return [query_result.encode("utf-8")]  # type: ignore
+
+        else:
+            from py_partiql_parser import SelectEncoder
+
+            return [
+                (
+                    json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder)
+                    + record_delimiter
+                ).encode("utf-8")
+                for x in query_result
+            ]
 
     def restore_object(
         self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]
