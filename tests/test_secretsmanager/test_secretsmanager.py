@@ -182,6 +182,71 @@ def test_get_secret_version_stage_mismatch():
 
 
 @mock_aws
+def test_batch_get_secret_value_for_secret_id_list_with_matches():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_a = conn.create_secret(Name="test-secret-a", SecretString="secret")
+    secret_b = conn.create_secret(Name="test-secret-b", SecretString="secret")
+
+    secrets_batch = conn.batch_get_secret_value(
+        SecretIdList=["test-secret-a", "test-secret-b"]
+    )
+    matched = [
+        secret
+        for secret in secrets_batch["SecretValues"]
+        if secret["ARN"] in [secret_a["ARN"], secret_b["ARN"]]
+    ]
+    assert len(matched) == 2
+
+
+@mock_aws
+def test_batch_get_secret_value_for_secret_id_list_without_matches():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="test-secret-a", SecretString="secret")
+
+    secrets_batch = conn.batch_get_secret_value(
+        SecretIdList=["test-secret-b", "test-secret-c"]
+    )
+    assert len(secrets_batch["SecretValues"]) == 0
+
+
+@mock_aws
+def test_batch_get_secret_value_with_filters():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_a = conn.create_secret(Name="test-secret-a", SecretString="secret")
+    secret_b = conn.create_secret(Name="test-secret-b", SecretString="secret")
+
+    secrets_batch = conn.batch_get_secret_value(
+        Filters=[{"Key": "name", "Values": [secret_a["Name"], secret_b["Name"]]}]
+    )
+    matched = [
+        secret
+        for secret in secrets_batch["SecretValues"]
+        if secret["ARN"] in [secret_a["ARN"], secret_b["ARN"]]
+    ]
+    assert len(matched) == 2
+
+
+@mock_aws
+def test_batch_get_secret_value_with_both_secret_id_list_and_filters():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        conn.batch_get_secret_value(
+            Filters=[{"Key": "name", "Values": ["test-secret-a", "test-secret-b"]}],
+            SecretIdList=["foo", "bar"],
+        )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameterException"
+        assert (
+            "Either 'SecretIdList' or 'Filters' must be provided, but not both."
+            in err["Message"]
+        )
+
+
+@mock_aws
 def test_create_secret():
     conn = boto3.client("secretsmanager", region_name="us-east-1")
 
