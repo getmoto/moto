@@ -912,6 +912,120 @@ def test_update_secret_version_stage_validation():
     assert resp.status_code == 400
 
 
+@mock_aws
+def test_batch_get_secret_value_for_secret_id_list_with_matches():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    test_client.post(
+        "/",
+        data={"Name": "db/username", "SecretString": "foo"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+
+    test_client.post(
+        "/",
+        data={"Name": "db/password", "SecretString": "foo-password"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+
+    batch_get_secret_values = test_client.post(
+        "/",
+        json={"SecretIdList": ["db/username", "db/password"]},
+        headers={"X-Amz-Target": "secretsmanager.BatchGetSecretValue"},
+    )
+
+    json_data = json.loads(batch_get_secret_values.data.decode("utf-8"))
+    matched = [
+        s
+        for s in json_data["SecretValues"]
+        if (s["Name"] == "db/username" and s["SecretString"] == "foo")
+        or (s["Name"] == "db/password" and s["SecretString"] == "foo-password")
+    ]
+    assert len(matched) == len(json_data["SecretValues"]) == 2
+
+
+@mock_aws
+def test_batch_get_secret_value_for_secret_id_list_with_no_matches():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    test_client.post(
+        "/",
+        data={"Name": "db/foo", "SecretString": "bar"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+
+    batch_get_secret_values = test_client.post(
+        "/",
+        json={"SecretIdList": ["db/username", "db/password"]},
+        headers={"X-Amz-Target": "secretsmanager.BatchGetSecretValue"},
+    )
+
+    json_data = json.loads(batch_get_secret_values.data.decode("utf-8"))
+    assert len(json_data["SecretValues"]) == 0
+
+
+@mock_aws
+def test_batch_get_secret_value_with_both_secret_id_list_and_filters():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    batch_get_secret_values = test_client.post(
+        "/",
+        json={
+            "SecretIdList": ["db/username", "db/password"],
+            "Filters": [{"Key": "description", "Values": ["foo"]}],
+        },
+        headers={"X-Amz-Target": "secretsmanager.BatchGetSecretValue"},
+    )
+
+    json_data = json.loads(batch_get_secret_values.data.decode("utf-8"))
+    assert (
+        json_data["message"]
+        == "Either 'SecretIdList' or 'Filters' must be provided, but not both."
+    )
+    assert json_data["__type"] == "InvalidParameterException"
+    assert batch_get_secret_values.status_code == 400
+
+
+@mock_aws
+def test_batch_get_secret_value_with_filters():
+    backend = server.create_backend_app("secretsmanager")
+    test_client = backend.test_client()
+
+    test_client.post(
+        "/",
+        data={"Name": "db/foo", "SecretString": "bar", "Description": "foo-secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+
+    test_client.post(
+        "/",
+        data={"Name": "db/bar", "SecretString": "foo", "Description": "foo-secret"},
+        headers={"X-Amz-Target": "secretsmanager.CreateSecret"},
+    )
+
+    batch_get_secret_values = test_client.post(
+        "/",
+        json={
+            "Filters": [{"Key": "description", "Values": ["foo-secret"]}],
+        },
+        headers={"X-Amz-Target": "secretsmanager.BatchGetSecretValue"},
+    )
+
+    json_data = json.loads(batch_get_secret_values.data.decode("utf-8"))
+    matched = [
+        s
+        for s in json_data["SecretValues"]
+        if (s["Name"] == "db/foo" and s["SecretString"] == "bar")
+        or (s["Name"] == "db/bar" and s["SecretString"] == "foo")
+    ]
+
+    json_data = json.loads(batch_get_secret_values.data.decode("utf-8"))
+    assert len(json_data["SecretValues"]) == len(matched) == 2
+
+
 #
 # The following tests should work, but fail on the embedded dict in
 # RotationRules. The error message suggests a problem deeper in the code, which
