@@ -271,9 +271,7 @@ def test_with_filter_with_negation():
     for secret_name in ["foo", "bar", "baz"]:
         assert secret_name in secret_names
 
-    secrets = conn.list_secrets(
-        Filters=[{"Key": "description", "Values": ["!o"]}]
-    )
+    secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["!o"]}])
     secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
     for secret_name in ["qux", "none"]:
         assert secret_name in secret_names
