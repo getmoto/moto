@@ -266,6 +266,13 @@ def test_get_list_endpoints_by_platform_application(api_key=None):
         assert len(endpoint_list) == 1
         assert endpoint_list[0]["Attributes"]["CustomUserData"] == "some data"
         assert endpoint_list[0]["EndpointArn"] == endpoint_arn
+
+        resp = conn.delete_endpoint(EndpointArn=endpoint_arn)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+        # Idempotent operation
+        resp = conn.delete_endpoint(EndpointArn=endpoint_arn)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     finally:
         if application_arn is not None:
             conn.delete_platform_application(PlatformApplicationArn=application_arn)

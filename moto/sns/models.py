@@ -715,7 +715,7 @@ class SNSBackend(BaseBackend):
         try:
             del self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError(f"Endpoint with arn {arn} not found")
+            pass  # idempotent operation
 
     def get_subscription_attributes(self, arn: str) -> Dict[str, Any]:
         subscription = self.subscriptions.get(arn)
