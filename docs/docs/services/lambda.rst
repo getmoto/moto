@@ -81,15 +81,15 @@ lambda
 
             expected_results = {"results": ["test", "test 2"], "region": "us-east-1"}
             resp = requests.post(
-                    "http://motoapi.amazonaws.com:5000/moto-api/static/lambda-simple/response",
-                    json=expected_results,
-                )
-
+                "http://motoapi.amazonaws.com/moto-api/static/lambda-simple/response",
+                json=expected_results
+            )
             assert resp.status_code == 201
 
             client = boto3.client("lambda", region_name="us-east-1")
             resp = client.invoke(...) # resp["Payload"].read().decode() == "test"
             resp = client.invoke(...) # resp["Payload"].read().decode() == "test2"
+        
 
 - [ ] invoke_async
 - [ ] invoke_with_response_stream

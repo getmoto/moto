@@ -23,7 +23,7 @@ class LambdaSimpleBackend(LambdaBackend):
         headers: Any,
         response_headers: Any,
     ) -> Optional[Union[str, bytes]]:
-        default_result = "Simple Lambda happy path OK"
+        default_result = body or "Simple Lambda happy path OK"
         if self.lambda_simple_results_queue:
             default_result = self.lambda_simple_results_queue.pop(0)
         return str.encode(default_result)

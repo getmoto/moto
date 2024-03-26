@@ -155,7 +155,7 @@ apigateway
         The following PatchOperations are currently supported:
         add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
         replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
-        remove : Nothing yet
+        remove : Everything except /apiStages/{apidId:stageName}/throttle/ and children
         copy   : Nothing yet
         
 

@@ -42,7 +42,7 @@ sagemaker-runtime
                 ],
             }
             requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/sagemaker/endpoint-results",
+                "http://motoapi.amazonaws.com/moto-api/static/sagemaker/endpoint-results",
                 json=expected_results,
             )
 

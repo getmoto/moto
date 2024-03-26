@@ -43,6 +43,13 @@ def test_run_function_no_log():
 
     # Verify
     assert result["StatusCode"] == 200
+    assert json.loads(result["Payload"].read().decode("utf-8")) == payload
+
+    # Execute
+    result = client.invoke(FunctionName=FUNCTION_NAME)
+
+    # Verify
+    assert result["StatusCode"] == 200
     assert result["Payload"].read().decode("utf-8") == "Simple Lambda happy path OK"
 
 

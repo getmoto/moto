@@ -1,6 +1,76 @@
 Moto Changelog
 ==============
 
+5.0.4
+-----
+Docker Digest for 5.0.4: <autopopulateddigest>
+
+    General:
+        * Lambda: The results of a Dockerless invocation can now be configured.
+          See http://docs.getmoto.org/en/latest/docs/services/lambda.html
+
+        * StepFunctions can now execute the provided StepFunctionMachine (opt-in), instead of returning static data (still the default).
+          See http://docs.getmoto.org/en/latest/docs/services/stepfunctions.html
+
+    New Service:
+        * ElastiCache:
+            * list_tags_for_resource()
+
+        * ResilienceHub:
+            * create_app()
+            * create_app_version_app_component()
+            * create_app_version_resource()
+            * create_resiliency_policy()
+            * describe_app()
+            * describe_resiliency_policy()
+            * import_resources_to_draft_app_version()
+            * list_app_assessments()
+            * list_app_version_app_components()
+            * list_app_version_resources()
+            * list_app_versions()
+            * list_apps()
+            * list_resiliency_policies()
+            * list_tags_for_resource()
+            * publish_app_version()
+            * tag_resource()
+            * untag_resource()
+
+        * Workspaces:
+            * create_tags()
+            * create_workspace_image()
+            * create_workspaces()
+            * deregister_workspace_directory()
+            * describe_client_properties()
+            * describe_tags()
+            * describe_workspace_directories()
+            * describe_workspace_image_permissions()
+            * describe_workspace_images()
+            * describe_workspaces()
+            * modify_client_properties()
+            * modify_selfservice_permissions()
+            * modify_workspace_creation_properties()
+            * register_workspace_directory()
+            * update_workspace_image_permission()
+
+    Miscellaneous:
+        * APIGateway: update_usage_plan() now supports some remove-operations
+        * Autoscaling: describe_auto_scaling_groups() now returns a dynamic CreatedTime
+        * CloudFormation: Outputs now support Conditions
+        * CloudFormation: Outputs now return Descriptions
+        * CognitoIDP: admin_update_user_attributes() and admin_delete_user_attributes now correctly update the UserLastModifiedDate
+        * DynamoDB: query() no longer requires the LastEvaluatedKey to exist
+        * EC2: describe_vpc_endpoint_services() now supports all services
+        * Kinesis: list_streams() now returns StreamSummaries
+        * Lambda: get_policy() now throws an error when no statements exist
+        * ResourceGroupsTaggingAPI now supports DynamoDB tables
+        * ResourceGroupsTaggingAPI now supports SSM documents
+        * S3: EventBridge notifications are now supported for ObjectRestore:Post
+        * S3: restore_object() now contains limited validation when supplying both Days- and Type-argument
+        * S3: select_object_content() now supports Compressed requests and CSV responses
+        * SecretsManager: list_secrets() now handles negative matches correctly
+        * SNS: delete_endpoint() is now an idempotent operation, just like AWS
+
+
 5.0.3
 -----
 Docker Digest for 5.0.3: _sha256:032d8ead42f289d9700e9bc844c6d264575ad11b3f6c22cc76d65ff638c8c7bd_

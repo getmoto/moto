@@ -47,7 +47,7 @@ rds-data
                 ],
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/rds-data/statement-results",
+                "http://motoapi.amazonaws.com/moto-api/static/rds-data/statement-results",
                 json=expected_results,
             )
             assert resp.status_code == 201

@@ -65,7 +65,8 @@ The following options can also be configured when running the MotoServer:
 
     options = {
         "batch": {"use_docker": True},
-        "lambda": {"use_docker": True}
+        "lambda": {"use_docker": True},
+        "stepfunctions": {"execute_state_machine": True}
     }
     requests.post(f"http://localhost:5000/moto-api/config", json=options)
 

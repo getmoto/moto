@@ -114,6 +114,7 @@ s3
          - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
          - 's3:ObjectDeleted'
+         - 's3:ObjectRestore:Post'
         
 
 - [X] put_bucket_ownership_controls
