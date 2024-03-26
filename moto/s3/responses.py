@@ -2282,6 +2282,8 @@ class S3Response(BaseResponse):
                 key_name,
                 params.get("Days", None),
                 params.get("Type", None),
+                params.get("SelectParameters", None),
+                params.get("OutputLocation", None),
             )
             status_code = 200 if previously_restored else 202
             return status_code, {}, ""
