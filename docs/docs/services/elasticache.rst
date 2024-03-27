@@ -77,7 +77,7 @@ elasticache
 - [ ] increase_node_groups_in_global_replication_group
 - [ ] increase_replica_count
 - [ ] list_allowed_node_type_modifications
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] modify_cache_cluster
 - [ ] modify_cache_parameter_group
 - [ ] modify_cache_subnet_group

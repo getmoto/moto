@@ -74,7 +74,7 @@ ce
                 ]
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/ce/cost-and-usage-results",
+                "http://motoapi.amazonaws.com/moto-api/static/ce/cost-and-usage-results",
                 json=expected_results,
             )
             assert resp.status_code == 201

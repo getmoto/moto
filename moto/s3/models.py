@@ -2379,6 +2379,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
          - 's3:ObjectDeleted'
+         - 's3:ObjectRestore:Post'
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)

@@ -82,7 +82,7 @@ inspector2
                 "region": "us-east-1",  # This is the default - can be omitted
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/inspector2/findings-results",
+                "http://motoapi.amazonaws.com/moto-api/static/inspector2/findings-results",
                 json=findings,
             )
 
