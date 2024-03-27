@@ -174,6 +174,16 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
         return launch_template
 
+    def delete(
+        self,
+        account_id: str,
+        region_name: str,
+    ):
+        from ..models import ec2_backends
+
+        backend = ec2_backends[account_id][region_name]
+        backend.delete_launch_template(self.name, None)
+
     @classmethod
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,

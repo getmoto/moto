@@ -304,6 +304,58 @@ dummy_unknown_template = {
     },
 }
 
+dummy_template_launch_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Trying to create ec2 with auto scaling group",
+        "Parameters": {
+            "Subnets": {
+                "Description": "Pass in the created subnet ids",
+                "Type": "List<AWS::EC2::Subnet::Id>",
+            },
+            "StackName": {"Type": "String", "Description": "Unique stack name"},
+        },
+        "Resources": {
+            "TestLaunchTemplate": {
+                "Type": "AWS::EC2::LaunchTemplate",
+                "Properties": {
+                    "LaunchTemplateName": {
+                        "Fn::Sub": "${AWS::StackName}-launch-template"
+                    },
+                    "LaunchTemplateData": {
+                        "BlockDeviceMappings": [
+                            {
+                                "DeviceName": "/dev/xvda",
+                                "Ebs": {
+                                    "VolumeType": "gp3",
+                                    "VolumeSize": "30",
+                                    "DeleteOnTermination": "true",
+                                    "Encrypted": "true",
+                                },
+                            }
+                        ],
+                        "ImageId": "ami-12c6146b",
+                        "InstanceType": "t3.micro",
+                    },
+                    "VersionDescription": "Initial Version",
+                },
+            },
+            "ECSAutoScalingGroup": {
+                "Type": "AWS::AutoScaling::AutoScalingGroup",
+                "Properties": {
+                    "VPCZoneIdentifier": {"Ref": "Subnets"},
+                    "LaunchTemplate": {
+                        "LaunchTemplateId": {"Ref": "TestLaunchTemplate"},
+                        "Version": "$DEFAULT",
+                    },
+                    "CapacityRebalance": True,
+                    "MinSize": "1",
+                    "MaxSize": "10",
+                    "DesiredCapacity": "5",
+                },
+            },
+        },
+    }
+
 dummy_template_json = json.dumps(dummy_template)
 dummy_template_special_chars_in_description_json = json.dumps(
     dummy_template_special_chars_in_description
@@ -1591,6 +1643,34 @@ def test_delete_stack_from_resource():
 
     assert len(list(cf.stacks.all())) == 1
     stack.delete()
+    assert len(list(cf.stacks.all())) == 0
+
+    ec2 = boto3.resource("ec2", region_name=REGION_NAME)
+    vpc = ec2.create_vpc(CidrBlock="10.11.0.0/16")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.11.1.0/24", AvailabilityZone=f"{REGION_NAME}a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.11.2.0/24", AvailabilityZone=f"{REGION_NAME}b"
+    )
+
+    new_stack = cf.create_stack(
+        StackName=TEST_STACK_NAME,
+        TemplateBody=json.dumps(dummy_template_launch_template),
+        Parameters=[
+            {
+                "ParameterKey": "Subnets",
+                "ParameterValue": f"{subnet1.id},{subnet2.id}",
+                "ResolvedValue": "string",
+            },
+            {
+                "ParameterKey": "StackName",
+                "ParameterValue": TEST_STACK_NAME,
+                "ResolvedValue": "string",
+            },
+        ],
+    )
+    new_stack.delete()
     assert len(list(cf.stacks.all())) == 0
 
 
