@@ -305,56 +305,54 @@ dummy_unknown_template = {
 }
 
 dummy_template_launch_template = {
-        "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "Trying to create ec2 with auto scaling group",
-        "Parameters": {
-            "Subnets": {
-                "Description": "Pass in the created subnet ids",
-                "Type": "List<AWS::EC2::Subnet::Id>",
-            },
-            "StackName": {"Type": "String", "Description": "Unique stack name"},
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Trying to create ec2 with auto scaling group",
+    "Parameters": {
+        "Subnets": {
+            "Description": "Pass in the created subnet ids",
+            "Type": "List<AWS::EC2::Subnet::Id>",
         },
-        "Resources": {
-            "TestLaunchTemplate": {
-                "Type": "AWS::EC2::LaunchTemplate",
-                "Properties": {
-                    "LaunchTemplateName": {
-                        "Fn::Sub": "${AWS::StackName}-launch-template"
-                    },
-                    "LaunchTemplateData": {
-                        "BlockDeviceMappings": [
-                            {
-                                "DeviceName": "/dev/xvda",
-                                "Ebs": {
-                                    "VolumeType": "gp3",
-                                    "VolumeSize": "30",
-                                    "DeleteOnTermination": "true",
-                                    "Encrypted": "true",
-                                },
-                            }
-                        ],
-                        "ImageId": "ami-12c6146b",
-                        "InstanceType": "t3.micro",
-                    },
-                    "VersionDescription": "Initial Version",
+        "StackName": {"Type": "String", "Description": "Unique stack name"},
+    },
+    "Resources": {
+        "TestLaunchTemplate": {
+            "Type": "AWS::EC2::LaunchTemplate",
+            "Properties": {
+                "LaunchTemplateName": {"Fn::Sub": "${AWS::StackName}-launch-template"},
+                "LaunchTemplateData": {
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/xvda",
+                            "Ebs": {
+                                "VolumeType": "gp3",
+                                "VolumeSize": "30",
+                                "DeleteOnTermination": "true",
+                                "Encrypted": "true",
+                            },
+                        }
+                    ],
+                    "ImageId": "ami-12c6146b",
+                    "InstanceType": "t3.micro",
                 },
-            },
-            "ECSAutoScalingGroup": {
-                "Type": "AWS::AutoScaling::AutoScalingGroup",
-                "Properties": {
-                    "VPCZoneIdentifier": {"Ref": "Subnets"},
-                    "LaunchTemplate": {
-                        "LaunchTemplateId": {"Ref": "TestLaunchTemplate"},
-                        "Version": "$DEFAULT",
-                    },
-                    "CapacityRebalance": True,
-                    "MinSize": "1",
-                    "MaxSize": "10",
-                    "DesiredCapacity": "5",
-                },
+                "VersionDescription": "Initial Version",
             },
         },
-    }
+        "ECSAutoScalingGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "VPCZoneIdentifier": {"Ref": "Subnets"},
+                "LaunchTemplate": {
+                    "LaunchTemplateId": {"Ref": "TestLaunchTemplate"},
+                    "Version": "$DEFAULT",
+                },
+                "CapacityRebalance": True,
+                "MinSize": "1",
+                "MaxSize": "10",
+                "DesiredCapacity": "5",
+            },
+        },
+    },
+}
 
 dummy_template_json = json.dumps(dummy_template)
 dummy_template_special_chars_in_description_json = json.dumps(
