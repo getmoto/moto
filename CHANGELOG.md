@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.4
 -----
-Docker Digest for 5.0.4: <autopopulateddigest>
+Docker Digest for 5.0.4: _sha256:e13e917e563bd1e3bb745b0ce914bdcc3bd4577542e13e1468eac5078774b2aa_
 
     General:
         * Lambda: The results of a Dockerless invocation can now be configured.
