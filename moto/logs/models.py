@@ -1264,7 +1264,7 @@ class LogsBackend(BaseBackend):
             value=b"Permission Check Successful",
         )
 
-        if fromTime <= unix_time_millis(datetime.now()) <= to:
+        if fromTime <= to:
             for stream_name in self.groups[logGroupName].streams.keys():
                 logs, _, _ = self.filter_log_events(
                     log_group_name=logGroupName,
