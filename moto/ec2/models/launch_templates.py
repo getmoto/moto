@@ -185,24 +185,6 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         backend.delete_launch_template(self.name, None)
 
     @classmethod
-    def delete_from_cloudformation_json(  # type: ignore[misc]
-        cls,
-        resource_name: str,
-        cloudformation_json: Any,
-        account_id: str,
-        region_name: str,
-    ) -> None:
-        from ..models import ec2_backends
-
-        backend = ec2_backends[account_id][region_name]
-
-        properties = cloudformation_json["Properties"]
-
-        name = properties.get("LaunchTemplateName")
-
-        backend.delete_launch_template(name, None)
-
-    @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
         return attr in [
             "DefaultVersionNumber",
