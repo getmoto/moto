@@ -178,7 +178,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         self,
         account_id: str,
         region_name: str,
-    ):
+    ) -> None:
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
