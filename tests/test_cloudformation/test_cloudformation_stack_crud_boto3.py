@@ -341,9 +341,21 @@ dummy_template_launch_template = {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "Properties": {
                 "VPCZoneIdentifier": {"Ref": "Subnets"},
-                "LaunchTemplate": {
-                    "LaunchTemplateId": {"Ref": "TestLaunchTemplate"},
-                    "Version": "$DEFAULT",
+                "MixedInstancesPolicy": {
+                    "InstancesDistribution": {
+                        "OnDemandAllocationStrategy": "string",
+                        "OnDemandBaseCapacity": 123,
+                        "OnDemandPercentageAboveBaseCapacity": 123,
+                        "SpotAllocationStrategy": "string",
+                        "SpotInstancePools": 123,
+                        "SpotMaxPrice": "string",
+                    },
+                    "LaunchTemplate": {
+                        "LaunchTemplateSpecification": {
+                            "LaunchTemplateId": {"Ref": "TestLaunchTemplate"},
+                            "Version": "$DEFAULT",
+                        }
+                    },
                 },
                 "CapacityRebalance": True,
                 "MinSize": "1",
