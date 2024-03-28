@@ -437,7 +437,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         autoscaling_backend: "AutoScalingBackend",
         ec2_backend: EC2Backend,
         tags: List[Dict[str, str]],
-        mixed_instance_policy: Optional[Dict[str, Any]],
+        mixed_instances_policy: Optional[Dict[str, Any]],
         capacity_rebalance: bool,
         new_instances_protected_from_scale_in: bool = False,
         created_time: datetime = datetime.now(),
@@ -460,9 +460,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.launch_config = None
 
         self._set_launch_configuration(
-            launch_config_name, launch_template, mixed_instance_policy
+            launch_config_name, launch_template, mixed_instances_policy
         )
-        self.mixed_instance_policy = mixed_instance_policy
+        self.mixed_instances_policy = mixed_instances_policy
 
         self.default_cooldown = (
             default_cooldown if default_cooldown else DEFAULT_COOLDOWN
@@ -547,7 +547,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self,
         launch_config_name: str,
         launch_template: Dict[str, Any],
-        mixed_instance_policy: Optional[Dict[str, Any]],
+        mixed_instances_policy: Optional[Dict[str, Any]],
     ) -> None:
         if launch_config_name:
             self.launch_config = self.autoscaling_backend.launch_configurations[
@@ -555,7 +555,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             ]
             self.launch_config_name = launch_config_name
 
-        if launch_template or mixed_instance_policy:
+        if launch_template or mixed_instances_policy:
             if launch_template:
                 launch_template_id = launch_template.get("launch_template_id")
                 launch_template_name = launch_template.get("launch_template_name")
@@ -566,8 +566,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
                     launch_template.get("version") or "$Default"
                 )
                 self.provided_launch_template_version = launch_template.get("version")
-            elif mixed_instance_policy:
-                spec = mixed_instance_policy["LaunchTemplate"][
+            elif mixed_instances_policy:
+                spec = mixed_instances_policy["LaunchTemplate"][
                     "LaunchTemplateSpecification"
                 ]
                 launch_template_id = spec.get("LaunchTemplateId")
@@ -617,6 +617,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         }
         load_balancer_names = properties.get("LoadBalancerNames", [])
         target_group_arns = properties.get("TargetGroupARNs", [])
+        mixed_instances_policy = properties.get("MixedInstancesPolicy", {})
 
         backend = autoscaling_backends[account_id][region_name]
         group = backend.create_auto_scaling_group(
@@ -643,6 +644,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             new_instances_protected_from_scale_in=properties.get(
                 "NewInstancesProtectedFromScaleIn", False
             ),
+            mixed_instances_policy=mixed_instances_policy,
         )
         return group
 
@@ -743,7 +745,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 desired_capacity = max_size
 
         self._set_launch_configuration(
-            launch_config_name, launch_template, mixed_instance_policy=None
+            launch_config_name, launch_template, mixed_instances_policy=None
         )
 
         if health_check_period is not None:
@@ -1082,7 +1084,7 @@ class AutoScalingBackend(BaseBackend):
         capacity_rebalance: bool = False,
         new_instances_protected_from_scale_in: bool = False,
         instance_id: Optional[str] = None,
-        mixed_instance_policy: Optional[Dict[str, Any]] = None,
+        mixed_instances_policy: Optional[Dict[str, Any]] = None,
     ) -> FakeAutoScalingGroup:
         max_size = make_int(max_size)
         min_size = make_int(min_size)
@@ -1094,7 +1096,7 @@ class AutoScalingBackend(BaseBackend):
             launch_config_name,
             launch_template,
             instance_id,
-            mixed_instance_policy,
+            mixed_instances_policy,
         ]
         num_params = sum([1 for param in params if param])
 
@@ -1134,7 +1136,7 @@ class AutoScalingBackend(BaseBackend):
             ec2_backend=self.ec2_backend,
             tags=tags,
             new_instances_protected_from_scale_in=new_instances_protected_from_scale_in,
-            mixed_instance_policy=mixed_instance_policy,
+            mixed_instances_policy=mixed_instances_policy,
             capacity_rebalance=capacity_rebalance,
         )
 

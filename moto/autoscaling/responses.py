@@ -90,7 +90,7 @@ class AutoScalingResponse(BaseResponse):
             instance_id=self._get_param("InstanceId"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
             launch_template=self._get_dict_param("LaunchTemplate."),
-            mixed_instance_policy=params.get("MixedInstancesPolicy"),
+            mixed_instances_policy=params.get("MixedInstancesPolicy"),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -836,7 +836,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <CreatedTime>{{ group.created_time }}</CreatedTime>
         {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
-        {% elif group.mixed_instance_policy %}
+        {% elif group.mixed_instances_policy %}
         <MixedInstancesPolicy>
           <LaunchTemplate>
             <LaunchTemplateSpecification>
@@ -844,9 +844,9 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
               <Version>{{ group.launch_template_version }}</Version>
               <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
             </LaunchTemplateSpecification>
-            {% if group.mixed_instance_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+            {% if group.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
             <Overrides>
-              {% for member in group.mixed_instance_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+              {% for member in group.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
               <member>
                 {% if member.get("InstanceType") %}
                 <InstanceType>{{ member.get("InstanceType") }}</InstanceType>
@@ -859,25 +859,25 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
             </Overrides>
             {% endif %}
           </LaunchTemplate>
-          {% if group.mixed_instance_policy.get("InstancesDistribution") %}
+          {% if group.mixed_instances_policy.get("InstancesDistribution") %}
           <InstancesDistribution>
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") %}
-            <OnDemandAllocationStrategy>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") }}</OnDemandAllocationStrategy>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") %}
+            <OnDemandAllocationStrategy>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") }}</OnDemandAllocationStrategy>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") %}
-            <OnDemandBaseCapacity>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") }}</OnDemandBaseCapacity>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") %}
+            <OnDemandBaseCapacity>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") }}</OnDemandBaseCapacity>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") %}
-            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") }}</OnDemandPercentageAboveBaseCapacity>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") %}
+            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") }}</OnDemandPercentageAboveBaseCapacity>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotAllocationStrategy") %}
-            <SpotAllocationStrategy>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotAllocationStrategy") }}</SpotAllocationStrategy>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotAllocationStrategy") %}
+            <SpotAllocationStrategy>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotAllocationStrategy") }}</SpotAllocationStrategy>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotInstancePools") %}
-            <SpotInstancePools>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotInstancePools") }}</SpotInstancePools>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotInstancePools") %}
+            <SpotInstancePools>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotInstancePools") }}</SpotInstancePools>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotMaxPrice") %}
-            <SpotMaxPrice>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotMaxPrice") }}</SpotMaxPrice>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotMaxPrice") %}
+            <SpotMaxPrice>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotMaxPrice") }}</SpotMaxPrice>
             {% endif %}
           </InstancesDistribution>
           {% endif %}
