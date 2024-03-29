@@ -2577,7 +2577,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
         if marker:
-            limit = self._pagination_tokens.get(marker)
+            limit = self._pagination_tokens.get(marker) or marker
             key_results = self._get_results_from_token(key_results, limit)
 
         if max_keys is not None:
