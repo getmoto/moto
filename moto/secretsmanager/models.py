@@ -476,7 +476,7 @@ class SecretsManagerBackend(BaseBackend):
         self,
         secret_id_list: Optional[List[str]] = None,
         filters: Optional[List[Dict[str, Any]]] = None,
-        max_results: int = MAX_RESULTS_DEFAULT,
+        max_results: int = None,
         next_token: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], List[Any], Optional[str]]:
         secret_list = []
@@ -484,6 +484,11 @@ class SecretsManagerBackend(BaseBackend):
         if secret_id_list and filters:
             raise InvalidParameterException(
                 "Either 'SecretIdList' or 'Filters' must be provided, but not both."
+            )
+
+        if max_results and not filters:
+            raise InvalidParameterException(
+                "'Filters' not specified. 'Filters' must also be specified when 'MaxResults' is provided."
             )
 
         if secret_id_list:
