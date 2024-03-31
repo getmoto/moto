@@ -652,6 +652,10 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "c7gn.metal",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "c7gn.xlarge",
   "Location": "eu-west-1"
  },

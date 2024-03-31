@@ -652,6 +652,10 @@
   "Location": "eu-west-1a"
  },
  {
+  "InstanceType": "c7gn.metal",
+  "Location": "eu-west-1a"
+ },
+ {
   "InstanceType": "c7gn.xlarge",
   "Location": "eu-west-1a"
  },
@@ -3636,6 +3640,10 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "c7gn.metal",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "c7gn.xlarge",
   "Location": "eu-west-1b"
  },
@@ -6597,6 +6605,10 @@
  },
  {
   "InstanceType": "c7gn.medium",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c7gn.metal",
   "Location": "eu-west-1c"
  },
  {

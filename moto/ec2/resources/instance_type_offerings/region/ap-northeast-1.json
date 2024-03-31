@@ -620,6 +620,10 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "c7gn.metal",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "c7gn.xlarge",
   "Location": "ap-northeast-1"
  },

@@ -628,6 +628,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "c7gn.metal",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "c7gn.xlarge",
   "Location": "usw2-az1"
  },
@@ -3624,6 +3628,10 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "c7gn.metal",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "c7gn.xlarge",
   "Location": "usw2-az2"
  },
@@ -6537,6 +6545,10 @@
  },
  {
   "InstanceType": "c7gn.medium",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "c7gn.metal",
   "Location": "usw2-az3"
  },
  {
