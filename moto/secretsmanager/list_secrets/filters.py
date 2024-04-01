@@ -13,19 +13,23 @@ def description_filter(secret: "FakeSecret", descriptions: List[str]) -> bool:
 
 
 def tag_key(secret: "FakeSecret", tag_keys: List[str]) -> bool:
+    if not secret.tags:
+        return False
     return _matcher(tag_keys, [tag["Key"] for tag in secret.tags])
 
 
 def tag_value(secret: "FakeSecret", tag_values: List[str]) -> bool:
+    if not secret.tags:
+        return False
     return _matcher(tag_values, [tag["Value"] for tag in secret.tags])
 
 
 def filter_all(secret: "FakeSecret", values: List[str]) -> bool:
-    attributes = (
-        [secret.name, secret.description]
-        + [tag["Key"] for tag in secret.tags]
-        + [tag["Value"] for tag in secret.tags]
-    )
+    attributes = [secret.name, secret.description]
+    if secret.tags:
+        attributes += [tag["Key"] for tag in secret.tags] + [
+            tag["Value"] for tag in secret.tags
+        ]
 
     return _matcher(values, attributes)  # type: ignore
 
