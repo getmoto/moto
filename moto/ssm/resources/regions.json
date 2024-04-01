@@ -23,7 +23,7 @@
               "Value": "ZA"
             },
             "geolocationRegion": {
-              "Value": "WC"
+              "Value": "ZA-WC"
             },
             "local-zones": {
               "afs1-los1-az1": {
@@ -1661,7 +1661,7 @@
               "Value": "CN"
             },
             "geolocationRegion": {
-              "Value": "CN-91"
+              "Value": "CN-HK"
             },
             "longName": {
               "Value": "Asia Pacific (Hong Kong)"
@@ -3643,6 +3643,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-media-pipelines": {
+                "Value": "chime-sdk-media-pipelines",
+                "endpoint": {
+                  "Value": "media-pipelines-chime.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-meetings": {
                 "Value": "chime-sdk-meetings",
@@ -5822,6 +5831,15 @@
               "timestream": {
                 "Value": "timestream"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "timestream-write": {
                 "Value": "timestream-write",
                 "endpoint": {
@@ -6316,6 +6334,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-media-pipelines": {
+                "Value": "chime-sdk-media-pipelines",
+                "endpoint": {
+                  "Value": "media-pipelines-chime.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-meetings": {
                 "Value": "chime-sdk-meetings",
@@ -8441,6 +8468,33 @@
               "aiq": {
                 "Value": "aiq"
               },
+              "amplify": {
+                "Value": "amplify",
+                "endpoint": {
+                  "Value": "amplify.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "amplifybackend": {
+                "Value": "amplifybackend",
+                "endpoint": {
+                  "Value": "amplifybackend.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "amplifyuibuilder": {
+                "Value": "amplifyuibuilder",
+                "endpoint": {
+                  "Value": "amplifyuibuilder.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -10268,6 +10322,15 @@
               "chime-sdk": {
                 "Value": "chime-sdk"
               },
+              "chime-sdk-media-pipelines": {
+                "Value": "chime-sdk-media-pipelines",
+                "endpoint": {
+                  "Value": "media-pipelines-chime.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chime-sdk-meetings": {
                 "Value": "chime-sdk-meetings",
                 "endpoint": {
@@ -12086,6 +12149,15 @@
               "thinclient": {
                 "Value": "thinclient"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transcribe": {
                 "Value": "transcribe",
                 "endpoint": {
@@ -12957,6 +13029,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "medialive": {
+                "Value": "medialive",
+                "endpoint": {
+                  "Value": "medialive.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "meteringmarketplace": {
                 "Value": "meteringmarketplace",
                 "endpoint": {
@@ -13285,6 +13366,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15861,6 +15951,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transcribe": {
                 "Value": "transcribe",
                 "endpoint": {
@@ -16364,6 +16463,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-media-pipelines": {
+                "Value": "chime-sdk-media-pipelines",
+                "endpoint": {
+                  "Value": "media-pipelines-chime.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-meetings": {
                 "Value": "chime-sdk-meetings",
@@ -18564,6 +18672,15 @@
               "timestream": {
                 "Value": "timestream"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "timestream-write": {
                 "Value": "timestream-write",
                 "endpoint": {
@@ -19624,6 +19741,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -20379,6 +20505,15 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21671,6 +21806,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-media-pipelines": {
+                "Value": "chime-sdk-media-pipelines",
+                "endpoint": {
+                  "Value": "media-pipelines-chime.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-meetings": {
                 "Value": "chime-sdk-meetings",
@@ -24562,7 +24706,7 @@
               "Value": "CN"
             },
             "geolocationRegion": {
-              "Value": "CN-11"
+              "Value": "CN-BJ"
             },
             "longName": {
               "Value": "China (Beijing)"
@@ -25982,7 +26126,7 @@
               "Value": "CN"
             },
             "geolocationRegion": {
-              "Value": "CN-64"
+              "Value": "CN-NX"
             },
             "longName": {
               "Value": "China (Ningxia)"
@@ -29930,6 +30074,15 @@
               "timestream": {
                 "Value": "timestream"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "timestream-write": {
                 "Value": "timestream-write",
                 "endpoint": {
@@ -33279,6 +33432,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "tnb": {
                 "Value": "tnb",
                 "endpoint": {
@@ -36056,6 +36218,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "stepfunctions": {
                 "Value": "stepfunctions",
                 "endpoint": {
@@ -38817,6 +38988,15 @@
               "timestream": {
                 "Value": "timestream"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "timestream-write": {
                 "Value": "timestream-write",
                 "endpoint": {
@@ -39321,6 +39501,15 @@
               },
               "chime-sdk": {
                 "Value": "chime-sdk"
+              },
+              "chime-sdk-media-pipelines": {
+                "Value": "chime-sdk-media-pipelines",
+                "endpoint": {
+                  "Value": "media-pipelines-chime.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime-sdk-meetings": {
                 "Value": "chime-sdk-meetings",
@@ -41506,7 +41695,7 @@
               "Value": "FR"
             },
             "geolocationRegion": {
-              "Value": "FR-75"
+              "Value": "FR-75C"
             },
             "longName": {
               "Value": "Europe (Paris)"
@@ -45574,6 +45763,24 @@
                 "Value": "mediaconnect",
                 "endpoint": {
                   "Value": "mediaconnect.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mediaconvert": {
+                "Value": "mediaconvert",
+                "endpoint": {
+                  "Value": "mediaconvert.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "medialive": {
+                "Value": "medialive",
+                "endpoint": {
+                  "Value": "medialive.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49758,9 +49965,6 @@
               "use1-mci1-az1": {
                 "Value": "use1-mci1-az1"
               },
-              "use1-mia1-az1": {
-                "Value": "use1-mia1-az1"
-              },
               "use1-msp1-az1": {
                 "Value": "use1-msp1-az1"
               },
@@ -52697,6 +52901,15 @@
               "timestream": {
                 "Value": "timestream"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "timestream-write": {
                 "Value": "timestream-write",
                 "endpoint": {
@@ -55331,6 +55544,15 @@
               "timestream": {
                 "Value": "timestream"
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "timestream-write": {
                 "Value": "timestream-write",
                 "endpoint": {
@@ -55798,7 +56020,13 @@
                 }
               },
               "controltower": {
-                "Value": "controltower"
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "datasync": {
                 "Value": "datasync",
@@ -57299,7 +57527,13 @@
                 }
               },
               "controltower": {
-                "Value": "controltower"
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "databrew": {
                 "Value": "databrew",
@@ -63448,6 +63682,15 @@
               },
               "timestream": {
                 "Value": "timestream"
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "timestream-write": {
                 "Value": "timestream-write",
