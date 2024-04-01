@@ -98,7 +98,7 @@ class FakeSecret:
         self.secret_string = secret_string
         self.secret_binary = secret_binary
         self.description = description
-        self.tags = tags or []
+        self.tags = tags or None
         self.kms_key_id = kms_key_id
         self.version_stages = version_stages
         self.last_changed_date = last_changed_date
@@ -158,7 +158,7 @@ class FakeSecret:
         last_changed_date: Optional[int] = None,
     ) -> None:
         self.description = description
-        self.tags = tags or []
+        self.tags = tags or None
         if last_changed_date is not None:
             self.last_changed_date = last_changed_date
 
@@ -236,7 +236,7 @@ class FakeSecret:
             "DeletedDate": self.deleted_date,
             "CreatedDate": self.created_date,
         }
-        if self.tags:
+        if self.tags is not None:
             dct["Tags"] = self.tags
         if self.description:
             dct["Description"] = self.description
@@ -942,20 +942,13 @@ class SecretsManagerBackend(BaseBackend):
         secret = self.secrets[secret_id]
         if isinstance(secret, ReplicaSecret):
             raise OperationNotPermittedOnReplica
-        old_tags = secret.tags
+
+        old_tags = {tag["Key"]: tag for tag in secret.tags or []}
 
         for tag in tags:
-            existing_key_name = next(
-                (
-                    old_key
-                    for old_key in old_tags
-                    if old_key.get("Key") == tag.get("Key")
-                ),
-                None,
-            )
-            if existing_key_name:
-                old_tags.remove(existing_key_name)
-            old_tags.append(tag)
+            old_tags[tag["Key"]] = tag
+
+        secret.tags = list(old_tags.values())
 
     def untag_resource(self, secret_id: str, tag_keys: List[str]) -> None:
         if secret_id not in self.secrets:
@@ -964,11 +957,11 @@ class SecretsManagerBackend(BaseBackend):
         secret = self.secrets[secret_id]
         if isinstance(secret, ReplicaSecret):
             raise OperationNotPermittedOnReplica
-        tags = secret.tags
 
-        for tag in tags:
-            if tag["Key"] in tag_keys:
-                tags.remove(tag)
+        if secret.tags is None:
+            return
+
+        secret.tags = [tag for tag in secret.tags if tag["Key"] not in tag_keys]
 
     def update_secret_version_stage(
         self,
