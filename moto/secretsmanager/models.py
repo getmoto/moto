@@ -476,7 +476,7 @@ class SecretsManagerBackend(BaseBackend):
         self,
         secret_id_list: Optional[List[str]] = None,
         filters: Optional[List[Dict[str, Any]]] = None,
-        max_results: int = None,
+        max_results: Optional[int] = None,
         next_token: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], List[Any], Optional[str]]:
         secret_list = []
@@ -1144,7 +1144,7 @@ class SecretsManagerBackend(BaseBackend):
     def _get_secret_values_page_and_next_token(
         self,
         secret_list: List[Dict[str, Any]],
-        max_results: int,
+        max_results: Optional[int],
         next_token: Optional[str],
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         starting_point = int(next_token or 0)
