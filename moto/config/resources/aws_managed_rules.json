@@ -1945,6 +1945,12 @@
       "Resource Types": "AWS::EFS::FileSystem",
       "Trigger type": "Periodic"
     },
+    "EFS_MOUNT_TARGET_PUBLIC_ACCESSIBLE": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Israel (Tel Aviv), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::EFS::FileSystem",
+      "Trigger type": "Periodic"
+    },
     "EFS_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
