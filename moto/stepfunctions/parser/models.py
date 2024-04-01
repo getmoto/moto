@@ -29,7 +29,7 @@ from moto.stepfunctions.parser.api import (
     TracingConfiguration,
     VersionDescription,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.iteration.itemprocessor.map_run_record import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.map_run_record import (
     MapRunRecord,
 )
 from moto.stepfunctions.parser.asl.eval.callback.callback import (

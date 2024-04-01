@@ -6,7 +6,7 @@ import threading
 from typing import Any, Dict, Final, List, Optional
 
 from moto.stepfunctions.parser.api import ExecutionFailedEventDetails, Timestamp
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.iteration.itemprocessor.map_run_record import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.map_run_record import (
     MapRunRecordPoolManager,
 )
 from moto.stepfunctions.parser.asl.eval.aws_execution_details import AWSExecutionDetails

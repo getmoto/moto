@@ -4,13 +4,13 @@ from moto.stepfunctions.parser.asl.component.common.flow.end import End
 from moto.stepfunctions.parser.asl.component.common.flow.next import Next
 from moto.stepfunctions.parser.asl.component.common.timeouts.heartbeat import Heartbeat
 from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import Timeout
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.reader_config.max_items_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.max_items_decl import (
     MaxItemsDecl,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_task.service.resource import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     Resource,
 )
-from moto.stepfunctions.parser.asl.component.state.state_wait.wait_function.wait_function import (
+from moto.stepfunctions.parser.asl.component.state.wait.wait_function.wait_function import (
     WaitFunction,
 )
 from moto.stepfunctions.parser.asl.parse.typed_props import TypedProps
