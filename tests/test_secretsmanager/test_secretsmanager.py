@@ -1622,6 +1622,10 @@ def test_tag_resource(pass_arn):
     conn = boto3.client("secretsmanager", region_name="us-west-2")
     created_secret = conn.create_secret(Name="test-secret", SecretString="foosecret")
     secret_id = created_secret["ARN"] if pass_arn else "test-secret"
+
+    response = conn.describe_secret(SecretId=secret_id)
+    assert "Tags" not in response
+
     conn.tag_resource(
         SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"}]
     )
@@ -1677,6 +1681,14 @@ def test_untag_resource(pass_arn):
         "Secrets Manager can't find the specified secret."
         == cm.value.response["Error"]["Message"]
     )
+
+    conn.tag_resource(
+        SecretId=secret_id, Tags=[{"Key": "FirstTag", "Value": "SomeValue"}]
+    )
+    conn.untag_resource(SecretId=secret_id, TagKeys=["FirstTag", "SecondTag"])
+    response = conn.describe_secret(SecretId=secret_id)
+    assert "Tags" in response
+    assert response["Tags"] == []
 
 
 @mock_aws
