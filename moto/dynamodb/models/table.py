@@ -1,6 +1,6 @@
 import copy
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
@@ -713,7 +713,7 @@ class Table(CloudFormationModel):
         else:
             possible_results = [
                 item
-                for item in list(self.all_items())
+                for item in self.all_items()
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
 
@@ -747,7 +747,7 @@ class Table(CloudFormationModel):
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
-                if self._item_smaller_than_dct(result, exclusive_start_key):
+                if self._item_comes_before_dct(result, exclusive_start_key):
                     continue
                 else:
                     processing_previous_page = False
@@ -807,13 +807,18 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def all_items(self) -> Iterator[Item]:
+    def all_items(self) -> List[Item]:
+        items: List[Item] = []
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
-                    yield item
+                    items.append(item)
             else:
-                yield hash_set  # type: ignore
+                items.append(hash_set)  # type: ignore
+        return sorted(
+            items,
+            key=lambda x: (x.hash_key, x.range_key) if x.range_key else x.hash_key,
+        )
 
     def all_indexes(self) -> Sequence[SecondaryIndex]:
         return (self.global_indexes or []) + (self.indexes or [])  # type: ignore
@@ -827,18 +832,24 @@ class Table(CloudFormationModel):
             )
         return indexes_by_name[index_name]
 
-    def has_idx_items(self, index_name: str) -> Iterator[Item]:
+    def has_idx_items(self, index_name: str) -> List[Item]:
         idx = self.get_index(index_name)
         idx_col_set = set([i["AttributeName"] for i in idx.schema])
+
+        items: List[Item] = []
 
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
                     if idx_col_set.issubset(set(item.attrs)):
-                        yield item
+                        items.append(item)
             else:
                 if idx_col_set.issubset(set(hash_set.attrs)):  # type: ignore
-                    yield hash_set  # type: ignore
+                    items.append(hash_set)  # type: ignore
+        return sorted(
+            items,
+            key=lambda x: (x.hash_key, x.range_key) if x.range_key else x.hash_key,
+        )
 
     def scan(
         self,
@@ -872,7 +883,7 @@ class Table(CloudFormationModel):
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
-                if self._item_smaller_than_dct(item, exclusive_start_key):
+                if self._item_comes_before_dct(item, exclusive_start_key):
                     continue
                 else:
                     processing_previous_page = False
@@ -926,12 +937,15 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def _item_smaller_than_dct(self, item: Item, dct: Dict[str, Any]) -> bool:
+    def _item_comes_before_dct(self, item: Item, dct: Dict[str, Any]) -> bool:
         hash_key = DynamoType(dct.get(self.hash_key_attr))  # type: ignore[arg-type]
         range_key = dct.get(self.range_key_attr) if self.range_key_attr else None
         if range_key is not None:
             range_key = DynamoType(range_key)
-            return item.hash_key <= hash_key and item.range_key <= range_key
+            if item.hash_key < hash_key:
+                return True
+            else:
+                return item.hash_key <= hash_key and item.range_key <= range_key
         return item.hash_key <= hash_key
 
     def _get_last_evaluated_key(
