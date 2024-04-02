@@ -737,6 +737,27 @@ def test_put_events_error_missing_argument_source():
 
 
 @mock_aws
+def test_put_events_error_empty_argument_source():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(
+        Entries=[
+            {"Source": ""},
+        ]
+    )
+
+    # then
+    assert response["FailedEntryCount"] == 1
+    assert len(response["Entries"]) == 1
+    assert response["Entries"][0] == {
+        "ErrorCode": "InvalidArgument",
+        "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
+    }
+
+
+@mock_aws
 def test_put_events_error_missing_argument_detail_type():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -754,12 +775,48 @@ def test_put_events_error_missing_argument_detail_type():
 
 
 @mock_aws
+def test_put_events_error_empty_argument_detail_type():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(Entries=[{"Source": "source", "DetailType": ""}])
+
+    # then
+    assert response["FailedEntryCount"] == 1
+    assert len(response["Entries"]) == 1
+    assert response["Entries"][0] == {
+        "ErrorCode": "InvalidArgument",
+        "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
+    }
+
+
+@mock_aws
 def test_put_events_error_missing_argument_detail():
     # given
     client = boto3.client("events", "eu-central-1")
 
     # when
     response = client.put_events(Entries=[{"DetailType": "type", "Source": "source"}])
+
+    # then
+    assert response["FailedEntryCount"] == 1
+    assert len(response["Entries"]) == 1
+    assert response["Entries"][0] == {
+        "ErrorCode": "InvalidArgument",
+        "ErrorMessage": "Parameter Detail is not valid. Reason: Detail is a required argument.",
+    }
+
+
+@mock_aws
+def test_put_events_error_empty_argument_detail():
+    # given
+    client = boto3.client("events", "eu-central-1")
+
+    # when
+    response = client.put_events(
+        Entries=[{"DetailType": "type", "Source": "source", "Detail": ""}]
+    )
 
     # then
     assert response["FailedEntryCount"] == 1

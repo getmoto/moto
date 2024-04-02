@@ -1301,21 +1301,21 @@ class EventsBackend(BaseBackend):
 
         entries = []
         for event in events:
-            if "Source" not in event:
+            if not event.get("Source"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
                         "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
                     }
                 )
-            elif "DetailType" not in event:
+            elif not event.get("DetailType"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
                         "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
                     }
                 )
-            elif "Detail" not in event:
+            elif not event.get("Detail"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
