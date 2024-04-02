@@ -730,7 +730,7 @@ class DynamoHandler(BaseResponse):
         index_name = self.body.get("IndexName")
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
-        scan_index_forward = self.body.get("ScanIndexForward")
+        scan_index_forward = self.body.get("ScanIndexForward", True)
         consistent_read = self.body.get("ConsistentRead", False)
 
         items, scanned_count, last_evaluated_key = self.dynamodb_backend.query(
