@@ -49,6 +49,22 @@ class SecretsManagerResponse(BaseResponse):
         )
         return json.dumps(value)
 
+    def batch_get_secret_value(self) -> str:
+        secret_id_list = self._get_param("SecretIdList", if_none=[])
+        filters = self._get_param("Filters", if_none=[])
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        secret_values, errors, next_token = self.backend.batch_get_secret_value(
+            secret_id_list=secret_id_list,
+            filters=filters,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            dict(SecretValues=secret_values, Errors=errors, NextToken=next_token)
+        )
+
     def create_secret(self) -> str:
         name = self._get_param("Name")
         secret_string = self._get_param("SecretString")

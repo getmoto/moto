@@ -182,6 +182,127 @@ def test_get_secret_version_stage_mismatch():
 
 
 @mock_aws
+def test_batch_get_secret_value_for_secret_id_list_with_matches():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_a = conn.create_secret(Name="test-secret-a", SecretString="secret")
+    secret_b = conn.create_secret(Name="test-secret-b", SecretString="secret")
+
+    secrets_batch = conn.batch_get_secret_value(
+        SecretIdList=["test-secret-a", "test-secret-b"]
+    )
+    matched = [
+        secret
+        for secret in secrets_batch["SecretValues"]
+        if secret["ARN"] in [secret_a["ARN"], secret_b["ARN"]]
+    ]
+
+    assert len(matched) == len(secrets_batch["SecretValues"]) == 2
+
+
+@mock_aws
+def test_batch_get_secret_value_for_secret_id_list_without_matches():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="test-secret-a", SecretString="secret")
+
+    secrets_batch = conn.batch_get_secret_value(
+        SecretIdList=["test-secret-b", "test-secret-c"]
+    )
+    assert len(secrets_batch["SecretValues"]) == 0
+
+
+@mock_aws
+def test_batch_get_secret_value_with_filters():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_a = conn.create_secret(Name="test-secret-a", SecretString="secret")
+    secret_b = conn.create_secret(Name="test-secret-b", SecretString="secret")
+    conn.create_secret(Name="test-secret-c", SecretString="secret")
+
+    secrets_batch = conn.batch_get_secret_value(
+        Filters=[{"Key": "name", "Values": [secret_a["Name"], secret_b["Name"]]}]
+    )
+
+    assert [sec["ARN"] for sec in secrets_batch["SecretValues"]] == [
+        secret_a["ARN"],
+        secret_b["ARN"],
+    ]
+
+
+@mock_aws
+def test_batch_get_secret_value_with_both_secret_id_list_and_filters():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    with pytest.raises(ClientError) as exc:
+        conn.batch_get_secret_value(
+            Filters=[{"Key": "name", "Values": ["test-secret-a", "test-secret-b"]}],
+            SecretIdList=["foo", "bar"],
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "Either 'SecretIdList' or 'Filters' must be provided, but not both."
+        in err["Message"]
+    )
+
+
+@mock_aws
+def test_batch_get_secret_value_with_max_results_and_no_filters():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.batch_get_secret_value(MaxResults=10, SecretIdList=["foo", "bar"])
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "'Filters' not specified. 'Filters' must also be specified when 'MaxResults' is provided."
+        in err["Message"]
+    )
+
+
+@mock_aws
+def test_batch_get_secret_value_binary():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    secret_a = conn.create_secret(Name="test-secret-a", SecretBinary="secretA")
+    secret_b = conn.create_secret(Name="test-secret-b", SecretBinary="secretB")
+    conn.create_secret(Name="test-secret-c", SecretBinary="secretC")
+
+    secrets_batch = conn.batch_get_secret_value(
+        Filters=[{"Key": "name", "Values": [secret_a["Name"], secret_b["Name"]]}]
+    )
+    matched = [
+        secret
+        for secret in secrets_batch["SecretValues"]
+        if secret["ARN"] == secret_a["ARN"]
+        and secret["SecretBinary"] == b"secretA"
+        or secret["ARN"] == secret_b["ARN"]
+        and secret["SecretBinary"] == b"secretB"
+    ]
+    assert len(matched) == 2
+
+
+@mock_aws
+def test_batch_get_secret_value_missing_value():
+    conn = boto3.client("secretsmanager", region_name="us-east-2")
+
+    secret_a = conn.create_secret(Name="test-secret-a")
+    secret_b = conn.create_secret(Name="test-secret-b")
+
+    with pytest.raises(ClientError) as exc:
+        conn.batch_get_secret_value(
+            Filters=[{"Key": "name", "Values": [secret_a["Name"], secret_b["Name"]]}]
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
 def test_create_secret():
     conn = boto3.client("secretsmanager", region_name="us-east-1")
 
