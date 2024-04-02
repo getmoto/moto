@@ -527,8 +527,8 @@ class DynamoHandler(BaseResponse):
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
         if self._contains_duplicates(
-            [k[0] for k in delete_requests]
-        ) or self._contains_duplicates([k[0] for k in put_requests]):
+            [json.dumps(k[1]) for k in delete_requests]
+        ) or self._contains_duplicates([json.dumps(k[1]) for k in put_requests]):
             raise MockValidationException(
                 "Provided list of item keys contains duplicates"
             )

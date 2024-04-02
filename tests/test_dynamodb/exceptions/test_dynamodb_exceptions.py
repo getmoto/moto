@@ -752,17 +752,18 @@ def test_batch_items_should_throw_exception_for_duplicate_request(
 ):
     # Setup
     table = ddb_resource.Table(users_table_name)
+    test_item = {"forum_name": "test_dupe", "subject": "test1"}
 
     # Execute
     with pytest.raises(ClientError) as ex:
         with table.batch_writer() as batch:
-            batch.put_item(Item={"forum_name": "test_dupe", "subject": "test1"})
-            batch.put_item(Item={"forum_name": "test_dupe", "subject": "test2"})
+            for i in range(0, 5):
+                batch.put_item(Item=test_item)
 
     with pytest.raises(ClientError) as ex2:
         with table.batch_writer() as batch:
-            batch.delete_item(Key={"forum_name": "test_dupe", "subject": "test1"})
-            batch.delete_item(Key={"forum_name": "test_dupe", "subject": "test2"})
+            for i in range(0, 5):
+                batch.delete_item(Key=test_item)
 
     # Verify
     err = ex.value.response["Error"]
