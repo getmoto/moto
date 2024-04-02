@@ -747,6 +747,34 @@ def test_update_expression_with_trailing_comma():
 
 
 @mock_aws
+def test_batch_items_should_throw_exception_for_duplicate_request(
+    ddb_resource, create_user_table, users_table_name
+):
+    # Setup
+    table = ddb_resource.Table(users_table_name)
+
+    # Execute
+    with pytest.raises(ClientError) as ex:
+        with table.batch_writer() as batch:
+            batch.put_item(Item={"forum_name": "test_dupe", "subject": "test1"})
+            batch.put_item(Item={"forum_name": "test_dupe", "subject": "test2"})
+
+    with pytest.raises(ClientError) as ex2:
+        with table.batch_writer() as batch:
+            batch.delete_item(Key={"forum_name": "test_dupe", "subject": "test1"})
+            batch.delete_item(Key={"forum_name": "test_dupe", "subject": "test2"})
+
+    # Verify
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Provided list of item keys contains duplicates"
+
+    err2 = ex2.value.response["Error"]
+    assert err2["Code"] == "ValidationException"
+    assert err2["Message"] == "Provided list of item keys contains duplicates"
+
+
+@mock_aws
 def test_batch_put_item_with_empty_value():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
