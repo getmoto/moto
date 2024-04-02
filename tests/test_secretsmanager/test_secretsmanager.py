@@ -196,7 +196,8 @@ def test_batch_get_secret_value_for_secret_id_list_with_matches():
         for secret in secrets_batch["SecretValues"]
         if secret["ARN"] in [secret_a["ARN"], secret_b["ARN"]]
     ]
-    assert len(matched) == 2
+
+    assert len(matched) == len(secrets_batch["SecretValues"]) == 2
 
 
 @mock_aws
@@ -222,12 +223,11 @@ def test_batch_get_secret_value_with_filters():
     secrets_batch = conn.batch_get_secret_value(
         Filters=[{"Key": "name", "Values": [secret_a["Name"], secret_b["Name"]]}]
     )
-    matched = [
-        secret
-        for secret in secrets_batch["SecretValues"]
-        if secret["ARN"] in [secret_a["ARN"], secret_b["ARN"]]
+
+    assert [sec["ARN"] for sec in secrets_batch["SecretValues"]] == [
+        secret_a["ARN"],
+        secret_b["ARN"],
     ]
-    assert len(matched) == 2
 
 
 @mock_aws
@@ -239,12 +239,13 @@ def test_batch_get_secret_value_with_both_secret_id_list_and_filters():
             Filters=[{"Key": "name", "Values": ["test-secret-a", "test-secret-b"]}],
             SecretIdList=["foo", "bar"],
         )
-        err = exc.value.response["Error"]
-        assert err["Code"] == "InvalidParameterException"
-        assert (
-            "Either 'SecretIdList' or 'Filters' must be provided, but not both."
-            in err["Message"]
-        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "Either 'SecretIdList' or 'Filters' must be provided, but not both."
+        in err["Message"]
+    )
 
 
 @mock_aws
@@ -255,12 +256,12 @@ def test_batch_get_secret_value_with_max_results_and_no_filters():
     with pytest.raises(ClientError) as exc:
         conn.batch_get_secret_value(MaxResults=10, SecretIdList=["foo", "bar"])
 
-        err = exc.value.response["Error"]
-        assert err["Code"] == "InvalidParameterException"
-        assert (
-            "'Filters' not specified. 'Filters' must also be specified when 'MaxResults' is provided."
-            in err["Message"]
-        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        "'Filters' not specified. 'Filters' must also be specified when 'MaxResults' is provided."
+        in err["Message"]
+    )
 
 
 @mock_aws
@@ -296,8 +297,9 @@ def test_batch_get_secret_value_missing_value():
         conn.batch_get_secret_value(
             Filters=[{"Key": "name", "Values": [secret_a["Name"], secret_b["Name"]]}]
         )
-        err = exc.value.response["Error"]
-        assert err["Code"] == "ResourceNotFoundException"
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws

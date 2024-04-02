@@ -495,18 +495,24 @@ class SecretsManagerBackend(BaseBackend):
             for secret_id in secret_id_list:
                 # TODO perhaps there should be a check if the secret id is valid identifier
                 # and add an error to the list if not
-                secret = self.secrets.get(secret_id)
-                if secret:
-                    # TODO investigate the behaviour when the secret doesn't exist,
+                try:
+                    # TODO investigate the behaviour when the secret doesn't exist or has been deleted,
                     # might need to add an error to the list
-                    secret_data = self._get_secret_value_data(secret)
-                    secret_list.append(secret_data)
+                    secret_list.append(self.get_secret_value(secret_id, "", ""))
+                except (SecretNotFoundException, InvalidRequestException):
+                    pass
 
         if filters:
             for secret in self.secrets.values():
                 if _matches(secret, filters):
-                    secret_data = self._get_secret_value_data(secret)
-                    secret_list.append(secret_data)
+                    if isinstance(secret, FakeSecret):
+                        secret_list.append(
+                            self.get_secret_value(secret.secret_id, "", "")
+                        )
+                    elif isinstance(secret, ReplicaSecret):
+                        secret_list.append(
+                            self.get_secret_value(secret.source.secret_id, "", "")
+                        )
 
         secret_page, new_next_token = self._get_secret_values_page_and_next_token(
             secret_list, max_results, next_token
@@ -1153,31 +1159,6 @@ class SecretsManagerBackend(BaseBackend):
         new_next_token = str(ending_point) if ending_point < len(secret_list) else None
 
         return secret_page, new_next_token
-
-    def _get_secret_value_data(
-        self, secret: Union[FakeSecret, ReplicaSecret]
-    ) -> Dict[str, Any]:
-        version_id = secret.default_version_id or "AWSCURRENT"
-        secret_version = secret.versions.get(version_id)
-        if not secret_version:
-            raise ResourceNotFoundException(
-                f"Secrets Manager can't find the specified secret value for ARN: {secret.arn}, Version Id: {version_id}"
-            )
-
-        secret_data = {
-            "ARN": secret.arn,
-            "Name": secret.name,
-            "VersionId": secret_version["version_id"],
-            "VersionStages": secret_version["version_stages"],
-            "CreatedDate": secret_version["createdate"],
-        }
-
-        if "secret_string" in secret_version:
-            secret_data["SecretString"] = secret_version["secret_string"]
-
-        if "secret_binary" in secret_version:
-            secret_data["SecretBinary"] = secret_version["secret_binary"]
-        return secret_data
 
 
 secretsmanager_backends = BackendDict(SecretsManagerBackend, "secretsmanager")
