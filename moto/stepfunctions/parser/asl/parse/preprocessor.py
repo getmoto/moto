@@ -112,119 +112,119 @@ from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import (
 from moto.stepfunctions.parser.asl.component.common.version import Version
 from moto.stepfunctions.parser.asl.component.component import Component
 from moto.stepfunctions.parser.asl.component.program.program import Program
-from moto.stepfunctions.parser.asl.component.state.state import CommonStateField
-from moto.stepfunctions.parser.asl.component.state.state_choice.choice_rule import (
+from moto.stepfunctions.parser.asl.component.state.choice.choice_rule import (
     ChoiceRule,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.choices_decl import (
+from moto.stepfunctions.parser.asl.component.state.choice.choices_decl import (
     ChoicesDecl,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.comparison.comparison_composite import (
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_composite import (
     ComparisonComposite,
     ComparisonCompositeAnd,
     ComparisonCompositeNot,
     ComparisonCompositeOr,
     ComparisonCompositeProps,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.comparison.comparison_func import (
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_func import (
     ComparisonFunc,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.comparison.comparison_operator_type import (
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_operator_type import (
     ComparisonOperatorType,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.comparison.comparison_variable import (
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_variable import (
     ComparisonVariable,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.comparison.variable import (
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.variable import (
     Variable,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.default_decl import (
+from moto.stepfunctions.parser.asl.component.state.choice.default_decl import (
     DefaultDecl,
 )
-from moto.stepfunctions.parser.asl.component.state.state_choice.state_choice import (
+from moto.stepfunctions.parser.asl.component.state.choice.state_choice import (
     StateChoice,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.execution_type import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.execution_type import (
     ExecutionType,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.item_reader_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.item_reader_decl import (
     ItemReader,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.reader_config.csv_header_location import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.csv_header_location import (
     CSVHeaderLocation,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.reader_config.csv_headers import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.csv_headers import (
     CSVHeaders,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.reader_config.input_type import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.input_type import (
     InputType,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.reader_config.max_items_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.max_items_decl import (
     MaxItems,
     MaxItemsDecl,
     MaxItemsPath,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_reader.reader_config.reader_config_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.reader_config_decl import (
     ReaderConfig,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.item_selector import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_selector import (
     ItemSelector,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.iteration.itemprocessor.item_processor_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.item_processor_decl import (
     ItemProcessorDecl,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.iteration.itemprocessor.processor_config import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.processor_config import (
     ProcessorConfig,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.iteration.iterator.iterator_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.iterator.iterator_decl import (
     IteratorDecl,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.max_concurrency import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.max_concurrency import (
     MaxConcurrency,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.mode import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.mode import (
     Mode,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_map.state_map import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.state_map import (
     StateMap,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_parallel.branches_decl import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_parallel.branches_decl import (
     BranchesDecl,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_parallel.state_parallel import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_parallel.state_parallel import (
     StateParallel,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_task.service.resource import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     Resource,
 )
-from moto.stepfunctions.parser.asl.component.state.state_execution.state_task.state_task_factory import (
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.state_task_factory import (
     state_task_for,
 )
-from moto.stepfunctions.parser.asl.component.state.state_fail.state_fail import (
+from moto.stepfunctions.parser.asl.component.state.fail.state_fail import (
     StateFail,
 )
+from moto.stepfunctions.parser.asl.component.state.state import CommonStateField
 from moto.stepfunctions.parser.asl.component.state.state_pass.result import Result
 from moto.stepfunctions.parser.asl.component.state.state_pass.state_pass import (
     StatePass,
 )
 from moto.stepfunctions.parser.asl.component.state.state_props import StateProps
-from moto.stepfunctions.parser.asl.component.state.state_succeed.state_succeed import (
+from moto.stepfunctions.parser.asl.component.state.state_succeed import (
     StateSucceed,
 )
 from moto.stepfunctions.parser.asl.component.state.state_type import StateType
-from moto.stepfunctions.parser.asl.component.state.state_wait.state_wait import (
+from moto.stepfunctions.parser.asl.component.state.wait.state_wait import (
     StateWait,
 )
-from moto.stepfunctions.parser.asl.component.state.state_wait.wait_function.seconds import (
+from moto.stepfunctions.parser.asl.component.state.wait.wait_function.seconds import (
     Seconds,
 )
-from moto.stepfunctions.parser.asl.component.state.state_wait.wait_function.seconds_path import (
+from moto.stepfunctions.parser.asl.component.state.wait.wait_function.seconds_path import (
     SecondsPath,
 )
-from moto.stepfunctions.parser.asl.component.state.state_wait.wait_function.timestamp import (
+from moto.stepfunctions.parser.asl.component.state.wait.wait_function.timestamp import (
     Timestamp,
 )
-from moto.stepfunctions.parser.asl.component.state.state_wait.wait_function.timestamp_path import (
+from moto.stepfunctions.parser.asl.component.state.wait.wait_function.timestamp_path import (
     TimestampPath,
 )
 from moto.stepfunctions.parser.asl.component.states import States
