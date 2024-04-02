@@ -232,6 +232,27 @@ def test_describe_export_tasks_happy_path(logs, s3, log_group_name):  # pylint: 
     assert resp["exportTasks"][0]["destination"] == destination
     assert resp["exportTasks"][0]["from"] == fromTime
     assert resp["exportTasks"][0]["to"] == to
+    assert resp["exportTasks"][0]["status"]["code"] == "COMPLETED"
+    assert resp["exportTasks"][0]["status"]["message"] == "Completed successfully"
+
+
+def test_describe_export_tasks_out_of_order_timestamps(logs, s3, log_group_name):  # pylint: disable=redefined-outer-name
+    destination = "mybucket"
+    fromTime = 1000
+    to = 500
+    s3.create_bucket(Bucket=destination)
+    logs.create_export_task(
+        logGroupName=log_group_name,
+        fromTime=fromTime,
+        to=to,
+        destination=destination,
+    )
+    resp = logs.describe_export_tasks()
+    assert len(resp["exportTasks"]) == 1
+    assert resp["exportTasks"][0]["logGroupName"] == log_group_name
+    assert resp["exportTasks"][0]["destination"] == destination
+    assert resp["exportTasks"][0]["from"] == fromTime
+    assert resp["exportTasks"][0]["to"] == to
     assert resp["exportTasks"][0]["status"]["code"] == "active"
     assert resp["exportTasks"][0]["status"]["message"] == "Task is active"
 
@@ -252,8 +273,8 @@ def test_describe_export_tasks_task_id(logs, log_group_name, bucket_name):  # py
     assert resp["exportTasks"][0]["destination"] == bucket_name
     assert resp["exportTasks"][0]["from"] == fromTime
     assert resp["exportTasks"][0]["to"] == to
-    assert resp["exportTasks"][0]["status"]["code"] == "active"
-    assert resp["exportTasks"][0]["status"]["message"] == "Task is active"
+    assert resp["exportTasks"][0]["status"]["code"] == "COMPLETED"
+    assert resp["exportTasks"][0]["status"]["message"] == "Completed successfully"
 
 
 def test_describe_export_tasks_raises_ResourceNotFoundException_task_id_not_found(
