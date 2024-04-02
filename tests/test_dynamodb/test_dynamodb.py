@@ -5497,3 +5497,81 @@ def test_query_with_unknown_last_evaluated_key(table_name=None):
         ExclusiveStartKey=different_key,
     )
     assert p4["Items"] == [{"pk": {"S": "hash_value"}, "sk": {"S": "range_value6"}}]
+
+
+@mock_aws
+def test_query_with_gsi_reverse_paginated():
+    client = boto3.client("dynamodb", region_name="us-west-2")
+    table_name = "unit-test-table"
+    index_name = "alternate"
+
+    # Create table - GSI has dissimilar attributes from the main table
+    client.create_table(
+        AttributeDefinitions=[
+            {"AttributeName": "pri", "AttributeType": "S"},
+            {"AttributeName": "alt", "AttributeType": "S"},
+        ],
+        TableName=table_name,
+        KeySchema=[
+            {"AttributeName": "pri", "KeyType": "HASH"},
+        ],
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": index_name,
+                "KeySchema": [
+                    {"AttributeName": "alt", "KeyType": "HASH"},
+                    {"AttributeName": "pri", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "KEYS_ONLY"},
+            },
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    # Add some items. These are chosen so that the order of addition is not
+    # lexical order for the chosen values, i.e.
+    # pri: pri_5, pri_6, pri_7, pri_8, pri_9, pri_10, pri_11, pri_12, pri_13, pri_14
+    # alt: alt_1, alt_1, alt_1, alt_2, alt_2,  alt_2,  alt_2,  alt_3,  alt_3,  alt_3
+    for i in range(5, 15):
+        client.put_item(
+            TableName=table_name,
+            Item={
+                "pri": {"S": f"pri_{i}"},
+                "alt": {"S": f"alt_{i//4}"},
+            },
+        )
+
+    # Let's reverse-sort a query on the alternate index. These items match "alt_2":
+    # in insertion order: pri_8, pri_9, pri_10, pri_11
+    # in lexical order: pri_10, pri_11, pri_8, pri_9
+    # in reverse order: pri_9, pri_8, pri_11, pri_10
+    p1 = client.query(
+        TableName=table_name,
+        IndexName=index_name,
+        KeyConditionExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "alt"},
+        ExpressionAttributeValues={":h": {"S": "alt_2"}},
+        ScanIndexForward=False,
+        Limit=2,
+    )
+    assert p1["Items"] == [
+        {"pri": {"S": "pri_9"}, "alt": {"S": "alt_2"}},
+        {"pri": {"S": "pri_8"}, "alt": {"S": "alt_2"}},
+    ]
+
+    # Fetch the second page of results
+    p2 = client.query(
+        TableName=table_name,
+        IndexName=index_name,
+        KeyConditionExpression="#h = :h",
+        ExpressionAttributeNames={"#h": "alt"},
+        ExpressionAttributeValues={":h": {"S": "alt_2"}},
+        ScanIndexForward=False,
+        Limit=2,
+        ExclusiveStartKey=p1["LastEvaluatedKey"],
+    )
+    assert p2["Items"] == [
+        {"pri": {"S": "pri_11"}, "alt": {"S": "alt_2"}},
+        {"pri": {"S": "pri_10"}, "alt": {"S": "alt_2"}},
+    ]
+    assert "LastEvaluatedKey" not in p2
