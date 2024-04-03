@@ -20,7 +20,7 @@ cloudwatch
 - [ ] delete_insight_rules
 - [ ] delete_metric_stream
 - [ ] describe_alarm_history
-- [ ] describe_alarms
+- [X] describe_alarms
 - [ ] describe_alarms_for_metric
 - [ ] describe_anomaly_detectors
 - [ ] describe_insight_rules

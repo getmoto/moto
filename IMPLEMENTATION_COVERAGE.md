@@ -1039,7 +1039,7 @@
 
 ## cloudwatch
 <details>
-<summary>36% implemented</summary>
+<summary>39% implemented</summary>
 
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
@@ -1047,7 +1047,7 @@
 - [ ] delete_insight_rules
 - [ ] delete_metric_stream
 - [ ] describe_alarm_history
-- [ ] describe_alarms
+- [X] describe_alarms
 - [ ] describe_alarms_for_metric
 - [ ] describe_anomaly_detectors
 - [ ] describe_insight_rules

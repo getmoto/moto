@@ -181,7 +181,7 @@ def test_describe_alarms():
     ][0]
 
     assert single_metric_alarm["MetricName"] == "cpu"
-    assert "Metrics" not in single_metric_alarm
+    assert single_metric_alarm["Metrics"] == []
     assert single_metric_alarm["Namespace"] == "blah"
     assert single_metric_alarm["Period"] == 10
     assert single_metric_alarm["EvaluationPeriods"] == 5
