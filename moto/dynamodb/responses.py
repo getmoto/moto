@@ -526,7 +526,12 @@ class DynamoHandler(BaseResponse):
                 elif request_type == "DeleteRequest":
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
-
+        if self._contains_duplicates(
+            [json.dumps(k[1]) for k in delete_requests]
+        ) or self._contains_duplicates([json.dumps(k[1]) for k in put_requests]):
+            raise MockValidationException(
+                "Provided list of item keys contains duplicates"
+            )
         for table_name, item in put_requests:
             self.dynamodb_backend.put_item(table_name, item)
         for table_name, keys in delete_requests:
