@@ -11,7 +11,7 @@ Test the different server responses
 
 
 @mock_aws
-def test_iotdata_list():
+def test_iotdata_list() -> None:
     backend = server.create_backend_app("iot-data")
     test_client = backend.test_client()
 
@@ -29,7 +29,7 @@ def test_iotdata_list():
     ],
 )
 @mock_aws
-def test_publish(url_encode_topic):
+def test_publish(url_encode_topic: bool) -> None:
     backend = server.create_backend_app("iot-data")
     test_client = backend.test_client()
 

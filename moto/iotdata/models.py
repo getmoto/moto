@@ -153,7 +153,7 @@ class FakeShadow(BaseModel):
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.published_payloads: List[Tuple[str, str]] = list()
+        self.published_payloads: List[Tuple[str, bytes]] = list()
 
     @property
     def iot_backend(self) -> IoTBackend:
@@ -211,7 +211,7 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadows[shadow_name] = new_shadow
         return new_shadow
 
-    def publish(self, topic: str, payload: str) -> None:
+    def publish(self, topic: str, payload: bytes) -> None:
         self.published_payloads.append((topic, payload))
 
     def list_named_shadows_for_thing(self, thing_name: str) -> List[FakeShadow]:
