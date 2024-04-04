@@ -60,7 +60,7 @@ class StateMachine(CloudFormationModel):
             state_machine_name=self.name,
             execution_name=execution_name,
             state_machine_arn=self.arn,
-            execution_input=execution_input,
+            execution_input=json.loads(execution_input),
         )
         self.executions.append(execution)
         return execution
