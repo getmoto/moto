@@ -926,11 +926,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ErrorMessage": "Service not yet supported",
         }
         for arn in resource_arns:
-            if arn.startswith("arn:aws:rds:"):
-                self.rds_backend.add_tags_to_resource(
-                    arn, TaggingService.convert_dict_to_tags_input(tags)
-                )
-            elif arn.startswith("arn:aws:snapshot:"):
+            if arn.startswith("arn:aws:rds:") or arn.startswith("arn:aws:snapshot:"):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
