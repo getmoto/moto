@@ -147,7 +147,7 @@ class CloudWatchResponse(BaseResponse):
         elif state_value:
             alarms = self.cloudwatch_backend.get_alarms_by_state_value(state_value)
         else:
-            alarms = self.cloudwatch_backend.get_all_alarms()
+            alarms = self.cloudwatch_backend.describe_alarms()
 
         metric_alarms = [a for a in alarms if a.rule is None]
         composite_alarms = [a for a in alarms if a.rule is not None]
@@ -244,9 +244,6 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
         return template.render()
 
-    def describe_alarm_history(self) -> None:
-        raise NotImplementedError()
-
     @staticmethod
     def filter_alarms(
         alarms: Iterable[FakeAlarm], metric_name: str, namespace: str
@@ -259,7 +256,7 @@ class CloudWatchResponse(BaseResponse):
         return metric_filtered_alarms
 
     def describe_alarms_for_metric(self) -> str:
-        alarms = self.cloudwatch_backend.get_all_alarms()
+        alarms = self.cloudwatch_backend.describe_alarms()
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
         filtered_alarms = self.filter_alarms(alarms, metric_name, namespace)

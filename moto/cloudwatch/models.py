@@ -119,32 +119,32 @@ class FakeAlarm(BaseModel):
         name: str,
         namespace: str,
         metric_name: str,
-        metric_data_queries: List[MetricDataQuery],
+        metric_data_queries: Optional[List[MetricDataQuery]],
         comparison_operator: str,
         evaluation_periods: int,
-        datapoints_to_alarm: int,
+        datapoints_to_alarm: Optional[int],
         period: int,
         threshold: float,
         statistic: str,
-        extended_statistic: str,
+        extended_statistic: Optional[str],
         description: str,
         dimensions: List[Dict[str, str]],
         alarm_actions: List[str],
-        ok_actions: List[str],
-        insufficient_data_actions: List[str],
-        unit: str,
+        ok_actions: Optional[List[str]],
+        insufficient_data_actions: Optional[List[str]],
+        unit: Optional[str],
         actions_enabled: bool,
-        treat_missing_data: str,
-        evaluate_low_sample_count_percentile: str,
-        threshold_metric_id: str,
-        rule: str,
+        treat_missing_data: Optional[str],
+        evaluate_low_sample_count_percentile: Optional[str],
+        threshold_metric_id: Optional[str],
+        rule: Optional[str],
     ):
         self.region_name = region_name
         self.name = name
         self.alarm_arn = make_arn_for_alarm(region_name, account_id, name)
         self.namespace = namespace
         self.metric_name = metric_name
-        self.metric_data_queries = metric_data_queries
+        self.metric_data_queries = metric_data_queries or []
         self.comparison_operator = comparison_operator
         self.evaluation_periods = evaluation_periods
         self.datapoints_to_alarm = datapoints_to_alarm
@@ -158,8 +158,8 @@ class FakeAlarm(BaseModel):
         ]
         self.actions_enabled = True if actions_enabled is None else actions_enabled
         self.alarm_actions = alarm_actions
-        self.ok_actions = ok_actions
-        self.insufficient_data_actions = insufficient_data_actions
+        self.ok_actions = ok_actions or []
+        self.insufficient_data_actions = insufficient_data_actions or []
         self.unit = unit
         self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds()
         self.treat_missing_data = treat_missing_data
@@ -457,26 +457,26 @@ class CloudWatchBackend(BaseBackend):
         name: str,
         namespace: str,
         metric_name: str,
-        metric_data_queries: List[MetricDataQuery],
         comparison_operator: str,
         evaluation_periods: int,
-        datapoints_to_alarm: int,
         period: int,
         threshold: float,
         statistic: str,
-        extended_statistic: str,
         description: str,
         dimensions: List[Dict[str, str]],
         alarm_actions: List[str],
-        ok_actions: List[str],
-        insufficient_data_actions: List[str],
-        unit: str,
-        actions_enabled: bool,
-        treat_missing_data: str,
-        evaluate_low_sample_count_percentile: str,
-        threshold_metric_id: str,
-        rule: str,
-        tags: List[Dict[str, str]],
+        metric_data_queries: Optional[List[MetricDataQuery]] = None,
+        datapoints_to_alarm: Optional[int] = None,
+        extended_statistic: Optional[str] = None,
+        ok_actions: Optional[List[str]] = None,
+        insufficient_data_actions: Optional[List[str]] = None,
+        unit: Optional[str] = None,
+        actions_enabled: bool = True,
+        treat_missing_data: Optional[str] = None,
+        evaluate_low_sample_count_percentile: Optional[str] = None,
+        threshold_metric_id: Optional[str] = None,
+        rule: Optional[str] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> FakeAlarm:
         if extended_statistic and not extended_statistic.startswith("p"):
             raise InvalidParameterValue(
@@ -519,11 +519,12 @@ class CloudWatchBackend(BaseBackend):
         )
 
         self.alarms[name] = alarm
-        self.tagger.tag_resource(alarm.alarm_arn, tags)
+        if tags:
+            self.tagger.tag_resource(alarm.alarm_arn, tags)
 
         return alarm
 
-    def get_all_alarms(self) -> Iterable[FakeAlarm]:
+    def describe_alarms(self) -> Iterable[FakeAlarm]:
         return self.alarms.values()
 
     @staticmethod
@@ -889,7 +890,7 @@ class CloudWatchBackend(BaseBackend):
     def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
         # From boto3:
         # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
-        all_arns = [alarm.alarm_arn for alarm in self.get_all_alarms()]
+        all_arns = [alarm.alarm_arn for alarm in self.describe_alarms()]
         if arn not in all_arns:
             raise ResourceNotFoundException
 
