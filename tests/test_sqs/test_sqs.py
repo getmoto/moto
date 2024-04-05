@@ -195,10 +195,18 @@ def test_create_fifo_queue_with_high_throughput():
 
 
 @mock_aws
-def test_create_queue():
+@pytest.mark.parametrize(
+    "q_name",
+    [
+        str(uuid4())[0:6],
+        "name_with_underscores",
+        "name-with-hyphens",
+        "Name-with_all_the_THings",
+    ],
+)
+def test_create_queue(q_name):
     sqs = boto3.resource("sqs", region_name=REGION)
 
-    q_name = str(uuid4())[0:6]
     new_queue = sqs.create_queue(QueueName=q_name)
     assert q_name in getattr(new_queue, "url")
 

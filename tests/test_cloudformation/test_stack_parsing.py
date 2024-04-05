@@ -105,7 +105,7 @@ sub_template = {
         "Queue1": {
             "Type": "AWS::SQS::Queue",
             "Properties": {
-                "QueueName": {"Fn::Sub": "${AWS::StackName}-queue-${!Literal}"},
+                "QueueName": {"Fn::Sub": "${AWS::StackName}-queue"},
                 "VisibilityTimeout": 60,
             },
         },
