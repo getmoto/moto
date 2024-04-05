@@ -315,6 +315,21 @@ class Queue(CloudFormationModel):
             raise InvalidAttributeValue("MaximumMessageSize")
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        if re.match(r"^[a-zA-Z0-9_-]{1, 80}$", value) or re.match(
+            r"^[a-zA-Z0-9_-]{1,75}(\.fifo)?$", value
+        ):
+            self._name = value
+        else:
+            raise InvalidParameterValue(
+                "Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length"
+            )
+
+    @property
     def pending_messages(self) -> Set[Message]:
         return self._pending_messages
 

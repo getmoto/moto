@@ -61,6 +61,30 @@ def test_create_fifo_queue_fail():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "queue_name",
+    [
+        "",
+        "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+        "/my/test",
+        "!@£$%^&*()queue",
+    ],
+)
+def test_create_fifo_queue_invalid_name(queue_name):
+    sqs = boto3.client("sqs", region_name=REGION)
+
+    with pytest.raises(ClientError) as ex:
+        sqs.create_queue(QueueName=queue_name)
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length"
+    )
+
+
+@mock_aws
 def test_create_queue_with_same_attributes():
     sqs = boto3.client("sqs", region_name=REGION)
 
