@@ -1796,6 +1796,9 @@ class IoTBackend(BaseBackend):
         return self.rules[rule_name].to_get_dict()
 
     def create_topic_rule(self, rule_name: str, sql: str, **kwargs: Any) -> None:
+        if not re.match("^[a-zA-Z0-9_]+$", rule_name):
+            msg = f"1 validation error detected: Value '{rule_name}' at 'ruleName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_]+$"
+            raise InvalidRequestException(msg)
         if rule_name in self.rules:
             raise ResourceAlreadyExistsException(
                 "Rule with given name already exists", "", self.rules[rule_name].arn
