@@ -1964,7 +1964,7 @@ class CognitoIdpBackend(BaseBackend):
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
 
-            res = user_pool.refresh_tokens[refresh_token]
+            res = user_pool.refresh_tokens.get(refresh_token)
             if res is None:
                 raise NotAuthorizedError("Refresh Token has been revoked")
 
