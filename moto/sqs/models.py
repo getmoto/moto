@@ -466,7 +466,8 @@ class Queue(CloudFormationModel):
         # Could be passed as an integer - just treat it as a string
         # take first 80 characters of the q name, more is invalid
         # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-QueueName
-        resource_name = str(resource_name)[0:80]
+        if len(resource_name) > 80:
+            resource_name = str(resource_name)[0:80]
 
         sqs_backend = sqs_backends[account_id][region_name]
         return sqs_backend.create_queue(
