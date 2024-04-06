@@ -122,8 +122,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return dynamodb_backends[self.account_id][self.region_name]
 
     @property
-    def workspaces_backend(self) -> WorkSpacesBackend:
-        return workspaces_backends[self.account_id][self.region_name]
+    def workspaces_backend(self) -> Optional[WorkSpacesBackend]:
+        # Workspaces service has limited region availability
+        if self.region_name in workspaces_backends[self.account_id].regions:
+            return workspaces_backends[self.account_id][self.region_name]
+        return None
 
     def _get_resources_generator(
         self,
@@ -537,7 +540,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 }
 
         # Workspaces
-        if not resource_type_filters or "workspaces" in resource_type_filters:
+        if self.workspaces_backend and (
+            not resource_type_filters or "workspaces" in resource_type_filters
+        ):
             for ws in self.workspaces_backend.workspaces.values():
                 tags = format_tag_keys(ws.tags, ["Key", "Value"])
                 if not tags or not tag_filter(
@@ -551,7 +556,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 }
 
         # Workspace Directories
-        if not resource_type_filters or "workspaces-directory" in resource_type_filters:
+        if self.workspaces_backend and (
+            not resource_type_filters or "workspaces-directory" in resource_type_filters
+        ):
             for wd in self.workspaces_backend.workspace_directories.values():
                 tags = format_tag_keys(wd.tags, ["Key", "Value"])
                 if not tags or not tag_filter(
@@ -565,7 +572,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 }
 
         # Workspace Images
-        if not resource_type_filters or "workspaces-image" in resource_type_filters:
+        if self.workspaces_backend and (
+            not resource_type_filters or "workspaces-image" in resource_type_filters
+        ):
             for wi in self.workspaces_backend.workspace_images.values():
                 tags = format_tag_keys(wi.tags, ["Key", "Value"])
                 if not tags or not tag_filter(
@@ -932,7 +941,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             elif arn.startswith("arn:aws:workspaces:"):
                 resource_id = arn.split("/")[-1]
-                self.workspaces_backend.create_tags(
+                self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
             elif arn.startswith("arn:aws:logs:"):
