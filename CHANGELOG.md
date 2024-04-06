@@ -1,6 +1,24 @@
 Moto Changelog
 ==============
 
+5.0.5
+-----
+Docker Digest for 5.0.5: <autopopulateddigest>
+
+    New Methods:
+        * SecretsManager:
+            * batch_get_secret_value()
+
+    Miscellaneous:
+        * ApplicationAutoscaling: put_scaling_policy() now generates CW alarms for DynamoDB and ECS
+        * DynamoDB: Fix pagination for scan()/query()
+        * DynamoDB: batch_write_item() now validates for duplicate DELETE or PUT requests
+        * Events: put_events() now validates that input-values cannot be empty
+        * IOT: create_topic_rule() now validates name-format
+        * ResourceGroupsTaggingAPI: tag_resources() now supports RDS snapshots
+        * SFN: Fixed a bug where the executionInput was double encoded
+
+
 5.0.4
 -----
 Docker Digest for 5.0.4: _sha256:e13e917e563bd1e3bb745b0ce914bdcc3bd4577542e13e1468eac5078774b2aa_
