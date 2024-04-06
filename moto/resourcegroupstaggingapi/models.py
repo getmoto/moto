@@ -935,7 +935,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ErrorMessage": "Service not yet supported",
         }
         for arn in resource_arns:
-            if arn.startswith("arn:aws:rds:"):
+            if arn.startswith("arn:aws:rds:") or arn.startswith("arn:aws:snapshot:"):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
@@ -946,7 +946,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             elif arn.startswith("arn:aws:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
-            if arn.startswith("arn:aws:dynamodb"):
+            elif arn.startswith("arn:aws:dynamodb"):
                 self.dynamodb_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
