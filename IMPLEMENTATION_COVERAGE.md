@@ -7143,9 +7143,9 @@
 
 ## secretsmanager
 <details>
-<summary>86% implemented</summary>
+<summary>91% implemented</summary>
 
-- [ ] batch_get_secret_value
+- [X] batch_get_secret_value
 - [X] cancel_rotate_secret
 - [X] create_secret
 - [X] delete_resource_policy
