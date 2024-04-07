@@ -203,6 +203,7 @@ def test_create_fifo_queue_with_high_throughput():
         "name-with-hyphens",
         "Name-with_all_the_THings",
     ],
+    ids=["random", "underscores", "hyphens", "combined"],
 )
 def test_create_queue(q_name):
     sqs = boto3.resource("sqs", region_name=REGION)
