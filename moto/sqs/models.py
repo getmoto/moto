@@ -315,6 +315,22 @@ class Queue(CloudFormationModel):
             raise InvalidAttributeValue("MaximumMessageSize")
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-QueueName
+        if re.match(r"^[a-zA-Z0-9\_-]{1,80}$", value) or re.match(
+            r"^[a-zA-Z0-9\_-]{1,75}(\.fifo)?$", value
+        ):
+            self._name = value
+        else:
+            raise InvalidParameterValue(
+                "Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length"
+            )
+
+    @property
     def pending_messages(self) -> Set[Message]:
         return self._pending_messages
 
@@ -448,7 +464,9 @@ class Queue(CloudFormationModel):
         tags_dict = tags_from_cloudformation_tags_list(tags)
 
         # Could be passed as an integer - just treat it as a string
-        resource_name = str(resource_name)
+        # take first 80 characters of the q name, more is invalid
+        # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-QueueName
+        resource_name = str(resource_name)[0:80]
 
         sqs_backend = sqs_backends[account_id][region_name]
         return sqs_backend.create_queue(

@@ -61,6 +61,30 @@ def test_create_fifo_queue_fail():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "queue_name",
+    [
+        "",
+        "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+        "/my/test",
+        "!@£$%^&*()queue",
+    ],
+)
+def test_create_fifo_queue_invalid_name(queue_name):
+    sqs = boto3.client("sqs", region_name=REGION)
+
+    with pytest.raises(ClientError) as ex:
+        sqs.create_queue(QueueName=queue_name)
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length"
+    )
+
+
+@mock_aws
 def test_create_queue_with_same_attributes():
     sqs = boto3.client("sqs", region_name=REGION)
 
@@ -171,10 +195,19 @@ def test_create_fifo_queue_with_high_throughput():
 
 
 @mock_aws
-def test_create_queue():
+@pytest.mark.parametrize(
+    "q_name",
+    [
+        str(uuid4())[0:6],
+        "name_with_underscores",
+        "name-with-hyphens",
+        "Name-with_all_the_THings",
+    ],
+    ids=["random", "underscores", "hyphens", "combined"],
+)
+def test_create_queue(q_name):
     sqs = boto3.resource("sqs", region_name=REGION)
 
-    q_name = str(uuid4())[0:6]
     new_queue = sqs.create_queue(QueueName=q_name)
     assert q_name in getattr(new_queue, "url")
 
