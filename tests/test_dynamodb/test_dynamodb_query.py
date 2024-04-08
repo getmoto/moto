@@ -191,8 +191,58 @@ def test_query_pagination(table_name=None):
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified(add_range=True, numeric_gsi_range=True)
+@dynamodb_aws_verified(add_gsi=True)
 def test_query_gsi_pagination(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    for i in range(3, 7):
+        table.put_item(Item={"pk": f"pk{i}", "gsi_pk": "a"})
+
+    for i in range(11, 6, -1):
+        table.put_item(Item={"pk": f"pk{i}", "gsi_pk": "b"})
+
+    for i in range(3):
+        table.put_item(Item={"pk": f"pk{i}", "gsi_pk": "c"})
+
+    page1 = table.query(
+        KeyConditionExpression=Key("gsi_pk").eq("b"),
+        IndexName="test_gsi",
+        Limit=2,
+    )
+    p1_items = [i["pk"] for i in page1["Items"]]
+    assert len(p1_items) == 2
+
+    page2 = table.query(
+        KeyConditionExpression=Key("gsi_pk").eq("b"),
+        IndexName="test_gsi",
+        Limit=2,
+        ExclusiveStartKey=page1["LastEvaluatedKey"],
+    )
+    p2_items = [i["pk"] for i in page2["Items"]]
+    assert len(p2_items) == 2
+
+    page3 = table.query(
+        KeyConditionExpression=Key("gsi_pk").eq("b"),
+        IndexName="test_gsi",
+        Limit=2,
+        ExclusiveStartKey=page2["LastEvaluatedKey"],
+    )
+    p3_items = [i["pk"] for i in page3["Items"]]
+    assert len(p3_items) == 1
+
+    assert sorted(set(p1_items + p2_items + p3_items)) == [
+        "pk10",
+        "pk11",
+        "pk7",
+        "pk8",
+        "pk9",
+    ]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, numeric_gsi_range=True)
+def test_query_gsi_pagination_with_numeric_range(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
 
