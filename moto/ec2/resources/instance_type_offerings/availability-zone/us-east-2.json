@@ -804,6 +804,46 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "g6.12xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "h1.16xlarge",
   "Location": "us-east-2a"
  },
@@ -3644,6 +3684,46 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "g6.12xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "h1.16xlarge",
   "Location": "us-east-2b"
  },
@@ -6461,6 +6541,46 @@
  },
  {
   "InstanceType": "g5.xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.12xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
   "Location": "us-east-2c"
  },
  {
