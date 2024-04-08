@@ -58,6 +58,11 @@ class FakeThing(BaseModel):
     def matches(self, query_string: str) -> bool:
         if query_string == "*":
             return True
+        if query_string.startswith("thingTypeName:"):
+            if not self.thing_type:
+                return False
+            qs = query_string[14:].replace("*", ".*").replace("?", ".")
+            return re.search(f"^{qs}$", self.thing_type.thing_type_name) is not None
         if query_string.startswith("thingName:"):
             qs = query_string[10:].replace("*", ".*").replace("?", ".")
             return re.search(f"^{qs}$", self.thing_name) is not None
