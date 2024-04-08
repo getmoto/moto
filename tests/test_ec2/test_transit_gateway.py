@@ -1,3 +1,4 @@
+from time import sleep
 from unittest import SkipTest
 
 import boto3
@@ -781,50 +782,197 @@ def test_disassociate_transit_gateway_route_table():
 
 @mock_aws
 def test_enable_transit_gateway_route_table_propagation():
-    ec2 = boto3.client("ec2", region_name="us-west-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
         "TransitGatewayId"
     ]
-    attchmnt = ec2.create_transit_gateway_vpc_attachment(
-        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
-    )["TransitGatewayVpcAttachment"]
+    vpc_id = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16").id
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    gateway1_status = "unknown"
+    while gateway1_status != "available":
+        sleep(0.5)
+        gateway1_status = ec2.describe_transit_gateways(TransitGatewayIds=[gateway_id])[
+            "TransitGateways"
+        ][0]["State"]
+
+    attchmnt_id = _create_attachment(ec2, gateway_id, subnet_id, vpc_id)
+
     table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
         "TransitGatewayRouteTable"
     ]
+    table_status = "unknown"
+    while table_status != "available":
+        table_status = ec2.describe_transit_gateway_route_tables(
+            TransitGatewayRouteTableIds=[table["TransitGatewayRouteTableId"]]
+        )["TransitGatewayRouteTables"][0]["State"]
+        sleep(0.5)
 
     initial = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )
-    assert initial["TransitGatewayRouteTablePropagations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
-    ]
-
-    ec2.associate_transit_gateway_route_table(
-        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
-        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
-    )
+    )["TransitGatewayRouteTablePropagations"]
+    assert initial == []
 
     ec2.enable_transit_gateway_route_table_propagation(
-        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayAttachmentId=attchmnt_id,
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
     )
 
-    enabled = ec2.get_transit_gateway_route_table_propagations(
+    propagations = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )
-    assert enabled["TransitGatewayRouteTablePropagations"] == [
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
         {
-            "TransitGatewayAttachmentId": attchmnt["TransitGatewayAttachmentId"],
-            "ResourceId": "vpc-id",
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
             "ResourceType": "vpc",
             "State": "enabled",
         }
     ]
+
+    # Create second propagation
+    vpc_id2 = ec2_resource.create_vpc(CidrBlock="10.0.0.1/16").id
+    subnet_id2 = ec2.create_subnet(VpcId=vpc_id2, CidrBlock="10.0.0.1/24")["Subnet"][
+        "SubnetId"
+    ]
+    attchmnt_id2 = _create_attachment(ec2, gateway_id, subnet_id2, vpc_id2)
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        }
+    ]
+
+    ec2.enable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt_id2,
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+        {
+            "TransitGatewayAttachmentId": attchmnt_id2,
+            "ResourceId": vpc_id2,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+    ]
+
+    # Verify it disappears after deleting the attachment
+    _delete_attachment(attchmnt_id2, ec2)
+    ec2.delete_subnet(SubnetId=subnet_id2)
+    ec2.delete_vpc(VpcId=vpc_id2)
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        }
+    ]
+
+    # Create third propagation
+    vpc_id3 = ec2_resource.create_vpc(CidrBlock="10.0.0.2/16").id
+    subnet_id3 = ec2.create_subnet(VpcId=vpc_id3, CidrBlock="10.0.0.2/24")["Subnet"][
+        "SubnetId"
+    ]
+    attchmnt_id3 = _create_attachment(ec2, gateway_id, subnet_id3, vpc_id3)
+
+    ec2.enable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt_id3,
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+        {
+            "TransitGatewayAttachmentId": attchmnt_id3,
+            "ResourceId": vpc_id3,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+    ]
+
+    # Verify it disappears after deleting the attachment
+    ec2.disable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt_id3,
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        }
+    ]
+    _delete_attachment(attchmnt_id3, ec2)
+    ec2.delete_subnet(SubnetId=subnet_id3)
+    ec2.delete_vpc(VpcId=vpc_id3)
+
+    _delete_attachment(attchmnt_id, ec2)
+    ec2.delete_transit_gateway(TransitGatewayId=gateway_id)
+    ec2.delete_subnet(SubnetId=subnet_id)
+    ec2.delete_vpc(VpcId=vpc_id)
+
+
+def _create_attachment(ec2, gateway_id, subnet_id, vpc_id):
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+    )["TransitGatewayVpcAttachment"]
+    attchmtn_status = "unknown"
+    while attchmtn_status != "available":
+        attchmtn_status = ec2.describe_transit_gateway_vpc_attachments(
+            TransitGatewayAttachmentIds=[attchmnt["TransitGatewayAttachmentId"]]
+        )["TransitGatewayVpcAttachments"][0]["State"]
+        sleep(0.1)
+    return attchmnt["TransitGatewayAttachmentId"]
+
+
+def _delete_attachment(attchmnt_id, ec2):
+    ec2.delete_transit_gateway_vpc_attachment(TransitGatewayAttachmentId=attchmnt_id)
+    attchmtn_status = "unknown"
+    while attchmtn_status != "deleted":
+        attachments = ec2.describe_transit_gateway_vpc_attachments(
+            TransitGatewayAttachmentIds=[attchmnt_id]
+        )["TransitGatewayVpcAttachments"]
+        if not attachments:
+            break
+        attchmtn_status = attachments[0]["State"]
+        sleep(0.1)
 
 
 @mock_aws
@@ -843,14 +991,7 @@ def test_disable_transit_gateway_route_table_propagation_without_enabling_first(
     initial = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
-    assert initial["TransitGatewayRouteTablePropagations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
-    ]
+    assert initial["TransitGatewayRouteTablePropagations"] == []
 
     ec2.associate_transit_gateway_route_table(
         TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
@@ -880,14 +1021,7 @@ def test_disable_transit_gateway_route_table_propagation():
     initial = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
-    assert initial["TransitGatewayRouteTablePropagations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
-    ]
+    assert initial["TransitGatewayRouteTablePropagations"] == []
 
     ec2.associate_transit_gateway_route_table(
         TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
@@ -906,11 +1040,4 @@ def test_disable_transit_gateway_route_table_propagation():
     disabled = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
-    assert disabled["TransitGatewayRouteTablePropagations"] == [
-        {
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-            "TransitGatewayAttachmentId": "",
-        }
-    ]
+    assert disabled["TransitGatewayRouteTablePropagations"] == []

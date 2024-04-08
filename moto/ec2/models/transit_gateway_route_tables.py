@@ -28,7 +28,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.routes: Dict[str, Dict[str, Optional[str]]] = {}
         self.add_tags(tags or {})
         self.route_table_association: Dict[str, str] = {}
-        self.route_table_propagation: Dict[str, str] = {}
+        self.route_table_propagation: List[Dict[str, str]] = []
 
     @property
     def physical_resource_id(self) -> str:
@@ -217,29 +217,26 @@ class TransitGatewayRouteTableBackend:
     def set_route_table_propagation(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
-        self.transit_gateways_route_tables[
-            transit_gateway_route_table_id
-        ].route_table_propagation = {
-            "resourceId": self.transit_gateway_attachments[  # type: ignore[attr-defined]
-                transit_gateway_attachment_id
-            ].resource_id,
-            "resourceType": self.transit_gateway_attachments[  # type: ignore[attr-defined]
-                transit_gateway_attachment_id
-            ].resource_type,
-            "state": "enabled",
-            "transitGatewayAttachmentId": transit_gateway_attachment_id,
-        }
-
-    def unset_route_table_propagation(self, tgw_rt_id: str) -> None:
-        tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
-        tgw_rt.route_table_propagation = {}
+        route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        attchment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
+        route_table.route_table_propagation.append(
+            {
+                "resourceId": attchment.resource_id,
+                "resourceType": attchment.resource_type,
+                "state": "enabled",
+                "transitGatewayAttachmentId": transit_gateway_attachment_id,
+            }
+        )
 
     def disable_route_table_propagation(
-        self, transit_gateway_route_table_id: str
+        self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
-        self.transit_gateways_route_tables[
-            transit_gateway_route_table_id
-        ].route_table_propagation = {}
+        route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
+        route_table.route_table_propagation = [
+            prop
+            for prop in route_table.route_table_propagation
+            if prop["transitGatewayAttachmentId"] != transit_gateway_attachment_id
+        ]
 
     def get_transit_gateway_route_table_associations(
         self, transit_gateway_route_table_id: List[str], filters: Any = None
@@ -341,7 +338,8 @@ class TransitGatewayRouteTableBackend:
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> TransitGatewayRelations:
         self.disable_route_table_propagation(
-            transit_gateway_route_table_id=transit_gateway_route_table_id
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
         )
         self.disable_attachment_propagation(  # type: ignore[attr-defined]
             transit_gateway_attachment_id=transit_gateway_attachment_id

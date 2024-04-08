@@ -222,6 +222,18 @@ class TransitGatewayAttachmentBackend:
             transit_gateway_attachment_id
         )
         transit_gateway_attachment.state = "deleted"
+        try:
+            route_table_id = transit_gateway_attachment.propagation.get(
+                "transitGatewayRouteTableId"
+            )
+            route_table = self.transit_gateways_route_tables[route_table_id]  # type: ignore[attr-defined]
+            route_table.route_table_propagation = [
+                prop
+                for prop in route_table.route_table_propagation
+                if prop["transitGatewayAttachmentId"] != transit_gateway_attachment_id
+            ]
+        except (AttributeError, KeyError, IndexError):
+            pass
         return transit_gateway_attachment
 
     def modify_transit_gateway_vpc_attachment(

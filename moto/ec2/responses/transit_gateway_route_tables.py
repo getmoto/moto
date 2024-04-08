@@ -250,12 +250,14 @@ GET_TRANSIT_GATEWAY_ROUTE_TABLE_PROPAGATIONS_RESPONSE = """<GetTransitGatewayRou
     <requestId>541bc42d-9ed9-4aef-a5f7-2ea32fbdec16</requestId>
     <transitGatewayRouteTablePropagations>
         {% for route_table in transit_gateway_route_table_propagations %}
+          {% for prop in route_table.route_table_propagation %}
         <item>
-            <resourceId>{{ route_table.route_table_propagation.resourceId }}</resourceId>
-            <resourceType>{{ route_table.route_table_propagation.resourceType }}</resourceType>
-            <state>{{ route_table.route_table_propagation.state }}</state>
-            <transitGatewayAttachmentId>{{ route_table.route_table_propagation.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
+            <resourceId>{{ prop.resourceId }}</resourceId>
+            <resourceType>{{ prop.resourceType }}</resourceType>
+            <state>{{ prop.state }}</state>
+            <transitGatewayAttachmentId>{{ prop.transitGatewayAttachmentId }}</transitGatewayAttachmentId>
         </item>
+          {% endfor %}
         {% endfor %}
     </transitGatewayRouteTablePropagations>
 </GetTransitGatewayRouteTablePropagationsResponse>"""
