@@ -692,7 +692,11 @@ class Table(CloudFormationModel):
                     key for key in index.schema if key["KeyType"] == "RANGE"
                 ][0]
             except IndexError:
-                index_range_key = None
+                if isinstance(index, GlobalSecondaryIndex):
+                    # If we're querying a GSI that does not have an index, the main hash key acts as a range key
+                    index_range_key = {"AttributeName": self.hash_key_attr}
+                else:
+                    index_range_key = None
                 if range_comparison:
                     raise ValueError(
                         f"Range Key comparison but no range key found for index: {index_name}"
@@ -932,7 +936,7 @@ class Table(CloudFormationModel):
                 else:
                     processing_previous_page = False
 
-            # Check wether we've reached the limit of our result set
+            # Check whether we've reached the limit of our result set
             # That can be either in number, or in size
             reached_length_limit = len(results) == limit
             reached_size_limit = (result_size + item.size()) > RESULT_SIZE_LIMIT
