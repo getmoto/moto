@@ -5,6 +5,9 @@ Moto Changelog
 -----
 Docker Digest for 5.0.5: _sha256:b95cf0d65557475f29e7256938028eef352e23acafe8e07c071cd58b67c44708_
 
+    General:
+        * DynamoDB: scan() now returns items in a alphabetical order
+    
     New Methods:
         * SecretsManager:
             * batch_get_secret_value()
