@@ -1,4 +1,4 @@
-# Generated from /Users/mep/LocalStack/localstack/localstack/services/stepfunctions/asl/antlr/ASLParser.g4 by ANTLR 4.13.1
+# Generated from ASLParser.g4 by ANTLR 4.13.1
 from antlr4 import ParseTreeVisitor
 
 if "." in __name__:
@@ -10,6 +10,10 @@ else:
 
 
 class ASLParserVisitor(ParseTreeVisitor):
+    # Visit a parse tree produced by ASLParser#state_machine.
+    def visitState_machine(self, ctx: ASLParser.State_machineContext):
+        return self.visitChildren(ctx)
+
     # Visit a parse tree produced by ASLParser#program_decl.
     def visitProgram_decl(self, ctx: ASLParser.Program_declContext):
         return self.visitChildren(ctx)
@@ -90,8 +94,28 @@ class ASLParserVisitor(ParseTreeVisitor):
     def visitError_decl(self, ctx: ASLParser.Error_declContext):
         return self.visitChildren(ctx)
 
+    # Visit a parse tree produced by ASLParser#error_path_decl_path.
+    def visitError_path_decl_path(self, ctx: ASLParser.Error_path_decl_pathContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#error_path_decl_intrinsic.
+    def visitError_path_decl_intrinsic(
+        self, ctx: ASLParser.Error_path_decl_intrinsicContext
+    ):
+        return self.visitChildren(ctx)
+
     # Visit a parse tree produced by ASLParser#cause_decl.
     def visitCause_decl(self, ctx: ASLParser.Cause_declContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#cause_path_decl_path.
+    def visitCause_path_decl_path(self, ctx: ASLParser.Cause_path_decl_pathContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#cause_path_decl_intrinsic.
+    def visitCause_path_decl_intrinsic(
+        self, ctx: ASLParser.Cause_path_decl_intrinsicContext
+    ):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by ASLParser#seconds_decl.
@@ -358,6 +382,14 @@ class ASLParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by ASLParser#backoff_rate_decl.
     def visitBackoff_rate_decl(self, ctx: ASLParser.Backoff_rate_declContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#max_delay_seconds_decl.
+    def visitMax_delay_seconds_decl(self, ctx: ASLParser.Max_delay_seconds_declContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#jitter_strategy_decl.
+    def visitJitter_strategy_decl(self, ctx: ASLParser.Jitter_strategy_declContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by ASLParser#catch_decl.

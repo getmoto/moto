@@ -16,6 +16,7 @@ from tests.test_awslambda.utilities import (
 
 from ...markers import requires_docker
 from . import base_url, sfn_allow_lambda_invoke, sfn_role_policy
+from .templates.comments.comments_as_per_docs import templ as comments_templ
 
 lambda_state_machine = {
     "Comment": "A simple AWS Step Functions state machine that calls two Lambda Functions",
@@ -258,6 +259,57 @@ def test_state_machine_calling_failing_lambda_fn(
                 "ExecutionFailed",
             ]
 
+            client.delete_state_machine(stateMachineArn=state_machine_arn)
+            iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
+            iam.delete_role(RoleName=role_name)
+            break
+        sleep(1)
+    else:
+        client.delete_state_machine(stateMachineArn=state_machine_arn)
+        iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
+        iam.delete_role(RoleName=role_name)
+        assert False, "Should have failed already"
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.network
+@requires_docker
+def test_comments_on_lmb_function(fn_name=None, fn_arn=None, sleep_time=0):
+    definition = comments_templ.copy()
+    definition["States"]["TaskStateCatchRetry"]["Resource"] = fn_arn
+
+    iam = boto3.client("iam", region_name="us-east-1")
+    role_name = f"sfn_role_{str(uuid4())[0:6]}"
+    sfn_role = iam.create_role(
+        RoleName=role_name,
+        AssumeRolePolicyDocument=json.dumps(sfn_role_policy),
+        Path="/",
+    )["Role"]["Arn"]
+    iam.put_role_policy(
+        PolicyDocument=json.dumps(sfn_allow_lambda_invoke),
+        PolicyName="allowLambdaInvoke",
+        RoleName=role_name,
+    )
+    sleep(sleep_time)
+
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+    name = "sfn_" + str(uuid4())[0:6]
+    exec_input = {}
+    #
+    response = client.create_state_machine(
+        name=name, definition=json.dumps(definition), roleArn=sfn_role
+    )
+    state_machine_arn = response["stateMachineArn"]
+
+    execution = client.start_execution(
+        name="exec1", stateMachineArn=state_machine_arn, input=json.dumps(exec_input)
+    )
+    execution_arn = execution["executionArn"]
+
+    for _ in range(15):
+        execution = client.describe_execution(executionArn=execution_arn)
+        if execution["status"] == "SUCCEEDED":
             client.delete_state_machine(stateMachineArn=state_machine_arn)
             iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
             iam.delete_role(RoleName=role_name)
