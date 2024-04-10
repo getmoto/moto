@@ -1,6 +1,8 @@
 import abc
 import logging
+from typing import Optional
 
+from moto.moto_api._internal import mock_random
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEventException,
 )
@@ -12,6 +14,14 @@ LOG = logging.getLogger(__name__)
 
 
 class EvalComponent(Component, abc.ABC):
+    __heap_key: Optional[str] = None
+
+    @property
+    def heap_key(self) -> str:
+        if self.__heap_key is None:
+            self.__heap_key = str(mock_random.uuid4())
+        return self.__heap_key
+
     def _log_evaluation_step(self, subject: str = "Generic") -> None:
         LOG.debug(
             f"[ASL] [{subject.lower()[:4]}] [{self.__class__.__name__}]: '{repr(self)}'"
