@@ -1,3 +1,5 @@
+import abc
+
 from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_list import (
     FunctionArgumentList,
 )
@@ -7,7 +9,7 @@ from moto.stepfunctions.parser.asl.component.intrinsic.functionname.states_funct
 )
 
 
-class StatesFunction(Function):
+class StatesFunction(Function, abc.ABC):
     name: StatesFunctionName
 
     def __init__(self, states_name: StatesFunctionName, arg_list: FunctionArgumentList):
