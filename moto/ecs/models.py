@@ -1679,24 +1679,27 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def update_service(
         self,
-        cluster_str: str,
-        service_str: str,
-        task_definition_str: str,
-        desired_count: Optional[int],
+        # cluster_str: str,
+        # service_str: str,
+        # task_definition_str: str,
+        service_properties: Dict[str, Any]
     ) -> Service:
-        cluster = self._get_cluster(cluster_str)
 
-        service_name = service_str.split("/")[-1]
+        cluster = self._get_cluster(service_properties["cluster"])
+
+        service_name = service_properties.pop("service").split("/")[-1]
         cluster_service_pair = f"{cluster.name}:{service_name}"
         if cluster_service_pair in self.services:
-            if task_definition_str is not None:
+            current_service = self.services[cluster_service_pair]
+
+            for k, v in service_properties.items():
+                if v is not None:
+                    current_service.__setattr__(k, v)
+            task_definition_str = service_properties.get("task_definition")
+            if task_definition_str:
                 self.describe_task_definition(task_definition_str)
-                self.services[
-                    cluster_service_pair
-                ].task_definition = task_definition_str
-            if desired_count is not None:
-                self.services[cluster_service_pair].desired_count = desired_count
-            return self.services[cluster_service_pair]
+                current_service.task_definition = task_definition_str
+            return current_service
         else:
             raise ServiceNotFoundException
 

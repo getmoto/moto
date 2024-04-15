@@ -5,6 +5,7 @@ from moto.core.responses import BaseResponse
 
 from .models import EC2ContainerServiceBackend, ecs_backends
 
+from moto.core.utils import camelcase_to_underscores
 
 class EC2ContainerServiceResponse(BaseResponse):
     def __init__(self) -> None:
@@ -309,9 +310,13 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster_str = self._get_param("cluster", "default")
         service_name = self._get_param("service")
         task_definition = self._get_param("taskDefinition")
-        desired_count = self._get_int_param("desiredCount")
+        service_properties = json.loads(self.body)
+        new_props = {}
+        for k, v in service_properties.items():
+            new_props[camelcase_to_underscores(k)] = v
+
         service = self.ecs_backend.update_service(
-            cluster_str, service_name, task_definition, desired_count
+            new_props
         )
         return json.dumps({"service": service.response_object})
 
